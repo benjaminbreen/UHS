@@ -723,13 +723,110 @@ function detectNearbyDangers(npc: NpcEntity, map: MapData, playerPos: Point): { 
     return null;
 }
 
+// Feature flag for proxy serialization fix
+const USE_PROXY_SERIALIZATION = true; // Set to false to rollback to original behavior
+
+// Performance monitoring (can be disabled in production)
+const MONITOR_PERFORMANCE = false; // Set to true to log performance metrics
+let performanceStats = {
+    serializationTime: 0,
+    updateCount: 0,
+    totalTime: 0
+};
+
+// Utility functions for runtime control (accessible from console)
+(window as any).npcAIDebug = {
+    toggleSerialization: () => {
+        (USE_PROXY_SERIALIZATION as any) = !USE_PROXY_SERIALIZATION;
+        console.log(`[NPC AI] Proxy serialization ${USE_PROXY_SERIALIZATION ? 'ENABLED' : 'DISABLED'}`);
+    },
+    enablePerformanceMonitoring: () => {
+        (MONITOR_PERFORMANCE as any) = true;
+        performanceStats = { serializationTime: 0, updateCount: 0, totalTime: 0 };
+        console.log('[NPC AI] Performance monitoring ENABLED');
+    },
+    disablePerformanceMonitoring: () => {
+        (MONITOR_PERFORMANCE as any) = false;
+        console.log('[NPC AI] Performance monitoring DISABLED');
+    },
+    getStats: () => {
+        console.log('[NPC AI Stats]', performanceStats);
+        if (performanceStats.updateCount > 0) {
+            console.log(`Average serialization time: ${(performanceStats.serializationTime / performanceStats.updateCount).toFixed(2)}ms`);
+        }
+        return performanceStats;
+    },
+    resetStats: () => {
+        performanceStats = { serializationTime: 0, updateCount: 0, totalTime: 0 };
+        console.log('[NPC AI] Stats reset');
+    }
+};
+
 export function calculateNpcUpdate(
-    npc: NpcEntity,
+    npcInput: NpcEntity,
     playerPos: Point,
     map: MapData,
     gameTimeHours: number,
-    allNpcs?: NpcEntity[]
+    allNpcsInput?: NpcEntity[]
 ): Partial<NpcEntity> {
+    let npc: NpcEntity;
+    let allNpcs: NpcEntity[] | undefined;
+
+    if (USE_PROXY_SERIALIZATION) {
+        // OPTION 1: Deep clone with Map/Set preservation to prevent proxy revocation
+        const serializationStart = MONITOR_PERFORMANCE ? performance.now() : 0;
+        try {
+            // Custom deep clone that preserves Map/Set in memory field
+            const deepCloneNpc = (src: NpcEntity): NpcEntity => {
+                const cloned = { ...src };
+                if (src.memory) {
+                    cloned.memory = {
+                        ...src.memory,
+                        knownFactsAboutPlayer: src.memory.knownFactsAboutPlayer instanceof Set
+                            ? new Set(src.memory.knownFactsAboutPlayer)
+                            : new Set(),
+                        relationships: src.memory.relationships instanceof Map
+                            ? new Map(src.memory.relationships)
+                            : new Map(),
+                        conversationSummaries: [...(src.memory.conversationSummaries || [])]
+                    };
+                }
+                return cloned;
+            };
+
+            npc = deepCloneNpc(npcInput);
+            allNpcs = allNpcsInput ? allNpcsInput.map(deepCloneNpc) : undefined;
+
+            if (MONITOR_PERFORMANCE) {
+                performanceStats.serializationTime += performance.now() - serializationStart;
+                performanceStats.updateCount++;
+
+                // Log stats every 100 updates
+                if (performanceStats.updateCount % 100 === 0) {
+                    const avgSerialization = performanceStats.serializationTime / performanceStats.updateCount;
+                    console.log(`[NPC AI Performance] Avg serialization: ${avgSerialization.toFixed(2)}ms per update (${performanceStats.updateCount} updates)`);
+                }
+            }
+        } catch (error) {
+            console.warn('[NPC AI] Serialization failed, falling back to proxy validation:', error);
+            // Fallback to original validation approach
+            npc = npcInput;
+            allNpcs = allNpcsInput;
+        }
+    } else {
+        // ORIGINAL: Use proxies directly with validation
+        try {
+            // Test accessing NPC properties to catch revoked proxy
+            const testAccess = npcInput.x + npcInput.y + npcInput.id.length;
+            if (typeof testAccess !== 'number') throw new Error('Invalid NPC data');
+            npc = npcInput;
+            allNpcs = allNpcsInput;
+        } catch (error) {
+            console.warn('[NPC AI] Skipping update for NPC with revoked proxy:', error);
+            return {}; // Return empty update to avoid crash
+        }
+    }
+
     const memory = getNpcMemory(npc.id);
     const now = Date.now();
 
@@ -1136,16 +1233,21 @@ export function calculateNpcUpdate(
                 }
 
                 // Performance optimization: Continue on existing path if we have one
-                if (memory.currentDestination &&
-                    memory.currentDestination.x === target.x &&
-                    memory.currentDestination.y === target.y &&
-                    walkableNeighbors.length > 0) {
-                    // Still going to same destination - just move toward it
-                    nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
-                } else {
-                    // New destination or path blocked - recalculate
-                    memory.currentDestination = target;
-                    nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
+                try {
+                    if (memory.currentDestination &&
+                        memory.currentDestination.x === target.x &&
+                        memory.currentDestination.y === target.y &&
+                        walkableNeighbors.length > 0) {
+                        // Still going to same destination - just move toward it
+                        nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
+                    } else {
+                        // New destination or path blocked - recalculate
+                        memory.currentDestination = target;
+                        nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
+                    }
+                } catch (error) {
+                    // Revoked proxy error - just move randomly
+                    nextPos = walkableNeighbors[Math.floor(Math.random() * walkableNeighbors.length)];
                 }
             } else {
                 newActivity = 'wandering'; // No home, so just wander

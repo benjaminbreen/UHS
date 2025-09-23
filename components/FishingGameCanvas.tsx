@@ -8,6 +8,7 @@ import { FishSpecies, FishingDataService } from '../services/fishingDataService'
 import { CulturalZone } from '../types/characterData';
 import { HistoricalEra } from '../types/ambiance';
 import { ClimateType, Season } from '../types';
+import { isSafari, getSafariOptimizedFilter } from '../utils/safariUtils';
 import { gameSounds } from '../services/gameSoundsService';
 import { FishRenderer } from './FishRenderer';
 
@@ -695,36 +696,50 @@ const FishingGameCanvas: React.FC<FishingGameCanvasProps> = ({
             <stop offset="100%" stopColor="#000000" stopOpacity="0.9" />
           </linearGradient>
           
-          {/* Water murkiness filter */}
-          <filter id="waterMurk" x="-50%" y="-50%" width="200%" height="200%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="5" />
-            <feColorMatrix values="0 0 0 0 0.1
-                                  0 0 0 0 0.15
-                                  0 0 0 0 0.2
-                                  0 0 0 0.3 0" />
-            <feGaussianBlur stdDeviation="1" />
-            <feBlend mode="multiply" />
-          </filter>
-          
-          {/* Depth distortion filter */}
-          <filter id="depthDistortion">
-            <feTurbulence type="turbulence" baseFrequency="0.008" numOctaves="2" result="turbulence" seed="2" />
-            <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="8" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
+          {/* Safari optimization: Simplified filters for better performance */}
+          {!isSafari() && (
+            <>
+              {/* Water murkiness filter - disabled on Safari */}
+              <filter id="waterMurk" x="-50%" y="-50%" width="200%" height="200%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="5" />
+                <feColorMatrix values="0 0 0 0 0.1
+                                      0 0 0 0 0.15
+                                      0 0 0 0 0.2
+                                      0 0 0 0.3 0" />
+                <feGaussianBlur stdDeviation="1" />
+                <feBlend mode="multiply" />
+              </filter>
 
-          {/* Caustic light pattern for shallow water */}
-          <filter id="caustics">
-            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="2" result="turbulence" />
-            <feColorMatrix in="turbulence" type="saturate" values="0" />
-            <feComponentTransfer>
-              <feFuncA type="discrete" tableValues="0 .5 .5 .5 1 1 1 .5 .5 .5 .5" />
-            </feComponentTransfer>
-            <feGaussianBlur stdDeviation="0.5" />
-            <feSpecularLighting result="specOut" specularExponent="20" lighting-color="white">
-              <fePointLight x="-50" y="30" z="200" />
-            </feSpecularLighting>
-            <feComposite in="specOut" in2="SourceAlpha" operator="in" />
-          </filter>
+              {/* Depth distortion filter - disabled on Safari */}
+              <filter id="depthDistortion">
+                <feTurbulence type="turbulence" baseFrequency="0.008" numOctaves="2" result="turbulence" seed="2" />
+                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="8" xChannelSelector="R" yChannelSelector="G" />
+              </filter>
+
+              {/* Caustic light pattern - disabled on Safari */}
+              <filter id="caustics">
+                <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="2" result="turbulence" />
+                <feColorMatrix in="turbulence" type="saturate" values="0" />
+                <feComponentTransfer>
+                  <feFuncA type="discrete" tableValues="0 .5 .5 .5 1 1 1 .5 .5 .5 .5" />
+                </feComponentTransfer>
+                <feGaussianBlur stdDeviation="0.5" />
+                <feSpecularLighting result="specOut" specularExponent="20" lighting-color="white">
+                  <fePointLight x="-50" y="30" z="200" />
+                </feSpecularLighting>
+                <feComposite in="specOut" in2="SourceAlpha" operator="in" />
+              </filter>
+            </>
+          )}
+
+          {/* Simple fallback filters for Safari */}
+          {isSafari() && (
+            <>
+              <filter id="simpleMurk">
+                <feColorMatrix values="0.8 0 0 0 0.1  0 0.9 0 0 0.15  0 0 1 0 0.2  0 0 0 0.8 0" />
+              </filter>
+            </>
+          )}
         </defs>
 
         {/* Sky background with gradient */}
@@ -1177,7 +1192,7 @@ const FishingGameCanvas: React.FC<FishingGameCanvasProps> = ({
             height={100}
             fill="white"
             opacity="0.1"
-            filter="url(#caustics)"
+            filter={getSafariOptimizedFilter("url(#caustics)")}
             pointerEvents="none"
           />
         )}
@@ -1190,12 +1205,12 @@ const FishingGameCanvas: React.FC<FishingGameCanvasProps> = ({
           height={150}
           fill={isFreshwater ? '#4A5D4A' : '#2A3D5A'}
           opacity="0.4"
-          filter="url(#waterMurk)"
+          filter={getSafariOptimizedFilter("url(#waterMurk)") || (isSafari() ? "url(#simpleMurk)" : "url(#waterMurk)")}
           pointerEvents="none"
         />
         
         {/* Layer 3: Deep water distortion - MADE MORE VISIBLE */}
-        <g filter="url(#depthDistortion)" opacity="1.0">
+        <g filter={getSafariOptimizedFilter("url(#depthDistortion)")} opacity="1.0">
           <rect
             x={0}
             y={WATER_SURFACE_Y + 250}

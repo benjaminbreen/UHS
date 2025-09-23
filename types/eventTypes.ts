@@ -186,7 +186,7 @@ export interface EventSettings {
 /**
  * Game mode types
  */
-export type GameModeType = 
+export type GameModeType =
   | 'survival'
   | 'exploration'
   | 'commerce'
@@ -194,6 +194,7 @@ export type GameModeType =
   | 'leadership'
   | 'livelihood'
   | 'diplomacy'
+  | 'healer'
   | 'legal';
 
 /**

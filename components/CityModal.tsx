@@ -15,6 +15,7 @@ import TimeAwareBackground from './TimeAwareBackground';
 import { weatherService } from '../services/weatherService';
 import { cityDescriptionCacheService } from '../services/cityDescriptionCacheService';
 import { gameSounds } from '../services/gameSoundsService';
+import { isSafari } from '../utils/safariUtils';
 import {
     FaTimes,
     FaDoorOpen,
@@ -258,7 +259,7 @@ const CityModal: React.FC<CityModalProps> = ({
     const [tileData, setTileData] = useState<any>(null);
     const [selectedWorkspace, setSelectedWorkspace] = useState<any>(null);
     const [cityDescription, setCityDescription] = useState<string>('');
-    const [descriptionLoading, setDescriptionLoading] = useState(true);
+    const [descriptionLoading, setDescriptionLoading] = useState(false); // Start false for instant modal
 
     // Get all NPCs from mapData
     const allNpcs = mapData.npcs || [];
@@ -385,19 +386,23 @@ const CityModal: React.FC<CityModalProps> = ({
         return Array.from(businessMap.values());
     }, [tileData, allNpcs, tile]);
 
-    // Generate LLM city description with caching
+    // Generate LLM city description with caching - OPTIMISTIC UI
     useEffect(() => {
+        // Show modal instantly, load description in background
         const generateDescription = async () => {
             // Check cache first
             const cached = cityDescriptionCacheService.getCachedDescription(tile.x, tile.y);
             if (cached) {
                 setCityDescription(cached.description);
-                setDescriptionLoading(false);
                 return;
             }
 
-            // Generate new description
+            // Set loading state but modal is already visible
             setDescriptionLoading(true);
+
+            // Small delay to let modal animation complete before heavy work
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             try {
                 const result = await generateCityDescription({
                     tile,
@@ -444,7 +449,7 @@ const CityModal: React.FC<CityModalProps> = ({
             }
         };
 
-        // Generate immediately when modal opens
+        // Generate after modal is visible (optimistic UI)
         generateDescription();
     }, [tile.x, tile.y]); // Only depend on tile coordinates to prevent re-renders
 
@@ -591,9 +596,11 @@ const CityModal: React.FC<CityModalProps> = ({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                backdropFilter: 'blur(4px)',
-                WebkitBackdropFilter: 'blur(4px)',
+                backgroundColor: isSafari() ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)',
+                ...(isSafari() ? {} : {
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
+                }),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -646,7 +653,7 @@ const CityModal: React.FC<CityModalProps> = ({
                     {/* Title/Header info at bottom */}
                     <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-4 sm:pb-6 md:pb-7 text-white flex justify-between items-end">
                         <div className="flex items-start gap-3 sm:gap-4">
-                            <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 backdrop-blur-sm border-2 border-amber-500/40 shadow-lg">
+                            <div className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 ${isSafari() ? '' : 'backdrop-blur-sm'} border-2 border-amber-500/40 shadow-lg`}>
                                 {getCityIcon()}
                             </div>
                             <div>
@@ -672,7 +679,7 @@ const CityModal: React.FC<CityModalProps> = ({
                         </div>
 
                         {/* Tabs (right-aligned on large screens) */}
-                        <div className="hidden md:flex gap-2 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-3 border border-amber-700/30">
+                        <div className={`hidden md:flex gap-2 bg-slate-900/60 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg p-1 px-3 border border-amber-700/30`}>
                             {(['overview', 'residents', 'workspaces'] as const).map((tab) => (
                                 <button
                                     key={tab}

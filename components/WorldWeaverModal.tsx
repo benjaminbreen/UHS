@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { X, MapPin, Calendar, User, Sparkles, Target, Scroll, Users, ChevronRight, Award } from 'lucide-react';
 import { GameMode, SpecialNPC } from '../types/eventTypes';
 import { CharacterSpecification, WorldWeaverQuest } from '../services/worldWeaverService';
+import { worldWeaverQuestService } from '../services/worldWeaverQuestService';
+import { worldWeaverNpcService } from '../services/worldWeaverNpcService';
+import { worldWeaverNotificationService } from '../services/worldWeaverNotificationService';
+import { useGame } from '../contexts/GameContext';
+import { useMap } from '../contexts/MapContext';
+import { usePlayer } from '../contexts/PlayerContext';
 
 interface WorldWeaverModalProps {
   isOpen: boolean;
@@ -33,8 +39,65 @@ const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
   quest
 }) => {
   const [expandedStage, setExpandedStage] = useState<string | null>(null);
-  
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Get game context
+  const { mapData, currentLocation } = useMap();
+  const { playerCharacter } = usePlayer();
+  const { year: currentYear } = useGame();
+
   if (!isOpen) return null;
+
+  // Enhanced journey handler with quest integration
+  const handleBeginJourney = async () => {
+    if (!quest) {
+      onClose();
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // 1. Add quest to quest system
+      const questId = worldWeaverQuestService.addWorldWeaverQuest(quest);
+      console.log('[WorldWeaverModal] Added quest to system:', questId);
+
+      // 2. Spawn quest NPCs if we have valid context
+      if (mapData && currentLocation && playerCharacter) {
+        const spawnContext = {
+          mapData,
+          playerLocation: currentLocation,
+          culturalZone: playerCharacter.culturalZone || 'EUROPEAN',
+          era: playerCharacter.historicalEra || 'RENAISSANCE_EARLY_MODERN'
+        };
+
+        const spawnedNPCIds = await worldWeaverNpcService.spawnQuestNPCs(quest.specialNPCs, spawnContext);
+        console.log('[WorldWeaverModal] Spawned NPCs with AI portraits:', spawnedNPCIds);
+
+        // Track spawned NPCs in quest service
+        spawnedNPCIds.forEach(npcId => {
+          worldWeaverQuestService.addSpawnedNPC(questId, npcId);
+        });
+      }
+
+      // 3. Show success notification
+      worldWeaverNotificationService.showQuestIntegrationSuccess(quest.title);
+
+      // Emit quest added event
+      window.dispatchEvent(new CustomEvent('worldWeaverQuestAdded', {
+        detail: { quest }
+      }));
+
+      // 4. Close modal
+      onClose();
+
+    } catch (error) {
+      console.error('[WorldWeaverModal] Failed to integrate quest:', error);
+      // TODO: Show error notification
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[100] bg-black/60 backdrop-blur-sm">
@@ -290,10 +353,20 @@ const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-700 bg-slate-900/50">
           <button
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-green-500/20"
+            onClick={handleBeginJourney}
+            disabled={isProcessing}
+            className={`w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-green-500/20 ${
+              isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Begin Your Journey
+            {isProcessing ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Integrating Quest...
+              </div>
+            ) : (
+              quest ? 'Begin Your Journey' : 'Start Game'
+            )}
           </button>
         </div>
       </div>

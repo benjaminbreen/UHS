@@ -998,7 +998,13 @@ const ITEM_NAME_VARIATIONS: Record<string, string[]> = {
   'Stick': ['Branch', 'Rod', 'Pole', 'Staff', 'Club', 'Baton', 'Cudgel', 'Switch'],
   'Quarterstaff': ['Battle Staff', 'Fighting Stick', 'War Staff', 'Combat Pole', 'Defense Rod'],
   'Herding Staff': ['Shepherd Rod', 'Cattle Stick', 'Livestock Pole', 'Animal Staff', 'Flock Stick'],
-  'Walking Cane': ['Gentleman Cane', 'Support Stick', 'Mobility Aid', 'Elder Staff', 'Town Cane']
+  'Walking Cane': ['Gentleman Cane', 'Support Stick', 'Mobility Aid', 'Elder Staff', 'Town Cane'],
+  'Worker\'s Trousers': ['Work Pants', 'Labor Breeches', 'Factory Pants', 'Mill Trousers', 'Dock Pants', 'Field Bottoms'],
+  'Cotton Shirt': ['Cotton Blouse', 'Cotton Top', 'Light Shirt', 'Summer Top', 'Plain Shirt', 'Daily Shirt'],
+  'Shirt': ['Blouse', 'Top', 'Garment', 'Upper Wear', 'Tunic', 'Jersey'],
+  'Simple Tunic': ['Basic Shirt', 'Plain Top', 'Common Garment', 'Work Blouse', 'Daily Wear', 'Folk Shirt'],
+  'Tunic': ['Shirt', 'Blouse', 'Top', 'Jerkin', 'Vest', 'Garment'],
+  'Wool Tunic': ['Woolen Shirt', 'Winter Top', 'Warm Garment', 'Fleece Shirt', 'Heavy Tunic']
 };
 
 // Helper function to get regional meat name
@@ -1067,13 +1073,27 @@ export function generateProceduralName(
   }
 
   // Add material (just the clean material name, not variations)
-  if (options.material && options.material !== baseItem.material) {
+  // Skip adding material if it's an era name
+  const eraNames = ['PREHISTORY', 'ANTIQUITY', 'MEDIEVAL', 'RENAISSANCE_EARLY_MODERN',
+                    'INDUSTRIAL_ERA', 'MODERN_ERA', 'FUTURE_ERA'];
+  if (options.material && options.material !== baseItem.material &&
+      !eraNames.includes(options.material)) {
     parts.push(options.material);
   }
 
   // Base item name with variations (always last)
-  const variedName = getItemNameVariation(baseItem.name);
-  parts.push(variedName);
+  // Apply variations to common repetitive items
+  let finalName = baseItem.name;
+
+  // Check for items that need variation
+  const needsVariation = ['Walking Staff', 'Stick', 'Worker\'s Trousers', 'Simple Tunic',
+                         'Tunic', 'Cotton Shirt', 'Wool Tunic', 'Shirt'].includes(baseItem.name);
+
+  if (needsVariation) {
+    finalName = getItemNameVariation(baseItem.name);
+  }
+
+  parts.push(finalName);
 
   return parts.join(' ');
 }

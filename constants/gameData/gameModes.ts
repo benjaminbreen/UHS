@@ -3,14 +3,15 @@
  * Defines all 8 game modes with their event archetypes and victory conditions
  */
 
-import { 
-  GameMode, 
-  EventArchetype, 
+import {
+  GameMode,
+  EventArchetype,
   VictoryCondition,
   EventTrigger,
   EventOutcome,
   EventEffect
 } from '../../types/eventTypes';
+import { selectGameModeForProfession } from './professionGameModeMappings';
 
 /**
  * Helper to create a stat check outcome
@@ -1001,7 +1002,16 @@ export function suggestGameMode(
     constitution?: number;
   }
 ): GameMode {
-  // Weight system for different modes
+  // Use the profession-based game mode mapping as primary method
+  if (playerProfession) {
+    const modeId = selectGameModeForProfession(playerProfession);
+    const mode = getGameModeById(modeId);
+    if (mode) {
+      return mode;
+    }
+  }
+
+  // Fallback to stat-based selection if no profession
   const weights: Record<string, number> = {
     survival: 0,
     exploration: 10, // Base weight for exploration
@@ -1056,102 +1066,8 @@ export function suggestGameMode(
     }
   }
 
-  // Adjust weights based on profession
-  if (playerProfession) {
-    const profession = playerProfession.toLowerCase();
-    
-    // Merchant/Trader professions
-    if (profession.includes('merchant') || profession.includes('trader') || 
-        profession.includes('vendor') || profession.includes('shopkeep')) {
-      weights.commerce += 40;
-      weights.livelihood += 10;
-    }
-    
-    // Scholar/Academic professions
-    if (profession.includes('scholar') || profession.includes('scribe') || 
-        profession.includes('sage') || profession.includes('teacher') ||
-        profession.includes('philosopher') || profession.includes('historian')) {
-      weights.scholarship += 40;
-      weights.exploration += 10;
-    }
-    
-    // Leadership professions
-    if (profession.includes('chief') || profession.includes('mayor') || 
-        profession.includes('lord') || profession.includes('noble') ||
-        profession.includes('governor') || profession.includes('king') ||
-        profession.includes('queen') || profession.includes('prince')) {
-      weights.leadership += 50;
-      weights.diplomacy += 20;
-      weights.survival -= 20; // Unlikely to be in survival mode
-    }
-    
-    // Legal professions
-    if (profession.includes('judge') || profession.includes('lawyer') || 
-        profession.includes('magistrate') || profession.includes('bailiff')) {
-      weights.legal += 40;
-      weights.leadership += 10;
-    }
-    
-    // Diplomatic professions
-    if (profession.includes('ambassador') || profession.includes('diplomat') || 
-        profession.includes('envoy') || profession.includes('emissary')) {
-      weights.diplomacy += 40;
-      weights.commerce += 10;
-    }
-    
-    // Explorer professions
-    if (profession.includes('explorer') || profession.includes('captain') || 
-        profession.includes('navigator') || profession.includes('cartographer') ||
-        profession.includes('scout')) {
-      weights.exploration += 40;
-      weights.commerce += 5;
-    }
-    
-    // Religious professions
-    if (profession.includes('priest') || profession.includes('monk') || 
-        profession.includes('imam') || profession.includes('rabbi') ||
-        profession.includes('shaman') || profession.includes('cleric')) {
-      weights.scholarship += 20;
-      weights.diplomacy += 15;
-      weights.leadership += 10;
-    }
-    
-    // Medical/Healer professions
-    if (profession.includes('healer') || profession.includes('physician') || 
-        profession.includes('surgeon') || profession.includes('apothecary') ||
-        profession.includes('midwife') || profession.includes('medicine') ||
-        profession.includes('doctor') || profession.includes('herbalist')) {
-      weights.healer += 40;
-      weights.scholarship += 15;
-      weights.livelihood += 10;
-    }
-    
-    // Military professions
-    if (profession.includes('soldier') || profession.includes('warrior') || 
-        profession.includes('guard') || profession.includes('knight')) {
-      weights.leadership += 10;
-      weights.exploration += 15;
-      weights.survival += 10;
-    }
-    
-    // Labor professions
-    if (profession.includes('farmer') || profession.includes('shepherd') || 
-        profession.includes('miner') || profession.includes('blacksmith') ||
-        profession.includes('carpenter') || profession.includes('mason') ||
-        profession.includes('peasant') || profession.includes('laborer')) {
-      weights.livelihood += 30;
-      weights.survival += 10;
-    }
-    
-    // Criminal/Outlaw professions
-    if (profession.includes('thief') || profession.includes('outlaw') || 
-        profession.includes('bandit') || profession.includes('pirate')) {
-      weights.survival += 20;
-      weights.exploration += 15;
-      weights.livelihood += 10;
-      weights.leadership -= 20; // Unlikely to be in official leadership
-    }
-  }
+  // Note: Profession-based selection is now handled by selectGameModeForProfession above
+  // This section only handles stat-based fallback when no profession is provided
 
   // Adjust based on era
   if (era) {

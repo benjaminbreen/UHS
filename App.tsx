@@ -2,7 +2,7 @@
  * App.tsx - Main application component for the Map Voyager Engine
  */
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { MapProvider, useMap } from './contexts/MapContext';
 import { PlayerProvider, usePlayer } from './contexts/PlayerContext';
@@ -35,15 +35,20 @@ import { SeedManager } from './services/seedService';
 import { shareableStateService } from './services/shareableStateService';
 import { LogService } from './services/logService';
 import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetectionService';
+import { worldWeaverObjectiveHandler } from './services/worldWeaverObjectiveHandler';
+import { worldWeaverNotificationService } from './services/worldWeaverNotificationService';
 import { useURLGameConfig } from './hooks/useURLGameConfig';
 import FactionsModal from './components/FactionsModal';
 import FactionTooltip from './components/FactionTooltip';
 import GameOverModal from './components/GameOverModal';
 import NpcDeathModal from './components/NpcDeathModal';
 import DiseaseProgressionModal from './components/DiseaseProgressionModal';
+import CampModal from './components/CampModal';
+import PlayerTooltip from './components/PlayerTooltip';
 import { DiseaseProgressionEvent } from './services/diseaseNotificationService';
 import { SavedGame } from './services/saveGameService';
 import FloatingText from './components/ui/FloatingText';
+import GameSetupScreen from './components/GameSetupScreen';
 
 const AppContent: React.FC = () => {
     const location = useLocation();
@@ -52,6 +57,9 @@ const AppContent: React.FC = () => {
     // Initialize theme on app startup
     React.useEffect(() => {
         themeService.initializeTheme();
+        // Initialize WorldWeaver systems
+        worldWeaverObjectiveHandler.initialize();
+        worldWeaverNotificationService.initialize();
     }, []);
 
     // Parse URL config FIRST, before any hooks that use game state
@@ -134,6 +142,28 @@ const AppContent: React.FC = () => {
                 console.log('[URL_RESTORE] Step 3: Storing character data in localStorage');
                 localStorage.setItem('urlCharacterData', JSON.stringify(fullState.character));
                 localStorage.setItem('urlGameMode', fullState.gameMode);
+
+                // Store educational mode setting (Phase 1)
+                if (fullState.educationalMode) {
+                    localStorage.setItem('educationalMode', 'true');
+                    console.log('[URL_RESTORE] Educational mode enabled from URL');
+
+                    // Phase 2: Initialize learning objectives if present
+                    if (fullState.learningObjectives && fullState.learningObjectives.length > 0) {
+                        (async () => {
+                            const { learningObjectivesService } = await import('./services/learningObjectivesService');
+                            const educationalSettings = {
+                                learningObjectives: fullState.learningObjectives as any[],
+                                assessmentFrequency: fullState.assessmentFrequency as any || 'occasional',
+                                difficulty: fullState.difficulty as any || 'realistic',
+                                sessionLength: fullState.sessionLength as any || 'extended',
+                                trackingEnabled: true
+                            };
+                            learningObjectivesService.initializeSession(educationalSettings);
+                            console.log('[URL_RESTORE] Learning objectives initialized:', fullState.learningObjectives);
+                        })();
+                    }
+                }
                 
                 // Convert to URLGameConfig format for compatibility
                 const config: URLGameConfig & { fullState?: any } = {
@@ -202,6 +232,11 @@ const AppContent: React.FC = () => {
     const handleDiseaseProgression = React.useCallback((events: DiseaseProgressionEvent[]) => {
         setDiseaseProgressionQueue(prev => [...prev, ...events]);
     }, []);
+
+    // Camp modal state
+    const [showCampModal, setShowCampModal] = React.useState(false);
+    const [showPlayerTooltip, setShowPlayerTooltip] = React.useState(false);
+    const [playerTooltipPos, setPlayerTooltipPos] = React.useState({ x: 0, y: 0 });
 
     useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression);
 
@@ -483,40 +518,29 @@ const AppContent: React.FC = () => {
             // Reset initial scenario modal state for new character
             setHasShownInitialScenario(false);
             
-            // Try to get URL game mode with retries
-            const attemptGameModeRestore = (attemptNum: number = 0) => {
-                // Check if we have a URL-configured game mode (only apply once)
-                const urlGameMode = 
-                    localStorage.getItem('urlConfigGameMode') ||
-                    localStorage.getItem('urlGameMode') ||
-                    localStorage.getItem('pendingGameMode');
-                
-                if (urlGameMode && !hasAppliedURLModeRef.current) {
-                    // Use the URL-specified game mode
-                    const mode = getGameModeById(urlGameMode);
-                    if (mode) {
-                        console.log('[URL_RESTORE] Successfully restored game mode from URL:', urlGameMode);
-                        setGameMode(mode);
-                        hasAppliedURLModeRef.current = true;
-                        
-                        // Clear storage after successful application
-                        setTimeout(() => {
-                            localStorage.removeItem('urlConfigGameMode');
-                            localStorage.removeItem('urlGameMode');
-                            localStorage.removeItem('pendingGameMode');
-                        }, 2000);
-                        return true;
-                    } else {
-                        console.warn('[GameMode] Invalid game mode from URL:', urlGameMode);
-                    }
-                } else if (attemptNum < 5 && !hasAppliedURLModeRef.current) {
-                    // Retry after a delay
-                    setTimeout(() => attemptGameModeRestore(attemptNum + 1), 500);
-                    return false;
-                }
-                
-                // If no URL mode or all attempts failed, use suggested mode
-                if (!hasAppliedURLModeRef.current) {
+            // Check if we have a URL-configured game mode
+            const urlGameMode =
+                localStorage.getItem('urlConfigGameMode') ||
+                localStorage.getItem('urlGameMode') ||
+                localStorage.getItem('pendingGameMode');
+
+            if (urlGameMode && !hasAppliedURLModeRef.current) {
+                // Use the URL-specified game mode
+                const mode = getGameModeById(urlGameMode);
+                if (mode) {
+                    console.log('[URL_RESTORE] Successfully restored game mode from URL:', urlGameMode);
+                    setGameMode(mode);
+                    hasAppliedURLModeRef.current = true;
+
+                    // Clear storage after successful application
+                    setTimeout(() => {
+                        localStorage.removeItem('urlConfigGameMode');
+                        localStorage.removeItem('urlGameMode');
+                        localStorage.removeItem('pendingGameMode');
+                    }, 100);
+                } else {
+                    console.warn('[GameMode] Invalid game mode from URL:', urlGameMode);
+                    // Fall through to suggested mode
                     const suggestedMode = suggestGameMode(
                         playerCharacter.occupation,
                         undefined,
@@ -530,35 +554,45 @@ const AppContent: React.FC = () => {
                             constitution: playerCharacter.stats.constitution
                         }
                     );
-                    console.log('[GameMode] Using suggested mode:', suggestedMode?.name);
+                    console.log('[GameMode] Using suggested mode after invalid URL mode:', suggestedMode?.name);
                     setGameMode(suggestedMode);
                 }
-                return false;
-            };
-            
-            // Start the game mode restoration attempt
-            attemptGameModeRestore();
+            } else {
+                // No URL mode, use suggested mode immediately
+                const suggestedMode = suggestGameMode(
+                    playerCharacter.occupation,
+                    undefined,
+                    playerCharacter.historicalEra,
+                    {
+                        health: playerCharacter.health,
+                        intelligence: playerCharacter.stats.intelligence,
+                        charisma: playerCharacter.stats.charisma,
+                        strength: playerCharacter.stats.strength,
+                        privilege: playerCharacter.socialContext.privilege,
+                        constitution: playerCharacter.stats.constitution
+                    }
+                );
+                console.log('[GameMode] Using suggested mode for new game:', suggestedMode?.name);
+                setGameMode(suggestedMode);
+            }
         }
     }, [playerCharacter?.name, resetForNewGame, setGameMode]); // Only reset when character name changes (new character)
     
     // Show InitialScenarioModal for non-WorldWeaver games (only once per character)
     React.useEffect(() => {
-        // Only run this check if we haven't shown the modal yet
-        if (!hasShownInitialScenario && playerCharacter && currentMode && gameDate && currentZone && localArea) {
+        if (!hasShownInitialScenario && playerCharacter && gameDate && currentZone && localArea) {
             // Check if this is NOT a WorldWeaver game (no custom events from LLM)
             const customEvents = eventService.getCustomEventArchetypes();
             const isWorldWeaver = customEvents && customEvents.length > 0;
-            
+
             // Only show if it's not WorldWeaver and no other modals are open
             if (!isWorldWeaver && !showEventModal && !currentEvent) {
-                console.log('[InitialScenario] Showing scenario modal for non-WorldWeaver game');
-                console.log('[InitialScenario] Region:', currentRegion, 'LocalArea:', localArea);
                 setShowInitialScenarioModal(true);
                 // Mark as shown immediately to prevent re-triggering
                 setHasShownInitialScenario(true);
             }
         }
-    }, [playerCharacter, currentMode, gameDate, currentZone, currentRegion, localArea, hasShownInitialScenario, showEventModal, currentEvent]);
+    }, [playerCharacter, currentMode, gameDate, currentZone, localArea, hasShownInitialScenario, showEventModal, currentEvent]);
     
     // Handle swipe gestures for mobile sidebars
     React.useEffect(() => {
@@ -901,15 +935,23 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <GameProvider>
-      <PlayerProvider>
-        <MapProvider>
-          <UIProvider>
-            <AppContent />
-          </UIProvider>
-        </MapProvider>
-      </PlayerProvider>
-    </GameProvider>
+    <Routes>
+      {/* Educational Setup Screen */}
+      <Route path="/home" element={<GameSetupScreen />} />
+
+      {/* Main Game - All other routes */}
+      <Route path="/*" element={
+        <GameProvider>
+          <PlayerProvider>
+            <MapProvider>
+              <UIProvider>
+                <AppContent />
+              </UIProvider>
+            </MapProvider>
+          </PlayerProvider>
+        </GameProvider>
+      } />
+    </Routes>
   );
 };
 

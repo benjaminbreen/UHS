@@ -36,7 +36,7 @@ export function generatePalaces(tiles: Tile[][], featurePlacementNoise: ValueNoi
     const dateInfo = parseDateString(mapData.timeSlice || '1650');
     
     // Use centralized city detection
-    const cityDetection = detectCitiesForArea(mapData.localArea, mapData.region, dateInfo.year, dateInfo.era, true);
+    const cityDetection = detectCitiesForArea(mapData.localArea, mapData.region, dateInfo.year, dateInfo.era, false);
     
     // No palaces if no cities are defined
     if (!cityDetection.hasCities) {

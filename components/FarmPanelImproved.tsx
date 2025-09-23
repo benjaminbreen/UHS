@@ -31,11 +31,15 @@ import {
   getValidCrops,
   FarmState,
   FarmFamilyMember,
+  updateResidencyStatus,
+  FarmResidencyStatus,
+  acceptWorkContract,
 } from '../services/farmService';
 import {
   generateEncounterDialogue,
   generateHistoricalSummary,
   generateFarmDetails as llmGenerateFarmDetails,
+  assessFarmWork,
 } from '../services/llmService';
 import { parseDateString, formatDateWithSeason } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
@@ -86,6 +90,7 @@ interface FarmPanelImprovedProps {
   gameDate: any;
   leftSidebarTab?: string;
   onTabChange?: (tab: string) => void;
+  onInitiateEncounter?: (target: any) => void;
 }
 
 type TabType = 'overview' | 'fields' | 'family' | 'trade' | 'advisor';
@@ -125,9 +130,11 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   currentGameDay,
   useLlm = false,
   gameDate,
+  onInitiateEncounter,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [farmState, setFarmState] = useState<FarmState | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Fields
   const [selectedField, setSelectedField] = useState<number | null>(null);
@@ -157,6 +164,20 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   // Flavor / Banner LLM
   const [isRefreshingFlavor, setIsRefreshingFlavor] = useState(false);
 
+  // Worker planning state
+  const [fieldPlans, setFieldPlans] = useState<Map<number, FieldPlan>>(new Map());
+  const [showPlanningModal, setShowPlanningModal] = useState(false);
+  const [strategyText, setStrategyText] = useState('');
+  const [workQualityScore, setWorkQualityScore] = useState<number | null>(null);
+  const [isAssessing, setIsAssessing] = useState(false);
+  const [lastAssessment, setLastAssessment] = useState<any>(null);
+  const [inspectedField, setInspectedField] = useState<number | null>(null);
+  const [resources, setResources] = useState<ResourceAllocation>({
+    water: { available: 20, allocated: new Map() },
+    manure: { available: 8, allocated: new Map() },
+    seeds: []
+  });
+
   // Dimensions for banner
   const centerRef = useRef<HTMLDivElement>(null);
   const [centerWidth, setCenterWidth] = useState<number>(1200);
@@ -171,15 +192,50 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Historical context
+  // Historical context with defensive proxy access
   const { era, culturalZone, year } = useMemo(() => {
-    const dateInfo = parseDateString(mapData.timeSlice || '1650');
-    return {
-      era: dateInfo.era as HistoricalEra,
-      culturalZone: mapLocationToCulture(mapData.continent || 'Europe', dateInfo.year),
-      year: dateInfo.year,
-    };
-  }, [mapData.timeSlice, mapData.continent]);
+    try {
+      const dateInfo = parseDateString(mapData?.timeSlice || '1650');
+      return {
+        era: dateInfo.era as HistoricalEra,
+        culturalZone: mapLocationToCulture(mapData?.continent || 'Europe', dateInfo.year),
+        year: dateInfo.year,
+      };
+    } catch (error) {
+      console.warn('Map data access error, using fallback:', error);
+      return {
+        era: HistoricalEra.MEDIEVAL,
+        culturalZone: 'EUROPEAN' as any,
+        year: 1650,
+      };
+    }
+  }, [mapData?.timeSlice, mapData?.continent]);
+
+  // Check if player is a worker
+  const isWorker = farmState?.residencyStatus?.playerStatus === 'worker';
+  const currentContract = farmState?.residencyStatus?.currentContract;
+  const trustLevel = farmState?.residencyStatus?.trustLevel || 50;
+
+  // Determine current month in season (0-2) with defensive access
+  const monthInSeason = useMemo(() => {
+    try {
+      return mapData?.dateInfo?.month ? ((mapData.dateInfo.month - 1) % 3) : 0;
+    } catch (error) {
+      console.warn('Map data dateInfo access error:', error);
+      return 0;
+    }
+  }, [mapData?.dateInfo?.month]);
+
+  // Get seasonal action options based on current season
+  const getSeasonalActions = (season: Season): string[] => {
+    switch(season) {
+      case 'spring': return ['plant', 'water', 'fallow'];
+      case 'summer': return ['water', 'manure', 'weed'];
+      case 'autumn': return ['harvest', 'water', 'fallow'];
+      case 'winter': return ['fallow', 'manure', 'plant'];
+      default: return ['water', 'fallow'];
+    }
+  };
 
   // Time of day
   const timeOfDay = useMemo((): TimeOfDay => {
@@ -204,14 +260,25 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     };
   }, []); // Only on mount/unmount
 
-  // Load farm state
+  // Load farm state with defensive proxy access
   useEffect(() => {
-    const tileKey = `${tile.x}_${tile.y}`;
-    const state = getFarmState(tile, mapData, npcs);
-    setFarmState(state);
-    
-    if (!selectedMember && state.family.members.length > 0) {
-      setSelectedMember(state.family.members[0]);
+    try {
+      const tileKey = `${tile.x}_${tile.y}`;
+      const state = getFarmState(tile, mapData, npcs);
+      setFarmState(state);
+
+      if (!selectedMember && state.family.members.length > 0) {
+        setSelectedMember(state.family.members[0]);
+      }
+    } catch (error) {
+      console.warn('Farm state loading error (likely proxy revocation):', error);
+      // Set minimal fallback state
+      setFarmState({
+        fields: [],
+        family: { familyName: 'Unknown Farm', members: [] },
+        economicStatus: 'humble',
+        prosperityLevel: 'small'
+      } as any);
     }
   }, [tile.x, tile.y]); // Use stable primitive values instead of object references
 
@@ -370,7 +437,8 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   
   const getInitialFarmerGreeting = () => {
     const era = mapData?.dateInfo?.era || 'MEDIEVAL';
-    const prosperity = farmState?.prosperity || 'humble';
+    // Map economicStatus to greeting categories (only humble and prosperous exist)
+    const prosperity = farmState?.economicStatus === 'wealthy' ? 'prosperous' : farmState?.economicStatus || 'humble';
     
     const greetings = {
       humble: {
@@ -409,7 +477,12 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
       }
     };
     
-    const eraGreetings = greetings[prosperity][era] || greetings.humble.MEDIEVAL;
+    // Map era to available greeting categories (only MEDIEVAL, RENAISSANCE, MODERN exist)
+    const eraKey = era === 'RENAISSANCE_EARLY_MODERN' ? 'RENAISSANCE' :
+                   era === 'INDUSTRIAL_ERA' || era === 'FUTURE_ERA' ? 'MODERN' :
+                   era === 'ANTIQUITY' || era === 'PREHISTORY' ? 'MEDIEVAL' :
+                   era;
+    const eraGreetings = greetings[prosperity]?.[eraKey] || greetings[prosperity]?.MEDIEVAL || greetings.humble.MEDIEVAL;
     return eraGreetings[Math.floor(Math.random() * eraGreetings.length)];
   };
 
@@ -694,12 +767,245 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     }
   }, [useLlm, farmState, tile, year, mapData]);
 
+  // ===== Worker Planning Functions ==============================================
+
+  const handleFieldAction = useCallback((fieldId: number, action: string, cropToPlant?: string) => {
+    // Play action-specific sound
+    if (action === 'plant') {
+      gameSounds.playItemPickupSound('food'); // Planting seed sound
+    } else if (action === 'water') {
+      gameSounds.playUIClickSound(); // Water drop sound
+    } else if (action === 'harvest') {
+      gameSounds.playItemPickupSound('generic'); // Harvest sound
+    } else {
+      gameSounds.playUIClickSound(); // Generic action sound
+    }
+
+    setFieldPlans(prev => {
+      const newPlans = new Map(prev);
+      const existingPlan = newPlans.get(fieldId) || {
+        fieldId,
+        action: 'fallow',
+        waterAmount: 0,
+        manureAmount: 0
+      };
+
+      newPlans.set(fieldId, {
+        ...existingPlan,
+        action: action as any,
+        cropToPlant
+      });
+
+      return newPlans;
+    });
+  }, []);
+
+  const handleResourceAllocation = useCallback((fieldId: number, type: 'water' | 'manure', amount: number) => {
+    setFieldPlans(prev => {
+      const newPlans = new Map(prev);
+      const existingPlan = newPlans.get(fieldId) || {
+        fieldId,
+        action: 'fallow',
+        waterAmount: 0,
+        manureAmount: 0
+      };
+
+      if (type === 'water') {
+        existingPlan.waterAmount = Math.min(3, Math.max(0, amount)) as 0 | 1 | 2 | 3;
+      } else {
+        existingPlan.manureAmount = Math.min(1, Math.max(0, amount)) as 0 | 1;
+      }
+
+      newPlans.set(fieldId, existingPlan);
+      return newPlans;
+    });
+  }, []);
+
+  const handleWorkerSubmit = useCallback(async () => {
+    if (!isWorker || strategyText.trim().length < 20) {
+      alert('Please explain your strategy (at least 20 characters)');
+      return;
+    }
+
+    if (fieldPlans.size === 0) {
+      alert('Please plan work for at least one field!');
+      return;
+    }
+
+    setIsAssessing(true);
+    setShowPlanningModal(false);
+
+    try {
+      // Prepare context for assessment with defensive access
+      const culturalZone = mapLocationToCulture(mapData?.timeSlice || 'Europe 1650', mapData?.continent || 'Europe');
+      const era = farmState?.era || HistoricalEra.MEDIEVAL;
+      const farmerPersonality = farmState?.family?.[0]?.personality || 'practical and hardworking';
+      const weatherPattern = season === 'spring' ? 'mild and wet' :
+                           season === 'summer' ? 'warm and dry' :
+                           season === 'fall' ? 'cool and variable' : 'cold and dormant';
+
+      // Convert fieldPlans to assessment format
+      const assessmentFieldPlans = new Map();
+      fieldPlans.forEach((plan, fieldId) => {
+        assessmentFieldPlans.set(fieldId, {
+          action: plan.action,
+          waterLevel: plan.waterAmount || 0,
+          manureLevel: plan.manureAmount || 0,
+          reasoning: plan.reasoning || ''
+        });
+      });
+
+      const assessment = await assessFarmWork(
+        assessmentFieldPlans,
+        strategyText,
+        {
+          season,
+          year: gameDate?.year || 1200,
+          culturalZone,
+          era,
+          weatherPattern,
+          soilQuality: farmState?.soilQuality || 7,
+          farmerPersonality,
+          playerTrustLevel: trustLevel / 10 // Convert 0-100 to 0-10
+        }
+      );
+
+      setLastAssessment(assessment);
+      setWorkQualityScore(assessment.overallScore);
+
+      // Update field outcomes based on assessment scores
+      if (farmState?.fields) {
+        const updatedFields = farmState.fields.map(field => {
+          const fieldScore = assessment.fieldScores.get(field.id) || 50;
+          const currentYield = field.yieldMultiplier || 1.0;
+
+          // Calculate field outcome based on score
+          let newYield = currentYield;
+          let newSoilHealth = field.soilHealth || 7;
+
+          if (fieldScore >= 80) {
+            newYield = Math.min(2.0, currentYield * 1.2); // Excellent work
+            newSoilHealth = Math.min(10, newSoilHealth + 1);
+          } else if (fieldScore >= 60) {
+            newYield = Math.min(1.8, currentYield * 1.1); // Good work
+          } else if (fieldScore >= 40) {
+            newYield = currentYield; // Average work
+          } else {
+            newYield = Math.max(0.5, currentYield * 0.9); // Poor work
+            newSoilHealth = Math.max(1, newSoilHealth - 1);
+          }
+
+          return {
+            ...field,
+            yieldMultiplier: newYield,
+            soilHealth: newSoilHealth,
+            lastWorked: Date.now()
+          };
+        });
+
+        // Update farm state with new field outcomes and trust level
+        const newTrustLevel = Math.max(0, Math.min(100, trustLevel + assessment.trustChange * 5));
+
+        updateFarmState(tile.position, {
+          ...farmState,
+          fields: updatedFields,
+          residencyStatus: {
+            ...farmState.residencyStatus!,
+            trustLevel: newTrustLevel,
+            workHistory: [
+              ...(farmState.residencyStatus?.workHistory || []),
+              {
+                month: `${gameDate?.month || 1}/${gameDate?.year || 1200}`,
+                score: assessment.overallScore,
+                feedback: assessment.farmerFeedback
+              }
+            ]
+          }
+        });
+      }
+
+      // Progress time by 1 month
+      progressFarmTime(1);
+
+      // Clear planning state
+      setStrategyText('');
+      setFieldPlans(new Map());
+
+      // Show farmer feedback with sound
+      const toastType = assessment.overallScore >= 70 ? 'success' :
+                       assessment.overallScore >= 50 ? 'warning' : 'error';
+
+      setFarmerToast({
+        message: assessment.farmerFeedback,
+        type: toastType
+      });
+
+      // Play assessment feedback sound
+      if (assessment.overallScore >= 70) {
+        gameSounds.playNotificationSound('success');
+      } else if (assessment.overallScore >= 50) {
+        gameSounds.playNotificationSound('warning');
+      } else {
+        gameSounds.playNotificationSound('error');
+      }
+
+    } catch (error) {
+      console.error('Error assessing farm work:', error);
+
+      // Fallback to basic progression
+      progressFarmTime(1);
+      setStrategyText('');
+      setFieldPlans(new Map());
+
+      setFarmerToast({
+        message: "Your work shows effort, though I cannot fully assess it right now.",
+        type: 'warning'
+      });
+    } finally {
+      setIsAssessing(false);
+    }
+  }, [isWorker, strategyText, fieldPlans, season, mapData, farmState, gameDate, trustLevel, tile.position, progressFarmTime]);
+
   // ===== UI ========================================================================
 
-  if (!farmState) return null;
+  // Defensive check for farm state and proxy issues
+  if (!farmState) {
+    return (
+      <div className="p-4 text-center text-slate-400">
+        Loading farm data...
+      </div>
+    );
+  }
+
+  // Additional check for proxy revocation
+  try {
+    // Test if we can access farm state properties
+    const _ = farmState.family?.familyName;
+  } catch (error) {
+    console.warn('Farm state proxy revocation detected:', error);
+    return (
+      <div className="p-4 text-center text-slate-400">
+        Farm data temporarily unavailable. Please try again.
+        <button
+          onClick={onClose}
+          className="block mx-auto mt-2 px-4 py-2 bg-slate-700 text-white rounded"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex" style={{ top: '48px' }}>
+      {/* Fade transition overlay */}
+      {isTransitioning && (
+        <div
+          className="fixed inset-0 z-50 bg-black transition-opacity duration-1000"
+          style={{ opacity: isTransitioning ? 1 : 0 }}
+        />
+      )}
+
       {/* Left Sidebar */}
       <div
         className="bg-slate-950/95 border-r border-slate-800/60 overflow-y-auto flex-shrink-0"
@@ -825,8 +1131,9 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                   </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800/60">
+                {/* Quick Actions - Hidden for workers */}
+                {!isWorker && (
+                  <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800/60">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-amber-400 flex items-center gap-2">
                       <History className="w-5 h-5" />
@@ -893,8 +1200,9 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                       </div>
                     </button>
                   </div>
-                </div>
-                
+                  </div>
+                )}
+
                 {/* Head Farmer Toast - positioned at bottom of overview */}
               </div>
             )}
@@ -902,8 +1210,29 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
             {/* ================= FIELDS ================= */}
             {activeTab === 'fields' && (
               <div className="animate-fadeIn space-y-6">
-                {/* Crop selection */}
-                <div className="bg-slate-900/60 rounded-xl p-4 border border-slate-800/60">
+                {/* Worker Seasonal Objectives OR Crop selection */}
+                {isWorker ? (
+                  <div className="bg-blue-900/30 rounded-xl p-4 border border-blue-700/40">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-blue-400 font-bold flex items-center gap-2">
+                        <Hammer className="w-4 h-4" />
+                        {season.charAt(0).toUpperCase() + season.slice(1)} Work Objectives
+                      </h4>
+                      <div className="text-xs text-blue-300">
+                        Month {monthInSeason + 1} of 3
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-blue-200">
+                      {{
+                        spring: "Focus on planting crops and preparing fields for the growing season. Choose which crops to plant where based on soil conditions and water access.",
+                        summer: "Manage crop growth by allocating water and fertilizer efficiently. Monitor plant health and apply resources where needed most.",
+                        autumn: "Plan harvest timing carefully - some crops may benefit from early harvest while others should wait for full maturation.",
+                        winter: "Prepare fields for next year through rotation planning and soil improvement. Some crops can still be planted in winter."
+                      }[season] || "Plan your work strategy carefully based on the current season."}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900/60 rounded-xl p-4 border border-slate-800/60">
                   <div className="flex items-center justify-between">
                     <h4 className="text-amber-400 font-bold flex items-center gap-2">
                       <Leaf className="w-4 h-4" />
@@ -935,87 +1264,408 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
+                  </div>
+                )}
 
                 {/* Fields grid */}
-                <div className="bg-slate-900/60 rounded-xl p-6 border border-slate-800/60">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-amber-400 font-bold flex items-center gap-2">
-                      <Sprout className="w-4 h-4" />
-                      Farm Fields
-                    </h4>
+                <div className="bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-6 border border-slate-700/40 shadow-xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h4 className="text-amber-400 font-bold flex items-center gap-2 text-lg">
+                        <Sprout className="w-5 h-5" />
+                        Farm Fields
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {season.charAt(0).toUpperCase() + season.slice(1)} Season • {farmState?.fields?.filter(f => f.crop).length || 0} of {farmState?.fields?.length || 0} planted • {(farmState?.prosperityLevel || 'small').charAt(0).toUpperCase() + (farmState?.prosperityLevel || 'small').slice(1)} Farm
+                      </p>
+                    </div>
                     {selectedField !== null && (
-                      <div className="text-xs text-slate-300">
-                        Selected: Field #{selectedField + 1}
+                      <div className="bg-amber-400/10 border border-amber-400/30 rounded-lg px-3 py-1.5">
+                        <div className="text-xs text-amber-300 font-medium">
+                          Field #{selectedField + 1} Selected
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {farmState.fields.map((field) => (
-                      <button
-                        key={field.id}
-                        onClick={() => setSelectedField(field.id)}
-                        className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg border ${
-                          selectedField === field.id
-                            ? 'ring-2 ring-amber-400 border-amber-400/40 scale-[1.02]'
-                            : 'border-slate-800 hover:border-slate-700'
-                        }`}
-                        style={{
-                          height: '140px',
-                          background:
-                            field.growthStage === 'fallow'
-                              ? 'linear-gradient(180deg, #6b5c46 0%, #4a3c2e 100%)'
-                              : field.moisture === 'wet'
-                              ? 'linear-gradient(180deg, #2d4f2e 0%, #193319 100%)'
-                              : field.moisture === 'moist'
-                              ? 'linear-gradient(180deg, #3f3a22 0%, #2b2616 100%)'
-                              : 'linear-gradient(180deg, #6b5c46 0%, #4a3c2e 100%)',
-                        }}
-                      >
-                        {/* Soil hatch for fallow */}
-                        {field.growthStage === 'fallow' && (
+                  <div className={`grid gap-4 ${
+                    (farmState?.fields?.length || 0) <= 2 ? 'grid-cols-2' :
+                    (farmState?.fields?.length || 0) <= 4 ? 'grid-cols-2 md:grid-cols-2' :
+                    (farmState?.fields?.length || 0) <= 6 ? 'grid-cols-2 md:grid-cols-3' :
+                    'grid-cols-2 md:grid-cols-4'
+                  }`}>
+                    {farmState?.fields ? farmState.fields.map((field) => {
+                      // Determine soil texture based on moisture and health
+                      const getSoilTexture = () => {
+                        const baseColor = field.moisture === 'wet'
+                          ? '#1a2f1a'
+                          : field.moisture === 'moist'
+                          ? '#3d3420'
+                          : '#5a4a38';
+
+                        const healthMultiplier = 0.5 + (field.health / 200);
+                        const r = parseInt(baseColor.slice(1, 3), 16);
+                        const g = parseInt(baseColor.slice(3, 5), 16);
+                        const b = parseInt(baseColor.slice(5, 7), 16);
+
+                        return `rgb(${Math.floor(r * healthMultiplier)}, ${Math.floor(g * healthMultiplier)}, ${Math.floor(b * healthMultiplier)})`;
+                      };
+
+                      // Get crop rows display with growth progression
+                      const getCropRows = () => {
+                        if (!field.crop) return null;
+
+                        const stages: Record<string, { emoji: string; density: number }> = {
+                          'seeds': { emoji: '⚪', density: 0.3 },
+                          'sprouts': { emoji: '🌱', density: 0.5 },
+                          'growing': { emoji: '🌿', density: 0.7 },
+                          'mature': { emoji: CROP_EMOJIS[field.crop] || '🌾', density: 0.9 },
+                          'ready': { emoji: CROP_EMOJIS[field.crop] || '🌾', density: 1.0 }
+                        };
+
+                        const stage = stages[field.growthStage] || stages['sprouts'];
+                        const totalSpots = 9; // 3x3 grid
+                        const filledSpots = Math.floor(totalSpots * stage.density);
+
+                        const cropGrid = Array(totalSpots).fill('').map((_, i) =>
+                          i < filledSpots ? stage.emoji : ''
+                        );
+
+                        return (
+                          <div className="grid grid-cols-3 gap-0.5 text-xs leading-none">
+                            {cropGrid.map((emoji, i) => (
+                              <div key={i} className="w-4 h-4 flex items-center justify-center">
+                                {emoji}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      };
+
+                      const soilColor = getSoilTexture();
+
+                      // Seasonal border colors
+                      const getSeasonalBorder = () => {
+                        const seasonColors = {
+                          spring: 'border-green-500/60 shadow-green-500/20',
+                          summer: 'border-yellow-500/60 shadow-yellow-500/20',
+                          autumn: 'border-orange-500/60 shadow-orange-500/20',
+                          winter: 'border-blue-400/60 shadow-blue-400/20'
+                        };
+                        return seasonColors[season] || seasonColors.spring;
+                      };
+
+                      return (
+                        <button
+                          key={field.id}
+                          onClick={() => {
+                            if (isWorker) {
+                              // Worker mode: open planning for this field
+                              setSelectedField(field.id);
+                            } else {
+                              // Owner mode: normal field selection
+                              setSelectedField(field.id);
+                            }
+                          }}
+                          className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl border-2 ${
+                            selectedField === field.id
+                              ? 'ring-4 ring-amber-400 border-amber-400/60 scale-[1.05] shadow-amber-400/30'
+                              : isWorker && fieldPlans.has(field.id)
+                              ? 'border-blue-500/60'
+                              : `${getSeasonalBorder()} hover:border-slate-600`
+                          }`}
+                          style={{
+                            height: farmState.fields.length <= 4 ? '200px' : '160px',
+                            background: `linear-gradient(180deg, ${soilColor} 0%, ${soilColor}dd 50%, ${soilColor}aa 100%)`,
+                            boxShadow: selectedField === field.id
+                              ? '0 10px 30px rgba(251, 191, 36, 0.2)'
+                              : '0 4px 12px rgba(0, 0, 0, 0.3)',
+                          }}
+                        >
+                          {/* Soil texture patterns */}
                           <div
-                            className="absolute inset-0 opacity-20"
+                            className="absolute inset-0 opacity-30"
                             style={{
-                              backgroundImage:
-                                'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px)',
+                              backgroundImage: field.moisture === 'wet'
+                                ? `repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(100,200,100,0.2) 3px, rgba(100,200,100,0.2) 6px),
+                                   repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(50,150,50,0.15) 5px, rgba(50,150,50,0.15) 8px)`
+                                : field.moisture === 'moist'
+                                ? `repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(139,69,19,0.1) 4px, rgba(139,69,19,0.1) 8px),
+                                   repeating-linear-gradient(0deg, transparent, transparent 4px, rgba(160,82,45,0.1) 4px, rgba(160,82,45,0.1) 8px)`
+                                : `repeating-linear-gradient(30deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px),
+                                   radial-gradient(circle at 30% 50%, rgba(139,69,19,0.1) 0%, transparent 50%)`,
                             }}
                           />
-                        )}
 
-                        {/* Content */}
-                        <div className="relative h-full flex flex-col items-center justify-center p-2">
-                          {field.crop ? (
-                            <>
-                              <div className="text-3xl mb-1">{CROP_EMOJIS[field.crop] || '🌱'}</div>
-                              <div className="text-xs text-white font-semibold capitalize">
-                                {field.crop}
-                              </div>
-                              <div className="text-[10px] text-amber-200/90">
-                                {field.growthStage}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="text-slate-200 text-sm font-medium">Fallow</div>
+                          {/* Moisture droplets for wet soil */}
+                          {field.moisture === 'wet' && (
+                            <div className="absolute inset-0 pointer-events-none">
+                              <div className="absolute top-4 left-3 w-1 h-1 bg-blue-300/40 rounded-full animate-pulse" />
+                              <div className="absolute top-8 right-5 w-1.5 h-1.5 bg-blue-300/30 rounded-full animate-pulse" style={{animationDelay: '0.5s'}} />
+                              <div className="absolute bottom-6 left-6 w-1 h-1 bg-blue-300/35 rounded-full animate-pulse" style={{animationDelay: '1s'}} />
+                            </div>
                           )}
 
-                          {/* Health bar */}
-                          <div className="absolute bottom-2 left-2 right-2">
-                            <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all"
-                                style={{ width: `${Math.max(0, Math.min(100, field.health))}%` }}
-                              />
+                          {/* Content */}
+                          <div className="relative h-full flex flex-col items-center justify-center p-2">
+                            {field.crop ? (
+                              <>
+                                {/* Crop Growth Grid */}
+                                <div
+                                  className={`mb-2 transition-all duration-500 relative cursor-help ${
+                                    field.growthStage === 'ready' ? 'animate-pulse' : ''
+                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setInspectedField(field.id);
+                                  }}
+                                  title="Click to inspect field details"
+                                >
+                                  {getCropRows()}
+
+                                  {/* Animated Pest System */}
+                                  {field.pests && (
+                                    <div className="absolute inset-0 pointer-events-none">
+                                      {/* Small crawling bugs (weevils/aphids) */}
+                                      <div className="absolute top-0 left-2 w-1 h-1 bg-red-500 rounded-full animate-ping opacity-60" />
+                                      <div className="absolute top-1 right-3 w-0.5 h-0.5 bg-orange-600 rounded-full animate-pulse" style={{animationDelay: '0.5s'}} />
+                                      <div className="absolute bottom-2 left-1 w-0.5 h-0.5 bg-red-600 rounded-full animate-bounce" style={{animationDelay: '1s'}} />
+
+                                      {/* Larger pest emoji */}
+                                      <div className="absolute top-1 right-1 text-[8px] animate-bounce" style={{animationDelay: '1.5s'}}>
+                                        🐛
+                                      </div>
+
+                                      {/* Moving pest indicators */}
+                                      <div
+                                        className="absolute w-0.5 h-0.5 bg-brown-600 rounded-full"
+                                        style={{
+                                          animation: 'pestCrawl 3s linear infinite',
+                                          top: '20%',
+                                          left: '10%'
+                                        }}
+                                      />
+                                      <div
+                                        className="absolute w-0.5 h-0.5 bg-orange-700 rounded-full"
+                                        style={{
+                                          animation: 'pestCrawl 4s linear infinite reverse',
+                                          top: '60%',
+                                          left: '70%',
+                                          animationDelay: '2s'
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Field Info */}
+                                <div className="text-xs text-white font-bold capitalize bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
+                                  {field.crop}
+                                </div>
+                                <div className="text-[10px] text-amber-300 font-medium mt-1">
+                                  {field.growthStage === 'ready' ? '✨ Ready!' : field.growthStage}
+                                </div>
+
+                                {/* Growth Progress Bar */}
+                                <div className="w-full mt-2 bg-black/20 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-1000"
+                                    style={{
+                                      width: `${
+                                        field.growthStage === 'seeds' ? '20%' :
+                                        field.growthStage === 'sprouts' ? '40%' :
+                                        field.growthStage === 'growing' ? '70%' :
+                                        field.growthStage === 'mature' ? '90%' :
+                                        field.growthStage === 'ready' ? '100%' : '0%'
+                                      }`
+                                    }}
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="text-slate-300/80 text-sm font-medium">Fallow</div>
+                                <div className="text-[10px] text-slate-400 mt-1">Click to plant</div>
+                              </>
+                            )}
+
+                            {/* Health & moisture indicators */}
+                            <div className="absolute bottom-2 left-2 right-2">
+                              {/* Health bar with gradient */}
+                              <div className="h-2 bg-black/50 rounded-full overflow-hidden backdrop-blur-sm">
+                                <div
+                                  className="h-full transition-all duration-500"
+                                  style={{
+                                    width: `${Math.max(0, Math.min(100, field.health))}%`,
+                                    background: field.health > 70
+                                      ? 'linear-gradient(90deg, #10b981, #34d399)'
+                                      : field.health > 40
+                                      ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                                      : 'linear-gradient(90deg, #ef4444, #f87171)'
+                                  }}
+                                />
+                              </div>
+                              {/* Moisture indicator dots */}
+                              <div className="flex justify-center gap-1 mt-1">
+                                <div className={`w-1 h-1 rounded-full ${
+                                  field.moisture === 'wet' ? 'bg-blue-400' : field.moisture === 'moist' ? 'bg-blue-600' : 'bg-gray-500'
+                                }`} />
+                                <div className={`w-1 h-1 rounded-full ${
+                                  field.moisture === 'wet' ? 'bg-blue-400' : field.moisture === 'moist' ? 'bg-blue-600' : 'bg-gray-500'
+                                }`} />
+                                <div className={`w-1 h-1 rounded-full ${
+                                  field.moisture === 'wet' ? 'bg-blue-400' : 'bg-gray-500'
+                                }`} />
+                              </div>
+                            </div>
+
+                            {/* Worker Planning Overlays */}
+                            {isWorker && (
+                              <>
+                                {/* Planned Action Indicator */}
+                                {fieldPlans.get(field.id) && (
+                                  <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-xs px-2 py-1 rounded">
+                                    {fieldPlans.get(field.id)!.action}
+                                  </div>
+                                )}
+
+                                {/* Enhanced Resource Allocation Indicators */}
+                                <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                                  {/* Water allocation with pixel droplets */}
+                                  {fieldPlans.get(field.id)?.waterAmount ? (
+                                    <div className="flex gap-0.5 bg-black/30 rounded p-1">
+                                      {Array.from({length: fieldPlans.get(field.id)!.waterAmount}).map((_, i) => (
+                                        <div key={i} className="relative">
+                                          {/* Main water droplet */}
+                                          <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                                          {/* Pixel highlights */}
+                                          <div className="absolute top-0 left-0.5 w-0.5 h-0.5 bg-blue-200 rounded-full" />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : null}
+
+                                  {/* Manure allocation with enhanced graphics */}
+                                  {fieldPlans.get(field.id)?.manureAmount ? (
+                                    <div className="bg-black/30 rounded p-1">
+                                      <div className="relative">
+                                        <div className="w-2 h-2 bg-amber-700 rounded-sm" />
+                                        {/* Texture dots */}
+                                        <div className="absolute top-0 left-0 w-0.5 h-0.5 bg-amber-600 rounded-full" />
+                                        <div className="absolute bottom-0 right-0 w-0.5 h-0.5 bg-amber-800 rounded-full" />
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                </div>
+
+                                {/* Click to Plan Overlay */}
+                                <div className="absolute inset-0 bg-blue-500/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <div className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                                    Click to Plan
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {/* Selected indicator (non-worker) */}
+                            {!isWorker && selectedField === field.id && (
+                              <div className="absolute top-2 right-2">
+                                <div className="w-2 h-2 bg-amber-400 rounded-full animate-ping" />
+                                <div className="w-2 h-2 bg-amber-400 rounded-full absolute top-0" />
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    }) : null}
+                  </div>
+
+                  {/* Worker Planning Panel */}
+                  {isWorker && selectedField !== null && farmState?.fields && (
+                    <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-700/40 animate-slideUp">
+                      <div className="flex items-center justify-between mb-4">
+                        <h5 className="text-blue-300 font-medium">
+                          Field #{selectedField + 1} - {season.charAt(0).toUpperCase() + season.slice(1)} Planning
+                        </h5>
+                        <div className="text-xs text-blue-400">
+                          Choose action for this month
+                        </div>
+                      </div>
+
+                      {/* Seasonal Actions */}
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        {getSeasonalActions(season).map(action => (
+                          <button
+                            key={action}
+                            onClick={() => handleFieldAction(selectedField, action)}
+                            className={`px-3 py-2 rounded text-sm transition-all border ${
+                              fieldPlans.get(selectedField)?.action === action
+                                ? 'bg-blue-600 text-white border-blue-500'
+                                : 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700'
+                            }`}
+                          >
+                            {action === 'plant' ? '🌱' : action === 'water' ? '💧' : action === 'manure' ? '💩' :
+                             action === 'harvest' ? '🌾' : action === 'weed' ? '🌿' : '🏞️'} {action}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Resource Allocation */}
+                      {fieldPlans.get(selectedField)?.action && fieldPlans.get(selectedField)?.action !== 'fallow' && (
+                        <div className="space-y-3">
+                          {/* Water allocation */}
+                          <div className="flex items-center gap-3">
+                            <label className="text-sm text-slate-300 w-16">Water:</label>
+                            <div className="flex gap-1">
+                              {[0, 1, 2, 3].map(amount => (
+                                <button
+                                  key={amount}
+                                  onClick={() => handleResourceAllocation(selectedField, 'water', amount)}
+                                  className={`w-8 h-8 rounded border text-xs ${
+                                    (fieldPlans.get(selectedField)?.waterAmount || 0) === amount
+                                      ? 'bg-blue-600 text-white border-blue-500'
+                                      : 'bg-slate-800 text-slate-400 border-slate-600 hover:bg-slate-700'
+                                  }`}
+                                >
+                                  {amount === 0 ? '0' : '💧'.repeat(amount)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Manure allocation */}
+                          <div className="flex items-center gap-3">
+                            <label className="text-sm text-slate-300 w-16">Manure:</label>
+                            <div className="flex gap-1">
+                              {[0, 1].map(amount => (
+                                <button
+                                  key={amount}
+                                  onClick={() => handleResourceAllocation(selectedField, 'manure', amount)}
+                                  className={`w-8 h-8 rounded border text-xs ${
+                                    (fieldPlans.get(selectedField)?.manureAmount || 0) === amount
+                                      ? 'bg-amber-600 text-white border-amber-500'
+                                      : 'bg-slate-800 text-slate-400 border-slate-600 hover:bg-slate-700'
+                                  }`}
+                                >
+                                  {amount === 0 ? '0' : '💩'}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      )}
 
-                  {/* Actions for selected field */}
-                  {selectedField !== null && (
+                      <button
+                        onClick={() => setSelectedField(null)}
+                        className="mt-3 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-sm"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Owner Actions for selected field */}
+                  {!isWorker && selectedField !== null && farmState?.fields && (
                     <div className="mt-4 p-4 bg-slate-800/70 rounded-lg border border-slate-700 animate-slideUp">
                       <div className="flex flex-wrap items-center gap-3 justify-between">
                         <h5 className="text-amber-300 font-medium">
@@ -1339,7 +1989,7 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                               <div className="flex items-center gap-3">
                                 <div className="text-xs text-amber-300">{total}¢</div>
                                 <button
-                                  onClick={() => {
+                                  onClick={useCallback(() => {
                                     // Create an Item for sale
                                     const item: Item = {
                                       id: `harvest-${crop}-${Date.now()}`,
@@ -1366,7 +2016,7 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                                       delete next[crop];
                                       return next;
                                     });
-                                  }}
+                                  }, [crop, onSell])}
                                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 text-white text-xs"
                                 >
                                   Sell
@@ -1532,31 +2182,141 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
               </div>
             </div>
 
-            {/* Time controls */}
-            <div className="space-y-2">
-              <h4 className="text-amber-300 font-medium mb-2 text-sm">Progress Time</h4>
-              <button
-                onClick={() => progressFarmTime(1)}
-                className="w-full px-3 py-2 bg-slate-900/60 hover:bg-slate-800/60 text-slate-200 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium border border-slate-800/60"
-              >
-                <Timer className="w-4 h-4" />
-                1 Month
-              </button>
-              <button
-                onClick={() => progressFarmTime(3)}
-                className="w-full px-3 py-2 bg-slate-900/60 hover:bg-slate-800/60 text-slate-200 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium border border-slate-800/60"
-              >
-                <Timer className="w-4 h-4" />
-                3 Months (1 Season)
-              </button>
-              <button
-                onClick={() => progressFarmTime(6)}
-                className="w-full px-3 py-2 bg-slate-900/60 hover:bg-slate-800/60 text-slate-200 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium border border-slate-800/60"
-              >
-                <Timer className="w-4 h-4" />
-                6 Months
-              </button>
-            </div>
+            {/* Worker Status or Time Controls */}
+            {isWorker ? (
+              <div className="space-y-3">
+                {/* Trust Progress */}
+                <div className="bg-gradient-to-r from-blue-900/30 to-slate-900/30 p-3 rounded-lg border border-blue-700/40">
+                  <h4 className="text-blue-300 font-medium mb-2 text-sm flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Worker Status
+                  </h4>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-300">Trust Level</span>
+                      <span className="text-blue-300">{trustLevel}/100</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-500"
+                        style={{ width: `${trustLevel}%` }}
+                      />
+                    </div>
+
+                    {currentContract && (
+                      <div className="text-xs text-slate-400 space-y-1">
+                        <div>Contract: {currentContract.daysRemaining} days left</div>
+                        <div>Payment: {currentContract.payment.meals ? 'Meals ' : ''}{currentContract.payment.lodging ? 'Lodging ' : ''}{currentContract.payment.coins ? `${currentContract.payment.coins} coins` : ''}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Work Quality Score */}
+                {workQualityScore !== null && (
+                  <div className="bg-gradient-to-r from-green-900/30 to-slate-900/30 p-3 rounded-lg border border-green-700/40">
+                    <h4 className="text-green-300 font-medium mb-2 text-sm">Last Work Quality</h4>
+                    <div className="text-2xl font-bold text-center">
+                      <span className={`${
+                        workQualityScore >= 75 ? 'text-green-400' :
+                        workQualityScore >= 50 ? 'text-yellow-400' :
+                        'text-red-400'
+                      }`}>
+                        {workQualityScore}/100
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Detailed Assessment Results */}
+                {lastAssessment && (
+                  <div className="bg-gradient-to-r from-purple-900/30 to-slate-900/30 p-3 rounded-lg border border-purple-700/40">
+                    <h4 className="text-purple-300 font-medium mb-3 text-sm flex items-center gap-2">
+                      <Brain className="w-4 h-4" />
+                      Detailed Assessment
+                    </h4>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-slate-400">Strategy:</span>
+                          <span className="text-purple-300 ml-1">{lastAssessment.detailedAssessment.strategyQuality}/100</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Resources:</span>
+                          <span className="text-purple-300 ml-1">{lastAssessment.detailedAssessment.resourceAllocation}/100</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Cultural:</span>
+                          <span className="text-purple-300 ml-1">{lastAssessment.detailedAssessment.culturalAccuracy}/100</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Adaptation:</span>
+                          <span className="text-purple-300 ml-1">{lastAssessment.detailedAssessment.adaptationToConditions}/100</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 pt-2 border-t border-purple-700/30">
+                        <span className="text-slate-400">Trust Change:</span>
+                        <span className={`ml-1 font-medium ${
+                          lastAssessment.trustChange > 0 ? 'text-green-400' :
+                          lastAssessment.trustChange < 0 ? 'text-red-400' :
+                          'text-slate-300'
+                        }`}>
+                          {lastAssessment.trustChange > 0 ? '+' : ''}{lastAssessment.trustChange}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Plan & Work Button */}
+                <button
+                  onClick={() => {
+                    if (fieldPlans.size === 0) {
+                      alert('Please plan work for at least one field!');
+                      return;
+                    }
+                    setShowPlanningModal(true);
+                  }}
+                  disabled={fieldPlans.size === 0}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-semibold border border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Hammer className="w-4 h-4" />
+                  Plan & Work 1 Month
+                </button>
+
+                <div className="text-xs text-center text-slate-400">
+                  Planned fields: {fieldPlans.size}/{farmState?.fields?.length || 0}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <h4 className="text-amber-300 font-medium mb-2 text-sm">Progress Time</h4>
+                <button
+                  onClick={() => progressFarmTime(1)}
+                  className="w-full px-3 py-2 bg-slate-900/60 hover:bg-slate-800/60 text-slate-200 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium border border-slate-800/60"
+                >
+                  <Timer className="w-4 h-4" />
+                  1 Month
+                </button>
+                <button
+                  onClick={() => progressFarmTime(3)}
+                  className="w-full px-3 py-2 bg-slate-900/60 hover:bg-slate-800/60 text-slate-200 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium border border-slate-800/60"
+                >
+                  <Timer className="w-4 h-4" />
+                  3 Months (1 Season)
+                </button>
+                <button
+                  onClick={() => progressFarmTime(6)}
+                  className="w-full px-3 py-2 bg-slate-900/60 hover:bg-slate-800/60 text-slate-200 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium border border-slate-800/60"
+                >
+                  <Timer className="w-4 h-4" />
+                  6 Months
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1565,17 +2325,194 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
       {activeTab === 'overview' && headFarmer ? (
         <NPCToast
           character={{...headFarmer, culturalZone: culturalZone}}
-          message={farmerToast?.message || getInitialFarmerGreeting()}
+          message={farmerToast?.message || ''}
           type={farmerToast?.type || 'greeting'}
           persistent={true}
           position="bottom"
           onClose={() => setFarmerToast(null)}
           enableLLMChat={true}
-          farmProsperity={farmState?.prosperity || 'humble'}
+          farmProsperity={farmState?.economicStatus || 'humble'}
           era={mapData?.dateInfo?.era || 'MEDIEVAL'}
           playerCharacter={playerCharacter}
           mapData={mapData}
           npcs={npcs}
+          isFarmContext={true}
+          gameTimeHours={gameTimeHours}
+          onInitiateEncounter={onInitiateEncounter}
+          onRequestRest={(fee) => {
+            // Handle rest request
+            const coinItem = playerCharacter.inventory?.find(i => i.id === 'COIN');
+            const coinAmount = coinItem?.quantity || 0;
+
+            if (coinAmount >= fee) {
+              // Start fade transition
+              setIsTransitioning(true);
+
+              // Deduct coins after a short delay
+              setTimeout(() => {
+                // Remove coins from inventory
+                if (onSell && coinItem && fee > 0) {
+                  // Use onSell with negative price to deduct coins
+                  const updatedCoin = { ...coinItem, quantity: (coinItem.quantity || 0) - fee };
+                  if (updatedCoin.quantity <= 0) {
+                    // Remove coin item entirely if none left
+                    playerCharacter.inventory = playerCharacter.inventory?.filter(i => i.id !== 'COIN') || [];
+                  } else {
+                    // Update coin quantity
+                    const itemIndex = playerCharacter.inventory?.findIndex(i => i.id === 'COIN') || -1;
+                    if (itemIndex >= 0 && playerCharacter.inventory) {
+                      playerCharacter.inventory[itemIndex] = updatedCoin;
+                    }
+                  }
+                }
+
+                // Progress time to next morning (6am)
+                if (onProgressTime) {
+                  const hoursToMorning = gameTimeHours <= 6 ? (6 - gameTimeHours) : (24 - gameTimeHours + 6);
+                  onProgressTime(hoursToMorning / 24); // Convert hours to fraction of day
+                }
+
+                // Update residency status
+                if (farmState) {
+                  updateResidencyStatus(farmState.tileKey, {
+                    playerStatus: 'guest',
+                    lastRestDate: currentGameDay + 1,
+                    trustLevel: Math.min(100, (farmState.residencyStatus?.trustLevel || 50) + 5)
+                  });
+
+                  // Update local state
+                  setFarmState({
+                    ...farmState,
+                    residencyStatus: {
+                      ...farmState.residencyStatus,
+                      playerStatus: 'guest',
+                      lastRestDate: currentGameDay + 1,
+                      trustLevel: Math.min(100, (farmState.residencyStatus?.trustLevel || 50) + 5)
+                    } as FarmResidencyStatus
+                  });
+                }
+
+                // After time skip, show morning interaction
+                setTimeout(() => {
+                  setIsTransitioning(false);
+                  // Generate morning message based on prosperity
+                  const morningOffer = farmState?.economicStatus === 'wealthy' || farmState?.economicStatus === 'prosperous'
+                    ? "Good morning! Sleep well? We could use an extra pair of hands today. I can offer meals, lodging, and a few coins for honest work. Interested?"
+                    : "Morning! Hope you slept alright. We're a bit short-handed today. Can't offer much beyond meals and a bed, but the work's honest. What do you say?";
+
+                  setFarmerToast({
+                    message: morningOffer,
+                    type: 'quest'
+                  });
+                  // The NPCToast will now show work offer buttons based on updated status
+                }, 1000);
+              }, 1000);
+            } else {
+              setFarmerToast({ message: "You don't have enough coins for lodging.", type: 'warning' });
+            }
+          }}
+          onAcceptWork={(tasks, payment) => {
+            // Apply the work contract
+            if (farmState) {
+              acceptWorkContract(farmState.tileKey, tasks, payment);
+
+              // Update local state
+              setFarmState({
+                ...farmState,
+                residencyStatus: {
+                  ...farmState.residencyStatus,
+                  playerStatus: 'worker',
+                  currentContract: {
+                    type: 'daily',
+                    daysRemaining: 1,
+                    payment,
+                    requiredTasks: tasks,
+                    tasksToday: tasks
+                  }
+                } as FarmResidencyStatus
+              });
+
+              // Show success message
+              setFarmerToast({
+                message: "Great! The work day starts at dawn. You can rest in the barn when you're done.",
+                type: 'success'
+              });
+            }
+          }}
+          onRequestWork={() => {
+            // Start work negotiation with context-aware offer
+            const isGuest = farmState?.residencyStatus?.playerStatus === 'guest';
+            const prosperity = farmState?.economicStatus;
+
+            let offerMessage = "";
+            if (isGuest) {
+              // Player has already rested here, more welcoming
+              offerMessage = prosperity === 'wealthy' || prosperity === 'prosperous'
+                ? "Since you've been a good guest, I'll make you a fair offer. Help with today's chores - feeding animals, mending fences, and tending crops. You'll get three meals, a warm bed, and 5 coins. Deal?"
+                : "You seem trustworthy enough. Today's work includes feeding the animals and fixing that broken fence. Can offer you meals and a place to sleep. That work for you?";
+            } else {
+              // First time visitor
+              offerMessage = prosperity === 'wealthy' || prosperity === 'prosperous'
+                ? "Alright, let's see... We need help with the harvest and the livestock. I can offer meals, lodging, and 5 coins for a full day's work. Interested?"
+                : "We could use the help, though we can't pay much. Feed the animals, clear the weeds, mend the fence. In exchange: meals and a bed for the night. Fair?";
+            }
+
+            setFarmerToast({
+              message: offerMessage,
+              type: 'quest'
+            });
+
+            // Update residency status to track negotiation
+            if (farmState) {
+              updateResidencyStatus(farmState.tileKey, {
+                negotiationRounds: 1
+              });
+            }
+          }}
+          onRequestResidency={() => {
+            // Check if eligible for residency (worker status + high trust)
+            const status = farmState?.residencyStatus;
+            if (status?.playerStatus === 'worker' && (status?.trustLevel || 0) >= 75) {
+              setFarmerToast({
+                message: "You've proven yourself to be reliable. We'd be happy to have you stay on as part of the farm family. You'll have your own quarters and share in the harvest.",
+                type: 'success'
+              });
+
+              // Update to resident status
+              if (farmState) {
+                updateResidencyStatus(farmState.tileKey, {
+                  playerStatus: 'resident',
+                  trustLevel: 100
+                });
+
+                setFarmState({
+                  ...farmState,
+                  residencyStatus: {
+                    ...farmState.residencyStatus,
+                    playerStatus: 'resident',
+                    trustLevel: 100
+                  } as FarmResidencyStatus
+                });
+              }
+            } else if (status?.playerStatus === 'worker') {
+              setFarmerToast({
+                message: `You need to earn more of our trust before we can offer you permanent residency. Keep working hard! (Trust: ${status?.trustLevel || 0}/75)`,
+                type: 'info'
+              });
+            } else {
+              setFarmerToast({
+                message: "You'd need to work for us first before we'd consider that. Start by helping with the daily chores.",
+                type: 'warning'
+              });
+            }
+          }}
+          onLeave={() => {
+            onClose(); // Close the farm panel when leaving
+          }}
+          onRefuse={() => {
+            console.log('Player refuses to leave');
+            // The NPCToast will handle combat initiation if needed
+          }}
         />
       ) : activeTab === 'farm_work' && farmerToast && headFarmer && (
         <NPCToast
@@ -1591,14 +2528,248 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
           npcs={npcs}
         />
       )}
-      
-      {/* Animations (Tailwind utilities or add to your global CSS) */}
-      {/* 
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes slideUp { from { transform: translateY(8px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+
+      {/* Worker Planning Modal */}
+      {showPlanningModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
+            <h3 className="text-xl font-bold text-blue-300 mb-4 flex items-center gap-2">
+              <Hammer className="w-5 h-5" />
+              Explain Your {season.charAt(0).toUpperCase() + season.slice(1)} Work Plan
+            </h3>
+
+            <div className="space-y-4">
+              {/* Summary of planned actions */}
+              <div className="bg-slate-800/50 p-3 rounded-lg">
+                <h4 className="text-sm font-medium text-slate-300 mb-2">Your Planned Actions:</h4>
+                <div className="space-y-1 text-xs">
+                  {Array.from(fieldPlans.entries()).map(([fieldId, plan]) => (
+                    <div key={fieldId} className="flex justify-between text-slate-400">
+                      <span>Field {fieldId + 1}:</span>
+                      <span className="capitalize">
+                        {plan.action}
+                        {plan.waterAmount > 0 && ` • ${plan.waterAmount} water`}
+                        {plan.manureAmount > 0 && ` • manure`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Strategy explanation */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Explain your strategy and reasoning (20-300 characters):
+                </label>
+                <textarea
+                  value={strategyText}
+                  onChange={(e) => setStrategyText(e.target.value)}
+                  placeholder={`For ${season} farming, I plan to... Explain why you chose these actions, how you allocated resources, and what you expect the outcomes to be.`}
+                  className="w-full h-24 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                  maxLength={300}
+                />
+                <div className="text-xs text-slate-500 mt-1">
+                  {strategyText.length}/300 characters • Minimum 20
+                </div>
+              </div>
+
+              {/* Seasonal guidance */}
+              <div className="bg-amber-900/20 border border-amber-700/40 p-3 rounded-lg">
+                <div className="text-xs text-amber-300">
+                  <strong>{season.charAt(0).toUpperCase() + season.slice(1)} Focus:</strong> {{
+                    spring: "Focus on crop selection and planting decisions. Consider soil preparation.",
+                    summer: "Prioritize water and fertilizer allocation. Monitor plant health.",
+                    autumn: "Plan harvest timing and storage. Consider which crops to harvest vs leave.",
+                    winter: "Focus on field rotation and preparation for next year's planting."
+                  }[season] || "Plan your farming strategy carefully."}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowPlanningModal(false)}
+                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleWorkerSubmit}
+                disabled={strategyText.trim().length < 20 || isAssessing}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
+              >
+                {isAssessing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Assessing Work...
+                  </>
+                ) : (
+                  <>
+                    <Hammer className="w-4 h-4" />
+                    Submit Work Plan
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Field Inspection Modal */}
+      {inspectedField !== null && farmState?.fields && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            {(() => {
+              const field = farmState.fields.find(f => f.id === inspectedField);
+              if (!field) return null;
+
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-green-300 flex items-center gap-2">
+                      <Sprout className="w-5 h-5" />
+                      Field #{inspectedField + 1} Inspection
+                    </h3>
+                    <button
+                      onClick={() => setInspectedField(null)}
+                      className="text-slate-400 hover:text-white transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Crop Info */}
+                    {field.crop ? (
+                      <div className="bg-slate-800/50 rounded-lg p-4">
+                        <h4 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
+                          <span className="text-lg">{CROP_EMOJIS[field.crop] || '🌱'}</span>
+                          {field.crop.charAt(0).toUpperCase() + field.crop.slice(1)}
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-slate-400">Growth Stage:</span>
+                            <span className="text-green-300 ml-2 capitalize">{field.growthStage}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Days to Harvest:</span>
+                            <span className="text-blue-300 ml-2">{field.daysToHarvest || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                        <div className="text-slate-400 text-sm">Field is currently fallow</div>
+                      </div>
+                    )}
+
+                    {/* Soil & Conditions */}
+                    <div className="bg-slate-800/50 rounded-lg p-4">
+                      <h4 className="text-amber-400 font-semibold mb-2">Soil Conditions</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-slate-400">Moisture:</span>
+                          <span className={`ml-2 capitalize ${
+                            field.moisture === 'wet' ? 'text-blue-300' :
+                            field.moisture === 'moist' ? 'text-green-300' :
+                            'text-orange-300'
+                          }`}>
+                            {field.moisture}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Health:</span>
+                          <span className={`ml-2 ${
+                            field.health >= 8 ? 'text-green-300' :
+                            field.health >= 5 ? 'text-yellow-300' :
+                            'text-red-300'
+                          }`}>
+                            {field.health}/10
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Issues */}
+                    {(field.pests || field.weeds) && (
+                      <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
+                        <h4 className="text-red-400 font-semibold mb-2">⚠️ Issues Detected</h4>
+                        <div className="space-y-1 text-sm">
+                          {field.pests && (
+                            <div className="text-red-300">🐛 Pests present - consider treatment</div>
+                          )}
+                          {field.weeds && (
+                            <div className="text-orange-300">🌿 Weeds detected - needs weeding</div>
+                          )}
+                        </div>
+                        <div className="mt-2 text-xs text-slate-400">
+                          💡 Tip: Visit a marketplace to find pest treatments and farming tools
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Worker Planning */}
+                    {isWorker && fieldPlans.has(inspectedField) && (
+                      <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-4">
+                        <h4 className="text-blue-300 font-semibold mb-2">📋 Your Plan</h4>
+                        <div className="text-sm">
+                          <div className="mb-1">
+                            <span className="text-slate-400">Action:</span>
+                            <span className="text-blue-300 ml-2 capitalize">{fieldPlans.get(inspectedField)!.action}</span>
+                          </div>
+                          {fieldPlans.get(inspectedField)!.waterAmount > 0 && (
+                            <div className="mb-1">
+                              <span className="text-slate-400">Water allocation:</span>
+                              <span className="text-blue-300 ml-2">{fieldPlans.get(inspectedField)!.waterAmount}/3</span>
+                            </div>
+                          )}
+                          {fieldPlans.get(inspectedField)!.manureAmount > 0 && (
+                            <div>
+                              <span className="text-slate-400">Manure:</span>
+                              <span className="text-amber-300 ml-2">Applied</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      onClick={() => setInspectedField(null)}
+                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0 }
+          to { opacity: 1 }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(8px); opacity:0 }
+          to { transform: translateY(0); opacity:1 }
+        }
+        @keyframes pestCrawl {
+          0% { transform: translate(0, 0); }
+          25% { transform: translate(10px, 5px); }
+          50% { transform: translate(5px, 15px); }
+          75% { transform: translate(15px, 10px); }
+          100% { transform: translate(0, 0); }
+        }
         .animate-fadeIn { animation: fadeIn .25s ease-out }
         .animate-slideUp { animation: slideUp .25s ease-out }
-      */}
+      `}</style>
     </div>
   );
 };

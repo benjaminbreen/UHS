@@ -19,6 +19,7 @@ import WorldWeaverModal from './WorldWeaverModal';
 import QuestsPanel from './QuestsPanel';
 import { findZoneForMapArea } from '../utils/mapAreaLookup';
 import { normalizeZoneName, normalizeRegionName } from '../utils/worldWeaverHelpers';
+import type { CulturalZone } from '../types/characterData';
 import { eventService } from '../services/eventService';
 import { useEventSystem } from '../hooks/useEventSystem';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -126,6 +127,32 @@ const TopNavBarPolished: React.FC = () => {
     setPendingScenarioData,
   } = useMap();
   const { gameDate, onMapConfigDateChange, currentZone, onLocationChange, isLoading } = useGame();
+
+  // Map geographical zone to cultural zone
+  const getCulturalZoneFromGeographical = (geoZone: string): CulturalZone | undefined => {
+    const mapping: Record<string, CulturalZone> = {
+      'Europe': 'EUROPEAN',
+      'North America': 'NORTH_AMERICAN_COLONIAL', // Default to colonial for simplicity
+      'South America': 'SOUTH_AMERICAN',
+      'MENA': 'MENA',
+      'Sub Saharan Africa': 'SUB_SAHARAN_AFRICAN',
+      'South Asia': 'SOUTH_ASIAN',
+      'East Asia': 'EAST_ASIAN',
+      'Oceania': 'OCEANIA'
+    };
+
+    // Find which zone the current area belongs to
+    if (currentZone) {
+      const zoneInfo = findZoneForMapArea(currentZone);
+      if (zoneInfo) {
+        return mapping[zoneInfo.zone];
+      }
+    }
+
+    return undefined;
+  };
+
+  const currentCulturalZone = getCulturalZoneFromGeographical(currentZone || '');
 
   const [isGeneratorPanelOpen, setIsGeneratorPanelOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -1061,6 +1088,7 @@ const TopNavBarPolished: React.FC = () => {
         onClose={() => setShowJournal(false)}
         currentLocation={currentZone || 'Unknown Location'}
         currentDate={gameDate ? `${gameDate.month}/${gameDate.day}/${gameDate.year}` : 'Unknown Date'}
+        currentCulturalZone={currentCulturalZone}
       />
 
       {/* Modals */}

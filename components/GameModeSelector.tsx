@@ -3,7 +3,7 @@
  * Allows players to choose their game mode
  */
 
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { 
   Shield, 
   Compass, 
@@ -66,7 +66,7 @@ export const GameModeSelector = memo(({
     return (
       <div className="relative">
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={useCallback(() => setIsOpen(prev => !prev), [])}
           className="w-full px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg
                      text-white text-sm font-medium
                      flex items-center justify-between
@@ -86,10 +86,10 @@ export const GameModeSelector = memo(({
             {GAME_MODES.map(mode => (
               <button
                 key={mode.id}
-                onClick={() => {
+                onClick={useCallback(() => {
                   onModeSelect(mode);
                   setIsOpen(false);
-                }}
+                }, [mode, onModeSelect])}
                 className={`w-full px-3 py-2 text-left text-sm
                            hover:bg-slate-700 transition-colors
                            ${currentMode?.id === mode.id ? 'bg-slate-700' : ''}`}
@@ -120,9 +120,9 @@ export const GameModeSelector = memo(({
         {GAME_MODES.map(mode => (
           <button
             key={mode.id}
-            onClick={() => onModeSelect(mode)}
-            onMouseEnter={() => setHoveredMode(mode.id)}
-            onMouseLeave={() => setHoveredMode(null)}
+            onClick={useCallback(() => onModeSelect(mode), [mode, onModeSelect])}
+            onMouseEnter={useCallback(() => setHoveredMode(mode.id), [mode.id])}
+            onMouseLeave={useCallback(() => setHoveredMode(null), [])}
             className={`
               relative p-4 rounded-lg
               bg-gradient-to-br ${getModeColor(mode.id)}

@@ -152,6 +152,7 @@ export const useUIState = () => {
         _setActiveCityModal(data);
     }, []);
 
+
     // Auto-enable performance optimizations for Safari users
     useEffect(() => {
         if (isSafari()) {
@@ -160,8 +161,9 @@ export const useUIState = () => {
                 disableBlurEffects: true,
                 disableAnimations: true  // Also disable animations for better Safari performance
             }));
-            // Apply the class immediately
+            // Apply the classes immediately
             document.body.classList.add('disable-blur');
+            document.body.classList.add('disable-animations');
             console.log('[Performance] Safari detected - automatically disabling blur effects and animations for better performance');
         }
     }, []);
@@ -663,6 +665,7 @@ export const useUIState = () => {
         setSkillResult(result);
         setIsSkillLoading(false);
     }, [playerCharacter, mapData, controlledIconX, controlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setPlayerCharacter, addItemsToInventory, removeVegetation, updateMineralDeposit, addDugTile, showFloatingText]);
+
 
     const onSend = useCallback(async () => {
         if (!playerInput.trim() || !playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;

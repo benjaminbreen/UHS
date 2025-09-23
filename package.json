@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
@@ -30,8 +33,16 @@
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "^1.0.84",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "jsdom": "^23.0.0",
     "typescript": "~5.8.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^1.0.0"
   }
 }

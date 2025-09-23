@@ -79,11 +79,67 @@ export const getOptimizedButtonClassName = (baseClassName: string): string => {
       .replace(/\s+/g, ' ')
       .trim();
   }
-  
+
   // For non-Safari browsers, still optimize transitions but keep transforms
   return baseClassName
     .replace(/transition-all/g, 'transition-[background-color,border-color,transform]')
     .replace(/duration-300/g, 'duration-200')
     .replace(/\s+/g, ' ')
     .trim();
+};
+
+// Get Safari-optimized style with GPU acceleration
+export const getSafariGPUStyle = (baseStyle: React.CSSProperties = {}): React.CSSProperties => {
+  if (!isSafari()) {
+    return baseStyle;
+  }
+
+  return {
+    ...baseStyle,
+    transform: baseStyle.transform ? `${baseStyle.transform} translateZ(0)` : 'translateZ(0)',
+    WebkitBackfaceVisibility: 'hidden',
+    WebkitPerspective: 1000,
+    WebkitTransform: baseStyle.transform ? `${baseStyle.transform} translateZ(0)` : 'translateZ(0)',
+    willChange: 'transform',
+  };
+};
+
+// Get Safari-optimized animation style
+export const getSafariAnimationStyle = (animationStyle: React.CSSProperties): React.CSSProperties => {
+  if (!isSafari()) {
+    return animationStyle;
+  }
+
+  // Convert complex animations to simpler ones for Safari
+  const optimizedStyle = { ...animationStyle };
+
+  // Disable complex filters during animations
+  if (optimizedStyle.filter && typeof optimizedStyle.filter === 'string') {
+    optimizedStyle.filter = optimizedStyle.filter
+      .replace(/blur\([^)]*\)/g, '')
+      .replace(/drop-shadow\([^)]*\)/g, '')
+      .trim() || undefined;
+  }
+
+  // Add GPU acceleration
+  return getSafariGPUStyle(optimizedStyle);
+};
+
+// Check if current device needs Safari optimizations
+export const needsSafariOptimization = (): boolean => {
+  return isSafari();
+};
+
+// Get optimized transform for better Safari performance
+export const getSafariOptimizedTransform = (transform: string): string => {
+  if (!isSafari()) {
+    return transform;
+  }
+
+  // Ensure all transforms include translateZ(0) for GPU acceleration
+  if (!transform.includes('translateZ')) {
+    return `${transform} translateZ(0)`;
+  }
+
+  return transform;
 };

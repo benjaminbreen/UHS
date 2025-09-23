@@ -25,6 +25,8 @@ export interface DialogueResponse {
   grantAccess?: boolean;
   accessLevel?: 'none' | 'partial' | 'full';
   accessReason?: string;
+  tradeAvailable?: boolean;
+  tradeReason?: string;
 }
 
 /**
@@ -104,6 +106,13 @@ Respond naturally as your character would, considering:
 2. The historical context and cultural norms
 3. Your personality and likely knowledge
 4. Whether this is marketplace business or casual conversation
+
+Determine if you would be willing to trade:
+- Merchants, traders, shopkeepers, and craftsmen should generally be open to trade
+- Guards, officials, and nobility rarely trade unless it's relevant to the conversation
+- Consider if the player asked about buying, selling, or trading goods
+- Hostile NPCs should refuse to trade
+- If you're a merchant but the player is being rude, you might refuse
 
 Keep response under 40 words. Be authentic to the time period.
   `;

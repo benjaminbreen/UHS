@@ -1112,9 +1112,9 @@ export function generateNpcsForStandardMap(
                         npc.homeLocation = { x: closestSettlementTile.x, y: closestSettlementTile.y };
 
                         // Register with urban tile registry
-                        const residenceType = getResidenceType(
-                            context.era,
+                        const residenceType = urbanTileRegistry.getResidenceType(
                             context.culturalZone,
+                            context.era,
                             npc.wealthLevel
                         );
                         urbanTileRegistry.addResident(
@@ -1147,7 +1147,7 @@ export function generateNpcsForStandardMap(
                             ownerId: npc.id,
                             employees: [],
                             location: { x: workplaceTile.x, y: workplaceTile.y },
-                            openHours: getBusinessHours(context.era, profession)
+                            openHours: generateWorkingHours(context.era, profession)
                         };
 
                         urbanTileRegistry.addBusiness(workplaceTile, business);
@@ -1248,7 +1248,7 @@ function calculateNpcCount(tiles: Tile[][], climate: ClimateType, noise: ValueNo
     
     // Use centralized city detection for accurate era calculation
     const dateInfo = parseDateString(year?.toString() || '1650');
-    const cityDetection = detectCitiesForArea(localAreaName, regionName, year || dateInfo.year, dateInfo.era, true);
+    const cityDetection = detectCitiesForArea(localAreaName, regionName, year || dateInfo.year, dateInfo.era, false);
     
     const hasCities = cityDetection.hasCities;
     const cityDensity = cityDetection.cityDensity;

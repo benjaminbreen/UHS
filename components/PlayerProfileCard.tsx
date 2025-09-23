@@ -55,30 +55,7 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
           diseaseName: null,
           isWeatherEffect: true 
         };
-      }
-      if (hotEffect && wetEffect) {
-        return { 
-          text: '🌡️💧 Hot and humid', 
-          hasDisease: false, 
-          diseaseName: null,
-          isWeatherEffect: true 
-        };
-      }
-      if (hotEffect) {
-        return { 
-          text: '🌡️ Feeling hot', 
-          hasDisease: false, 
-          diseaseName: null,
-          isWeatherEffect: true 
-        };
-      }
-      if (wetEffect) {
-        return { 
-          text: '💧 Feeling wet', 
-          hasDisease: false, 
-          diseaseName: null,
-          isWeatherEffect: true 
-        };
+      
       }
     }
     

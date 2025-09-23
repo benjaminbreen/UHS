@@ -9,7 +9,7 @@ import ChartErrorBoundary from '../ChartErrorBoundary';
 
 interface PopulationChartProps {
   currentYear: number;
-  region: string;
+  culturalZone?: string;
 }
 
 // Generate a bell curve of human population through history

@@ -17,6 +17,9 @@ import {
   getNightOverlayIntensity
 } from '../services/backgroundSelectionService';
 import WeatherEffects from './WeatherEffects';
+import { journalService } from '../services/journalService';
+import type { JournalEntry } from './JournalViewport';
+import { BookOpen } from 'lucide-react';
 
 interface SkillsModalProps {
     isOpen: boolean;
@@ -392,6 +395,7 @@ const getBackgroundPaths = (
 
 const ObserveResultWithBackground: React.FC<{ result: ObserveSkillResult; onClose: () => void }> = ({ result, onClose }) => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundLoading, setBackgroundLoading] = useState(false); // Track background loading state
   const [isUsingNightImage, setIsUsingNightImage] = useState(false);
 
   // Access context data for climate and season
@@ -444,10 +448,15 @@ const ObserveResultWithBackground: React.FC<{ result: ObserveSkillResult; onClos
   });
 
   // Load appropriate background
+  // OPTIMISTIC UI: Delay background loading to show modal instantly
   useEffect(() => {
-    const loadBackground = async () => {
-      // Wait a tick to ensure weather is fully populated
-      await new Promise(resolve => setTimeout(resolve, 0));
+    // Small delay so modal appears instantly
+    const timer = setTimeout(() => {
+      setBackgroundLoading(true);
+
+      const loadBackground = async () => {
+        // Wait a tick to ensure weather is fully populated
+        await new Promise(resolve => setTimeout(resolve, 0));
 
       console.log('[ObserveModal] loadBackground called with weather:', {
         weather,
@@ -488,11 +497,15 @@ const ObserveResultWithBackground: React.FC<{ result: ObserveSkillResult; onClos
       const usingNightImage = backgroundUrl ? backgroundUrl.includes('_night') : false;
       setIsUsingNightImage(usingNightImage);
 
-      console.log('[ObserveModal] Found background:', backgroundUrl);
-      setBackgroundImage(backgroundUrl);
-    };
+        console.log('[ObserveModal] Found background:', backgroundUrl);
+        setBackgroundImage(backgroundUrl);
+        setBackgroundLoading(false);
+      };
 
-    loadBackground();
+      loadBackground();
+    }, 100); // 100ms delay - modal renders first, then loads background
+
+    return () => clearTimeout(timer);
   }, [currentBiome, culturalZone, weather, gameTime, mapData?.climate, season]);
 
   // Start environmental soundscape when modal opens
@@ -685,7 +698,7 @@ const renderStudyResult = (result: StudySkillResult) => {
     const [showPrompt, setShowPrompt] = useState(false);
     const { playerCharacter } = usePlayer();
     const { gameDate } = useGame();
-    const { culturalZone } = useMap();
+    const { culturalZone, mapData } = useMap();
 
     // Update countdown timer
     useEffect(() => {
@@ -745,9 +758,53 @@ const renderStudyResult = (result: StudySkillResult) => {
             <div className="mb-4">
                 <p className="text-gray-300 mb-3">{result.description}</p>
 
-                {/* Items Studied */}
+                {/* Items Studied with Add to Journal button */}
                 <div className="bg-purple-900/20 p-3 rounded-md border border-purple-600/30">
-                    <p className="font-semibold text-purple-200 mb-2">Items Studied:</p>
+                    <div className="flex items-start justify-between mb-2">
+                        <p className="font-semibold text-purple-200">Items Studied:</p>
+                        <button
+                            onClick={(event) => {
+                                const studiedItemNames = result.items.map(item => item.name).join(', ');
+                                const currentDate = gameDate ? `${gameDate.month}/${gameDate.day}/${gameDate.year}` : 'Unknown Date';
+                                const location = mapData?.name || result.context?.location || 'Unknown Location';
+
+                                // Create journal entry content
+                                const entryContent = `Study Observation\n\n${result.description}\n\n${result.items.length > 1 ? 'Items' : 'Item'} studied: ${studiedItemNames}`;
+
+                                const journalEntry: JournalEntry = {
+                                    id: `study-${Date.now()}`,
+                                    title: `Study: ${result.items[0].name}`,
+                                    content: entryContent,
+                                    location: location,
+                                    date: currentDate,
+                                    timestamp: Date.now(),
+                                    imageUrl: generatedImageUrl || undefined,
+                                    imageCaption: generatedImageUrl ? `Historical representation of ${result.items[0].name}` : undefined,
+                                    isStudyObservation: true,
+                                    studiedItem: result.items[0].name,
+                                    culturalZone: culturalZone as CulturalZone || undefined
+                                };
+
+                                // Add to journal and show notification
+                                journalService.addEntry(journalEntry);
+                                journalService.openJournal();
+
+                                // Optional: Show a toast or visual feedback
+                                const button = event.currentTarget as HTMLButtonElement;
+                                button.textContent = '✓ Added';
+                                button.disabled = true;
+                                setTimeout(() => {
+                                    button.textContent = 'Add to Journal';
+                                    button.disabled = false;
+                                }, 2000);
+                            }}
+                            className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-purple-700/30 hover:bg-purple-600/40 text-purple-200 hover:text-purple-100 border border-purple-600/40 rounded-md transition-all duration-200 group"
+                            title="Add this observation to your journal"
+                        >
+                            <BookOpen size={14} className="group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Add to Journal</span>
+                        </button>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                         {result.items.map((item, index) => (
                             <span key={index} className="bg-purple-800/30 px-2 py-1 rounded text-sm text-purple-100 flex items-center gap-1">

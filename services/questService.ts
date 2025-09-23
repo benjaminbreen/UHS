@@ -1810,6 +1810,14 @@ export class QuestService {
   }
 
   /**
+   * Get a specific quest by ID
+   */
+  getQuest(questId: string): Quest | undefined {
+    return this.activeQuests.find(q => q.id === questId) ||
+           this.completedQuests.find(q => q.id === questId);
+  }
+
+  /**
    * Get all completed quests
    */
   getCompletedQuests(): Quest[] {
@@ -2195,12 +2203,6 @@ export class QuestService {
 
     // Analyze the map context for additional intelligence
     const mapContext = analyzeMapContext(mapData);
-    console.log('[QuestService] Map Context:', {
-      terrain: mapContext.primaryTerrain,
-      water: `${mapContext.waterPercentage.toFixed(1)}%`,
-      inhabited: mapContext.isInhabited,
-      structures: mapContext.structureTypes
-    });
 
     // Generate only ONE seasonal quest appropriate to the game mode
     // All other quests should emerge from player actions (NPCs, ruins, marketplace, etc.)
@@ -2211,7 +2213,6 @@ export class QuestService {
       if (seasonalQuest && isQuestAppropriateForContext(seasonalQuest.category, seasonalQuest.title, mapContext, era)) {
         quests.push(seasonalQuest);
         this.addQuest(seasonalQuest);
-        console.log(`[QuestService] Generated seasonal quest: "${seasonalQuest.title}" for ${context.season} in ${gameMode} mode`);
       } else {
         console.log(`[QuestService] No appropriate seasonal quest for current context`);
       }
@@ -2227,10 +2228,6 @@ export class QuestService {
       }
     }
     
-    // Log quest generation results
-    console.log(`[QuestService] Generated ${quests.length} initial quest${quests.length !== 1 ? 's' : ''}:`, 
-      quests.map(q => `${q.category}: ${q.title}`).join(', '));
-    console.log(`[QuestService] Additional quests will emerge from player actions (NPCs, ruins, marketplace, government, new areas)`);
     
     return quests;
   }

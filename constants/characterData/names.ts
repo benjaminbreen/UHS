@@ -586,6 +586,66 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: []
     },
 
+    // === PHASE 1 HIGH-IMPACT REGIONAL ADDITIONS ===
+
+    // Venetian Republic (9th-18th century) - Major Mediterranean trade power
+    VENETIAN_MEDIEVAL: {
+        male: ['Marco', 'Andrea', 'Francesco', 'Giovanni', 'Nicolò', 'Pietro', 'Alvise', 'Giacomo', 'Domenico', 'Lorenzo', 'Sebastiano', 'Antonio', 'Bernardo', 'Matteo', 'Zuane', 'Marin', 'Zorzi', 'Luca', 'Michiel', 'Piero', 'Alvise', 'Cristoforo', 'Bartolomeo', 'Hieronimo', 'Tomaso', 'Vicenzo', 'Zaccaria', 'Benedetto', 'Stefano', 'Agostino'],
+        female: ['Caterina', 'Elena', 'Lucrezia', 'Bianca', 'Francesca', 'Elisabetta', 'Marietta', 'Andriana', 'Chiara', 'Paola', 'Violante', 'Cornelia', 'Modesta', 'Isabetta', 'Anzola', 'Diamante', 'Orsa', 'Costanza', 'Cassandra', 'Laura', 'Marina', 'Cecilia', 'Maddalena', 'Agnesina', 'Zanetta', 'Betta', 'Faustina', 'Helisabetta', 'Margarita', 'Veronica'],
+        surname: ['Mocenigo', 'Contarini', 'Dandolo', 'Foscari', 'Gritti', 'Loredan', 'Morosini', 'Pesaro', 'Querini', 'Sagredo', 'Sanudo', 'Soranzo', 'Tron', 'Vendramin', 'Venier', 'Zeno', 'Barbarigo', 'Bembo', 'Bernardo', 'Bragadin', 'Cappello', 'Corner', 'Dolfin', 'Emo', 'Falier', 'Giustinian', 'Grimani', 'Malipiero', 'Marcello', 'Pisani']
+    },
+
+    // Moorish Al-Andalus (711-1492 CE) - Islamic Iberia
+    MOORISH_ANDALUS: {
+        male: ['Abd al-Rahman', 'Muhammad', 'Ahmad', 'Ali', 'Yusuf', 'Ibrahim', 'Ismail', 'Hakim', 'Tariq', 'Musa', 'Umar', 'Hasan', 'Abd Allah', 'Sulayman', 'Yahya', 'Idris', 'Marwan', 'Qasim', 'Rashid', 'Salim', 'Zakariya', 'Mansur', 'Nasr', 'Abd al-Malik', 'Hisham', 'Walid', 'Abd al-Aziz', 'Habib', 'Khalid', 'Sa\'id'],
+        female: ['Fatima', 'Aisha', 'Khadija', 'Zaynab', 'Mariam', 'Safiyya', 'Umm Kulthum', 'Ruqayya', 'Hafsa', 'Sawda', 'Maymuna', 'Zahra', 'Wallada', 'Muhja', 'Nazhun', 'Umm al-Hana', 'Lubna', 'Radi\'a', 'Shuhda', 'Qamar', 'Thuraya', 'Buthayna', 'Hind', 'Layla', 'Su\'ad', 'Aminah', 'Asma', 'Salma', 'Umayma', 'Widad'],
+        surname: ['al-Andalusi', 'al-Qurtubi', 'al-Ishbili', 'al-Gharnati', 'al-Balansiy', 'al-Tulaytuli', 'ibn Rushd', 'ibn Sina', 'ibn Hazm', 'ibn Arabi', 'al-Zarqali', 'ibn Bajja', 'ibn Tufayl', 'al-Idrisi', 'ibn Quzman', 'al-Shushtari', 'ibn Malik', 'al-Rundi', 'ibn Abbad', 'al-Lakhmi', 'ibn Masarra', 'al-Majriti', 'ibn al-Khatib', 'al-Shaqundi', 'ibn Firnas', 'al-Himyari', 'ibn Zuhr', 'al-Bitruji', 'ibn Baqi', 'al-Mursi']
+    },
+
+    // Byzantine Empire (330-1453 CE) - Eastern Roman continuation
+    BYZANTINE_GREEK: {
+        male: ['Konstantinos', 'Ioannes', 'Mikhael', 'Basileios', 'Theodoros', 'Nikephoros', 'Alexios', 'Isaakios', 'Stephanos', 'Georgios', 'Demetrios', 'Nikolas', 'Anastasios', 'Prokopios', 'Maximos', 'Leon', 'Romanos', 'Photios', 'Ignatios', 'Athanasios', 'Chrysostomos', 'Methodios', 'Kyrillos', 'Dionysios', 'Euthymios', 'Kallinikos', 'Leontios', 'Markianos', 'Nikandros', 'Philotheos'],
+        female: ['Anna', 'Maria', 'Theodora', 'Irene', 'Eudokia', 'Zoe', 'Konstantina', 'Aikaterine', 'Euphemia', 'Helena', 'Sophia', 'Anastasia', 'Barbara', 'Kyriaki', 'Paraskevi', 'Agatha', 'Evdokia', 'Thomais', 'Xene', 'Kalomaria', 'Pelagia', 'Theodosia', 'Chryse', 'Eugenia', 'Gregoria', 'Ioanna', 'Kale', 'Magdalene', 'Nektaria', 'Olympia'],
+        surname: ['Paleologos', 'Komnenos', 'Doukas', 'Kantakouzenos', 'Laskaris', 'Angelos', 'Botaneiates', 'Dalassenos', 'Skleros', 'Phokas', 'Argyros', 'Kourkouas', 'Tzykandyles', 'Tornikios', 'Bryennios', 'Diogenes', 'Botaneiates', 'Maleinos', 'Xiphias', 'Bourtzes', 'Kamytzes', 'Melissenos', 'Nikephoros', 'Palaiologina', 'Raoul', 'Synadenos', 'Tarchaneiotes', 'Vatatztes', 'Xeros', 'Zarides']
+    },
+
+    // Khmer Empire/Angkor Period (802-1431 CE) - Southeast Asian temple civilization
+    KHMER_ANGKOR: {
+        male: ['Jayavarman', 'Suryavarman', 'Indravarman', 'Udayadityavarman', 'Harshavarman', 'Rajendravarman', 'Yashovarman', 'Tribhuvanadityavarman', 'Preah Ket Mealea', 'Nirvanapada', 'Kavindrarimathana', 'Jaya Indravarman', 'Srindravarman', 'Dharanindravarman', 'Paramavishnuloka', 'Kambu', 'Preah Thong', 'Kaundinya', 'Rudravarman', 'Bhavavarman', 'Mahendravarman', 'Isanavarman', 'Pushkaraksha', 'Sambhuvarman', 'Jayadevi', 'Chitrasena', 'Mahendraparvata', 'Aninditapura', 'Banteay Prei', 'Srei Santhor'],
+        female: ['Jayarajadevi', 'Indradevi', 'Kulaprabhavatikalai', 'Rajacudamani', 'Jayarajacudamani', 'Tribhuvaneshvari', 'Parameshvaralakshmi', 'Chudamani', 'Aparajita', 'Lakshmindralakshmi', 'Vijayalakshmi', 'Kamalesvaridevi', 'Ripusuddhi', 'Kambu', 'Mera', 'Soma', 'Neang Neak', 'Willow', 'Peou', 'Pich', 'Sophea', 'Chenda', 'Devi', 'Kanya', 'Lavea', 'Molica', 'Pisey', 'Rachana', 'Socheat', 'Tevy'],
+        surname: ['(No Surname)', 'of Angkor', 'of Yashodharapura', 'of Hariharalaya', 'of Roluos', 'of Banteay Srei', 'of Preah Vihear', 'of Koh Ker', 'of Baphuon', 'of Bayon', 'of Ta Prohm', 'of Banteay Kdei', 'of Neak Pean', 'of East Mebon', 'of Pre Rup', 'of Srah Srang', 'of Phnom Bakheng', 'of Baksei Chamkrong', 'of Prasat Kravan', 'of Bat Chum']
+    },
+
+    // === PHASE 2 REGIONAL REFINEMENTS ===
+
+    // Flemish/Low Countries (12th-16th century) - Trade networks and textile centers
+    FLEMISH_MEDIEVAL: {
+        male: ['Willem', 'Jan', 'Pieter', 'Hendrik', 'Jacob', 'Dirk', 'Cornelis', 'Andries', 'Thomas', 'Joris', 'Michiel', 'Philips', 'Karel', 'Lodewijk', 'Rogier', 'Hans', 'Aert', 'Claes', 'Lieven', 'Maerten', 'Wouter', 'Franchoys', 'Gillis', 'Joos', 'Lancelot', 'Boudewijn', 'Reinout', 'Govaert', 'Adriaen', 'Jeronimus'],
+        female: ['Margaretha', 'Elisabeth', 'Catharina', 'Anna', 'Maria', 'Jacoba', 'Johanna', 'Agnes', 'Barbara', 'Clara', 'Cornelia', 'Dorothea', 'Susanna', 'Petronella', 'Apollonia', 'Beatrijs', 'Lijsbeth', 'Machteld', 'Aleydis', 'Berta', 'Gheertruid', 'Heilwich', 'Ide', 'Katelijne', 'Lievine', 'Mayken', 'Neel', 'Tanneken', 'Vrouwe', 'Ysabeau'],
+        surname: ['van der Meer', 'de Vries', 'van den Berg', 'Janssen', 'de Jong', 'van Dijk', 'Bakker', 'de Groot', 'van Houten', 'Smit', 'van der Linden', 'Mulder', 'de Wit', 'van der Heijden', 'van Leeuwen', 'van der Ven', 'Dekker', 'van den Broek', 'de Boer', 'van der Steen', 'van Beek', 'Verhagen', 'van der Poel', 'de Bruijn', 'van den Heuvel', 'Vermeulen', 'van der Werf', 'de Haan', 'van der Kamp', 'Timmermans']
+    },
+
+    // Catalan Medieval (10th-15th century) - Mediterranean commercial culture
+    CATALAN_MEDIEVAL: {
+        male: ['Ramon', 'Berenguer', 'Pere', 'Jaume', 'Arnau', 'Guillem', 'Bernat', 'Ferran', 'Joan', 'Miquel', 'Antoni', 'Francesc', 'Bartomeu', 'Lluís', 'Galceran', 'Guerau', 'Dalmau', 'Ponç', 'Berenguer', 'Gilabert', 'Huguet', 'Jacint', 'Llorenç', 'Mateu', 'Nicolau', 'Onofre', 'Pau', 'Quintí', 'Rafael', 'Salvador'],
+        female: ['Elisenda', 'Violant', 'Constança', 'Sibil·la', 'Ermessenda', 'Almodis', 'Beatriu', 'Blanca', 'Caterina', 'Dolça', 'Elionor', 'Francesca', 'Guillemona', 'Isabel', 'Joana', 'Llúcia', 'Margarida', 'Núria', 'Petronila', 'Sança', 'Teresa', 'Urraca', 'Violant', 'Agnès', 'Alamanda', 'Benvinguda', 'Clara', 'Dulcia', 'Estefania', 'Guisla'],
+        surname: ['de Barcelona', 'de Montcada', 'de Cabrera', 'de Cardona', 'de Foix', 'de Pallars', 'de Urgell', 'de Empúries', 'de Cervera', 'de Montpellier', 'de Narbona', 'de Besalú', 'de Girona', 'de Tarragona', 'de Lleida', 'de Valencia', 'de Mallorca', 'de Rosselló', 'de Cerdanya', 'de Ribagorça', 'de Peralada', 'de Castellbó', 'de Luna', 'de Centelles', 'de Requesens', 'de Vilanova', 'de Pinós', 'de Rocabertí', 'de Sagarriga', 'de Sentmenat']
+    },
+
+    // Thai Ayutthaya Kingdom (1351-1767 CE) - Southeast Asian kingdom period
+    THAI_AYUTTHAYA: {
+        male: ['Ramathibodi', 'Borommaracha', 'Ramesuan', 'Boromarachathirat', 'Intharacha', 'Borommatrailokkanat', 'Borommarachathirat', 'Ramathibodi', 'Chairacha', 'Yotfa', 'Prasat Thong', 'Chai', 'Si', 'Narai', 'Phetracha', 'Sua', 'Thai Sa', 'Borommakot', 'Uthumphon', 'Suriyamarin', 'Ekkathat', 'Taksin', 'Somdet', 'Chao Phraya', 'Luang', 'Khun', 'Nai', 'Phra', 'Thao', 'Muen'],
+        female: ['Si Suriyothai', 'Wisutkasat', 'Suriyenthrathibodi', 'Thotsarot', 'Kalyanamitra', 'Thepsutthavadi', 'Amarindra', 'Sunandha', 'Saovabha', 'Dara Rasmi', 'Mom Chao', 'Phrachao', 'Somdet Phra', 'Chao', 'Khunying', 'Mom Luang', 'Mom Rajawongse', 'Thanpuying', 'Ying', 'Nang', 'Mae', 'Khun Mae', 'Phra Mae', 'Chao Mae', 'Somdet', 'Ratana', 'Sirikit', 'Chulabhorn', 'Ubolratana', 'Sirindhorn'],
+        surname: ['Na Ayutthaya', 'Na Bangkok', 'Na Lopburi', 'Na Phitsanulok', 'Na Sukhothai', 'Na Chainat', 'Na Suphanburi', 'Na Ratchaburi', 'Na Phetchaburi', 'Na Nakhon Pathom', 'Na Kanchanaburi', 'Na Prachinburi', 'Na Chachoengsao', 'Na Nonthaburi', 'Na Samut Prakan', 'Na Samut Sakhon', 'Na Samut Songkhram', 'Na Nakhon Nayok', 'Na Pathum Thani', 'Na Ang Thong', 'Na Sing Buri', 'Na Chai Nat', 'Na Uthai Thani', 'Na Kamphaeng Phet', 'Na Tak', 'Na Phichit', 'Na Phetchabun', 'Na Nakhon Sawan', 'Na Lop Buri', 'Na Sara Buri']
+    },
+
+    // Mamluk Egypt (1250-1517 CE) - Medieval Islamic Egypt specificity
+    MAMLUK_EGYPT: {
+        male: ['Baibars', 'Qalawun', 'Khalil', 'Nasir', 'Ashraf', 'Salih', 'Aybak', 'Shajar', 'Turanshah', 'Faraj', 'Muayyad', 'Barsbay', 'Jaqmaq', 'Inal', 'Khushqadam', 'Bilbay', 'Timurbugha', 'Qansuh', 'Tuman', 'Janbalat', 'Azbak', 'Qurqumas', 'Yashbak', 'Aqbirdi', 'Sudun', 'Taghribirdi', 'Jakam', 'Altunbugha', 'Yalbugha', 'Shaykhu'],
+        female: ['Shajar al-Durr', 'Fatima', 'Aisha', 'Zaynab', 'Khadija', 'Umm Kulthum', 'Safiyya', 'Hafsa', 'Ruqayya', 'Mariam', 'Asma', 'Salma', 'Layla', 'Aminah', 'Thurayya', 'Qamar', 'Najma', 'Sahar', 'Dalal', 'Widad', 'Siham', 'Nawal', 'Fawzia', 'Nazira', 'Samira', 'Tahira', 'Zahira', 'Bashira', 'Munira', 'Sakinah'],
+        surname: ['al-Misri', 'al-Qahiri', 'al-Mamluki', 'al-Bahri', 'al-Burji', 'al-Turkumani', 'al-Circassi', 'al-Rumi', 'al-Shami', 'al-Halabi', 'al-Dimashqi', 'al-Ghazzi', 'ibn Tulun', 'ibn Qalawun', 'ibn Ayyub', 'al-Nasiri', 'al-Ashraf', 'al-Zahir', 'al-Salih', 'al-Kamil', 'al-Adil', 'al-Mansur', 'al-Muzaffar', 'al-Afdal', 'ibn Mammati', 'ibn Muyassar', 'ibn Wasil', 'ibn Shaddad', 'ibn Nazif', 'al-Maqrizi']
+    },
+
     // === SOUTH ASIAN SUB-GROUPS ===
     // === EXPANDED SOUTH ASIAN ===
     SANSKRIT_CLASSICAL: {

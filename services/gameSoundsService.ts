@@ -15927,10 +15927,747 @@ class GameSoundsService {
       console.error('Error playing chicken sound:', error);
     }
   }
+
+  /**
+   * Camping Music Track 1 - "Starlit Rest" (20 seconds)
+   * Peaceful waltz in 3/4 time with rich harmonies and full orchestration
+   */
+  playCampingMusic1(): void {
+    if (this.isMuted) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
+    masterGain.gain.setValueAtTime(0.12 * this.masterVolume, now);
+    masterGain.gain.linearRampToValueAtTime(0.001, now + 20);
+
+    const tempo = 90; // BPM for peaceful waltz
+    const beatLength = 60 / tempo;
+
+    // Extended chord progression with sophisticated voice leading
+    // I - vi - ii - V - I - IV - ii7 - V7 - vi - IV - I64 - V - I
+    const chordProgression = [
+      // Phrase A (8 beats)
+      { root: 261.63, third: 329.63, fifth: 392.00, seventh: null }, // C major
+      { root: 220.00, third: 261.63, fifth: 329.63, seventh: null }, // A minor
+      { root: 293.66, third: 349.23, fifth: 440.00, seventh: null }, // D minor
+      { root: 196.00, third: 246.94, fifth: 293.66, seventh: null }, // G major
+
+      // Phrase B (8 beats)
+      { root: 261.63, third: 329.63, fifth: 392.00, seventh: null }, // C major
+      { root: 174.61, third: 220.00, fifth: 261.63, seventh: null }, // F major
+      { root: 293.66, third: 349.23, fifth: 440.00, seventh: 523.25 }, // Dm7
+      { root: 196.00, third: 246.94, fifth: 293.66, seventh: 349.23 }, // G7
+
+      // Phrase C - Resolution (8 beats)
+      { root: 220.00, third: 261.63, fifth: 329.63, seventh: null }, // A minor
+      { root: 174.61, third: 220.00, fifth: 261.63, seventh: null }, // F major
+      { root: 329.63, third: 392.00, fifth: 523.25, seventh: null }, // C/G (second inversion)
+      { root: 196.00, third: 246.94, fifth: 293.66, seventh: 349.23 }, // G7
+      { root: 261.63, third: 329.63, fifth: 392.00, seventh: null }, // C major (resolution)
+    ];
+
+    // Play chords with piano-like voicing
+    chordProgression.forEach((chord, i) => {
+      const chordTime = now + i * beatLength * 1.5;
+
+      // Root note (bass)
+      const bass = ctx.createOscillator();
+      const bassGain = ctx.createGain();
+      bass.connect(bassGain);
+      bassGain.connect(masterGain);
+      bass.frequency.setValueAtTime(chord.root / 2, chordTime); // One octave down
+      bass.type = 'sine';
+      bassGain.gain.setValueAtTime(0, chordTime);
+      bassGain.gain.linearRampToValueAtTime(0.05, chordTime + 0.05);
+      bassGain.gain.exponentialRampToValueAtTime(0.02, chordTime + beatLength * 1.4);
+      bass.start(chordTime);
+      bass.stop(chordTime + beatLength * 1.5);
+
+      // Chord tones (mid register)
+      [chord.root, chord.third, chord.fifth].forEach((freq, j) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(masterGain);
+
+        osc.frequency.setValueAtTime(freq, chordTime);
+        osc.type = 'triangle';
+
+        // Slightly stagger the chord notes for realism
+        const delay = j * 0.01;
+        gain.gain.setValueAtTime(0, chordTime + delay);
+        gain.gain.linearRampToValueAtTime(0.03, chordTime + delay + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.01, chordTime + beatLength * 1.3);
+
+        osc.start(chordTime + delay);
+        osc.stop(chordTime + beatLength * 1.5);
+      });
+
+      // Add seventh if present
+      if (chord.seventh) {
+        const seventh = ctx.createOscillator();
+        const seventhGain = ctx.createGain();
+        seventh.connect(seventhGain);
+        seventhGain.connect(masterGain);
+        seventh.frequency.setValueAtTime(chord.seventh, chordTime);
+        seventh.type = 'sine';
+        seventhGain.gain.setValueAtTime(0, chordTime);
+        seventhGain.gain.linearRampToValueAtTime(0.02, chordTime + 0.1);
+        seventhGain.gain.exponentialRampToValueAtTime(0.005, chordTime + beatLength * 1.3);
+        seventh.start(chordTime);
+        seventh.stop(chordTime + beatLength * 1.5);
+      }
+    });
+
+    // Main melody - memorable and lyrical
+    const melodyNotes = [
+      // Phrase A - "Question" (ascending)
+      { note: 523.25, time: 0, dur: 0.5 },      // C5
+      { note: 493.88, time: 0.5, dur: 0.25 },   // B4
+      { note: 523.25, time: 0.75, dur: 0.25 },  // C5
+      { note: 659.25, time: 1, dur: 0.5 },      // E5
+      { note: 587.33, time: 1.5, dur: 0.5 },    // D5
+      { note: 523.25, time: 2, dur: 0.75 },     // C5
+      { note: 493.88, time: 2.75, dur: 0.25 },  // B4
+      { note: 440.00, time: 3, dur: 0.5 },      // A4
+
+      // Phrase B - "Answer" (descending with ornaments)
+      { note: 392.00, time: 4, dur: 0.5 },      // G4
+      { note: 440.00, time: 4.5, dur: 0.25 },   // A4
+      { note: 493.88, time: 4.75, dur: 0.25 },  // B4
+      { note: 523.25, time: 5, dur: 0.5 },      // C5
+      { note: 659.25, time: 5.5, dur: 0.5 },    // E5
+      { note: 783.99, time: 6, dur: 0.75 },     // G5
+      { note: 698.46, time: 6.75, dur: 0.25 },  // F5
+      { note: 659.25, time: 7, dur: 0.5 },      // E5
+      { note: 587.33, time: 7.5, dur: 0.5 },    // D5
+
+      // Phrase C - Resolution
+      { note: 523.25, time: 8, dur: 0.25 },     // C5
+      { note: 493.88, time: 8.25, dur: 0.25 },  // B4
+      { note: 440.00, time: 8.5, dur: 0.5 },    // A4
+      { note: 493.88, time: 9, dur: 0.5 },      // B4
+      { note: 523.25, time: 9.5, dur: 0.5 },    // C5
+      { note: 587.33, time: 10, dur: 0.5 },     // D5
+      { note: 659.25, time: 10.5, dur: 0.5 },   // E5
+      { note: 587.33, time: 11, dur: 0.5 },     // D5
+      { note: 523.25, time: 11.5, dur: 1.5 },   // C5 (final resolution)
+    ];
+
+    // Play melody with expression
+    melodyNotes.forEach(({ note, time, dur }) => {
+      const melodyTime = now + time * beatLength * 1.5;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const vibrato = ctx.createOscillator();
+      const vibratoGain = ctx.createGain();
+
+      // Add subtle vibrato for warmth
+      vibrato.frequency.value = 4.5;
+      vibratoGain.gain.value = 3;
+      vibrato.connect(vibratoGain);
+      vibratoGain.connect(osc.frequency);
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(note, melodyTime);
+
+      // Dynamic envelope
+      gain.gain.setValueAtTime(0, melodyTime);
+      gain.gain.linearRampToValueAtTime(0.06, melodyTime + 0.05);
+      gain.gain.linearRampToValueAtTime(0.04, melodyTime + dur * beatLength * 0.8);
+      gain.gain.exponentialRampToValueAtTime(0.001, melodyTime + dur * beatLength * 1.5);
+
+      vibrato.start(melodyTime);
+      osc.start(melodyTime);
+      vibrato.stop(melodyTime + dur * beatLength * 1.5);
+      osc.stop(melodyTime + dur * beatLength * 1.5);
+    });
+
+    // Add gentle percussion (soft brushes on snare)
+    for (let beat = 0; beat < 24; beat++) {
+      const brushTime = now + beat * beatLength;
+      if (brushTime >= now + 20) break;
+
+      // Emphasize beat 1 of each measure (waltz time)
+      const isDownbeat = beat % 3 === 0;
+
+      const brush = this.createWhiteNoise(ctx);
+      const brushGain = ctx.createGain();
+      const brushFilter = ctx.createBiquadFilter();
+
+      brush.connect(brushFilter);
+      brushFilter.connect(brushGain);
+      brushGain.connect(masterGain);
+
+      brushFilter.type = 'bandpass';
+      brushFilter.frequency.value = isDownbeat ? 800 : 1200;
+      brushFilter.Q.value = 5;
+
+      brushGain.gain.setValueAtTime(0, brushTime);
+      brushGain.gain.linearRampToValueAtTime(isDownbeat ? 0.015 : 0.008, brushTime + 0.01);
+      brushGain.gain.exponentialRampToValueAtTime(0.001, brushTime + 0.05);
+
+      brush.start(brushTime);
+      brush.stop(brushTime + 0.05);
+    }
+  }
+
+  /**
+   * Camping Music Track 2 - "Ember Glow" (20 seconds)
+   * Contemplative piece in 4/4 with sophisticated harmonic progression
+   */
+  playCampingMusic2(): void {
+    if (this.isMuted) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
+    masterGain.gain.setValueAtTime(0.1 * this.masterVolume, now);
+    masterGain.gain.linearRampToValueAtTime(0.001, now + 20);
+
+    const tempo = 72; // BPM - contemplative pace
+    const beatLength = 60 / tempo;
+
+    // Sophisticated chord progression in D minor with modal interchange
+    // i - VII - IV - VI - iiø - V7 - i - iv - VII - III - VI - V7sus - V7 - i
+    const chordProgression = [
+      // Part A (modal exploration)
+      { root: 146.83, third: 174.61, fifth: 220.00, seventh: null }, // D minor
+      { root: 130.81, third: 164.81, fifth: 196.00, seventh: null }, // C major
+      { root: 196.00, third: 246.94, fifth: 293.66, seventh: null }, // G major
+      { root: 110.00, third: 138.59, fifth: 164.81, seventh: null }, // Bb major
+
+      // Part B (tension building)
+      { root: 164.81, third: 196.00, fifth: 246.94, seventh: 293.66 }, // Eø7 (half-diminished)
+      { root: 110.00, third: 138.59, fifth: 164.81, seventh: 207.65 }, // A7
+      { root: 146.83, third: 174.61, fifth: 220.00, seventh: null }, // D minor
+      { root: 196.00, third: 233.08, fifth: 293.66, seventh: null }, // G minor (borrowed)
+
+      // Part C (climax and resolution)
+      { root: 130.81, third: 164.81, fifth: 196.00, seventh: null }, // C major
+      { root: 174.61, third: 220.00, fifth: 261.63, seventh: null }, // F major
+      { root: 110.00, third: 138.59, fifth: 164.81, seventh: null }, // Bb major
+      { root: 110.00, third: 164.81, fifth: 196.00, seventh: 220.00 }, // A7sus4
+      { root: 110.00, third: 138.59, fifth: 164.81, seventh: 207.65 }, // A7
+      { root: 146.83, third: 174.61, fifth: 220.00, seventh: null }, // D minor (final)
+    ];
+
+    // Arpeggiated accompaniment pattern with dynamic variation
+    chordProgression.forEach((chord, chordIndex) => {
+      const chordStartTime = now + chordIndex * beatLength * 1.4;
+
+      // Create rolling arpeggio pattern
+      const arpeggioPattern = [
+        chord.root,
+        chord.fifth,
+        chord.third,
+        chord.fifth * 2,
+        chord.third,
+        chord.fifth,
+        chord.root,
+        chord.third
+      ];
+
+      arpeggioPattern.forEach((note, i) => {
+        const noteTime = chordStartTime + i * 0.12;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+
+        osc.frequency.setValueAtTime(note, noteTime);
+        osc.type = 'triangle';
+
+        // Warm filter settings
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, noteTime);
+        filter.Q.setValueAtTime(1, noteTime);
+
+        // Dynamic velocity
+        const velocity = i === 0 ? 0.04 : 0.025;
+        gain.gain.setValueAtTime(0, noteTime);
+        gain.gain.linearRampToValueAtTime(velocity, noteTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.4);
+
+        osc.start(noteTime);
+        osc.stop(noteTime + 0.5);
+      });
+
+      // Add seventh note if present
+      if (chord.seventh) {
+        const seventhTime = chordStartTime + 0.96;
+        const seventh = ctx.createOscillator();
+        const seventhGain = ctx.createGain();
+
+        seventh.connect(seventhGain);
+        seventhGain.connect(masterGain);
+
+        seventh.frequency.setValueAtTime(chord.seventh, seventhTime);
+        seventh.type = 'sine';
+
+        seventhGain.gain.setValueAtTime(0, seventhTime);
+        seventhGain.gain.linearRampToValueAtTime(0.02, seventhTime + 0.02);
+        seventhGain.gain.exponentialRampToValueAtTime(0.001, seventhTime + 0.3);
+
+        seventh.start(seventhTime);
+        seventh.stop(seventhTime + 0.4);
+      }
+    });
+
+    // Expressive solo melody line
+    const melodyNotes = [
+      // Opening phrase (contemplative)
+      { note: 440.00, time: 0.5, dur: 0.75 },     // A4
+      { note: 523.25, time: 1.25, dur: 0.5 },     // C5
+      { note: 493.88, time: 1.75, dur: 0.25 },    // B4
+      { note: 440.00, time: 2, dur: 0.5 },        // A4
+      { note: 349.23, time: 2.5, dur: 0.5 },      // F4
+      { note: 329.63, time: 3, dur: 0.75 },       // E4
+      { note: 293.66, time: 3.75, dur: 0.25 },    // D4
+
+      // Development (reaching upward)
+      { note: 349.23, time: 4.5, dur: 0.5 },      // F4
+      { note: 440.00, time: 5, dur: 0.5 },        // A4
+      { note: 587.33, time: 5.5, dur: 0.75 },     // D5
+      { note: 659.25, time: 6.25, dur: 0.25 },    // E5
+      { note: 698.46, time: 6.5, dur: 0.5 },      // F5
+      { note: 659.25, time: 7, dur: 0.5 },        // E5
+      { note: 587.33, time: 7.5, dur: 0.5 },      // D5
+
+      // Climax (emotional peak)
+      { note: 880.00, time: 8, dur: 1 },          // A5
+      { note: 783.99, time: 9, dur: 0.5 },        // G5
+      { note: 698.46, time: 9.5, dur: 0.5 },      // F5
+      { note: 659.25, time: 10, dur: 0.5 },       // E5
+      { note: 587.33, time: 10.5, dur: 0.75 },    // D5
+      { note: 523.25, time: 11.25, dur: 0.25 },   // C5
+
+      // Resolution (return to peace)
+      { note: 493.88, time: 11.75, dur: 0.25 },   // B4
+      { note: 440.00, time: 12, dur: 0.5 },       // A4
+      { note: 349.23, time: 12.5, dur: 0.5 },     // F4
+      { note: 329.63, time: 13, dur: 0.5 },       // E4
+      { note: 293.66, time: 13.5, dur: 1.5 },     // D4 (final)
+    ];
+
+    // Play melody with rich expression
+    melodyNotes.forEach(({ note, time, dur }) => {
+      const melodyTime = now + time * beatLength;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const vibrato = ctx.createOscillator();
+      const vibratoGain = ctx.createGain();
+
+      // Expressive vibrato
+      vibrato.frequency.value = 5;
+      vibratoGain.gain.value = note > 500 ? 4 : 2; // More vibrato on higher notes
+      vibrato.connect(vibratoGain);
+      vibratoGain.connect(osc.frequency);
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(note, melodyTime);
+
+      // Expressive dynamics
+      const attack = note > 600 ? 0.08 : 0.05;
+      gain.gain.setValueAtTime(0, melodyTime);
+      gain.gain.linearRampToValueAtTime(attack, melodyTime + 0.05);
+      gain.gain.setValueAtTime(attack * 0.8, melodyTime + dur * beatLength * 0.7);
+      gain.gain.exponentialRampToValueAtTime(0.001, melodyTime + dur * beatLength);
+
+      vibrato.start(melodyTime + 0.1);
+      osc.start(melodyTime);
+      vibrato.stop(melodyTime + dur * beatLength);
+      osc.stop(melodyTime + dur * beatLength);
+    });
+
+    // Add subtle percussion (soft timpani and triangle)
+    for (let beat = 0; beat < 20; beat++) {
+      const percTime = now + beat * beatLength;
+      if (percTime >= now + 20) break;
+
+      // Soft timpani on downbeats
+      if (beat % 4 === 0) {
+        const timpani = ctx.createOscillator();
+        const timpaniGain = ctx.createGain();
+
+        timpani.connect(timpaniGain);
+        timpaniGain.connect(masterGain);
+
+        timpani.frequency.setValueAtTime(73.42, percTime); // Low D
+        timpani.type = 'sine';
+
+        timpaniGain.gain.setValueAtTime(0.03, percTime);
+        timpaniGain.gain.exponentialRampToValueAtTime(0.001, percTime + 0.3);
+
+        timpani.start(percTime);
+        timpani.stop(percTime + 0.3);
+      }
+
+      // Soft triangle on off-beats for sparkle
+      if (beat % 2 === 1 && beat > 8) {
+        const triangle = ctx.createOscillator();
+        const triangleGain = ctx.createGain();
+
+        triangle.connect(triangleGain);
+        triangleGain.connect(masterGain);
+
+        triangle.frequency.setValueAtTime(2637.02, percTime); // E7
+        triangle.type = 'sine';
+
+        triangleGain.gain.setValueAtTime(0, percTime);
+        triangleGain.gain.linearRampToValueAtTime(0.01, percTime + 0.01);
+        triangleGain.gain.exponentialRampToValueAtTime(0.001, percTime + 0.2);
+
+        triangle.start(percTime);
+        triangle.stop(percTime + 0.2);
+      }
+    }
+
+    // Sustained bass pedal tone with subtle movement
+    const bassLine = [
+      { note: 73.42, time: 0, dur: 4 },     // D2
+      { note: 65.41, time: 4, dur: 2 },     // C2
+      { note: 55.00, time: 6, dur: 2 },     // A1
+      { note: 73.42, time: 8, dur: 4 },     // D2
+      { note: 65.41, time: 12, dur: 2 },    // C2
+      { note: 73.42, time: 14, dur: 6 },    // D2 (sustained)
+    ];
+
+    bassLine.forEach(({ note, time, dur }) => {
+      const bassTime = now + time * beatLength;
+
+      const bass = ctx.createOscillator();
+      const bassGain = ctx.createGain();
+
+      bass.connect(bassGain);
+      bassGain.connect(masterGain);
+
+      bass.frequency.setValueAtTime(note, bassTime);
+      bass.type = 'triangle';
+
+      bassGain.gain.setValueAtTime(0, bassTime);
+      bassGain.gain.linearRampToValueAtTime(0.04, bassTime + 0.1);
+      bassGain.gain.setValueAtTime(0.035, bassTime + dur * beatLength * 0.8);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, bassTime + dur * beatLength);
+
+      bass.start(bassTime);
+      bass.stop(bassTime + dur * beatLength);
+    });
+  }
+
+  /**
+   * Camping Music Track 3 - "Night's Embrace" (20 seconds)
+   * Ethereal, dreamlike with rich harmonies
+   */
+  playCampingMusic3(): void {
+    if (this.isMuted) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Master gain with gentle fade in and out
+    const masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
+    masterGain.gain.setValueAtTime(0, now);
+    masterGain.gain.linearRampToValueAtTime(0.08 * this.masterVolume, now + 0.5);
+    masterGain.gain.setValueAtTime(0.08 * this.masterVolume, now + 18);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 20);
+
+    // Extended jazz harmony progression with quartal voicings
+    // Each chord has: root, extensions, color tones, and timing
+    const progression = [
+      // Bar 1-2: E♭maj9(#11) - Lydian opening
+      {
+        bass: 155.56,  // E♭3
+        notes: [311.13, 415.30, 493.88, 622.25, 739.99],  // E♭4, G4, B♭4, E♭5, F#5
+        time: 0,
+        duration: 2.5,
+        volume: 0.03
+      },
+      // Bar 3-4: Cm11 - Subdominant area
+      {
+        bass: 130.81,  // C3
+        notes: [261.63, 349.23, 440.00, 523.25, 698.46],  // C4, F4, A4, C5, F5
+        time: 2.5,
+        duration: 2.5,
+        volume: 0.035
+      },
+      // Bar 5-6: A♭maj7(#5) - Augmented color
+      {
+        bass: 207.65,  // A♭3
+        notes: [415.30, 523.25, 622.25, 830.61],  // A♭4, C5, E♭5, G#5
+        time: 5,
+        duration: 2.5,
+        volume: 0.03
+      },
+      // Bar 7-8: B♭sus4 → B♭7 - Dominant preparation
+      {
+        bass: 116.54,  // B♭2
+        notes: [233.08, 349.23, 415.30, 523.25],  // B♭3, F4, A♭4, C5
+        time: 7.5,
+        duration: 1.25,
+        volume: 0.035
+      },
+      {
+        bass: 116.54,  // B♭2
+        notes: [233.08, 369.99, 440.00, 554.37],  // B♭3, F#4, A4, C#5
+        time: 8.75,
+        duration: 1.25,
+        volume: 0.04
+      },
+      // Bar 9-10: G♭maj9 - Chromatic mediant
+      {
+        bass: 185.00,  // G♭3
+        notes: [369.99, 466.16, 554.37, 739.99],  // G♭4, B♭4, D♭5, F#5
+        time: 10,
+        duration: 2.5,
+        volume: 0.03
+      },
+      // Bar 11-12: Fm11 - Minor subdominant
+      {
+        bass: 174.61,  // F3
+        notes: [349.23, 440.00, 523.25, 659.25, 783.99],  // F4, A4, C5, E5, G5
+        time: 12.5,
+        duration: 2.5,
+        volume: 0.035
+      },
+      // Bar 13-14: D♭maj7(#11) - Subtonic
+      {
+        bass: 138.59,  // D♭3
+        notes: [277.18, 349.23, 440.00, 554.37, 659.25],  // D♭4, F4, A4, D♭5, G5
+        time: 15,
+        duration: 2,
+        volume: 0.03
+      },
+      // Bar 15-16: E♭maj9 - Resolution with added 9th
+      {
+        bass: 155.56,  // E♭3
+        notes: [311.13, 392.00, 493.88, 622.25, 698.46],  // E♭4, G4, B♭4, E♭5, F5
+        time: 17,
+        duration: 3,
+        volume: 0.025
+      }
+    ];
+
+    // Play the harmonic progression with sophisticated voicing
+    progression.forEach(chord => {
+      const chordTime = now + chord.time;
+
+      // Deep bass note with subtle movement
+      const bass = ctx.createOscillator();
+      const bassGain = ctx.createGain();
+      const bassFilter = ctx.createBiquadFilter();
+
+      bass.type = 'sine';
+      bass.frequency.setValueAtTime(chord.bass, chordTime);
+      // Add subtle vibrato to bass
+      const bassLfo = ctx.createOscillator();
+      const bassLfoGain = ctx.createGain();
+      bassLfo.frequency.value = 2;
+      bassLfoGain.gain.value = 1.5;
+      bassLfo.connect(bassLfoGain);
+      bassLfoGain.connect(bass.frequency);
+
+      bassFilter.type = 'lowpass';
+      bassFilter.frequency.value = 400;
+      bassFilter.Q.value = 2;
+
+      bass.connect(bassFilter);
+      bassFilter.connect(bassGain);
+      bassGain.connect(masterGain);
+
+      bassGain.gain.setValueAtTime(0, chordTime);
+      bassGain.gain.linearRampToValueAtTime(chord.volume * 1.2, chordTime + 0.2);
+      bassGain.gain.setValueAtTime(chord.volume * 1.2, chordTime + chord.duration - 0.3);
+      bassGain.gain.linearRampToValueAtTime(0, chordTime + chord.duration);
+
+      bass.start(chordTime);
+      bassLfo.start(chordTime);
+      bass.stop(chordTime + chord.duration);
+      bassLfo.stop(chordTime + chord.duration);
+
+      // Upper harmony voices with staggered entry
+      chord.notes.forEach((freq, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        const panner = ctx.createStereoPanner();
+
+        // Mix of sine and triangle for ethereal texture
+        osc.type = index % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, chordTime);
+
+        // Gentle low-pass filter for warmth
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1200 - (index * 100), chordTime);
+        filter.Q.value = 0.7;
+
+        // Stereo spread for width
+        panner.pan.value = (index - 2) * 0.3;
+
+        osc.connect(filter);
+        filter.connect(panner);
+        panner.connect(gain);
+        gain.connect(masterGain);
+
+        // Staggered entry creates rolling effect
+        const entryDelay = index * 0.08;
+        gain.gain.setValueAtTime(0, chordTime + entryDelay);
+        gain.gain.linearRampToValueAtTime(
+          chord.volume * (1 - index * 0.1),
+          chordTime + entryDelay + 0.3
+        );
+        gain.gain.setValueAtTime(
+          chord.volume * (1 - index * 0.1),
+          chordTime + chord.duration - 0.4
+        );
+        gain.gain.linearRampToValueAtTime(0, chordTime + chord.duration);
+
+        osc.start(chordTime + entryDelay);
+        osc.stop(chordTime + chord.duration);
+      });
+    });
+
+    // Ethereal melody line - pentatonic with chromatic passing tones
+    const melody = [
+      { note: 622.25, time: 1, dur: 0.8 },     // E♭5
+      { note: 698.46, time: 1.8, dur: 0.4 },   // F5
+      { note: 783.99, time: 2.2, dur: 0.6 },   // G5
+      { note: 932.33, time: 3, dur: 1 },       // B♭5
+      { note: 783.99, time: 4.2, dur: 0.5 },   // G5
+      { note: 698.46, time: 5, dur: 0.8 },     // F5
+      { note: 622.25, time: 6, dur: 0.4 },     // E♭5
+      { note: 554.37, time: 6.5, dur: 0.5 },   // D♭5
+      { note: 523.25, time: 7.2, dur: 0.8 },   // C5
+      { note: 466.16, time: 8.2, dur: 1.2 },   // B♭4
+      { note: 554.37, time: 10, dur: 0.6 },    // D♭5
+      { note: 622.25, time: 10.8, dur: 0.8 },  // E♭5
+      { note: 698.46, time: 11.8, dur: 1 },    // F5
+      { note: 783.99, time: 13, dur: 0.6 },    // G5
+      { note: 932.33, time: 14, dur: 1.5 },    // B♭5
+      { note: 783.99, time: 15.8, dur: 0.5 },  // G5
+      { note: 622.25, time: 16.5, dur: 3 },    // E♭5 (final)
+    ];
+
+    melody.forEach(note => {
+      const noteTime = now + note.time;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      // Use triangle wave for soft, flute-like tone
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(note.note, noteTime);
+
+      // Resonant filter for character
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(note.note * 2, noteTime);
+      filter.Q.value = 2;
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+
+      // Expression envelope
+      gain.gain.setValueAtTime(0, noteTime);
+      gain.gain.linearRampToValueAtTime(0.02, noteTime + 0.05);
+      gain.gain.setValueAtTime(0.015, noteTime + note.dur - 0.1);
+      gain.gain.linearRampToValueAtTime(0, noteTime + note.dur);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + note.dur);
+    });
+
+    // Shimmering texture - whole-tone scale arpeggios
+    const wholeToneScale = [523.25, 587.33, 659.25, 739.99, 830.61, 932.33]; // C5 whole-tone
+
+    for (let i = 0; i < 30; i++) {
+      const noteTime = now + 2 + (Math.random() * 16);
+      const noteIndex = Math.floor(Math.random() * wholeToneScale.length);
+      const freq = wholeToneScale[noteIndex] * (1 + Math.random() * 0.5); // Up to 1.5 octaves higher
+
+      const shimmer = ctx.createOscillator();
+      const shimmerGain = ctx.createGain();
+      const shimmerFilter = ctx.createBiquadFilter();
+      const shimmerPanner = ctx.createStereoPanner();
+
+      shimmer.type = 'sine';
+      shimmer.frequency.setValueAtTime(freq, noteTime);
+
+      // High-pass filter for sparkle
+      shimmerFilter.type = 'highpass';
+      shimmerFilter.frequency.value = 2000;
+      shimmerFilter.Q.value = 0.5;
+
+      // Random stereo position
+      shimmerPanner.pan.value = (Math.random() - 0.5) * 2;
+
+      shimmer.connect(shimmerFilter);
+      shimmerFilter.connect(shimmerPanner);
+      shimmerPanner.connect(shimmerGain);
+      shimmerGain.connect(masterGain);
+
+      // Quick fade in/out for bell-like quality
+      shimmerGain.gain.setValueAtTime(0, noteTime);
+      shimmerGain.gain.linearRampToValueAtTime(0.008, noteTime + 0.02);
+      shimmerGain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.8);
+
+      shimmer.start(noteTime);
+      shimmer.stop(noteTime + 0.8);
+    }
+
+    // Deep pedal tones for grounding (like distant temple bells)
+    const pedalTones = [
+      { freq: 77.78, time: 0, dur: 8 },     // E♭2
+      { freq: 103.83, time: 8, dur: 6 },    // A♭2
+      { freq: 77.78, time: 14, dur: 6 },    // E♭2
+    ];
+
+    pedalTones.forEach(pedal => {
+      const pedalTime = now + pedal.time;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pedal.freq, pedalTime);
+
+      filter.type = 'lowpass';
+      filter.frequency.value = 200;
+      filter.Q.value = 5;
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+
+      // Very slow, gentle swell
+      gain.gain.setValueAtTime(0, pedalTime);
+      gain.gain.linearRampToValueAtTime(0.015, pedalTime + 2);
+      gain.gain.setValueAtTime(0.015, pedalTime + pedal.dur - 2);
+      gain.gain.linearRampToValueAtTime(0, pedalTime + pedal.dur);
+
+      osc.start(pedalTime);
+      osc.stop(pedalTime + pedal.dur);
+    });
+  }
 }
 
-// Export singleton instance
-export const gameSounds = GameSoundsService.getInstance();
-
-// Export for use in other files
+// Create and export singleton instance
+const gameSounds = GameSoundsService.getInstance();
+export { gameSounds };
 export default gameSounds;

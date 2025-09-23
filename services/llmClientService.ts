@@ -69,6 +69,8 @@ export async function generateNpcDialogue(
   grantAccess?: boolean;
   accessLevel?: 'none' | 'partial' | 'full';
   accessReason?: string;
+  tradeAvailable?: boolean;
+  tradeReason?: string;
 }> {
   const responseSchema = {
     type: Type.OBJECT,
@@ -94,6 +96,14 @@ export async function generateNpcDialogue(
       accessReason: {
         type: Type.STRING,
         description: "Brief explanation of why access is being granted or denied"
+      },
+      tradeAvailable: {
+        type: Type.BOOLEAN,
+        description: "Whether the NPC is willing to trade based on the conversation context and their profession"
+      },
+      tradeReason: {
+        type: Type.STRING,
+        description: "Brief explanation of why trade is available or not (optional)"
       }
     },
     required: ["text", "disposition"]

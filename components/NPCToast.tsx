@@ -4,9 +4,20 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { ProceduralPortrait } from './portraits';
-import { MessageSquare, AlertTriangle, Info, Sparkles, X, Send, Check, XIcon } from 'lucide-react';
-import { generateEncounterDialogue } from '../services/llmService';
-import { DialogueEntry, NpcEntity } from '../types';
+import { MessageSquare, AlertTriangle, Info, Sparkles, X, Send, Check, XIcon, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { generateEncounterDialogue, generateFarmerDecision } from '../services/llmService';
+import { DialogueEntry, NpcEntity, HistoricalEra } from '../types';
+
+// Farmer decision structure from LLM
+interface FarmerDecisions {
+  allowRest: boolean;
+  restFee: number;
+  allowWork: boolean;
+  allowResidency: boolean;
+  askToLeave: boolean;
+  threatenViolence: boolean;
+  callForHelp: boolean;
+}
 
 interface NPCToastProps {
   character: any; // NPC or FarmFamilyMember
@@ -24,11 +35,21 @@ interface NPCToastProps {
   playerCharacter?: any;
   mapData?: any;
   npcs?: NpcEntity[];
+  // New props for structured farmer interactions
+  isFarmContext?: boolean;
+  gameTimeHours?: number;
+  onRequestRest?: (fee: number) => void;
+  onRequestWork?: () => void;
+  onAcceptWork?: (tasks: string[], payment: { meals?: boolean; lodging?: boolean; coins?: number }) => void;
+  onRequestResidency?: () => void;
+  onLeave?: () => void;
+  onRefuse?: () => void;
+  onInitiateEncounter?: (target: any) => void;
 }
 
-const NPCToast: React.FC<NPCToastProps> = ({ 
-  character, 
-  message: initialMessage, 
+const NPCToast: React.FC<NPCToastProps> = ({
+  character,
+  message: initialMessage,
   type = 'advice',
   persistent = false,
   position = 'bottom',
@@ -41,7 +62,16 @@ const NPCToast: React.FC<NPCToastProps> = ({
   enableLLMChat = false,
   playerCharacter,
   mapData,
-  npcs = []
+  npcs = [],
+  isFarmContext = false,
+  gameTimeHours = 12,
+  onRequestRest,
+  onRequestWork,
+  onAcceptWork,
+  onRequestResidency,
+  onLeave,
+  onRefuse,
+  onInitiateEncounter
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isAnimating, setIsAnimating] = useState(true);
@@ -51,7 +81,23 @@ const NPCToast: React.FC<NPCToastProps> = ({
   const [hasInteracted, setHasInteracted] = useState(false);
   const [chatHistory, setChatHistory] = useState<DialogueEntry[]>([]);
   const [showQuickButtons, setShowQuickButtons] = useState(false);
+  const [farmerDecisions, setFarmerDecisions] = useState<FarmerDecisions | null>(null);
+  const [farmerSentiment, setFarmerSentiment] = useState<number>(0);
+  const [isNegotiating, setIsNegotiating] = useState(false);
+  const [negotiationRounds, setNegotiationRounds] = useState(0);
+  const [workOffer, setWorkOffer] = useState<{
+    tasks: string[];
+    payment: { meals: boolean; lodging: boolean; coins?: number };
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     // Auto-hide after delay unless persistent
@@ -68,6 +114,32 @@ const NPCToast: React.FC<NPCToastProps> = ({
     const timer = setTimeout(() => setIsAnimating(false), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-generate LLM response for farm context when no initial message
+  useEffect(() => {
+    if (isFarmContext && !initialMessage && !hasInteracted && enableLLMChat) {
+      // Automatically generate initial farmer response based on context
+      const generateInitialResponse = async () => {
+        setIsLoading(true);
+        try {
+          // Determine what the player would naturally say when approaching
+          const approachMessage = gameTimeHours >= 22 || gameTimeHours <= 5
+            ? "Hello? Is anyone there?"
+            : "Good day! I'm a traveler passing through.";
+
+          // Generate farmer's immediate response
+          await handleLLMResponse(approachMessage, true); // true = silent (don't show player message)
+        } catch (error) {
+          console.error('Failed to generate initial farmer response:', error);
+          // Use fallback greeting if LLM fails
+          setCurrentMessage(getInitialGreeting());
+        }
+        setIsLoading(false);
+      };
+
+      generateInitialResponse();
+    }
+  }, [isFarmContext, initialMessage, hasInteracted, enableLLMChat, gameTimeHours]);
 
   const handleClose = () => {
     setIsAnimating(true);
@@ -119,13 +191,14 @@ const NPCToast: React.FC<NPCToastProps> = ({
   };
 
   useEffect(() => {
-    if (!hasInteracted) {
+    // Skip default greeting for farm context - LLM will generate appropriate response
+    if (!hasInteracted && !isFarmContext) {
       const greeting = getInitialGreeting();
       setCurrentMessage(greeting);
       // Add initial message to chat history
       setChatHistory([{ speaker: character.name || 'Farmer', text: greeting, timestamp: Date.now() }]);
     }
-  }, [farmProsperity, era, hasInteracted]);
+  }, [farmProsperity, era, hasInteracted, isFarmContext]);
   
   // Check if current message has a question
   useEffect(() => {
@@ -163,56 +236,225 @@ const NPCToast: React.FC<NPCToastProps> = ({
     }
   };
 
-  const handleLLMResponse = async (input: string) => {
+  const handleLLMResponse = async (input: string, silent: boolean = false) => {
     if (!enableLLMChat || isLoading) return;
-    
+
     setIsLoading(true);
     setHasInteracted(true);
-    
+
     try {
-      // Create a proper NPC entity for the farmer
-      const farmerNpc: NpcEntity = {
-        id: `farmer-${character.id || Date.now()}`,
-        name: character.name || 'Farmer',
-        type: 'npc' as const,
-        x: 0,
-        y: 0,
-        health: character.health || 80,
-        maxHealth: character.maxHealth || 100,
-        age: character.age || 35,
-        gender: character.gender || 'male',
-        culturalZone: character.culturalZone || 'WESTERN_EUROPEAN',
-        occupation: character.occupation || 'farmer',
-        personality: character.personality || ['hardworking', 'practical', 'cautious'],
-        memory: {
-          conversationSummaries: [],
-          opinionOfPlayer: 50
+      // If this is a farm context, use structured farmer decision
+      if (isFarmContext) {
+        const farmerNpc: NpcEntity = {
+          id: `farmer-${character.id || Date.now()}`,
+          name: character.name || 'Farmer',
+          type: 'npc' as const,
+          x: 0,
+          y: 0,
+          health: character.health || 80,
+          maxHealth: character.maxHealth || 100,
+          age: character.age || 35,
+          gender: character.gender || 'male',
+          culturalZone: character.culturalZone || 'WESTERN_EUROPEAN',
+          occupation: 'farmer',
+          personality: character.personality || ['hardworking', 'practical', 'cautious'],
+          memory: {
+            conversationSummaries: [],
+            opinionOfPlayer: 50
+          }
+        } as NpcEntity;
+
+        // Calculate context for farmer decision
+        const isNight = gameTimeHours >= 20 || gameTimeHours <= 5;
+        const isVeryLateNight = gameTimeHours >= 23 || gameTimeHours <= 4;
+        const playerAppearance = playerCharacter?.equipment?.weapon ? 'armed' :
+                                playerCharacter?.inventory?.some((i: any) => i.value > 50) ? 'wealthy' :
+                                playerCharacter?.health < 30 ? 'injured' : 'peaceful';
+
+        try {
+          const farmerResponse = await generateFarmerDecision(
+            farmerNpc,
+            input,
+            {
+              timeOfDay: gameTimeHours,
+              playerReputation: playerCharacter?.reputation || 50,
+              playerAppearance,
+              farmProsperity: farmProsperity || 'humble',
+              era: (mapData?.dateInfo?.era || era || 'MEDIEVAL') as HistoricalEra,
+              location: mapData?.localArea || mapData?.continent || 'countryside',
+              playerHealth: playerCharacter?.health || 100,
+              isNight,
+              previousInteraction: currentMessage
+            }
+          );
+
+          // Update state with farmer's decisions
+          setFarmerDecisions(farmerResponse.decisions);
+          setFarmerSentiment(farmerResponse.sentiment);
+          setCurrentMessage(farmerResponse.dialogue);
+
+          // Update type based on action
+          if (farmerResponse.action === 'hostile') {
+            type = 'warning';
+          } else if (farmerResponse.action === 'suspicious') {
+            type = 'admonition';
+          }
+
+          // Add to chat history (only include player message if not silent)
+          const newHistory: DialogueEntry[] = silent
+            ? [...chatHistory, { speaker: character.name || 'Farmer', text: farmerResponse.dialogue, timestamp: Date.now() }]
+            : [
+                ...chatHistory,
+                { speaker: 'player', text: input, timestamp: Date.now() },
+                { speaker: character.name || 'Farmer', text: farmerResponse.dialogue, timestamp: Date.now() }
+              ];
+          setChatHistory(newHistory);
+
+          // Handle immediate actions if needed
+          if (farmerResponse.decisions.threatenViolence && input.toLowerCase().includes('refuse')) {
+            // Farmer threatened and player refused - initiate combat
+            setTimeout(() => {
+              if (mountedRef.current && onInitiateEncounter && isVisible) {
+                const combatFarmer = {
+                  ...farmerNpc,
+                  isHostile: true,
+                  initialDialogue: ["You leave me no choice! Defend the farm!", "Help! Bandits!"]
+                };
+                handleClose(); // Close before initiating combat
+                onInitiateEncounter(combatFarmer);
+              }
+            }, 2000); // Give player time to read the threat
+          }
+        } catch (error) {
+          console.error('LLM farmer decision failed, using fallback:', error);
+
+          // Fallback logic when LLM service is unavailable
+          const playerReputation = playerCharacter?.reputation || 50;
+          const isThreatening = isVeryLateNight && playerAppearance === 'armed';
+          const isModeratelyDangerous = isNight || playerReputation < 30;
+
+          let farmerResponse;
+          if (isThreatening) {
+            farmerResponse = {
+              dialogue: "Get off my land NOW or I'll run you through! HELP! BANDITS!",
+              action: 'hostile',
+              sentiment: -90,
+              decisions: {
+                allowRest: false,
+                restFee: 0,
+                allowWork: false,
+                allowResidency: false,
+                askToLeave: true,
+                threatenViolence: true,
+                callForHelp: true
+              }
+            };
+          } else if (isModeratelyDangerous) {
+            farmerResponse = {
+              dialogue: "You need to leave. Now. This is private property and I don't know you.",
+              action: 'suspicious',
+              sentiment: -50,
+              decisions: {
+                allowRest: false,
+                restFee: 0,
+                allowWork: false,
+                allowResidency: false,
+                askToLeave: true,
+                threatenViolence: false,
+                callForHelp: false
+              }
+            };
+          } else {
+            farmerResponse = {
+              dialogue: "What brings you to my farm, traveler? We don't get many visitors.",
+              action: 'conditional',
+              sentiment: 0,
+              decisions: {
+                allowRest: true,
+                restFee: 3,
+                allowWork: true,
+                allowResidency: false,
+                askToLeave: false,
+                threatenViolence: false,
+                callForHelp: false
+              }
+            };
+          }
+
+          // Update state with fallback decisions
+          setFarmerDecisions(farmerResponse.decisions);
+          setFarmerSentiment(farmerResponse.sentiment);
+          setCurrentMessage(farmerResponse.dialogue);
+
+          // Add to chat history (only include player message if not silent)
+          const newHistory: DialogueEntry[] = silent
+            ? [...chatHistory, { speaker: character.name || 'Farmer', text: farmerResponse.dialogue, timestamp: Date.now() }]
+            : [
+                ...chatHistory,
+                { speaker: 'player', text: input, timestamp: Date.now() },
+                { speaker: character.name || 'Farmer', text: farmerResponse.dialogue, timestamp: Date.now() }
+              ];
+          setChatHistory(newHistory);
+
+          // Handle combat for threatening scenarios
+          if (farmerResponse.decisions.threatenViolence && input.toLowerCase().includes('refuse')) {
+            setTimeout(() => {
+              if (mountedRef.current && onInitiateEncounter && isVisible) {
+                const combatFarmer = {
+                  ...farmerNpc,
+                  isHostile: true,
+                  initialDialogue: ["You leave me no choice! Defend the farm!", "Help! Bandits!"]
+                };
+                handleClose(); // Close before initiating combat
+                onInitiateEncounter(combatFarmer);
+              }
+            }, 2000);
+          }
         }
-      } as NpcEntity;
-      
-      // Add farmer instruction to ask questions
-      const contextualInput = farmProsperity === 'humble' 
-        ? `${input} (The farmer is struggling and may ask for help or offer lodging in exchange for work. Make sure to ask a follow-up question ending with '?')`
-        : `${input} (The farmer is prosperous and may offer trade or hospitality. Make sure to ask a follow-up question ending with '?')`;
-      
-      const response = await generateEncounterDialogue(
-        farmerNpc,
-        chatHistory,
-        contextualInput,
-        playerCharacter,
-        npcs,
-        mapData,
-        false // useRealLanguage
-      );
-      
-      // Update chat history
-      const newHistory: DialogueEntry[] = [
-        ...chatHistory,
-        { speaker: 'player', text: input, timestamp: Date.now() },
-        { speaker: character.name || 'Farmer', text: response.text, timestamp: Date.now() }
-      ];
-      setChatHistory(newHistory);
-      setCurrentMessage(response.text);
+
+      } else {
+        // Original encounter dialogue for non-farm contexts
+        const farmerNpc: NpcEntity = {
+          id: `farmer-${character.id || Date.now()}`,
+          name: character.name || 'Farmer',
+          type: 'npc' as const,
+          x: 0,
+          y: 0,
+          health: character.health || 80,
+          maxHealth: character.maxHealth || 100,
+          age: character.age || 35,
+          gender: character.gender || 'male',
+          culturalZone: character.culturalZone || 'WESTERN_EUROPEAN',
+          occupation: character.occupation || 'farmer',
+          personality: character.personality || ['hardworking', 'practical', 'cautious'],
+          memory: {
+            conversationSummaries: [],
+            opinionOfPlayer: 50
+          }
+        } as NpcEntity;
+
+        const contextualInput = farmProsperity === 'humble'
+          ? `${input} (The farmer is struggling and may ask for help or offer lodging in exchange for work. Make sure to ask a follow-up question ending with '?')`
+          : `${input} (The farmer is prosperous and may offer trade or hospitality. Make sure to ask a follow-up question ending with '?')`;
+
+        const response = await generateEncounterDialogue(
+          farmerNpc,
+          chatHistory,
+          contextualInput,
+          playerCharacter,
+          npcs,
+          mapData,
+          false
+        );
+
+        const newHistory: DialogueEntry[] = [
+          ...chatHistory,
+          { speaker: 'player', text: input, timestamp: Date.now() },
+          { speaker: character.name || 'Farmer', text: response.text, timestamp: Date.now() }
+        ];
+        setChatHistory(newHistory);
+        setCurrentMessage(response.text);
+      }
     } catch (error) {
       console.error('LLM response failed:', error);
       setCurrentMessage("*looks puzzled* I'm not sure how to respond to that.");
@@ -290,14 +532,221 @@ const NPCToast: React.FC<NPCToastProps> = ({
           {/* Interactive Elements */}
           {enableLLMChat && (
             <div className="space-y-3">
-              {/* Quick Response Buttons - Only show if there's a question */}
-              {showQuickButtons && (
+              {/* Structured Action Buttons for Farm Context */}
+              {isFarmContext && farmerDecisions && (
+                <div className="flex flex-wrap gap-2">
+                  {/* If farmer is asking player to leave */}
+                  {farmerDecisions.askToLeave && (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (onLeave) onLeave();
+                          handleClose();
+                        }}
+                        disabled={isLoading}
+                        className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700
+                                 rounded-lg border border-blue-500 hover:from-blue-500 hover:to-blue-600
+                                 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                                 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        Leave Peacefully
+                      </button>
+                      <button
+                        onClick={() => {
+                          // If farmer is already threatening violence, go straight to combat
+                          if (farmerDecisions.threatenViolence && onInitiateEncounter) {
+                            setCurrentMessage("You leave me no choice! Defend the farm!");
+                            setTimeout(() => {
+                              if (mountedRef.current && isVisible && onInitiateEncounter) {
+                                const combatFarmer = {
+                                  ...character,
+                                  isHostile: true,
+                                  initialDialogue: ["You leave me no choice! Defend the farm!", "Help! Bandits!"]
+                                };
+                                handleClose(); // Close before initiating combat
+                                onInitiateEncounter(combatFarmer);
+                              }
+                            }, 1500);
+                          } else {
+                            // Otherwise, send refusal message for farmer to respond
+                            handleLLMResponse("I'm not leaving. This is public land.");
+                          }
+                          if (onRefuse) onRefuse();
+                        }}
+                        disabled={isLoading}
+                        className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700
+                                 rounded-lg border border-rose-500 hover:from-rose-500 hover:to-rose-600
+                                 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                                 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        Refuse to Leave
+                      </button>
+                    </>
+                  )}
+
+                  {/* Rest options */}
+                  {!farmerDecisions.askToLeave && farmerDecisions.allowRest && onRequestRest && (
+                    <button
+                      onClick={() => {
+                        const message = farmerDecisions.restFee > 0
+                          ? `I'd like to rest here. I can pay ${farmerDecisions.restFee} coins.`
+                          : `May I rest here for the night?`;
+                        handleLLMResponse(message);
+                        onRequestRest(farmerDecisions.restFee);
+                      }}
+                      disabled={isLoading}
+                      className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-emerald-700
+                               rounded-lg border border-emerald-500 hover:from-emerald-500 hover:to-emerald-600
+                               disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                               shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    >
+                      Request Rest {farmerDecisions.restFee > 0 && `(${farmerDecisions.restFee} coins)`}
+                    </button>
+                  )}
+
+                  {/* Work for lodging option */}
+                  {!farmerDecisions.askToLeave && farmerDecisions.allowWork && onRequestWork && !isNegotiating && (
+                    <button
+                      onClick={() => {
+                        setIsNegotiating(true);
+                        setNegotiationRounds(1);
+                        // Generate work offer
+                        const tasks = farmProsperity === 'humble'
+                          ? ['Mend the fence', 'Feed the animals', 'Clear the weeds']
+                          : ['Help with the harvest', 'Tend to the livestock', 'Repair the barn'];
+                        setWorkOffer({
+                          tasks,
+                          payment: { meals: true, lodging: true, coins: farmProsperity === 'prosperous' ? 5 : 0 }
+                        });
+                        setCurrentMessage(
+                          `Alright, here's what I need: ${tasks.join(', ')}. ` +
+                          `In exchange, you'll get meals and a place to sleep` +
+                          (farmProsperity === 'prosperous' ? ' plus 5 coins.' : '.') +
+                          ` Fair deal?`
+                        );
+                        onRequestWork();
+                      }}
+                      disabled={isLoading}
+                      className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-600 to-amber-700
+                               rounded-lg border border-amber-500 hover:from-amber-500 hover:to-amber-600
+                               disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                               shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    >
+                      Offer to Work
+                    </button>
+                  )}
+
+                  {/* Negotiation buttons - show when negotiating work contract */}
+                  {isNegotiating && workOffer && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIsNegotiating(false);
+                          setCurrentMessage("Good! Let's get started then. I'll show you what needs doing.");
+                          // Apply work contract
+                          if (onAcceptWork && workOffer) {
+                            onAcceptWork(workOffer.tasks, workOffer.payment);
+                          }
+                          setFarmerDecisions(null);
+                          setWorkOffer(null);
+                        }}
+                        disabled={isLoading}
+                        className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-green-700
+                                 rounded-lg border border-green-500 hover:from-green-500 hover:to-green-600
+                                 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                                 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        Accept Deal ✓
+                      </button>
+                      {negotiationRounds < 3 && (
+                        <button
+                          onClick={() => {
+                            setNegotiationRounds(negotiationRounds + 1);
+                            if (negotiationRounds === 2) {
+                              // Final offer
+                              const improvedPayment = farmProsperity === 'prosperous'
+                                ? { meals: true, lodging: true, coins: 10 }
+                                : { meals: true, lodging: true, coins: 2 };
+                              setWorkOffer({ ...workOffer, payment: improvedPayment });
+                              setCurrentMessage(
+                                "Alright, final offer: same work but I'll throw in " +
+                                (farmProsperity === 'prosperous' ? '10 coins' : '2 coins') +
+                                ". That's the best I can do."
+                              );
+                            } else {
+                              // Counter-offer
+                              const improvedPayment = farmProsperity === 'prosperous'
+                                ? { meals: true, lodging: true, coins: 7 }
+                                : { meals: true, lodging: true, coins: 1 };
+                              setWorkOffer({ ...workOffer, payment: improvedPayment });
+                              setCurrentMessage(
+                                "Hmm, how about this: same work but I'll add " +
+                                (farmProsperity === 'prosperous' ? '7 coins' : '1 coin') +
+                                " to sweeten the deal?"
+                              );
+                            }
+                          }}
+                          disabled={isLoading}
+                          className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-yellow-600 to-yellow-700
+                                   rounded-lg border border-yellow-500 hover:from-yellow-500 hover:to-yellow-600
+                                   disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                                   shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          Ask for More 💰
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setIsNegotiating(false);
+                          setWorkOffer(null);
+                          setCurrentMessage("No deal then. Maybe another time.");
+                          setFarmerDecisions(null);
+                        }}
+                        disabled={isLoading}
+                        className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700
+                                 rounded-lg border border-red-500 hover:from-red-500 hover:to-red-600
+                                 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                                 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        Decline ✗
+                      </button>
+                    </>
+                  )}
+
+                  {/* Request to live on farm (only if already established trust) */}
+                  {!farmerDecisions.askToLeave && farmerDecisions.allowResidency && onRequestResidency && (
+                    <button
+                      onClick={() => {
+                        handleLLMResponse("I've been thinking... could I perhaps live and work on the farm?");
+                        onRequestResidency();
+                      }}
+                      disabled={isLoading}
+                      className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-purple-700
+                               rounded-lg border border-purple-500 hover:from-purple-500 hover:to-purple-600
+                               disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                               shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    >
+                      Request Residency
+                    </button>
+                  )}
+
+                  {/* Warning indicator if farmer is threatening */}
+                  {farmerDecisions.threatenViolence && (
+                    <div className="w-full text-center text-red-400 text-sm font-semibold animate-pulse">
+                      ⚠️ The farmer is ready to attack! Choose carefully...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Original Quick Response Buttons for non-farm contexts */}
+              {!isFarmContext && showQuickButtons && (
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleQuickResponse('yes')}
                     disabled={isLoading}
-                    className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 
-                             rounded-lg border border-emerald-500 hover:from-emerald-500 hover:to-emerald-600 
+                    className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-emerald-700
+                             rounded-lg border border-emerald-500 hover:from-emerald-500 hover:to-emerald-600
                              disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
                              shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                   >
@@ -307,8 +756,8 @@ const NPCToast: React.FC<NPCToastProps> = ({
                   <button
                     onClick={() => handleQuickResponse('no')}
                     disabled={isLoading}
-                    className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700 
-                             rounded-lg border border-rose-500 hover:from-rose-500 hover:to-rose-600 
+                    className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700
+                             rounded-lg border border-rose-500 hover:from-rose-500 hover:to-rose-600
                              disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
                              shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                   >

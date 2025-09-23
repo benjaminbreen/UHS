@@ -43,7 +43,7 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
     const factionData: FactionData | undefined = FACTION_DATA[culturalZone]?.[mapData.region || '']?.[dateInfo.era];
 
     // Use centralized city detection
-    const cityDetection = detectCitiesForArea(mapData.localArea, mapData.region, dateInfo.year, dateInfo.era, true);
+    const cityDetection = detectCitiesForArea(mapData.localArea, mapData.region, dateInfo.year, dateInfo.era, false);
     const hasCities = cityDetection.hasCities;
 
     const generatedHolyPlaces: TerrainStructure[] = [];

@@ -550,8 +550,8 @@ export function generateSpecialMapNpcs(
   // Reset ruler assignment flag for each new map
   hasAssignedRuler = false;
 
-  // Special case: No NPCs on vessels (just the player)
-  if (config.archetype === SpecialMapArchetype.VESSEL) {
+  // Special case: No NPCs on vessels or campgrounds (just the player)
+  if (config.archetype === SpecialMapArchetype.VESSEL || config.archetype === SpecialMapArchetype.CAMPGROUND) {
     return [];
   }
 

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matrix Historical Lives - Background Effect Mockup</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Courier New', Consolas, monospace;
+      background: #000;
+      position: relative;
+    }
+
+    /* Background image with gradient overlay */
+    .background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: 1;
+    }
+
+    .background-image::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(0, 0, 0, 0.7) 30%,
+        rgba(0, 0, 0, 0.9) 60%,
+        rgba(0, 0, 0, 1) 100%
+      );
+    }
+
+    /* Matrix container */
+    .matrix-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: space-around;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Individual columns */
+    .matrix-column {
+      width: 7%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      opacity: 0.8;
+    }
+
+    /* Text strips that fall */
+    .text-strip {
+      position: absolute;
+      top: -100%;
+      width: 100%;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #00ff41;
+      text-shadow: 0 0 5px #00ff41;
+      animation: fall linear infinite;
+      white-space: pre-wrap;
+      word-break: break-all;
+      padding: 0 2px;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(200vh);
+      }
+    }
+
+    /* Varying speeds for columns */
+    .column-1 .text-strip { animation-duration: 25s; }
+    .column-2 .text-strip { animation-duration: 30s; }
+    .column-3 .text-strip { animation-duration: 20s; }
+    .column-4 .text-strip { animation-duration: 35s; }
+    .column-5 .text-strip { animation-duration: 28s; }
+    .column-6 .text-strip { animation-duration: 22s; }
+    .column-7 .text-strip { animation-duration: 33s; }
+    .column-8 .text-strip { animation-duration: 26s; }
+    .column-9 .text-strip { animation-duration: 31s; }
+    .column-10 .text-strip { animation-duration: 24s; }
+    .column-11 .text-strip { animation-duration: 29s; }
+    .column-12 .text-strip { animation-duration: 27s; }
+
+    /* Gradient fade on text */
+    .text-strip span {
+      display: block;
+      margin-bottom: 20px;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+
+    .text-strip span:hover {
+      opacity: 1;
+    }
+
+    /* Title overlay */
+    .title-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      text-align: center;
+      color: white;
+      pointer-events: none;
+    }
+
+    .title-overlay h1 {
+      font-size: 3em;
+      margin-bottom: 0.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .title-overlay p {
+      font-size: 1.2em;
+      opacity: 0.8;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Image -->
+  <div class="background-image" id="bgImage"></div>
+
+  <!-- Matrix Effect Container -->
+  <div class="matrix-container" id="matrixContainer"></div>
+
+  <!-- Title Overlay -->
+  <div class="title-overlay">
+    <h1>Universal History Simulator</h1>
+    <p>Every life a story, every moment in time</p>
+  </div>
+
+  <script>
+    // Mock data for historical lives
+    const names = [
+      'Marcus Aurelius', 'Li Wei', 'Fatima al-Andalusi', 'John Smith', 'Yuki Tanaka',
+      'Giovanni di Milano', 'Isabella de Castilla', 'Ahmad ibn Rashid', 'Marie Dubois',
+      'Wilhelm Schneider', 'Olaf Eriksson', 'Priya Sharma', 'Chen Xiaoping', 'Boris Petrov',
+      'Sarah Williams', 'Miguel Rodriguez', 'Akiko Yamamoto', 'Robert Johnson', 'Elena Popov'
+    ];
+
+    const professions = [
+      'blacksmith', 'merchant', 'farmer', 'scholar', 'soldier', 'priest', 'weaver',
+      'fisherman', 'scribe', 'healer', 'hunter', 'baker', 'carpenter', 'mason',
+      'herbalist', 'navigator', 'miner', 'potter', 'tanner', 'brewmaster'
+    ];
+
+    const locations = [
+      'Mesopotamia', 'Nile Delta', 'Yellow River Valley', 'Italian Peninsula',
+      'British Isles', 'Iberian Peninsula', 'Germanic Forests', 'Scandinavian Fjords',
+      'Arabian Desert', 'Ganges Plain', 'Japanese Islands', 'Andean Mountains',
+      'Great Plains', 'Amazon Basin', 'Sahara Trade Routes', 'Silk Road',
+      'Mediterranean Coast', 'Baltic Shore', 'Caucasus Mountains', 'Siberian Steppe'
+    ];
+
+    // Random combat background images (simulating your game's backgrounds)
+    const backgrounds = [
+      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1920', // medieval castle
+      'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=1920', // forest
+      'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=1920', // desert
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920', // mountains
+      'https://images.unsplash.com/photo-1573155993874-d5d48af862ba?w=1920', // asian temple
+      'https://images.unsplash.com/photo-1599946347371-68eb71b16afc?w=1920', // ruins
+      'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1920', // coastline
+      'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=1920', // tundra
+    ];
+
+    // Set random background
+    function setRandomBackground() {
+      const bg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+      document.getElementById('bgImage').style.backgroundImage = `url(${bg})`;
+    }
+
+    // Generate a historical life string
+    function generateLife() {
+      const name = names[Math.floor(Math.random() * names.length)];
+      const profession = professions[Math.floor(Math.random() * professions.length)];
+      const location = locations[Math.floor(Math.random() * locations.length)];
+      const years = Math.floor(Math.random() * 50) + 1;
+      const year = Math.floor(Math.random() * 4000) - 1000;
+      const yearStr = year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
+
+      return `${name}\n${profession}\n${years} years\n${location}\n${yearStr}`;
+    }
+
+    // Create matrix columns
+    function createMatrix() {
+      const container = document.getElementById('matrixContainer');
+
+      for (let i = 0; i < 12; i++) {
+        const column = document.createElement('div');
+        column.className = `matrix-column column-${i + 1}`;
+
+        // Create multiple text strips per column for continuous effect
+        for (let j = 0; j < 3; j++) {
+          const strip = document.createElement('div');
+          strip.className = 'text-strip';
+          strip.style.animationDelay = `${j * 10}s`;
+
+          // Generate 10 lives per strip
+          let content = '';
+          for (let k = 0; k < 10; k++) {
+            content += `<span>${generateLife()}</span>\n\n`;
+          }
+          strip.innerHTML = content;
+
+          column.appendChild(strip);
+        }
+
+        container.appendChild(column);
+      }
+    }
+
+    // Initialize
+    setRandomBackground();
+    createMatrix();
+
+    // Refresh some content periodically for variety
+    setInterval(() => {
+      const strips = document.querySelectorAll('.text-strip');
+      const randomStrip = strips[Math.floor(Math.random() * strips.length)];
+
+      // Regenerate content for a random strip
+      let content = '';
+      for (let k = 0; k < 10; k++) {
+        content += `<span>${generateLife()}</span>\n\n`;
+      }
+      randomStrip.innerHTML = content;
+    }, 15000);
+  </script>
+</body>
+</html>

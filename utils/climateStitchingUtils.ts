@@ -104,10 +104,12 @@ export function getClimateTransitionBiome(
   
   // Only apply transitions to certain biomes (avoid changing water, urban, etc.)
   const transitionableBiomes = new Set([
-    BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.CONIFEROUS_FOREST,
-    BiomeType.DECIDUOUS_FOREST, BiomeType.RAINFOREST, BiomeType.TUNDRA,
-    BiomeType.DESERT, BiomeType.ALPINE, BiomeType.ROCKY, BiomeType.VOLCANIC_ROCK,
-    BiomeType.FOREST, BiomeType.HILLS, BiomeType.STEPPE
+    BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.TUNDRA,
+    BiomeType.DESERT, BiomeType.VOLCANIC_ROCK,
+    BiomeType.FOREST, BiomeType.HILLS, BiomeType.STEPPE,
+    BiomeType.DENSE_FOREST, BiomeType.JUNGLE, BiomeType.MOUNTAIN,
+    BiomeType.SAVANNA, BiomeType.TAIGA, BiomeType.PRAIRIE, BiomeType.ALPINE_MEADOW,
+    BiomeType.BADLANDS
   ]);
   
   if (!transitionableBiomes.has(originalBiome)) {
@@ -135,94 +137,130 @@ function applyClimateTransition(
   toClimate: ClimateType, 
   strength: number
 ): BiomeType {
-  // COLD → TEMPERATE transitions
+  // COLD → TEMPERATE transitions using new biomes
   if (fromClimate === ClimateType.COLD && toClimate === ClimateType.TEMPERATE) {
     if (strength > 0.6) {
       switch (originalBiome) {
-        case BiomeType.TUNDRA: return BiomeType.CONIFEROUS_FOREST;
-        case BiomeType.ALPINE: return BiomeType.ROCKY;
-        case BiomeType.CONIFEROUS_FOREST: return BiomeType.DECIDUOUS_FOREST;
+        case BiomeType.TUNDRA: return BiomeType.STEPPE;
+        case BiomeType.STEPPE: return BiomeType.PRAIRIE;
+        case BiomeType.TAIGA: return BiomeType.FOREST;
+        case BiomeType.SNOW: return BiomeType.ALPINE_MEADOW;
         default: return originalBiome;
       }
     } else if (strength > 0.3) {
       switch (originalBiome) {
-        case BiomeType.TUNDRA: return BiomeType.SCRUB;
-        case BiomeType.ALPINE: return BiomeType.ROCKY;
+        case BiomeType.TUNDRA: return BiomeType.STEPPE;
+        case BiomeType.TAIGA: return BiomeType.FOREST;
+        case BiomeType.ALPINE_MEADOW: return BiomeType.GRASSLAND;
         default: return originalBiome;
       }
     }
   }
 
-  // TEMPERATE → COLD transitions
+  // TEMPERATE → COLD transitions using new biomes
   if (fromClimate === ClimateType.TEMPERATE && toClimate === ClimateType.COLD) {
     if (strength > 0.6) {
       switch (originalBiome) {
-        case BiomeType.GRASSLAND: return BiomeType.TUNDRA;
-        case BiomeType.DECIDUOUS_FOREST: return BiomeType.CONIFEROUS_FOREST;
-        case BiomeType.SCRUB: return BiomeType.ALPINE;
+        case BiomeType.GRASSLAND: return BiomeType.STEPPE;
+        case BiomeType.PRAIRIE: return BiomeType.STEPPE;
+        case BiomeType.FOREST: return BiomeType.TAIGA;
+        case BiomeType.DENSE_FOREST: return BiomeType.TAIGA;
+        case BiomeType.SCRUB: return BiomeType.STEPPE;
         default: return originalBiome;
       }
     } else if (strength > 0.3) {
       switch (originalBiome) {
-        case BiomeType.GRASSLAND: return BiomeType.SCRUB;
-        case BiomeType.DECIDUOUS_FOREST: return BiomeType.CONIFEROUS_FOREST;
+        case BiomeType.GRASSLAND: return BiomeType.PRAIRIE;
+        case BiomeType.PRAIRIE: return BiomeType.STEPPE;
+        case BiomeType.FOREST: return BiomeType.TAIGA;
+        case BiomeType.DENSE_FOREST: return BiomeType.FOREST;
+        case BiomeType.SCRUB: return BiomeType.SCRUB; // Keep scrub as scrub in moderate transitions
+        default: return originalBiome;
+      }
+    } else if (strength > 0.1) {
+      // Weak transitions - minimal change but still valid
+      switch (originalBiome) {
+        case BiomeType.GRASSLAND: return BiomeType.PRAIRIE;
+        case BiomeType.SCRUB: return BiomeType.SCRUB; // Scrub stays scrub in weak transitions
         default: return originalBiome;
       }
     }
   }
 
-  // TEMPERATE → TROPICAL transitions
+  // TEMPERATE → TROPICAL transitions using SAVANNA
   if (fromClimate === ClimateType.TEMPERATE && toClimate === ClimateType.TROPICAL) {
     if (strength > 0.6) {
       switch (originalBiome) {
-        case BiomeType.GRASSLAND: return BiomeType.RAINFOREST;
-        case BiomeType.DECIDUOUS_FOREST: return BiomeType.RAINFOREST;
-        case BiomeType.SCRUB: return BiomeType.GRASSLAND;
+        case BiomeType.GRASSLAND: return BiomeType.SAVANNA;
+        case BiomeType.PRAIRIE: return BiomeType.SAVANNA;
+        case BiomeType.FOREST: return BiomeType.JUNGLE;
+        case BiomeType.DENSE_FOREST: return BiomeType.JUNGLE;
+        case BiomeType.SCRUB: return BiomeType.SAVANNA;
+        default: return originalBiome;
+      }
+    } else if (strength > 0.3) {
+      switch (originalBiome) {
+        case BiomeType.GRASSLAND: return BiomeType.SAVANNA;
+        case BiomeType.PRAIRIE: return BiomeType.SAVANNA;
+        case BiomeType.FOREST: return BiomeType.DENSE_FOREST;
         default: return originalBiome;
       }
     }
   }
 
-  // TROPICAL → TEMPERATE transitions  
+  // TROPICAL → TEMPERATE transitions using SAVANNA
   if (fromClimate === ClimateType.TROPICAL && toClimate === ClimateType.TEMPERATE) {
     if (strength > 0.6) {
       switch (originalBiome) {
-        case BiomeType.RAINFOREST: return BiomeType.DECIDUOUS_FOREST;
-        case BiomeType.GRASSLAND: return BiomeType.SCRUB;
+        case BiomeType.JUNGLE: return BiomeType.FOREST;
+        case BiomeType.SAVANNA: return BiomeType.PRAIRIE;
+        case BiomeType.GRASSLAND: return BiomeType.PRAIRIE;
+        default: return originalBiome;
+      }
+    } else if (strength > 0.3) {
+      switch (originalBiome) {
+        case BiomeType.JUNGLE: return BiomeType.DENSE_FOREST;
+        case BiomeType.SAVANNA: return BiomeType.GRASSLAND;
         default: return originalBiome;
       }
     }
   }
 
-  // TEMPERATE → ARID transitions
+  // TEMPERATE → ARID transitions using SAVANNA
   if (fromClimate === ClimateType.TEMPERATE && toClimate === ClimateType.ARID) {
     if (strength > 0.6) {
       switch (originalBiome) {
-        case BiomeType.GRASSLAND: return BiomeType.DESERT;
-        case BiomeType.DECIDUOUS_FOREST: return BiomeType.SCRUB;
+        case BiomeType.GRASSLAND: return BiomeType.SAVANNA;
+        case BiomeType.PRAIRIE: return BiomeType.SAVANNA;
+        case BiomeType.FOREST: return BiomeType.SCRUB;
+        case BiomeType.DENSE_FOREST: return BiomeType.SCRUB;
         case BiomeType.SCRUB: return BiomeType.DESERT;
         default: return originalBiome;
       }
     } else if (strength > 0.3) {
       switch (originalBiome) {
-        case BiomeType.GRASSLAND: return BiomeType.SCRUB;
-        case BiomeType.DECIDUOUS_FOREST: return BiomeType.SCRUB;
+        case BiomeType.GRASSLAND: return BiomeType.SAVANNA;
+        case BiomeType.PRAIRIE: return BiomeType.SAVANNA;
+        case BiomeType.FOREST: return BiomeType.SCRUB;
+        case BiomeType.DENSE_FOREST: return BiomeType.SCRUB;
         default: return originalBiome;
       }
     }
   }
 
-  // ARID → TEMPERATE transitions
+  // ARID → TEMPERATE transitions using SAVANNA
   if (fromClimate === ClimateType.ARID && toClimate === ClimateType.TEMPERATE) {
     if (strength > 0.6) {
       switch (originalBiome) {
-        case BiomeType.DESERT: return BiomeType.GRASSLAND;
-        case BiomeType.SCRUB: return BiomeType.DECIDUOUS_FOREST;
+        case BiomeType.DESERT: return BiomeType.SAVANNA;
+        case BiomeType.SAVANNA: return BiomeType.PRAIRIE;
+        case BiomeType.SCRUB: return BiomeType.GRASSLAND;
         default: return originalBiome;
       }
     } else if (strength > 0.3) {
       switch (originalBiome) {
-        case BiomeType.DESERT: return BiomeType.SCRUB;
+        case BiomeType.DESERT: return BiomeType.SAVANNA;
+        case BiomeType.SCRUB: return BiomeType.SAVANNA;
         default: return originalBiome;
       }
     }

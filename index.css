@@ -1408,3 +1408,66 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.8);
 }
+
+/* ==========================================
+   SAFARI PERFORMANCE OPTIMIZATIONS
+   ========================================== */
+
+/* Remove tap highlight on Safari for better click responsiveness */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Enable fast clicking without 300ms delay on Safari */
+button,
+a,
+.clickable,
+[role="button"],
+[onclick],
+.cursor-pointer {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Force GPU acceleration for commonly animated elements */
+.modal,
+.modal-content,
+.transition-all,
+.transition-transform,
+.animate-*,
+[class*="animate-"] {
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  -webkit-perspective: 1000;
+}
+
+/* Disable expensive backdrop-blur on Safari automatically */
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+  }
+}
+
+/* Optimize transitions for Safari */
+@supports (-webkit-appearance: none) {
+  .transition-all {
+    transition-property: transform, opacity, background-color, border-color !important;
+    transition-duration: 150ms !important;
+  }
+
+  .duration-300 {
+    transition-duration: 150ms !important;
+  }
+
+  .duration-200 {
+    transition-duration: 100ms !important;
+  }
+}

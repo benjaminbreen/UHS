@@ -232,28 +232,42 @@ export function placeFirepit(
   y: number,
   material: MaterialType
 ): void {
+  // Validate input parameters
+  if (!tiles || tiles.length === 0 || !tiles[0] || tiles[0].length === 0) {
+    console.error('[placeFirepit] Invalid tiles array provided');
+    return;
+  }
+
+  if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
+    console.error('[placeFirepit] Invalid coordinates provided:', { x, y });
+    return;
+  }
+
   // Place pit base (3x3 but only edges)
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       const tileX = x + dx;
       const tileY = y + dy;
-      
+
       if (tileY < 0 || tileY >= tiles.length) continue;
       if (tileX < 0 || tileX >= tiles[0].length) continue;
-      
+
+      // Additional safety check for the specific tile row
+      if (!tiles[tileY] || !tiles[tileY][tileX]) {
+        console.error('[placeFirepit] Tile not found at position:', { tileX, tileY });
+        continue;
+      }
+
       const tile = tiles[tileY][tileX];
       
       if (dx === 0 && dy === 0) {
         // Center - fire
-        tile.biome = BiomeType.FIREPIT;
+        tile.biome = BiomeType.FIRE_PIT;
         tile.isBlocking = true;
-        tile.structureType = 'fire';
-        tile.isLightSource = true;
       } else {
         // Edge stones
-        tile.biome = BiomeType.FIREPIT;
+        tile.biome = BiomeType.FIRE_PIT;
         tile.isBlocking = true;
-        tile.structureType = `firepit_edge_${material}`;
       }
     }
   }

@@ -90,30 +90,42 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
     switch (biomeType) {
         case BiomeType.GRASSLAND:
         case BiomeType.STEPPE:
-            // Multi-layered realistic grass
+        case BiomeType.PRAIRIE:
+        case BiomeType.ALPINE_MEADOW:
+            // Multi-layered realistic grass - adjust for biome type
+            const isPrairie = biomeType === BiomeType.PRAIRIE;
+            const isAlpine = biomeType === BiomeType.ALPINE_MEADOW;
+            const isSteppe = biomeType === BiomeType.STEPPE;
+
+            // Adjust grass density and color based on type
+            const grassDensity = isAlpine ? 25 : isPrairie ? 30 : 35;
+            const grassBaseColor = isPrairie ? [100, 120, 60] : isAlpine ? [80, 140, 80] : isSteppe ? [140, 130, 80] : [34, 139, 34];
+
             // Base grass patches - darker foundation
-            for (let i = 0; i < 35; i++) {
+            for (let i = 0; i < grassDensity; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
                 const size = 8 + noise.random() * 20;
                 
                 const grassGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
-                grassGrad.addColorStop(0, `rgba(34, 139, 34, ${0.35 + noise.random() * 0.25})`);
+                grassGrad.addColorStop(0, `rgba(${grassBaseColor[0]}, ${grassBaseColor[1]}, ${grassBaseColor[2]}, ${0.35 + noise.random() * 0.25})`);
                 grassGrad.addColorStop(1, 'transparent');
                 
                 ctx.fillStyle = grassGrad;
                 ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
             }
             
-            // Individual grass blades - more realistic
-            for (let i = 0; i < 120; i++) {
+            // Individual grass blades - more realistic, sparser for prairie/alpine
+            const bladeCount = isAlpine ? 80 : isPrairie ? 100 : 120;
+            for (let i = 0; i < bladeCount; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
                 const height = 4 + noise.random() * 8;
                 const bend = (noise.random() - 0.5) * 4;
                 
-                // Grass blade with natural curve
-                ctx.strokeStyle = `rgba(${46 + Math.floor(noise.random() * 40)}, ${139 + Math.floor(noise.random() * 60)}, ${87 + Math.floor(noise.random() * 40)}, ${0.5 + noise.random() * 0.4})`;
+                // Grass blade with natural curve - adjust color for prairie/alpine
+                const bladeColorBase = isPrairie ? [100, 130, 60] : isAlpine ? [90, 150, 90] : isSteppe ? [130, 120, 70] : [46, 139, 87];
+                ctx.strokeStyle = `rgba(${bladeColorBase[0] + Math.floor(noise.random() * 40)}, ${bladeColorBase[1] + Math.floor(noise.random() * 60)}, ${bladeColorBase[2] + Math.floor(noise.random() * 40)}, ${0.5 + noise.random() * 0.4})`;
                 ctx.lineWidth = 0.8 + noise.random() * 0.4;
                 ctx.beginPath();
                 ctx.moveTo(x, y);
@@ -139,6 +151,717 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                     ctx.lineTo(bladeX + (noise.random() - 0.5), bladeY - bladeHeight);
                     ctx.stroke();
                 }
+            }
+
+            // Add prairie-specific tall grass waves
+            if (isPrairie) {
+                for (let i = 0; i < 15; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const height = 8 + noise.random() * 12;
+                    const sway = (noise.random() - 0.5) * 6;
+
+                    ctx.strokeStyle = `rgba(120, 110, 50, ${0.3 + noise.random() * 0.2})`;
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.quadraticCurveTo(x + sway, y - height * 0.6, x + sway * 0.5, y - height);
+                    ctx.stroke();
+                }
+
+                // Prairie wildflowers - very distinctive
+                for (let i = 0; i < 12; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const flowerType = noise.random();
+
+                    if (flowerType < 0.4) {
+                        // Purple coneflowers
+                        ctx.fillStyle = `rgba(160, 80, 180, ${0.6 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.5 + noise.random() * 1, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Dark center
+                        ctx.fillStyle = `rgba(60, 40, 20, 0.8)`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (flowerType < 0.7) {
+                        // Golden black-eyed susans
+                        ctx.fillStyle = `rgba(255, 200, 50, ${0.6 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.2 + noise.random() * 0.8, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Dark center
+                        ctx.fillStyle = `rgba(60, 40, 20, 0.8)`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Wild lupines (spiky flowers)
+                        ctx.strokeStyle = `rgba(120, 140, 255, ${0.5 + noise.random() * 0.3})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + (noise.random() - 0.5) * 2, y - 6 - noise.random() * 4);
+                        ctx.stroke();
+                    }
+                }
+
+                // Prairie seed heads swaying in wind
+                for (let i = 0; i < 10; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const height = 8 + noise.random() * 10;
+                    const sway = (noise.random() - 0.5) * 6;
+
+                    // Stem
+                    ctx.strokeStyle = `rgba(100, 120, 50, ${0.4 + noise.random() * 0.2})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + sway, y - height);
+                    ctx.stroke();
+
+                    // Seed head
+                    ctx.fillStyle = `rgba(140, 100, 80, ${0.5 + noise.random() * 0.2})`;
+                    ctx.beginPath();
+                    ctx.ellipse(x + sway, y - height, 1.5, 3, noise.random() * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Golden patches from seasonal grass color (summer)
+                if (season === 'summer') {
+                    for (let i = 0; i < 20; i++) {
+                        const x = noise.random() * PATTERN_SIZE;
+                        const y = noise.random() * PATTERN_SIZE;
+                        const size = 10 + noise.random() * 15;
+
+                        const goldenGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                        goldenGrad.addColorStop(0, `rgba(220, 170, 80, ${0.3 + noise.random() * 0.2})`);
+                        goldenGrad.addColorStop(1, 'transparent');
+
+                        ctx.fillStyle = goldenGrad;
+                        ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
+                    }
+                }
+            }
+
+            // Add alpine meadow features
+            if (isAlpine) {
+                // Rocky patches scattered throughout - alpine terrain
+                for (let i = 0; i < 12; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const rockSize = 4 + noise.random() * 8;
+
+                    // Main rock
+                    ctx.fillStyle = `rgba(120, 110, 100, ${0.4 + noise.random() * 0.2})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, rockSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Rock highlights
+                    ctx.fillStyle = `rgba(140, 130, 120, ${0.3 + noise.random() * 0.2})`;
+                    ctx.beginPath();
+                    ctx.arc(x - 1, y - 1, rockSize * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Rock shadows
+                    ctx.fillStyle = `rgba(80, 70, 60, ${0.2 + noise.random() * 0.1})`;
+                    ctx.beginPath();
+                    ctx.arc(x + 1, y + 1, rockSize * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Alpine flowers - mountain varieties
+                for (let i = 0; i < 18; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const flowerType = noise.random();
+
+                    if (flowerType < 0.3) {
+                        // Alpine forget-me-nots (small blue flowers)
+                        ctx.fillStyle = `rgba(100, 150, 255, ${0.7 + noise.random() * 0.2})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.8 + noise.random() * 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Tiny white center
+                        ctx.fillStyle = `rgba(255, 255, 255, 0.8)`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (flowerType < 0.6) {
+                        // Mountain avens (white/cream)
+                        ctx.fillStyle = `rgba(255, 250, 240, ${0.6 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1 + noise.random() * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Yellow center
+                        ctx.fillStyle = `rgba(255, 220, 100, 0.7)`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (flowerType < 0.8) {
+                        // Alpine poppies (bright yellow)
+                        ctx.fillStyle = `rgba(255, 220, 100, ${0.6 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.2 + noise.random() * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Edelweiss (rare white star-shaped)
+                        const petalCount = 6;
+                        const petalSize = 1.5;
+                        for (let p = 0; p < petalCount; p++) {
+                            const angle = (p / petalCount) * Math.PI * 2;
+                            const petalX = x + Math.cos(angle) * petalSize;
+                            const petalY = y + Math.sin(angle) * petalSize;
+
+                            ctx.fillStyle = `rgba(255, 255, 250, ${0.8 + noise.random() * 0.1})`;
+                            ctx.beginPath();
+                            ctx.ellipse(petalX, petalY, 0.8, 0.4, angle, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+
+                // Short alpine grass tufts - adapted to harsh conditions
+                for (let i = 0; i < 60; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const height = 2 + noise.random() * 4; // Shorter than regular grass
+                    const bend = (noise.random() - 0.5) * 2; // Less bend, tougher
+
+                    ctx.strokeStyle = `rgba(${90 + Math.floor(noise.random() * 40)}, ${150 + Math.floor(noise.random() * 40)}, ${90 + Math.floor(noise.random() * 40)}, ${0.5 + noise.random() * 0.4})`;
+                    ctx.lineWidth = 0.5 + noise.random() * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.quadraticCurveTo(x + bend, y - height * 0.6, x + bend * 0.3, y - height);
+                    ctx.stroke();
+                }
+
+                // Moss patches on rocks (alpine environment)
+                for (let i = 0; i < 8; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const mossSize = 3 + noise.random() * 6;
+
+                    ctx.fillStyle = `rgba(60, 100, 40, ${0.3 + noise.random() * 0.2})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, mossSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Snow patches in winter or high elevations
+                if (season === 'winter') {
+                    for (let i = 0; i < 15; i++) {
+                        const x = noise.random() * PATTERN_SIZE;
+                        const y = noise.random() * PATTERN_SIZE;
+                        const snowSize = 5 + noise.random() * 10;
+
+                        ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, snowSize, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Snow sparkle
+                        ctx.fillStyle = `rgba(245, 245, 255, ${0.4 + noise.random() * 0.2})`;
+                        ctx.beginPath();
+                        ctx.arc(x - 1, y - 1, snowSize * 0.7, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+            break;
+
+        case BiomeType.SAVANNA:
+            // Enhanced savanna - golden grassland with acacia trees
+            // Strong golden overlay for sun-baked savanna look
+            ctx.fillStyle = 'rgba(255, 215, 120, 0.35)'; // Strong golden tint
+            ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
+
+            // Golden grass waves - wavy texture across the tile
+            for (let wave = 0; wave < 6; wave++) {
+                const waveY = (wave / 6) * PATTERN_SIZE + noise.random() * 8;
+                const waveHeight = 3 + noise.random() * 4;
+
+                ctx.strokeStyle = `rgba(245, 200, 100, ${0.4 + noise.random() * 0.3})`;
+                ctx.lineWidth = 2 + noise.random() * 1.5;
+                ctx.beginPath();
+
+                // Create wavy grass texture
+                for (let x = 0; x < PATTERN_SIZE; x += 2) {
+                    const waveOffset = Math.sin((x / PATTERN_SIZE) * Math.PI * 3 + wave) * waveHeight;
+                    if (x === 0) {
+                        ctx.moveTo(x, waveY + waveOffset);
+                    } else {
+                        ctx.lineTo(x, waveY + waveOffset);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Additional golden grass patches for variety
+            for (let i = 0; i < 25; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 8 + noise.random() * 15;
+
+                const grassGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                grassGrad.addColorStop(0, `rgba(255, 215, 140, ${0.4 + noise.random() * 0.2})`); // Brighter golden
+                grassGrad.addColorStop(0.7, `rgba(240, 190, 110, ${0.3 + noise.random() * 0.15})`); // Warm gold
+                grassGrad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = grassGrad;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Individual wavy grass blades - more prominent
+            for (let i = 0; i < 60; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const height = 4 + noise.random() * 8;
+                const wave = Math.sin(noise.random() * Math.PI * 2) * 3; // Wavy motion
+
+                ctx.strokeStyle = `rgba(${180 + Math.floor(noise.random() * 40)}, ${140 + Math.floor(noise.random() * 30)}, ${70 + Math.floor(noise.random() * 25)}, ${0.6 + noise.random() * 0.3})`;
+                ctx.lineWidth = 0.8 + noise.random() * 0.4;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                // Create wavy grass blade
+                ctx.quadraticCurveTo(x + wave * 0.5, y - height * 0.6, x + wave, y - height);
+                ctx.stroke();
+            }
+
+            // Acacia trees (40-50% of tiles)
+            if (noise.random() < 0.45) {
+                const numTrees = 1 + Math.floor(noise.random() * 3); // 1-3 trees
+                for (let i = 0; i < numTrees; i++) {
+                    const treeX = 20 + noise.random() * (PATTERN_SIZE - 40); // Keep away from edges
+                    const treeY = 20 + noise.random() * (PATTERN_SIZE - 40);
+                    const treeHeight = 12 + noise.random() * 8;
+                    const canopyWidth = 8 + noise.random() * 6;
+
+                    // Tree trunk
+                    ctx.strokeStyle = `rgba(74, 52, 32, ${0.7 + noise.random() * 0.2})`;
+                    ctx.lineWidth = 1.5 + noise.random() * 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(treeX, treeY);
+                    ctx.lineTo(treeX + (noise.random() - 0.5) * 2, treeY - treeHeight);
+                    ctx.stroke();
+
+                    // Umbrella-shaped canopy
+                    const canopyY = treeY - treeHeight + 2;
+                    const canopyGrad = ctx.createRadialGradient(treeX, canopyY, 0, treeX, canopyY, canopyWidth);
+                    canopyGrad.addColorStop(0, `rgba(96, 96, 64, ${0.4 + noise.random() * 0.2})`);
+                    canopyGrad.addColorStop(0.8, `rgba(80, 80, 50, ${0.3 + noise.random() * 0.1})`);
+                    canopyGrad.addColorStop(1, 'transparent');
+
+                    ctx.fillStyle = canopyGrad;
+                    ctx.beginPath();
+                    ctx.ellipse(treeX, canopyY, canopyWidth, canopyWidth * 0.6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tree shadow
+                    ctx.fillStyle = `rgba(0, 0, 0, ${0.1 + noise.random() * 0.05})`;
+                    ctx.beginPath();
+                    ctx.ellipse(treeX + 2, treeY + 1, canopyWidth * 0.8, canopyWidth * 0.3, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Termite mounds (5% chance)
+            if (noise.random() < 0.05) {
+                const moundX = noise.random() * PATTERN_SIZE;
+                const moundY = noise.random() * PATTERN_SIZE;
+                const moundSize = 3 + noise.random() * 2;
+
+                ctx.fillStyle = `rgba(139, 119, 86, ${0.3 + noise.random() * 0.1})`;
+                ctx.beginPath();
+                ctx.ellipse(moundX, moundY, moundSize, moundSize * 1.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Dry earth patches
+            for (let i = 0; i < 8; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 6 + noise.random() * 10;
+
+                ctx.fillStyle = `rgba(180, 140, 100, ${0.08 + noise.random() * 0.04})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+
+        case BiomeType.BADLANDS:
+            // Badlands - subtle transitional terrain between scrub and desert
+            // Base reddish-brown scrubby texture (like arid hills)
+            for (let i = 0; i < 25; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 8 + noise.random() * 16;
+
+                // Visible reddish-brown base color (like arid hills)
+                ctx.fillStyle = `rgba(180, 140, 110, ${0.7 + noise.random() * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Desert-colored blotches (transitional to desert tiles)
+            for (let i = 0; i < 20; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 6 + noise.random() * 12;
+
+                // Use desert tile colors for blotches
+                const desertVariant = noise.random();
+                const r = 210 + Math.floor(desertVariant * 20); // Sandy colors
+                const g = 180 - Math.floor(desertVariant * 15);
+                const b = 140 - Math.floor(desertVariant * 15);
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.6 + noise.random() * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Scrub-like vegetation patches (transitional to scrub)
+            for (let i = 0; i < 15; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const patchSize = 4 + noise.random() * 8;
+
+                // Greenish scrub color patches
+                ctx.fillStyle = `rgba(100, 120, 70, ${0.5 + noise.random() * 0.3})`;
+
+                // Irregular patch shape like scrub vegetation
+                ctx.beginPath();
+                const points = 6 + Math.floor(noise.random() * 4);
+                for (let p = 0; p < points; p++) {
+                    const angle = (p / points) * Math.PI * 2;
+                    const radius = patchSize * (0.7 + noise.random() * 0.6);
+                    const px = x + Math.cos(angle) * radius;
+                    const py = y + Math.sin(angle) * radius;
+                    if (p === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Very subtle eroded texture (much toned down)
+            for (let i = 0; i < 8; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const length = 8 + noise.random() * 12;
+                const angle = noise.random() * Math.PI;
+
+                // Visible erosion lines
+                ctx.strokeStyle = `rgba(150, 120, 90, ${0.7 + noise.random() * 0.2})`;
+                ctx.lineWidth = 2.0 + noise.random() * 1.0;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+                ctx.stroke();
+            }
+
+            // Sparse drought-resistant vegetation (like scrub but sparser)
+            for (let i = 0; i < 12; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const bushSize = 2 + noise.random() * 4;
+
+                // Irregular drought-resistant shrub
+                ctx.fillStyle = `rgba(90, 110, 60, ${0.6 + noise.random() * 0.3})`;
+                ctx.beginPath();
+                const points = 5 + Math.floor(noise.random() * 3);
+                for (let p = 0; p < points; p++) {
+                    const angle = (p / points) * Math.PI * 2;
+                    const radius = bushSize * (0.6 + noise.random() * 0.8);
+                    const px = x + Math.cos(angle) * radius;
+                    const py = y + Math.sin(angle) * radius;
+                    if (p === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                // Sparse grass around shrubs
+                for (let j = 0; j < 2; j++) {
+                    const grassX = x + (noise.random() - 0.5) * 8;
+                    const grassY = y + (noise.random() - 0.5) * 8;
+                    const grassHeight = 1.5 + noise.random() * 2.5;
+
+                    ctx.strokeStyle = `rgba(120, 140, 80, ${0.06 + noise.random() * 0.04})`;
+                    ctx.lineWidth = 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(grassX, grassY);
+                    ctx.lineTo(grassX + (noise.random() - 0.5), grassY - grassHeight);
+                    ctx.stroke();
+                }
+            }
+
+            // Subtle rocky outcrops (very muted)
+            for (let i = 0; i < 6; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const rockSize = 3 + noise.random() * 5;
+
+                // Muted rock color
+                ctx.fillStyle = `rgba(140, 120, 100, ${0.05 + noise.random() * 0.03})`;
+                ctx.beginPath();
+                ctx.arc(x, y, rockSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+
+        case BiomeType.TAIGA:
+            // Enhanced taiga - dark coniferous forest with tree shadows and snow
+            // Deep tree shadows - large dark patches from towering conifers
+            for (let i = 0; i < 20; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const shadowWidth = 15 + noise.random() * 25;
+                const shadowHeight = 10 + noise.random() * 15;
+
+                // Elongated shadows from tall trees
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(noise.random() * Math.PI / 4); // Varied shadow direction
+
+                const shadowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, shadowWidth);
+                shadowGrad.addColorStop(0, `rgba(15, 30, 20, ${0.4 + noise.random() * 0.2})`);
+                shadowGrad.addColorStop(0.7, `rgba(25, 45, 30, ${0.2 + noise.random() * 0.1})`);
+                shadowGrad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = shadowGrad;
+                ctx.fillRect(-shadowWidth/2, -shadowHeight/2, shadowWidth, shadowHeight);
+                ctx.restore();
+            }
+
+            // Dense conifer needle carpet
+            for (let i = 0; i < 120; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const needleLength = 1.5 + noise.random() * 3;
+                const angle = noise.random() * Math.PI * 2;
+
+                // Varied needle colors - from green to brown (fallen)
+                const needleColor = noise.random() > 0.3 ?
+                    `rgba(25, 65, 35, ${0.5 + noise.random() * 0.3})` : // Green needles
+                    `rgba(60, 45, 30, ${0.4 + noise.random() * 0.2})`; // Brown fallen needles
+
+                ctx.strokeStyle = needleColor;
+                ctx.lineWidth = 0.4 + noise.random() * 0.3;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + Math.cos(angle) * needleLength, y + Math.sin(angle) * needleLength);
+                ctx.stroke();
+            }
+
+            // Small conifer tree silhouettes
+            for (let i = 0; i < 6; i++) {
+                const treeX = noise.random() * PATTERN_SIZE;
+                const treeY = noise.random() * PATTERN_SIZE;
+                const treeHeight = 8 + noise.random() * 12;
+                const treeWidth = 4 + noise.random() * 6;
+
+                // Simple triangular conifer shape
+                ctx.fillStyle = `rgba(20, 45, 25, ${0.3 + noise.random() * 0.2})`;
+                ctx.beginPath();
+                ctx.moveTo(treeX, treeY - treeHeight);
+                ctx.lineTo(treeX - treeWidth/2, treeY);
+                ctx.lineTo(treeX + treeWidth/2, treeY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Tree trunk
+                ctx.strokeStyle = `rgba(50, 35, 25, ${0.4 + noise.random() * 0.2})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(treeX, treeY);
+                ctx.lineTo(treeX, treeY + 2);
+                ctx.stroke();
+            }
+
+            // Enhanced pine cones with texture
+            for (let i = 0; i < 12; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+
+                // Main cone body
+                ctx.fillStyle = `rgba(70, 50, 35, ${0.4 + noise.random() * 0.2})`;
+                ctx.beginPath();
+                ctx.ellipse(x, y, 1.5, 3, noise.random() * Math.PI, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cone scales texture
+                for (let scale = 0; scale < 4; scale++) {
+                    const scaleY = y - 1.5 + (scale * 0.8);
+                    ctx.strokeStyle = `rgba(90, 65, 45, ${0.3 + noise.random() * 0.1})`;
+                    ctx.lineWidth = 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 1, scaleY);
+                    ctx.lineTo(x + 1, scaleY);
+                    ctx.stroke();
+                }
+            }
+
+            // Thick moss and lichen patches
+            for (let i = 0; i < 20; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const mossSize = 5 + noise.random() * 12;
+
+                // Varied moss colors - bright green to dark
+                const mossColor = noise.random() > 0.5 ?
+                    `rgba(40, 80, 50, ${0.2 + noise.random() * 0.15})` : // Bright moss
+                    `rgba(60, 90, 40, ${0.15 + noise.random() * 0.1})`; // Darker lichen
+
+                ctx.fillStyle = mossColor;
+                ctx.beginPath();
+                ctx.arc(x, y, mossSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Moss texture - small dots
+                for (let j = 0; j < 6; j++) {
+                    const dotX = x + (noise.random() - 0.5) * mossSize;
+                    const dotY = y + (noise.random() - 0.5) * mossSize;
+                    ctx.fillStyle = `rgba(50, 100, 60, ${0.3 + noise.random() * 0.2})`;
+                    ctx.beginPath();
+                    ctx.arc(dotX, dotY, 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Enhanced winter/cold climate snow effects
+            if (season === 'winter' || season === 'spring' || season === 'fall') {
+                // Large snow drifts covering significant portions
+                for (let i = 0; i < 15; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const driftWidth = 15 + noise.random() * 25;
+                    const driftHeight = 10 + noise.random() * 15;
+
+                    // Irregular snow drift shape
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(noise.random() * Math.PI / 4);
+
+                    const snowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, driftWidth);
+                    snowGrad.addColorStop(0, `rgba(255, 255, 255, ${0.7 + noise.random() * 0.2})`);
+                    snowGrad.addColorStop(0.6, `rgba(245, 250, 255, ${0.5 + noise.random() * 0.2})`);
+                    snowGrad.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+
+                    ctx.fillStyle = snowGrad;
+                    ctx.fillRect(-driftWidth/2, -driftHeight/2, driftWidth, driftHeight);
+                    ctx.restore();
+                }
+
+                // Medium snow patches covering forest floor
+                for (let i = 0; i < 35; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const snowSize = 5 + noise.random() * 12;
+
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + noise.random() * 0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, snowSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Snow highlights for sparkle effect
+                    ctx.fillStyle = `rgba(240, 248, 255, ${0.5 + noise.random() * 0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(x - 1, y - 1, snowSize * 0.7, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Snow-laden conifer branches (heavier snow load)
+                for (let i = 0; i < 25; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const branchLength = 8 + noise.random() * 12;
+                    const angle = noise.random() * Math.PI * 2;
+
+                    // Dark branch showing through
+                    ctx.strokeStyle = `rgba(30, 45, 25, ${0.4 + noise.random() * 0.2})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + Math.cos(angle) * branchLength, y + Math.sin(angle) * branchLength);
+                    ctx.stroke();
+
+                    // Heavy snow accumulation on branch
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 + noise.random() * 0.2})`;
+                    ctx.lineWidth = 3 + noise.random() * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + Math.cos(angle) * branchLength * 0.9, y + Math.sin(angle) * branchLength * 0.9);
+                    ctx.stroke();
+                }
+
+                // Snow-covered needle clusters (white over green)
+                for (let i = 0; i < 40; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const clusterSize = 2 + noise.random() * 4;
+
+                    // Snow-covered needle cluster
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + noise.random() * 0.2})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, clusterSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Hint of green needles showing through
+                    ctx.fillStyle = `rgba(30, 70, 40, ${0.2 + noise.random() * 0.1})`;
+                    ctx.beginPath();
+                    ctx.arc(x + 0.5, y + 0.5, clusterSize * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Snow accumulation in tree shadows (fills dark areas)
+                for (let i = 0; i < 20; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const shadowSnowSize = 8 + noise.random() * 15;
+
+                    // Bright snow in shadowy areas
+                    const shadowSnowGrad = ctx.createRadialGradient(x, y, 0, x, y, shadowSnowSize);
+                    shadowSnowGrad.addColorStop(0, `rgba(255, 255, 255, ${0.5 + noise.random() * 0.2})`);
+                    shadowSnowGrad.addColorStop(0.7, `rgba(235, 245, 255, ${0.3 + noise.random() * 0.2})`);
+                    shadowSnowGrad.addColorStop(1, 'transparent');
+
+                    ctx.fillStyle = shadowSnowGrad;
+                    ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
+                }
+            }
+
+            // Fallen logs and forest debris
+            for (let i = 0; i < 4; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const logLength = 12 + noise.random() * 15;
+                const angle = noise.random() * Math.PI * 2;
+
+                // Log
+                ctx.strokeStyle = `rgba(60, 45, 30, ${0.3 + noise.random() * 0.2})`;
+                ctx.lineWidth = 3 + noise.random() * 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + Math.cos(angle) * logLength, y + Math.sin(angle) * logLength);
+                ctx.stroke();
+
+                // Moss on logs
+                ctx.strokeStyle = `rgba(40, 80, 50, ${0.2 + noise.random() * 0.1})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + Math.cos(angle) * logLength, y + Math.sin(angle) * logLength);
+                ctx.stroke();
             }
             break;
 
@@ -1039,7 +1762,13 @@ export const useTilePatterns = ({ mapData, season }: UseTilePatternsProps) => {
             BiomeType.RIVER,
             BiomeType.MAJOR_RIVER,
             BiomeType.RIVERBANK,
-            BiomeType.SHOALS_TILE
+            BiomeType.SHOALS_TILE,
+            // New transitional biomes
+            BiomeType.SAVANNA,
+            BiomeType.TAIGA,
+            BiomeType.PRAIRIE,
+            BiomeType.ALPINE_MEADOW,
+            BiomeType.BADLANDS
         ];
 
         for (const biome of allBiomes) {

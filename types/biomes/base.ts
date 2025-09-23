@@ -31,6 +31,11 @@ export enum BiomeType {
 
   TUNDRA = 'TUNDRA',
   STEPPE = 'STEPPE',
+  SAVANNA = 'SAVANNA',  // Transitional biome for tropical/arid regions
+  TAIGA = 'TAIGA',      // Boreal forest for temperate/cold transitions
+  PRAIRIE = 'PRAIRIE',  // Continental grasslands
+  ALPINE_MEADOW = 'ALPINE_MEADOW', // High elevation grasslands
+  BADLANDS = 'BADLANDS', // Eroded terrain in arid regions
   MANGROVE = 'MANGROVE',
   VOLCANIC_SOIL = 'VOLCANIC_SOIL',
   VOLCANIC_ROCK = 'VOLCANIC_ROCK',

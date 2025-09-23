@@ -50,9 +50,9 @@ export const STARTING_PACKAGES: Record<string, {
     'Village Carpenter': { equipment: { torso: 'LEATHER_APRON', legs: 'WORKER_TROUSERS', main_hand: '*CONTEXTUAL*' }, inventory: ['HAMMER', 'NAILS', 'WOOD'], companions: [] }, // 100% male
     'Miso Maker': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['MISO', 'SALT', 'WOODEN_BOWL'], companions: [] }, // 80% female
     'Tatami Weaver': { equipment: { torso: 'SIMPLE_TUNIC', main_hand: '*CONTEXTUAL*' }, inventory: ['REED_BUNDLE', 'ROPE', 'KNIFE'], companions: [] }, // 85% male
-    'Fisherman': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*' }, inventory: ['FISH_MEAT', 'ROPE', 'NET'], companions: [] }, // 95% male
+    'Fisherman': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*' }, inventory: ['FISH_MEAT', 'ROPE', 'NET', 'STRAW_MAT', 'FLINT_AND_STEEL', 'WATERSKIN'], companions: [] }, // 95% male
     'Tofu Maker': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['TOFU', 'SALT', 'WOODEN_BOWL'], companions: [] }, // 60% female
-    'Charcoal Burner': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['COAL', 'STICK', 'FLINT_STONE'], companions: [] }, // 100% male
+    'Charcoal Burner': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['COAL', 'STICK', 'FLINT_STONE', 'LEAN_TO', 'TRAVEL_BLANKET'], companions: [] }, // 100% male
     'Silk Reeler': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['SILK_CLOTH', 'SPINDLE'], companions: [] }, // 95% female
     'Wet Nurse': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MILK_BOTTLE', 'CLOTH', 'RICE'], companions: [] }, // 100% female
     
@@ -88,7 +88,7 @@ export const STARTING_PACKAGES: Record<string, {
     // =======================================================================
     // == FALLBACK & GENERIC ROLES (Using procedural weapon selection)
     // =======================================================================
-    'Wanderer': { equipment: { head: 'STRAW_HAT', legs: 'WORKER_TROUSERS', torso: 'WOOL_TUNIC',  feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'GOURD_FLASK', 'MAP'],  companions: ['DOG'] },
+    'Wanderer': { equipment: { head: 'STRAW_HAT', legs: 'WORKER_TROUSERS', torso: 'WOOL_TUNIC',  feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'GOURD_FLASK', 'MAP', 'BEDROLL', 'TRAVEL_BLANKET', 'FLINT_AND_STEEL', 'WATERSKIN'],  companions: ['DOG'] },
     'Artisan': { equipment: { torso: 'LEATHER_APRON', legs: 'WORKER_TROUSERS',  feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['HAMMER', 'KNIFE', 'ROPE'] },
     'Commoner': { equipment: { torso: 'SIMPLE_TUNIC',  legs: 'WORKER_HOSE', feet: 'SANDALS' }, inventory: ['BREAD', 'WOODEN_BOWL'] },
     'Laborer': { equipment: { torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'ROPE'] },
@@ -100,11 +100,11 @@ export const STARTING_PACKAGES: Record<string, {
     // =======================================================================
     // == HERDERS & ANIMAL-RELATED (Using procedural weapon selection)
     // =======================================================================
-    'Shepherd': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC', necklace: 'IRON_TORC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'BREAD', 'FLUTE'], companions: ['SHEEP', 'DOG'] },
+    'Shepherd': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC', necklace: 'IRON_TORC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'BREAD', 'FLUTE', 'LEAN_TO', 'TRAVEL_BLANKET', 'FLINT_AND_STEEL'], companions: ['SHEEP', 'DOG'] },
     'Farmer': { equipment: { head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*', torso: 'LEATHER_APRON' }, inventory: ['BARLEY', 'WHEAT', 'GRAIN_FLAIL'], companions: ['COW'] },
-    'Goat Herder': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'CHEESE'], companions: ['GOAT', 'GOAT', 'GOAT'] },
+    'Goat Herder': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'CHEESE', 'STRAW_MAT', 'TRAVEL_BLANKET'], companions: ['GOAT', 'GOAT', 'GOAT'] },
     'Cattle Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['ROPE', 'BREAD'], companions: ['COW', 'COW'] },
-    'Camel Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'DESERT_CLOAK', head: 'KEFFIYEH' }, inventory: ['DATES', 'GOURD_FLASK'], companions: ['CAMEL', 'CAMEL'] },
+    'Camel Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'DESERT_CLOAK', head: 'KEFFIYEH' }, inventory: ['DATES', 'GOURD_FLASK', 'HIDE_TENT', 'BEDROLL'], companions: ['CAMEL', 'CAMEL'] },
     'Duck Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['DUCK', 'DUCK', 'DUCK'] },
     'Llama Herder': { equipment: { head: 'CHULLO_HAT', torso: 'PONCHO', main_hand: '*CONTEXTUAL*' }, inventory: ['POTATO', 'ROPE'], companions: ['LLAMA', 'LLAMA'] },
     'Ranchero': { equipment: { head: 'WIDE_BRIM_HAT', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['SALT_PORK', 'GOURD_FLASK'], companions: ['COW', 'HORSE'] },
@@ -241,7 +241,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Thief': { equipment: { head: 'CLOTH_HOOD', torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', belt: 'PURSE' }, inventory: ['LOCKPICK', 'ROPE', 'KNIFE'] },
     'Beggar': { equipment: { torso: 'ROUGH_TUNIC', main_hand: '*CONTEXTUAL*' }, inventory: ['WOODEN_BOWL', 'BREAD_CRUST'] },
     'Midwife': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'BANDAGE', 'SOAP'] },
-    'Peddler': { equipment: { torso: 'WOOL_CLOAK', main_hand: 'STICK' }, inventory: ['ROPE', 'WOODEN_BOWL', 'SIMPLE_RING', 'LEATHER_BAG'] },
+    'Peddler': { equipment: { torso: 'WOOL_CLOAK', main_hand: 'STICK' }, inventory: ['ROPE', 'WOODEN_BOWL', 'SIMPLE_RING', 'LEATHER_BAG', 'TENT', 'TRAVEL_BLANKET', 'FLINT_AND_STEEL', 'WATERSKIN'] },
     'Executioner': { equipment: { head: 'CLOTH_HOOD', torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['ROPE', 'WHETSTONE'] },
     'Falconer': { equipment: { torso: 'LEATHER_TUNIC', arm: 'LEATHER_BRACER', main_hand: '*CONTEXTUAL*' }, inventory: ['MEAT'], companions: ['EAGLE'] },
     'Charcoal Burner': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['COAL', 'STICK'] },
@@ -317,7 +317,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Tax Farmer': { equipment: { torso: 'SIMPLE_ROBE', belt: 'PURSE' }, inventory: ['COIN', 'SCALE', 'BOOK'] },
     'Court Interpreter': { equipment: { torso: 'SILK_ROBE' }, inventory: ['BOOK', 'QUILL'] },
     'Coffeehouse Keeper': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['WOODEN_BOWL', 'COFFEE_BEANS', 'RAW_SUGAR'] },
-    'Silk Road Trader': { equipment: { head: 'TURBAN', torso: 'DESERT_CLOAK' }, inventory: ['SILK_CLOTH', 'SPICE_POUCH', 'SCALE'], companions: ['CAMEL'] },
+    'Silk Road Trader': { equipment: { head: 'TURBAN', torso: 'DESERT_CLOAK' }, inventory: ['SILK_CLOTH', 'SPICE_POUCH', 'SCALE', 'TENT', 'BEDROLL', 'TINDERBOX', 'WATERSKIN', 'TRAVEL_POT'], companions: ['CAMEL'] },
     'Carpet Merchant': { equipment: { torso: 'SIMPLE_ROBE', belt: 'PURSE' }, inventory: ['RUG', 'SCALE'] },
     'Tile Maker': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['CLAY_LUMP', 'OCHRE_LUMP'] },
     'Weapon Smith': { equipment: { torso: 'LEATHER_APRON', main_hand: 'HAMMER' }, inventory: ['IRON_INGOT', 'WHETSTONE'] },
@@ -480,7 +480,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Islamic Scholar': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN' }, inventory: ['RELIGIOUS_TEXT', 'BOOK'] },
     'Gold Trader': { equipment: { torso: 'BOUBOU', belt: 'PURSE' }, inventory: ['GOLD_ORE', 'SCALE'], companions: ['CAMEL'] },
     'Blacksmith': { equipment: { torso: 'LEATHER_APRON', main_hand: 'HAMMER' }, inventory: ['IRON_ORE', 'BELLOWS', 'TONGS'] },
-    'Caravan Guide': { equipment: { torso: 'DESERT_CLOAK', head: 'KEFFIYEH', main_hand: 'SWORD' }, inventory: ['MAP', 'GOURD_FLASK'], companions: ['CAMEL'] },
+    'Caravan Guide': { equipment: { torso: 'DESERT_CLOAK', head: 'KEFFIYEH', main_hand: 'SWORD' }, inventory: ['MAP', 'GOURD_FLASK', 'TENT', 'BEDROLL', 'TINDERBOX', 'WATERSKIN', 'TRAVEL_POT'], companions: ['CAMEL'] },
     'Millet Farmer': { equipment: { main_hand: 'HARVEST_SICKLE' }, inventory: ['MILLET', 'WOODEN_BOWL'] },
     'Diviner': { equipment: { torso: 'SIMPLE_ROBE', main_hand: 'IVORY_TUSK' }, inventory: ['BONES', 'SHELL', 'PRAYER_BEADS'] },
 
@@ -546,7 +546,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Flintknapper': { equipment: { main_hand: 'HAMMERSTONE' }, inventory: ['FLINT_STONE', 'OBSIDIAN', 'STONE_KNIFE'] }, // 90% male
     'Basket Maker': { equipment: { }, inventory: ['REED_BUNDLE', 'VINE'] }, // 15% male
     'Pottery Maker': { equipment: { }, inventory: ['CLAY_LUMP', 'WOODEN_BOWL'] }, // 25% male
-    'Buffalo Hunter': { equipment: { main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['SLING', 'SLING_STONE', 'SINEW', 'STONE_KNIFE', 'PEMMICAN'] }, // 95% male
+    'Buffalo Hunter': { equipment: { main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['SLING', 'SLING_STONE', 'SINEW', 'STONE_KNIFE', 'PEMMICAN', 'HIDE_TENT', 'SLEEPING_FUR', 'FIRE_DRILL', 'WATERSKIN'] }, // 95% male
     'Deer Hunter': { equipment: { main_hand: 'BOW', off_hand: 'ARROW' }, inventory: ['DEER_HIDE', 'VENISON', 'ANTLER'] }, // 90% male
     'Fish Smoker': { equipment: { }, inventory: ['SMOKED_FISH', 'SALT', 'STICK'] }, // 30% male
     'Berry Gatherer': { equipment: { }, inventory: ['WILD_BERRIES', 'PINE_NUTS', 'BIRCH_BARK_BASKET'] }, // 10% male
@@ -561,8 +561,8 @@ export const STARTING_PACKAGES: Record<string, {
     'Wampum Maker': { equipment: { main_hand: 'STONE_DRILL' }, inventory: ['QUAHOG_SHELL', 'WHELK_SHELL', 'SINEW'] }, // 50% male
     'Pemmican Maker': { equipment: { }, inventory: ['DRIED_MEAT', 'WILD_BERRIES', 'RENDERED_FAT', 'RAWHIDE_POUCH'] }, // 20% male
     'Maple Syrup Maker': { equipment: { main_hand: 'STONE_AXE' }, inventory: ['MAPLE_SAP', 'BIRCH_BARK_BUCKET', 'HOT_STONES'] }, // 40% male
-    'Fur Trader': { equipment: { torso: 'BEAVER_PELT_COAT', belt: 'BEADED_BELT' }, inventory: ['BEAVER_PELT', 'TRADE_BEADS', 'COPPER_KETTLE'], companions: ['HORSE'] }, // 85% male
-    'Scout': { equipment: { main_hand: 'BOW', off_hand: 'ARROW' }, inventory: ['ROPE', 'KNIFE'] }, // 95% male
+    'Fur Trader': { equipment: { torso: 'BEAVER_PELT_COAT', belt: 'BEADED_BELT' }, inventory: ['BEAVER_PELT', 'TRADE_BEADS', 'COPPER_KETTLE', 'TENT', 'BEDROLL', 'FLINT_AND_STEEL', 'WATERSKIN'], companions: ['HORSE'] }, // 85% male
+    'Scout': { equipment: { main_hand: 'BOW', off_hand: 'ARROW' }, inventory: ['ROPE', 'KNIFE', 'LEAN_TO', 'STRAW_MAT', 'FIRE_DRILL', 'WATERSKIN'] }, // 95% male
     'Corn Grinder': { equipment: { }, inventory: ['CORN', 'METATE', 'MANO'] }, // 10% male
     'Turquoise Worker': { equipment: { main_hand: 'STONE_DRILL' }, inventory: ['TURQUOISE', 'SHELL', 'COPPER_ORE'] }, // 70% male
     
@@ -721,7 +721,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Ninja': { equipment: { torso: 'BLACK_TUNIC', feet: 'TABI_SOCKS', main_hand: 'NINJATO' }, inventory: ['SHURIKEN', 'SHURIKEN', 'SHURIKEN', 'SMOKE_BOMB', 'ROPE'], companions: [] },
     'Gaucho': { equipment: { head: 'WIDE_BRIMMED_HAT', torso: 'PONCHO', feet: 'LEATHER_BOOTS', main_hand: 'KNIFE' }, inventory: ['BOLAS', 'BOLAS', 'ROPE', 'MEAT'], companions: ['HORSE'] },
     'Viking Raider': { equipment: { head: 'HORNED_HELMET', torso: 'CHAINMAIL', feet: 'LEATHER_BOOTS', main_hand: 'BATTLEAXE', off_hand: 'SHIELD' }, inventory: ['THROWING_AXE', 'THROWING_AXE', 'MEAD', 'ROPE'], companions: [] },
-    'Apache Scout': { equipment: { torso: 'BUCKSKIN_SHIRT', feet: 'MOCCASINS', main_hand: 'SHORTBOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'TOMAHAWK', 'PEMMICAN'], companions: ['HORSE'] },
+    'Apache Scout': { equipment: { torso: 'BUCKSKIN_SHIRT', feet: 'MOCCASINS', main_hand: 'SHORTBOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'TOMAHAWK', 'PEMMICAN', 'HIDE_TENT', 'SLEEPING_FUR', 'FIRE_DRILL', 'WATERSKIN'], companions: ['HORSE'] },
     'Mongol Archer': { equipment: { head: 'FUR_HAT', torso: 'LEATHER_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'KUMISS', 'DRIED_MEAT'], companions: ['HORSE'] },
     'Maori Warrior': { equipment: { torso: 'FLAX_CLOAK', feet: 'BAREFOOT', main_hand: 'MERE' }, inventory: ['THROWING_STICK', 'JADE_PENDANT', 'SWEET_POTATO'], companions: [] },
     'Byzantine Archer': { equipment: { head: 'HELMET', torso: 'SCALE_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'CROSSBOW_BOLT' }, inventory: ['CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'GREEK_FIRE', 'BREAD'], companions: [] },

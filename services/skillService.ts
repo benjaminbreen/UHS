@@ -12,6 +12,7 @@ import { fireService } from './fireService';
 import { weatherService } from './weatherService';
 import { getDayOfYear } from '../utils/dateUtils';
 import { handleSkillFailureInjury } from './injuryService';
+import { mapLocationToCulture } from '../utils/mapUtils';
 
 
 async function executeObserve(context: PlayerContext): Promise<ObserveSkillResult> {
@@ -50,12 +51,16 @@ async function executeObserve(context: PlayerContext): Promise<ObserveSkillResul
             });
         }
 
+        // Get cultural zone from mapData or calculate it
+        const culturalZone = context.mapData?.culturalZone ||
+            (context.mapData ? mapLocationToCulture(context.mapData.continent || 'Europe', parseInt(context.mapData.timeSlice || '1650')) : 'EUROPEAN');
+
         return {
             type: 'observe',
             description,
             context: {
                 biome: currentTile?.biome || 'GRASSLAND',
-                culturalZone: context.mapData?.culturalZone,
+                culturalZone,
                 weather: currentWeather,
                 timeOfDay: context.ambianceContext?.timeOfDay,
                 gameTime: context.gameTime,
@@ -65,12 +70,17 @@ async function executeObserve(context: PlayerContext): Promise<ObserveSkillResul
         };
     } catch (error) {
         console.error("Error executing Observe skill:", error);
+
+        // Get cultural zone from mapData or calculate it (same as success case)
+        const culturalZone = context.mapData?.culturalZone ||
+            (context.mapData ? mapLocationToCulture(context.mapData.continent || 'Europe', parseInt(context.mapData.timeSlice || '1650')) : 'EUROPEAN');
+
         return {
             type: 'observe',
             description: "You try to focus, but your mind wanders. The details of the area remain indistinct.",
             context: {
                 biome: 'GRASSLAND',
-                culturalZone: context.mapData?.culturalZone,
+                culturalZone,
                 weather: null, // No weather calculation in error case
                 timeOfDay: context.ambianceContext?.timeOfDay,
                 gameTime: context.gameTime,

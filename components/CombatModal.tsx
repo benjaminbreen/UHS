@@ -2937,6 +2937,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
   };
 
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundLoading, setBackgroundLoading] = useState(false); // Track background loading state
   const [isUsingNightImage, setIsUsingNightImage] = useState(false);
   const currentBiome = useMemo(() => getCurrentBiome(), [mapData, playerCharacter.x, playerCharacter.y, combatant.x, combatant.y]);
 
@@ -2973,24 +2974,33 @@ const CombatModal: React.FC<CombatModalProps> = ({
   }, []); // Only run once when component mounts
 
   // Enhanced background selection with weather, time, and cultural awareness
+  // OPTIMISTIC UI: Load background after modal is visible
   useEffect(() => {
-    const checkBackgroundImage = async () => {
-      // Generate priority-ordered background paths using shared service
-      const backgroundPaths = getBackgroundPaths(currentBiome, weather, gameTime, culturalZone, mapData?.climate, mapData?.season);
+    // Delay background loading slightly so modal appears instantly
+    const timer = setTimeout(() => {
+      setBackgroundLoading(true);
 
-      console.log('[CombatModal] Climate-aware background selection using shared service');
+      const checkBackgroundImage = async () => {
+        // Generate priority-ordered background paths using shared service
+        const backgroundPaths = getBackgroundPaths(currentBiome, weather, gameTime, culturalZone, mapData?.climate, mapData?.season);
 
-      // Use shared background loading service
-      const backgroundUrl = await loadBackgroundImage(backgroundPaths);
+        console.log('[CombatModal] Climate-aware background selection using shared service');
+
+        // Use shared background loading service
+        const backgroundUrl = await loadBackgroundImage(backgroundPaths);
 
       // Check if we loaded a night-specific image
       const usingNightImage = backgroundUrl ? backgroundUrl.includes('_night') : false;
       setIsUsingNightImage(usingNightImage);
 
-      setBackgroundImage(backgroundUrl);
-    };
+        setBackgroundImage(backgroundUrl);
+        setBackgroundLoading(false);
+      };
 
-    checkBackgroundImage();
+      checkBackgroundImage();
+    }, 50); // 50ms delay - modal renders first, then loads background
+
+    return () => clearTimeout(timer);
   }, [currentBiome, weather, gameTime, culturalZone, mapData?.climate, mapData?.season]);
 
   return (
@@ -2999,6 +3009,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
          style={{}}
          onClick={handleDismissDialogue}>
         {/* Background with night overlay - separate div so effect only affects background */}
+        {/* Show loading state or background */}
+        {backgroundLoading && !backgroundImage && (
+          <div className="combat-background-layer" style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'linear-gradient(to bottom, #2a2a3a, #1a1a2a)',
+            zIndex: 0
+          }} />
+        )}
         {backgroundImage && (
           <>
             <div

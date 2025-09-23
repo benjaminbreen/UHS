@@ -62,7 +62,11 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   // Additional biomes for completeness
   [BiomeType.ICE]: '#e5e7eb', // Light gray-white for ice
   [BiomeType.SAND_DUNES]: '#fbbf24', // Sandy yellow
-  [BiomeType.SAVANNA]: '#ca8a04', // Golden brown savanna
+  [BiomeType.SAVANNA]: '#a4a060', // Transitional yellow-green between grassland and desert
+  [BiomeType.TAIGA]: '#2a5434', // Dark coniferous green between forest and tundra
+  [BiomeType.PRAIRIE]: '#7aa050', // Yellow-tinted grassland, drier than regular grass
+  [BiomeType.ALPINE_MEADOW]: '#68a868', // Light green-grey, high altitude grass
+  [BiomeType.BADLANDS]: '#b8956f', // Dusty brown-tan, transitional between scrub and desert
   [BiomeType.MEADOW]: '#84cc16', // Bright green meadow
   [BiomeType.RAINFOREST]: '#15803d', // Deep jungle green
   [BiomeType.BAMBOO]: '#84cc16', // Bamboo green

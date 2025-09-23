@@ -56,8 +56,7 @@ body {
   overscroll-behavior: none;
   touch-action: none;
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+  /* Removed user-select: none to allow text selection */
 }
 
 /* Mobile app container */
@@ -297,14 +296,36 @@ body {
   display: none;
 }
 
-/* Prevent text selection */
-.mobile-no-select {
+/* Prevent text selection - only for specific interactive elements */
+.mobile-no-select,
+.mobile-controls button,
+.mobile-header,
+.map-canvas {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+/* Ensure text is selectable in content areas */
+.modal-content,
+.sidebar-content,
+.panel-content,
+.gamelog-entry,
+.inventory-item-name,
+.inventory-item-description,
+.narration-text,
+.dialogue-text,
+.quest-text,
+.event-text {
+  -webkit-user-select: text !important;
+  -khtml-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
 }
 
 /* Glass morphism for mobile */

@@ -159,7 +159,7 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
     'adaptable': 'highly adaptable',
 
     // Social
-    'animal_lover': 'love animals',
+    'animal_lover': 'an animal lover',
     'loner': 'prefer solitude',
     'leader': 'a natural leader',
     'follower': 'prefer to follow',
@@ -169,6 +169,13 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
     'noble_blood': 'of noble blood',
     'nightowl': 'most active at night',
     'weather_sense': 'can predict weather',
+
+    // Cultural/Professional
+    'calligrapher': 'a skilled calligrapher',
+    'artist': 'an artist',
+    'poet': 'a poet',
+    'musician': 'a musician',
+    'craftsman': 'a craftsman',
 
     // New universal ones
     'veteran': 'a grizzled veteran',
@@ -180,6 +187,31 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
     'local': 'a local',
     'wanderer': 'a wanderer'
 };
+
+// Generate attribute sentence for a character
+export function generateAttributeSentence(character: { attributes?: Array<{ id: string; name: string }> }): string | null {
+    if (!character.attributes || character.attributes.length === 0) {
+        return null;
+    }
+
+    const attributePhrases = character.attributes
+        .slice(0, 3) // Limit to 3 attributes max
+        .map(attr => ATTRIBUTE_DESCRIPTIONS[attr.id] || `a ${attr.name.toLowerCase()}`)
+        .filter(phrase => phrase); // Remove any undefined
+
+    if (attributePhrases.length === 0) {
+        return null;
+    }
+
+    if (attributePhrases.length === 1) {
+        return `You are ${attributePhrases[0]}.`;
+    } else if (attributePhrases.length === 2) {
+        return `You are ${attributePhrases[0]} and ${attributePhrases[1]}.`;
+    } else {
+        const lastPhrase = attributePhrases.pop();
+        return `You are ${attributePhrases.join(', ')}, and ${lastPhrase}.`;
+    }
+}
 
 // Enhanced backstory that incorporates personality and removes clothing descriptions
 function _generateProceduralBackstory(character: Omit<PlayerCharacter, 'backstory' | 'id' | 'inventory' | 'party' | 'eventLog' | 'profileImage' | 'isLlmEnhanced'>): string {
@@ -206,22 +238,9 @@ function _generateProceduralBackstory(character: Omit<PlayerCharacter, 'backstor
     sentences.push(physicalDesc);
 
     // Sentence 4: Attributes (if any)
-    if (character.attributes && character.attributes.length > 0) {
-        const attributePhrases = character.attributes
-            .slice(0, 3) // Limit to 3 attributes max
-            .map(attr => ATTRIBUTE_DESCRIPTIONS[attr.id] || attr.name.toLowerCase())
-            .filter(phrase => phrase); // Remove any undefined
-
-        if (attributePhrases.length > 0) {
-            if (attributePhrases.length === 1) {
-                sentences.push(`You are ${attributePhrases[0]}.`);
-            } else if (attributePhrases.length === 2) {
-                sentences.push(`You are ${attributePhrases[0]} and ${attributePhrases[1]}.`);
-            } else {
-                const lastPhrase = attributePhrases.pop();
-                sentences.push(`You are ${attributePhrases.join(', ')}, and ${lastPhrase}.`);
-            }
-        }
+    const attributeSentence = generateAttributeSentence(character);
+    if (attributeSentence) {
+        sentences.push(attributeSentence);
     }
 
     // Sentence 5: Religion description

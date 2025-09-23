@@ -870,8 +870,6 @@ function getEraFromYear(year?: number): HistoricalEra {
 }
 
 export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, archetype: MapArchetype, harborSide?: number, generateLargeCity?: boolean, economicActivityLevel?: number, year?: number, regionName?: string, localAreaName?: string, timeSlice?: string, dominantPower?: string, culturalZone?: string) {
-  console.log("[Urban] Phase 10: Urban area generation - START");
-  console.log(`[Urban] Parameters: economicActivityLevel=${economicActivityLevel}, year=${year}, localArea="${localAreaName}", region="${regionName}"`);
   
   // Resolve era once and use it consistently throughout
   const parsed = timeSlice ? parseDateString(timeSlice) : undefined;
@@ -900,13 +898,12 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   const dateInfo = timeSlice ? parseDateString(timeSlice) : { year: year || 1850, era: null as any };
   
   // Use centralized city detection
-  const cityDetection = detectCitiesForArea(localAreaName, regionName, year || dateInfo.year, dateInfo.era, true);
+  const cityDetection = detectCitiesForArea(localAreaName, regionName, year || dateInfo.year, dateInfo.era, false);
   
   const hasCities = cityDetection.hasCities;
   const activeCities = cityDetection.activeCities;
   const cityDensity = cityDetection.cityDensity;
   
-  console.log(`[Urban] City detection result: hasCities=${hasCities}, source=${cityDetection.source}, cityCount=${activeCities.length}, density=${cityDensity}`);
   
   // Determine urban generation based on whether cities are defined
   let clusterCount = 0;
@@ -974,7 +971,6 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   connectCityCentersToGovernmentDistricts(tiles);
   surroundFactoriesWithRoads(tiles, useRoadBiomeTiles);
   
-  console.log("[Urban] Post-processing complete: boundaries, connections, and factory roads added");
 }
 
 // Helper function to determine if archetype supports fishing

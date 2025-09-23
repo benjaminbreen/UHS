@@ -540,7 +540,6 @@ export function registerAfricanGenerators(): void {
   registerCulturalGenerator('MARKET_BAZAAR', 'SUB_SAHARAN_AFRICAN', generateAfricanMarket);
   registerCulturalGenerator('MARKET_BAZAAR', 'AFRICAN', generateAfricanMarket);
   
-  console.log('[AfricanGenerators] Registered all African cultural generators');
 }
 
 // Auto-register when imported

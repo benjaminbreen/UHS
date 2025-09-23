@@ -1153,6 +1153,42 @@ FLOWER: { baseId: 'FLOWER', name: 'Fragrant Flower', description: 'A single, bea
     INK_POT: { baseId: 'INK_POT', name: 'Ink Pot', description: 'A small pot of black ink.', emoji: '🏺', rarity: 'Common', value: 15, weight: 0.2, wearable: false, stackable: true, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 0, category: 'Tool', specialMapOnly: true },
     PARCHMENT: { baseId: 'PARCHMENT', name: 'Blank Parchment', description: 'High quality writing material.', emoji: '📋', rarity: 'Common', value: 20, weight: 0.05, wearable: false, stackable: true, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 2, category: 'Material', specialMapOnly: true },
     CANDLE_WAX: { baseId: 'CANDLE_WAX', name: 'Candle Wax', description: 'Wax for making candles.', emoji: '🕯️', rarity: 'Common', value: 5, weight: 0.3, wearable: false, stackable: true, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 2, category: 'Material', specialMapOnly: true },
+
+    // =======================================================================
+    // == CAMPING EQUIPMENT
+    // =======================================================================
+
+    // Basic Shelter
+    TENT: { baseId: 'TENT', name: 'Canvas Tent', description: 'A sturdy canvas tent that provides good shelter from the elements.', emoji: '⛺', rarity: 'Uncommon', value: 35, weight: 3.0, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 8, category: 'Tool', material: 'Canvas' },
+    HIDE_TENT: { baseId: 'HIDE_TENT', name: 'Hide Tent', description: 'A simple tent made from animal hides, offering basic protection.', emoji: '⛺', rarity: 'Common', value: 20, weight: 4.0, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 5, category: 'Tool', material: 'Hide' },
+    YURT: { baseId: 'YURT', name: 'Felt Yurt', description: 'A large, portable felt dwelling used by nomadic peoples.', emoji: '⛺', rarity: 'Rare', value: 80, weight: 8.0, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 15, category: 'Tool', material: 'Felt' },
+    LEAN_TO: { baseId: 'LEAN_TO', name: 'Lean-to Frame', description: 'A simple wooden frame for building a basic shelter.', emoji: '🏠', rarity: 'Common', value: 8, weight: 2.0, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 3, category: 'Tool', material: 'Wood' },
+
+    // Bedding
+    BEDROLL: { baseId: 'BEDROLL', name: 'Bedroll', description: 'A rolled blanket and ground cloth for sleeping outdoors.', emoji: '🛏️', rarity: 'Common', value: 12, weight: 2.0, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 4, category: 'Tool', material: 'Wool' },
+    SLEEPING_FUR: { baseId: 'SLEEPING_FUR', name: 'Sleeping Fur', description: 'A thick animal fur for warmth while sleeping outdoors.', emoji: '🦭', rarity: 'Common', value: 15, weight: 3.0, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 3, category: 'Tool', material: 'Fur' },
+    STRAW_MAT: { baseId: 'STRAW_MAT', name: 'Straw Mat', description: 'A woven mat of straw for sleeping on hard ground.', emoji: '🔳', rarity: 'Common', value: 4, weight: 1.0, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 2, category: 'Tool', material: 'Straw' },
+    HAMMOCK: { baseId: 'HAMMOCK', name: 'Woven Hammock', description: 'A suspended bed made of woven rope or fabric.', emoji: '🔗', rarity: 'Uncommon', value: 18, weight: 1.5, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 6, category: 'Tool', material: 'Hemp' },
+
+    // Fire Making
+    FLINT_AND_STEEL: { baseId: 'FLINT_AND_STEEL', name: 'Flint and Steel', description: 'Traditional fire-starting kit with flint stone and steel striker.', emoji: '🔥', rarity: 'Common', value: 8, weight: 0.3, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 3, category: 'Tool', material: 'Iron' },
+    TINDERBOX: { baseId: 'TINDERBOX', name: 'Tinderbox', description: 'A metal box containing flint, steel, and tinder for making fire.', emoji: '📦', rarity: 'Uncommon', value: 15, weight: 0.5, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 5, category: 'Tool', material: 'Iron' },
+    FIRE_DRILL: { baseId: 'FIRE_DRILL', name: 'Fire Drill', description: 'A wooden stick and tinder board for making fire by friction.', emoji: '🔥', rarity: 'Common', value: 3, weight: 0.4, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 2, category: 'Tool', material: 'Wood' },
+    TINDER_POUCH: { baseId: 'TINDER_POUCH', name: 'Tinder Pouch', description: 'A leather pouch filled with dry tinder for starting fires.', emoji: '🎒', rarity: 'Common', value: 5, weight: 0.2, wearable: false, stackable: true, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 2, category: 'Tool', material: 'Leather' },
+
+    // Water Storage
+    WATERSKIN: { baseId: 'WATERSKIN', name: 'Leather Waterskin', description: 'A waterproof leather bag for carrying water on long journeys.', emoji: '🧴', rarity: 'Common', value: 10, weight: 0.8, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 4, category: 'Tool', material: 'Leather' },
+    BAMBOO_CANTEEN: { baseId: 'BAMBOO_CANTEEN', name: 'Bamboo Canteen', description: 'A hollow bamboo tube sealed for carrying water.', emoji: '🎋', rarity: 'Common', value: 6, weight: 0.5, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 3, category: 'Tool', material: 'Bamboo' },
+
+    // Cooking Equipment
+    TRAVEL_POT: { baseId: 'TRAVEL_POT', name: 'Travel Cooking Pot', description: 'A small iron pot designed for cooking over a campfire.', emoji: '🍲', rarity: 'Common', value: 14, weight: 1.2, wearable: false, stackable: false, attack: 1, sustenance: 0, wieldable: true, throwable: true, craftingValue: 5, category: 'Tool', material: 'Iron' },
+    CAMP_KETTLE: { baseId: 'CAMP_KETTLE', name: 'Camp Kettle', description: 'A lightweight kettle for boiling water while camping.', emoji: '🫖', rarity: 'Common', value: 12, weight: 0.8, wearable: false, stackable: false, attack: 1, sustenance: 0, wieldable: true, throwable: true, craftingValue: 4, category: 'Tool', material: 'Iron' },
+
+    // Miscellaneous Camping Gear
+    TRAVEL_BLANKET: { baseId: 'TRAVEL_BLANKET', name: 'Travel Blanket', description: 'A thick woolen blanket for warmth during travel.', emoji: '🧣', rarity: 'Common', value: 8, weight: 1.5, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 3, category: 'Tool', material: 'Wool' },
+    OILED_TARP: { baseId: 'OILED_TARP', name: 'Oiled Tarp', description: 'A waterproof canvas sheet for ground cover or emergency shelter.', emoji: '🛡️', rarity: 'Uncommon', value: 16, weight: 2.5, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 6, category: 'Tool', material: 'Canvas' },
+    CAMP_STOOL: { baseId: 'CAMP_STOOL', name: 'Folding Camp Stool', description: 'A lightweight wooden stool that folds for easy transport.', emoji: '🪑', rarity: 'Uncommon', value: 10, weight: 1.0, wearable: false, stackable: false, attack: 2, sustenance: 0, wieldable: true, throwable: true, craftingValue: 4, category: 'Tool', material: 'Wood' },
+    MOSQUITO_NET: { baseId: 'MOSQUITO_NET', name: 'Mosquito Net', description: 'A fine mesh net to protect against insects while sleeping.', emoji: '🕸️', rarity: 'Uncommon', value: 12, weight: 0.3, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 4, category: 'Tool', material: 'Cotton' },
 };
 
 export interface CropDefinition {

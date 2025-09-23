@@ -1,7 +1,7 @@
 /**
  * components/TerrainStructureModal.tsx - Enhanced modal for terrain structures with larger banner display
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, HistoricalEra, ClimateType } from '../types';
 import { calculatePrices } from '../services/economyService';
 import { STRUCTURE_BLUEPRINTS } from '../constants/index';
@@ -96,7 +96,16 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
     const [showFactionsModal, setShowFactionsModal] = useState(false);
     // State for fishing modal
     const [showFishingModal, setShowFishingModal] = useState(false);
-    
+
+    // Callbacks to avoid inline functions
+    const handleShowFactionsModal = useCallback(() => {
+        setShowFactionsModal(true);
+    }, []);
+
+    const handleShowFishingModal = useCallback(() => {
+        setShowFishingModal(true);
+    }, []);
+
     // Parse era from formatted date
     const getEraFromDate = (dateInput?: any): string => {
         if (!dateInput) return '1500';
@@ -406,7 +415,7 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                             <div 
                                 className="flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-3 border-2 cursor-pointer hover:bg-black/80 transition-all" 
                                 style={{ borderColor: factionData.color }}
-                                onClick={() => setShowFactionsModal(true)}
+                                onClick={handleShowFactionsModal}
                                 title="Click for more faction information"
                             >
                                 <div className="flex flex-col items-end">
@@ -601,7 +610,7 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                     <div className="flex gap-2">
                         {structureType === 'fishing_hut' && (
                             <button 
-                                onClick={() => setShowFishingModal(true)} 
+                                onClick={handleShowFishingModal} 
                                 className="ff-action-button px-6 py-2 text-sm bg-blue-600 hover:bg-blue-700"
                             >
                                 🎣 Enter Fishing Hut

@@ -820,7 +820,7 @@ export function determineSocialRole(
                          if (key.startsWith('min')) statName = key.replace('min', '').toLowerCase() as keyof CharacterSocialContext;
                         if (key.startsWith('max')) statName = key.replace('max', '').toLowerCase() as keyof CharacterSocialContext;
 
-                        if (statName) {
+                        if (statName && profile.socialContext) {
                             score += checkStat(profile.socialContext[statName], req, undefined);
                         }
                      }

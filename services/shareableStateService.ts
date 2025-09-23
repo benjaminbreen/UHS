@@ -22,7 +22,7 @@ export interface ShareableGameState {
   zone: string;
   region?: string;
   gameMode: string;
-  
+
   // Character data
   character: {
     name: string;
@@ -33,16 +33,25 @@ export interface ShareableGameState {
     health?: string;
     disease?: string;
   };
-  
+
   // Map generation
   mapSeed: string;
   mapArchetype?: string;
   climate?: string;
-  
+
   // Scenario metadata
   scenarioType: 'procedural' | 'worldweaver' | 'custom';
   scenarioPrompt?: string; // For WorldWeaver scenarios
-  
+
+  // Educational settings (Phase 1)
+  educationalMode?: boolean;
+
+  // Learning objectives (Phase 2)
+  learningObjectives?: string[];
+  assessmentFrequency?: string;
+  difficulty?: string;
+  sessionLength?: string;
+
   // Version for compatibility
   version: string;
 }
@@ -53,7 +62,7 @@ export interface ShareableGameState {
 export interface EncodedGameState {
   v: number; // version
   y: number; // year
-  m: number; // month  
+  m: number; // month
   d: number; // day
   ma: string; // mapArea (abbreviated)
   gm: string; // gameMode (abbreviated)
@@ -64,6 +73,11 @@ export interface EncodedGameState {
   ms: string; // map seed
   st?: string; // scenario type (p/w/c)
   sp?: string; // scenario prompt (truncated)
+  em?: boolean; // educational mode
+  lo?: string; // learning objectives (abbreviated)
+  af?: string; // assessment frequency (n/o/f)
+  dl?: string; // difficulty level (f/r/h)
+  sl?: string; // session length (s/e/u)
 }
 
 class ShareableStateService {
@@ -117,9 +131,44 @@ class ShareableStateService {
         ms: state.mapSeed.substring(0, 8),
         st: state.scenarioType === 'worldweaver' ? 'w' : state.scenarioType === 'custom' ? 'c' : 'p'
       };
-      
+
       if (state.scenarioPrompt) {
         encoded.sp = state.scenarioPrompt.substring(0, 50);
+      }
+
+      if (state.educationalMode) {
+        encoded.em = state.educationalMode;
+      }
+
+      // Phase 2: Add learning objectives and assessment settings
+      if (state.learningObjectives && state.learningObjectives.length > 0) {
+        // Abbreviate learning objectives
+        encoded.lo = state.learningObjectives.map(obj => {
+          switch(obj) {
+            case 'historical-thinking': return 'ht';
+            case 'cultural-comparison': return 'cc';
+            case 'economic-systems': return 'es';
+            case 'social-structures': return 'ss';
+            case 'primary-sources': return 'ps';
+            case 'geographic-impact': return 'gi';
+            default: return obj.substring(0, 2);
+          }
+        }).join(',');
+      }
+
+      if (state.assessmentFrequency) {
+        encoded.af = state.assessmentFrequency === 'none' ? 'n' :
+                     state.assessmentFrequency === 'occasional' ? 'o' : 'f';
+      }
+
+      if (state.difficulty) {
+        encoded.dl = state.difficulty === 'forgiving' ? 'f' :
+                     state.difficulty === 'realistic' ? 'r' : 'h';
+      }
+
+      if (state.sessionLength) {
+        encoded.sl = state.sessionLength === 'short' ? 's' :
+                     state.sessionLength === 'extended' ? 'e' : 'u';
       }
       
       // Convert to JSON and base64
@@ -183,8 +232,39 @@ class ShareableStateService {
         mapSeed: decoded.ms,
         scenarioType: decoded.st === 'w' ? 'worldweaver' : decoded.st === 'c' ? 'custom' : 'procedural',
         scenarioPrompt: decoded.sp,
+        educationalMode: decoded.em || false,
         version: this.VERSION
       };
+
+      // Phase 2: Decode learning objectives and assessment settings
+      if (decoded.lo) {
+        state.learningObjectives = decoded.lo.split(',').map(abbr => {
+          switch(abbr) {
+            case 'ht': return 'historical-thinking';
+            case 'cc': return 'cultural-comparison';
+            case 'es': return 'economic-systems';
+            case 'ss': return 'social-structures';
+            case 'ps': return 'primary-sources';
+            case 'gi': return 'geographic-impact';
+            default: return abbr;
+          }
+        });
+      }
+
+      if (decoded.af) {
+        state.assessmentFrequency = decoded.af === 'n' ? 'none' :
+                                    decoded.af === 'o' ? 'occasional' : 'frequent';
+      }
+
+      if (decoded.dl) {
+        state.difficulty = decoded.dl === 'f' ? 'forgiving' :
+                          decoded.dl === 'r' ? 'realistic' : 'hardcore';
+      }
+
+      if (decoded.sl) {
+        state.sessionLength = decoded.sl === 's' ? 'short' :
+                             decoded.sl === 'e' ? 'extended' : 'unlimited';
+      }
       
       return state;
     } catch (error) {

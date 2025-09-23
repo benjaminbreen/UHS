@@ -12,6 +12,9 @@ import { SpecialMapConfig, SpecialMapArchetype } from '../types/specialMapTypes'
 import { MapDisplayOptimized } from './MapDisplayOptimized';
 import { InteriorMapDisplay } from './interiorMap';
 import BeautifulInteriorMapDisplay from './interiorMap/BeautifulInteriorMapDisplay';
+import CampModal from './CampModal';
+import PlayerTooltip from './PlayerTooltip';
+import gameSoundsService from '../services/gameSoundsService';
 import AmbianceDisplay from './AmbianceDisplay';
 import BottomPanel from './BottomPanel';
 import NewItemModal from './NewItemModal';
@@ -81,7 +84,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
         currentWorldCoords, mapData, currentMapSeed,
         visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData,
         enterSpecialMap, exitSpecialMap, isSpecialMap,
-        addPersistedMerchant,
+        addPersistedMerchant, setNpcs,
     } = useMap();
 
     const {
@@ -94,10 +97,10 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
     } = usePlayer();
 
     const { 
-        sunPosition, currentTimeOfDay, formattedDate, season, ambianceText, 
+        sunPosition, currentTimeOfDay, formattedDate, season, ambianceText,
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
         isLoading, isLoadingFromCache, setGameDate, gameDate, currentRegion,
-        currentZone
+        currentZone, gameLog
     } = useGame();
     
     // Calculate current era from formatted date
@@ -152,6 +155,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
     const [showBottomPanel, setShowBottomPanel] = useState(true); // Show by default
     const [showAmbientText, setShowAmbientText] = useState(false); // Hidden by default
     const [showPOVViewport, setShowPOVViewport] = useState(false); // POV viewport toggle state
+    const [showCampModal, setShowCampModal] = useState(false);
+    const [showPlayerTooltip, setShowPlayerTooltip] = useState(false);
+    const [playerTooltipPos, setPlayerTooltipPos] = useState({ x: 0, y: 0 });
     const { isMobile } = useDeviceDetection();
     
     // Listen for POV viewport toggle requests from narration
@@ -198,7 +204,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
         mapArchetype || null,
         visibleNpcs || [],
         playerWithPosition,
-        mapData?.tiles || []
+        mapData?.tiles || [],
+        setNpcs
     );
     
     // Get current weather for horizon and particles - stable per map area, updates hourly
@@ -786,6 +793,12 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
         alert(`${vessel.vesselItem.name} - Walk onto this vessel to embark!`);
     }, []);
 
+    const handlePlayerIconClick = useCallback((e?: React.MouseEvent) => {
+        console.log('[MapViewport] Player icon clicked - opening camp modal');
+        // Directly open the camp modal when player icon is clicked
+        setShowCampModal(true);
+    }, []);
+
     const handleShipClick = useCallback(() => {
         console.log('[MapViewport] Ship clicked - entering vessel special map');
         
@@ -808,6 +821,68 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
         };
         
         enterSpecialMap(vesselConfig);
+    }, [enterSpecialMap, mapData, gameDate, currentRegion]);
+
+    const handleRest = useCallback((healingPercent: number, fatiguePercent: number) => {
+        console.log('[MapViewport] Applying rest benefits - Healing:', healingPercent, '%, Fatigue:', fatiguePercent, '%');
+
+        if (!playerCharacter || !gameDate) return;
+
+        // Apply healing
+        const healAmount = Math.floor(playerCharacter.maxHealth * (healingPercent / 100));
+        const newHealth = Math.min(playerCharacter.health + healAmount, playerCharacter.maxHealth);
+
+        // Apply fatigue restoration
+        const restoreAmount = Math.floor(playerCharacter.maxFatigue * (fatiguePercent / 100));
+        const newFatigue = Math.max(playerCharacter.fatigue - restoreAmount, 0);
+
+        // Update player character
+        setPlayerCharacter({
+            ...playerCharacter,
+            health: newHealth,
+            fatigue: newFatigue
+        });
+
+        // Advance time to dawn (6 AM next day)
+        const nextDay = new Date(gameDate.year, gameDate.month - 1, gameDate.day + 1);
+        setGameDate({
+            year: nextDay.getFullYear(),
+            month: nextDay.getMonth() + 1,
+            day: nextDay.getDate(),
+            hour: 6,
+            minute: 0
+        });
+
+        showToast('You wake feeling refreshed at dawn.');
+    }, [playerCharacter, setPlayerCharacter, gameDate, setGameDate, showToast]);
+
+    const handleExploreCampground = useCallback(() => {
+        console.log('[MapViewport] Entering campground special map');
+
+        // Create campground special map config
+        const campConfig: SpecialMapConfig = {
+            archetype: SpecialMapArchetype.CAMPGROUND,
+            culturalZone: mapData?.culturalStyle || 'EUROPEAN' as const,
+            era: gameDate?.year < 1500 ? 'MEDIEVAL' as const :
+                 gameDate?.year < 1800 ? 'RENAISSANCE_EARLY_MODERN' as const :
+                 'INDUSTRIAL_MODERN' as const,
+            specificYear: gameDate?.year || 1400,
+            region: currentRegion || 'Unknown',
+            mapSize: 'small' as const,
+            hasLandscape: true,
+            landscapeClimate: mapData?.climate === 'ARID' ? 'arid' :
+                            mapData?.climate === 'COLD' ? 'cold' :
+                            mapData?.climate === 'TROPICAL' ? 'tropical' : 'temperate',
+            isPrivate: false,
+            structureName: 'Camp',
+        };
+
+        // Enter the special map
+        enterSpecialMap(campConfig);
+
+        // Start the second camping music track when entering campground
+        gameSoundsService.stopAllMusic();
+        gameSoundsService.playCampingMusic2();
     }, [enterSpecialMap, mapData, gameDate, currentRegion]);
 
     const renderMapContent = () => {
@@ -1018,7 +1093,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
                     gameTimeMinutes={gameTimeMinutes} 
                     debugSettings={debugSettings}
                     devMode={false}
-                    onPlayerIconClick={handlePlayerClick}
+                    onPlayerIconClick={handlePlayerIconClick}
                     onShipClick={handleShipClick}
                     onCompanionClick={handleCompanionClick}
                     onMapEdgeCrossing={handleNewAreaEntry}
@@ -1549,19 +1624,20 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
             </div>
           )}
           {activePanel === 'farm' && actionableTile && playerCharacter && mapData && (
-            <FarmPanel 
-              tile={actionableTile.tile} 
-              mapData={mapData} 
-              npcs={visibleNpcs} 
-              playerCharacter={playerCharacter} 
-              onClose={() => setActivePanel(null)} 
-              onBuy={onBuyItem} 
-              onSell={onSellItem} 
-              useLlm={useLlmForDescriptions} 
+            <FarmPanel
+              tile={actionableTile.tile}
+              mapData={mapData}
+              npcs={visibleNpcs}
+              playerCharacter={playerCharacter}
+              onClose={() => setActivePanel(null)}
+              onBuy={onBuyItem}
+              onSell={onSellItem}
+              useLlm={useLlmForDescriptions}
               season={season}
               gameTimeHours={gameTimeHours}
               onProgressTime={handleProgressTime}
               onShowEvent={handleShowWorkEvent}
+              onInitiateEncounter={handleEncounter}
             />
           )}
           
@@ -1632,6 +1708,39 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
                 }
                 setConfrontationModal(null);
               }}
+            />
+          )}
+
+          {/* Player Tooltip */}
+          {showPlayerTooltip && (
+            <PlayerTooltip
+              x={playerTooltipPos.x}
+              y={playerTooltipPos.y}
+              onRest={() => {
+                setShowPlayerTooltip(false);
+                setShowCampModal(true);
+              }}
+              onStatus={() => {
+                setShowPlayerTooltip(false);
+                // Just generate a narration for now
+                handlePlayerClick();
+              }}
+              onClose={() => setShowPlayerTooltip(false)}
+            />
+          )}
+
+          {/* Camp Modal */}
+          {showCampModal && playerCharacter && mapData && (
+            <CampModal
+              isOpen={showCampModal}
+              onClose={() => setShowCampModal(false)}
+              playerCharacter={playerCharacter}
+              currentBiome={mapData.tiles[controlledIconY]?.[controlledIconX]?.biome || BiomeType.GRASSLAND}
+              mapData={mapData}
+              onRest={handleRest}
+              onExploreCampground={handleExploreCampground}
+              timeOfDay={gameTimeHours}
+              gamelog={gameLog}
             />
           )}
         </main>

@@ -4,7 +4,7 @@
  * lucide-react icons everywhere, larger inventory preview, and small UX polish.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   PlayerCharacter,
   EquipmentSlot,
@@ -36,6 +36,7 @@ import {
 import { ANIMAL_DATA } from '../constants';
 import AnimalCompanionModal from './AnimalCompanionModal';
 import { mapLocationToCulture } from '../utils/mapUtils';
+import { isSafari } from '../utils/safariUtils';
 
 /* lucide icons */
 import {
@@ -531,16 +532,91 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   const [showAttributeModal, setShowAttributeModal] = useState(false);
 
+  // Safari performance optimization - remove expensive CSS effects
+  useEffect(() => {
+    if (isSafari()) {
+      const style = document.createElement('style');
+      style.id = 'safari-character-modal-optimization';
+      style.textContent = `
+        .ff-panel button,
+        .modal-overlay button {
+          filter: none !important;
+          text-shadow: none !important;
+          -webkit-filter: none !important;
+          transition: background-color 0.15s, transform 0.15s !important;
+        }
+        .ff-panel *,
+        .modal-overlay * {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+        /* Simplify animations for Safari */
+        @media (prefers-reduced-motion: no-preference) {
+          .ff-panel *, .modal-overlay * {
+            animation-duration: 0.2s !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      return () => {
+        const existingStyle = document.getElementById('safari-character-modal-optimization');
+        if (existingStyle) existingStyle.remove();
+      };
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen) setTamedAnimals(loadTamedAnimals());
   }, [isOpen]);
 
-  const refreshAnimals = () => setTamedAnimals(loadTamedAnimals());
+  const refreshAnimals = useCallback(() => setTamedAnimals(loadTamedAnimals()), []);
 
-  const handleReleaseAnimal = (animalId: string) => {
+  const handleReleaseAnimal = useCallback((animalId: string) => {
     removeFromParty(animalId);
     refreshAnimals();
-  };
+  }, [refreshAnimals]);
+
+  // Memoized event handlers to prevent re-creation on every render
+  const handleTabChange = useCallback((tab: typeof active) => {
+    setActive(tab);
+  }, []);
+
+  const handleInventoryFilterChange = useCallback((filter: typeof inventoryFilter) => {
+    setInventoryFilter(filter);
+  }, []);
+
+  const handleItemSelect = useCallback((item: Item) => {
+    setSelectedItem(item);
+  }, []);
+
+  const handleOpenDiseaseModal = useCallback((disease: ActiveDisease) => {
+    setSelectedDisease(disease);
+    setIsDiseaseModalOpen(true);
+  }, []);
+
+  const handleCloseDiseaseModal = useCallback(() => {
+    setIsDiseaseModalOpen(false);
+    setSelectedDisease(null);
+  }, []);
+
+  const handleOpenAnimalModal = useCallback((animal: TamedAnimal) => {
+    setSelectedAnimal(animal);
+    setIsAnimalModalOpen(true);
+  }, []);
+
+  const handleCloseAnimalModal = useCallback(() => {
+    setIsAnimalModalOpen(false);
+    setSelectedAnimal(null);
+  }, []);
+
+  const handleOpenPortrait = useCallback(() => {
+    setIsPortraitModalOpen(true);
+    setPortraitModalCharacter(character);
+  }, [character, setIsPortraitModalOpen, setPortraitModalCharacter]);
+
+  const handleToggleAttributeModal = useCallback(() => {
+    setShowAttributeModal(prev => !prev);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -551,9 +627,8 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   const expandedLifeEvents = useMemo(
     () => generateExpandedLifeEvents(character, date, tamedAnimals),
-    // regenerate when character id or the set of animal ids changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [character?.id, tamedAnimals.map(a => a.id).join(',')]
+    // Only regenerate when character fundamentally changes or animals list changes
+    [character?.id, character?.birthYear, character?.age, date, tamedAnimals.length]
   );
 
   const healthHistory = useMemo(() => {
@@ -566,9 +641,9 @@ const CharacterProfileModal: React.FC<Props> = ({
       });
     }
     return res;
-  }, [character?.id]);
+  }, [character?.diseaseHealth?.pastDiseases, character?.age, character?.birthYear]);
 
-  const allItems = useMemo(() => character.inventory || [], [character]);
+  const allItems = useMemo(() => character.inventory || [], [character.inventory]);
   const filtered = useMemo(() => {
     if (inventoryFilter === 'All') return allItems;
     return allItems.filter(i => {
@@ -632,7 +707,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                     {/* Character Attributes - moved to badge row */}
                     {character.attributes && character.attributes.length > 0 && (
                       <button
-                        onClick={() => setShowAttributeModal(true)}
+                        onClick={handleToggleAttributeModal}
                         className="flex-shrink-0 ml-auto rounded-lg hover:bg-slate-700/30 px-1 py-0.5 transition-all"
                         title="View all attributes"
                       >
@@ -743,13 +818,13 @@ const CharacterProfileModal: React.FC<Props> = ({
           <main className="flex flex-col min-h-0">
             {/* Tabs */}
             <div className="shrink-0 flex border-b-2 border-slate-700 bg-slate-800/60 overflow-x-auto">
-              <TabBtn label="Overview" active={active === 'overview'} onClick={() => setActive('overview')} Icon={Home} />
-              <TabBtn label="Stats" active={active === 'health'} onClick={() => setActive('health')} Icon={Activity} />
-              <TabBtn label="Equipment" active={active === 'equipment'} onClick={() => setActive('equipment')} Icon={Sword} />
-              <TabBtn label="Inventory" active={active === 'inventory'} onClick={() => setActive('inventory')} Icon={Backpack} />
-              <TabBtn label="Beliefs" active={active === 'beliefs'} onClick={() => setActive('beliefs')} Icon={Sparkles} />
-              <TabBtn label="History" active={active === 'history'} onClick={() => setActive('history')} Icon={Scroll} />
-              <TabBtn label="Household" active={active === 'household'} onClick={() => setActive('household')} Icon={House} />
+              <TabBtn label="Overview" active={active === 'overview'} onClick={() => handleTabChange('overview')} Icon={Home} />
+              <TabBtn label="Stats" active={active === 'health'} onClick={() => handleTabChange('health')} Icon={Activity} />
+              <TabBtn label="Equipment" active={active === 'equipment'} onClick={() => handleTabChange('equipment')} Icon={Sword} />
+              <TabBtn label="Inventory" active={active === 'inventory'} onClick={() => handleTabChange('inventory')} Icon={Backpack} />
+              <TabBtn label="Beliefs" active={active === 'beliefs'} onClick={() => handleTabChange('beliefs')} Icon={Sparkles} />
+              <TabBtn label="History" active={active === 'history'} onClick={() => handleTabChange('history')} Icon={Scroll} />
+              <TabBtn label="Household" active={active === 'household'} onClick={() => handleTabChange('household')} Icon={House} />
             </div>
 
             {/* Content (scrolls) */}
@@ -762,10 +837,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                     <div
                       className="relative group cursor-pointer"
                       title="Click to view full portrait"
-                      onClick={() => {
-                        setIsPortraitModalOpen(true);
-                        setPortraitModalCharacter(character);
-                      }}
+                      onClick={handleOpenPortrait}
                     >
                       <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-700 bg-slate-900/70 shadow-xl">
                         <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-black/30 pointer-events-none" />
@@ -964,7 +1036,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                       <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3">Quick Actions</h4>
                       <div className="grid grid-cols-2 gap-2">
                         <button
-                          onClick={() => setActive('equipment')}
+                          onClick={() => handleTabChange('equipment')}
                           className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
                         >
                           <div className="flex items-center gap-2 text-amber-300">
@@ -973,7 +1045,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           </div>
                         </button>
                         <button
-                          onClick={() => setActive('inventory')}
+                          onClick={() => handleTabChange('inventory')}
                           className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
                         >
                           <div className="flex items-center gap-2 text-green-300">
@@ -982,7 +1054,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           </div>
                         </button>
                         <button
-                          onClick={() => setActive('health')}
+                          onClick={() => handleTabChange('health')}
                           className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
                         >
                           <div className="flex items-center gap-2 text-red-300">
@@ -991,7 +1063,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           </div>
                         </button>
                         <button
-                          onClick={() => setActive('household')}
+                          onClick={() => handleTabChange('household')}
                           className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
                         >
                           <div className="flex items-center gap-2 text-blue-300">
@@ -1599,4 +1671,32 @@ const CharacterProfileModal: React.FC<Props> = ({
   );
 };
 
-export default CharacterProfileModal;
+// Memoize the component to prevent unnecessary re-renders
+// Only re-render if isOpen changes or if character's key data changes
+export default React.memo(CharacterProfileModal, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render), false if different (re-render)
+
+  // Always re-render if open/close state changes
+  if (prevProps.isOpen !== nextProps.isOpen) return false;
+
+  // If closed, don't bother checking other props
+  if (!nextProps.isOpen) return true;
+
+  // Check if character has fundamentally changed
+  if (prevProps.character?.id !== nextProps.character?.id) return false;
+  if (prevProps.character?.health !== nextProps.character?.health) return false;
+  if (prevProps.character?.fatigue !== nextProps.character?.fatigue) return false;
+  if (prevProps.character?.experience !== nextProps.character?.experience) return false;
+  if (prevProps.character?.inventory?.length !== nextProps.character?.inventory?.length) return false;
+  if (prevProps.character?.level !== nextProps.character?.level) return false;
+
+  // Check if date/location changed significantly
+  if (prevProps.date !== nextProps.date) return false;
+  if (prevProps.location !== nextProps.location) return false;
+
+  // Check if loading state changed
+  if (prevProps.isEnhancing !== nextProps.isEnhancing) return false;
+
+  // Otherwise, props are similar enough to skip re-render
+  return true;
+});

@@ -4,6 +4,7 @@ import { eventService } from '../services/eventService';
 import { themeService } from '../services/themeService';
 import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2 } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
+import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
@@ -24,6 +25,7 @@ import IconTestPanel from './IconTestPanel';
 import { PrimarySourcesDevPanel } from './PrimarySourcesDevPanel';
 import PrimarySourcesModal from './PrimarySourcesModal';
 import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
+import TestSuitePanel from './TestSuitePanel';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -122,10 +124,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showIconTestPanel, setShowIconTestPanel] = useState(false);
   const [showPrimarySourcesDevPanel, setShowPrimarySourcesDevPanel] = useState(false);
   const [showMiningTestPanel, setShowMiningTestPanel] = useState(false);
+  const [showTestSuite, setShowTestSuite] = useState(false);
   const [testInventory, setTestInventory] = useState<any[]>([]);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
-  
+
+  // Dialect Continuum state
+  const [dialectContinuumEnabled, setDialectContinuumEnabled] = useState(dialectContinuumService.isEnabled());
+
   const diseaseService = DiseaseService.getInstance();
 
   // Subscribe to theme changes
@@ -141,6 +147,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     if (isOpen) {
       setApiStats(eventService.getAPIUsageStats());
       setLLMHistory(eventService.getLLMHistory());
+      // Load dialect continuum state
+      dialectContinuumService.loadState();
+      setDialectContinuumEnabled(dialectContinuumService.isEnabled());
     }
   }, [isOpen]);
 
@@ -437,6 +446,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 isChecked={useLlmForCharacter}
                 onToggle={onToggleLlmForCharacter}
               />
+              <SettingsToggle
+                id="dialectContinuumToggle"
+                label="Dialect Continuum"
+                description="Gradually introduces foreign languages as you travel. NPCs speak more foreign words the further you get from your starting location."
+                isChecked={dialectContinuumEnabled}
+                onToggle={() => {
+                  const newState = !dialectContinuumEnabled;
+                  setDialectContinuumEnabled(newState);
+                  dialectContinuumService.setEnabled(newState);
+                  if (newState && mapData?.localArea) {
+                    // If enabling now and we have a current location, initialize
+                    dialectContinuumService.initialize(mapData.localArea, { x: 0, y: 0 });
+                  }
+                  dialectContinuumService.saveState();
+                }}
+              />
             </div>
           </section>
 
@@ -649,6 +674,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       <Database className="w-3 h-3" />
                       Sources
                     </button>
+                    <button
+                      onClick={() => setShowMiningTestPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-yellow-600 hover:bg-yellow-700 rounded-md transition-colors"
+                    >
+                      ⛏️ Mining
+                    </button>
                   </div>
                 </div>
 
@@ -656,6 +687,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <div>
                   <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">Performance & Disease Testing</h4>
                   <div className="grid grid-cols-1 gap-2">
+                    <button
+                      onClick={() => setShowTestSuite(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Activity className="w-3 h-3" />
+                      Production Test Suite
+                    </button>
                     <button
                       onClick={() => setShowPerformanceDiagnostics(true)}
                       className="px-3 py-2 text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-md transition-colors"
@@ -894,6 +932,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           currentGameState={currentGameState}
         />
       )}
+
+      {/* Test Suite Panel */}
+      <TestSuitePanel
+        isOpen={showTestSuite}
+        onClose={() => setShowTestSuite(false)}
+        playerCharacter={playerCharacter}
+        mapData={mapData}
+        currentZone={currentZone}
+        currentYear={currentYear}
+      />
 
       {/* Mining Roguelike Test Panel */}
       {showMiningTestPanel && (

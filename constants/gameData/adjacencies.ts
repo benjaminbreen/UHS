@@ -269,10 +269,11 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Shasta Region": { N: "Cascade Range", S: "Sacramento Valley", E: "Great Basin", W: "Pacific Coast Ranges" },
   "Sacramento Valley": { N: "Shasta Region", S: "San Francisco Bay", E: "Sierra Nevada", W: "Pacific Coast Ranges" },
   "Sierra Nevada": { N: "Shasta Region", S: "Central Valley", E: "Great Basin", W: "Sacramento Valley" },
-  "Pacific Coast Ranges": { N: "Redwood Coast", S: "San Francisco Bay", E: "Sacramento Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
+  "Pacific Coast Ranges": { N: "Redwood Coast", S: "Marin Headlands", E: "Sacramento Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
+   "Marin Headlands": { N: "Redwood Coast", S: "San Francisco Bay", E: "Sacramento Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
   
   // Central California Coast
-  "San Francisco Bay": { N: "Sacramento Valley", S: "Monterey Bay", E: "Central Valley", W: "Pacific Coast Ranges" },
+  "San Francisco Bay": { N: "Marin Headlands", S: "Monterey Bay", E: "Central Valley", W: "Pacific Coast Ranges" },
   "Monterey Bay": { N: "San Francisco Bay", S: "Big Sur Coast", E: "Santa Cruz Mountains", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Santa Cruz Mountains": { N: "San Francisco Bay", S: "Salinas Valley", E: "Central Valley", W: "Monterey Bay" },
   "Salinas Valley": { N: "Santa Cruz Mountains", S: "San Luis Obispo", E: "Central Valley", W: "Big Sur Coast" },
@@ -451,19 +452,19 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Guiana Highlands": { N: "Orinoco Delta", S: "Manaus Region", E: "Essequibo Valley" },
   "Essequibo Valley": { W: "Guiana Highlands", S: "Manaus Region", E: "Maroni Basin" },
   "Maroni Basin": { W: "Essequibo Valley", S: "Xingu Headwaters", E: "LIMINAL_ATLANTIC_TO_AFRICA" },
-  "Rupununi Savannah": { N: "Guiana Highlands", S: "Manaus Region", E: "Essequibo Valley" },
-  "Kaieteur Plateau": { N: "Guiana Highlands", S: "Manaus Region", W: "Guiana Highlands" },
+  "Rupununi Savannah": { N: "Guiana Highlands", S: "Manaus Region", E: "Essequibo Valley", W:"Xingu Headwaters" },
+  "Kaieteur Plateau": { N: "Guiana Highlands", S: "Manaus Region", W: "Guiana Highlands", E: "LIMINAL_ATLANTIC_TO_AFRICA" },
 
   // Patagonia
   "Valdés Peninsula": { N: "Pampas Grasslands", S: "Magellanic Steppe", E: "LIMINAL_ATLANTIC_TO_AFRICA" },
-  "Andean Foothills": { N: "Mapuche Territory", S: "Southern Ice Fields", E: "Magellanic Steppe" },
+  "Andean Foothills": { N: "Mapuche Territory", S: "Southern Ice Fields", E: "Magellanic Steppe", W: "LIMINAL_PACIFIC_TO_OCEANIA"},
   "Magellanic Steppe": { N: "Valdés Peninsula", S: "Tierra del Fuego", W: "Andean Foothills", E: "LIMINAL_ATLANTIC_TO_AFRICA" },
   "Tierra del Fuego": { N: "Magellanic Steppe", W: "Strait of Magellan", E: "LIMINAL_ATLANTIC_TO_AFRICA" },
   "Strait of Magellan": { E: "Tierra del Fuego", W: "LIMINAL_PACIFIC_TO_OCEANIA", N: "Southern Ice Fields" },
   "Southern Ice Fields": { N: "Andean Foothills", S: "Strait of Magellan", E: "Magellanic Steppe" },
 
   // Southern Highlands
-  "Potosí Region": { N: "Altiplano", S: "Sucre Uplands", E: "Gran Chaco" },
+  "Potosí Region": { N: "Altiplano", S: "Sucre Uplands", E: "Gran Chaco", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Tarija Valley": { N: "Sucre Uplands", S: "Gran Chaco", E: "Gran Chaco" },
   "Cochabamba Basin": { N: "Potosí Region", S: "Santa Cruz Lowlands", E: "Tapajós Basin" },
   "Santa Cruz Lowlands": { N: "Cochabamba Basin", S: "Gran Chaco", E: "Tapajós Basin" },
@@ -493,8 +494,8 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // Levant
   "Jerusalem Hills": { N: "Galilee Basin", S: "Dead Sea Shore", E: "Tigris–Euphrates Confluence", W: "Alexandria Coast" },
-  "Bekaa Valley": { S: "Jerusalem Hills", E: "Nineveh Plain", N: "Mount Lebanon Range" },
-  "Dead Sea Shore": { N: "Jerusalem Hills", S: "Najd Plateau", E: "Babylon Region" },
+  "Bekaa Valley": { S: "Jerusalem Hills", E: "Nineveh Plain", N: "Mount Lebanon Range", W: "LIMINAL_MEDITERRANEAN_ISLANDS" },
+  "Dead Sea Shore": { N: "Jerusalem Hills", S: "Najd Plateau", E: "Babylon Region", W: "LIMINAL_MEDITERRANEAN_ISLANDS" },
   "Golan Heights": { S: "Galilee Basin", E: "Nineveh Plain", W: "Mount Lebanon Range", N: "Mount Lebanon Range" },
   "Galilee Basin": { N: "Golan Heights", S: "Jerusalem Hills", E: "Tigris–Euphrates Confluence", W: "Mount Lebanon Range" },
   "Mount Lebanon Range": { S: "Bekaa Valley", E: "Golan Heights", W: "Cilician Plain", N: "Cilician Plain" },
@@ -535,10 +536,10 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   // Persian Plateau
   "Isfahan Basin": { N: "Caspian Foothills", S: "Shiraz Valley", E: "Harappa Basin", W: "Tigris–Euphrates Confluence" },
   "Zagros Highlands": { N: "Caspian Foothills", S: "Shiraz Valley", W: "Zagros Foothills", E: "Isfahan Basin" },
-  "Caspian Foothills": { S: "Isfahan Basin", E: "Harappa Basin", W: "Tbilisi Valley", N: "Volga Bend" },
+  "Caspian Foothills": { S: "Isfahan Basin", E: "Harappa Basin", W: "Tbilisi Valley", N: "LIMINAL_CASPIAN_SEA_TO_EUROPE" },
   "Dasht-e Kavir": { W: "Isfahan Basin", S: "Shiraz Valley", E: "Harappa Basin" },
-  "Shiraz Valley": { N: "Isfahan Basin", E: "Harappa Basin", W: "Zagros Highlands" },
-  "Alborz Mountains": { S: "Caspian Foothills", E: "Harappa Basin", W: "Tbilisi Valley" },
+  "Shiraz Valley": { N: "Isfahan Basin", E: "Harappa Basin", W: "Zagros Highlands", S: "Diyala Valley" },
+  "Alborz Mountains": { N: "Caspian Foothills", E: "Harappa Basin", W: "Tbilisi Valley", S: "Isfahan Basin" },
 
   // Caucasus
   "Tbilisi Valley": { N: "Chechen Highlands", S: "Mount Ararat", E: "Caspian Depression", W: "Black Sea Foothills" },
@@ -672,9 +673,9 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // Sri Lanka
   "Central Highlands": { N: "Anuradhapura Basin", S: "Galle Coast", E: "Trincomalee Harbor", W: "Kandy Plateau" },
-  "Jaffna Peninsula": { S: "Anuradhapura Basin", E: "Coromandel Coast", W: "Malabar Coast" },
+  "Jaffna Peninsula": { S: "Anuradhapura Basin", E: "Coromandel Coast", W: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", N: "Malabar Coast" },
   "Anuradhapura Basin": { N: "Jaffna Peninsula", S: "Central Highlands", E: "Trincomalee Harbor", W: "Kandy Plateau" },
-  "Kandy Plateau": { E: "Central Highlands", S: "Galle Coast", N: "Anuradhapura Basin" },
+  "Kandy Plateau": { E: "Central Highlands", S: "Galle Coast", N: "Anuradhapura Basin", W: "Jaffna Peninsula" },
   "Galle Coast": { N: "Central Highlands", E: "Trincomalee Harbor", W: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA" },
   "Trincomalee Harbor": { W: "Central Highlands", S: "Galle Coast", E: "LIMINAL_BAY_OF_BENGAL_TO_SOUTHEAST_ASIA", N: "Coromandel Coast" },
 
@@ -689,7 +690,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // Australia – Outback and Center
   "Alice Springs Basin": { N: "MacDonnell Ranges", S: "Uluru Region", E: "Great Barrier Reef Coast", W: "Pilbara" },
-  "MacDonnell Ranges": { S: "Alice Springs Basin", E: "Great Barrier Reef Coast", W: "Pilbara" },
+  "MacDonnell Ranges": { S: "Alice Springs Basin", E: "Great Barrier Reef Coast", W: "Pilbara", N: "Arnhem Land" },
   "Lake Eyre Basin": { N: "Great Barrier Reef Coast", S: "Murray River Valley", E: "Great Barrier Reef Coast", W: "Simpson Desert" },
   "Simpson Desert": { E: "Lake Eyre Basin", S: "Murray River Valley", W: "Uluru Region", N: "MacDonnell Ranges" },
   "Uluru Region": { N: "Alice Springs Basin", E: "Simpson Desert", S: "Murray River Valley", W: "Goldfields Region" },
@@ -737,10 +738,10 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // Micronesia
   "Caroline Islands": { E: "Marshall Islands", W: "Palau", S: "Sepik River Basin", N: "Oahu Basin" },
-  "Marshall Islands": { W: "Caroline Islands", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", S: "Society Islands" },
-  "Northern Mariana Chain": { S: "Caroline Islands", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Ryukyu Islands" },
-  "Palau": { E: "Caroline Islands", W: "Philippine Archipelago", S: "Sepik River Basin" },
-  "Yap Plateau": { E: "Caroline Islands", W: "Palau", S: "Sepik River Basin" },
+  "Marshall Islands": { W: "Caroline Islands", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", S: "Society Islands", N: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
+  "Northern Mariana Chain": { S: "Caroline Islands", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Ryukyu Islands", N: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
+  "Palau": { E: "Caroline Islands", W: "Philippine Archipelago", S: "Sepik River Basin", N: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
+  "Yap Plateau": { E: "Caroline Islands", W: "Palau", S: "Sepik River Basin", N: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
   "Guam and Surroundings": { N: "Northern Mariana Chain", S: "Caroline Islands", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Ryukyu Islands" },
 
   // Hawaii and Central Pacific
@@ -815,6 +816,11 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
   // Black Sea (regional sea - 1 ocean map)
   "LIMINAL_BLACK_SEA_TO_EUROPE": { 
     destination: "Thracian Plain", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+   "LIMINAL_CASPIAN_SEA_TO_EUROPE": { 
+    destination: "Volga Bend", 
     sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
   },
   

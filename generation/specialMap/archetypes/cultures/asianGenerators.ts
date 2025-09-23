@@ -569,7 +569,6 @@ export function registerAsianGenerators(): void {
   registerCulturalGenerator('TRIBAL_COUNCIL', 'CHINESE', generateChineseGovernment);
   registerCulturalGenerator('TRIBAL_COUNCIL', 'JAPANESE', generateJapaneseGovernment);
   
-  console.log('[AsianGenerators] Registered all Asian cultural generators');
 }
 
 // Auto-register when imported

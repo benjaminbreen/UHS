@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, CheckCircle, Circle, ChevronRight, Target, Award, Clock, Shield, Zap, BookOpen, Navigation, Users } from 'lucide-react';
+import { X, MapPin, CheckCircle, Circle, ChevronRight, Target, Award, Clock, Shield, Zap, BookOpen, Navigation, Users, Sparkles, Scroll } from 'lucide-react';
 import { questService } from '../services/questService';
+import { worldWeaverQuestService } from '../services/worldWeaverQuestService';
 import { Quest, QuestObjective } from '../types/questTypes';
 
 interface QuestsPanelProps {
@@ -224,6 +225,12 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
                   DYNAMIC
                 </span>
               )}
+              {worldWeaverQuestService.isWorldWeaverQuest(quest.id) && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gradient-to-r from-green-900/40 to-emerald-900/40 text-green-400 border border-green-500/30 flex items-center gap-1">
+                  <Sparkles className="w-2 h-2" />
+                  AI QUEST
+                </span>
+              )}
             </div>
             <h3 className="text-sm font-semibold text-white mb-1">{quest.title}</h3>
             
@@ -290,6 +297,24 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
                   }`}
                 >
                   {quest.isActiveQuest ? 'Active Quest' : 'Activate'}
+                </button>
+              </div>
+            )}
+
+            {/* WorldWeaver Quest Journal Button */}
+            {worldWeaverQuestService.isWorldWeaverQuest(quest.id) && (
+              <div className="mb-3">
+                <button
+                  onClick={() => {
+                    // Open journal to quest entry
+                    window.dispatchEvent(new CustomEvent('openJournal', {
+                      detail: { questId: quest.id }
+                    }));
+                  }}
+                  className="px-3 py-1 rounded text-xs font-medium transition-colors bg-gradient-to-r from-green-700 to-emerald-700 hover:from-green-600 hover:to-emerald-600 text-white border border-green-500/50 flex items-center gap-1"
+                >
+                  <Scroll className="w-3 h-3" />
+                  View Quest Details in Journal
                 </button>
               </div>
             )}

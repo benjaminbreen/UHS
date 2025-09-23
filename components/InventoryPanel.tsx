@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Item, ItemQuality, PlayerCharacter } from '../types';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 import { loadTamedAnimals, TamedAnimal, updateAnimalName } from '../services/animalTamingService';
@@ -278,13 +278,70 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   const [isAnimalModalOpen, setIsAnimalModalOpen] = useState(false);
   const [showButcherModal, setShowButcherModal] = useState(false);
   const [animalsToButcher, setAnimalsToButcher] = useState<TamedAnimal[]>([]);
-  // Removed isActionMode - now always in selection mode
+
+  // Search functionality with debouncing
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const searchTimerRef = useRef<NodeJS.Timeout>();
   
   // Load tamed animals with forced refresh when modal closes
   const [animalRefresh, setAnimalRefresh] = useState(0);
   const tamedAnimals = useMemo(() => loadTamedAnimals(), [animalRefresh]);
 
-  const handleItemClick = (item: Item) => {
+  // Debounce search input
+  useEffect(() => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Memoize filtered inventory to avoid recalculation on every render
+  const filteredInventory = useMemo(() => {
+    if (!debouncedSearchQuery) return inventory;
+
+    const query = debouncedSearchQuery.toLowerCase();
+    return inventory.filter(item =>
+      item.name.toLowerCase().includes(query) ||
+      item.description?.toLowerCase().includes(query) ||
+      item.category?.toLowerCase().includes(query) ||
+      item.material?.toLowerCase().includes(query)
+    );
+  }, [inventory, debouncedSearchQuery]);
+
+  // Memoize filtered animals
+  const filteredAnimals = useMemo(() => {
+    if (!debouncedSearchQuery) return tamedAnimals;
+
+    const query = debouncedSearchQuery.toLowerCase();
+    return tamedAnimals.filter(animal =>
+      (animal.name || animal.speciesName).toLowerCase().includes(query) ||
+      animal.speciesName.toLowerCase().includes(query)
+    );
+  }, [tamedAnimals, debouncedSearchQuery]);
+
+  // Memoize selected items to avoid re-filtering on every render
+  const selectedItems = useMemo(() =>
+    inventory.filter(item => selectedItemIds.has(item.id)),
+    [inventory, selectedItemIds]
+  );
+
+  // Memoize selected animals
+  const selectedAnimals = useMemo(() =>
+    tamedAnimals.filter(animal => selectedAnimalIds.has(animal.id)),
+    [tamedAnimals, selectedAnimalIds]
+  );
+
+  const handleItemClick = useCallback((item: Item) => {
       // Always allow selection for crafting
       setSelectedItemIds(prev => {
           const newSet = new Set(prev);
@@ -295,21 +352,18 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           }
           return newSet;
       });
-  };
+  }, []);
   
   
-  const handleCraft = () => {
-      const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
+  const handleCraft = useCallback(() => {
       if (selectedItems.length > 0) {
           // Open crafting modal with selected items
           onCraft(selectedItems, 'COMBINE'); // Pass COMBINE as default, modal will handle mode selection
           setSelectedItemIds(new Set());
       }
-  };
+  }, [selectedItems, onCraft]);
 
-  const handleStudy = () => {
-      const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
-      const selectedAnimals = tamedAnimals.filter(animal => selectedAnimalIds.has(animal.id));
+  const handleStudy = useCallback(() => {
 
       // Combine selected items and animals for study
       const allSelectedForStudy = [...selectedItems, ...selectedAnimals];
@@ -319,14 +373,11 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           setSelectedItemIds(new Set());
           setSelectedAnimalIds(new Set());
       }
-  };
+  }, [selectedItems, selectedAnimals, onStudy]);
 
-  const handleButcher = () => {
-      const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
-
+  const handleButcher = useCallback(() => {
       // Handle animal butchering into meat items
       if (selectedAnimalIds.size > 0) {
-          const selectedAnimals = tamedAnimals.filter(animal => selectedAnimalIds.has(animal.id));
 
           // Check if any selected animals are companions (high loyalty or custom names)
           const companionAnimals = selectedAnimals.filter(animal =>
@@ -343,8 +394,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           // Execute butchering for non-companion animals
           executeButchering(selectedAnimals);
       }
-  };
-  
+  }, [selectedAnimals, showButcherModal, setAnimalsToButcher, setShowButcherModal]);
+
   const getMeatNameForAnimal = (species: string): string => {
       const lowerSpecies = species.toLowerCase();
       if (lowerSpecies.includes('cow') || lowerSpecies.includes('cattle')) return 'Beef';
@@ -372,16 +423,35 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   const canStudy = selectedItemIds.size >= 1 || selectedAnimalIds.size >= 1;
   const canButcher = selectedAnimalIds.size === 1;
   const showInfoInsteadOfCraft = selectedAnimalIds.size >= 1 && selectedItemIds.size === 0; // Only animals selected
-  
-  // Check if selected items contain vessels for deployment
-  const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
-  const hasSelectedVessels = selectedItems.some(item => item.category === 'Vessel');
+  // Memoize vessel check
+  const hasSelectedVessels = useMemo(() =>
+    selectedItems.some(item => item.category === 'Vessel'),
+    [selectedItems]
+  );
   const canDeploy = selectedItemIds.size === 1 && hasSelectedVessels;
 
-  const handleAnimalClick = (animal: TamedAnimal) => {
+  const handleAnimalClick = useCallback((animal: TamedAnimal) => {
     setSelectedAnimal(animal);
     setIsAnimalModalOpen(true);
-  };
+  }, []);
+
+  const handleAnimalSelect = useCallback((animalId: string) => {
+    setSelectedAnimalIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(animalId)) {
+        newSet.delete(animalId);
+      } else {
+        newSet.add(animalId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const stopPropagation = useCallback((e: React.MouseEvent | React.ChangeEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  const noopHandler = useCallback(() => {}, []);
 
   const handleAnimalInfo = () => {
     if (selectedAnimalIds.size === 1) {
@@ -467,8 +537,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
     setAnimalRefresh(prev => prev + 1); // Force refresh
   };
 
-  const handleVesselDeploy = () => {
-    const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
+  const handleVesselDeploy = useCallback(() => {
     const vessels = selectedItems.filter(item => item.category === 'Vessel');
     
     if (vessels.length === 0) {
@@ -519,9 +588,9 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
       onInventoryUpdate?.();
       alert(`${vessel.name} deployed! You can now use it for sea travel.`);
     }
-  };
+  }, [selectedItems, playerCharacter, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, onInventoryUpdate]);
 
-  if (inventory.length === 0) {
+  if (inventory.length === 0 && tamedAnimals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-slate-800/60 border border-slate-600/50 rounded-xl">
         <div className="mb-4 text-6xl opacity-50">🎒</div>
@@ -533,16 +602,37 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-800/60 border border-slate-600/50 rounded-xl shadow-lg">
-    
+      {/* Search Header */}
+      <div className="flex-shrink-0 px-3 py-2 border-b border-slate-600/50">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold tracking-wide text-gray-300 uppercase">Inventory</h3>
+          <span className="text-xs text-gray-400">
+            {filteredInventory.length + filteredAnimals.length} items
+          </span>
+        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search items..."
+          className="w-full px-2 py-1 text-xs bg-slate-700/50 border border-slate-600 rounded-md text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700"
+        />
+      </div>
       <div className="flex-1 min-h-0 p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50">
         <div className="space-y-2">
+          {/* No results message */}
+          {filteredInventory.length === 0 && filteredAnimals.length === 0 && searchQuery && (
+            <div className="text-center text-gray-400 text-sm py-8">
+              No items found matching "{searchQuery}"
+            </div>
+          )}
           {/* Animal Companions Section */}
-          {tamedAnimals.length > 0 && (
+          {filteredAnimals.length > 0 && (
             <>
               <div className="px-2 py-1 text-xs font-semibold tracking-wide text-amber-400 border-b border-amber-400/30 mb-2">
                 ANIMAL COMPANIONS
               </div>
-              {tamedAnimals.map(animal => {
+              {filteredAnimals.map(animal => {
                 const isSelected = selectedAnimalIds.has(animal.id);
                 return (
                   <div 
@@ -553,24 +643,19 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                         : 'bg-amber-900/20 border border-amber-600/30 hover:bg-amber-900/30 hover:border-amber-500/50'
                     }`}
                     onClick={() => {
-                      // Toggle selection for crafting
-                      const newSelected = new Set(selectedAnimalIds);
+                      handleAnimalSelect(animal.id);
                       if (isSelected) {
-                        newSelected.delete(animal.id);
                         handleAnimalClick(animal); // Also show details when deselecting
-                      } else {
-                        newSelected.add(animal.id);
                       }
-                      setSelectedAnimalIds(newSelected);
                     }}
                     title="Click to select/deselect for crafting or view details"
                   >
                     <input 
                       type="checkbox" 
                       checked={isSelected}
-                      onChange={() => {}}
+                      onChange={noopHandler}
                       className="mr-1"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={stopPropagation}
                     />
                     <div className="text-sm flex-shrink-0">{animal.emoji}</div>
                     <div className="flex-1 min-w-0">
@@ -587,7 +672,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               </div>
             </>
           )}
-          {inventory.map(item => (
+          {filteredInventory.map(item => (
             <div 
               key={item.id} 
               className={`flex items-center gap-2 p-2 transition-all duration-200 border rounded-lg cursor-pointer group hover:bg-slate-700/70
@@ -600,7 +685,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               <input 
                 type="checkbox" 
                 checked={selectedItemIds.has(item.id)}
-                onChange={() => {}}
+                onChange={noopHandler}
                 className="mr-1"
                 onClick={(e) => e.stopPropagation()}
               />

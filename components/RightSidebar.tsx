@@ -3,7 +3,7 @@ import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { usePlayer } from '../contexts/PlayerContext';
-import { getSafariOptimizedClassName } from '../utils/safariUtils';
+import { getSafariOptimizedClassName, isSafari } from '../utils/safariUtils';
 import NarrationPanel from './NarrationPanel';
 import InventoryPanel from './InventoryPanel';
 import StudyPanel, { StudyData, StudiedItem } from './StudyPanel';
@@ -16,6 +16,8 @@ import { useStudyActions } from '../hooks/useStudyActions';
 import { journalService } from '../services/journalService';
 import { Settings } from 'lucide-react';
 import { AttributeBadgeList } from './AttributeBadge';
+import SourceDiscussionHistoryPanel from './SourceDiscussionHistoryPanel';
+import { loadDiscussionHistory } from '../services/sourceDiscussionPersistence';
 
 const MIN_SIDEBAR_WIDTH = 320;
 const MAX_SIDEBAR_WIDTH = 520;
@@ -24,7 +26,7 @@ const RHS_WIDTH_KEY = 'rhs.sidebarWidth';
 const RHS_TAB_KEY = 'rhs.activeTab';
 const ACTION_BUTTONS_KEY = 'rhs.actionButtons';
 
-type RightSidebarTab = 'narrator' | 'inventory' | 'study';
+type RightSidebarTab = 'narrator' | 'inventory' | 'study' | 'sources';
 
 // Study-specific action button definitions
 const STUDY_ACTIONS = [
@@ -118,6 +120,41 @@ const RightSidebar: React.FC = () => {
   const [actionButtons, setActionButtons] = useState<SkillID[]>(SKILL_BUTTON_ORDER);
   const [hoveredButton, setHoveredButton] = useState<number | null>(null);
   const [selectedStudyItems, setSelectedStudyItems] = useState<string[]>([]);
+  const [discussionHistory, setDiscussionHistory] = useState(() => {
+    const history = loadDiscussionHistory();
+    return history || { discussions: [], sources: [], lastUpdated: Date.now() };
+  });
+
+  // Safari performance optimization - remove expensive CSS effects
+  useEffect(() => {
+    if (isSafari()) {
+      const style = document.createElement('style');
+      style.id = 'safari-rightsidebar-optimization';
+      style.textContent = `
+        .right-sidebar button,
+        .sidebar-content button {
+          filter: none !important;
+          drop-shadow: none !important;
+          text-shadow: none !important;
+          -webkit-filter: none !important;
+          transition: background-color 0.15s, transform 0.1s !important;
+        }
+        .right-sidebar * {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+        /* Remove animation from tooltips in Safari */
+        .animate-fadeIn {
+          animation: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+      return () => {
+        const existingStyle = document.getElementById('safari-rightsidebar-optimization');
+        if (existingStyle) existingStyle.remove();
+      };
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -207,6 +244,35 @@ const RightSidebar: React.FC = () => {
     } catch {}
   }, []);
 
+  // Memoize click handlers to avoid hook violations
+  const handleStudyActionClick = useCallback((actionId: string) => {
+    handleStudyAction(actionId);
+  }, [handleStudyAction]);
+
+  const handleSkillClick = useCallback((skillId: SkillID) => {
+    onUseSkill(skillId);
+  }, [onUseSkill]);
+
+  const handleProfileClick = useCallback(() => {
+    setIsCharacterProfileModalOpen(true);
+  }, [setIsCharacterProfileModalOpen]);
+
+  const handleConfigClick = useCallback(() => {
+    setConfigModalOpen(true);
+  }, []);
+
+  const handleTabClick = useCallback((tab: RightSidebarTab) => {
+    setActiveTab(tab);
+    if (tab === 'study') {
+      window.dispatchEvent(new CustomEvent('studyTabActivated'));
+    }
+  }, []);
+
+  const handleAttributeClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCharacterProfileModalOpen(true);
+  }, [setIsCharacterProfileModalOpen]);
+
   /* --------------------------------- profile -------------------------------- */
   const healthPercent = playerCharacter ? (playerCharacter.health / playerCharacter.maxHealth) * 100 : 100;
   const fatiguePercent = playerCharacter ? (playerCharacter.fatigue / playerCharacter.maxFatigue) * 100 : 0;
@@ -236,9 +302,9 @@ const RightSidebar: React.FC = () => {
 
   return (
     <div
-      className={getSafariOptimizedClassName(
+      className={`right-sidebar ${getSafariOptimizedClassName(
         'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-right-light dark:shadow-sidebar-right backdrop-blur-xl border-l border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200'
-      )}
+      )}`}
       style={{ width: `${sidebarWidth}px` }}
     >
       {/* Resize handle (grab from the left edge of the sidebar) */}
@@ -257,7 +323,7 @@ const RightSidebar: React.FC = () => {
               className="p-3 mb-3 transition-all duration-200 border rounded-2xl cursor-pointer
                          bg-gradient-to-br from-slate-800/90 to-slate-900/95 border-slate-600/50
                          hover:border-slate-500/70 hover:shadow-xl hover:shadow-black/30 hover:-translate-y-0.5"
-              onClick={() => setIsCharacterProfileModalOpen(true)}
+              onClick={handleProfileClick}
             >
               <div className="flex items-start gap-4 mb-3">
                 <div className="flex flex-col items-center">
@@ -290,10 +356,7 @@ const RightSidebar: React.FC = () => {
                     {playerCharacter.attributes && playerCharacter.attributes.length > 0 && (
                       <div
                         className="absolute bottom-0 right-0 z-20"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsCharacterProfileModalOpen(true);
-                        }}
+                        onClick={handleAttributeClick}
                         title="Click to view all attributes"
                       >
                         <AttributeBadgeList
@@ -436,7 +499,7 @@ const RightSidebar: React.FC = () => {
             <div className="flex items-center justify-between mb-2 mt-1">
               <h4 className="text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
               <button
-                onClick={() => setConfigModalOpen(true)}
+                onClick={handleConfigClick}
                 className="p-1 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
                 title="Configure action buttons"
               >
@@ -451,7 +514,7 @@ const RightSidebar: React.FC = () => {
                   return (
                     <div key={action.id} className="relative">
                       <button
-                        onClick={() => handleStudyAction(action.id)}
+                        onClick={() => handleStudyActionClick(action.id)}
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
                         disabled={isDisabled || isStudyProcessing}
@@ -505,7 +568,7 @@ const RightSidebar: React.FC = () => {
                   return (
                     <div key={skillId} className="relative">
                       <button
-                        onClick={() => onUseSkill(skillId)}
+                        onClick={() => handleSkillClick(skillId)}
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
                         className="group relative w-full flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg
@@ -551,7 +614,7 @@ const RightSidebar: React.FC = () => {
         {/* Tabs */}
         <div className="flex p-1.5 mx-2 mt-2 mb-2 bg-slate-800/50 border border-slate-600/50 rounded-xl shrink-0">
           <button
-            onClick={() => setActiveTab('narrator')}
+            onClick={() => handleTabClick('narrator')}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               activeTab === 'narrator'
                 ? 'text-white bg-blue-600 shadow-glow-primary'
@@ -561,7 +624,7 @@ const RightSidebar: React.FC = () => {
             Narrator
           </button>
           <button
-            onClick={() => setActiveTab('inventory')}
+            onClick={() => handleTabClick('inventory')}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               activeTab === 'inventory'
                 ? 'text-white bg-blue-600 shadow-glow-primary'
@@ -571,11 +634,7 @@ const RightSidebar: React.FC = () => {
             Inventory
           </button>
           <button
-            onClick={() => {
-              setActiveTab('study');
-              // Dispatch event to auto-slide journal
-              window.dispatchEvent(new CustomEvent('studyTabActivated'));
-            }}
+            onClick={() => handleTabClick('study')}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               activeTab === 'study'
                 ? 'text-white bg-purple-600 shadow-glow-purple'
@@ -583,6 +642,16 @@ const RightSidebar: React.FC = () => {
             }`}
           >
             Study 🔬
+          </button>
+          <button
+            onClick={() => handleTabClick('sources')}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'sources'
+                ? 'text-white bg-amber-600 shadow-glow-amber'
+                : 'text-slate-400 hover:bg-slate-700/30'
+            }`}
+          >
+            Sources 📜
           </button>
         </div>
 
@@ -656,6 +725,17 @@ const RightSidebar: React.FC = () => {
               onStudyAction={async (item: any, action: StudyAction, input: string) => {
                 // This is now handled by the action buttons above
                 console.log('[StudyAction] Legacy handler - this should not be called');
+              }}
+            />
+          )}
+
+          {activeTab === 'sources' && (
+            <SourceDiscussionHistoryPanel
+              discussions={discussionHistory.discussions}
+              sources={discussionHistory.sources}
+              onSelectDiscussion={(discussion) => {
+                // Could open a modal showing full discussion details
+                console.log('Selected discussion:', discussion);
               }}
             />
           )}

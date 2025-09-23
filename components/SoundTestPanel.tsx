@@ -198,6 +198,15 @@ const SoundTestPanel: React.FC<SoundTestPanelProps> = ({ isOpen, onClose }) => {
       ]
     },
     {
+      name: 'Camping Music',
+      icon: <TreePine className="w-4 h-4" />,
+      sounds: [
+        { name: 'Starlit Rest (20s)', method: () => gameSoundsService.playCampingMusic1(), description: 'Waltz in 3/4 with sophisticated chord progression' },
+        { name: 'Ember Glow (20s)', method: () => gameSoundsService.playCampingMusic2(), description: 'Contemplative D minor with modal interchange' },
+        { name: 'Night\'s Embrace (20s)', method: () => gameSoundsService.playCampingMusic3(), description: 'Ethereal E♭ major with quartal harmony' },
+      ]
+    },
+    {
       name: 'Environmental Soundscapes',
       icon: <TreePine className="w-4 h-4" />,
       sounds: [

@@ -246,13 +246,20 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
           }
         `}</style>
 
-        {/* Sky that fades to hills then feathers into panel color */}
-        <linearGradient id="temperateSky" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={colors.sky1} stopOpacity={0} />
-          <stop offset="35%" stopColor={colors.sky2} stopOpacity={0.35} />
-          <stop offset="68%" stopColor={colors.sky3} stopOpacity={0.75} />
-          <stop offset="100%" stopColor={colors.sky3} stopOpacity={0} />
+        {/* Top fade gradient for smooth transition into TimeAwareBackground */}
+        <linearGradient id="temperateTopFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="white" stopOpacity="0" />
+          <stop offset="15%" stopColor="white" stopOpacity="0.02" />
+          <stop offset="30%" stopColor="white" stopOpacity="0.08" />
+          <stop offset="45%" stopColor="white" stopOpacity="0.18" />
+          <stop offset="60%" stopColor="white" stopOpacity="0.35" />
+          <stop offset="75%" stopColor="white" stopOpacity="0.60" />
+          <stop offset="88%" stopColor="white" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="white" stopOpacity="0.98" />
         </linearGradient>
+        <mask id="temperateTopMask">
+          <rect x="0" y="0" width={width} height={height} fill="url(#temperateTopFade)" />
+        </mask>
 
         {/* Haze bands */}
         <linearGradient id="hazeLight" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -277,8 +284,8 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
         </filter>
       </defs>
 
-      {/* Background sky */}
-      <rect x="0" y="0" width={width} height={height} fill="url(#temperateSky)" />
+      {/* Masked group allows top to fade into background sky */}
+      <g mask="url(#temperateTopMask)">
 
       {/* FAR rolling hills */}
       <g filter="url(#softMist)" opacity="0.8">
@@ -742,6 +749,8 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
           </g>
         </g>
       )}
+
+      </g> {/* End of masked group */}
     </svg>
   );
 };

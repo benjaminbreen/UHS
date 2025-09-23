@@ -739,6 +739,11 @@ export function getBlendCategory(biome: BiomeType): 'water' | 'veg' | 'soil' | '
     case BiomeType.TUNDRA:
     case BiomeType.MANGROVE:
     case BiomeType.OASIS:
+    case BiomeType.PRAIRIE:
+    case BiomeType.SAVANNA:
+    case BiomeType.TAIGA:
+    case BiomeType.ALPINE_MEADOW:
+    case BiomeType.BADLANDS:
       return 'veg';
       
     case BiomeType.BEACH:

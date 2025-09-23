@@ -569,7 +569,6 @@ export function registerMiddleEasternGenerators(): void {
   registerCulturalGenerator('MARKET_BAZAAR', 'PERSIAN', generateMiddleEasternMarket);
   registerCulturalGenerator('MARKET_BAZAAR', 'OTTOMAN', generateMiddleEasternMarket);
   
-  console.log('[MiddleEasternGenerators] Registered all Middle Eastern cultural generators');
 }
 
 // Auto-register when imported

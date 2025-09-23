@@ -83,6 +83,14 @@ export interface NpcEntity {
     wealthLevel: WealthLevel;
     portraitSeed?: number; // Added for portrait consistency
 
+    // AI Portrait system (for quest NPCs)
+    aiPortrait?: string; // URL to AI-generated portrait image
+    portraitType?: 'procedural' | 'ai'; // Type of portrait to use
+    portraitPrompt?: string; // Original prompt used for AI generation
+    isQuestNPC?: boolean; // Flag to identify quest-specific NPCs
+    questId?: string; // ID of associated quest
+    originalQuestData?: any; // Original quest NPC data for reference
+
     appearance: Appearance;
     
     // Descriptions (procedurally generated first, then potentially enhanced)

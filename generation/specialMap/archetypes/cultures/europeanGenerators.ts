@@ -594,7 +594,6 @@ export function registerEuropeanGenerators(): void {
   registerCulturalGenerator('MARKET_BAZAAR', 'MEDIEVAL', generateEuropeanMarket);
   registerCulturalGenerator('MARKET_BAZAAR', 'GUILD', generateEuropeanMarket);
   
-  console.log('[EuropeanGenerators] Registered all European cultural generators');
 }
 
 // Auto-register when imported

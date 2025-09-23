@@ -35,6 +35,7 @@ import { merchantBehaviorService, MerchantBehavior } from '../services/merchantB
 import { priceHistoryService, PriceComparison, MarketTrend } from '../services/priceHistoryService';
 import { economicVictoryService, EconomicMilestone, EconomicAchievement } from '../services/economicVictoryService';
 import { useUI } from '../contexts/UIContext';
+import { isSafari } from '../utils/safariUtils';
 
 interface MarketplaceModalProps {
   tile: Tile;
@@ -95,7 +96,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [latestAchievement, setLatestAchievement] = useState<EconomicAchievement | null>(null);
   const [latestMilestone, setLatestMilestone] = useState<EconomicMilestone | null>(null);
   const [dismissedCrises, setDismissedCrises] = useState<Set<string>>(new Set());
-  const [marketplaceDataLoading, setMarketplaceDataLoading] = useState(true);
+  const [marketplaceDataLoading, setMarketplaceDataLoading] = useState(false); // Start false for instant modal
+  const [inventoryReady, setInventoryReady] = useState(false); // Track when full inventory is ready
   
   // Detect mobile
   const isMobile = useMemo(() => window.innerWidth <= 768, []);
@@ -537,7 +539,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       }
     };
     
-    loadMarketplaceData();
+    // Delay heavy data loading to show modal instantly
+    const timer = setTimeout(() => {
+      loadMarketplaceData();
+      // Mark inventory as ready after a short delay
+      setTimeout(() => setInventoryReady(true), 200);
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [tile, mapData, npcs, culturalZone, era]);
   
   // Check for active crises affecting this market and record price history
@@ -570,7 +579,19 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   }, [tile, marketConditions]);
 
   // Generate culturally-aware market inventory with biome integration
+  // OPTIMISTIC UI: Show basic inventory instantly, load full data async
   const marketInventory = useMemo(() => {
+    // Show placeholder inventory while data loads
+    if (!inventoryReady) {
+      // Return basic items for instant display
+      const basicGoods: TradeGood[] = [
+        { itemId: 'bread', name: 'Bread', basePrice: 5, currentPrice: 5, quantity: 10, category: 'food' as any, description: 'Basic provisions', quality: 'standard', tags: [] },
+        { itemId: 'water', name: 'Fresh Water', basePrice: 2, currentPrice: 2, quantity: 20, category: 'food' as any, description: 'Clean drinking water', quality: 'standard', tags: [] },
+        { itemId: 'cloth', name: 'Simple Cloth', basePrice: 10, currentPrice: 10, quantity: 5, category: 'raw_material' as any, description: 'Basic fabric', quality: 'standard', tags: [] },
+        { itemId: 'tools', name: 'Basic Tools', basePrice: 15, currentPrice: 15, quantity: 3, category: 'tool' as any, description: 'Simple implements', quality: 'standard', tags: [] },
+      ];
+      return basicGoods;
+    }
     // Get region name from map data
     const region = mapData.geography || 'Unknown Region';
     const climate = mapData.climate || ClimateType.TEMPERATE;
@@ -725,7 +746,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     });
     
     return filtered;
-  }, [marketConditions, merchantNpcs, mapData, categoryFilter, searchQuery, era, culturalZone, season, npcs]);
+  }, [marketConditions, merchantNpcs, mapData, categoryFilter, searchQuery, era, culturalZone, season, npcs, inventoryReady]);
   
   // Update state from market service results (moved out of useMemo to prevent infinite re-renders)
   useEffect(() => {
@@ -1287,7 +1308,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                     <div
                       key={`${good.itemId}-${index}`}
-                      className={`group bg-gradient-to-br from-slate-800/80 to-slate-900/60 border rounded-md p-4 hover:shadow-lg transition-all duration-200 backdrop-blur-sm ${
+                      className={`group bg-gradient-to-br from-slate-800/80 to-slate-900/60 border rounded-md p-4 hover:shadow-lg transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
                         questInfo.isQuest 
                           ? 'border-yellow-600/50 hover:border-yellow-500/70 hover:shadow-yellow-900/30' 
                           : (good as any).crisisAffected 
@@ -1447,7 +1468,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                       <div
                         key={item.id}
-                        className={`group flex items-center justify-between p-4 rounded-lg transition-all backdrop-blur-sm hover:shadow-lg ${
+                        className={`group flex items-center justify-between p-4 rounded-lg transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} hover:shadow-lg ${
                           questInfo.isQuest
                             ? 'bg-gradient-to-r from-yellow-900/30 to-amber-900/20 border border-yellow-600/50 hover:border-yellow-500/70 hover:shadow-yellow-900/30'
                             : item.itemType === 'animal' 
@@ -1544,7 +1565,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                       <div
                         key={merchant.id}
-                        className="group p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg hover:border-purple-600/50 hover:shadow-lg hover:shadow-purple-900/20 transition-all cursor-pointer backdrop-blur-sm relative"
+                        className={`group p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg hover:border-purple-600/50 hover:shadow-lg hover:shadow-purple-900/20 transition-all cursor-pointer ${isSafari() ? '' : 'backdrop-blur-sm'} relative`}
                         onClick={() => setSelectedMerchant(merchant)}
                       >
                         {isGenerating && (
@@ -1647,7 +1668,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
             <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40 space-y-4">
               {/* Market Status Card */}
-              <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-cyan-700/30 rounded-lg p-4 backdrop-blur-sm">
+              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-cyan-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-cyan-400 mb-3 uppercase tracking-wide">🏛️ Market Status</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-slate-900/40 rounded-md p-2">
@@ -1672,7 +1693,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </div>
               
               {/* Trade Routes Card */}
-              <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg p-4 backdrop-blur-sm">
+              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-purple-400 mb-3 uppercase tracking-wide">🗺️ Trade Routes</h4>
                 {tradeRoutes.length === 0 ? (
                   <p className="text-amber-200/50 italic text-sm">No established trade routes from this market.</p>
@@ -1699,7 +1720,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </div>
               
               {/* Supply & Demand Card */}
-              <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-amber-700/30 rounded-lg p-4 backdrop-blur-sm">
+              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-amber-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wide">📈 Supply & Demand</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="bg-slate-900/40 rounded-md p-3">
@@ -1770,7 +1791,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                     <div
                       key={npc.id}
-                      className="group p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-blue-700/30 rounded-lg hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-900/20 transition-all backdrop-blur-sm relative"
+                      className={`group p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-blue-700/30 rounded-lg hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-900/20 transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} relative`}
                     >
                       {hasQuest && (
                         <div className="absolute -top-2 -left-2 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-full w-6 h-6 flex items-center justify-center animate-pulse shadow-lg">
@@ -1876,7 +1897,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             {/* Monologue overlay */}
             {monologueVisible && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-                <div className="bg-black/90 backdrop-blur-sm rounded-lg px-6 py-4 border border-blue-500/50 shadow-2xl max-w-md">
+                <div className={`bg-black/90 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg px-6 py-4 border border-blue-500/50 shadow-2xl max-w-md`}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-blue-400">💭</span>
                     <span className="text-xs text-blue-300 uppercase tracking-wide">Inner Thoughts</span>
@@ -1901,7 +1922,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Crisis Quests Card */}
               {economicQuests.length > 0 && economicQuests.some(q => (q as any).economicContext?.crisis) && (
-                <div className="bg-gradient-to-br from-orange-900/30 to-red-950/20 border border-orange-700/40 rounded-lg p-4 backdrop-blur-sm">
+                <div className={`bg-gradient-to-br from-orange-900/30 to-red-950/20 border border-orange-700/40 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-orange-400 mb-3 uppercase tracking-wide flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
                     Crisis Opportunities
@@ -1988,7 +2009,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Active Crises Card */}
               {activeCrises.length > 0 && (
-                <div className="bg-gradient-to-br from-red-900/30 to-red-950/20 border border-red-700/40 rounded-lg p-4 backdrop-blur-sm">
+                <div className={`bg-gradient-to-br from-red-900/30 to-red-950/20 border border-red-700/40 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-red-400 mb-3 uppercase tracking-wide flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 animate-pulse" />
                     Active Crises
@@ -2036,7 +2057,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Price History & Trends Card */}
               {marketTrends && priceComparisons.length > 0 && (
-                <div className="bg-gradient-to-br from-indigo-900/30 to-purple-950/20 border border-indigo-700/40 rounded-lg p-4 backdrop-blur-sm">
+                <div className={`bg-gradient-to-br from-indigo-900/30 to-purple-950/20 border border-indigo-700/40 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-indigo-400 mb-3 uppercase tracking-wide flex items-center gap-2">
                     📈 Price Trends (Last 7 Days)
                   </h4>
@@ -2113,7 +2134,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Market Summary Card - Replacing fake victory progress */}
               {marketConditions && (
-                <div className="bg-gradient-to-br from-blue-900/30 to-cyan-950/20 border border-blue-700/40 rounded-lg p-4 backdrop-blur-sm">
+                <div className={`bg-gradient-to-br from-blue-900/30 to-cyan-950/20 border border-blue-700/40 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-cyan-400 mb-3 uppercase tracking-wide flex items-center gap-2">
                     📊 Market Summary
                   </h4>
@@ -2152,7 +2173,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Market Cycle Card */}
               {marketCycle && (
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-red-700/30 rounded-lg p-4 backdrop-blur-sm">
+                <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-red-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-red-400 mb-3 uppercase tracking-wide">📊 Market Cycle</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="bg-slate-900/40 rounded-md p-3">
@@ -2180,7 +2201,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               )}
               
               {/* Market Trends Card */}
-              <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-green-700/30 rounded-lg p-4 backdrop-blur-sm">
+              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-green-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-green-400 mb-3 uppercase tracking-wide">📈 Market Trends</h4>
                 {!marketTrends || marketTrends.mostVolatile.length === 0 ? (
                   <p className="text-amber-200/50 italic text-sm">No significant trends detected.</p>
@@ -2219,7 +2240,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Volatility Events Card */}
               {volatilityEvents.length > 0 && (
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-yellow-700/30 rounded-lg p-4 backdrop-blur-sm">
+                <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-yellow-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-yellow-400 mb-3 uppercase tracking-wide">⚡ Market Events</h4>
                   <div className="space-y-3">
                     {volatilityEvents.slice(0, 3).map((event, index) => (
@@ -2244,7 +2265,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Visiting NPCs Card */}
               {visitingNpcs.length > 0 && (
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg p-4 backdrop-blur-sm">
+                <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-purple-400 mb-3 uppercase tracking-wide">🚶 Market Visitors</h4>
                   <p className="text-sm text-amber-200/60 mb-3">NPCs currently shopping in the marketplace:</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -2370,7 +2391,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
           {/* Merchant count overlay on banner */}
           <div className="absolute bottom-2 right-3 z-20">
-            <div className="bg-slate-900/70 backdrop-blur-sm px-3 py-1 rounded-md border border-amber-700/30">
+            <div className={`bg-slate-900/70 ${isSafari() ? '' : 'backdrop-blur-sm'} px-3 py-1 rounded-md border border-amber-700/30`}>
               <p className="text-sm text-amber-400 font-semibold">
                 {merchantNpcs.length} Merchant{merchantNpcs.length !== 1 ? 's' : ''}
               </p>
@@ -2418,7 +2439,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         )}
         
         {/* Compact marketplace header */}
-        <div className="px-4 py-2 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 backdrop-blur-sm">
+        <div className={`px-4 py-2 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent">
@@ -2504,7 +2525,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     
     {/* Quest Offer Modal */}
     {showQuestOffer && (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
+      <div className={`fixed inset-0 bg-black/50 ${isSafari() ? '' : 'backdrop-blur-sm'} flex items-center justify-center z-[60]`}>
         <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-600/50 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-600/30 to-amber-600/20 flex items-center justify-center border border-amber-600/50">

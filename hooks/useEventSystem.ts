@@ -35,7 +35,6 @@ export function useEventSystem() {
     const syncInterval = setInterval(() => {
       const serviceMode = eventService.getGameMode();
       if (serviceMode && serviceMode !== currentMode) {
-        console.log('[EventSystem] Syncing mode from service:', serviceMode.name);
         setCurrentMode(serviceMode);
       }
     }, 500); // Check every 500ms

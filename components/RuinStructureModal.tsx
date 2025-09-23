@@ -1,7 +1,7 @@
 /**
  * components/RuinStructureModal.tsx - Beautiful ruins exploration modal
  */
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, ClimateType, PlayerCharacter, HistoricalEra } from '../types';
 import RuinBanner from './RuinBanner';
 import RoguelikeDisplayEnhanced from './RoguelikeDisplayEnhanced';
@@ -115,7 +115,21 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
     const [discoverableSources, setDiscoverableSources] = useState<PrimarySource[]>([]);
     const [discoveredSources, setDiscoveredSources] = useState<PrimarySource[]>([]);
     const [inRoguelike, setInRoguelike] = useState(false);
-    
+
+    // Callbacks to avoid inline functions
+    const handleTabChange = useCallback((tab: 'overview' | 'exploration' | 'artifacts') => {
+        setActiveTab(tab);
+    }, []);
+
+    const handleEnterRuins = useCallback(() => {
+        setInRoguelike(true);
+        onRoguelikeModeChange?.(true);
+    }, [onRoguelikeModeChange]);
+
+    const handleSearchPerimeter = useCallback(() => {
+        console.log('Search perimeter');
+    }, []);
+
     // Get ruin exploration progress
     const structureId = `${structure.location[0]}-${structure.location[1]}`;
     const ruinProgress = ruinProgressService.getProgress(structureId);
@@ -467,7 +481,7 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                         {/* Tab Navigation */}
                         <div className="flex gap-2 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-4 border border-amber-700/30">
                             <button
-                                onClick={() => setActiveTab('overview')}
+                                onClick={() => handleTabChange('overview')}
                                 className={`flex-1 px-4 py-2 rounded-md font-bold transition-all ${
                                     activeTab === 'overview' 
                                         ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg' 
@@ -477,7 +491,7 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                                 <FaLandmark className="inline mr-2" />Overview
                             </button>
                             <button
-                                onClick={() => setActiveTab('exploration')}
+                                onClick={() => handleTabChange('exploration')}
                                 className={`flex-1 px-4 py-2 rounded-md font-bold transition-all ${
                                     activeTab === 'exploration' 
                                         ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg' 
@@ -487,7 +501,7 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                                 <FaMap className="inline mr-2" />Exploration
                             </button>
                             <button
-                                onClick={() => setActiveTab('artifacts')}
+                                onClick={() => handleTabChange('artifacts')}
                                 className={`flex-1 px-4 py-2 rounded-md font-bold transition-all ${
                                     activeTab === 'artifacts' 
                                         ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg' 
@@ -567,16 +581,13 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                                     <div className="space-y-3">
                                         <button
                                             className="w-full px-4 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg transition-all shadow-lg hover:shadow-amber-500/25 font-bold flex items-center justify-center gap-2"
-                                            onClick={() => {
-                                                setInRoguelike(true);
-                                                onRoguelikeModeChange?.(true);
-                                            }}
+                                            onClick={handleEnterRuins}
                                         >
                                             <FaDungeon /> Enter the Ruins
                                         </button>
                                         <button
                                             className="w-full px-4 py-2.5 bg-slate-700/70 hover:bg-slate-600/70 text-slate-200 rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
-                                            onClick={() => console.log('Search perimeter')}
+                                            onClick={handleSearchPerimeter}
                                         >
                                             <FaMap /> Search Perimeter
                                         </button>

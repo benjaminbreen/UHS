@@ -673,6 +673,59 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
     return () => clearTimeout(t);
   }, []);
 
+  // Handler callbacks to avoid inline functions
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+  }, []);
+
+  const handleBuildingSelect = useCallback((idx: number) => {
+    setSelectedBuilding(idx);
+  }, []);
+
+  const handleRequestAudience = useCallback(() => {
+    console.log('Request audience');
+  }, []);
+
+  const handleEnterBuildingClick = useCallback(() => {
+    if (!onEnterSpecialMap || !governmentType) return;
+    const config: SpecialMapConfig = {
+      archetype: governmentType.archetype,
+      culturalZone: normalizeCulturalZone(culturalZone),
+      era,
+      region: mapData.region,
+      structureId: structure.id,
+      structureName: governmentType.name,
+      climate: mapData.climate,
+      districtType: (structure as any).districtType || governmentType.districtType,
+      specificYear: year,
+      authorityContext: governmentLeader && dominantFaction ? {
+        leader: {
+          name: governmentLeader.name,
+          title: governmentLeader.title,
+          age: governmentLeader.age,
+          gender: governmentLeader.gender,
+          stats: governmentLeader.stats,
+          appearance: governmentLeader.appearance,
+          portraitSeed: governmentLeader.portraitSeed,
+          wealthLevel: governmentLeader.wealthLevel,
+          culturalZone: governmentLeader.culturalZone,
+          personality: governmentLeader.personality,
+          socialContext: governmentLeader.socialContext,
+        },
+        faction: {
+          name: dominantFaction.name,
+          description: dominantFaction.description,
+          contextSentence: dominantFaction.context,
+          color: getFactionData(dominantFaction.name).color,
+        },
+        governmentType: governmentType.name,
+        districtType: governmentType.districtType || 'government',
+      } : undefined,
+    };
+    onEnterSpecialMap(config);
+    onClose();
+  }, [onEnterSpecialMap, governmentType, culturalZone, era, mapData.region, mapData.climate, structure.id, year, governmentLeader, dominantFaction, onClose]);
+
   const enterSelectedBuilding = useCallback(
     (index: number) => {
       if (!onEnterSpecialMap || !availableSpecialMaps[index]) return;

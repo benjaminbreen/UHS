@@ -48,7 +48,6 @@ export function registerCulturalGenerator(
     CULTURAL_GENERATORS[archetype] = {};
   }
   CULTURAL_GENERATORS[archetype][culture] = generator;
-  console.log(`[Registry] Registered ${culture} generator for ${archetype}`);
 }
 
 /**

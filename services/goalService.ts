@@ -58,10 +58,10 @@ export function generatePersonalGoal(npc: Partial<NpcEntity>, noise: ValueNoise)
     };
 
     if (npc.wealthLevel === 'poor' || npc.wealthLevel === 'modest') weights.ACQUIRE += 20;
-    if (npc.socialContext.ambition > 0.7) weights.ASCEND += 25;
-    if (npc.socialContext.privilege < 0.3) weights.ASCEND += 10;
+    if (npc.socialContext?.ambition > 0.7) weights.ASCEND += 25;
+    if (npc.socialContext?.privilege < 0.3) weights.ASCEND += 10;
     if (npc.class === 'ARTISAN' || (npc.stats.craftiness > 7)) weights.CREATE += 20;
-    if (npc.personality.openness > 0.8 || npc.socialContext.wanderlust > 0.7) weights.DISCOVER += 20;
+    if (npc.personality.openness > 0.8 || npc.socialContext?.wanderlust > 0.7) weights.DISCOVER += 20;
     if (npc.family && npc.family.length > 0) weights.PROTECT += 25;
     if (npc.personality.agreeableness < 0.2) weights.AVENGE += 15;
     if (npc.allegianceGroup && npc.allegianceGroup !== 'Neutral') weights.PROTECT += 10;

@@ -43,6 +43,11 @@ import { HighlightedText } from '../hooks/usePrimarySourceKeywords';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { parseDateString } from '../utils/dateUtils';
 import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
+import { generateSourceDiscussion, createSubmittedSource, createSourceDiscussion } from '../services/sourceDiscussionService';
+import { SubmittedSource, SourceDiscussion } from '../types/primarySource';
+import { FileText, Book } from 'lucide-react';
+import { addDiscussionToHistory } from '../services/sourceDiscussionPersistence';
+import { isSafari } from '../utils/safariUtils';
 
 // Styles for animations
 const styles = `
@@ -195,10 +200,14 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const [history, setHistory] = useState<DialogueEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [playerInput, setPlayerInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'taming' | 'medical' | 'household' | 'quest'>('dialogue');
+    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'taming' | 'medical' | 'household' | 'quest' | 'source'>('dialogue');
     const [useRealLanguage, setUseRealLanguage] = useState(false);
     const [reputationChange, setReputationChange] = useState<number | null>(null);
     const [npcWantsToLeave, setNpcWantsToLeave] = useState(false);
+
+    // Trade availability state
+    const [tradeEnabled, setTradeEnabled] = useState(false);
+    const [tradeStatusMessage, setTradeStatusMessage] = useState<string | null>(null);
     
     // Taming states
     const [tamingApproach, setTamingApproach] = useState('');
@@ -219,7 +228,31 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const [monologueClickCount, setMonologueClickCount] = useState(0);
     const [isLoadingMonologue, setIsLoadingMonologue] = useState(false);
     const monologueCache = useRef<Map<number, string>>(new Map());
+
+    // Source submission states
+    const [sourceTitle, setSourceTitle] = useState('');
+    const [sourceContent, setSourceContent] = useState('');
+    const [sourceNotes, setSourceNotes] = useState('');
+    const [sourceDiscussionResult, setSourceDiscussionResult] = useState<string | null>(null);
+    const [isSubmittingSource, setIsSubmittingSource] = useState(false);
+    const [sourceType, setSourceType] = useState<'text' | 'journal'>('text');
+    const [selectedJournalEntry, setSelectedJournalEntry] = useState<string | null>(null);
+    const [availableJournalEntries, setAvailableJournalEntries] = useState<any[]>([]);
+    const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
     
+    // Load journal entries from localStorage on mount
+    useEffect(() => {
+        const storedEntries = localStorage.getItem('journalEntries');
+        if (storedEntries) {
+            try {
+                const entries = JSON.parse(storedEntries);
+                setAvailableJournalEntries(entries);
+            } catch (error) {
+                console.error('Failed to load journal entries:', error);
+            }
+        }
+    }, []);
+
     // Derive current era and cultural zone for keyword highlighting
     const currentEra = useMemo(() => {
         const dateInfo = parseDateString(String(gameDate.year));
@@ -340,12 +373,21 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 
                 generateEncounterDialogue(currentTarget, currentTarget.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage)
                     .then(response => {
-                        const initialEntry: DialogueEntry = { 
-                            speaker: 'npc', 
-                            text: response.text, 
-                            timestamp: new Date() 
+                        const initialEntry: DialogueEntry = {
+                            speaker: 'npc',
+                            text: response.text,
+                            timestamp: new Date()
                         };
                         setHistory([initialEntry]);
+
+                        // Check initial trade availability
+                        if (response.tradeAvailable !== undefined) {
+                            setTradeEnabled(response.tradeAvailable);
+                            if (response.tradeAvailable) {
+                                console.log(`[Trade] ${target.name} is willing to trade from the start`);
+                            }
+                        }
+
                         setIsLoading(false);
                     })
                     .catch(err => {
@@ -679,6 +721,28 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 }, 2000);
             }
             
+            // Handle trade availability from response
+            if (response.tradeAvailable !== undefined) {
+                const wasEnabled = tradeEnabled;
+                setTradeEnabled(response.tradeAvailable);
+
+                // Show notification when trade status changes
+                if (!wasEnabled && response.tradeAvailable) {
+                    setTradeStatusMessage(`${target.name} is now willing to trade with you!`);
+                    showToast(`💰 ${target.name} is willing to trade!`, 'success');
+                    setTimeout(() => setTradeStatusMessage(null), 3000);
+                } else if (wasEnabled && !response.tradeAvailable) {
+                    setTradeStatusMessage(response.tradeReason || `${target.name} no longer wants to trade.`);
+                    showToast(`🚫 Trade unavailable: ${response.tradeReason || 'The NPC refuses'}`, 'error');
+                    setTimeout(() => setTradeStatusMessage(null), 3000);
+
+                    // If trade tab is active, switch back to dialogue
+                    if (activeTab === 'trade') {
+                        setActiveTab('dialogue');
+                    }
+                }
+            }
+
             // Check for crisis mentions
             if (mapData && isNpc(target)) {
                 const location = { x: target.x, y: target.y };
@@ -754,7 +818,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     return (
         <>
             <style>{styles}</style>
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-0 sm:p-2 md:p-4" onClick={handleClose}>
+            <div className={`fixed inset-0 ${isSafari() ? 'bg-black/80' : 'bg-black/60'} flex items-center justify-center z-50 p-0 sm:p-2 md:p-4`} onClick={handleClose}>
                 <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 sm:rounded-2xl max-w-5xl w-full h-[100vh] h-[100dvh] sm:h-[95vh] sm:h-[95dvh] md:h-[85vh] shadow-2xl transition-all duration-300 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                     
                     {/* Header with reputation and language */}
@@ -1004,15 +1068,35 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             Household
                                         </button>
                                     )}
-                                    <button 
-                                        onClick={() => setActiveTab(isNpc(target) ? 'trade' : 'taming')} 
-                                        className={`px-4 py-2.5 text-sm font-medium transition-all ${
+                                    <button
+                                        onClick={() => {
+                                            if (isNpc(target)) {
+                                                if (tradeEnabled) {
+                                                    setActiveTab('trade');
+                                                } else {
+                                                    showToast('💰 This NPC is not willing to trade yet. Try talking to them!', 'info');
+                                                }
+                                            } else {
+                                                setActiveTab('taming');
+                                            }
+                                        }}
+                                        className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
                                             activeTab === 'trade' || activeTab === 'taming'
-                                                ? 'text-blue-400 border-b-2 border-blue-400' 
-                                                : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                                ? 'text-blue-400 border-b-2 border-blue-400'
+                                                : isNpc(target) && !tradeEnabled
+                                                    ? 'text-slate-600 hover:text-slate-500 border-b-2 border-transparent cursor-not-allowed'
+                                                    : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
                                         }`}
+                                        title={isNpc(target) && !tradeEnabled ? 'Trade not available yet' : undefined}
                                     >
-                                        {isNpc(target) ? 'Trade' : 'Tame'}
+                                        {isNpc(target) ? (
+                                            <>
+                                                Trade
+                                                {!tradeEnabled && (
+                                                    <span className="ml-1 text-xs text-slate-600">🔒</span>
+                                                )}
+                                            </>
+                                        ) : 'Tame'}
                                     </button>
                                     {(questOffer?.hasQuest || relevantQuests.length > 0) && (
                                         <button
@@ -1025,6 +1109,20 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         >
                                             <span className="text-base">⚡</span>
                                             Quests
+                                        </button>
+                                    )}
+                                    {isNpc(target) && (
+                                        <button
+                                            onClick={() => setActiveTab('source')}
+                                            className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                                activeTab === 'source'
+                                                    ? 'text-purple-400 border-b-2 border-purple-400'
+                                                    : 'text-purple-500 hover:text-purple-400 border-b-2 border-transparent'
+                                            }`}
+                                        >
+                                            <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                                            <span className="hidden sm:inline">Present Document</span>
+                                            <span className="sm:hidden">Document</span>
                                         </button>
                                     )}
 
@@ -1113,13 +1211,26 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 
                                 {/* Trade tab */}
                                 {activeTab === 'trade' && isNpc(target) && mapData && (
-                                    <NpcTradeInterface 
-                                        npc={target}
-                                        playerCharacter={playerCharacter}
-                                        mapData={mapData}
-                                        onClose={() => setActiveTab('dialogue')}
-                                        onTradeComplete={() => {}}
-                                    />
+                                    tradeEnabled ? (
+                                        <NpcTradeInterface
+                                            npc={target}
+                                            playerCharacter={playerCharacter}
+                                            mapData={mapData}
+                                            onClose={() => setActiveTab('dialogue')}
+                                            onTradeComplete={() => {}}
+                                        />
+                                    ) : (
+                                        <div className="p-4 text-center text-slate-400">
+                                            <p className="text-lg mb-2">Trade Not Available</p>
+                                            <p className="text-sm">{tradeStatusMessage || 'This NPC is not willing to trade at the moment.'}</p>
+                                            <button
+                                                onClick={() => setActiveTab('dialogue')}
+                                                className="ff-action-button mt-4"
+                                            >
+                                                Return to Dialogue
+                                            </button>
+                                        </div>
+                                    )
                                 )}
                                 
                                 {/* Taming tab */}
@@ -1297,14 +1408,295 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 
                                 {/* Quest tab */}
                                 {activeTab === 'quest' && isNpc(target) && (
-                                    <NpcQuestPanel 
+                                    <NpcQuestPanel
                                         npc={target}
                                         playerCharacter={playerCharacter}
                                         mapData={mapData}
                                         onQuestAccepted={() => {}}
                                     />
                                 )}
-                                
+
+                                {/* Source/Document tab */}
+                                {activeTab === 'source' && isNpc(target) && (
+                                    <div className="flex flex-col h-full p-4 sm:p-6 space-y-4 animate-slide-up">
+                                        {/* Header */}
+                                        <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-full flex items-center justify-center">
+                                                    <Book className="w-6 h-6 text-purple-400" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-purple-400">
+                                                        Present a Document
+                                                    </h3>
+                                                    <p className="text-xs text-slate-400">
+                                                        Share a text for {targetName} to discuss
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Source submission form */}
+                                        {!sourceDiscussionResult ? (
+                                            <div className="space-y-4">
+                                                {/* Source type toggle */}
+                                                <div className="flex gap-2 p-1 bg-slate-800/40 rounded-lg">
+                                                    <button
+                                                        onClick={() => setSourceType('text')}
+                                                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                                                            sourceType === 'text'
+                                                                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                                                                : 'text-slate-400 hover:text-slate-300'
+                                                        }`}
+                                                    >
+                                                        <FileText className="w-4 h-4 inline mr-2" />
+                                                        New Text
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSourceType('journal')}
+                                                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                                                            sourceType === 'journal'
+                                                                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                                                                : 'text-slate-400 hover:text-slate-300'
+                                                        }`}
+                                                    >
+                                                        <Book className="w-4 h-4 inline mr-2" />
+                                                        Journal Entry
+                                                    </button>
+                                                </div>
+
+                                                {sourceType === 'text' ? (
+                                                    <>
+                                                        {/* Title input */}
+                                                        <div>
+                                                            <label className="text-sm text-slate-400 mb-1 block">Document Title</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g., 'Magna Carta' or 'Ancient Scroll'"
+                                                                value={sourceTitle}
+                                                                onChange={(e) => setSourceTitle(e.target.value)}
+                                                                className="w-full px-3 py-2 text-sm text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400"
+                                                            />
+                                                        </div>
+
+                                                        {/* Content textarea */}
+                                                        <div>
+                                                            <label className="text-sm text-slate-400 mb-1 block">
+                                                                Document Text (paste or type)
+                                                            </label>
+                                                            <textarea
+                                                                placeholder="Paste the text you want to discuss..."
+                                                                value={sourceContent}
+                                                                onChange={(e) => setSourceContent(e.target.value)}
+                                                                rows={8}
+                                                                className="w-full px-3 py-2 text-sm text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400 resize-none"
+                                                            />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    /* Journal entry selection */
+                                                    <div>
+                                                        <label className="text-sm text-slate-400 mb-1 block">Select Journal Entry</label>
+                                                        {availableJournalEntries.length > 0 ? (
+                                                            <select
+                                                                value={selectedJournalEntry || ''}
+                                                                onChange={(e) => {
+                                                                    setSelectedJournalEntry(e.target.value);
+                                                                    const entry = availableJournalEntries.find(j => j.id === e.target.value);
+                                                                    if (entry) {
+                                                                        setSourceTitle(entry.title || `Journal Entry - ${entry.date}`);
+                                                                        setSourceContent(entry.content);
+                                                                    }
+                                                                }}
+                                                                className="w-full px-3 py-2 text-sm text-white bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400"
+                                                            >
+                                                                <option value="">Choose an entry...</option>
+                                                                {availableJournalEntries.map(entry => (
+                                                                    <option key={entry.id} value={entry.id}>
+                                                                        {entry.title || `${entry.date} - ${entry.location}`}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        ) : (
+                                                            <div className="text-sm text-slate-500 italic p-4 bg-slate-800/40 rounded-lg">
+                                                                No journal entries yet. Write in your journal first!
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Notes input - shown for both types */}
+                                                <div>
+                                                    <label className="text-sm text-slate-400 mb-1 block">
+                                                        Your Notes (optional)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Why you want to discuss this..."
+                                                        value={sourceNotes}
+                                                        onChange={(e) => setSourceNotes(e.target.value)}
+                                                        className="w-full px-3 py-2 text-sm text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400"
+                                                    />
+                                                </div>
+
+                                                {/* Submit button */}
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!sourceContent.trim()) return;
+
+                                                        setIsSubmittingSource(true);
+                                                        try {
+                                                            const source = createSubmittedSource(
+                                                                sourceTitle || 'Untitled Document',
+                                                                sourceContent,
+                                                                sourceType === 'journal' ? 'journal_entry' : 'pasted_text',
+                                                                sourceNotes,
+                                                                currentEra,
+                                                                culturalZone
+                                                            );
+
+                                                            const response = await generateSourceDiscussion(
+                                                                source,
+                                                                target,
+                                                                sourceNotes,
+                                                                mapData?.area || 'unknown',
+                                                                gameDate.year,
+                                                                playerCharacter,
+                                                                mapData
+                                                            );
+
+                                                            setSourceDiscussionResult(response);
+
+                                                            // Generate follow-up questions for multi-turn conversation
+                                                            const questions = [
+                                                                "What do you think is the most important part?",
+                                                                "How does this relate to our current situation?",
+                                                                "Have you seen anything similar before?"
+                                                            ];
+                                                            setFollowUpQuestions(questions);
+
+                                                            // Add to dialogue history
+                                                            const newHistory: DialogueEntry[] = [
+                                                                ...history,
+                                                                {
+                                                                    speaker: 'player',
+                                                                    text: `[Presents document: "${sourceTitle || 'Untitled Document'}"]`,
+                                                                    timestamp: Date.now()
+                                                                },
+                                                                {
+                                                                    speaker: 'npc',
+                                                                    text: response,
+                                                                    timestamp: Date.now()
+                                                                }
+                                                            ];
+                                                            setHistory(newHistory);
+                                                        } catch (error) {
+                                                            console.error('[EncounterModal] Failed to discuss source:', error);
+                                                            console.error('[EncounterModal] Error details:', {
+                                                                error,
+                                                                sourceContent: sourceContent?.slice(0, 100),
+                                                                target: target?.name,
+                                                                mapData: mapData?.area,
+                                                                playerCharacter: playerCharacter?.name
+                                                            });
+                                                            // Show more descriptive error message
+                                                            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                                                            setSourceDiscussionResult(`The document is difficult to understand... (Error: ${errorMessage})`);
+                                                        } finally {
+                                                            setIsSubmittingSource(false);
+                                                        }
+                                                    }}
+                                                    disabled={!sourceContent.trim() || isSubmittingSource}
+                                                    className="w-full ff-action-button"
+                                                >
+                                                    {isSubmittingSource ? 'Presenting...' : 'Present Document'}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            /* Discussion result */
+                                            <div className="space-y-4">
+                                                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                                                    <div className="flex items-start gap-3 mb-3">
+                                                        <span className="text-2xl">{target.emoji || '👤'}</span>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-medium text-amber-400 mb-2">
+                                                                {targetName} responds:
+                                                            </p>
+                                                            <p className="text-slate-200 leading-relaxed italic">
+                                                                "{sourceDiscussionResult}"
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Follow-up questions for multi-turn conversation */}
+                                                {followUpQuestions.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <p className="text-xs text-slate-400">Ask a follow-up question:</p>
+                                                        {followUpQuestions.map((question, index) => (
+                                                            <button
+                                                                key={index}
+                                                                onClick={async () => {
+                                                                    setIsSubmittingSource(true);
+                                                                    try {
+                                                                        // Generate follow-up response
+                                                                        const followUpResponse = await generateSourceDiscussion(
+                                                                            createSubmittedSource(
+                                                                                sourceTitle,
+                                                                                sourceContent,
+                                                                                sourceType === 'journal' ? 'journal_entry' : 'pasted_text',
+                                                                                question,
+                                                                                currentEra,
+                                                                                culturalZone
+                                                                            ),
+                                                                            target,
+                                                                            question,
+                                                                            mapData?.area || 'unknown',
+                                                                            gameDate.year,
+                                                                            playerCharacter,
+                                                                            mapData
+                                                                        );
+
+                                                                        // Append to existing discussion
+                                                                        setSourceDiscussionResult(prev =>
+                                                                            `${prev}\n\nYou asked: "${question}"\n\n${targetName} replies: "${followUpResponse}"`
+                                                                        );
+
+                                                                        // Clear follow-up questions after asking one
+                                                                        setFollowUpQuestions([]);
+                                                                    } catch (error) {
+                                                                        console.error('Failed to get follow-up response:', error);
+                                                                    } finally {
+                                                                        setIsSubmittingSource(false);
+                                                                    }
+                                                                }}
+                                                                disabled={isSubmittingSource}
+                                                                className="w-full text-left px-3 py-2 text-sm text-slate-300 bg-slate-800/40 border border-slate-700 rounded-lg hover:bg-slate-700/40 hover:text-purple-400 hover:border-purple-500/50 transition-all"
+                                                            >
+                                                                → {question}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    onClick={() => {
+                                                        setSourceDiscussionResult(null);
+                                                        setSourceTitle('');
+                                                        setSourceContent('');
+                                                        setSourceNotes('');
+                                                        setFollowUpQuestions([]);
+                                                        setSelectedJournalEntry(null);
+                                                    }}
+                                                    className="w-full px-4 py-2 text-sm text-purple-400 border border-purple-500/50 rounded-lg hover:bg-purple-500/10 transition-colors"
+                                                >
+                                                    Present Another Document
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* History tab */}
                                 {activeTab === 'history' && isNpc(target) && (
                                     <div className="text-slate-300">
@@ -1440,7 +1832,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 
                 {/* Internal Monologue Modal */}
                 {showMonologue && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowMonologue(false)}>
+                    <div className={`fixed inset-0 ${isSafari() ? 'bg-black/80' : 'bg-black/50'} flex items-center justify-center z-[60] p-4`} onClick={() => setShowMonologue(false)}>
                         <div className="bg-slate-900 border border-amber-500/50 rounded-xl p-6 max-w-md animate-slide-up" onClick={e => e.stopPropagation()}>
                             <h3 className="text-amber-400 font-semibold mb-3 text-center">Inner Thoughts</h3>
                             {isLoadingMonologue ? (

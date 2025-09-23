@@ -71,7 +71,14 @@ export const getNightOverlayIntensity = (gameTime?: { hours: number; minutes: nu
 
 // Get CSS filter for nighttime tinting effect (adjusts based on intensity)
 export const getNightFilter = (intensity: number = 1): string => {
-  // Scale the effect based on intensity (0 = day, 1 = full night)
+  // Safari optimization: Use simpler filters for better performance
+  if (typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+    // Safari: Use only brightness filter to avoid performance issues
+    const brightness = 1 - (0.3 * intensity); // Slightly less aggressive for Safari
+    return `brightness(${brightness})`;
+  }
+
+  // Other browsers: Full filter chain
   const brightness = 1 - (0.4 * intensity); // 1.0 at day, 0.6 at night
   const contrast = 1 + (0.1 * intensity);   // 1.0 at day, 1.1 at night
   const saturate = 1 - (0.1 * intensity);   // 1.0 at day, 0.9 at night

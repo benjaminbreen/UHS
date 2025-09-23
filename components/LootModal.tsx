@@ -1,7 +1,7 @@
 /**
  * components/LootModal.tsx - A modal for looting defeated NPCs.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Item, NpcEntity } from '../types';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 
@@ -21,29 +21,37 @@ const LootModal: React.FC<LootModalProps> = ({ opponent, onClose, onTakeItem, on
     });
     const [availableCoins, setAvailableCoins] = useState(opponent.currency || 0);
 
-    const handleTake = (itemToTake: Item) => {
+    const handleTake = useCallback((itemToTake: Item) => {
         onTakeItem(itemToTake, opponent.id);
         setLootedItems(prev => [...prev, itemToTake]);
         setAvailableItems(prev => prev.filter(item => item.id !== itemToTake.id));
-    };
+    }, [onTakeItem, opponent.id]);
 
-    const handleTakeCoins = () => {
+    const handleTakeCoins = useCallback(() => {
         if (availableCoins > 0) {
             onTakeCoins(availableCoins, opponent.id);
             setAvailableCoins(0);
         }
-    };
+    }, [availableCoins, onTakeCoins, opponent.id]);
 
-    const handleTakeAll = () => {
+    const handleTakeAll = useCallback(() => {
         availableItems.forEach(item => onTakeItem(item, opponent.id));
         if (availableCoins > 0) handleTakeCoins();
         setLootedItems(prev => [...prev, ...availableItems]);
         setAvailableItems([]);
-    };
+    }, [availableItems, availableCoins, handleTakeCoins, onTakeItem, opponent.id]);
+
+    const handleClose = useCallback(() => {
+        onClose(lootedItems);
+    }, [onClose, lootedItems]);
+
+    const stopPropagation = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+    }, []);
     
     return (
-        <div className="modal-overlay" onClick={() => onClose(lootedItems)}>
-            <div className="ff-panel w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={handleClose}>
+            <div className="ff-panel w-full max-w-lg p-6" onClick={stopPropagation}>
                 <h3 className="text-center text-2xl font-press-start mb-4 text-amber-400">
                     Looting {opponent.name}
                 </h3>
@@ -103,7 +111,7 @@ const LootModal: React.FC<LootModalProps> = ({ opponent, onClose, onTakeItem, on
                     </button>
                     <button
                         className="ff-action-button flex-1"
-                        onClick={() => onClose(lootedItems)}
+                        onClick={handleClose}
                     >
                         Finish Looting
                     </button>

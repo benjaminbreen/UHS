@@ -7,7 +7,7 @@ import { useGame } from '../contexts/GameContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { useUI } from '../contexts/UIContext';
-import { getDaysInMonth, parseDateString, formatDateWithSeason } from '../utils/dateUtils';
+import { getDaysInMonth, parseDateString, formatDateWithSeason, getSeasonFromDate } from '../utils/dateUtils';
 import { getNextMapArea } from '../utils/geographyUtils';
 import { calculateAnimalUpdate, calculateNpcUpdate } from '../services/npcAIService';
 import { crossMapNpcService } from '../services/crossMapNpcService';
@@ -359,9 +359,10 @@ const useCoreLoops = (
 
                 // Add day passing log entry
                 const newDate = { day, month, year };
+                const currentSeason = getSeasonFromDate(newDate);
                 addGameLogEntry(LogService.createMapEntryLog(
                   'time',
-                  `A new day begins: ${formatDateWithSeason(newDate, season)}`,
+                  `A new day begins: ${formatDateWithSeason(newDate, currentSeason)}`,
                   newDate,
                   '00:00'
                 ));
@@ -389,6 +390,9 @@ const useCoreLoops = (
   useEffect(() => {
     const MIN_ANIMALS = 5;
     const AI_UPDATE_RADIUS = 30;
+    // Reduce animal AI update frequency on Safari
+    const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const ANIMAL_TICK_INTERVAL = isSafari ? 3000 : 1500; // Safari: 3s, Others: 1.5s
 
     const tickInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter) return;
@@ -429,7 +433,7 @@ const useCoreLoops = (
           }
         }));
       }
-    }, 2000);
+    }, ANIMAL_TICK_INTERVAL);
 
     return () => clearInterval(tickInterval);
   }, [mapData, playerCharacter, controlledIconX, controlledIconY, viewMode, animalSpawnNoise, isAnyModalOpen, currentZone]); // Remove setAnimals to prevent recreation
@@ -438,7 +442,9 @@ const useCoreLoops = (
   useEffect(() => {
     const AI_UPDATE_RADIUS = 30;
     const UPDATE_BUCKETS = 4; // Spread NPCs across 4 update buckets
-    const TICK_INTERVAL = 1000; // Check every 1000ms (1x per second)
+    // Reduce update frequency on Safari for better performance
+    const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const TICK_INTERVAL = isSafari ? 2000 : 1000; // Safari: 2s, Others: 1s
 
     const tickInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter) return;
@@ -463,7 +469,9 @@ const useCoreLoops = (
 
             // Only update NPCs within range
             if (Math.hypot(npc.x - controlledIconX, npc.y - controlledIconY) <= AI_UPDATE_RADIUS) {
-              const updates = calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, draft);
+              // Don't pass the draft directly - it's a revocable proxy
+              // Pass undefined instead since calculateNpcUpdate can handle it
+              const updates = calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, undefined);
 
               // Check if NPC is leaving the map - BUT ONLY ON STANDARD MAPS, NOT SPECIAL MAPS
               if (updates.isLeavingMap && updates.mapExitDirection && mapData.mapType !== 'special') {
@@ -1138,12 +1146,17 @@ const useCoreLoops = (
       return;
     }
 
-    const BORDER_THRESHOLD = 2;
-    if (controlledIconX < BORDER_THRESHOLD) setContextualMessage(`You are near the western border.`);
-    else if (controlledIconX >= MAP_WIDTH_TILES - BORDER_THRESHOLD) setContextualMessage(`You are near the eastern border.`);
-    else if (controlledIconY < BORDER_THRESHOLD) setContextualMessage(`You are near the northern border.`);
-    else if (controlledIconY >= MAP_HEIGHT_TILES - BORDER_THRESHOLD) setContextualMessage(`You are near the southern border.`);
-    else setContextualMessage(null);
+    // Skip border detection on Safari for performance
+    if (typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+      setContextualMessage(null);
+    } else {
+      const BORDER_THRESHOLD = 2;
+      if (controlledIconX < BORDER_THRESHOLD) setContextualMessage(`You are near the western border.`);
+      else if (controlledIconX >= MAP_WIDTH_TILES - BORDER_THRESHOLD) setContextualMessage(`You are near the eastern border.`);
+      else if (controlledIconY < BORDER_THRESHOLD) setContextualMessage(`You are near the northern border.`);
+      else if (controlledIconY >= MAP_HEIGHT_TILES - BORDER_THRESHOLD) setContextualMessage(`You are near the southern border.`);
+      else setContextualMessage(null);
+    }
   }, [controlledIconX, controlledIconY, viewMode, visibleAnimals, npcs, mapData, isIconMoving, moveCount])
 
   // Keyboard controls
@@ -1240,8 +1253,20 @@ const useCoreLoops = (
  // Movement loop — simplified and consistent
 useEffect(() => {
   const BASE_MOVE_ANIM_MS = 250; // Base movement interval
+  // Reduce animation frequency on Safari for better performance
+  const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  let frameSkipCounter = 0;
 
   const moveLoop = (currentTime: number) => {
+    // Skip frames on Safari to reduce load (run at 30fps instead of 60fps)
+    if (isSafari) {
+      frameSkipCounter++;
+      if (frameSkipCounter % 2 !== 0) {
+        moveLoopId.current = requestAnimationFrame(moveLoop);
+        return;
+      }
+    }
+
     moveLoopId.current = requestAnimationFrame(moveLoop);
 
     // Calculate disease-based movement penalty
@@ -1352,6 +1377,8 @@ useEffect(() => {
             summary: `Travelled west from ${localArea || 'current area'} to ${destination}`,
             details: undefined,
           });
+          // Advance time by 1 hour for map transition
+          setGameTimeHours(prevHours => (prevHours + 1) % 24);
           handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY);
           return;
         }
@@ -1370,6 +1397,8 @@ useEffect(() => {
             summary: `Travelled east from ${localArea || 'current area'} to ${destination}`,
             details: undefined,
           });
+          // Advance time by 1 hour for map transition
+          setGameTimeHours(prevHours => (prevHours + 1) % 24);
           handleMapTransition('E', 0, controlledIconY);
           return;
         }
@@ -1388,6 +1417,8 @@ useEffect(() => {
             summary: `Travelled north from ${localArea || 'current area'} to ${destination}`,
             details: undefined,
           });
+          // Advance time by 1 hour for map transition
+          setGameTimeHours(prevHours => (prevHours + 1) % 24);
           handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1);
           return;
         }
@@ -1406,6 +1437,8 @@ useEffect(() => {
             summary: `Travelled south from ${localArea || 'current area'} to ${destination}`,
             details: undefined,
           });
+          // Advance time by 1 hour for map transition
+          setGameTimeHours(prevHours => (prevHours + 1) % 24);
           handleMapTransition('S', controlledIconX, 0);
           return;
         }
@@ -1443,6 +1476,16 @@ useEffect(() => {
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
         nextMoveAllowed.current = currentTime + MOVE_ANIM_MS;
+
+        // Advance game time by 5 minutes for each movement
+        setGameTimeMinutes(prev => {
+          const newMinutes = (prev + 5) % 60;
+          if (newMinutes < prev) {
+            // We wrapped around, increment the hour
+            setGameTimeHours(prevHours => (prevHours + 1) % 24);
+          }
+          return newMinutes;
+        });
 
         // Log map entry for every 5th movement to avoid spam
         if (moveCount % 5 === 0) {
@@ -1575,6 +1618,16 @@ useEffect(() => {
 
     // commit move and set next allowed move time (with disease penalty)
     nextMoveAllowed.current = currentTime + MOVE_ANIM_MS;
+
+    // Advance game time by 5 minutes for each movement
+    setGameTimeMinutes(prev => {
+      const newMinutes = (prev + 5) % 60;
+      if (newMinutes < prev) {
+        // We wrapped around, increment the hour
+        setGameTimeHours(prevHours => (prevHours + 1) % 24);
+      }
+      return newMinutes;
+    });
 
     if (playerMode === 'ship') {
       if (targetTile.isLand && targetTile.biome !== BiomeType.ESTUARY) {

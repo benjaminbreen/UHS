@@ -230,8 +230,9 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
       className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/30"
     >
       <div className="mb-3">
-        <h3 className="text-amber-400 font-bold text-sm mb-1">Your Location</h3>
-        <p className="text-xs text-slate-400">{region}</p>
+        <h3 className="text-amber-400 font-bold text-sm">
+          Your Location: <span className="text-emerald-400 font-medium ml-1">{region}</span>
+        </h3>
       </div>
 
       <div className="relative h-48 rounded-lg overflow-hidden bg-slate-900/50">
@@ -246,7 +247,7 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
             height: "100%"
           }}
         >
-          <ZoomableGroup disablePanning={true} disableZooming={true}>
+          <ZoomableGroup disablePanning disableZooming>
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => (
@@ -345,8 +346,7 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
         </div>
       </div>
 
-      <div className="mt-3 flex justify-between text-xs text-slate-400">
-        <span>Region: <span className="text-amber-400">{region}</span></span>
+      <div className="mt-3 text-xs text-slate-400 text-center">
         <span>Climate: <span className="text-amber-400">
           {getClimateForRegion(region)}
         </span></span>

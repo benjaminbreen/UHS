@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link } from 'lucide-react';
+import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
+import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link, ChevronDown, ChevronUp } from 'lucide-react';
+import ProceduralPortrait from './portraits/ProceduralPortrait';
 import { GameDate, HistoricalEra, CulturalZone } from '../types';
 import { PlayerCharacter } from '../types/playerCharacter';
+import { generateAttributeSentence } from '../services/characterGenerator';
 import { GameMode } from '../types/eventTypes';
 import { HISTORY_GUIDE_DATA } from '../constants/gameData/historyguide';
 import { mapLocationToCulture } from '../utils/mapUtils';
@@ -11,9 +13,20 @@ import { URLGameConfig } from '../services/urlConfigService';
 import { SeedManager } from '../services/seedService';
 import { shareableStateService } from '../services/shareableStateService';
 import { findZoneForMapArea } from '../services/zoneDetectionService';
-import PopulationChart from './charts/PopulationChart';
-import MiniLocationMap from './charts/MiniLocationMap';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
+import { dialectContinuumService } from '../services/dialectContinuumService';
+
+// Lazy load heavy chart components
+const PopulationChart = lazy(() => import('./charts/PopulationChart'));
+const MiniLocationMap = lazy(() => import('./charts/MiniLocationMap'));
+
+// Loading skeleton component for charts
+const ChartSkeleton = ({ height = "200px" }: { height?: string }) => (
+    <div
+        className="animate-pulse bg-gray-700 rounded-lg"
+        style={{ height }}
+    />
+);
 
 interface InitialScenarioModalProps {
     isOpen: boolean;
@@ -44,7 +57,8 @@ function getModeDescription(
                 MENA: "Endure the desert's trials in the shadow of great Persian and Babylonian empires.",
                 SOUTH_ASIAN: "Weather monsoons and tigers in the jungles between emerging Hindu kingdoms.",
                 SUB_SAHARAN_AFRICAN: "Face the challenges of the African savanna as great migrations reshape the continent.",
-                NORTH_AMERICAN_PRE_COLUMBIAN: "Survive the untamed wilderness of ancient America, where small bands hunt mammoth and gather wild foods.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Survive in pre-Columbian North America.",
+                NORTH_AMERICAN_COLONIAL: "Do your best to survive North America after the Columbian Exchange.",
                 SOUTH_AMERICAN: "Navigate the dangers of the Andes and Amazon in an age of emerging civilizations.",
                 OCEANIA: "Master the challenges of island life as Polynesian navigators spread across the Pacific."
             },
@@ -55,6 +69,7 @@ function getModeDescription(
                 SOUTH_ASIAN: "Navigate the complex politics and dangers of medieval India's warring sultanates.",
                 SUB_SAHARAN_AFRICAN: "Survive in the great kingdoms of medieval Africa, where trade and warfare shape daily life.",
                 NORTH_AMERICAN_PRE_COLUMBIAN: "Face the challenges of life in the great mound-building civilizations of North America.",
+                NORTH_AMERICAN_COLONIAL: "Survive in the developing medieval colonial territories of North America.",
                 SOUTH_AMERICAN: "Endure the trials of life in the shadow of emerging Inca power.",
                 OCEANIA: "Master survival in the sophisticated chiefdoms of Polynesia and Australia."
             },
@@ -65,6 +80,7 @@ function getModeDescription(
                 SOUTH_ASIAN: "Survive in Mughal India as European trading companies establish their first footholds.",
                 SUB_SAHARAN_AFRICAN: "Face the disruptions of the early slave trade and European coastal settlements.",
                 NORTH_AMERICAN_PRE_COLUMBIAN: "Survive the catastrophic arrival of European diseases and colonization.",
+                NORTH_AMERICAN_COLONIAL: "Endure life in the harsh early colonial settlements of North America.",
                 SOUTH_AMERICAN: "Endure the collapse of the Inca Empire and Spanish colonial brutality.",
                 OCEANIA: "Face the first encounters with European explorers and their devastating diseases."
             },
@@ -75,6 +91,7 @@ function getModeDescription(
                 SOUTH_ASIAN: "Survive under British colonial rule, where famines and exploitation devastate communities.",
                 SUB_SAHARAN_AFRICAN: "Face the brutal realities of the 'Scramble for Africa' and colonial conquest.",
                 NORTH_AMERICAN_PRE_COLUMBIAN: "Survive the Indian Wars and forced relocation to reservations.",
+                NORTH_AMERICAN_COLONIAL: "Navigate industrial colonial expansion and westward migration in North America.",
                 SOUTH_AMERICAN: "Navigate the chaos of independence wars and unstable new republics.",
                 OCEANIA: "Endure European colonization and the destruction of traditional ways of life."
             },
@@ -85,6 +102,7 @@ function getModeDescription(
                 SOUTH_ASIAN: "Survive partition, independence movements, and the end of colonial rule.",
                 SUB_SAHARAN_AFRICAN: "Face the challenges of decolonization and building new nations.",
                 NORTH_AMERICAN_PRE_COLUMBIAN: "Navigate the modern struggle for indigenous rights and cultural survival.",
+                NORTH_AMERICAN_COLONIAL: "Survive in the modern North American society built on colonial foundations.",
                 SOUTH_AMERICAN: "Survive political instability, military coups, and economic crises.",
                 OCEANIA: "Face the challenges of independence and preserving indigenous cultures."
             }
@@ -182,13 +200,104 @@ function getModeContextDescription(mode: GameMode, character: PlayerCharacter): 
 function formatEra(era: HistoricalEra): string {
     const eraNames: Record<HistoricalEra, string> = {
         [HistoricalEra.PREHISTORY]: "Prehistoric Times",
-        [HistoricalEra.ANTIQUITY]: "Ancient World", 
+        [HistoricalEra.ANTIQUITY]: "Ancient World",
         [HistoricalEra.MEDIEVAL]: "Medieval Period",
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: "Early Modern",
         [HistoricalEra.INDUSTRIAL_ERA]: "Industrial Age",
         [HistoricalEra.MODERN_ERA]: "Modern Era"
     };
     return eraNames[era] || era;
+}
+
+function formatYear(year: number): string {
+    if (year < 0) {
+        return `${Math.abs(year)} BCE`;
+    }
+    return `${year} CE`;
+}
+
+function extractPersonalityTrait(character: PlayerCharacter): string {
+    // Prioritize religion if it exists
+    if (character.religion && character.religion !== '') {
+        return `Follows ${character.religion}.`;
+    }
+
+    // Extract from backstory if available
+    const backstory = character.backstory;
+    if (!backstory) return "A person of many talents and hidden depths.";
+
+    // Extract sentences that describe personality traits
+    const sentences = backstory.split('.').map(s => s.trim()).filter(s => s.length > 0);
+
+    // Look for sentences with personality indicators
+    const personalityIndicators = ['personality', 'character', 'temperament', 'nature', 'known for', 'reputation', 'believes', 'faith'];
+    const traitSentence = sentences.find(sentence =>
+        personalityIndicators.some(indicator => sentence.toLowerCase().includes(indicator))
+    );
+
+    if (traitSentence) {
+        return traitSentence.trim() + '.';
+    }
+
+    // Fallback: return the second sentence if it exists (often contains character traits)
+    if (sentences.length > 1) {
+        return sentences[1].trim() + '.';
+    }
+
+    // Final fallback
+    return "A person of many talents and hidden depths.";
+}
+
+// Game mode color configuration
+const GAME_MODE_COLORS = {
+    survival: { bg: 'from-red-600 to-red-700', hover: 'from-red-700 to-red-800', icon: 'text-red-400', headerBg: 'from-red-500 to-red-600' },
+    exploration: { bg: 'from-blue-600 to-blue-700', hover: 'from-blue-700 to-blue-800', icon: 'text-blue-400', headerBg: 'from-blue-500 to-blue-600' },
+    commerce: { bg: 'from-yellow-600 to-yellow-700', hover: 'from-yellow-700 to-yellow-800', icon: 'text-yellow-400', headerBg: 'from-yellow-500 to-yellow-600' },
+    scholarship: { bg: 'from-purple-600 to-purple-700', hover: 'from-purple-700 to-purple-800', icon: 'text-purple-400', headerBg: 'from-purple-500 to-purple-600' },
+    leadership: { bg: 'from-amber-600 to-amber-700', hover: 'from-amber-700 to-amber-800', icon: 'text-amber-400', headerBg: 'from-amber-500 to-amber-600' },
+    livelihood: { bg: 'from-green-600 to-green-700', hover: 'from-green-700 to-green-800', icon: 'text-green-400', headerBg: 'from-green-500 to-green-600' },
+    diplomacy: { bg: 'from-cyan-600 to-cyan-700', hover: 'from-cyan-700 to-cyan-800', icon: 'text-cyan-400', headerBg: 'from-cyan-500 to-cyan-600' },
+    legal: { bg: 'from-indigo-600 to-indigo-700', hover: 'from-indigo-700 to-indigo-800', icon: 'text-indigo-400', headerBg: 'from-indigo-500 to-indigo-600' }
+};
+
+// Season color configuration
+function getSeasonColors(season: string): string {
+    switch (season.toLowerCase()) {
+        case 'winter': return 'text-blue-800 dark:text-blue-300';
+        case 'spring': return 'text-green-600 dark:text-green-400';
+        case 'summer': return 'bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent';
+        case 'autumn': case 'fall': return 'bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent';
+        default: return 'text-slate-600 dark:text-slate-300';
+    }
+}
+
+function getPrizedPossession(playerCharacter: PlayerCharacter): string {
+    const equippedItems = playerCharacter.equippedItems || {};
+    const equippedValues = Object.values(equippedItems).filter(Boolean);
+
+    if (equippedValues.length === 0) return "A small personal memento";
+
+    // Prioritize high-value or unique equipped items
+    const valuableEquipped = equippedValues.filter(item =>
+        item && (
+            (item.value && item.value > 20) ||
+            item.quality === 'excellent' ||
+            item.category === 'jewelry' ||
+            item.category === 'weapon'
+        )
+    );
+
+    if (valuableEquipped.length > 0) {
+        // Use character name and first letter as stable seed
+        const seed = playerCharacter.name.length + playerCharacter.name.charCodeAt(0);
+        const item = valuableEquipped[seed % valuableEquipped.length];
+        return item.name;
+    }
+
+    // Fallback to any equipped item, using stable seed
+    const seed = playerCharacter.name.length + playerCharacter.name.charCodeAt(0);
+    const item = equippedValues[seed % equippedValues.length];
+    return item ? item.name : "A small personal memento";
 }
 
 function formatCulturalZone(zone: CulturalZone): string {
@@ -238,16 +347,23 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     }, [isOpen]);
     
     if (!isOpen) return null;
-    
-    const dateInfo = parseDateString(String(gameDate.year));
-    const culturalZone = mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone;
-    const era = dateInfo.era as HistoricalEra;
-    
-    // Get the current seed from SeedManager
-    const seedManager = SeedManager.getInstance();
-    const gameSeed = seedManager.getSeed();
+
+    // Memoize expensive computations
+    const dateInfo = useMemo(() => parseDateString(String(gameDate.year)), [gameDate.year]);
+    const culturalZone = useMemo(() => mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone, [currentZone, dateInfo.year]);
+    const era = useMemo(() => dateInfo.era as HistoricalEra, [dateInfo.era]);
+
+    // Get the current seed from SeedManager (memoized)
+    const gameSeed = useMemo(() => {
+        const seedManager = SeedManager.getInstance();
+        return seedManager.getSeed();
+    }, []);
     const [showShareLink, setShowShareLink] = React.useState(false);
     const [shareableURL, setShareableURL] = React.useState('');
+    const [dialectContinuumEnabled, setDialectContinuumEnabled] = React.useState(false);
+    const [showModeDetails, setShowModeDetails] = React.useState(false);
+    const [showCharacterDetails, setShowCharacterDetails] = React.useState(false);
+    const [portraitExpression, setPortraitExpression] = React.useState<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'>('neutral');
     
     // Generate shareable URL when requested
     React.useEffect(() => {
@@ -257,12 +373,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
             let finalRegion = currentRegion;
             
             if (!currentZone || currentZone === '' || currentZone === '...') {
-                console.log('[ShareableState] Current zone is empty, detecting from map area:', localArea);
                 const detected = findZoneForMapArea(localArea);
                 if (detected) {
                     finalZone = detected.zone;
                     finalRegion = detected.region;
-                    console.log('[ShareableState] Detected zone:', finalZone, 'region:', finalRegion);
                 } else {
                     console.error('[ShareableState] Could not detect zone for map area:', localArea);
                     finalZone = 'Europe'; // Fallback
@@ -303,20 +417,29 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     }, [showShareLink, gameDate, localArea, currentZone, currentRegion, gameMode, playerCharacter, gameSeed]);
     
     // Try to get a more specific historical description based on the exact year
-    const detailedDescription = getDetailedHistoricalDescription(culturalZone, era, gameDate.year);
-    const historicalContext = detailedDescription || 
-        HISTORY_GUIDE_DATA[culturalZone]?.[era] || 
-        "This is a time of great change and opportunity. The world is full of challenges and adventures waiting to be discovered.";
-    
-    const modeDescription = getModeDescription(gameMode, era, culturalZone, playerCharacter);
+    const detailedDescription = useMemo(() =>
+        getDetailedHistoricalDescription(culturalZone, era, gameDate.year),
+        [culturalZone, era, gameDate.year]
+    );
+    const historicalContext = useMemo(() =>
+        detailedDescription ||
+        HISTORY_GUIDE_DATA[culturalZone]?.[era] ||
+        "This is a time of great change and opportunity. The world is full of challenges and adventures waiting to be discovered.",
+        [detailedDescription, culturalZone, era]
+    );
+
+    const modeDescription = useMemo(() =>
+        getModeDescription(gameMode, era, culturalZone, playerCharacter),
+        [gameMode, era, culturalZone, playerCharacter]
+    );
 
     return (
-        <div className={`fixed inset-0 bg-slate-400/60 dark:bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 transition-opacity duration-500 ${
+        <div className={`fixed inset-0 bg-slate-400/60 dark:bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 pb-8 md:pb-4 transition-opacity duration-500 ${
             isVisible ? 'opacity-100' : 'opacity-0'
         }`}>
             <div className={`bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-700 dark:to-slate-900
                 border border-slate-300/50 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full
-                max-h-[95vh] md:max-h-[90vh] md:mt-[8px] overflow-y-auto
+                max-h-[90vh] md:max-h-[85vh] overflow-y-auto
                 ${isSafari ? 'transition-opacity duration-700' : 'transition-all duration-700 transform'} ${
                     contentVisible
                         ? `opacity-100 ${!isSafari ? 'scale-100 translate-y-0' : ''}`
@@ -326,17 +449,19 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-5 border-b border-slate-300/50 dark:border-slate-700/50">
                     <div className="flex items-start sm:items-center gap-2 md:gap-4 w-full sm:w-auto">
-                        <div className="p-2 md:p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shrink-0">
+                        <div className={`p-2 md:p-3 bg-gradient-to-br rounded-lg shrink-0 ${
+                        gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-500 to-amber-600' : 'from-amber-500 to-amber-600'
+                    }`}>
                             <Scroll className="w-5 h-5 md:w-7 md:h-7 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 break-words">
-                                You are {playerCharacter.name}, and the year is {gameDate.year}
+                                You are {playerCharacter.name}, a {playerCharacter.occupation || playerCharacter.profession || 'traveler'}, and the year is {formatYear(gameDate.year)}
                             </h2>
                             <p className="text-xs sm:text-sm md:text-lg text-slate-600 dark:text-slate-300 break-words">
                                 <span className="block sm:inline">{formatEra(era)} • {formatCulturalZone(culturalZone)}</span>
-                                <span className="block sm:inline sm:ml-1">• {currentRegion}</span>
-                                <span className="block sm:inline sm:ml-1">• {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
+                                <span className="block sm:inline sm:ml-1 text-emerald-700 dark:text-emerald-400 font-medium">• {currentRegion}</span>
+                                <span className={`block sm:inline sm:ml-1 font-medium ${getSeasonColors(getSeasonFromDate(gameDate))}`}>• {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
                             </p>
                         </div>
                     </div>
@@ -348,16 +473,16 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     </button>
                 </div>
 
-                <div className="p-3 md:p-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-4">
+                <div className="p-2 md:p-3 pb-4 md:pb-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-4 mb-4">
                         {/* Left Column - Main Content (3/5) */}
-                        <div className="lg:col-span-3 space-y-3 md:space-y-4">
+                        <div className="lg:col-span-3 space-y-2 md:space-y-3">
                             {/* Historical Context */}
-                            <div className="bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-700/30">
+                            <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 border border-slate-700/30">
                                 <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
                                     <Globe className="w-5 h-5 md:w-6 md:h-6 text-blue-400 shrink-0" />
                                     <h3 className="text-base md:text-xl font-semibold text-blue-600 dark:text-blue-400 break-words">
-                                        It is {getSeasonFromDate(gameDate)} in the {localArea}
+                                        It is <span className={getSeasonColors(getSeasonFromDate(gameDate))}>{getSeasonFromDate(gameDate)}</span> in the {localArea}
                                     </h3>
                                 </div>
                                 <p className="text-slate-300 leading-relaxed text-sm md:text-base">
@@ -366,176 +491,307 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
 
                             {/* Character Info */}
-                            <div className="bg-slate-800/50 rounded-lg p-3 md:p-6 border border-slate-700/30">
-                                <div className="flex items-center gap-2 mb-2 md:mb-3">
-                                    <User className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
-                                    <h3 className="text-base md:text-xl font-semibold text-green-600 dark:text-green-400">Your Character</h3>
+                            <div className="bg-slate-800/50 rounded-lg p-2 md:p-4 border border-slate-700/30">
+                                <div className="flex items-center justify-between mb-2 md:mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <User className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
+                                        <h3 className="text-sm md:text-lg font-semibold text-green-600 dark:text-green-400">Your Character</h3>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowCharacterDetails(!showCharacterDetails)}
+                                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                                    >
+                                        More Info
+                                        {showCharacterDetails ? (
+                                            <ChevronUp className="w-3 h-3" />
+                                        ) : (
+                                            <ChevronDown className="w-3 h-3" />
+                                        )}
+                                    </button>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-1 text-sm md:text-base">
-                            <div className="col-span-1 sm:col-span-2 md:col-span-1">
-                                <span className="text-slate-400 text-xs md:text-base">Name:</span>
-                                <span className="text-white ml-2 md:ml-3 font-medium text-sm md:text-base break-words">
-                                    {playerCharacter.name}
-                                </span>
+
+                                {/* Portrait and Info Layout */}
+                                <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                                    {/* Portrait Column */}
+                                    <div className="flex-shrink-0 flex flex-col items-center sm:items-start w-24 md:w-32">
+                                        <div className="relative">
+                                            <div
+                                                className="w-24 h-24 md:w-32 md:h-32 rounded-lg border-2 border-amber-400/50 shadow-lg overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 cursor-pointer hover:border-amber-400 transition-colors"
+                                                onClick={() => {
+                                                    const expressions: Array<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'> = ['neutral', 'smile', 'frown', 'surprise', 'angry'];
+                                                    const currentIndex = expressions.indexOf(portraitExpression);
+                                                    const filteredExpressions = expressions.filter((_, i) => i !== currentIndex);
+                                                    const newExpression = filteredExpressions[Math.floor(Math.random() * filteredExpressions.length)];
+                                                    setPortraitExpression(newExpression);
+                                                }}
+                                                title="Click to change expression"
+                                            >
+                                                <ProceduralPortrait
+                                                    character={playerCharacter}
+                                                    size={128}
+                                                    expression={portraitExpression}
+                                                    className="w-full h-full"
+                                                />
+                                            </div>
+                                            <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-amber-400/30 to-amber-600/30 blur-sm -z-10" />
+                                        </div>
+
+                                        {/* Health Status below portrait */}
+                                        {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
+                                            <div className="mt-2 p-2 bg-red-900/20 border border-red-600/30 rounded w-full text-center">
+                                                <span className="text-red-400 text-xs font-medium block mb-1">HEALTH</span>
+                                                {playerCharacter.diseaseHealth.currentDiseases.map((disease, idx) => {
+                                                    const isCritical = disease.disease.mortalityRate > 0.3 || disease.severity > 0.7;
+                                                    return (
+                                                        <span key={idx} className={`block text-xs ${isCritical ? 'text-red-400' : 'text-orange-400'}`}>
+                                                            {disease.disease.name}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Attribute Sentence (only if attributes exist) */}
+                                        {(() => {
+                                            const attributeSentence = generateAttributeSentence(playerCharacter);
+                                            return attributeSentence ? (
+                                                <div className="mt-2 p-2 bg-slate-800/30 rounded text-center w-full">
+                                                    <p className="text-slate-300 text-xs italic break-words leading-relaxed">
+                                                        {attributeSentence}
+                                                    </p>
+                                                </div>
+                                            ) : null;
+                                        })()}
+                                    </div>
+
+                                    {/* Character Info Column */}
+                                    <div className="flex-grow space-y-2">
+                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                            <div>
+                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1">Name</span>
+                                                <span className="text-white font-medium break-words">
+                                                    {playerCharacter.name}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1">Occupation</span>
+                                                <span className="text-white font-medium break-words">
+                                                    {playerCharacter.occupation || playerCharacter.profession || 'Unknown'}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1">Social Class</span>
+                                                <span className="text-white font-medium break-words">
+                                                    {playerCharacter.class ?
+                                                        playerCharacter.class
+                                                            .replace(/_/g, ' ')
+                                                            .split(' ')
+                                                            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                                            .join(' ')
+                                                        : 'Common'}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3" />
+                                                    Region
+                                                </span>
+                                                <span className="text-emerald-400 font-medium break-words">{currentRegion}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Brief Character Description */}
+                                        <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
+                                            <p className="text-slate-300 text-xs md:text-sm italic">
+                                                {extractPersonalityTrait(playerCharacter)}
+                                            </p>
+                                        </div>
+
+                                        {/* Prized Possession */}
+                                        <div className="mt-1 p-2 bg-slate-700/30 rounded border border-slate-600/30">
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <Trophy className="w-3 h-3 text-amber-400" />
+                                                <span className="text-amber-400 text-xs font-medium">PRIZED POSSESSION:</span>
+                                            </div>
+                                            <p className="text-slate-300 text-xs md:text-sm">
+                                                {getPrizedPossession(playerCharacter)}
+                                            </p>
+                                        </div>
+
+
+                                        {/* Expandable Character Details */}
+                                        {showCharacterDetails && (
+                                            <div className="mt-2 p-2 bg-slate-700/30 rounded border border-slate-600/30 space-y-2">
+                                                <div>
+                                                    <span className="text-blue-400 text-xs font-medium block mb-1">FULL BACKGROUND:</span>
+                                                    <p className="text-slate-300 text-xs leading-relaxed whitespace-pre-wrap">
+                                                        {playerCharacter.backstory || 'No detailed background available.'}
+                                                    </p>
+                                                </div>
+                                                {playerCharacter.religion && (
+                                                    <div>
+                                                        <span className="text-blue-400 text-xs font-medium block mb-1">RELIGION:</span>
+                                                        <p className="text-slate-300 text-xs">
+                                                            {playerCharacter.religion}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="col-span-1 sm:col-span-2 md:col-span-1">
-                                <span className="text-slate-400 text-xs md:text-base">Occupation:</span>
-                                <span className="text-white ml-2 md:ml-3 font-medium text-sm md:text-base break-words">
-                                    {playerCharacter.occupation || playerCharacter.profession || 'Unknown'}
-                                </span>
+
+                    {/* Game Mode & Mission */}
+                    <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 border border-slate-700/30">
+                        <div className="space-y-1 md:space-y-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <Crown className={`w-4 h-4 md:w-5 md:h-5 shrink-0 ${
+                                        gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-400' : 'text-amber-400'
+                                    }`} />
+                                    <span className={`font-semibold text-sm md:text-base ${
+                                        gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-600 dark:text-amber-400' : 'text-amber-600 dark:text-amber-400'
+                                    }`}>
+                                        {gameMode ? gameMode.name : 'Game Mode: Selecting...'}
+                                    </span>
+                                </div>
+                                {gameMode && (
+                                    <button
+                                        onClick={() => setShowModeDetails(!showModeDetails)}
+                                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                                    >
+                                        More Info
+                                        {showModeDetails ? (
+                                            <ChevronUp className="w-3 h-3" />
+                                        ) : (
+                                            <ChevronDown className="w-3 h-3" />
+                                        )}
+                                    </button>
+                                )}
                             </div>
-                            <div className="col-span-1 sm:col-span-2 md:col-span-1">
-                                <span className="text-slate-400 text-xs md:text-base">Social Class:</span>
-                                <span className="text-white ml-2 md:ml-3 font-medium text-sm md:text-base break-words">
-                                    {playerCharacter.class ? 
-                                        playerCharacter.class
-                                            .replace(/_/g, ' ')
-                                            .split(' ')
-                                            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                            .join(' ') 
-                                        : 'Common'}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-1 md:gap-2 col-span-1 sm:col-span-2 md:col-span-1">
-                                <MapPin className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
-                                <span className="text-slate-400 text-xs md:text-base">Region:</span>
-                                <span className="text-white font-medium text-sm md:text-base break-words">{currentRegion}</span>
-                            </div>
-                          
-                            {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
-                                <div className="col-span-1 sm:col-span-2">
-                                    <span className="text-slate-400 text-xs md:text-base">Health:</span>
-                                    {playerCharacter.diseaseHealth.currentDiseases.map((disease, idx) => {
-                                        const isCritical = disease.disease.mortalityRate > 0.3 || disease.severity > 0.7;
-                                        return (
-                                            <span key={idx} className={`ml-2 md:ml-3 font-medium text-sm md:text-lg ${isCritical ? 'text-red-500' : 'text-orange-500'}`}>
-                                                Currently suffering from {disease.disease.name}
-                                            </span>
-                                        );
-                                    })}
+                            <p className="text-slate-300 leading-relaxed text-xs md:text-sm">
+                                {gameMode ? modeDescription : 'Your game mode is being determined based on your character\'s background and skills. This will shape your adventure and goals.'}
+                            </p>
+
+                            {/* Collapsible Mode Details */}
+                            {gameMode && showModeDetails && (
+                                <div className="mt-2 p-2 bg-slate-700/30 rounded border border-slate-600/30 space-y-1">
+                                    {gameMode.victoryConditions.length > 0 && (
+                                        <div>
+                                            <span className="text-xs font-medium text-green-400 block mb-1">Victory Conditions:</span>
+                                            <ul className="text-xs text-slate-300 space-y-1">
+                                                {gameMode.victoryConditions.map((condition, idx) => (
+                                                    <li key={idx} className="flex items-start gap-1">
+                                                        <span className="text-green-400 mt-0.5">•</span>
+                                                        <span>{condition.description}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {gameMode.challenges && gameMode.challenges.length > 0 && (
+                                        <div>
+                                            <span className="text-xs font-medium text-orange-400 block mb-1">Key Challenges:</span>
+                                            <ul className="text-xs text-slate-300 space-y-1">
+                                                {gameMode.challenges.slice(0, 3).map((challenge, idx) => (
+                                                    <li key={idx} className="flex items-start gap-1">
+                                                        <span className="text-orange-400 mt-0.5">•</span>
+                                                        <span>{challenge}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Game Mode & Mission */}
-                    {gameMode && (
-                        <div className="bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-700/30">
-                            <div className="space-y-2 md:space-y-4">
-                                <div className="flex items-center gap-2 md:gap-3">
-                                    <Crown className="w-4 h-4 md:w-5 md:h-5 text-amber-400 shrink-0" />
-                                    <span className="font-semibold text-amber-600 dark:text-amber-400 text-sm md:text-lg">{gameMode.name}</span>
-                                </div>
-                                <p className="text-slate-300 leading-relaxed text-xs md:text-base">
-                                    {modeDescription}
+                    {/* Settings Section */}
+                    <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
+                        <h4 className="text-xs font-medium text-slate-400 mb-2">Settings</h4>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={dialectContinuumEnabled}
+                                onChange={(e) => setDialectContinuumEnabled(e.target.checked)}
+                                className="w-3 h-3 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-1"
+                            />
+                            <div className="flex-1">
+                                <span className="text-xs font-medium text-blue-400">Enable Dialect Continuum</span>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Gradually introduces foreign languages as you travel.
                                 </p>
-                                {gameMode.victoryConditions.length > 0 && (
-                                    <div className="mt-2 md:mt-3">
-                                        <span className="text-xs md:text-sm font-medium text-slate-400">Victory Conditions: </span>
-                                        <span className="text-xs md:text-sm text-green-400">
-                                            {gameMode.victoryConditions.slice(0, 3).map((condition, idx) => (
-                                                <span key={idx}>
-                                                    {idx > 0 && ' • '}
-                                                    {condition.description}
-                                                </span>
-                                            ))}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
-                        </div>
-                    )}
-
-                    {/* Game Seed Section */}
-                    <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 border border-slate-700/30">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 md:gap-3">
-                                <Link className="w-4 h-4 md:w-5 md:h-5 text-purple-400 shrink-0" />
-                                <h3 className="text-sm md:text-base font-semibold text-purple-600 dark:text-purple-400">Game Seed</h3>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <code className="px-2 py-1 bg-slate-200 dark:bg-slate-900 rounded text-xs md:text-sm font-mono text-purple-700 dark:text-purple-300">
-                                    {gameSeed}
-                                </code>
-                                <button
-                                    onClick={() => setShowShareLink(!showShareLink)}
-                                    className="px-2 py-1 text-xs md:text-sm bg-purple-600/20 hover:bg-purple-600/30 
-                                        text-purple-400 rounded transition-colors"
-                                >
-                                    {showShareLink ? 'Hide' : 'Share'}
-                                </button>
-                            </div>
-                        </div>
-                        
-                        {showShareLink && (
-                            <div className="mt-3 p-2 bg-slate-100 dark:bg-slate-900 rounded">
-                                <p className="text-xs text-slate-400 mb-1">Share this link to play the same world:</p>
-                                <div className="flex items-center gap-1">
-                                    <input
-                                        type="text"
-                                        value={shareableURL}
-                                        readOnly
-                                        className="flex-1 px-2 py-1 bg-slate-800 text-xs md:text-sm text-slate-300 
-                                            rounded border border-slate-700 font-mono"
-                                    />
-                                    <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(shareableURL);
-                                        }}
-                                        className="px-2 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 
-                                            text-green-400 rounded transition-colors"
-                                    >
-                                        Copy
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                        
-                        <p className="text-xs md:text-sm text-slate-400 mt-2">
-                            This seed ensures the same world generation for all players who use it.
-                        </p>
+                        </label>
                     </div>
+
                         </div>
 
                         {/* Right Column - Charts (2/5) */}
-                        <div className="lg:col-span-2 space-y-3 md:space-y-4">
+                        <div className="lg:col-span-2 space-y-2 md:space-y-3">
                             {/* Population Chart */}
-                            <PopulationChart
-                                currentYear={gameDate.year}
-                                region={currentRegion}
-                                culturalZone={culturalZone.toString()}
-                            />
-                            
+                            <Suspense fallback={<ChartSkeleton height="200px" />}>
+                                <PopulationChart
+                                    currentYear={gameDate.year}
+                                    culturalZone={culturalZone.toString()}
+                                />
+                            </Suspense>
+
                             {/* Mini Location Map */}
-                            <MiniLocationMap
-                                continent={currentZone === 'North America' || currentZone === 'Central America' ? 'northAmerica' : 
-                                         currentZone === 'South America' ? 'southAmerica' :
-                                         currentZone === 'Europe' ? 'europe' :
-                                         currentZone === 'Asia' ? 'asia' :
-                                         currentZone === 'Africa' ? 'africa' :
-                                         currentZone === 'Oceania' ? 'oceania' : 'northAmerica'}
-                                region={currentRegion}
-                                mapSeed={gameSeed}
-                            />
+                            <Suspense fallback={<ChartSkeleton height="300px" />}>
+                                <MiniLocationMap
+                                    continent={currentZone === 'North America' || currentZone === 'Central America' ? 'northAmerica' :
+                                             currentZone === 'South America' ? 'southAmerica' :
+                                             currentZone === 'Europe' ? 'europe' :
+                                             currentZone === 'Asia' ? 'asia' :
+                                             currentZone === 'Africa' ? 'africa' :
+                                             currentZone === 'Oceania' ? 'oceania' : 'northAmerica'}
+                                    region={currentRegion}
+                                    mapSeed={gameSeed}
+                                />
+                            </Suspense>
+
+                            {/* Start Button positioned under right column content */}
+                            <div className="mt-4">
+                                <button
+                                    onClick={() => {
+                                        // Initialize dialect continuum if enabled
+                                        if (dialectContinuumEnabled) {
+                                            dialectContinuumService.setEnabled(true);
+                                            dialectContinuumService.initialize(localArea, { x: 0, y: 0 });
+                                            dialectContinuumService.saveState();
+                                        } else {
+                                            dialectContinuumService.setEnabled(false);
+                                        }
+                                        onClose();
+                                    }}
+                                    className={`w-full px-4 py-3 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl text-sm md:text-base ${
+                                        gameMode ? (
+                                            gameMode.id === 'survival' ? 'bg-red-600 hover:bg-red-700' :
+                                            gameMode.id === 'exploration' ? 'bg-blue-600 hover:bg-blue-700' :
+                                            gameMode.id === 'commerce' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                                            gameMode.id === 'scholarship' ? 'bg-purple-600 hover:bg-purple-700' :
+                                            gameMode.id === 'leadership' ? 'bg-amber-600 hover:bg-amber-700' :
+                                            gameMode.id === 'livelihood' ? 'bg-green-600 hover:bg-green-700' :
+                                            gameMode.id === 'diplomacy' ? 'bg-cyan-600 hover:bg-cyan-700' :
+                                            gameMode.id === 'legal' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                                            'bg-amber-600 hover:bg-amber-700'
+                                        ) : 'bg-amber-600 hover:bg-amber-700'
+                                    }`}
+                                >
+                                    Begin the Simulation
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Footer - Sticky on mobile */}
-                <div className={getSafariOptimizedClassName("sticky bottom-0 p-3 md:p-3 border-t border-slate-300/50 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm")}>
-                    <button
-                        onClick={onClose}
-                        className={`w-full px-4 md:px-8 py-3 md:py-4 bg-gradient-to-r from-amber-600 to-amber-700
-                            hover:from-amber-700 hover:to-amber-800 text-white font-semibold rounded-lg
-                            ${isSafari ? 'transition-colors duration-200' : 'transition-all duration-200'} shadow-lg hover:shadow-xl ${!isSafari ? 'hover:scale-[1.02]' : ''}
-                            text-sm md:text-lg`}
-                    >
-                        Begin the Simulation
-                    </button>
-                </div>
             </div>
         </div>
     );
 };
 
-export default InitialScenarioModal;
+export default React.memo(InitialScenarioModal);

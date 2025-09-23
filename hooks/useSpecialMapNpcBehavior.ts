@@ -28,11 +28,75 @@ interface NpcBehaviorState {
   targetLocation?: { x: number; y: number };
 }
 
+interface NpcUpdate {
+  npcId: string;
+  position?: { x: number; y: number };
+  direction?: string;
+  dialogue?: string[];
+}
+
+class NpcUpdateAccumulator {
+  private updates = new Map<string, NpcUpdate>();
+
+  addPositionUpdate(npcId: string, x: number, y: number) {
+    const existing = this.updates.get(npcId) || { npcId };
+    existing.position = { x, y };
+    this.updates.set(npcId, existing);
+  }
+
+  addDirectionUpdate(npcId: string, direction: string) {
+    const existing = this.updates.get(npcId) || { npcId };
+    existing.direction = direction;
+    this.updates.set(npcId, existing);
+  }
+
+  addDialogueUpdate(npcId: string, dialogue: string[]) {
+    const existing = this.updates.get(npcId) || { npcId };
+    existing.dialogue = dialogue;
+    this.updates.set(npcId, existing);
+  }
+
+  applyUpdates(npcs: NpcEntity[]): NpcEntity[] {
+    if (this.updates.size === 0) return npcs;
+
+    return npcs.map(npc => {
+      const update = this.updates.get(npc.id);
+      if (!update) return npc;
+
+      const updatedNpc = { ...npc };
+
+      if (update.position) {
+        updatedNpc.x = update.position.x;
+        updatedNpc.y = update.position.y;
+      }
+
+      if (update.direction) {
+        updatedNpc.direction = update.direction;
+      }
+
+      if (update.dialogue) {
+        updatedNpc.dialogue = update.dialogue;
+      }
+
+      return updatedNpc;
+    });
+  }
+
+  clear() {
+    this.updates.clear();
+  }
+
+  hasUpdates(): boolean {
+    return this.updates.size > 0;
+  }
+}
+
 export function useSpecialMapNpcBehavior(
   mapArchetype: SpecialMapArchetype | null,
   npcs: NpcEntity[],
   player: PlayerCharacter,
-  tiles: Tile[][]
+  tiles: Tile[][],
+  updateNpcs: (updater: (prevNpcs: NpcEntity[]) => NpcEntity[]) => void
 ) {
   const { timeOfDay, weather, era, culturalZone } = useGame();
   const { mapData } = useMap();
@@ -56,47 +120,50 @@ export function useSpecialMapNpcBehavior(
     };
   }, []);
 
-  // Apply behavior state to NPC entity - Define this BEFORE updateNpcBehavior
-  const applyBehaviorToNpc = useCallback((npc: NpcEntity, state: NpcBehaviorState, npcs: NpcEntity[], player: PlayerCharacter) => {
-    // Update NPC dialogue
+  // Apply behavior state to NPC entity using update accumulator
+  const applyBehaviorToNpc = useCallback((npc: NpcEntity, state: NpcBehaviorState, npcs: NpcEntity[], player: PlayerCharacter, updateAccumulator: NpcUpdateAccumulator) => {
+    // Handle dialogue updates
     if (npc.dialogue && state.currentDialogue) {
-      npc.dialogue[0] = state.currentDialogue;
+      const newDialogue = [state.currentDialogue, ...npc.dialogue.slice(1)];
+      updateAccumulator.addDialogueUpdate(npc.id, newDialogue);
     }
 
     // Update NPC movement
-    if (state.isMoving && state.targetLocation) {
+    if (state.isMoving && state.targetLocation &&
+        Number.isFinite(state.targetLocation.x) && Number.isFinite(state.targetLocation.y) &&
+        Number.isFinite(npc.x) && Number.isFinite(npc.y)) {
       const dx = Math.sign(state.targetLocation.x - npc.x);
       const dy = Math.sign(state.targetLocation.y - npc.y);
-      
+
       // Check if target location is walkable
       if (tiles && tiles[npc.y + dy] && tiles[npc.y + dy][npc.x + dx]) {
         const targetTile = tiles[npc.y + dy][npc.x + dx];
         const targetX = npc.x + dx;
         const targetY = npc.y + dy;
-        
+
         // Check both biome blocking, explicit isBlocking flag, and overlay objects
-        const isBlockingTerrain = targetTile.biome === BiomeType.WALL || 
-                                  targetTile.biome === BiomeType.WATER || 
+        const isBlockingTerrain = targetTile.biome === BiomeType.WALL ||
+                                  targetTile.biome === BiomeType.WATER ||
                                   targetTile.biome === BiomeType.DEEP_WATER ||
                                   targetTile.biome === BiomeType.MOUNTAIN ||
                                   targetTile.biome === BiomeType.LAVA;
-        
-        const hasBlockingOverlay = targetTile.overlayObjects?.some(obj => 
+
+        const hasBlockingOverlay = targetTile.overlayObjects?.some(obj =>
           obj.type === OverlayObjectType.WALL ||
           obj.type === OverlayObjectType.PILLAR ||
           obj.type === OverlayObjectType.FOUNTAIN
         );
-        
+
         // Check for other NPC collisions
-        const hasNpcCollision = npcs.some(otherNpc => 
-          otherNpc.id !== npc.id && 
-          otherNpc.x === targetX && 
+        const hasNpcCollision = npcs.some(otherNpc =>
+          otherNpc.id !== npc.id &&
+          otherNpc.x === targetX &&
           otherNpc.y === targetY
         );
-        
+
         // Check if player is at the target location
         const hasPlayerCollision = player.x === targetX && player.y === targetY;
-        
+
         // Special handling for guards - they can enter player tile to confront
         if (hasPlayerCollision && isGuardType(npc)) {
           // Check if player has permission before confronting
@@ -116,22 +183,28 @@ export function useSpecialMapNpcBehavior(
           // Don't actually move into player tile yet
           return;
         }
-        
+
         // Regular NPCs still avoid player
-        if (!isBlockingTerrain && 
-            !targetTile.isBlocking && 
-            !hasBlockingOverlay && 
-            !hasNpcCollision && 
+        if (!isBlockingTerrain &&
+            !targetTile.isBlocking &&
+            !hasBlockingOverlay &&
+            !hasNpcCollision &&
             !hasPlayerCollision) {
-          // Move NPC
-          npc.x = targetX;
-          npc.y = targetY;
-          
-          // Update direction
-          if (dx > 0) npc.direction = 'right';
-          else if (dx < 0) npc.direction = 'left';
-          else if (dy > 0) npc.direction = 'down';
-          else if (dy < 0) npc.direction = 'up';
+          // Update NPC coordinates via accumulator
+          if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
+            updateAccumulator.addPositionUpdate(npc.id, targetX, targetY);
+
+            // Update direction based on movement
+            let newDirection = npc.direction;
+            if (dx > 0) newDirection = 'right';
+            else if (dx < 0) newDirection = 'left';
+            else if (dy > 0) newDirection = 'down';
+            else if (dy < 0) newDirection = 'up';
+
+            updateAccumulator.addDirectionUpdate(npc.id, newDirection);
+          } else {
+            console.warn('[NpcBehavior] Attempted to set invalid coordinates:', { targetX, targetY, npcId: npc.id });
+          }
         } else {
           // Can't move, stop trying
           state.isMoving = false;
@@ -139,7 +212,7 @@ export function useSpecialMapNpcBehavior(
         }
       }
     }
-  }, [tiles, npcs, player]);
+  }, [tiles, npcs, player, mapData]);
 
   // Update NPC behavior based on context
   const updateNpcBehavior = useCallback((npc: NpcEntity) => {
@@ -312,8 +385,10 @@ export function useSpecialMapNpcBehavior(
       isMoving: false
     };
 
-    // Check if NPC should move based on activity
-    if (activity.location.x !== npc.x || activity.location.y !== npc.y) {
+    // Check if NPC should move based on activity (with coordinate validation)
+    if (Number.isFinite(activity.location.x) && Number.isFinite(activity.location.y) &&
+        Number.isFinite(npc.x) && Number.isFinite(npc.y) &&
+        (activity.location.x !== npc.x || activity.location.y !== npc.y)) {
       currentState.isMoving = true;
       currentState.targetLocation = activity.location;
     }
@@ -329,9 +404,8 @@ export function useSpecialMapNpcBehavior(
 
     npcStates.current.set(npc.id, currentState);
 
-    // Apply behavior to actual NPC
-    applyBehaviorToNpc(npc, currentState, npcs, player);
-  }, [mapArchetype, tiles, player, timeOfDay, weather, era, culturalZone, npcs, applyBehaviorToNpc]);
+    // Note: NPC updates are now handled in the main update loop with batching
+  }, [mapArchetype, tiles, player, timeOfDay, weather, era, culturalZone, npcs]);
 
   // Apply visual/behavioral effects based on mood
   const applyMoodEffects = useCallback((npc: NpcEntity, mood: NpcMood) => {
@@ -459,23 +533,39 @@ export function useSpecialMapNpcBehavior(
     return blockingBiomes.includes(biome);
   };
 
-  // Main update loop
+  // Main update loop with batched state updates
   useEffect(() => {
     // Only log when we actually have a special map and NPCs to avoid spam
     if (!mapArchetype || !npcs || npcs.length === 0) {
       return; // Skip silently when not in special map
     }
-    
+
     console.log('[useSpecialMapNpcBehavior] Starting behavior updates for', npcs.length, 'NPCs in', mapArchetype, 'archetype');
 
     const updateAllNpcs = () => {
+      const updateAccumulator = new NpcUpdateAccumulator();
+
+      // Update behavior states for all NPCs
       npcs.forEach(npc => {
         updateNpcBehavior(npc);
       });
+
+      // Apply behavior changes using the accumulator
+      npcs.forEach(npc => {
+        const state = npcStates.current.get(npc.id);
+        if (state) {
+          applyBehaviorToNpc(npc, state, npcs, player, updateAccumulator);
+        }
+      });
+
+      // Batch apply all accumulated updates to React state
+      if (updateAccumulator.hasUpdates()) {
+        updateNpcs(prevNpcs => updateAccumulator.applyUpdates(prevNpcs));
+      }
     };
 
     // Initial update
-    updateAllNpcs();
+    // updateAllNpcs(); // TEMP: Testing if this causes infinite loop
 
     // Set up periodic updates (every 2 seconds)
     updateInterval.current = setInterval(updateAllNpcs, 2000);
@@ -485,7 +575,7 @@ export function useSpecialMapNpcBehavior(
         clearInterval(updateInterval.current);
       }
     };
-  }, [npcs, mapArchetype, updateNpcBehavior]);
+  }, [npcs, mapArchetype, updateNpcBehavior, applyBehaviorToNpc, player]);
 
   // Get behavior state for a specific NPC
   const getNpcBehaviorState = useCallback((npcId: string): NpcBehaviorState | undefined => {
@@ -519,15 +609,26 @@ export function useSpecialMapNpcBehavior(
   // Player performs action that affects NPCs
   const playerPerformAction = useCallback((action: string) => {
     playerActions.current.push(action);
-    
-    // Immediately update nearby NPCs
+
+    // Immediately update nearby NPCs with batched updates
+    const updateAccumulator = new NpcUpdateAccumulator();
+
     npcs.forEach(npc => {
       const distance = Math.abs(player.x - npc.x) + Math.abs(player.y - npc.y);
       if (distance <= 5) {
         updateNpcBehavior(npc);
+        const state = npcStates.current.get(npc.id);
+        if (state) {
+          applyBehaviorToNpc(npc, state, npcs, player, updateAccumulator);
+        }
       }
     });
-  }, [npcs, player, updateNpcBehavior]);
+
+    // Apply accumulated updates
+    if (updateAccumulator.hasUpdates()) {
+      updateNpcs(prevNpcs => updateAccumulator.applyUpdates(prevNpcs));
+    }
+  }, [npcs, player, updateNpcBehavior, applyBehaviorToNpc]);
 
   return {
     getNpcBehaviorState,

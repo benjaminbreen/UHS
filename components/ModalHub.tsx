@@ -1,7 +1,7 @@
 /**
  * components/ModalHub.tsx - Centralized component for rendering all application modals.
  */
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, lazy, Suspense } from 'react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -10,41 +10,48 @@ import { weatherService } from '../services/weatherService';
 import { getDayOfYear } from '../utils/dateUtils';
 import DevTooltip from './DevTooltip';
 import SettingsPanel from './SettingsPanel';
-import WorldMapModal from './WorldMapModal';
+
+// Lazy load heavy components for better initial load performance
+const WorldMapModal = lazy(() => import('./WorldMapModal'));
+const CharacterProfileModal = lazy(() => import('./CharacterProfileModal'));
+const SettlementInfoModal = lazy(() => import('./SettlementInfoModal'));
+const CombatModal = lazy(() => import('./CombatModal'));
+const SkillsModal = lazy(() => import('./SkillsModal'));
+const VictoryModal = lazy(() => import('./VictoryModal'));
+const MapDetailsModal = lazy(() => import('./MapDetailsModal'));
+
+// Keep only the most frequently used modals eager loaded
 import EncounterModalUpdated from './EncounterModalUpdated';
 import NpcModal from './NpcModal';
 import TileInfoModal from './TileInfoModal';
-import SkillsModal from './SkillsModal';
-import MapDetailsModal from './MapDetailsModal';
-import CombatModal from './CombatModal';
-import VictoryModal from './VictoryModal';
-import CharacterProfileModal from './CharacterProfileModal';
-import AnimalInfoModal from './AnimalInfoModal';
-
-import SettlementInfoModal from './SettlementInfoModal';
-import MiningModal from './MiningModal';
-import PointOfInterestModal from './PointOfInterestModal';
-import { InteractionModal } from './interiorMap';
 import { isNpc, isAnimal } from '../types';
 import { NpcEntity } from '../types';
-import LootModal from './LootModal';
-import LevelUpModal from './LevelUpModal';
-import PortraitModal from './portraits/PortraitModal';
-import CraftingModal from './CraftingModal';
-import AboutModal from './AboutModal';
-import DevBuildingModeModal from './DevBuildingModeModal';
-import TerrainStructureModal from './TerrainStructureModal';
-import ContainerModal from './ContainerModal';
-import POIToastModal from './POIToastModal';
+
+// Lazy load all other modals for better initial load performance
+const AnimalInfoModal = lazy(() => import('./AnimalInfoModal'));
+const MiningModal = lazy(() => import('./MiningModal'));
+const PointOfInterestModal = lazy(() => import('./PointOfInterestModal'));
+const InteractionModal = lazy(() => import('./interiorMap').then(module => ({ default: module.InteractionModal })));
+const LootModal = lazy(() => import('./LootModal'));
+const LevelUpModal = lazy(() => import('./LevelUpModal'));
+const PortraitModal = lazy(() => import('./portraits/PortraitModal'));
+const CraftingModal = lazy(() => import('./CraftingModal'));
+const AboutModal = lazy(() => import('./AboutModal'));
+const DevBuildingModeModal = lazy(() => import('./DevBuildingModeModal'));
+const TerrainStructureModal = lazy(() => import('./TerrainStructureModal'));
+const ContainerModal = lazy(() => import('./ContainerModal'));
+const POIToastModal = lazy(() => import('./POIToastModal'));
 import { formatDateWithSeason } from '../utils/dateUtils';
 import { SavedGame } from '../services/saveGameService';
 import { questService } from '../services/questService';
 import { eventService } from '../services/eventService';
-import { PrimarySourceModal } from './PrimarySourceModal';
 import { PrimarySourceMetadata } from '../services/primarySourceService';
 import { poiServiceHandler } from '../services/poiServiceHandler';
-import NpcConfrontationModal from './NpcConfrontationModal';
-import DiseaseContractedModal from './DiseaseContractedModal';
+
+// Lazy load heavy data modals
+const PrimarySourceModal = lazy(() => import('./PrimarySourceModal').then(module => ({ default: module.PrimarySourceModal })));
+const NpcConfrontationModal = lazy(() => import('./NpcConfrontationModal'));
+const DiseaseContractedModal = lazy(() => import('./DiseaseContractedModal'));
 import { processNpcReactions, ItemCollectionEvent } from '../services/npcAwarenessService';
 import { updateCachedContents } from '../services/containerCacheService';
 import { useState } from 'react';
@@ -220,9 +227,21 @@ const ModalHub: React.FC = () => {
             {showDevTooltip && (hoveredDevData || (pinnedDevData && isTooltipPinnedOpen)) && ( <DevTooltip hoveredData={hoveredDevData} pinnedData={pinnedDevData} isPinnedOpen={isTooltipPinnedOpen} onCondense={handleCondenseTooltip} /> )}
             {tileInfoModalProps && ( <TileInfoModal modalProps={tileInfoModalProps} onClose={() => setTileInfoModalProps(null)} /> )}
             {infoModalTarget && isNpc(infoModalTarget) && <NpcModal npc={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>}
-            {infoModalTarget && isAnimal(infoModalTarget) && <AnimalInfoModal animal={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>}
-            {isAboutModalOpen && <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />}
-            {isDevBuildingModeOpen && <DevBuildingModeModal isOpen={isDevBuildingModeOpen} onClose={() => setIsDevBuildingModeOpen(false)} />}
+            {infoModalTarget && isAnimal(infoModalTarget) && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <AnimalInfoModal animal={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>
+                </Suspense>
+            )}
+            {isAboutModalOpen && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
+                </Suspense>
+            )}
+            {isDevBuildingModeOpen && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <DevBuildingModeModal isOpen={isDevBuildingModeOpen} onClose={() => setIsDevBuildingModeOpen(false)} />
+                </Suspense>
+            )}
             {isSettingsModalOpen && ( 
                 <SettingsPanel 
                     isOpen={isSettingsModalOpen} 
@@ -247,10 +266,33 @@ const ModalHub: React.FC = () => {
                     currentGameState={currentGameState}
                 /> 
             )}
-            {isWorldMapModalOpen && ( <WorldMapModal isOpen={isWorldMapModalOpen} onClose={() => setIsWorldMapModalOpen(false)} cachedMaps={mapDataCache} currentWorldCoords={currentWorldCoords} /> )}
-            {interactionModalData && ( <InteractionModal {...interactionModalData} onClose={() => setInteractionModalData(null)} onTakeItem={(item) => handleTakeItem(item, interactionModalData.entityId)} /> )}
-            <SkillsModal isOpen={isSkillsModalOpen} isLoading={isSkillLoading} result={skillResult} onClose={() => setIsSkillsModalOpen(false)} />
-            {isMapDetailsModalOpen && mapData && ( <MapDetailsModal isOpen={isMapDetailsModalOpen} onClose={() => setIsMapDetailsModalOpen(false)} mapData={mapData} /> )}
+            {isWorldMapModalOpen && (
+                <Suspense fallback={
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
+                            <div className="flex items-center gap-3">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                <span className="text-gray-200">Loading World Map...</span>
+                            </div>
+                        </div>
+                    </div>
+                }>
+                    <WorldMapModal isOpen={isWorldMapModalOpen} onClose={() => setIsWorldMapModalOpen(false)} cachedMaps={mapDataCache} currentWorldCoords={currentWorldCoords} />
+                </Suspense>
+            )}
+            {interactionModalData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <InteractionModal {...interactionModalData} onClose={() => setInteractionModalData(null)} onTakeItem={(item) => handleTakeItem(item, interactionModalData.entityId)} />
+                </Suspense>
+            )}
+            <Suspense fallback={<div>Loading...</div>}>
+                <SkillsModal isOpen={isSkillsModalOpen} isLoading={isSkillLoading} result={skillResult} onClose={() => setIsSkillsModalOpen(false)} />
+            </Suspense>
+            {isMapDetailsModalOpen && mapData && (
+                <Suspense fallback={<div>Loading...</div>}>
+                    <MapDetailsModal isOpen={isMapDetailsModalOpen} onClose={() => setIsMapDetailsModalOpen(false)} mapData={mapData} />
+                </Suspense>
+            )}
             {encounterTarget && playerCharacter && mapData && (
               <EncounterModalUpdated
                 target={encounterTarget}
@@ -294,12 +336,13 @@ const ModalHub: React.FC = () => {
               />
             )}
             {combatant && playerCharacter && mapData && (
-                <CombatModal
-                    combatant={combatant}
-                    playerCharacter={playerCharacter}
-                    onClose={() => setCombatant(null)}
-                    onVictory={handleCombatVictory}
-                    onUseCombatItem={onUseCombatItem}
+                <Suspense fallback={<div>Loading...</div>}>
+                    <CombatModal
+                        combatant={combatant}
+                        playerCharacter={playerCharacter}
+                        onClose={() => setCombatant(null)}
+                        onVictory={handleCombatVictory}
+                        onUseCombatItem={onUseCombatItem}
                     inventory={playerCharacter.inventory}
                     onCharacterUpdate={onCharacterUpdate}
                     onNpcUpdate={(npcId, updates) => {
@@ -322,49 +365,101 @@ const ModalHub: React.FC = () => {
                         ) : undefined}
                     culturalZone={mapData.culturalZone}
                 />
+                </Suspense>
             )}
-            {victoryDetails && <VictoryModal {...victoryDetails} onClose={handleVictoryClose} />}
-            {lootModalData && <LootModal opponent={lootModalData.opponent} onTakeItem={handleLooting} onClose={handleCloseLootModal} onTakeCoins={onTakeCoins} />}
-             {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} onEnterSpecialMap={enterSpecialMap} onCharacterUpdate={onCharacterUpdate as any} />}
-            {activeSettlementInfo && mapData && <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} npcs={npcs} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} />}
-            {activeMiningModal && playerCharacter && <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />}
-            {activePoi && mapData && <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} onEnterSpecialMap={enterSpecialMap} />}
+            {victoryDetails && (
+                <Suspense fallback={<div>Loading...</div>}>
+                    <VictoryModal {...victoryDetails} onClose={handleVictoryClose} />
+                </Suspense>
+            )}
+            {lootModalData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <LootModal opponent={lootModalData.opponent} onTakeItem={handleLooting} onClose={handleCloseLootModal} onTakeCoins={onTakeCoins} />
+                </Suspense>
+            )}
+            {structureModalTarget && mapData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} onEnterSpecialMap={enterSpecialMap} onCharacterUpdate={onCharacterUpdate as any} />
+                </Suspense>
+            )}
+            {activeSettlementInfo && mapData && (
+                <Suspense fallback={
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
+                            <div className="flex items-center gap-3">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                <span className="text-gray-200">Loading Settlement Info...</span>
+                            </div>
+                        </div>
+                    </div>
+                }>
+                    <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} npcs={npcs} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} />
+                </Suspense>
+            )}
+            {activeMiningModal && playerCharacter && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />
+                </Suspense>
+            )}
+            {activePoi && mapData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} onEnterSpecialMap={enterSpecialMap} />
+                </Suspense>
+            )}
             {isCharacterProfileModalOpen && playerCharacter && (
-              <CharacterProfileModal 
-                  isOpen={isCharacterProfileModalOpen} 
-                  onClose={() => setIsCharacterProfileModalOpen(false)} 
-                  character={playerCharacter}
-                  onCharacterUpdate={onCharacterUpdate as any}
-                  onRegenerate={() => handleCharacterGeneration(useLlmForCharacter)}
-                  isEnhancing={isEnhancing}
-                  onEquipItem={handleEquipItem}
-                  onUnequipItem={handleUnequipItem}
-                  onDropItem={handleDropItem}
-                  onConsumeItem={handleConsumeItem}
-                  date={String(gameDate.year)}
-                  location={currentZone}
-              />
+                <Suspense fallback={
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
+                            <div className="flex items-center gap-3">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                <span className="text-gray-200">Loading Character Profile...</span>
+                            </div>
+                        </div>
+                    </div>
+                }>
+                    <CharacterProfileModal
+                        isOpen={isCharacterProfileModalOpen}
+                        onClose={() => setIsCharacterProfileModalOpen(false)}
+                        character={playerCharacter}
+                        onCharacterUpdate={onCharacterUpdate as any}
+                        onRegenerate={() => handleCharacterGeneration(useLlmForCharacter)}
+                        isEnhancing={isEnhancing}
+                        onEquipItem={handleEquipItem}
+                        onUnequipItem={handleUnequipItem}
+                        onDropItem={handleDropItem}
+                        onConsumeItem={handleConsumeItem}
+                        date={String(gameDate.year)}
+                        location={currentZone}
+                    />
+                </Suspense>
             )}
             {isLevelUpModalOpen && levelUpCharacter && (
-                <LevelUpModal character={levelUpCharacter} onLevelUp={handleLevelUp} />
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <LevelUpModal character={levelUpCharacter} onLevelUp={handleLevelUp} />
+                </Suspense>
             )}
             {isPortraitModalOpen && portraitModalCharacter && (
-                <PortraitModal 
-                    character={portraitModalCharacter} 
-                    onClose={() => { setIsPortraitModalOpen(false); setPortraitModalCharacter(null); }} 
-                />
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <PortraitModal
+                        character={portraitModalCharacter}
+                        onClose={() => { setIsPortraitModalOpen(false); setPortraitModalCharacter(null); }}
+                    />
+                </Suspense>
             )}
             {isCraftingModalOpen && craftingModalData && (
-                <CraftingModal
-                    isOpen={isCraftingModalOpen}
-                    onClose={() => closeAllModals()}
-                    items={craftingModalData.items}
-                    method={craftingModalData.method}
-                    onExecuteCrafting={handleExecuteCrafting}
-                />
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <CraftingModal
+                        isOpen={isCraftingModalOpen}
+                        onClose={() => closeAllModals()}
+                        items={craftingModalData.items}
+                        method={craftingModalData.method}
+                        onExecuteCrafting={handleExecuteCrafting}
+                    />
+                </Suspense>
             )}
             {containerModalData && (
-                <ContainerModal
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <ContainerModal
                     isOpen={!!containerModalData}
                     onClose={() => setContainerModalData(null)}
                     containerType={containerModalData.containerType}
@@ -561,23 +656,38 @@ const ModalHub: React.FC = () => {
                             setContainerModalData(null);
                         }
                     }}
-                />
+                    />
+                </Suspense>
             )}
             {/* POI Toast Modal - Uses UI State */}
-            <POIToastModal 
+            <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <POIToastModal 
                 onEnterSpecialMap={enterSpecialMap}
                 mapData={mapData}
                 currentEra={currentEra}
                 currentCulturalZone={mapData?.culturalZone}
-            />
-            {selectedPrimarySource && (
-                <PrimarySourceModal
-                    source={selectedPrimarySource}
-                    onClose={() => setSelectedPrimarySource(null)}
                 />
+            </Suspense>
+            {selectedPrimarySource && (
+                <Suspense fallback={
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
+                            <div className="flex items-center gap-3">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                <span className="text-gray-200">Loading Primary Source...</span>
+                            </div>
+                        </div>
+                    </div>
+                }>
+                    <PrimarySourceModal
+                        source={selectedPrimarySource}
+                        onClose={() => setSelectedPrimarySource(null)}
+                    />
+                </Suspense>
             )}
             {confrontationData && (
-                <NpcConfrontationModal
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <NpcConfrontationModal
                     npc={confrontationData.npc}
                     item={confrontationData.item}
                     dialogue={confrontationData.dialogue}
@@ -648,16 +758,19 @@ const ModalHub: React.FC = () => {
                         }
                         setConfrontationData(null);
                     }}
-                />
+                    />
+                </Suspense>
             )}
             {diseaseContractedModalData?.isOpen && playerCharacter && (
-                <DiseaseContractedModal
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <DiseaseContractedModal
                     isOpen={diseaseContractedModalData.isOpen}
                     onClose={() => setDiseaseContractedModalData(null)}
                     disease={diseaseContractedModalData.disease}
                     playerCharacter={playerCharacter}
                     gameDate={gameDate}
-                />
+                    />
+                </Suspense>
             )}
         </>
     );

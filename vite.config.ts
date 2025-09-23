@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      esbuild: {
+        // Remove console logs in production builds
+        drop: mode === 'production' ? ['console', 'debugger'] : []
       }
     };
 });

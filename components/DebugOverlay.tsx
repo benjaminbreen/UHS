@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
 import { useUI } from '../contexts/UIContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -18,31 +18,29 @@ const DebugOverlay: React.FC = () => {
     setIsSafari(safari);
   }, []);
 
-  if (!isTestModeEnabled) return null;
+  // Apply performance settings on mount and when they change
+  useEffect(() => {
+    document.body.classList.toggle('disable-blur', debugSettings.disableBlurEffects);
+    document.body.classList.toggle('disable-animations', debugSettings.disableAnimations);
+    document.body.classList.toggle('disable-shadows', debugSettings.disableShadows);
+    document.body.classList.toggle('reduce-svg', debugSettings.reduceSVGComplexity);
+  }, [debugSettings]);
 
-  const toggleSetting = (key: keyof typeof debugSettings) => {
-    setDebugSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  // Create callbacks before conditional return
+  const handleCollapseToggle = useCallback(() => setIsCollapsed(prev => !prev), []);
 
-    // Apply settings immediately
-    if (key === 'disableBlurEffects') {
-      document.body.classList.toggle('disable-blur', !debugSettings.disableBlurEffects);
-    }
-    if (key === 'disableAnimations') {
-      document.body.classList.toggle('disable-animations', !debugSettings.disableAnimations);
-    }
-    if (key === 'disableShadows') {
-      document.body.classList.toggle('disable-shadows', !debugSettings.disableShadows);
-    }
-    if (key === 'reduceSVGComplexity') {
-      document.body.classList.toggle('reduce-svg', !debugSettings.reduceSVGComplexity);
-    }
-  };
+  const handleLogMetrics = useCallback(() => {
+    console.log('Current Performance Metrics:', metrics);
+    console.log('Debug Settings:', debugSettings);
+  }, [metrics, debugSettings]);
 
-  // Test teleportation functions
-  const createTestTile = (buildingType: string, holyPlaceReligion?: string) => {
+  const handleSaveSettings = useCallback(() => {
+    localStorage.setItem('debugSettings', JSON.stringify(debugSettings));
+    alert('Debug settings saved to localStorage');
+  }, [debugSettings]);
+
+  // Test teleportation helper functions - define these before using in callbacks
+  const createTestTile = useCallback((buildingType: string, holyPlaceReligion?: string) => {
     return {
       x: 50,
       y: 50,
@@ -53,27 +51,46 @@ const DebugOverlay: React.FC = () => {
       structure: {
         id: `test-${buildingType}-${Date.now()}`,
         type: buildingType as any,
-        structureType: buildingType === 'holy_place' ? 'holy_site' : buildingType, // Use 'holy_site' for holy places to match real data
+        structureType: buildingType === 'holy_place' ? 'holy_site' : buildingType,
         name: `Test ${buildingType.replace('_', ' ')}`,
         discovered: true,
         culturalSignificance: 'high' as const
       },
       holyPlaceReligion
     };
-  };
+  }, []);
 
-  const teleportToInterior = (buildingType: string, religion?: string) => {
+  const teleportToInterior = useCallback((buildingType: string, religion?: string) => {
     if (!mapData) return;
-    
+
     const testTile = createTestTile(buildingType, religion);
     console.log(`Teleporting to ${buildingType}${religion ? ` (${religion})` : ''}...`);
-    
-    // Use ruin modal for ruins, interior system for others
+
     if (buildingType === 'ruin') {
       setActiveRuinModal({ tile: testTile });
     } else if (onEnterBuilding) {
       onEnterBuilding(testTile, mapData);
     }
+  }, [mapData, onEnterBuilding, setActiveRuinModal, createTestTile]);
+
+  // Teleportation callbacks - now teleportToInterior is defined
+  const handleTeleportPalace = useCallback(() => teleportToInterior('palace'), [teleportToInterior]);
+  const handleTeleportChristianHoly = useCallback(() => teleportToInterior('holy_place', 'Christianity'), [teleportToInterior]);
+  const handleTeleportIslamicHoly = useCallback(() => teleportToInterior('holy_place', 'Islam'), [teleportToInterior]);
+  const handleTeleportBuddhistHoly = useCallback(() => teleportToInterior('holy_place', 'Buddhism'), [teleportToInterior]);
+  const handleTeleportJewishHoly = useCallback(() => teleportToInterior('holy_place', 'Judaism'), [teleportToInterior]);
+  const handleTeleportTemple = useCallback(() => teleportToInterior('temple'), [teleportToInterior]);
+  const handleTeleportTavern = useCallback(() => teleportToInterior('tavern'), [teleportToInterior]);
+  const handleTeleportHouse = useCallback(() => teleportToInterior('house'), [teleportToInterior]);
+  const handleTeleportRuin = useCallback(() => teleportToInterior('ruin'), [teleportToInterior]);
+
+  if (!isTestModeEnabled) return null;
+
+  const toggleSetting = (key: keyof typeof debugSettings) => {
+    setDebugSettings(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   const getFPSColor = (fps: number) => {
@@ -96,7 +113,7 @@ const DebugOverlay: React.FC = () => {
         <div className="flex justify-between items-center p-3 border-b border-cyan-500/30">
           <h3 className="text-cyan-400 font-semibold text-sm">Debug Mode {isSafari && '(Safari)'}</h3>
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={handleCollapseToggle}
             className="text-gray-400 hover:text-white transition-colors"
           >
             <svg className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,20 +298,14 @@ const DebugOverlay: React.FC = () => {
             {/* Quick Actions */}
             <div className="space-y-2 border-t border-cyan-500/30 pt-3">
               <button
-                onClick={() => {
-                  console.log('Current Performance Metrics:', metrics);
-                  console.log('Debug Settings:', debugSettings);
-                }}
+                onClick={handleLogMetrics}
                 className="w-full px-2 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 text-xs rounded transition-colors"
               >
                 Log Current State to Console
               </button>
               
               <button
-                onClick={() => {
-                  localStorage.setItem('debugSettings', JSON.stringify(debugSettings));
-                  alert('Debug settings saved to localStorage');
-                }}
+                onClick={handleSaveSettings}
                 className="w-full px-2 py-1 bg-green-600/20 hover:bg-green-600/30 text-green-400 text-xs rounded transition-colors"
               >
                 Save Settings
@@ -307,7 +318,7 @@ const DebugOverlay: React.FC = () => {
               
               {/* Palace */}
               <button
-                onClick={() => teleportToInterior('palace')}
+                onClick={handleTeleportPalace}
                 className="w-full px-2 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 text-xs rounded transition-colors"
               >
                 👑 Palace (Beautiful Interior)
@@ -315,35 +326,35 @@ const DebugOverlay: React.FC = () => {
 
               {/* Holy Places with different religions */}
               <button
-                onClick={() => teleportToInterior('holy_place', 'Christianity')}
+                onClick={handleTeleportChristianHoly}
                 className="w-full px-2 py-1 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 text-xs rounded transition-colors"
               >
                 ⛪ Christian Cathedral (Beautiful)
               </button>
 
               <button
-                onClick={() => teleportToInterior('holy_place', 'Islam')}
+                onClick={handleTeleportIslamicHoly}
                 className="w-full px-2 py-1 bg-green-600/20 hover:bg-green-600/30 text-green-400 text-xs rounded transition-colors"
               >
                 🕌 Islamic Mosque (Beautiful)
               </button>
 
               <button
-                onClick={() => teleportToInterior('holy_place', 'Buddhism')}
+                onClick={handleTeleportBuddhistHoly}
                 className="w-full px-2 py-1 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 text-xs rounded transition-colors"
               >
                 🏛️ Buddhist Temple (Beautiful)
               </button>
 
               <button
-                onClick={() => teleportToInterior('holy_place', 'Judaism')}
+                onClick={handleTeleportJewishHoly}
                 className="w-full px-2 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs rounded transition-colors"
               >
                 🕍 Jewish Synagogue (Beautiful)
               </button>
 
               <button
-                onClick={() => teleportToInterior('temple')}
+                onClick={handleTeleportTemple}
                 className="w-full px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs rounded transition-colors"
               >
                 🏛️ Generic Temple (Beautiful)
@@ -354,21 +365,21 @@ const DebugOverlay: React.FC = () => {
                 <span className="text-xs text-gray-500 mb-2 block">Legacy System</span>
                 
                 <button
-                  onClick={() => teleportToInterior('tavern')}
+                  onClick={handleTeleportTavern}
                   className="w-full px-2 py-1 bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 text-xs rounded transition-colors mb-1"
                 >
                   🍺 Tavern (Old System)
                 </button>
 
                 <button
-                  onClick={() => teleportToInterior('house')}
+                  onClick={handleTeleportHouse}
                   className="w-full px-2 py-1 bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 text-xs rounded transition-colors mb-1"
                 >
                   🏠 House (Old System)
                 </button>
 
                 <button
-                  onClick={() => teleportToInterior('ruin')}
+                  onClick={handleTeleportRuin}
                   className="w-full px-2 py-1 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 text-xs rounded transition-colors"
                 >
                   🏚️ Ruin (Roguelike Modal)

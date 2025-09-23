@@ -33,6 +33,7 @@ import DugEarthSymbol from './symbols/DugEarthSymbol';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
 import ShipTooltip from './ShipTooltip';
+import PlayerTooltip from './PlayerTooltip';
 import { StairsUpPixel } from './symbols/architecture/specialMap/StairsUpPixel';
 import TrainSymbol from './symbols/TrainSymbol';
 import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
@@ -72,11 +73,14 @@ import MapCanvasPerformance from './MapCanvasPerformance';
 import POIHoverTooltip from './POIHoverTooltip';
 import TileHoverTooltip from './TileHoverTooltip';
 import QuestMarkers from './QuestMarkers';
-import { getSafariOptimizedClassName, getSafariOptimizedStyle } from '../utils/safariUtils';
+import { getSafariOptimizedClassName, getSafariOptimizedStyle, getSafariGPUStyle, getSafariOptimizedTransform, isSafari } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 const ICON_ANIMATION_DURATION = 200; // Back to 200ms for smoother, more controlled animation
-const INITIAL_ZOOM_LEVEL = 2;
+
+// Safari optimization: Start more zoomed in to render fewer tiles
+const isSafariBrowser = isSafari(); // Call the function from safariUtils
+const INITIAL_ZOOM_LEVEL = isSafariBrowser ? 2.5 : 2;
 
 type PlayerMode = 'ship' | 'onFoot';
 
@@ -146,7 +150,7 @@ const MemoizedDustEffect = memo<{x: number, y: number, size: number, seed: numbe
                         '--delay': `${animationDelay}s`,
                         '--drift': `${driftDistance}px`,
                         '--duration': `${8 + localRand() * 4}s`, // 8-12s duration
-                        ...getSafariOptimizedStyle({ filter: 'blur(0.5px)' }),
+                        ...getSafariGPUStyle(getSafariOptimizedStyle({ filter: 'blur(0.5px)' })),
                     } as React.CSSProperties}
                 />
             );
@@ -175,7 +179,7 @@ const MemoizedSnowEffect = memo<{x: number, y: number, size: number, seed: numbe
                     className="animate-snow"
                     style={{
                         '--delay': i,
-                        ...getSafariOptimizedStyle({ filter: 'blur(0.5px) drop-shadow(0 0 1px rgba(255,255,255,0.8))' }),
+                        ...getSafariGPUStyle(getSafariOptimizedStyle({ filter: 'blur(0.5px) drop-shadow(0 0 1px rgba(255,255,255,0.8))' })),
                     } as React.CSSProperties}
                 />
             );
@@ -329,6 +333,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [showShipTooltip, setShowShipTooltip] = useState(false);
   const [shipTooltipPos, setShipTooltipPos] = useState({ x: 0, y: 0 });
 
+  // Player tooltip state
+  const [showPlayerTooltip, setShowPlayerTooltip] = useState(false);
+  const [playerTooltipPos, setPlayerTooltipPos] = useState({ x: 0, y: 0 });
+
   // NPC/Animal hover state
   const [hoveredNPC, setHoveredNPC] = useState<NpcEntity | null>(null);
   const [hoveredAnimal, setHoveredAnimal] = useState<AnimalEntity | null>(null);
@@ -428,9 +436,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       currentPanX.current += deltaX * CAMERA_SMOOTH_FACTOR;
       currentPanY.current += deltaY * CAMERA_SMOOTH_FACTOR;
 
-      const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
-      if (svgRef.current) svgRef.current.style.transform = newTransform;
-      if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+      // Add translate3d for Safari GPU acceleration
+      const newTransform = `translate3d(${currentPanX.current}px, ${currentPanY.current}px, 0) scale(${zoomLevel})`;
+      if (svgRef.current) {
+        svgRef.current.style.transform = newTransform;
+        // Safari optimization for smooth zoom/pan
+        svgRef.current.style.webkitTransform = newTransform;
+        svgRef.current.style.willChange = 'transform';
+      }
+      if (canvasRef.current) {
+        canvasRef.current.style.transform = newTransform;
+        // Safari optimization for smooth zoom/pan
+        canvasRef.current.style.webkitTransform = newTransform;
+        canvasRef.current.style.willChange = 'transform';
+      }
     }
   }, [displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, mapData]);
 
@@ -741,7 +760,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             currentPanX.current += deltaX * CAMERA_SMOOTH_FACTOR;
             currentPanY.current += deltaY * CAMERA_SMOOTH_FACTOR;
 
-            const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
+            // Add translate3d for Safari GPU acceleration
+      const newTransform = `translate3d(${currentPanX.current}px, ${currentPanY.current}px, 0) scale(${zoomLevel})`;
             if (svgRef.current) svgRef.current.style.transform = newTransform;
             if (canvasRef.current) canvasRef.current.style.transform = newTransform;
         } else if (!isDragging && !isFreePanMode) {
@@ -1004,8 +1024,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const svgWidth = width * TILE_SIZE_PX;
   const svgHeight = height * TILE_SIZE_PX;
 
-  const minZoom = 0.4;
-  const maxZoom = 12;
+  // Safari optimization: Adjust zoom limits to encourage better performance
+  const minZoom = isSafariBrowser ? 1.5 : 0.4;  // Safari minimum zoom prevents zooming out too far
+  const maxZoom = isSafariBrowser ? 8 : 12;      // Safari maximum zoom slightly reduced
 
   // Optimized interaction handlers
   const handleWheel = useCallback(rafThrottle((e: React.WheelEvent) => {
@@ -1080,7 +1101,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     
     // Check for NPCs
     if (npc) {
-      if (npc.tamedAnimals && npc.tamedAnimals.length > 0) {
+      // On Safari, always use simple NPC icon for performance
+      if (!isSafari() && npc.tamedAnimals && npc.tamedAnimals.length > 0) {
         return { fileName: 'NpcIconEnhanced.tsx', symbolName: 'NpcIconEnhanced' };
       } else {
         return { fileName: 'NpcIcon.tsx', symbolName: 'NpcIcon' };
@@ -1380,7 +1402,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       currentPanX.current += deltaX;
       currentPanY.current += deltaY;
 
-      const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
+      // Add translate3d for Safari GPU acceleration
+      const newTransform = `translate3d(${currentPanX.current}px, ${currentPanY.current}px, 0) scale(${zoomLevel})`;
 
       if (svgRef.current) {
         svgRef.current.style.transform = newTransform;
@@ -1554,9 +1577,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       currentPanX.current += deltaX;
       currentPanY.current += deltaY;
 
-      const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
-      if (svgRef.current) svgRef.current.style.transform = newTransform;
-      if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+      // Add translate3d for Safari GPU acceleration
+      const newTransform = `translate3d(${currentPanX.current}px, ${currentPanY.current}px, 0) scale(${zoomLevel})`;
+      if (svgRef.current) {
+        svgRef.current.style.transform = newTransform;
+        // Safari optimization for smooth zoom/pan
+        svgRef.current.style.webkitTransform = newTransform;
+        svgRef.current.style.willChange = 'transform';
+      }
+      if (canvasRef.current) {
+        canvasRef.current.style.transform = newTransform;
+        // Safari optimization for smooth zoom/pan
+        canvasRef.current.style.webkitTransform = newTransform;
+        canvasRef.current.style.willChange = 'transform';
+      }
       
       setLastMousePos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     } else if (e.touches.length === 2 && touchStartRef.current.distance) {
@@ -1605,10 +1639,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     touchStartRef.current = null;
   }, [isDragging]);
 
-  // Detect Safari for performance optimizations
-  const isSafari = useMemo(() => {
-    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  }, []);
+  // Safari detection is done at the module level (line 82)
 
   // Zoom controls
   const zoomIn = useCallback(() => {
@@ -1840,10 +1871,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       <div 
         ref={containerRef}
         className="relative h-full w-full overflow-hidden rounded-3xl bg-transparent"
-        style={{ 
+        style={{
           cursor: isDragging ? 'grabbing' : 'grab',
           contain: 'layout style paint',
-          touchAction: 'none' // Prevent default touch behaviors
+          touchAction: 'none', // Prevent default touch behaviors
+          // Safari optimizations
+          WebkitOverflowScrolling: 'touch',
+          WebkitBackfaceVisibility: 'hidden',
+          WebkitPerspective: 1000,
+          WebkitTransformStyle: 'preserve-3d'
         }}
         onWheel={handleWheel} 
         onMouseDown={handleMouseDown} 
@@ -3659,8 +3695,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </g>
               ))}
               
-              {/* Tamed Animals Following Player - Only show when on foot and limit to one */}
-              {playerMode === 'onFoot' && tamedAnimals.slice(0, 1).map((animal, index) => {
+              {/* Tamed Animals Following Player - Only show when on foot and limit to one (disabled on Safari for performance) */}
+              {playerMode === 'onFoot' && !isSafari() && tamedAnimals.slice(0, 1).map((animal, index) => {
                 // Calculate position behind player
                 let followX = logicalControlledIconX || 0;
                 let followY = logicalControlledIconY || 0;
@@ -3992,10 +4028,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         </g>
                       )
                     ) : playerCharacter && (
-                      <g 
-                        onClick={() => {
-                          console.log('[MapDisplay] Player icon clicked, calling onPlayerIconClick');
-                          onPlayerIconClick?.();
+                      <g
+                        onClick={(e) => {
+                          console.log('[MapDisplay] Player icon clicked, showing tooltip');
+                          const rect = (e.currentTarget.parentNode as SVGSVGElement).getBoundingClientRect();
+                          const x = e.clientX - rect.left;
+                          const y = e.clientY - rect.top;
+                          setPlayerTooltipPos({ x, y });
+                          setShowPlayerTooltip(true);
                         }}
                         style={{ cursor: 'pointer', pointerEvents: 'all' }}
                       >
@@ -4360,45 +4400,69 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           onClose={() => setShowShipTooltip(false)}
         />
       )}
+
+      {/* Player Tooltip */}
+      {showPlayerTooltip && (
+        <PlayerTooltip
+          x={playerTooltipPos.x}
+          y={playerTooltipPos.y}
+          onRest={() => {
+            console.log('[MapDisplay] Player tooltip Rest clicked');
+            setShowPlayerTooltip(false);
+            // Trigger camp modal through the parent component
+            if (onPlayerIconClick) {
+              onPlayerIconClick();
+            }
+          }}
+          onStatus={() => {
+            console.log('[MapDisplay] Player tooltip Status clicked');
+            setShowPlayerTooltip(false);
+            // For now, just close the tooltip
+            // Could add status narration here later
+          }}
+          onClose={() => setShowPlayerTooltip(false)}
+        />
+      )}
     </div>
   );
 };
 
 // Custom comparison function for memo to prevent unnecessary re-renders
 const arePropsEqual = (prevProps: MapDisplayOptimizedProps, nextProps: MapDisplayOptimizedProps) => {
+  // Calculate viewport boundaries to avoid re-rendering on every pixel movement
+  const getViewportKey = (props: MapDisplayOptimizedProps) => {
+    // Use logical icon positions which are the actual props passed in
+    const playerGridX = Math.floor((props.logicalControlledIconX || 0) / 4); // Group by 4-tile chunks
+    const playerGridY = Math.floor((props.logicalControlledIconY || 0) / 4);
+    return `${playerGridX}-${playerGridY}`;
+  };
+
   // Only re-render if these essential props changed
   return (
-    // Map data comparison - use seed as a proxy for map changes
+    // Map data comparison
     prevProps.mapData?.seed === nextProps.mapData?.seed &&
-    prevProps.mapData?.mapType === nextProps.mapData?.mapType &&
-    
-    // View and position changes
-    prevProps.zoomLevel === nextProps.zoomLevel &&
-    prevProps.panX === nextProps.panX &&
-    prevProps.panY === nextProps.panY &&
-    prevProps.viewMode === nextProps.viewMode &&
-    
-    // Player position changes
-    prevProps.controlledIconX === nextProps.controlledIconX &&
-    prevProps.controlledIconY === nextProps.controlledIconY &&
+
+    // View and position changes (chunked to reduce sensitivity)
+    getViewportKey(prevProps) === getViewportKey(nextProps) &&
     prevProps.playerMode === nextProps.playerMode &&
-    
-    // Essential state changes
-    prevProps.isNight === nextProps.isNight &&
     prevProps.activeLens === nextProps.activeLens &&
-    prevProps.selectedTileCoords?.x === nextProps.selectedTileCoords?.x &&
-    prevProps.selectedTileCoords?.y === nextProps.selectedTileCoords?.y &&
-    
+
+    // Game time that affects rendering
+    Math.floor(prevProps.gameTimeHours / 4) === Math.floor(nextProps.gameTimeHours / 4) && // Only update every 4 hours
+
     // Array length comparisons for performance (deep comparison is expensive)
     prevProps.animals?.length === nextProps.animals?.length &&
     prevProps.npcs?.length === nextProps.npcs?.length &&
-    prevProps.vegetationEntities?.length === nextProps.vegetationEntities?.length &&
     prevProps.deployedVessels?.length === nextProps.deployedVessels?.length &&
-    
-    // Game state that affects rendering
-    prevProps.gameDate?.dayOfYear === nextProps.gameDate?.dayOfYear &&
-    prevProps.gameDate?.year === nextProps.gameDate?.year &&
-    prevProps.gameDate?.season === nextProps.gameDate?.season
+
+    // Selection states
+    prevProps.selectedAnimalId === nextProps.selectedAnimalId &&
+    prevProps.selectedNpcId === nextProps.selectedNpcId &&
+
+    // Ship/vessel state
+    prevProps.shipDockX === nextProps.shipDockX &&
+    prevProps.shipDockY === nextProps.shipDockY &&
+    prevProps.currentVessel === nextProps.currentVessel
   );
 };
 

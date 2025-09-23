@@ -19,6 +19,7 @@ import { npcPersistenceService } from '../services/npcPersistenceService';
 import { crossMapNpcService } from '../services/crossMapNpcService';
 import gameSoundsService from '../services/gameSoundsService';
 import { urbanTileRegistry } from '../services/urbanTileRegistryService';
+import { dialectContinuumService } from '../services/dialectContinuumService';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -215,12 +216,21 @@ export const useMapState = (props: useMapStateProps) => {
     const visibleAnimals = useMemo(() => animals, [animals]);
     const visibleNpcs = useMemo(() => npcs, [npcs]);
 
+    // Calculate cultural zone separately so it can be exposed
+    const culturalZone = useMemo(() => {
+        if (!mapData) return 'EUROPEAN'; // Default fallback
+        // Use the stored culturalZone from mapData if it exists, otherwise calculate it
+        if (mapData.culturalZone) {
+            return mapData.culturalZone;
+        }
+        return mapLocationToCulture(mapData.continent || 'Europe', parseInt(mapData.timeSlice || '1650'));
+    }, [mapData?.continent, mapData?.timeSlice, mapData?.culturalZone]);
+
     const societalProfile = useMemo((): SocietalProfile => {
         if (!mapData) return SOCIETAL_PROFILES.DEFAULT;
         const { era } = parseDateString(mapData.timeSlice || '1650');
-        const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', parseInt(mapData.timeSlice || '1650'));
-        
-        let profile = SOCIETAL_PROFILES[culturalZone]?.[era] 
+
+        let profile = SOCIETAL_PROFILES[culturalZone]?.[era]
             || SOCIETAL_PROFILES[culturalZone]?.[HistoricalEra.MEDIEVAL] // Fallback to medieval
             || SOCIETAL_PROFILES.DEFAULT;
 
@@ -386,13 +396,41 @@ export const useMapState = (props: useMapStateProps) => {
         return { areaDef: randomMapAreaDef, region: randomRegionName, zone: randomZoneName };
     }, []);
 
-    const generateAndCacheMapInternal = useCallback(( seedToUse: number, archetypeToUse: MapArchetype, climateToUse: ClimateType, worldX: number, worldY: number, localAreaToUse: string, regionToUse: string, zoneToUse: string, neighboringEdges?: any, altitudeOverride?: 'standard' | 'high' | 'low', hasLakes?: boolean, areaEconomicActivityLevel?: number, isVolcanic?: boolean ): CachedMapEntry => { 
+    // Helper function to collect neighboring edge data from the cache
+    const getNeighboringEdgeData = useCallback((worldX: number, worldY: number) => {
+        const neighboringEdges: any = {};
+        const north = mapDataCache.get(`${worldX},${worldY - 1}`);
+        if (north && north.mapData.edgeDataSet) neighboringEdges.north = north.mapData.edgeDataSet.south;
+        const east = mapDataCache.get(`${worldX + 1},${worldY}`);
+        if (east && east.mapData.edgeDataSet) neighboringEdges.east = east.mapData.edgeDataSet.west;
+        const south = mapDataCache.get(`${worldX},${worldY + 1}`);
+        if (south && south.mapData.edgeDataSet) neighboringEdges.south = south.mapData.edgeDataSet.north;
+        const west = mapDataCache.get(`${worldX - 1},${worldY}`);
+        if (west && west.mapData.edgeDataSet) neighboringEdges.west = west.mapData.edgeDataSet.east;
+
+        // Debug logging for edge stitching
+        const edgeCount = Object.keys(neighboringEdges).length;
+        if (edgeCount > 0) {
+            console.log(`[Map Stitching] Found ${edgeCount} neighboring edges for map at (${worldX}, ${worldY})`);
+            // Log which directions we have data for
+            const directions = Object.keys(neighboringEdges);
+            console.log(`[Map Stitching] Available edge data: ${directions.join(', ')}`);
+        }
+
+        return Object.keys(neighboringEdges).length > 0 ? neighboringEdges : undefined;
+    }, [mapDataCache]);
+
+    const generateAndCacheMapInternal = useCallback(( seedToUse: number, archetypeToUse: MapArchetype, climateToUse: ClimateType, worldX: number, worldY: number, localAreaToUse: string, regionToUse: string, zoneToUse: string, neighboringEdges?: any, altitudeOverride?: 'standard' | 'high' | 'low', hasLakes?: boolean, areaEconomicActivityLevel?: number, isVolcanic?: boolean ): CachedMapEntry => {
         // Use area-specific economicActivityLevel if provided, otherwise fall back to state value
         const effectiveEconomicLevel = areaEconomicActivityLevel !== undefined ? areaEconomicActivityLevel : economicActivityLevel;
         const generationParams: MapGenerationParams = { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel };
+
+        // If neighboringEdges wasn't provided, collect it automatically from the cache
+        const edgesToUse = neighboringEdges || getNeighboringEdgeData(worldX, worldY);
+
         // FIXED: Pass zoneToUse as continent (it's the zone name like "Europe"), and regionToUse as region
         // The standardMapGenerator will derive the cultural zone from the continent parameter
-        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, isVolcanic || forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes, undefined, undefined, undefined ); 
+        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, isVolcanic || forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, edgesToUse, hasLakes, undefined, undefined, undefined ); 
         const newAnimals = newMap.animals || []; 
         let newNpcs = newMap.npcs || [];
         delete newMap.animals; delete newMap.npcs;
@@ -430,7 +468,7 @@ export const useMapState = (props: useMapStateProps) => {
         };
         setMapDataCache(prevCache => new Map(prevCache).set(`${worldX},${worldY}`, newCacheEntry));
         return newCacheEntry;
-    }, [generateHarbor, generateLargeCity, userSelectedBaseAltitude, forceVolcanicActivity, gameState.gameDate, isAgricultural, isPastoral, economicActivityLevel]);
+    }, [generateHarbor, generateLargeCity, userSelectedBaseAltitude, forceVolcanicActivity, gameState.gameDate, isAgricultural, isPastoral, economicActivityLevel, getNeighboringEdgeData]);
 
     const validateAndPlacePlayerOnNewMap = useCallback((targetMap: MapData, transitionInfo: any) => {
         let finalX = transitionInfo.entryX;
@@ -560,22 +598,7 @@ export const useMapState = (props: useMapStateProps) => {
                 }
                 setGameState.setIsLoading(false);
             } else {
-                // Generate new map
-                const neighboringEdges: any = {};
-                const north = mapDataCache.get(`${currentWorldCoords.x},${currentWorldCoords.y - 1}`);
-                if (north && north.mapData.edgeDataSet) neighboringEdges.north = north.mapData.edgeDataSet.south;
-                const east = mapDataCache.get(`${currentWorldCoords.x + 1},${currentWorldCoords.y}`);
-                if (east && east.mapData.edgeDataSet) neighboringEdges.east = east.mapData.edgeDataSet.west;
-                const south = mapDataCache.get(`${currentWorldCoords.x},${currentWorldCoords.y + 1}`);
-                if (south && south.mapData.edgeDataSet) neighboringEdges.south = south.mapData.edgeDataSet.north;
-                const west = mapDataCache.get(`${currentWorldCoords.x - 1},${currentWorldCoords.y}`);
-                if (west && west.mapData.edgeDataSet) neighboringEdges.west = west.mapData.edgeDataSet.east;
-
-                // Debug logging for edge stitching
-                const edgeCount = Object.keys(neighboringEdges).length;
-                if (edgeCount > 0) {
-                    console.log(`[Map Stitching] Found ${edgeCount} neighboring edges for map at (${currentWorldCoords.x}, ${currentWorldCoords.y})`);
-                }
+                // Generate new map - neighboring edges will be collected automatically by generateAndCacheMapInternal
 
                 // Check if we're in a liminal zone first
                 let mapToGenerate = null;
@@ -617,7 +640,7 @@ export const useMapState = (props: useMapStateProps) => {
                     const newMapData = generateAndCacheMapInternal(
                         currentMapSeed, mapToGenerate.archetype, mapToGenerate.climate,
                         currentWorldCoords.x, currentWorldCoords.y,
-                        mapToGenerate.name, mapToGenerate.region, mapToGenerate.zone, neighboringEdges,
+                        mapToGenerate.name, mapToGenerate.region, mapToGenerate.zone, undefined, // neighboringEdges will be collected automatically
                         mapToGenerate.altitude, mapToGenerate.hasLakes, mapToGenerate.economicActivityLevel, mapToGenerate.isVolcanic
                     );
                     setMapData(newMapData.mapData);
@@ -670,6 +693,11 @@ export const useMapState = (props: useMapStateProps) => {
             const randomArea = allAreas[Math.floor(Math.random() * allAreas.length)];
             // console.log(`[Special Zone] Randomly selected: ${randomArea}`);
             setLocalArea(randomArea);
+
+            // Update dialect continuum tracking
+            if (dialectContinuumService.isEnabled()) {
+                dialectContinuumService.updatePlayerMovement(randomArea);
+            }
             
             // Place player at center of new map
             setPlayerState.setPendingIconTransitionInfo({
@@ -759,12 +787,22 @@ export const useMapState = (props: useMapStateProps) => {
                 setGameState.setCurrentZone(nextMapResult.zone);
                 setGameState.setCurrentRegion(nextMapResult.region);
                 setLocalArea(nextMapResult.areaDef.name);
+
+                // Update dialect continuum tracking
+                if (dialectContinuumService.isEnabled()) {
+                    dialectContinuumService.updatePlayerMovement(nextMapResult.areaDef.name);
+                }
             } else if (nextMapResult.type === 'random') {
                 const { zone, region, areaDef } = _selectRandomMapArea();
                 console.log(`[Map Transition] Moving to random new area: ${areaDef.name}`);
                 setGameState.setCurrentZone(zone);
                 setGameState.setCurrentRegion(region);
                 setLocalArea(areaDef.name);
+
+                // Update dialect continuum tracking
+                if (dialectContinuumService.isEnabled()) {
+                    dialectContinuumService.updatePlayerMovement(areaDef.name);
+                }
             }
             
             setCurrentWorldCoords({ x: targetWorldX, y: targetWorldY });
@@ -848,6 +886,11 @@ export const useMapState = (props: useMapStateProps) => {
         setGameState.setCurrentZone(zone);
         setGameState.setCurrentRegion(region);
         setLocalArea(areaDef.name);
+
+        // Update dialect continuum tracking
+        if (dialectContinuumService.isEnabled()) {
+            dialectContinuumService.updatePlayerMovement(areaDef.name);
+        }
         
         // Generate the map
         setGameState.setIsLoading(true);
@@ -1199,6 +1242,11 @@ export const useMapState = (props: useMapStateProps) => {
         setGameState.setCurrentZone(targetZone);
         setGameState.setCurrentRegion(foundRegion);
         setLocalArea(targetMapArea);
+
+        // Update dialect continuum tracking
+        if (dialectContinuumService.isEnabled()) {
+            dialectContinuumService.updatePlayerMovement(targetMapArea);
+        }
         
         // Generate the map at this specific location
         setGameState.setIsLoading(true);
@@ -1330,6 +1378,11 @@ export const useMapState = (props: useMapStateProps) => {
             setGameState.setCurrentZone(zone);
             setGameState.setCurrentRegion(region);
             setLocalArea(areaDef.name);
+
+            // Update dialect continuum tracking
+            if (dialectContinuumService.isEnabled()) {
+                dialectContinuumService.updatePlayerMovement(areaDef.name);
+            }
             
             // Generate the map
             setGameState.setIsLoading(true);
@@ -1595,6 +1648,7 @@ export const useMapState = (props: useMapStateProps) => {
         generateHarbor, onGenerateHarborToggle: setGenerateHarbor,
         generateLargeCity, onGenerateLargeCityToggle: setGenerateLargeCity,
         terrainStructures: mapData?.terrainStructures,
+        culturalZone, // EXPOSE CULTURAL ZONE
         societalProfile, // EXPOSE THIS
         isAgricultural, setIsAgricultural,
         isPastoral, setIsPastoral,

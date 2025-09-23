@@ -15,6 +15,7 @@ import { findNpcFriends } from './socialService';
 import { primarySourceService } from './primarySourceService';
 import { loadTamedAnimals, TamedAnimal } from './animalTamingService';
 import { WeatherService, WeatherState } from './weatherService';
+import { dialectContinuumService } from './dialectContinuumService';
 
 // Cache for historical events to avoid regenerating them every dialogue
 interface HistoricalEventCache {
@@ -277,7 +278,12 @@ export async function generateEncounterDialogue(
 
     // Get appropriate historical language if enabled
     let languageInstruction = '';
-    if (useRealLanguage) {
+
+    // Check if dialect continuum is enabled
+    const dialectContinuumEnabled = dialectContinuumService.isEnabled();
+    const dialectDistance = dialectContinuumService.getCurrentDistance();
+
+    if (useRealLanguage || (dialectContinuumEnabled && dialectDistance > 0)) {
         const { getLanguageForCharacter } = await import('../constants/gameData/languages');
         const dateInfo = parseDateString(String(mapData.timeSlice));
         const historicalLanguage = getLanguageForCharacter(
@@ -288,23 +294,35 @@ export async function generateEncounterDialogue(
             target.name,
             target.profession
         );
-        
-        languageInstruction = historicalLanguage 
-            ? `**LANGUAGE DIRECTIVE:**
-            You MUST respond in ${historicalLanguage.name} (${historicalLanguage.nativeName || historicalLanguage.id}).
-            ${historicalLanguage.llmPrompt || ''}
-            
-            **LINGUISTIC AUTHENTICITY RULES:**
-            1. Use actual words and phrases from the target language - do NOT use modern versions
-            2. For reconstructed/extinct languages, use approximations, but never switch to English
-            3. Include appropriate honorifics, titles, and social markers
-            4. Use a wide range of words, expressions, rhetorical tones, and styles, and be voluble and realistic
-            5. Do NOT provide translations or explanations
-            6. If the exact language is unknown, make your best scholarly approximation based on linguistic reconstruction
-            7. NEVER default to English - always attempt the historical language
-            
-            YOUR RESPONSE MUST BE ENTIRELY IN ${historicalLanguage.name.toUpperCase()}.`
-            : `**LANGUAGE:** Respond in historically appropriate language for ${mapData.timeSlice} ${mapData.localArea}.`;
+
+        if (dialectContinuumEnabled && dialectDistance > 0 && !useRealLanguage) {
+            // Dialect continuum mode - mix languages based on distance
+            languageInstruction = historicalLanguage
+                ? dialectContinuumService.generateLLMPrompt(historicalLanguage.name, dialectDistance)
+                : `**DIALECT CONTINUUM MODE**
+                Mix English with historically appropriate language for ${mapData.timeSlice} ${mapData.localArea} at approximately ${dialectDistance}% foreign words.
+                Randomly distribute foreign words throughout your response.
+                Keep critical game information (items, directions) more in English.
+                Use italics (*word*) to mark foreign words.`;
+        } else if (useRealLanguage) {
+            // Full native language mode
+            languageInstruction = historicalLanguage
+                ? `**LANGUAGE DIRECTIVE:**
+                You MUST respond in ${historicalLanguage.name} (${historicalLanguage.nativeName || historicalLanguage.id}).
+                ${historicalLanguage.llmPrompt || ''}
+
+                **LINGUISTIC AUTHENTICITY RULES:**
+                1. Use actual words and phrases from the target language - do NOT use modern versions
+                2. For reconstructed/extinct languages, use approximations, but never switch to English
+                3. Include appropriate honorifics, titles, and social markers
+                4. Use a wide range of words, expressions, rhetorical tones, and styles, and be voluble and realistic
+                5. Do NOT provide translations or explanations
+                6. If the exact language is unknown, make your best scholarly approximation based on linguistic reconstruction
+                7. NEVER default to English - always attempt the historical language
+
+                YOUR RESPONSE MUST BE ENTIRELY IN ${historicalLanguage.name.toUpperCase()}.`
+                : `**LANGUAGE:** Respond in historically appropriate language for ${mapData.timeSlice} ${mapData.localArea}.`;
+        }
     } else {
         languageInstruction = `**Language:** Respond in modern English.`;
     }
@@ -605,17 +623,27 @@ export async function generateEncounterDialogue(
             dialogueText = dialogueMatch?.[1]?.trim() || responseText;
             
             // Extract reputation change
-            const reputationMatch = responseText.match(/REPUTATION:\s*(increase|decrease|none)/i);
-            const amountMatch = responseText.match(/AMOUNT:\s*(\d+)/i);
-            
+            const reputationMatch = responseText.match(/REPUTATION:\s*([^\n]+)/i);
+            const amountMatch = responseText.match(/AMOUNT:\s*(-?\d+)/i);
+
             if (reputationMatch && amountMatch) {
-                const direction = reputationMatch[1].toLowerCase();
+                const reputationType = reputationMatch[1].toLowerCase().trim();
                 const amount = parseInt(amountMatch[1]) || 0;
-                
-                if (direction === 'increase') {
-                    reputationChange = Math.min(amount, 20); // Cap positive at 20
-                } else if (direction === 'decrease') {
-                    reputationChange = -Math.min(amount, 100); // Cap negative at -100
+
+                // Handle various reputation descriptors
+                const negativeTypes = ['suspicious', 'hostile', 'angry', 'annoyed', 'decrease', 'negative', 'wary', 'distrustful'];
+                const positiveTypes = ['friendly', 'increase', 'positive', 'grateful', 'thankful', 'appreciative', 'pleased'];
+                const neutralTypes = ['none', 'neutral', 'unchanged'];
+
+                if (negativeTypes.some(type => reputationType.includes(type))) {
+                    // For negative, if amount is positive make it negative
+                    reputationChange = amount > 0 ? -Math.min(amount, 100) : Math.max(amount, -100);
+                } else if (positiveTypes.some(type => reputationType.includes(type))) {
+                    // For positive, ensure amount is positive
+                    reputationChange = Math.min(Math.abs(amount), 20); // Cap positive at 20
+                } else if (!neutralTypes.some(type => reputationType.includes(type))) {
+                    // If not neutral but unrecognized, use the raw amount
+                    reputationChange = amount;
                 }
             }
             
@@ -1809,6 +1837,191 @@ export async function generateInternalMonologue(
     }
 }
 
+/**
+ * Generates structured farmer decision based on context
+ * Returns detailed JSON with dialogue and specific decisions about rest, work, and residency
+ */
+export async function generateFarmerDecision(
+    farmer: NpcEntity,
+    playerInput: string,
+    context: {
+        timeOfDay: number;      // 0-23
+        playerReputation: number;
+        playerAppearance: string; // "armed", "peaceful", "wealthy", "poor"
+        farmProsperity: string;
+        era: HistoricalEra;
+        location: string;
+        playerHealth: number;
+        isNight: boolean;
+        previousInteraction?: string; // Previous farmer response if any
+    }
+): Promise<{
+    dialogue: string;
+    action: 'welcome' | 'suspicious' | 'hostile' | 'conditional';
+    sentiment: number;      // -100 to 100
+    decisions: {
+        allowRest: boolean;
+        restFee: number;      // 0-10 currency
+        allowWork: boolean;   // Can work for lodging
+        allowResidency: boolean;
+        askToLeave: boolean;
+        threatenViolence: boolean;
+        callForHelp: boolean;
+    };
+}> {
+    // Get event service instance to track API usage
+    const eventService = (window as any).eventService;
+
+    // Calculate contextual modifiers
+    const isVeryLateNight = context.timeOfDay >= 23 || context.timeOfDay <= 4;
+    const isDangerous = isVeryLateNight || context.playerReputation < 20;
+    const isThreatening = context.playerAppearance === 'armed' && isDangerous;
+
+    const prompt = `
+        You are roleplaying as ${farmer.name}, a ${farmer.age || 35}-year-old farmer in ${context.location} during the ${context.era} era (historical period).
+
+        CRITICAL SITUATION:
+        - Current time: ${context.timeOfDay}:00 (${isVeryLateNight ? 'VERY LATE NIGHT - EXTREMELY SUSPICIOUS!' : context.isNight ? 'Night' : 'Day'})
+        - Player just said: "${playerInput}"
+        - Player appearance: ${context.playerAppearance} (${isThreatening ? 'THREATENING!' : 'non-threatening'})
+        - Player reputation: ${context.playerReputation}/100 (${context.playerReputation < 30 ? 'BAD - known troublemaker' : context.playerReputation > 70 ? 'GOOD - trusted' : 'unknown stranger'})
+        - Player health: ${context.playerHealth}% (${context.playerHealth < 30 ? 'badly injured' : 'healthy'})
+        - Your farm: ${context.farmProsperity} (${context.farmProsperity === 'humble' ? 'struggling, protective of what little you have' : 'doing well, but still cautious'})
+        ${context.previousInteraction ? `- Previous exchange: ${context.previousInteraction}` : ''}
+
+        HISTORICAL CONTEXT for ${context.era}:
+        ${context.era === 'ANTIQUITY' || context.era === 'MEDIEVAL' ?
+            '- Bandits and raiders are common threats, especially at night\n- Strangers appearing at night are assumed to be thieves or worse\n- Violence is often the first response to perceived threats\n- Farmers sleep with weapons nearby' :
+        context.era === 'RENAISSANCE_EARLY_MODERN' ?
+            '- Highway robbers plague rural areas\n- Local militias patrol for vagabonds\n- Trespassing at night can mean death\n- Some hospitality customs exist for daylight travelers' :
+        context.era === 'MODERN_ERA' ?
+            '- Police can be called for trespassers\n- Still suspicious of night visitors\n- More willing to help if asked politely during day' :
+            '- Extreme suspicion of outsiders\n- Tribal/community protection is paramount\n- Night visitors are almost always hostile'}
+
+        DECISION LOGIC (BE REALISTIC AND HISTORICALLY ACCURATE):
+        1. If time is 23:00-4:00 AND player refuses to leave: You MUST threaten violence (this is life or death for you)
+        2. If time is night (20:00-5:00) AND player is armed: Be very hostile, assume they're a bandit
+        3. If player has bad reputation (<30): Never allow them to stay, always suspicious
+        4. If player asks to rest during day AND reputation >50: Consider allowing for a fee (2-5 coins if humble, 5-10 if prosperous)
+        5. If player asks to work for lodging AND it's daytime: Consider if you need help (more likely if humble farm)
+        6. If player has been resting and asks to live on farm: Only if they've proven trustworthy (worked well, paid on time)
+        7. If player is badly injured (<30 health): Might show mercy even if suspicious (but still careful)
+
+        IMPORTANT: Your response must be realistic. A real farmer in ${context.era} finding someone on their land at ${context.timeOfDay}:00 would react with:
+        ${isVeryLateNight && isThreatening ? 'IMMEDIATE VIOLENCE OR THREATS - This is a home invasion!' :
+        isVeryLateNight ? 'Extreme fear and aggression - demand they leave immediately or face consequences' :
+        context.isNight ? 'High suspicion and defensive posture - ready to fight or call for help' :
+        'Cautious curiosity if during day, but still protective of property'}
+
+        Respond with realistic dialogue (1-3 sentences) that a frightened/angry/cautious farmer would actually say.
+
+        Return a JSON object with:
+        - "dialogue": What you say to the player (BE REALISTIC - if it's 2:40 AM, you're terrified/angry!)
+        - "action": "hostile" (ready to fight), "suspicious" (very wary), "conditional" (willing to negotiate), or "welcome" (friendly)
+        - "sentiment": -100 (murderous) to 100 (delighted) - BE REALISTIC BASED ON TIME AND CONTEXT
+        - "decisions": {
+            "allowRest": Can they rest here? (false if night/bad reputation)
+            "restFee": How much to charge (0-10 coins, 0 if not allowed)
+            "allowWork": Can they work for lodging? (only if daytime and need help)
+            "allowResidency": Can they live here? (only if already proven trustworthy)
+            "askToLeave": Are you telling them to leave? (true if suspicious/night)
+            "threatenViolence": Are you threatening to attack? (true if very late night or they refused to leave)
+            "callForHelp": Will you call for guards/neighbors? (true if feel threatened)
+        }
+    `;
+
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+        const fullPrompt = prompt + `\n\nReturn ONLY valid JSON matching this exact structure:
+{
+  "dialogue": "string",
+  "action": "welcome" | "suspicious" | "hostile" | "conditional",
+  "sentiment": number (-100 to 100),
+  "decisions": {
+    "allowRest": boolean,
+    "restFee": number,
+    "allowWork": boolean,
+    "allowResidency": boolean,
+    "askToLeave": boolean,
+    "threatenViolence": boolean,
+    "callForHelp": boolean
+  }
+}`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: fullPrompt
+        });
+
+        const jsonStr = response.text.trim();
+        // Clean up any markdown code blocks if present
+        const cleanedJson = jsonStr.replace(/```json\n?|```\n?/g, '').trim();
+        const parsed = JSON.parse(cleanedJson);
+
+        // Track API usage
+        if (eventService) {
+            eventService.trackAPICall(prompt, parsed.dialogue);
+        }
+
+        return parsed;
+    } catch (error) {
+        console.error("Error generating farmer decision:", error);
+
+        // Fallback based on context - REALISTIC for the situation
+        const isVeryDangerous = isVeryLateNight && isThreatening;
+        const isModeratelyDangerous = context.isNight || context.playerReputation < 30;
+
+        if (isVeryDangerous) {
+            return {
+                dialogue: "Get off my land NOW or I'll run you through! HELP! BANDITS!",
+                action: 'hostile',
+                sentiment: -90,
+                decisions: {
+                    allowRest: false,
+                    restFee: 0,
+                    allowWork: false,
+                    allowResidency: false,
+                    askToLeave: true,
+                    threatenViolence: true,
+                    callForHelp: true
+                }
+            };
+        } else if (isModeratelyDangerous) {
+            return {
+                dialogue: "You need to leave. Now. This is private property and I don't know you.",
+                action: 'suspicious',
+                sentiment: -50,
+                decisions: {
+                    allowRest: false,
+                    restFee: 0,
+                    allowWork: false,
+                    allowResidency: false,
+                    askToLeave: true,
+                    threatenViolence: false,
+                    callForHelp: false
+                }
+            };
+        } else {
+            // Daytime, decent reputation
+            return {
+                dialogue: "What brings you to my farm, traveler? We don't get many visitors.",
+                action: 'conditional',
+                sentiment: 0,
+                decisions: {
+                    allowRest: true,
+                    restFee: 3,
+                    allowWork: true,
+                    allowResidency: false,
+                    askToLeave: false,
+                    threatenViolence: false,
+                    callForHelp: false
+                }
+            };
+        }
+    }
+}
+
 
 /**
  * Generates NPC trade negotiation dialogue based on unfair trade offers
@@ -2384,6 +2597,166 @@ This is an educational tool - focus on teaching real history specific to this ex
         };
 
         return fallbacks[context.era] || fallbacks['MEDIEVAL'];
+    }
+}
+
+/**
+ * Assess farm work quality based on player's seasonal planning and strategy explanation
+ */
+export async function assessFarmWork(
+    fieldPlans: Map<number, any>,
+    strategyExplanation: string,
+    context: {
+        season: Season;
+        year: number;
+        culturalZone: CulturalZone;
+        era: HistoricalEra;
+        weatherPattern: string;
+        soilQuality: number;
+        farmerPersonality: string;
+        playerTrustLevel: number;
+    }
+): Promise<{
+    overallScore: number; // 0-100
+    fieldScores: Map<number, number>; // Individual field scores 0-100
+    farmerFeedback: string;
+    trustChange: number; // -10 to +10
+    detailedAssessment: {
+        strategyQuality: number; // 0-100
+        resourceAllocation: number; // 0-100
+        culturalAccuracy: number; // 0-100
+        adaptationToConditions: number; // 0-100
+    };
+}> {
+    try {
+        // Prepare field plan data for analysis
+        const fieldData = Array.from(fieldPlans.entries()).map(([fieldId, plan]) => ({
+            fieldId,
+            action: plan.action,
+            waterLevel: plan.waterLevel,
+            manureLevel: plan.manureLevel,
+            reasoning: plan.reasoning || ''
+        }));
+
+        const prompt = `You are evaluating a farm worker's seasonal strategy in ${context.culturalZone} during the ${context.era} era, ${context.season} season of ${context.year}.
+
+CONTEXT:
+- Current weather pattern: ${context.weatherPattern}
+- Soil quality: ${context.soilQuality}/10
+- Farmer's personality: ${context.farmerPersonality}
+- Worker's current trust level: ${context.playerTrustLevel}/10
+- Cultural zone: ${context.culturalZone}
+- Historical era: ${context.era}
+
+FIELD PLANS:
+${fieldData.map(field => `Field ${field.fieldId}: ${field.action} (Water: ${field.waterLevel}/3, Manure: ${field.manureLevel}/1)${field.reasoning ? ` - Reasoning: "${field.reasoning}"` : ''}`).join('\n')}
+
+WORKER'S STRATEGY EXPLANATION:
+"${strategyExplanation}"
+
+Please assess this farm work plan with historical accuracy and cultural sensitivity. Consider:
+
+1. STRATEGY QUALITY (0-100): Does the overall approach make sense for this season and conditions?
+2. RESOURCE ALLOCATION (0-100): Are water and manure being used efficiently and appropriately?
+3. CULTURAL ACCURACY (0-100): Does this approach align with ${context.culturalZone} farming practices of the ${context.era}?
+4. ADAPTATION TO CONDITIONS (0-100): How well does the plan adapt to weather patterns and soil quality?
+
+Provide realistic feedback that a ${context.culturalZone} farmer in ${context.era} would give, considering their personality: ${context.farmerPersonality}.
+
+RESPONSE FORMAT - JSON ONLY:
+{
+    "overallScore": [0-100 number],
+    "fieldScores": {
+        ${fieldData.map(field => `"${field.fieldId}": [0-100 number]`).join(',\n        ')}
+    },
+    "farmerFeedback": "[2-3 sentences in character as the farmer, praising good decisions and suggesting improvements]",
+    "trustChange": [-10 to +10 number based on work quality],
+    "strategyQuality": [0-100 number],
+    "resourceAllocation": [0-100 number],
+    "culturalAccuracy": [0-100 number],
+    "adaptationToConditions": [0-100 number]
+}`;
+
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                temperature: 0.7,
+                topP: 0.9
+            }
+        });
+
+        // Clean the response text to remove markdown code blocks
+        let responseText = response.text.trim();
+        if (responseText.startsWith('```json')) {
+            responseText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (responseText.startsWith('```')) {
+            responseText = responseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        const assessment = JSON.parse(responseText);
+
+        // Convert fieldScores object to Map
+        const fieldScores = new Map<number, number>();
+        Object.entries(assessment.fieldScores).forEach(([fieldId, score]) => {
+            fieldScores.set(parseInt(fieldId), score as number);
+        });
+
+        return {
+            overallScore: Math.max(0, Math.min(100, assessment.overallScore)),
+            fieldScores,
+            farmerFeedback: assessment.farmerFeedback,
+            trustChange: Math.max(-10, Math.min(10, assessment.trustChange)),
+            detailedAssessment: {
+                strategyQuality: Math.max(0, Math.min(100, assessment.strategyQuality)),
+                resourceAllocation: Math.max(0, Math.min(100, assessment.resourceAllocation)),
+                culturalAccuracy: Math.max(0, Math.min(100, assessment.culturalAccuracy)),
+                adaptationToConditions: Math.max(0, Math.min(100, assessment.adaptationToConditions))
+            }
+        };
+
+    } catch (error) {
+        console.error("Error assessing farm work:", error);
+
+        // Fallback assessment based on basic heuristics
+        const totalFields = fieldPlans.size;
+        const averageWater = Array.from(fieldPlans.values()).reduce((sum, plan) => sum + (plan.waterLevel || 0), 0) / totalFields;
+        const hasManure = Array.from(fieldPlans.values()).some(plan => plan.manureLevel > 0);
+        const hasStrategy = strategyExplanation.length > 50;
+
+        // Basic scoring algorithm
+        let baseScore = 40; // Minimum effort score
+        if (averageWater > 1) baseScore += 20; // Good water usage
+        if (hasManure) baseScore += 15; // Used fertilizer
+        if (hasStrategy) baseScore += 15; // Provided explanation
+        if (context.playerTrustLevel > 5) baseScore += 10; // Trust bonus
+
+        const finalScore = Math.max(20, Math.min(85, baseScore));
+
+        // Generate fallback field scores
+        const fieldScores = new Map<number, number>();
+        fieldPlans.forEach((plan, fieldId) => {
+            let fieldScore = finalScore;
+            if (plan.waterLevel === 0) fieldScore -= 20; // Penalty for no water
+            if (plan.waterLevel > 2) fieldScore += 10; // Bonus for good water
+            fieldScores.set(fieldId, Math.max(10, Math.min(90, fieldScore)));
+        });
+
+        return {
+            overallScore: finalScore,
+            fieldScores,
+            farmerFeedback: finalScore > 60
+                ? "Your work shows promise, though there's always room to learn more about our ways."
+                : "I see effort in your planning, but experience will teach you better methods.",
+            trustChange: Math.floor((finalScore - 50) / 10),
+            detailedAssessment: {
+                strategyQuality: finalScore,
+                resourceAllocation: hasManure ? 70 : 50,
+                culturalAccuracy: 60,
+                adaptationToConditions: averageWater > 1 ? 70 : 45
+            }
+        };
     }
 }
 

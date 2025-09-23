@@ -640,4 +640,3 @@ registerCulturalGenerator('TRIBAL_COUNCIL', 'NORTH_AMERICAN_COLONIAL', generateN
 registerCulturalGenerator('GOVERNMENT_FORUM', 'NORTH_AMERICAN_PRE_COLUMBIAN', generateNativeAmericanCouncil);
 registerCulturalGenerator('GOVERNMENT_FORUM', 'NATIVE_AMERICAN', generateNativeAmericanCouncil);
 
-console.log('[NativeGen] Native American generators registered');

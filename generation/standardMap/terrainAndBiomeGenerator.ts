@@ -250,10 +250,141 @@ export function generateAltitudeAndInitialBiomes(
   }
 }
 
+/**
+ * Helper function to detect climate type from neighboring edge biomes
+ */
+function inferClimateFromBiomes(edgeTiles: EdgeTileInfo[]): ClimateType | null {
+  if (!edgeTiles || edgeTiles.length === 0) return null;
+
+  // Count biome occurrences to infer climate
+  let coldBiomes = 0;
+  let desertCount = 0;
+  let tropicalBiomes = 0;
+  let temperateBiomes = 0;
+
+  for (const tile of edgeTiles) {
+    if (!tile.isLand) continue;
+    switch (tile.biome) {
+      case BiomeType.TUNDRA:
+      case BiomeType.SNOW:
+        coldBiomes++;
+        break;
+      case BiomeType.DESERT:
+      case BiomeType.SALT_FLATS:
+        desertCount++;
+        break;
+      case BiomeType.JUNGLE:
+      case BiomeType.MANGROVE:
+        tropicalBiomes++;
+        break;
+      case BiomeType.GRASSLAND:
+      case BiomeType.FOREST:
+      case BiomeType.DENSE_FOREST:
+        temperateBiomes++;
+        break;
+      case BiomeType.SCRUB:
+      case BiomeType.STEPPE:
+        // These can appear in multiple climates, don't count strongly
+        break;
+    }
+  }
+
+  const landTiles = edgeTiles.filter(t => t.isLand).length;
+  if (landTiles === 0) return null;
+
+  // Infer climate based on dominant biomes (check most specific first)
+  if (coldBiomes > landTiles * 0.3) return ClimateType.COLD;
+  if (desertCount > landTiles * 0.3) return ClimateType.ARID;
+  if (tropicalBiomes > landTiles * 0.2) return ClimateType.TROPICAL;
+  if (temperateBiomes > landTiles * 0.3) return ClimateType.TEMPERATE;
+
+  return null; // Can't confidently determine
+}
+
+/**
+ * Calculate gradient influence for biome transitions
+ */
+function calculateBiomeGradientInfluence(
+  x: number, y: number,
+  mapWidth: number, mapHeight: number,
+  neighboringEdges?: NeighboringEdges
+): { climate: ClimateType | null, influence: number, direction: 'N' | 'S' | 'E' | 'W' | null } {
+  if (!neighboringEdges) return { climate: null, influence: 0, direction: null };
+
+  const GRADIENT_DISTANCE = 40; // Tiles affected by gradient - doubled for smoother transitions
+
+  // Check each edge for different climate
+  let closestEdgeDistance = Infinity;
+  let dominantClimate: ClimateType | null = null;
+  let dominantDirection: 'N' | 'S' | 'E' | 'W' | null = null;
+
+  if (neighboringEdges.north && y < GRADIENT_DISTANCE) {
+    const climate = inferClimateFromBiomes(neighboringEdges.north);
+    if (climate) {
+      const distance = y;
+      if (distance < closestEdgeDistance) {
+        closestEdgeDistance = distance;
+        dominantClimate = climate;
+        dominantDirection = 'N';
+      }
+    }
+  }
+
+  if (neighboringEdges.south && (mapHeight - 1 - y) < GRADIENT_DISTANCE) {
+    const climate = inferClimateFromBiomes(neighboringEdges.south);
+    if (climate) {
+      const distance = mapHeight - 1 - y;
+      if (distance < closestEdgeDistance) {
+        closestEdgeDistance = distance;
+        dominantClimate = climate;
+        dominantDirection = 'S';
+      }
+    }
+  }
+
+  if (neighboringEdges.west && x < GRADIENT_DISTANCE) {
+    const climate = inferClimateFromBiomes(neighboringEdges.west);
+    if (climate) {
+      const distance = x;
+      if (distance < closestEdgeDistance) {
+        closestEdgeDistance = distance;
+        dominantClimate = climate;
+        dominantDirection = 'W';
+      }
+    }
+  }
+
+  if (neighboringEdges.east && (mapWidth - 1 - x) < GRADIENT_DISTANCE) {
+    const climate = inferClimateFromBiomes(neighboringEdges.east);
+    if (climate) {
+      const distance = mapWidth - 1 - x;
+      if (distance < closestEdgeDistance) {
+        closestEdgeDistance = distance;
+        dominantClimate = climate;
+        dominantDirection = 'E';
+      }
+    }
+  }
+
+  if (dominantClimate && closestEdgeDistance < GRADIENT_DISTANCE) {
+    // Add noise to create organic boundaries
+    const noiseOffset = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 5; // ±5 tile variation
+    const adjustedDistance = Math.max(0, closestEdgeDistance + noiseOffset);
+
+    // Calculate influence (1.0 at edge, 0.0 at GRADIENT_DISTANCE) with noise
+    const baseInfluence = 1.0 - (adjustedDistance / GRADIENT_DISTANCE);
+    const influence = Math.max(0, Math.min(1, baseInfluence));
+    return { climate: dominantClimate, influence, direction: dominantDirection };
+  }
+
+  return { climate: null, influence: 0, direction: null };
+}
+
 export function applyClimateBiomeChanges(
     tiles: Tile[][], climate: ClimateType,
     humidityNoise: ValueNoise, desertificationNoise: ValueNoise,
-    biomeVariationNoise: ValueNoise, featurePlacementNoise: ValueNoise
+    biomeVariationNoise: ValueNoise, featurePlacementNoise: ValueNoise,
+    neighboringEdges?: NeighboringEdges
 ) {
   for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
     for (let x = 0; x < MAP_WIDTH_TILES; x++) {
@@ -264,11 +395,230 @@ export function applyClimateBiomeChanges(
       const desertChance = desertificationNoise.noise(x * NOISE_SCALE_DESERTIFICATION, y * NOISE_SCALE_DESERTIFICATION);
       const biomeVar = biomeVariationNoise.random();
 
+      // Store original biome for comparison
+      const originalBiome = tile.biome;
+
+      // Check for gradient influence from neighboring maps
+      const gradientInfo = calculateBiomeGradientInfluence(x, y, MAP_WIDTH_TILES, MAP_HEIGHT_TILES, neighboringEdges);
+
+      // Apply gradient transitions if we're near an edge with a different climate
+      if (gradientInfo.climate && gradientInfo.climate !== climate && gradientInfo.influence > 0) {
+        const neighborClimate = gradientInfo.climate;
+        const influence = gradientInfo.influence;
+
+        // Create biome gradient transitions based on climate difference
+        if (climate === ClimateType.TEMPERATE && neighborClimate === ClimateType.COLD) {
+          // TEMPERATE → COLD gradient with new transitional biomes
+          if (tile.biome === BiomeType.GRASSLAND) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.STEPPE; // Use steppe as main transition
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.PRAIRIE; // Prairie as intermediate
+            }
+            // else remains grassland
+          } else if (tile.biome === BiomeType.PRAIRIE) {
+            if (influence > 0.5) {
+              tile.biome = BiomeType.STEPPE;
+            }
+          } else if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.TAIGA; // Boreal forest transition
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.FOREST; // Reduce density first
+            }
+          } else if (tile.biome === BiomeType.HILLS && influence > 0.5) {
+            tile.biome = BiomeType.MOUNTAIN; // Higher elevation in cold regions
+          }
+        } else if (climate === ClimateType.COLD && neighborClimate === ClimateType.TEMPERATE) {
+          // COLD → TEMPERATE gradient with new transitional biomes
+          if (tile.biome === BiomeType.TUNDRA) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.PRAIRIE;
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.STEPPE;
+            }
+          } else if (tile.biome === BiomeType.STEPPE) {
+            if (influence > 0.5) {
+              tile.biome = BiomeType.PRAIRIE;
+            }
+          } else if (tile.biome === BiomeType.TAIGA) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.FOREST;
+            }
+          } else if (tile.biome === BiomeType.SNOW && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.ALPINE_MEADOW;
+            } else if (influence > 0.3) {
+              tile.biome = BiomeType.STEPPE;
+            }
+          }
+        } else if (climate === ClimateType.TEMPERATE && neighborClimate === ClimateType.TROPICAL) {
+          // TEMPERATE → TROPICAL gradient with SAVANNA
+          if (tile.biome === BiomeType.GRASSLAND) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.SAVANNA;
+            }
+          } else if (tile.biome === BiomeType.PRAIRIE) {
+            if (influence > 0.5) {
+              tile.biome = BiomeType.SAVANNA;
+            }
+          } else if ((tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) && influence > 0.6) {
+            tile.biome = BiomeType.JUNGLE;
+          }
+        } else if (climate === ClimateType.TROPICAL && neighborClimate === ClimateType.TEMPERATE) {
+          // TROPICAL → TEMPERATE gradient with SAVANNA
+          if (tile.biome === BiomeType.JUNGLE) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.FOREST;
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.DENSE_FOREST;
+            }
+          } else if (tile.biome === BiomeType.SAVANNA) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.PRAIRIE;
+            } else if (influence > 0.3) {
+              tile.biome = BiomeType.GRASSLAND;
+            }
+          }
+        } else if (climate === ClimateType.TEMPERATE && neighborClimate === ClimateType.ARID) {
+          // TEMPERATE → ARID gradient with SAVANNA
+          if (tile.biome === BiomeType.GRASSLAND) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.SAVANNA;
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.SCRUB;
+            }
+          } else if (tile.biome === BiomeType.PRAIRIE) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.SAVANNA;
+            }
+          } else if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) {
+            if (influence > 0.5) {
+              tile.biome = BiomeType.SCRUB;
+            }
+          }
+        } else if (climate === ClimateType.ARID && neighborClimate === ClimateType.TEMPERATE) {
+          // ARID → TEMPERATE gradient with SAVANNA
+          if (tile.biome === BiomeType.DESERT) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.SAVANNA;
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.SCRUB;
+            }
+          } else if (tile.biome === BiomeType.SAVANNA) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.PRAIRIE;
+            }
+          }
+        } else if (climate === ClimateType.COLD && neighborClimate === ClimateType.TROPICAL) {
+          // COLD → TROPICAL (rare but via transition zones)
+          if (tile.biome === BiomeType.TUNDRA) {
+            if (influence > 0.8) {
+              tile.biome = BiomeType.GRASSLAND;
+            } else if (influence > 0.5) {
+              tile.biome = BiomeType.SCRUB;
+            } else if (influence > 0.3) {
+              tile.biome = BiomeType.STEPPE;
+            }
+          } else if (tile.biome === BiomeType.SNOW && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.SCRUB;
+            }
+          }
+        } else if (climate === ClimateType.TROPICAL && neighborClimate === ClimateType.COLD) {
+          // TROPICAL → COLD (rare transition)
+          if (tile.biome === BiomeType.JUNGLE) {
+            if (influence > 0.8) {
+              tile.biome = BiomeType.SCRUB;
+            } else if (influence > 0.5) {
+              tile.biome = BiomeType.GRASSLAND;
+            } else if (influence > 0.3) {
+              tile.biome = BiomeType.FOREST;
+            }
+          } else if (tile.biome === BiomeType.MANGROVE) {
+            tile.biome = BiomeType.WETLANDS;
+          }
+        } else if (climate === ClimateType.COLD && neighborClimate === ClimateType.ARID) {
+          // COLD → ARID transitions
+          if (tile.biome === BiomeType.TUNDRA) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.STEPPE;
+            } else if (influence > 0.3) {
+              tile.biome = BiomeType.SCRUB;
+            }
+          } else if (tile.biome === BiomeType.SNOW && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE) {
+            tile.biome = BiomeType.STEPPE;
+          }
+        } else if (climate === ClimateType.ARID && neighborClimate === ClimateType.COLD) {
+          // ARID → COLD transitions
+          if (tile.biome === BiomeType.DESERT) {
+            if (influence > 0.6) {
+              tile.biome = BiomeType.STEPPE;
+            } else if (influence > 0.3) {
+              tile.biome = BiomeType.SCRUB;
+            }
+          }
+        } else if (climate === ClimateType.TROPICAL && neighborClimate === ClimateType.ARID) {
+          // TROPICAL → ARID transitions
+          if (tile.biome === BiomeType.JUNGLE) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.SCRUB;
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.GRASSLAND;
+            }
+          } else if (tile.biome === BiomeType.MANGROVE && influence > 0.5) {
+            tile.biome = BiomeType.SCRUB;
+          }
+        } else if (climate === ClimateType.ARID && neighborClimate === ClimateType.TROPICAL) {
+          // ARID → TROPICAL transitions
+          if (tile.biome === BiomeType.DESERT) {
+            if (influence > 0.7) {
+              tile.biome = BiomeType.SCRUB;
+            } else if (influence > 0.4) {
+              tile.biome = BiomeType.GRASSLAND;
+            }
+          } else if (tile.biome === BiomeType.SALT_FLATS && influence > 0.5) {
+            tile.biome = BiomeType.SCRUB;
+          }
+        }
+
+        // Log only significant transitions for debugging
+        if (tile.biome !== originalBiome) {
+          console.log(`[Biome Gradient] Applied transition at (${x},${y}): ${originalBiome} → ${tile.biome} (${climate} → ${neighborClimate}, influence: ${influence.toFixed(2)})`);
+        }
+
+        // Skip the rest of climate processing if we applied a gradient
+        continue;
+      }
+
       const biomeAtClimateCheckStart: BiomeType = tile.biome;
 
       if (climate === ClimateType.COLD) {
+        // Convert forests to TAIGA in cold climates
+        if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) {
+          tile.biome = BiomeType.TAIGA;
+        }
+        // Convert grasslands to STEPPE in cold climates
+        if (tile.biome === BiomeType.GRASSLAND && biomeVar < 0.6) {
+          tile.biome = BiomeType.STEPPE;
+        }
+        // Add alpine meadows below snow line
+        if (tile.altitude > 0.65 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE * 0.7 && (tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.GRASSLAND)) {
+          tile.biome = BiomeType.ALPINE_MEADOW;
+        }
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE * 0.7 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else if (climate === ClimateType.TEMPERATE) {
+        // Add PRAIRIE for continental grasslands
+        if (tile.biome === BiomeType.GRASSLAND && tile.altitude < 0.4) {
+          const prairieNoise = biomeVariationNoise.noise(x * 0.03, y * 0.03);
+          if (prairieNoise > 0.3) {
+            tile.biome = BiomeType.PRAIRIE;
+          }
+        }
+        // Add alpine meadows at high altitudes
+        if (tile.altitude > 0.7 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.SCRUB)) {
+          tile.biome = BiomeType.ALPINE_MEADOW;
+        }
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else if (climate === ClimateType.MEDITERRANEAN) {
         // Mediterranean has snow only on the highest peaks
@@ -282,6 +632,14 @@ export function applyClimateBiomeChanges(
 
       const currentBiomeAfterSnowCheck: BiomeType = tile.biome;
       if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
+        // Add SAVANNA for tropical grasslands
+        if (currentBiomeAfterSnowCheck === BiomeType.GRASSLAND && tile.altitude < ALTITUDE_LEVELS.HILLS_MAX) {
+          const savannaChance = climate === ClimateType.TROPICAL ? 0.6 : 0.4;
+          if (humidityVal < JUNGLE_HUMIDITY_THRESHOLD && biomeVar < savannaChance) {
+            tile.biome = BiomeType.SAVANNA;
+          }
+        }
+        // Original jungle logic
         if ((currentBiomeAfterSnowCheck === BiomeType.FOREST || currentBiomeAfterSnowCheck === BiomeType.GRASSLAND || currentBiomeAfterSnowCheck === BiomeType.SCRUB || currentBiomeAfterSnowCheck === BiomeType.RIVERBANK) && tile.altitude < ALTITUDE_LEVELS.HILLS_MAX) {
           let jungleChance = 0;
           if (climate === ClimateType.TROPICAL) jungleChance = 0.6;
@@ -294,8 +652,18 @@ export function applyClimateBiomeChanges(
       }
 
       const currentBiomeAfterJungleCheck: BiomeType = tile.biome;
-      const nonDesertBiomes = new Set([BiomeType.SNOW, BiomeType.HIGH_PEAK, BiomeType.MOUNTAIN, BiomeType.JUNGLE, BiomeType.DENSE_FOREST, BiomeType.WETLANDS, BiomeType.OASIS, BiomeType.ACTIVE_LAVA, BiomeType.VOLCANIC_ROCK, BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF]);
+      const nonDesertBiomes = new Set([BiomeType.SNOW, BiomeType.HIGH_PEAK, BiomeType.MOUNTAIN, BiomeType.JUNGLE, BiomeType.DENSE_FOREST, BiomeType.WETLANDS, BiomeType.OASIS, BiomeType.ACTIVE_LAVA, BiomeType.VOLCANIC_ROCK, BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF, BiomeType.SAVANNA]);
       if (climate === ClimateType.ARID) {
+        // Convert grasslands to savanna in arid regions
+        if (tile.biome === BiomeType.GRASSLAND && biomeVar < 0.5) {
+            tile.biome = BiomeType.SAVANNA;
+        }
+        // Add badlands at moderate elevations for terrain variety
+        if (tile.altitude > 0.3 && tile.altitude < 0.6 && (tile.biome === BiomeType.DESERT || tile.biome === BiomeType.SCRUB)) {
+            if (biomeVar < 0.3) {
+                tile.biome = BiomeType.BADLANDS;
+            }
+        }
         if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) {
             tile.biome = BiomeType.SCRUB;
         }

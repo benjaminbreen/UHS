@@ -24,8 +24,7 @@ export function generateCampground(
   const exitZones: ExitZone[] = [];
   
   // Determine landscape border size
-  const borderSize = config.hasLandscape ? 
-    LANDSCAPE_BORDER_ROWS[config.mapSize || 'small'] : 0;
+  const borderSize = config.hasLandscape ? LANDSCAPE_BORDER_ROWS : 0;
   
   // Calculate usable area
   const startX = borderSize;
@@ -56,8 +55,15 @@ export function generateCampground(
   // Place central firepit
   const centerX = Math.floor((startX + endX) / 2);
   const centerY = Math.floor((startY + endY) / 2);
-  
-  placeFirepit(tiles, centerX, centerY, config.wallMaterial || 'grey_stone');
+
+  console.log('[CampgroundGen] Placing firepit at:', { centerX, centerY, startX, endX, startY, endY });
+
+  // Validate center coordinates before placing firepit
+  if (centerX >= startX && centerX < endX && centerY >= startY && centerY < endY) {
+    placeFirepit(tiles, centerX, centerY, config.wallMaterial || 'grey_stone');
+  } else {
+    console.error('[CampgroundGen] Invalid center coordinates for firepit:', { centerX, centerY, bounds: { startX, endX, startY, endY } });
+  }
   
   // Calculate tent positions in a circle/square around fire
   const tentPositions = config.isCircular ? 
@@ -66,9 +72,18 @@ export function generateCampground(
   
   // Place tents
   tentPositions.forEach((pos, index) => {
-    if (pos.x >= startX && pos.x < endX - 1 && 
-        pos.y >= startY && pos.y < endY - 1) {
-      placeTent(tiles, pos.x, pos.y, index === 0);
+    console.log('[CampgroundGen] Tent position:', { pos, index, bounds: { startX, endX, startY, endY } });
+
+    // Validate tent position
+    if (typeof pos.x !== 'number' || typeof pos.y !== 'number' || isNaN(pos.x) || isNaN(pos.y)) {
+      console.error('[CampgroundGen] Invalid tent position:', pos);
+      return;
+    }
+
+    // Ensure tent fits within bounds (need 2x2 space)
+    if (pos.x >= startX && pos.x < endX - 2 &&
+        pos.y >= startY && pos.y < endY - 2) {
+      placeTent(tiles, Math.floor(pos.x), Math.floor(pos.y), index === 0);
       
       // First tent is the player's - add interaction
       if (index === 0 && config.innerMapType) {
@@ -165,26 +180,41 @@ export function generateCampground(
  * Place a tent (2x2 structure)
  */
 function placeTent(tiles: Tile[][], x: number, y: number, isPlayerTent: boolean): void {
+  // Validate input parameters
+  if (!tiles || tiles.length === 0 || !tiles[0] || tiles[0].length === 0) {
+    console.error('[placeTent] Invalid tiles array provided');
+    return;
+  }
+
+  if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
+    console.error('[placeTent] Invalid coordinates provided:', { x, y });
+    return;
+  }
+
   // Tent takes 2x2 space
   for (let dy = 0; dy < 2; dy++) {
     for (let dx = 0; dx < 2; dx++) {
-      if (y + dy < tiles.length && x + dx < tiles[0].length) {
-        const tile = tiles[y + dy][x + dx];
-        tile.biome = BiomeType.TENT;
-        tile.isBlocking = true;
-        
-        // Different appearance for player tent
-        if (isPlayerTent) {
-          tile.structureType = 'tent_player';
-        } else {
-          tile.structureType = 'tent_npc';
-        }
-        
-        // Mark which part of tent
-        if (dx === 0 && dy === 0) tile.metadata = { tentPart: 'top_left' };
-        else if (dx === 1 && dy === 0) tile.metadata = { tentPart: 'top_right' };
-        else if (dx === 0 && dy === 1) tile.metadata = { tentPart: 'bottom_left' };
-        else tile.metadata = { tentPart: 'bottom_right' };
+      const tileY = y + dy;
+      const tileX = x + dx;
+
+      if (tileY < 0 || tileY >= tiles.length) continue;
+      if (tileX < 0 || tileX >= tiles[0].length) continue;
+
+      // Additional safety check for the specific tile row
+      if (!tiles[tileY] || !tiles[tileY][tileX]) {
+        console.error('[placeTent] Tile not found at position:', { tileX, tileY });
+        continue;
+      }
+
+      const tile = tiles[tileY][tileX];
+      tile.biome = BiomeType.STRUCTURE; // Use existing biome type
+      tile.isBlocking = true;
+
+      // Different appearance for player tent
+      if (isPlayerTent) {
+        tile.structure = 'tent_player';
+      } else {
+        tile.structure = 'tent_npc';
       }
     }
   }
@@ -221,10 +251,10 @@ function getRectangularPositions(
   halfHeight: number
 ): { x: number; y: number }[] {
   return [
-    { x: centerX - halfWidth, y: centerY - halfHeight }, // Top left
-    { x: centerX + halfWidth, y: centerY - halfHeight }, // Top right
-    { x: centerX - halfWidth, y: centerY + halfHeight }, // Bottom left
-    { x: centerX + halfWidth, y: centerY + halfHeight }, // Bottom right
+    { x: Math.floor(centerX - halfWidth), y: Math.floor(centerY - halfHeight) }, // Top left
+    { x: Math.floor(centerX + halfWidth), y: Math.floor(centerY - halfHeight) }, // Top right
+    { x: Math.floor(centerX - halfWidth), y: Math.floor(centerY + halfHeight) }, // Bottom left
+    { x: Math.floor(centerX + halfWidth), y: Math.floor(centerY + halfHeight) }, // Bottom right
   ];
 }
 

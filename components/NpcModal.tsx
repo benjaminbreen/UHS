@@ -711,11 +711,52 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
 
         {/* Body: two columns; left = portrait; right = tabs+content */}
         <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[400px_1fr]">
+          {/* MOBILE PORTRAIT */}
+          <div className="xl:hidden p-4 border-b border-slate-700 bg-slate-800/40">
+            <div className="relative mx-auto w-48">
+              <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-600 bg-slate-900 shadow-lg">
+                {/* AI Portrait for quest NPCs */}
+                {!isPlayer && (npc as NpcEntity).isQuestNPC && (npc as NpcEntity).aiPortrait && (npc as NpcEntity).portraitType === 'ai' ? (
+                  <div className="relative w-full h-full">
+                    <img
+                      src={(npc as NpcEntity).aiPortrait}
+                      alt={`AI-generated portrait of ${npc.name}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* AI Quest NPC Badge */}
+                    <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-gradient-to-r from-green-600/90 to-emerald-600/90 text-white text-xs font-bold rounded-full border border-green-400/50 shadow-lg flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5" />
+                      AI
+                    </div>
+                  </div>
+                ) : (
+                  <ProceduralPortrait character={npc} size={180} />
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* LEFT SIDEBAR */}
           <aside className="hidden xl:flex flex-col gap-5 p-5 border-r border-slate-700 bg-slate-800/40 min-h-0 overflow-y-auto">
             <div className="relative mx-auto w-[360px]">
               <div className="aspect-square rounded-2xl overflow-hidden border-2 border-slate-600 bg-slate-900 shadow-xl">
-                <ProceduralPortrait character={npc} size={340} />
+                {/* AI Portrait for quest NPCs */}
+                {!isPlayer && (npc as NpcEntity).isQuestNPC && (npc as NpcEntity).aiPortrait && (npc as NpcEntity).portraitType === 'ai' ? (
+                  <div className="relative w-full h-full">
+                    <img
+                      src={(npc as NpcEntity).aiPortrait}
+                      alt={`AI-generated portrait of ${npc.name}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* AI Quest NPC Badge */}
+                    <div className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-green-600/90 to-emerald-600/90 text-white text-xs font-bold rounded-full border border-green-400/50 shadow-lg flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      AI QUEST
+                    </div>
+                  </div>
+                ) : (
+                  <ProceduralPortrait character={npc} size={340} />
+                )}
               </div>
 
               {/* tiny corner attribute chips remain for flavor */}

@@ -210,8 +210,8 @@ export function generateEstates(
   }
   
   // Determine landscape border
-  const borderSize = config.hasLandscape ? 
-    LANDSCAPE_BORDER_ROWS[config.mapSize || 'medium'] : 0;
+  const borderSize = config.hasLandscape ?
+    LANDSCAPE_BORDER_ROWS : 0;
   
   // Calculate building bounds
   const buildingLeft = borderSize;
@@ -1877,7 +1877,7 @@ function generateGreatHall(
       placeFireplace(tiles, centerX - 1, fireY, config.culturalZone || 'EUROPEAN', era, false);
     } else if (config.culturalZone === 'AMERICAS' || config.culturalZone === 'OCEANIA') {
       // Indigenous - use fire pit
-      placeFirepit(tiles, centerX, fireY, material, 'flame');
+      placeFirepit(tiles, centerX, fireY, material);
     } else {
       // Others - use hearth
       placeFireplace(tiles, centerX - 1, fireY, config.culturalZone || 'EUROPEAN', era, false);

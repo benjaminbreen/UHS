@@ -3,7 +3,7 @@
  * Displays event descriptions and choices to the player
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { EventInstance, EventOutcome, StatCheck } from '../types/eventTypes';
 import { PlayerCharacter } from '../types/playerCharacter';
 
@@ -17,6 +17,16 @@ interface EventModalProps {
 export function EventModal({ event, player, onChoice, onClose }: EventModalProps) {
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [showHistoricalContext, setShowHistoricalContext] = useState(false);
+  const choiceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (choiceTimerRef.current) {
+        clearTimeout(choiceTimerRef.current);
+      }
+    };
+  }, []);
 
   /**
    * Check if player meets stat requirements for an outcome
@@ -42,17 +52,24 @@ export function EventModal({ event, player, onChoice, onClose }: EventModalProps
   /**
    * Handle choice selection
    */
-  const handleChoice = (index: number) => {
+  const handleChoice = useCallback((index: number) => {
     if (!meetsStatRequirements(event.outcomes[index])) {
       return; // Can't select this choice
     }
     setSelectedChoice(index);
-    // Brief delay for visual feedback
-    setTimeout(() => {
+
+    // Clear any existing timer
+    if (choiceTimerRef.current) {
+      clearTimeout(choiceTimerRef.current);
+    }
+
+    // Brief delay for visual feedback with cleanup
+    choiceTimerRef.current = setTimeout(() => {
       onChoice(index);
       onClose();
+      choiceTimerRef.current = null;
     }, 200);
-  };
+  }, [event.outcomes, onChoice, onClose]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -91,7 +108,7 @@ export function EventModal({ event, player, onChoice, onClose }: EventModalProps
           {event.historicalContext && (
             <div className="mb-6">
               <button
-                onClick={() => setShowHistoricalContext(!showHistoricalContext)}
+                onClick={useCallback(() => setShowHistoricalContext(prev => !prev), [])}
                 className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
               >
                 <span>📚</span>
@@ -138,7 +155,7 @@ export function EventModal({ event, player, onChoice, onClose }: EventModalProps
               return (
                 <button
                   key={index}
-                  onClick={() => handleChoice(index)}
+                  onClick={useCallback(() => handleChoice(index), [index])}
                   disabled={!canSelect}
                   className={`
                     w-full text-left p-4 rounded-lg border-2 transition-all

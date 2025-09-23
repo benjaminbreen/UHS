@@ -63,6 +63,27 @@ export interface FieldState {
   weeds: boolean;
 }
 
+export interface FarmResidencyStatus {
+  playerStatus: 'visitor' | 'guest' | 'worker' | 'resident';
+  daysWorked: number;
+  tasksCompleted: number;
+  trustLevel: number; // 0-100
+  currentContract?: {
+    type: 'daily' | 'weekly' | 'seasonal';
+    daysRemaining: number;
+    payment: {
+      coins?: number;
+      crops?: string[];
+      meals?: boolean;
+      lodging?: boolean
+    };
+    requiredTasks: string[];
+    tasksToday?: string[];
+  };
+  lastRestDate?: number; // game day when last rested
+  negotiationRounds?: number; // tracks negotiation attempts
+}
+
 export interface FarmState {
   tileKey: string; // `${x},${y}` for unique identification
   family: FarmFamily;
@@ -80,6 +101,8 @@ export interface FarmState {
   lastMarketDay: number; // game day when farmer last went to market
   marketSchedule: number; // day of week (0-6) when farmer goes to market
   economicStatus: 'humble' | 'prosperous' | 'wealthy';
+  prosperityLevel: 'subsistence' | 'small' | 'moderate' | 'thriving'; // More granular prosperity
+  residencyStatus?: FarmResidencyStatus; // Player's relationship with this farm
   historicalContext: {
     era: HistoricalEra;
     culturalZone: CulturalZone;
@@ -132,28 +155,62 @@ export function getFarmState(
       farmer.name = `${farmer.name.split(' ')[0]} ${lastName}`;
     }
   }
-  
-  // Initialize fields
-  const fields: FieldState[] = [];
-  for (let i = 0; i < 12; i++) {
-    fields.push({
-      id: i,
-      crop: null,
-      growthStage: 'fallow',
-      moisture: 'dry',
-      health: 100,
-      daysToHarvest: 0,
-      lastWatered: 0,
-      lastWorked: 0,
-      pests: false,
-      weeds: Math.random() < 0.2
-    });
-  }
-  
-  // Determine economic status
+
+  // Determine economic status and prosperity level FIRST
   const economicRoll = noise.random();
   const economicStatus = economicRoll > 0.8 ? 'wealthy' : economicRoll > 0.4 ? 'prosperous' : 'humble';
-  
+
+  // Determine more granular prosperity level
+  let prosperityLevel: 'subsistence' | 'small' | 'moderate' | 'thriving' = 'small'; // Default fallback
+  if (economicRoll > 0.85) {
+    prosperityLevel = 'thriving';  // 8 fields
+  } else if (economicRoll > 0.6) {
+    prosperityLevel = 'moderate';   // 6 fields
+  } else if (economicRoll > 0.3) {
+    prosperityLevel = 'small';      // 4 fields
+  } else {
+    prosperityLevel = 'subsistence'; // 2 fields
+  }
+
+  // Initialize fields based on prosperity level
+  const fieldCounts = {
+    'subsistence': 2,
+    'small': 4,
+    'moderate': 6,
+    'thriving': 8
+  };
+
+  const numFields = fieldCounts[prosperityLevel];
+  const fields: FieldState[] = [];
+
+  // Use the crop type from the tile if available, otherwise fall back to random generation
+  const primaryCrop = tile.cropType || getRandomCrop(culturalZone, era);
+
+  // Determine how many fields should be planted (about 50-66% planted)
+  const plantedRatio = 0.5 + noise.random() * 0.16;
+  const numPlanted = Math.floor(numFields * plantedRatio);
+
+  for (let i = 0; i < numFields; i++) {
+    const shouldPlant = i < numPlanted && noise.random() > 0.3;
+    // Most fields grow the primary crop, but occasionally mix in other crops for variety
+    const cropToPlant = shouldPlant ?
+      (noise.random() < 0.8 ? primaryCrop : getRandomCrop(culturalZone, era)) :
+      null;
+
+    fields.push({
+      id: i,
+      crop: cropToPlant,
+      growthStage: shouldPlant ? getRandomGrowthStage(noise) : 'fallow',
+      moisture: ['dry', 'moist', 'wet'][Math.floor(noise.random() * 3)] as 'dry' | 'moist' | 'wet',
+      health: 60 + Math.floor(noise.random() * 40),
+      daysToHarvest: shouldPlant ? Math.floor(noise.random() * 30) : 0,
+      lastWatered: 0,
+      lastWorked: 0,
+      pests: noise.random() < 0.15,
+      weeds: noise.random() < 0.25
+    });
+  }
+
   // Create farm state
   const farmState: FarmState = {
     tileKey,
@@ -186,6 +243,7 @@ export function getFarmState(
     lastMarketDay: 0,
     marketSchedule: Math.floor(noise.random() * 7), // Random day of week
     economicStatus,
+    prosperityLevel,
     historicalContext: {
       era: dateInfo.era as HistoricalEra,
       culturalZone,
@@ -544,10 +602,105 @@ export function getValidCrops(
 }
 
 /**
+ * Update residency status for a farm
+ */
+export function updateResidencyStatus(
+  tileKey: string,
+  status: Partial<FarmResidencyStatus>
+): void {
+  const farm = farmStates.get(tileKey);
+  if (farm) {
+    farm.residencyStatus = {
+      ...farm.residencyStatus,
+      ...status
+    } as FarmResidencyStatus;
+    farmStates.set(tileKey, farm);
+  }
+}
+
+/**
+ * Get residency status for a farm
+ */
+export function getResidencyStatus(tileKey: string): FarmResidencyStatus | undefined {
+  const farm = farmStates.get(tileKey);
+  return farm?.residencyStatus;
+}
+
+/**
+ * Accept a work contract at a farm
+ */
+export function acceptWorkContract(
+  tileKey: string,
+  tasks: string[],
+  payment: { meals?: boolean; lodging?: boolean; coins?: number }
+): void {
+  const farm = farmStates.get(tileKey);
+  if (farm) {
+    const currentStatus = farm.residencyStatus || {
+      playerStatus: 'visitor',
+      daysWorked: 0,
+      tasksCompleted: 0,
+      trustLevel: 50
+    };
+
+    // Upgrade to worker status after accepting contract
+    const newStatus: FarmResidencyStatus = {
+      ...currentStatus,
+      playerStatus: currentStatus.playerStatus === 'resident' ? 'resident' : 'worker',
+      currentContract: {
+        type: 'daily',
+        daysRemaining: 1,
+        payment,
+        requiredTasks: tasks,
+        tasksToday: tasks
+      },
+      negotiationRounds: 0 // Reset negotiation rounds
+    };
+
+    farm.residencyStatus = newStatus;
+    farmStates.set(tileKey, farm);
+  }
+}
+
+/**
  * Clear all farm states (for testing or reset)
  */
 export function clearAllFarmStates(): void {
   farmStates.clear();
+}
+
+// Clear farm states on module load to ensure new prosperityLevel property is available
+farmStates.clear();
+
+/**
+ * Get a random crop appropriate for the cultural zone and era
+ */
+function getRandomCrop(culturalZone: CulturalZone, era: HistoricalEra): string {
+  const crops: Record<CulturalZone, string[]> = {
+    'EUROPEAN': ['wheat', 'barley', 'rye', 'oats', 'turnips'],
+    'EAST_ASIAN': ['rice', 'millet', 'soybeans', 'wheat'],
+    'MENA': ['wheat', 'barley', 'dates', 'lentils'],
+    'SUB_SAHARAN_AFRICAN': ['sorghum', 'millet', 'yams', 'cassava'],
+    'SOUTH_ASIAN': ['rice', 'wheat', 'lentils', 'chickpeas'],
+    'NORTH_AMERICAN_PRE_COLUMBIAN': ['maize', 'beans', 'squash'],
+    'NORTH_AMERICAN_COLONIAL': ['wheat', 'corn', 'tobacco', 'cotton'],
+    'SOUTH_AMERICAN': ['maize', 'potatoes', 'quinoa', 'beans'],
+    'OCEANIA': ['taro', 'yams', 'breadfruit', 'coconut']
+  };
+
+  const availableCrops = crops[culturalZone] || crops['EUROPEAN'];
+  return availableCrops[Math.floor(Math.random() * availableCrops.length)];
+}
+
+/**
+ * Get a random growth stage for initial field state
+ */
+function getRandomGrowthStage(noise: ValueNoise): 'planted' | 'sprouting' | 'growing' | 'mature' {
+  const roll = noise.random();
+  if (roll > 0.75) return 'mature';
+  if (roll > 0.5) return 'growing';
+  if (roll > 0.25) return 'sprouting';
+  return 'planted';
 }
 
 /**

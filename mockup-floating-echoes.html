@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terminal History Stream - Background Effect Mockup</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    body {
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Press Start 2P', 'Consolas', 'Monaco', 'Courier New', monospace;
+      background: #000;
+      position: relative;
+    }
+
+    /* Background image with gradient overlay */
+    .background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: 1;
+    }
+
+    .background-image::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.4) 20%,
+        rgba(0, 0, 0, 0.7) 40%,
+        rgba(0, 0, 0, 0.85) 60%,
+        rgba(0, 0, 0, 0.95) 80%,
+        rgba(0, 0, 0, 1) 100%
+      );
+    }
+
+    /* Terminal container */
+    .terminal-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    /* Terminal lines */
+    .terminal-line {
+      font-size: 16px;
+      line-height: 24px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      opacity: 0;
+      animation: fadeIn 0.1s forwards;
+      letter-spacing: 1px;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Subtle harmonious name colors - warm/cool spectrum */
+    .name-color-1 {
+      color: #a8b8c8;
+      text-shadow: 0 0 4px rgba(168, 184, 200, 0.6);
+      cursor: pointer;
+    }
+    .name-color-2 {
+      color: #c8a8b8;
+      text-shadow: 0 0 4px rgba(200, 168, 184, 0.6);
+      cursor: pointer;
+    }
+    .name-color-3 {
+      color: #b8c8a8;
+      text-shadow: 0 0 4px rgba(184, 200, 168, 0.6);
+      cursor: pointer;
+    }
+    .name-color-4 {
+      color: #c8b8a8;
+      text-shadow: 0 0 4px rgba(200, 184, 168, 0.6);
+      cursor: pointer;
+    }
+    .name-color-5 {
+      color: #b8a8c8;
+      text-shadow: 0 0 4px rgba(184, 168, 200, 0.6);
+      cursor: pointer;
+    }
+    .name-color-6 {
+      color: #a8c8b8;
+      text-shadow: 0 0 4px rgba(168, 200, 184, 0.6);
+      cursor: pointer;
+    }
+    .name-color-7 {
+      color: #c8c8a8;
+      text-shadow: 0 0 4px rgba(200, 200, 168, 0.6);
+      cursor: pointer;
+    }
+    .name-color-8 {
+      color: #c8a8a8;
+      text-shadow: 0 0 4px rgba(200, 168, 168, 0.6);
+      cursor: pointer;
+    }
+    .name-color-9 {
+      color: #a8c8a8;
+      text-shadow: 0 0 4px rgba(168, 200, 168, 0.6);
+      cursor: pointer;
+    }
+    .name-color-10 {
+      color: #a8a8c8;
+      text-shadow: 0 0 4px rgba(168, 168, 200, 0.6);
+      cursor: pointer;
+    }
+
+    /* Amber glow for other text */
+    .info-text {
+      color: #cc8844;
+      text-shadow:
+        0 0 4px rgba(204, 136, 68, 0.6),
+        0 0 8px rgba(204, 136, 68, 0.4);
+    }
+
+    /* Separator */
+    .separator {
+      color: #554433;
+      opacity: 0.5;
+      text-shadow: 0 0 2px rgba(85, 68, 51, 0.4);
+    }
+
+    /* Extreme gradient fade from top to bottom */
+    .terminal-container {
+      mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.01) 0%,
+        rgba(0, 0, 0, 0.03) 15%,
+        rgba(0, 0, 0, 0.08) 30%,
+        rgba(0, 0, 0, 0.2) 50%,
+        rgba(0, 0, 0, 0.6) 75%,
+        rgba(0, 0, 0, 1) 100%
+      );
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.01) 0%,
+        rgba(0, 0, 0, 0.03) 15%,
+        rgba(0, 0, 0, 0.08) 30%,
+        rgba(0, 0, 0, 0.2) 50%,
+        rgba(0, 0, 0, 0.6) 75%,
+        rgba(0, 0, 0, 1) 100%
+      );
+      height: 100vh;
+      padding-bottom: 0;
+      pointer-events: all;
+    }
+
+    /* Atmospheric haze overlay that follows cursor */
+    .atmospheric-haze {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.3;
+      background: radial-gradient(
+        400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(136, 204, 255, 0.15) 0%,
+        rgba(255, 136, 204, 0.1) 25%,
+        rgba(136, 255, 204, 0.08) 50%,
+        transparent 70%
+      );
+      transition: background 0.3s ease-out;
+    }
+
+    /* Entry wrapper for deletion animations */
+    .entry-wrapper {
+      display: inline;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .entry-wrapper.deleting {
+      opacity: 0;
+    }
+
+    /* Typewriter effect for words */
+    .word {
+      opacity: 0;
+      display: inline;
+    }
+
+    .word.typing {
+      animation: typewriter-appear 0.2s forwards;
+    }
+
+    @keyframes typewriter-appear {
+      from {
+        opacity: 0;
+        transform: translateY(2px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Hover effects for names */
+    .name-color-1:hover, .name-color-2:hover, .name-color-3:hover, .name-color-4:hover, .name-color-5:hover,
+    .name-color-6:hover, .name-color-7:hover, .name-color-8:hover, .name-color-9:hover, .name-color-10:hover {
+      transform: scale(1.05);
+      filter: brightness(1.3);
+      transition: all 0.2s ease;
+    }
+
+    /* Title overlay */
+    .title-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      text-align: center;
+      color: white;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 30px 50px;
+      border: 1px solid rgba(138, 154, 157, 0.2);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .title-overlay h1 {
+      font-size: 2.5em;
+      margin-bottom: 0.3em;
+      text-shadow: 0 0 4px rgba(122, 158, 167, 0.4);
+      font-family: 'Georgia', 'Times New Roman', serif;
+      color: #8a9a9d;
+      font-weight: 300;
+      letter-spacing: 2px;
+    }
+
+    .title-overlay p {
+      font-size: 1em;
+      opacity: 0.7;
+      text-shadow: none;
+      font-family: 'Consolas', monospace;
+      color: #6a6a6a;
+      letter-spacing: 1px;
+    }
+
+
+  </style>
+</head>
+<body>
+  <!-- Background Image -->
+  <div class="background-image" id="bgImage"></div>
+
+  <!-- Terminal Container -->
+  <div class="terminal-container" id="terminal"></div>
+
+  <!-- Atmospheric Haze -->
+  <div class="atmospheric-haze" id="haze"></div>
+
+  <!-- Title Overlay -->
+  <div class="title-overlay">
+    <h1>UNIVERSAL HISTORY SIMULATOR</h1>
+    <p>Terminal :: Historical Data Stream Active</p>
+  </div>
+
+  <script>
+    // Historical data pools
+    const names = [
+      'Marcus Aurelius', 'Li Wei', 'Fatima al-Andalusi', 'Ibn Khaldun', 'Yuki Tanaka',
+      'Giovanni di Milano', 'Isabella de Castilla', 'Ahmad ibn Rashid', 'Marie Dubois',
+      'Wilhelm Schneider', 'Olaf Eriksson', 'Priya Sharma', 'Chen Xiaoping', 'Boris Petrov',
+      'Sarah Williams', 'Miguel Rodriguez', 'Akiko Yamamoto', 'Robert Johnson', 'Elena Popov',
+      'Kwame Asante', 'Nguyen Van Duc', 'Dimitri Volkov', 'Rosa Martinez', 'Hans Mueller',
+      'Amara Diallo', 'Rashid al-Din', 'Mei Ling', 'Pierre Dubois', 'Olga Ivanova',
+      'James McCarthy', 'Sofia Papadopoulos', 'Ahmed Hassan', 'Liu Zhang', 'Maria Silva'
+    ];
+
+    const professions = [
+      'blacksmith', 'merchant', 'farmer', 'scholar', 'soldier', 'priest', 'weaver',
+      'fisherman', 'scribe', 'healer', 'hunter', 'baker', 'carpenter', 'mason',
+      'herbalist', 'navigator', 'miner', 'potter', 'tanner', 'brewmaster',
+      'diplomat', 'architect', 'philosopher', 'astronomer', 'alchemist', 'storyteller'
+    ];
+
+    const locations = [
+      'Mesopotamia', 'Nile Delta', 'Yellow River', 'Italian Peninsula',
+      'British Isles', 'Iberian Peninsula', 'Germanic Forest', 'Scandinavian Fjords',
+      'Arabian Desert', 'Ganges Plain', 'Japanese Islands', 'Andean Mountains',
+      'Great Plains', 'Amazon Basin', 'Sahara Trade Route', 'Silk Road',
+      'Mediterranean Coast', 'Baltic Shore', 'Caucasus Mountains', 'Siberian Steppe',
+      'Indus Valley', 'Mekong Delta', 'Rhine Valley', 'Danube Basin', 'Maghreb Coast'
+    ];
+
+    // Random background images
+    const backgrounds = [
+      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1920',
+      'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=1920',
+      'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=1920',
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920',
+      'https://images.unsplash.com/photo-1573155993874-d5d48af862ba?w=1920',
+      'https://images.unsplash.com/photo-1599946347371-68eb71b16afc?w=1920',
+      'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1920',
+      'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=1920',
+    ];
+
+    // Set random background
+    function setRandomBackground() {
+      const bg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+      document.getElementById('bgImage').style.backgroundImage = `url(${bg})`;
+    }
+
+    // Generate a historical life entry
+    function generateEntry() {
+      const name = names[Math.floor(Math.random() * names.length)];
+      const profession = professions[Math.floor(Math.random() * professions.length)];
+      const location = locations[Math.floor(Math.random() * locations.length)];
+      const years = Math.floor(Math.random() * 60) + 1;
+      const year = Math.floor(Math.random() * 4000) - 1000;
+      const yearStr = year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
+      const colorClass = `name-color-${Math.floor(Math.random() * 10) + 1}`;
+
+      return {
+        name,
+        colorClass,
+        text: `<span class="${colorClass}">${name}</span><span class="separator"> :: </span><span class="info-text">${profession} for ${years} years in ${location}, ${yearStr}</span>`
+      };
+    }
+
+    // Terminal state
+    let entries = [];
+    let displayedEntries = [];
+    let isInitialFill = true;
+    let entryIdCounter = 0;
+
+    // Prepare initial entries
+    function prepareInitialEntries(count = 150) {
+      entries = [];
+      for (let i = 0; i < count; i++) {
+        const entry = generateEntry();
+        entry.id = entryIdCounter++;
+        entries.push(entry);
+      }
+    }
+
+    // Mouse tracking for atmospheric haze
+    function initMouseTracking() {
+      const haze = document.getElementById('haze');
+
+      document.addEventListener('mousemove', (e) => {
+        const x = (e.clientX / window.innerWidth) * 100;
+        const y = (e.clientY / window.innerHeight) * 100;
+        haze.style.setProperty('--mouse-x', `${x}%`);
+        haze.style.setProperty('--mouse-y', `${y}%`);
+      });
+    }
+
+    // Break text into words for typewriter effect - simpler approach
+    function wrapWordsForTypewriter(html) {
+      // Simple regex approach that wraps each word individually
+      return html.replace(/\b(\w+)\b/g, '<span class="word">$1</span>');
+    }
+
+    // Create DOM element for an entry with typewriter effect
+    function createEntryElement(entry, addSeparator = true, animate = false) {
+      const wrapper = document.createElement('span');
+      wrapper.className = 'entry-wrapper';
+      wrapper.dataset.entryId = entry.id;
+
+      let content = entry.text;
+      if (addSeparator) {
+        content = '<span class="separator"> • • • </span>' + content;
+      }
+
+      if (animate) {
+        content = wrapWordsForTypewriter(content);
+      }
+
+      wrapper.innerHTML = content;
+
+      // Add click listener to names
+      const nameSpans = wrapper.querySelectorAll('[class^="name-color"]');
+      nameSpans.forEach(nameSpan => {
+        nameSpan.addEventListener('click', () => replaceEntry(wrapper));
+      });
+
+      return wrapper;
+    }
+
+    // Animate words appearing one by one
+    function animateWords(element) {
+      const words = element.querySelectorAll('.word');
+      words.forEach((word, index) => {
+        setTimeout(() => {
+          word.classList.add('typing');
+        }, index * 50); // 50ms between words
+      });
+    }
+
+    // Initial fill - type out entries quickly
+    function initialFill() {
+      const terminal = document.getElementById('terminal');
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+      terminal.appendChild(line);
+
+      let index = 0;
+
+      function addNextEntry() {
+        if (index < entries.length && isInitialFill) {
+          const wrapper = createEntryElement(entries[index], index > 0, false); // No animation for initial fill
+          line.appendChild(wrapper);
+          displayedEntries.push(entries[index]);
+          index++;
+
+          // Very fast initial fill
+          const delay = Math.max(2, 10 - index * 0.05);
+          setTimeout(addNextEntry, delay);
+        } else {
+          isInitialFill = false;
+          // Add click listeners to all existing names
+          const nameSpans = document.querySelectorAll('[class^="name-color"]');
+          nameSpans.forEach(nameSpan => {
+            nameSpan.addEventListener('click', () => {
+              const wrapper = nameSpan.closest('.entry-wrapper');
+              replaceEntry(wrapper);
+            });
+          });
+          // Start the replacement cycle after initial fill
+          setTimeout(startReplacementCycle, 3000);
+        }
+      }
+
+      addNextEntry();
+    }
+
+    // Replace entry function (for clicks and automatic replacement)
+    function replaceEntry(targetElement) {
+      if (!targetElement) return;
+
+      // Fade out old entry
+      targetElement.classList.add('deleting');
+
+      setTimeout(() => {
+        // Generate new entry
+        const newEntry = generateEntry();
+        newEntry.id = entryIdCounter++;
+
+        // Find if this entry has a separator (not the first one)
+        const hasSeparator = targetElement.innerHTML.includes('• • •');
+
+        // Create new element with typewriter animation
+        const newElement = createEntryElement(newEntry, hasSeparator, true);
+        newElement.style.opacity = '0';
+
+        // Replace in DOM
+        if (targetElement.parentNode) {
+          targetElement.parentNode.replaceChild(newElement, targetElement);
+
+          // Update displayed entries array
+          const entryId = targetElement.dataset.entryId;
+          const index = displayedEntries.findIndex(e => e.id === parseInt(entryId));
+          if (index !== -1) {
+            displayedEntries[index] = newEntry;
+          }
+
+          // Fade in new element and animate words
+          setTimeout(() => {
+            newElement.style.transition = 'opacity 0.5s ease-in';
+            newElement.style.opacity = '1';
+            animateWords(newElement);
+          }, 50);
+        }
+      }, 500);
+    }
+
+    // Replace random entries one by one
+    function startReplacementCycle() {
+      setInterval(() => {
+        if (displayedEntries.length === 0) return;
+
+        // Pick a random entry to replace
+        const randomIndex = Math.floor(Math.random() * displayedEntries.length);
+        const oldEntry = displayedEntries[randomIndex];
+
+        // Find the DOM element
+        const elements = document.querySelectorAll('.entry-wrapper');
+        let targetElement = null;
+
+        elements.forEach(el => {
+          if (el.dataset.entryId === String(oldEntry.id)) {
+            targetElement = el;
+          }
+        });
+
+        replaceEntry(targetElement);
+      }, 5000); // Replace one entry every 5 seconds
+    }
+
+    // Initialize
+    setRandomBackground();
+    prepareInitialEntries(150); // More entries to fill screen completely
+    initMouseTracking(); // Start mouse tracking for atmospheric haze
+
+    // Start initial fill after a brief delay
+    setTimeout(() => {
+      initialFill();
+    }, 1000);
+  </script>
+</body>
+</html>

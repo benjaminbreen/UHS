@@ -3,7 +3,7 @@
  * Testing suite for interior map system - allows previewing all cultural variants and building types
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { X, Building, Eye, Play, Layers } from 'lucide-react';
 import { InteriorGenerationConfig } from '../types/interiorMapTypes';
 import { CulturalZone, HistoricalEra } from '../types';
@@ -155,7 +155,7 @@ const InteriorMapTestMenu: React.FC<InteriorMapTestMenuProps> = ({ isOpen, onClo
               {buildingTypes.map(type => (
                 <button
                   key={type.value}
-                  onClick={() => setSelectedBuildingType(type.value)}
+                  onClick={useCallback(() => setSelectedBuildingType(type.value), [type.value])}
                   className={`p-3 rounded-lg border transition-all text-left ${
                     selectedBuildingType === type.value
                       ? 'bg-cyan-900/30 border-cyan-500/50 text-cyan-300'
@@ -179,7 +179,7 @@ const InteriorMapTestMenu: React.FC<InteriorMapTestMenuProps> = ({ isOpen, onClo
                 {culturalZones.map(zone => (
                   <button
                     key={zone.value}
-                    onClick={() => setSelectedCulturalZone(zone.value)}
+                    onClick={useCallback(() => setSelectedCulturalZone(zone.value), [zone.value])}
                     className={`p-2 rounded-lg border transition-all ${
                       selectedCulturalZone === zone.value
                         ? 'bg-cyan-900/30 border-cyan-500/50 text-cyan-300'
@@ -222,7 +222,7 @@ const InteriorMapTestMenu: React.FC<InteriorMapTestMenuProps> = ({ isOpen, onClo
               {(['small', 'medium', 'large'] as const).map(size => (
                 <button
                   key={size}
-                  onClick={() => setSelectedSize(size)}
+                  onClick={useCallback(() => setSelectedSize(size), [size])}
                   className={`px-4 py-2 rounded-lg border transition-all capitalize ${
                     selectedSize === size
                       ? 'bg-cyan-900/30 border-cyan-500/50 text-cyan-300'
@@ -242,7 +242,7 @@ const InteriorMapTestMenu: React.FC<InteriorMapTestMenuProps> = ({ isOpen, onClo
                 Layout Preview
               </h3>
               <button
-                onClick={() => setShowLayoutPreview(!showLayoutPreview)}
+                onClick={useCallback(() => setShowLayoutPreview(prev => !prev), [])}
                 className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
               >
                 <Eye className={`w-4 h-4 ${showLayoutPreview ? 'text-cyan-400' : 'text-slate-400'}`} />

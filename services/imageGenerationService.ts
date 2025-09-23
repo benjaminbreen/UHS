@@ -4,12 +4,20 @@
  */
 import { Runware } from '@runware/sdk-js';
 import { Item, PlayerCharacter, CulturalZone } from '../types';
+import { QuestNPC } from './worldWeaverService';
 
 interface ImageGenerationContext {
   item: Item;
   culturalZone?: CulturalZone;
   year?: number;
   playerProfession?: string;
+}
+
+interface NPCPortraitContext {
+  npc: QuestNPC;
+  culturalZone: CulturalZone;
+  era: string;
+  location: string;
 }
 
 interface CachedImage {
@@ -311,6 +319,211 @@ class ImageGenerationService {
     const timeSinceLastRequest = Date.now() - this.lastRequestTime;
     const waitTime = Math.max(0, this.MIN_INTERVAL - timeSinceLastRequest);
     return Math.ceil(waitTime / 1000);
+  }
+
+  /**
+   * Generates an AI portrait for a WorldWeaver quest NPC
+   */
+  async generateQuestNPCPortrait(context: NPCPortraitContext): Promise<{ imageUrl: string | null; prompt: string }> {
+    const { npc, culturalZone, era, location } = context;
+
+    // Build cache key for NPC portraits
+    const cacheKey = `npc-${npc.id}-${culturalZone}-${era}`;
+
+    // Check cache first
+    const cached = await this.getCachedImage(cacheKey);
+    if (cached) {
+      console.log(`[ImageGen] Using cached portrait for ${npc.name}`);
+      return { imageUrl: cached.url, prompt: cached.prompt };
+    }
+
+    if (!this.runware) {
+      console.warn('[ImageGen] Runware not available for NPC portrait generation');
+      return { imageUrl: null, prompt: this.buildNPCPrompt(context) };
+    }
+
+    const prompt = this.buildNPCPrompt(context);
+
+    try {
+      console.log(`[ImageGen] Generating portrait for ${npc.name}:`, prompt);
+
+      const images = await this.runware.requestImages({
+        positivePrompt: prompt,
+        negativePrompt: 'modern clothing, sunglasses, modern hairstyles, plastic, synthetic, digital art, cartoon, anime, blurry, watermark, text, low quality, abstract, minimalist, multiple people, crowd',
+        model: 'runware:101@1', // Fast, general purpose model
+        width: 512,
+        height: 512,
+        numberResults: 1,
+        outputType: 'URL',
+        outputFormat: 'WEBP',
+        steps: 25, // Higher quality for portraits
+        CFGScale: 8.0, // Strong prompt adherence for character details
+      });
+
+      this.lastRequestTime = Date.now();
+
+      if (images && images.length > 0) {
+        const imageUrl = images[0].imageURL;
+
+        // Cache the generated portrait
+        await this.cacheImage(cacheKey, imageUrl, prompt);
+
+        console.log(`[ImageGen] Generated portrait for ${npc.name}:`, imageUrl);
+        return { imageUrl, prompt };
+      } else {
+        console.warn(`[ImageGen] No images returned for ${npc.name}`);
+        return { imageUrl: null, prompt };
+      }
+    } catch (error) {
+      console.error(`[ImageGen] Failed to generate portrait for ${npc.name}:`, error);
+      return { imageUrl: null, prompt };
+    }
+  }
+
+  /**
+   * Builds a historically accurate portrait prompt for an NPC
+   */
+  private buildNPCPrompt(context: NPCPortraitContext): string {
+    const { npc, culturalZone, era, location } = context;
+
+    // Start with basic portrait description
+    let prompt = `Professional portrait of ${npc.name}, a ${npc.profession || npc.role}`;
+
+    // Add physical appearance if provided
+    if (npc.appearance) {
+      prompt += `, ${npc.appearance}`;
+    } else {
+      // Generate basic appearance based on role and culture
+      prompt += this.generateAppearanceFromRole(npc.role, culturalZone);
+    }
+
+    // Add cultural and era-specific details
+    prompt += this.getCulturalPortraitDetails(culturalZone, era);
+
+    // Add location context
+    prompt += `, photographed in ${location}`;
+
+    // Add art style direction
+    prompt += ', Renaissance painting style, oil painting, classical portrait, detailed facial features, dignified pose, soft lighting, muted colors, historical accuracy';
+
+    // Add personality traits if available
+    if (npc.personality) {
+      const personalityTraits = this.convertPersonalityToVisual(npc.personality);
+      if (personalityTraits) {
+        prompt += `, ${personalityTraits}`;
+      }
+    }
+
+    return prompt;
+  }
+
+  /**
+   * Generate appearance description based on role and culture
+   */
+  private generateAppearanceFromRole(role: string, culturalZone: CulturalZone): string {
+    const roleLower = role.toLowerCase();
+
+    // Age and build based on role
+    let description = '';
+
+    if (roleLower.includes('farmer') || roleLower.includes('peasant')) {
+      description += ', weathered face, callused hands, sturdy build';
+    } else if (roleLower.includes('merchant') || roleLower.includes('trader')) {
+      description += ', well-fed appearance, shrewd eyes, confident bearing';
+    } else if (roleLower.includes('noble') || roleLower.includes('lord')) {
+      description += ', refined features, elegant bearing, well-groomed';
+    } else if (roleLower.includes('brigand') || roleLower.includes('bandit')) {
+      description += ', scarred face, rugged appearance, fierce eyes';
+    } else if (roleLower.includes('priest') || roleLower.includes('monk')) {
+      description += ', serene expression, kind eyes, humble bearing';
+    } else {
+      description += ', honest face, average build';
+    }
+
+    return description;
+  }
+
+  /**
+   * Get cultural and era-specific portrait details
+   */
+  private getCulturalPortraitDetails(culturalZone: CulturalZone, era: string): string {
+    let details = '';
+
+    // Era-specific clothing and style
+    switch (era) {
+      case 'MEDIEVAL':
+        details += ', medieval clothing, simple fabrics, earth tones';
+        break;
+      case 'RENAISSANCE_EARLY_MODERN':
+        details += ', Renaissance clothing, rich fabrics, detailed embroidery';
+        break;
+      case 'ANTIQUITY':
+        details += ', ancient robes, classical drapery, simple jewelry';
+        break;
+      case 'INDUSTRIAL_ERA':
+        details += ', period clothing, formal attire, structured garments';
+        break;
+      default:
+        details += ', period-appropriate clothing';
+    }
+
+    // Cultural features
+    switch (culturalZone) {
+      case 'EUROPEAN':
+        details += ', European features, fair to olive skin';
+        break;
+      case 'EAST_ASIAN':
+        details += ', East Asian features, traditional hairstyles';
+        break;
+      case 'SUB_SAHARAN_AFRICAN':
+        details += ', African features, dark skin, traditional styling';
+        break;
+      case 'MENA':
+        details += ', Middle Eastern features, Mediterranean appearance';
+        break;
+      case 'SOUTH_ASIAN':
+        details += ', South Asian features, traditional dress elements';
+        break;
+      case 'OCEANIA':
+        details += ', Polynesian features, island cultural elements';
+        break;
+      case 'NORTH_AMERICAN_PRE_COLUMBIAN':
+        details += ', Native American features, traditional styling';
+        break;
+      default:
+        details += ', culturally authentic features';
+    }
+
+    return details;
+  }
+
+  /**
+   * Convert personality traits to visual descriptors
+   */
+  private convertPersonalityToVisual(personality: string): string {
+    const personalityLower = personality.toLowerCase();
+    let traits: string[] = [];
+
+    if (personalityLower.includes('anxious') || personalityLower.includes('worried')) {
+      traits.push('worried expression');
+    }
+    if (personalityLower.includes('wise') || personalityLower.includes('intelligent')) {
+      traits.push('intelligent eyes');
+    }
+    if (personalityLower.includes('kind') || personalityLower.includes('gentle')) {
+      traits.push('kind expression');
+    }
+    if (personalityLower.includes('stern') || personalityLower.includes('serious')) {
+      traits.push('stern countenance');
+    }
+    if (personalityLower.includes('friendly') || personalityLower.includes('welcoming')) {
+      traits.push('warm smile');
+    }
+    if (personalityLower.includes('suspicious') || personalityLower.includes('wary')) {
+      traits.push('cautious gaze');
+    }
+
+    return traits.length > 0 ? traits.join(', ') : '';
   }
 
   /**
