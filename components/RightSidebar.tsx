@@ -40,7 +40,7 @@ const RightSidebar: React.FC = () => {
   const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult } = useUI();
   const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
-  const { deployVesselToMap, mapData, localArea, culturalZone } = useMap();
+  const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone } = useMap();
 
   // Study actions hook
   const { executeStudyAction, isProcessing: isStudyProcessing } = useStudyActions();
@@ -290,12 +290,16 @@ const RightSidebar: React.FC = () => {
     const symptomatic = dis.filter((d: any) => d.stage === 'symptomatic' || d.stage === 'active');
     if (symptomatic.length) {
       const worst = symptomatic.reduce((a: any, b: any) => (b.severity > a.severity ? b : a));
-      return { text: `Currently sick with ${worst.disease.severity} ${worst.disease.name.toLowerCase()}`, hasDisease: true, severity: worst.disease.severity };
+      return { text: `Suffering from ${worst.disease.severity} ${worst.disease.name.toLowerCase()}`, hasDisease: true, severity: worst.disease.severity };
     }
 
     if (fatiguePercent > 0.95) return { text: 'Feeling awful', hasDisease: false, severity: '' };
-    if (fatiguePercent > 0.85) return { text: 'Utterly exhausted', hasDisease: false, severity: '' };
+    if (fatiguePercent > 0.85) return { text: 'Exhausted', hasDisease: false, severity: '' };
+    if (fatiguePercent > 0.75) return { text: 'Feeling run down', hasDisease: false, severity: '' };
+        if (fatiguePercent > 0.65) return { text: 'A bit tired', hasDisease: false, severity: '' };
+         if (fatiguePercent > 0.5) return { text: 'Feeling so-so', hasDisease: false, severity: '' };
     if (healthPercent < 0.3) return { text: 'Gravely injured', hasDisease: false, severity: '' };
+        if (xpPercent >= 0.5) return { text: 'Learning new things', hasDisease: false, severity: '' };
     if (xpPercent >= 0.9) return { text: 'On the verge of a breakthrough!', hasDisease: false, severity: '' };
     return { text: 'Feeling fine', hasDisease: false, severity: '' };
   }, [playerCharacter]);
@@ -691,6 +695,7 @@ const RightSidebar: React.FC = () => {
               }}
               onInventoryUpdate={() => {}}
               deployVesselToMap={deployVesselToMap}
+              deployBridgeToMap={deployBridgeToMap}
               playerX={controlledIconX}
               playerY={controlledIconY}
               setShipDockPosition={(x, y) => {

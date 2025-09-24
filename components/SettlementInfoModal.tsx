@@ -17,6 +17,7 @@ import { Season, ClimateType } from '../types';
 import { generateNpcGreeting, createDialogueContext } from '../services/npcDialogueService';
 import { usePortraitExpression, mapRepDeltaToExpr } from '../hooks/usePortraitExpression';
 import { urbanTileRegistry } from '../services/urbanTileRegistryService';
+import { imageGenerationService } from '../services/imageGenerationService';
 import {
     Store, Users, Home, Building2, Tent, Castle,
     Wheat, Package, Hammer, ShoppingBag, ArrowRight,
@@ -55,6 +56,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
     const [dialogueLoading, setDialogueLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'residents' | 'businesses'>('overview');
     const [tileData, setTileData] = useState<any>(null);
+    const [cachedCityImage, setCachedCityImage] = useState<string | null>(null);
 
     // Get ALL NPCs from mapData for better detection
     const allMapNpcs = useMemo(() => {
@@ -70,6 +72,53 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
         const data = urbanTileRegistry.getTileData(tile.x, tile.y);
         setTileData(data);
     }, [tile.x, tile.y, allMapNpcs]);
+
+    // Try to load cached city image
+    useEffect(() => {
+        const loadCachedImage = async () => {
+            // Only try for city biomes
+            if (tile.biome === BiomeType.HAMLET ||
+                tile.biome === BiomeType.LOW_DENSITY_CITY ||
+                tile.biome === BiomeType.DENSE_CITY ||
+                tile.biome === BiomeType.CITY_CENTER) {
+
+                // Get city name from majorCity or tile name
+                const cityName = mapData.majorCity?.name || tile.cityName || mapData.name;
+
+                // Parse date and culture info
+                const parsed = parseDateString(mapData.timeSlice || '1650');
+                const culture = mapLocationToCulture(
+                    mapData.localArea || mapData.continent || 'Europe',
+                    parsed.year
+                );
+
+                // Map gameTimeHours to TimeOfDay
+                let currentTimeOfDay = 'afternoon';
+                if (gameTimeHours >= 5 && gameTimeHours < 8) currentTimeOfDay = 'dawn';
+                else if (gameTimeHours >= 8 && gameTimeHours < 12) currentTimeOfDay = 'morning';
+                else if (gameTimeHours >= 12 && gameTimeHours < 16) currentTimeOfDay = 'midday';
+                else if (gameTimeHours >= 16 && gameTimeHours < 19) currentTimeOfDay = 'afternoon';
+                else if (gameTimeHours >= 19 && gameTimeHours < 21) currentTimeOfDay = 'dusk';
+                else currentTimeOfDay = 'night';
+
+                if (cityName && culture) {
+                    const cachedUrl = await imageGenerationService.getCachedCityImage(
+                        cityName,
+                        culture,
+                        parsed.year || 1500,
+                        currentTimeOfDay
+                    );
+
+                    if (cachedUrl) {
+                        console.log(`Using cached city image for ${cityName}`);
+                        setCachedCityImage(cachedUrl);
+                    }
+                }
+            }
+        };
+
+        loadCachedImage();
+    }, [tile.biome, tile.cityName, mapData, gameTimeHours]);
 
     // Get residents of this tile - REGISTRY FIRST approach
     const residents = useMemo(() => {
@@ -715,7 +764,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
             case BiomeType.LOW_DENSITY_CITY:
             case BiomeType.DENSE_CITY:
             case BiomeType.CITY_CENTER:
-                 return <CityBanner {...bannerProps} size={population > 500 ? 'big_city' : 'smaller_city'} height={240} />;
+                 return <CityBanner {...bannerProps} size={population > 500 ? 'big_city' : 'smaller_city'} height={240} aiGeneratedImageUrl={cachedCityImage} />;
             default:
                 return <div className="w-full h-[150px] bg-slate-700" />;
         }

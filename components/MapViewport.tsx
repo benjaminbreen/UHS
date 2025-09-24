@@ -14,6 +14,8 @@ import { InteriorMapDisplay } from './interiorMap';
 import BeautifulInteriorMapDisplay from './interiorMap/BeautifulInteriorMapDisplay';
 import CampModal from './CampModal';
 import PlayerTooltip from './PlayerTooltip';
+import { HelperModeNotification } from './HelperModeNotification';
+import { useHelperNpcMovement } from '../hooks/useHelperNpcMovement';
 import gameSoundsService from '../services/gameSoundsService';
 import AmbianceDisplay from './AmbianceDisplay';
 import BottomPanel from './BottomPanel';
@@ -79,7 +81,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
-    
+
     const {
         currentWorldCoords, mapData, currentMapSeed,
         visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData,
@@ -159,7 +161,25 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
     const [showPlayerTooltip, setShowPlayerTooltip] = useState(false);
     const [playerTooltipPos, setPlayerTooltipPos] = useState({ x: 0, y: 0 });
     const { isMobile } = useDeviceDetection();
-    
+
+    // Hook to handle NPC movement in helper mode
+    useHelperNpcMovement({
+        npcs: visibleNpcs || [],
+        playerX: controlledIconX || 0,
+        playerY: controlledIconY || 0,
+        mapWidth: mapData?.width || 100,
+        mapHeight: mapData?.height || 100,
+        onNpcMove: (npcId, newX, newY) => {
+            // Update the NPC position in the npcs array
+            if (visibleNpcs) {
+                const updatedNpcs = visibleNpcs.map(npc =>
+                    npc.id === npcId ? { ...npc, x: newX, y: newY } : npc
+                );
+                setNpcs(updatedNpcs);
+            }
+        }
+    });
+
     // Listen for POV viewport toggle requests from narration
     useEffect(() => {
         const handleShowPOV = () => {
@@ -982,6 +1002,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
                             // Update player fatigue
                             setPlayerCharacter(prev => prev ? { ...prev, fatigue: newFatigue } : prev);
                         }}
+                        onPlayerDeath={onPlayerDeath}
                     />
                 </div>
             );
@@ -1283,6 +1304,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
 
     return (
         <main className="flex-1 flex flex-col bg-transparent relative overflow-hidden">
+          {/* Helper Mode Notification - shows above everything */}
+          <HelperModeNotification />
+
           {/* Background layer with all atmospheric effects - behind everything */}
           <div className="absolute inset-0" style={{ zIndex: 0 }}>
             {isSpecialMap && specialMapData ? (

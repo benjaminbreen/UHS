@@ -33,7 +33,7 @@ function validateArchetype(archetype: string): boolean {
 }
 
 // Archetype generators - ONE per archetype type
-import { generateEstates } from './archetypes/estatesGeneratorFixed';
+import { generateEstatesSimplified as generateEstates } from './archetypes/estatesGeneratorSimplified';
 import { generatePalaceVariant } from './archetypes/palaceVariantGenerator';
 import { generateGovernmentForum } from './archetypes/governmentGenerator';
 import { generateTribalCouncil } from './archetypes/tribalCouncilGenerator';

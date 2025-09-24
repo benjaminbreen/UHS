@@ -360,7 +360,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     }, []);
     const [showShareLink, setShowShareLink] = React.useState(false);
     const [shareableURL, setShareableURL] = React.useState('');
-    const [dialectContinuumEnabled, setDialectContinuumEnabled] = React.useState(false);
+    const [dialectContinuumEnabled, setDialectContinuumEnabled] = React.useState(true);
     const [showModeDetails, setShowModeDetails] = React.useState(false);
     const [showCharacterDetails, setShowCharacterDetails] = React.useState(false);
     const [portraitExpression, setPortraitExpression] = React.useState<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'>('neutral');

@@ -8,6 +8,9 @@ import { WorldWeaverQuest, QuestNPC } from './worldWeaverService';
 import { questService } from './questService';
 import { LogService } from './logService';
 import { generateId } from '../utils/idGenerator';
+import { questStorageCleanupService } from './questStorageCleanupService';
+import { worldWeaverQuestIntegrator } from './worldWeaverQuestIntegrator';
+import { MapData } from '../types';
 
 export interface WorldWeaverQuestEntry {
   questId: string;
@@ -25,10 +28,71 @@ class WorldWeaverQuestService {
   }
 
   /**
-   * Add a WorldWeaver quest to the game's quest system
+   * Add a WorldWeaver quest to the game's quest system (enhanced version)
    */
-  addWorldWeaverQuest(weaverQuest: WorldWeaverQuest): string {
+  async addWorldWeaverQuest(
+    weaverQuest: WorldWeaverQuest,
+    mapData?: MapData,
+    playerLocation?: { x: number; y: number },
+    culturalZone?: string,
+    era?: string
+  ): Promise<string> {
+    console.log(`[WorldWeaverQuest] Adding quest: "${weaverQuest.title}"`);
+
+    // If map data is provided, use the enhanced integrator
+    if (mapData && playerLocation && culturalZone && era) {
+      return this.addEnhancedWorldWeaverQuest(weaverQuest, mapData, playerLocation, culturalZone, era);
+    }
+
+    // Otherwise, fall back to the legacy method
+    return this.addLegacyWorldWeaverQuest(weaverQuest);
+  }
+
+  /**
+   * Enhanced quest integration using map-aware coordinates
+   */
+  private async addEnhancedWorldWeaverQuest(
+    weaverQuest: WorldWeaverQuest,
+    mapData: MapData,
+    playerLocation: { x: number; y: number },
+    culturalZone: string,
+    era: string
+  ): Promise<string> {
     try {
+      console.log('[WorldWeaverQuest] Using enhanced integration with map coordinates');
+
+      // Use the enhanced integrator to create a fully functional quest
+      const context = { mapData, playerLocation, culturalZone, era };
+      const questId = await worldWeaverQuestIntegrator.integrateQuest(weaverQuest, context);
+
+      // Store the WorldWeaver quest data for reference
+      const weaverEntry: WorldWeaverQuestEntry = {
+        questId,
+        originalQuest: weaverQuest,
+        spawnedNPCs: [] // Will be populated by the integrator
+      };
+
+      this.activeWorldWeaverQuests.set(questId, weaverEntry);
+
+      // Use minimal localStorage storage
+      this.storeQuestDataMinimal(questId, weaverQuest);
+
+      console.log(`[WorldWeaverQuest] Successfully integrated enhanced quest: "${weaverQuest.title}"`);
+      return questId;
+
+    } catch (error) {
+      console.error('[WorldWeaverQuest] Enhanced integration failed, falling back to legacy:', error);
+      return this.addLegacyWorldWeaverQuest(weaverQuest);
+    }
+  }
+
+  /**
+   * Legacy quest integration (fallback)
+   */
+  private addLegacyWorldWeaverQuest(weaverQuest: WorldWeaverQuest): string {
+    try {
+      console.log('[WorldWeaverQuest] Using legacy integration method');
+
       // 1. Create minimal quest entry for quest system
       const questEntry = this.createMinimalQuest(weaverQuest);
 
@@ -46,9 +110,9 @@ class WorldWeaverQuestService {
       };
 
       this.activeWorldWeaverQuests.set(questEntry.id, weaverEntry);
-      localStorage.setItem(`ww_quest_${questEntry.id}`, JSON.stringify(weaverEntry));
+      this.storeQuestDataMinimal(questEntry.id, weaverQuest);
 
-      console.log('[WorldWeaverQuest] Successfully added quest:', weaverQuest.title);
+      console.log('[WorldWeaverQuest] Successfully added legacy quest:', weaverQuest.title);
       return questEntry.id;
 
     } catch (error) {
@@ -213,6 +277,40 @@ ${stageText}
   getSpawnedNPCs(questId: string): string[] {
     const entry = this.activeWorldWeaverQuests.get(questId);
     return entry ? entry.spawnedNPCs : [];
+  }
+
+  /**
+   * Store minimal quest data to prevent localStorage bloat
+   */
+  private storeQuestDataMinimal(questId: string, weaverQuest: WorldWeaverQuest): void {
+    try {
+      // Store only essential data to prevent quota exceeded errors
+      const minimalData = {
+        title: weaverQuest.title,
+        npcName: weaverQuest.specialNPC?.name || 'Quest Giver',
+        stages: weaverQuest.stages.length,
+        timestamp: Date.now(),
+        expires: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+      };
+
+      // Check data size before storing
+      const dataSize = JSON.stringify(minimalData).length;
+      if (dataSize > 2000) { // 2KB limit per quest
+        console.warn(`[WorldWeaverQuest] Quest data too large: ${dataSize} bytes, skipping storage`);
+        return;
+      }
+
+      const success = questStorageCleanupService.safeSetItem(`ww_quest_${questId}`, JSON.stringify(minimalData));
+      if (success) {
+        console.log(`[WorldWeaverQuest] Stored minimal quest data (${dataSize} bytes)`);
+      } else {
+        console.warn(`[WorldWeaverQuest] Failed to store quest data for ${questId} - storage full`);
+      }
+
+    } catch (error) {
+      console.error('[WorldWeaverQuest] Failed to store minimal quest data:', error);
+      // Continue without storing - quest will still work
+    }
   }
 
   /**

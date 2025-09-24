@@ -34,6 +34,7 @@ export interface LanguageData {
     thanks?: string;
   };
   llmPrompt: string; // Instructions for LLM on HOW to roleplay this language's style
+  historicalContext?: string; // One-sentence educational context about the language's history and evolution
 }
 
 // Language families for reference
@@ -75,6 +76,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['PROTO_GERMANIC', 'PROTO_CELTIC', 'PROTO_ITALIC', 'PROTO_INDO_IRANIAN', 'PROTO_ANATOLIAN'],
     description: 'Reconstructed common ancestor of all Indo-European languages',
     llmPrompt: 'Reconstruct a primitive Indo-European dialect using scholarly conventions. Use reconstructed *-marked roots and emphasize basic concepts: kinship, livestock, nature, tools. Word order is likely SOV. Vocabulary should focus on pastoral/agricultural terminology. Be conservative with complex abstract concepts.',
+    historicalContext: 'Never written down, this prehistoric language spoken on the Eurasian steppes around 4000 BCE is the reconstructed ancestor of most European and many Asian languages.',
   },
 
   PROTO_SINO_TIBETAN: {
@@ -90,6 +92,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['OLD_CHINESE', 'PROTO_TIBETO_BURMAN'],
     description: 'Reconstructed ancestor of Chinese and Tibetan languages',
     llmPrompt: 'Use monosyllabic roots with tonal variations. Syntax is likely SVO with classifier systems. Focus on agricultural, geographic, and kinship terms. Use simple sentence structures and avoid complex grammatical particles.',
+    historicalContext: 'Spoken around 4000 BCE in the Yellow River valley, this reconstructed language gave rise to Chinese, Tibetan, Burmese, and hundreds of other East Asian languages.',
   },
 
   // === EARLIEST ATTESTED LANGUAGES (3500-1500 BCE) ===
@@ -112,6 +115,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'dug3-ga-zu',
     },
     llmPrompt: 'Emulate cuneiform administrative and religious texts. Use agglutinative morphology with complex case systems. Word order is typically SOV. Tone should be formal, ceremonial, and often invoke deities. Use repetitive formulaic structures typical of early legal/religious texts.',
+    historicalContext: 'The world\'s first written language (3500 BCE), a linguistic isolate with no known relatives, died out when its speakers switched to Akkadian around 1750 BCE.',
   },
 
   ELAMITE: {
@@ -125,6 +129,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     culturalZones: ['MENA' as CulturalZone],
     description: 'Ancient language of Elam, Iran. Language isolate with no known relatives.',
     llmPrompt: 'Use the ergative-absolutive alignment typical of Elamite. Word order tends toward SOV. Employ complex verbal morphology and frequent use of compound verbs. Tone should reflect the formal court style of an ancient Iranian civilization.',
+    historicalContext: 'Written in one of the world\'s oldest scripts (3200 BCE), this mysterious language isolate was spoken in ancient Iran until Persian conquered Elam around 300 BCE.',
   },
 
   PROTO_AFROASIATIC: {
@@ -140,6 +145,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['PROTO_SEMITIC', 'ANCIENT_EGYPTIAN', 'PROTO_BERBER', 'PROTO_CUSHITIC'],
     description: 'Reconstructed ancestor of Semitic, Egyptian, Berber, and Cushitic languages',
     llmPrompt: 'Use triconsonantal roots typical of Afroasiatic. VSO word order preferred. Focus on pastoral vocabulary, celestial terms, and basic kinship. Use pharyngeal and emphatic consonants. Keep morphology relatively simple.',
+    historicalContext: 'This hypothetical ancestor language from around 10,000 BCE in Northeast Africa gave rise to Arabic, Hebrew, Ancient Egyptian, Berber, and Somali language families.',
   },
 
   // === ANCIENT ATTESTED LANGUAGES (Pre-500 CE) ===
@@ -163,6 +169,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Gratias tibi',
     },
     llmPrompt: 'Emulate the syntax and style of Classical Latin prose (e.g., Cicero). Use a subject-object-verb (SOV) word order as a baseline, but allow flexibility for emphasis. Fully utilize the complex system of noun declensions and verb conjugations to show relationships between words. Maintain a formal, educated, and somewhat stoic register.',
+    historicalContext: 'The language of Rome evolved into the Romance languages (Spanish, French, Italian, Portuguese, Romanian) and remained the lingua franca of Western scholarship until the 18th century.',
   },
 
   ANCIENT_GREEK: {
@@ -183,6 +190,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Εὐχαριστῶ',
     },
     llmPrompt: 'Adopt the Attic dialect of the Classical period. Word order is very flexible due to inflection, but default to SVO. Use a rich vocabulary suitable for philosophical, political, or rhetorical discourse. Employ particles (e.g., μέν, δέ, γάρ) to create logical, flowing connections between clauses and sentences.',
+    historicalContext: 'The language of Socrates, Plato, and Aristotle, Ancient Greek shaped Western philosophy, science, and democracy, leaving thousands of words in modern languages.',
   },
 
   ARAMAIC: {
@@ -203,6 +211,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Taudi',
     },
     llmPrompt: 'Emulate Imperial Aramaic, the administrative lingua franca. The syntax is typically Verb-Subject-Object (VSO). The tone should be practical, clear, and direct, suitable for trade, legal documents, and official correspondence. Avoid overly poetic or metaphorical language unless quoting scripture.',
+    historicalContext: 'The lingua franca of the ancient Near East (1000 BCE-700 CE), spoken by Jesus and used for parts of the Bible, it survived in pockets to the present day.',
   },
 
   AKKADIAN: {
@@ -216,6 +225,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     culturalZones: ['MENA' as CulturalZone],
     description: 'Language of ancient Mesopotamian empires. A Semitic language, but not an ancestor of Aramaic.',
     llmPrompt: 'Emulate the style of Old Babylonian/Standard Babylonian cuneiform inscriptions. Use a strict Subject-Object-Verb (SOV) word order. The tone should be formal, elevated, and often formulaic, especially in royal or religious contexts. Phrasing should reflect the structure of official proclamations and legal codes.',
+    historicalContext: 'The language of Babylon and Assyria (2500-100 BCE), used for the Code of Hammurabi and the Epic of Gilgamesh, it was the diplomatic language of the ancient Near East.',
   },
 
   ANCIENT_EGYPTIAN: {
@@ -236,6 +246,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'dua netjer en ek',
     },
     llmPrompt: 'Emulate Middle Egyptian, the classical phase of the language. Syntax is typically Verb-Subject-Object (VSO). Use passive voice and descriptive clauses (adjectives) frequently. The tone should be formal and often reverent, reflecting a society structured around divine kingship and a complex pantheon.',
+    historicalContext: 'Written in hieroglyphs for over 3000 years (3200 BCE-700 CE), Egyptian evolved through several stages before becoming Coptic, still used in Christian liturgy today.',
   },
 
   VEDIC_SANSKRIT: {
@@ -258,6 +269,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'dhanyaḥ asmi',
     },
     llmPrompt: 'Use the archaic language of the Rigveda. Employ complex meter and elaborate compound formations. Word order is quite free but favors SOV. Use abundant ritual/religious terminology, fire imagery, and pastoral metaphors. Tone should be elevated, hymnic, and ceremonial.',
+    historicalContext: 'The oldest form of Sanskrit (1500-500 BCE), preserved in the Rigveda and other sacred texts, it represents the earliest Indo-European literature.',
   },
 
   CLASSICAL_SANSKRIT: {
@@ -280,6 +292,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'dhanyavādaḥ',
     },
     llmPrompt: 'Use Paninian grammatical precision. Employ elaborate compound words and complex syntactic structures. SOV word order predominates. Use formal scholarly register appropriate for philosophical, literary, or legal discourse.',
+    historicalContext: 'Codified by Panini around 500 BCE with mathematical precision, Classical Sanskrit became the refined language of Hindu and Buddhist scholarship for two millennia.',
   },
 
   SANSKRIT: {
@@ -300,6 +313,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Dhanyavādaḥ',
     },
     llmPrompt: 'Emulate Classical Sanskrit. The syntax is extremely flexible due to a rich case system, but SOV is the neutral default. Use complex compound nouns (sandhi) where appropriate. The tone should be precise, elegant, and capable of conveying complex philosophical, religious, and literary ideas with great nuance.',
+    historicalContext: 'The sacred language of Hinduism and Buddhism, Sanskrit influenced all languages of India and Southeast Asia, remaining a liturgical language to this day.',
   },
 
   OLD_CHINESE: {
@@ -322,6 +336,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: '*sjək',
     },
     llmPrompt: 'Use reconstructed Old Chinese phonology with complex consonant clusters and no tones. Word order is SVO but more flexible than later Chinese. Use simple monosyllabic words with minimal compounding. Tone should be archaic and ceremonial, appropriate for bronze inscriptions and oracle bones.',
+    historicalContext: 'The language of oracle bones and bronze inscriptions (1250-221 BCE), ancestor to all Chinese dialects, evolved into Classical Chinese for literary use.',
   },
 
   CLASSICAL_CHINESE: {
@@ -344,6 +359,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: '謝',
     },
     llmPrompt: 'Emulate the concise, isolating, and often ambiguous style of Warring States and Han Dynasty texts. Word order is strict SVO. Omit subjects and objects where context allows. Use parallelism and balanced phrases. The tone should be formal, scholarly, and aphoristic, reflecting Confucian or Daoist philosophical underpinnings.',
+    historicalContext: 'The literary language of Confucius and classical Chinese literature remained the written standard across East Asia for 2000+ years until the 20th century.',
   },
 
   HITTITE: {
@@ -365,6 +381,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'šarā',
     },
     llmPrompt: 'Use the formal style of Hittite royal decrees and treaties. SOV word order is standard. Employ complex sentences with extensive use of conjunctions (nu, ta, ma). Tone should be legalistic, formal, and often invoke the gods as witnesses to treaties.',
+    historicalContext: 'The oldest known Indo-European language (1650-1200 BCE), Hittite reveals the deep history of European languages and was used by a major Bronze Age empire in Turkey.',
   },
 
   PROTO_ANATOLIAN: {
@@ -381,6 +398,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['HITTITE', 'LUWIAN', 'PALAIC'],
     description: 'Reconstructed ancestor of Anatolian languages including Hittite',
     llmPrompt: 'Use reconstructed Anatolian features with archaic Indo-European characteristics. SOV word order with complex verbal morphology. Focus on pastoral, metallurgical, and early agricultural terminology. Tone should be simple and direct.',
+    historicalContext: 'The first branch to split from Proto-Indo-European (around 3500 BCE), these languages developed in Anatolia and include Hittite, the oldest known Indo-European language.',
   },
 
   MINOAN: {
@@ -394,6 +412,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     culturalZones: ['EUROPEAN' as CulturalZone],
     description: 'Undeciphered language of Bronze Age Crete. Language family unknown.',
     llmPrompt: 'Since Minoan (Linear A) is undeciphered, construct plausible proto-Mediterranean speech patterns. Use simple SVO syntax with possible agglutinative elements. Focus on maritime, palace administration, and religious terminology. Tone should be ceremonial and trade-focused.',
+    historicalContext: 'The mysterious language of Europe\'s first advanced civilization on Crete (2700-1450 BCE), written in the still-undeciphered Linear A script.',
   },
 
   PROTO_CELTIC: {
@@ -410,6 +429,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['GAULISH', 'OLD_IRISH', 'BRYTHONIC'],
     description: 'Reconstructed ancestor of all Celtic languages',
     llmPrompt: 'Use reconstructed Celtic features with VSO word order becoming established. Employ complex consonant mutations and initial emphasis patterns. Focus on warrior culture, druids, agriculture, and metalworking. Tone should be tribal and ceremonial.',
+    historicalContext: 'The ancestor of Irish, Welsh, Scottish Gaelic, and ancient Gaulish, spoken by Iron Age Celts who dominated much of Europe before Roman expansion.',
   },
 
   GAULISH: {
@@ -432,6 +452,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Brogī',
     },
     llmPrompt: 'Use VSO word order characteristic of Celtic languages. Employ complex verbal conjugations and noun mutations. Vocabulary should reflect Gallic warrior society, druidism, and Roman contact. Tone should be proud, tribal, and resistant to Roman influence.',
+    historicalContext: 'The Continental Celtic language of Asterix\'s ancestors, spoken across France and Belgium until Roman conquest gradually replaced it with Latin.',
   },
 
   GOTHIC: {
@@ -453,6 +474,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Awiliuþ',
     },
     llmPrompt: 'Use the formal style of Wulfila\'s biblical Gothic. SOV word order with free variation for emphasis. Employ dual number and complex case system. Vocabulary should blend Germanic warrior culture with Christian terminology. Tone should be formal and religious.',
+    historicalContext: 'The earliest extensively recorded Germanic language (4th century CE), preserved in Bishop Wulfila\'s Bible translation for the Gothic tribes.',
   },
 
   PROTO_GERMANIC: {
@@ -466,6 +488,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['OLD_NORSE', 'OLD_ENGLISH', 'OLD_HIGH_GERMAN', 'GOTHIC'],
     description: 'Reconstructed ancestral language of Germanic peoples. No written records exist.',
     llmPrompt: 'This is a reconstructed language. Generate plausible speech by using the common lexical and grammatical features of its descendants (Gothic, Old Norse, Old English). Use a Subject-Verb-Object (SVO) or Verb-second (V2) word order. Favor concrete, direct, and native Germanic vocabulary. Employ alliterative phrasing characteristic of early Germanic oral traditions. Your goal is a consistent and authentic-sounding representation.',
+    historicalContext: 'Spoken by Germanic tribes around 500 BCE-200 CE, this reconstructed language was the ancestor of English, German, Dutch, and Scandinavian languages.',
   },
 
   GAULISH: {
@@ -480,6 +503,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     culturalZones: ['EUROPEAN' as CulturalZone],
     description: 'A poorly-attested Continental Celtic language. Not a direct ancestor of Irish or Welsh.',
     llmPrompt: 'This is a poorly attested language. Reconstruct plausible dialogue using vocabulary from known inscriptions and borrowings in French/Latin. For grammar, model it on related Insular Celtic languages (like Welsh or Irish), likely using a Verb-Subject-Object (VSO) word order and noun cases. The tone should reflect a pre-literate, oral tradition.',
+    historicalContext: 'The poorly-attested Continental Celtic language of ancient Gaul, largely replaced by Latin but leaving traces in French place names and vocabulary.',
   },
 
   // Native American Ancient Languages
@@ -494,6 +518,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['OJIBWE', 'CREE', 'MI_KMAQ', 'BLACKFOOT'],
     description: 'Reconstructed ancestral language of Algonquian peoples.',
     llmPrompt: 'This is a reconstructed language. Generate plausible speech by synthesizing features from its descendants (e.g., Ojibwe, Cree). The grammar should be highly complex and polysynthetic, creating long verb-based words. Make strong use of the animacy distinction (animate vs. inanimate nouns) which is central to Algonquian grammar. The tone should be grounded in the physical and spiritual world.',
+    historicalContext: 'Spoken around 3000 BCE by ancestors of Ojibwe, Cree, and Blackfoot peoples, this language spread across much of North America from the Atlantic to the Rockies.',
   },
 
   PROTO_SIOUAN: {
@@ -507,6 +532,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['LAKOTA', 'DAKOTA', 'CROW', 'OMAHA'],
     description: 'Reconstructed ancestral language of Siouan peoples.',
     llmPrompt: 'This is a reconstructed language. Generate plausible speech using shared features of Lakota, Crow, and other Siouan languages. It should have a Subject-Object-Verb (SOV) word order. Use postpositions instead of prepositions (e.g., "house in" instead of "in the house"). The style should be direct and declarative.',
+    historicalContext: 'The ancestral language of the Great Plains peoples including Lakota, Dakota, and Crow, central to the buffalo-hunting cultures of North America.',
   },
 
   PROTO_IROQUOIAN: {
@@ -520,6 +546,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['MOHAWK', 'SENECA', 'CHEROKEE', 'HURON'],
     description: 'Reconstructed ancestral language of Iroquoian peoples.',
     llmPrompt: 'This is a reconstructed language. Synthesize its features from descendants like Mohawk and Seneca. The language should be polysynthetic, with complex verb morphology and noun incorporation. A notable feature to emulate is the complete lack of labial consonants (no p, b, m). The tone should be suitable for a community-focused, agricultural society.',
+    historicalContext: 'Ancestor of the languages of the Iroquois Confederacy and Cherokee, spoken by agricultural societies in eastern North America for 4000+ years.',
   },
 
   QUECHUA_ANCIENT: {
@@ -540,6 +567,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Añay',
     },
     llmPrompt: 'Emulate Proto-Quechua by modeling speech on modern Southern Quechua dialects. The grammar must be agglutinative and exclusively suffixing. Word order is strictly Subject-Object-Verb (SOV). A key feature to include is the use of evidential suffixes, which specify how the speaker knows the information (e.g., firsthand, hearsay).',
+    historicalContext: 'The ancestral language of the Inca Empire and Andean civilizations, Proto-Quechua spread along mountain trade routes and remains spoken by millions today.',
   },
 
   CLASSICAL_NAHUATL: {
@@ -559,6 +587,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Tlazohcamati',
     },
     llmPrompt: 'Emulate the language of the Aztec Empire. The grammar is agglutinative and polysynthetic, often incorporating nouns into the verb complex. Word order is flexible but with a VSO tendency. Use honorifics extensively to show social respect. The tone can be formal and highly metaphoric, using couplets known as "difrasismos" (e.g., "in xochitl in cuicatl" - the flower, the song - to mean poetry).',
+    historicalContext: 'The language of the Aztec Empire and Mesoamerican literature, Classical Nahuatl gave us words like chocolate, tomato, and coyote.',
   },
 
   CLASSICAL_MAYA: {
@@ -573,6 +602,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['YUCATEC_MAYA', 'K_ICHE'],
     description: 'Language of Classic Maya civilization, recorded in hieroglyphs.',
     llmPrompt: 'Emulate the style of Mayan hieroglyphic inscriptions. The syntax is strictly Verb-Object-Subject (VOS). Use ergative-absolutive alignment. Employ formal couplets and parallelism frequently, a key feature of Mayan high-register speech. The tone should be suitable for a ritualistic, calendrically-focused, and courtly society.',
+    historicalContext: 'The language of Maya hieroglyphs and classic period cities like Tikal and Palenque, it recorded astronomy, history, and ritual for over 1500 years.',
   },
 
   // Australian & Oceanian Ancient Languages
@@ -587,6 +617,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['WARLPIRI', 'ARRERNTE', 'KAURNA'],
     description: 'Reconstructed ancestral language of most Australian Aboriginal groups.',
     llmPrompt: 'This is a reconstructed language. Generate plausible speech using the common features of the Pama-Nyungan family. The grammar should be agglutinative and suffixing, with an ergative-absolutive case system. Word order is typically very free due to the case marking. The vocabulary should be concrete and deeply connected to the natural landscape.',
+    historicalContext: 'The ancestor of most Australian Aboriginal languages, spoken for 5000+ years across 90% of Australia, representing humanity\'s longest continuous cultural tradition.',
   },
 
   PROTO_POLYNESIAN: {
@@ -600,6 +631,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['HAWAIIAN', 'MAORI', 'TAHITIAN', 'SAMOAN'],
     description: 'Reconstructed ancestral language of Polynesian peoples.',
     llmPrompt: 'This is a reconstructed language. Generate plausible speech based on common features of its descendants (Hawaiian, Samoan, Māori). The phonology must be simple, with a small consonant inventory and a strict Consonant-Vowel (CV) syllable structure. Syntax should be Verb-Subject-Object (VSO). Use particles before verbs to indicate tense, aspect, and mood.',
+    historicalContext: 'The language of the greatest navigators in human history, Proto-Polynesian speakers colonized the vast Pacific Ocean from Hawaii to New Zealand around 1500 BCE.',
   },
 
   // === MEDIEVAL LANGUAGES (500-1500 CE) ===
@@ -623,6 +655,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Þancie',
     },
     llmPrompt: 'Emulate the West Saxon dialect of the late Anglo-Saxon period. Syntax is primarily SVO but with Verb-second (V2) word order in main clauses. Use a rich poetic vocabulary, including kennings (e.g., "hronrād" for sea) and alliteration. Vocabulary is almost entirely Germanic, with some Latin loanwords for religious concepts. The tone can range from heroic and boastful to pious and reflective.',
+    historicalContext: 'The Germanic language of Beowulf and the Anglo-Saxons, heavily influenced by Old Norse invasions, evolved into Middle English after the Norman Conquest of 1066.',
   },
 
   MIDDLE_ENGLISH: {
@@ -643,6 +676,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Gramercy',
     },
     llmPrompt: 'Emulate the Chaucerian London dialect. The grammar has simplified from Old English (fewer cases), but verb conjugations remain complex. The key feature is the massive influx of Norman French vocabulary, especially for concepts of law, government, art, and food. Blend Germanic and Romance words naturally. The tone should reflect a new social hierarchy and courtly manners.',
+    historicalContext: 'The language of Chaucer\'s Canterbury Tales, Middle English shows the dramatic transformation after the Norman Conquest, blending Anglo-Saxon and French into modern English\'s ancestor.',
   },
 
   OLD_NORSE: {
@@ -664,6 +698,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Þǫkk',
     },
     llmPrompt: 'Emulate Old West Norse (the language of the Icelandic Sagas). Use Verb-second (V2) word order. The style should be direct, declarative, and often laconic or understated. Employ poetic devices like kennings and heiti in elevated speech, but use plain, concrete language for everyday dialogue. Vocabulary should be strictly Germanic.',
+    historicalContext: 'The language of the Viking sagas and Norse mythology, Old Norse spread across Northern Europe and the Atlantic, even reaching North America before Columbus.',
   },
 
   OLD_FRENCH: {
@@ -685,6 +720,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Grant merci',
     },
     llmPrompt: 'Emulate the language of chivalric romance. It retains a two-case system (nominative and oblique) from Latin. Word order is more flexible than modern French, often SVO but with V2 tendencies. Vocabulary should blend Latin roots with Germanic (Frankish) influences, especially in warfare. The tone should be formal and courtly, reflecting feudal ideals of honor and service.',
+    historicalContext: 'The language of troubadours and the Song of Roland, Old French bridged Latin and modern French, spreading courtly culture across medieval Europe.',
   },
 
   CLASSICAL_ARABIC: {
@@ -706,6 +742,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Shukran',
     },
     llmPrompt: 'Emulate the language of the Quran and early Islamic poetry. This is a highly inflected language with a rich case system (I\'rab). Syntax is typically VSO. Employ complex verb forms and noun patterns derived from triconsonantal roots. The tone should be formal, eloquent, and capable of intricate poetic and legal expression.',
+    historicalContext: 'The language of the Quran and classical Islamic scholarship, Classical Arabic unified the Arab world and became the liturgical language of Islam worldwide.',
   },
 
   MIDDLE_CHINESE: {
@@ -721,6 +758,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     successors: ['MANDARIN', 'CANTONESE', 'MIN', 'WU'],
     description: 'The spoken vernacular of the Tang and Song dynasties.',
     llmPrompt: 'This is a reconstructed spoken language. Emulate it by using vocabulary and grammar from Tang poetry and Song-era vernacular texts. The syntax is SVO. A key feature is the reconstructed tonal system (four tones: level, rising, departing, entering); while you cannot speak, your word choice should reflect the phonetic richness and potential for puns common in Tang poetry. The tone is more direct and less archaic than Classical Chinese.',
+    historicalContext: 'The spoken language of Tang and Song dynasty China (600-1200 CE), it diverged into modern Chinese dialects like Mandarin, Cantonese, and Hokkien.',
   },
 
   CLASSICAL_JAPANESE: {
@@ -741,6 +779,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Katajikenai',
     },
     llmPrompt: 'Emulate the language of the Heian court (e.g., The Tale of Genji). The grammar is agglutinative with SOV word order. A key feature is the extremely complex system of honorifics (keigo) that must be used meticulously. Sentences are often very long, with multiple subordinate clauses linked before the main verb appears at the end. The tone should be elegant, indirect, and emotionally subtle.',
+    historicalContext: 'The refined language of Japan\'s Heian period (794-1185 CE), used in the world\'s first novel (Tale of Genji) and court poetry that shaped Japanese aesthetics.',
   },
 
   OLD_SLAVONIC: {
@@ -761,6 +800,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Blagodarju',
     },
     llmPrompt: 'Emulate the first Slavic literary language. It has a very rich inflectional system with seven noun cases and complex verb aspects (perfective/imperfective). Word order is flexible SVO. The vocabulary should be largely Slavic, with some Greek loanwords for religious concepts. The tone should be formal, liturgical, and suitable for religious texts and chronicles.',
+    historicalContext: 'Created by Saints Cyril and Methodius in the 9th century, this liturgical language gave Slavic peoples literacy and influenced all modern Slavic languages.',
   },
 
   MIDDLE_MONGOLIAN: {
@@ -782,6 +822,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Bayarlalaa',
     },
     llmPrompt: 'Emulate the language of "The Secret History of the Mongols". The grammar is agglutinative with strict SOV word order. Adhere to vowel harmony rules in word construction. Use postpositions instead of prepositions. The tone should be direct, pragmatic, and declarative, suitable for both epic narration and administrative decrees.',
+    historicalContext: 'The language of Genghis Khan and the Mongol Empire, which created the largest contiguous land empire in history and connected East and West.',
   },
 
   // Native American Medieval Languages
@@ -802,6 +843,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Niawenhkó:wa',
     },
     llmPrompt: 'Emulate Mohawk grammar. This is a polysynthetic language, so focus on creating complex verbs that incorporate nouns and other elements. Word order is flexible but often verb-initial. Use pronouns to indicate possession and relationships. The tone should be suitable for a culture with strong oral traditions and a focus on political consensus.',
+    historicalContext: 'One of the six languages of the Iroquois Confederacy, whose democratic principles influenced the US Constitution, still spoken today in New York and Quebec.',
   },
 
   LAKOTA: {
@@ -821,6 +863,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Philámayaye',
     },
     llmPrompt: 'Emulate Lakota grammar. The language is agglutinative with a strict SOV word order. Use postpositions instead of prepositions. A key feature is the use of clitics at the end of sentences to indicate mood (e.g., statement, question, command). Speech should be direct and can be subtly nuanced based on the social context.',
+    historicalContext: 'The language of the Lakota Sioux, including leaders like Sitting Bull and Crazy Horse, it embodies the culture of the Great Plains buffalo hunters.',
   },
 
   OJIBWE: {
@@ -840,6 +883,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Miigwech',
     },
     llmPrompt: 'Emulate Ojibwe grammar. This is a polysynthetic language; build complex verbs. The most critical grammatical feature is the distinction between animate and inanimate nouns, which affects verb choice and pluralization. Word order is relatively free but SVO is common. The tone can be rich with metaphor and storytelling.',
+    historicalContext: 'One of the most widely spoken indigenous languages in North America, Ojibwe extends from Ontario to Montana and preserves sophisticated ecological knowledge.',
   },
 
   // === EARLY MODERN LANGUAGES (1500-1800) ===
@@ -862,6 +906,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'I thank thee',
     },
     llmPrompt: 'Emulate the language of Shakespeare and the King James Bible. Retain the use of "thee," "thou," and "thy" for informal singular address, and "ye," "you," and "your" for formal/plural. Use verb endings like "-eth" and "-est." Word order is SVO but allows for poetic inversion. The vocabulary is vast, incorporating many new loanwords and coinages ("neologisms").',
+    historicalContext: 'The language of Shakespeare and the King James Bible, Early Modern English saw an explosion of vocabulary and became the foundation of English as a global language.',
   },
 
   EARLY_SPANISH: {
@@ -883,6 +928,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Mercedes',
     },
     llmPrompt: 'Emulate the Spanish of the Golden Age (Cervantes). Use the "vos" form for familiar address, which was common at the time. Maintain a more formal sentence structure than modern Spanish, with a greater tendency towards VSO order in clauses. The tone should be formal, with a strong emphasis on honor, station, and religious piety.',
+    historicalContext: 'The language of Cervantes and the conquistadors, Early Modern Spanish spread across the Americas and Philippines, creating the first global empire.',
   },
 
   EARLY_PORTUGUESE: {
@@ -904,6 +950,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Obrigado',
     },
     llmPrompt: 'Emulate the Portuguese of the Age of Discovery (Camões). The style should be formal and somewhat archaic compared to modern Portuguese. Use subject pronouns more frequently than in the modern language. The vocabulary should reflect a maritime and trade-focused society, incorporating loanwords from contacted cultures.',
+    historicalContext: 'The language of global exploration, Portuguese navigators spread their language from Brazil to Goa to Macau, creating the first truly worldwide trade network.',
   },
 
   OTTOMAN_TURKISH: {
@@ -925,6 +972,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Teşekkür',
     },
     llmPrompt: 'Emulate the formal court language. This is a linguistic hybrid. The grammar is Turkic (agglutinative, SOV word order, vowel harmony). However, the vocabulary and style are heavily saturated with loanwords, set phrases, and even grammatical constructions from Arabic (for religion, law) and Persian (for poetry, administration, and courtly life). Employ extreme politeness and elaborate honorifics.',
+    historicalContext: 'The cosmopolitan language of the Ottoman Empire, blending Turkish grammar with Arabic and Persian vocabulary to administer territories from Budapest to Baghdad.',
   },
 
   PERSIAN: {
@@ -946,6 +994,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Moteshakkeram',
     },
     llmPrompt: 'Emulate Classical Persian poetry and prose. Word order is SOV. This is a pro-drop language, so omit subject pronouns when clear from context. Use the "ezafe" construction to link nouns and adjectives. The style should be elegant, poetic, and rich in metaphor, often with a philosophical or mystical tone.',
+    historicalContext: 'The language of Hafez and Rumi, Persian served as the cultural lingua franca from Istanbul to Delhi, profoundly influencing Turkish, Urdu, and other languages.',
   },
 
   MUGHAL_URDU: {
@@ -967,6 +1016,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Shukriya',
     },
     llmPrompt: 'Emulate the elegant court language of the Mughal Empire. The grammatical base is Indic (Hindustani) with a SOV word order. The defining feature is the extremely heavy use of Persian and Arabic vocabulary for formal, literary, and administrative contexts. The tone should be highly polite, formal, and ornate.',
+    historicalContext: 'The sophisticated court language of the Mughal Empire, Urdu blended Hindi grammar with Persian vocabulary to create a new language of poetry and administration.',
   },
 
   EARLY_MANDARIN: {
@@ -988,6 +1038,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: '多謝',
     },
     llmPrompt: 'Emulate the "Guanhua" (language of officials) from the Ming/Qing period. The grammar is analytic SVO, similar to modern Mandarin but more concise. Use formal and respectful forms of address appropriate for a hierarchical, bureaucratic society. The tone should be formal, educated, and less vernacular than modern spoken Chinese.',
+    historicalContext: 'The bureaucratic language of imperial China\'s civil service, Early Mandarin unified administration across the vast Chinese empire and influenced all East Asian languages.',
   },
 
   EDO_JAPANESE: {
@@ -1012,6 +1063,27 @@ export const LANGUAGES: Record<string, LanguageData> = {
   },
 
   // African Languages
+  MALAGASY: {
+    id: 'MALAGASY',
+    name: 'Malagasy',
+    nativeName: 'Malagasy',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Latin',
+    period: [500, 2025],
+    regions: ['Madagascar'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone, 'OCEANIA' as CulturalZone],
+    description: 'Austronesian language brought to Madagascar from Southeast Asia',
+    greetings: {
+      hello: 'Salama',
+      goodbye: 'Veloma',
+      yes: 'Eny',
+      no: 'Tsia',
+      thanks: 'Misaotra',
+    },
+    llmPrompt: 'Emulate Malagasy, an Austronesian language spoken in Madagascar. Use VOS word order (Verb-Object-Subject). The vocabulary should blend Austronesian roots with some Bantu and Arabic loanwords. Tone should be polite and formal.',
+    historicalContext: 'Brought by Austronesian settlers from Borneo around 500 CE, Malagasy is the westernmost Austronesian language and uniquely blends Southeast Asian and African influences.',
+  },
+
   SWAHILI_CLASSICAL: {
     id: 'SWAHILI_CLASSICAL',
     name: 'Classical Swahili',
@@ -1029,6 +1101,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Asante',
     },
     llmPrompt: 'Emulate classical Swahili. The grammar is fundamentally Bantu: agglutinative, SVO, and centered on a system of noun classes that require agreement across the sentence (adjectives, verbs). A major feature is the heavy integration of Arabic loanwords, especially for trade, religion, and abstract concepts.',
+    historicalContext: 'A Bantu language enriched with Arabic through Indian Ocean trade, Swahili became the lingua franca of East and Central Africa from medieval times to today.',
   },
 
   YORUBA: {
@@ -1164,6 +1237,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Terima kasih',
     },
     llmPrompt: 'Emulate Old Malay as used in maritime Southeast Asia (7th-15th century). This was the lingua franca of trade. Use SVO word order. Include Sanskrit loanwords for religious/political concepts and Arabic loanwords for Islamic terms (after 1200 CE). The tone should be formal and suitable for trade negotiations, diplomatic correspondence, and religious texts.',
+    historicalContext: 'The maritime trade language of Southeast Asia (600-1500 CE), Old Malay spread from Borneo to the Philippines and evolved into modern Malay and Indonesian.',
   },
 
   // Polynesian Languages
@@ -1574,6 +1648,67 @@ export const LANGUAGES: Record<string, LanguageData> = {
     llmPrompt: 'Emulate Haitian Creole. French-based vocabulary with West African grammatical structure. Use particles for tense marking (te for past, ap for progressive, pral for future). No gender or verb conjugation. The tone should reflect Caribbean culture.',
   },
 
+  // Additional Caribbean Creoles and Pidgins
+  JAMAICAN_PATOIS: {
+    id: 'JAMAICAN_PATOIS',
+    name: 'Jamaican Patois',
+    nativeName: 'Patwa',
+    family: LANGUAGE_FAMILIES.PIDGIN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['Jamaica'],
+    culturalZones: ['NORTH_AMERICAN_COLONIAL' as CulturalZone],
+    description: 'English-based creole with West African influences',
+    greetings: {
+      hello: 'Wah gwaan',
+      goodbye: 'Likkle more',
+      yes: 'Yeah mon',
+      no: 'No sah',
+      thanks: 'Respek',
+    },
+    llmPrompt: 'Emulate Jamaican Patois. English-based vocabulary with West African grammatical influences. Use characteristic sound changes (th→d, dropping h). Employ characteristic particles like "fi" (to), "deh" (there), "a" (is/am/are).',
+    historicalContext: 'Born from the interaction of English colonizers and enslaved West Africans, Patois became Jamaica\'s vibrant national language.',
+  },
+
+  BAJAN_CREOLE: {
+    id: 'BAJAN_CREOLE',
+    name: 'Bajan Creole',
+    nativeName: 'Bajan',
+    family: LANGUAGE_FAMILIES.PIDGIN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['Barbados'],
+    culturalZones: ['NORTH_AMERICAN_COLONIAL' as CulturalZone],
+    description: 'English-based creole of Barbados',
+    llmPrompt: 'Emulate Bajan Creole. Similar to standard English but with distinctive pronunciation and some African-influenced grammar.',
+  },
+
+  ANTILLEAN_CREOLE: {
+    id: 'ANTILLEAN_CREOLE',
+    name: 'Antillean Creole',
+    nativeName: 'Kwéyòl',
+    family: LANGUAGE_FAMILIES.PIDGIN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['Martinique', 'Guadeloupe', 'Dominica', 'St. Lucia'],
+    culturalZones: ['NORTH_AMERICAN_COLONIAL' as CulturalZone],
+    description: 'French-based creole of the Lesser Antilles',
+    llmPrompt: 'Emulate Antillean Creole. French-based vocabulary with West African grammatical structures. Simpler verb system than French.',
+  },
+
+  PAPIAMENTO: {
+    id: 'PAPIAMENTO',
+    name: 'Papiamento',
+    nativeName: 'Papiamentu',
+    family: LANGUAGE_FAMILIES.PIDGIN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['Aruba', 'Curaçao', 'Bonaire'],
+    culturalZones: ['SOUTH_AMERICAN' as CulturalZone],
+    description: 'Creole with Portuguese, Spanish, Dutch, and African elements',
+    llmPrompt: 'Emulate Papiamento. Blend Portuguese/Spanish base with Dutch and African influences. Use simple verb conjugations.',
+  },
+
   // Asian Languages
   CANTONESE: {
     id: 'CANTONESE',
@@ -1687,6 +1822,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Cảm ơn',
     },
     llmPrompt: 'Emulate Vietnamese. Tonal language (6 tones). Analytic/isolating grammar with SVO word order. Use classifiers for counting. Heavy Chinese vocabulary influence for formal/abstract terms.',
+    historicalContext: 'Originally written in Chinese characters, Vietnamese adopted a Latin alphabet in the 17th century and shows heavy Chinese influence from millennia of contact.',
   },
 
   THAI: {
@@ -1706,6 +1842,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'ขอบคุณ',
     },
     llmPrompt: 'Emulate Thai. Tonal language (5 tones). SVO word order. No verb conjugation or noun declension. Use polite particles (ครับ for males, ค่ะ for females). Complex pronoun system based on social status.',
+    historicalContext: 'Descended from the Tai languages that migrated south from China, Thai became the court language of Siam and absorbed Sanskrit vocabulary through Buddhism.',
   },
 
   TAGALOG: {
@@ -1907,6 +2044,90 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
     ],
   },
 
+  // === SOUTHEAST ASIA ===
+  // Maritime Southeast Asia - Indonesia/Malaysia
+  {
+    patterns: ['borneo', 'sumatra', 'java', 'sulawesi', 'spice islands', 'makassar', 'malacca', 'strait of malacca', 'sunda strait', 'banda sea', 'celebes', 'maritime southeast'],
+    languages: [
+      { id: 'OLD_MALAY', period: [600, 1500], weight: 70 },
+      { id: 'OLD_JAVANESE', period: [800, 1500], weight: 20 },
+      { id: 'CLASSICAL_ARABIC', period: [1200, 2025], weight: 10 }, // Islamic influence
+    ],
+    namePatterns: [
+      { pattern: /Abdul|Ahmad|Ali|Hassan|Hussein|Ibrahim|Muhammad|Omar|Siti|Fatima/i, language: 'CLASSICAL_ARABIC', weight: 85 },
+      { pattern: /Agung|Budi|Dewi|Kusuma|Putri|Rama|Sri|Wijaya/i, language: 'OLD_JAVANESE', weight: 80 },
+    ],
+  },
+  // Philippines
+  {
+    patterns: ['philippines', 'luzon', 'visayan', 'mindanao', 'palawan', 'sulu', 'philippine sea'],
+    languages: [
+      { id: 'TAGALOG', period: [900, 2025], weight: 60 },
+      { id: 'OLD_MALAY', period: [900, 1500], weight: 20 },
+      { id: 'EARLY_SPANISH', period: [1521, 2025], weight: 30 },
+      { id: 'CLASSICAL_ARABIC', period: [1300, 2025], weight: 10 }, // Mindanao/Sulu
+    ],
+    namePatterns: [
+      { pattern: /dela Cruz|Santos|Garcia|Reyes|Mendoza/i, language: 'EARLY_SPANISH', weight: 85 },
+      { pattern: /Datu|Rajah|Lakandula|Lapu|Magat/i, language: 'TAGALOG', weight: 80 },
+    ],
+  },
+  // Mainland Southeast Asia - Thailand/Burma/Cambodia/Laos
+  {
+    patterns: ['irrawaddy', 'mekong', 'red river', 'chao phraya', 'tonle sap', 'shan', 'annam', 'tenasserim', 'mainland southeast'],
+    languages: [
+      { id: 'THAI', period: [1200, 2025], weight: 50 },
+      { id: 'SANSKRIT', period: [500, 1500], weight: 20 }, // Buddhist texts
+      { id: 'CHAM', period: [200, 2025], weight: 30 },
+    ],
+    namePatterns: [
+      { pattern: /Thaksin|Chakri|Narai|Rama|Mongkut/i, language: 'THAI', weight: 80 },
+      { pattern: /Po|Aia|Jaya|Inra/i, language: 'CHAM', weight: 80 },
+    ],
+  },
+  // Vietnam
+  {
+    patterns: ['vietnam', 'annam', 'tonkin', 'cochin', 'saigon', 'hanoi', 'hue', 'red river delta'],
+    languages: [
+      { id: 'VIETNAMESE', period: [1000, 2025], weight: 70 },
+      { id: 'CLASSICAL_CHINESE', period: [-200, 1900], weight: 20 }, // Administrative language
+      { id: 'CHAM', period: [200, 2025], weight: 10 },
+    ],
+    namePatterns: [
+      { pattern: /Nguyen|Tran|Le|Pham|Hoang|Phan|Vu|Vo/i, language: 'VIETNAMESE', weight: 90 },
+    ],
+  },
+  // Malay Peninsula/Singapore
+  {
+    patterns: ['malay peninsula', 'singapore', 'johor', 'kelantan', 'terengganu', 'pahang'],
+    languages: [
+      { id: 'OLD_MALAY', period: [600, 1500], weight: 60 },
+      { id: 'CLASSICAL_MALAY', period: [1500, 2025], weight: 70 },
+      { id: 'CLASSICAL_ARABIC', period: [1300, 2025], weight: 10 },
+      { id: 'TAMIL', period: [1000, 2025], weight: 10 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1819, 2025], weight: 20 }, // Colonial
+    ],
+    namePatterns: [
+      { pattern: /bin|binti|Raja|Sultan|Iskandar|Mahmud/i, language: 'OLD_MALAY', weight: 85 },
+    ],
+  },
+  // Indochina Interior (additional coverage)
+  {
+    patterns: ['indochina', 'annamite', 'shan plateau', 'laos', 'cambodia'],
+    languages: [
+      { id: 'SANSKRIT', period: [600, 1500], weight: 60 },
+      { id: 'CHAM', period: [200, 2025], weight: 40 },
+    ],
+  },
+  // Taiwan
+  {
+    patterns: ['taiwan', 'formosa', 'taipei', 'ryukyu'],
+    languages: [
+      { id: 'CLASSICAL_CHINESE', period: [1600, 1895], weight: 60 },
+      { id: 'CLASSICAL_JAPANESE', period: [1895, 1945], weight: 20 },
+    ],
+  },
+
   // === AMERICAS ===
   // Quebec/St. Lawrence
   {
@@ -1943,9 +2164,9 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { pattern: /Thibodaux|Boudreaux|Fontenot|Hebert|Landry/i, language: 'LOUISIANA_CREOLE', weight: 85 },
     ],
   },
-  // Caribbean
+  // Caribbean - Haiti
   {
-    patterns: ['haiti', 'saint-domingue', 'port-au-prince'],
+    patterns: ['haiti', 'saint-domingue', 'port-au-prince', 'cap-haitien', 'hispaniola'],
     languages: [
       { id: 'HAITIAN_CREOLE', period: [1700, 2025], weight: 85 },
       { id: 'OLD_FRENCH', period: [1600, 1800], weight: 15 },
@@ -1966,6 +2187,37 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   },
 
   // === AFRICA ===
+  // Central Africa and Great Lakes
+  {
+    patterns: ['central africa', 'lake tanganyika', 'congo', 'kinshasa', 'bangui', 'rwanda', 'burundi', 'katanga', 'ubangi'],
+    languages: [
+      { id: 'SWAHILI_CLASSICAL', period: [1000, 2025], weight: 60 },
+      { id: 'LINGALA', period: [1500, 2025], weight: 30 },
+      { id: 'KIKONGO', period: [1000, 2025], weight: 10 },
+    ],
+    namePatterns: [
+      { pattern: /Mwana|Binti|Juma|Fatuma|Hamisi/i, language: 'SWAHILI_CLASSICAL', weight: 80 },
+    ],
+  },
+  // Madagascar
+  {
+    patterns: ['madagascar', 'antananarivo', 'toamasina', 'fianarantsoa', 'mahajanga', 'toliara', 'lemur', 'baobab', 'highlands of madagascar'],
+    languages: [
+      { id: 'MALAGASY', period: [500, 2025], weight: 85 },
+      { id: 'FRENCH', period: [1895, 2025], weight: 10 },
+      { id: 'SWAHILI_CLASSICAL', period: [1000, 2025], weight: 5 },
+    ],
+  },
+
+  // East Africa
+  {
+    patterns: ['east africa', 'serengeti', 'kilimanjaro', 'victoria', 'kenya', 'tanzania', 'uganda', 'swahili coast'],
+    languages: [
+      { id: 'SWAHILI_CLASSICAL', period: [1000, 2025], weight: 70 },
+      { id: 'CLASSICAL_ARABIC', period: [1200, 2025], weight: 20 },
+      { id: 'AMHARIC', period: [1000, 2025], weight: 10 },
+    ],
+  },
   // South Africa
   {
     patterns: ['cape colony', 'cape town', 'transvaal', 'johannesburg', 'pretoria', 'orange free state'],
@@ -2114,6 +2366,333 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
     ],
     namePatterns: [
       { pattern: /Kamehameha|Kalani|Keoni|Leilani/i, language: 'HAWAIIAN', weight: 95 },
+    ],
+  },
+
+  // === ADDITIONAL CARIBBEAN ===
+  // Jamaica
+  {
+    patterns: ['jamaica', 'kingston', 'montego bay', 'port royal', 'spanish town'],
+    languages: [
+      { id: 'JAMAICAN_PATOIS', period: [1700, 2025], weight: 70 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1655, 2025], weight: 25 },
+      { id: 'EARLY_SPANISH', period: [1494, 1655], weight: 5 },
+    ],
+    namePatterns: [
+      { pattern: /Campbell|Brown|Williams|Johnson|Bailey|Clarke/i, language: 'JAMAICAN_PATOIS', weight: 85 },
+    ],
+  },
+  // Cuba
+  {
+    patterns: ['cuba', 'havana', 'santiago de cuba', 'cienfuegos', 'camaguey', 'matanzas'],
+    languages: [
+      { id: 'EARLY_SPANISH', period: [1511, 2025], weight: 90 },
+      { id: 'YORUBA', period: [1600, 1900], weight: 5 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1898, 1902], weight: 5 },
+    ],
+    namePatterns: [
+      { pattern: /Garcia|Rodriguez|Martinez|Hernandez|Gonzalez/i, language: 'EARLY_SPANISH', weight: 95 },
+    ],
+  },
+  // Barbados & Eastern Caribbean
+  {
+    patterns: ['barbados', 'bridgetown', 'trinidad', 'tobago', 'grenada', 'st lucia', 'st vincent', 'antigua', 'dominica'],
+    languages: [
+      { id: 'EARLY_MODERN_ENGLISH', period: [1627, 2025], weight: 60 },
+      { id: 'BAJAN_CREOLE', period: [1700, 2025], weight: 30 },
+      { id: 'OLD_FRENCH', period: [1635, 1800], weight: 10 },
+    ],
+  },
+  // French Caribbean
+  {
+    patterns: ['martinique', 'guadeloupe', 'saint martin', 'saint barthelemy', 'fort-de-france', 'basse-terre'],
+    languages: [
+      { id: 'OLD_FRENCH', period: [1635, 2025], weight: 60 },
+      { id: 'ANTILLEAN_CREOLE', period: [1700, 2025], weight: 40 },
+    ],
+  },
+  // Dutch Caribbean
+  {
+    patterns: ['curacao', 'aruba', 'bonaire', 'sint maarten', 'willemstad', 'oranjestad'],
+    languages: [
+      { id: 'DUTCH', period: [1634, 2025], weight: 40 },
+      { id: 'PAPIAMENTO', period: [1700, 2025], weight: 40 },
+      { id: 'EARLY_SPANISH', period: [1500, 1634], weight: 10 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1800, 2025], weight: 10 },
+    ],
+  },
+
+  // === GEOGRAPHY.TS EXACT AREA NAMES ===
+  // Caribbean from geography.ts
+  {
+    patterns: ['Greater Antilles'],
+    languages: [
+      { id: 'SPANISH', period: [1500, 2025], weight: 80 },
+      { id: 'TAINO', period: [-2000, 1600], weight: 20 },
+    ],
+  },
+  {
+    patterns: ['Lesser Antilles'],
+    languages: [
+      { id: 'ANTILLEAN_CREOLE', period: [1700, 2025], weight: 60 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1600, 2025], weight: 20 },
+      { id: 'OLD_FRENCH', period: [1600, 2025], weight: 20 },
+    ],
+  },
+  // Pacific from geography.ts
+  {
+    patterns: ['Samoa Archipelago'],
+    languages: [
+      { id: 'SAMOAN', period: [-1000, 2025], weight: 95 },
+      { id: 'PROTO_POLYNESIAN', period: [-2000, -1000], weight: 5 },
+    ],
+  },
+  {
+    patterns: ['Society Islands'],
+    languages: [
+      { id: 'TAHITIAN', period: [-500, 2025], weight: 95 },
+      { id: 'PROTO_POLYNESIAN', period: [-2000, -500], weight: 5 },
+    ],
+  },
+  {
+    patterns: ['Tonga Ridge'],
+    languages: [
+      { id: 'TONGAN', period: [-1000, 2025], weight: 95 },
+      { id: 'PROTO_POLYNESIAN', period: [-2000, -1000], weight: 5 },
+    ],
+  },
+  // Siberia from geography.ts
+  {
+    patterns: ['Western Siberia', 'Central Siberia'],
+    languages: [
+      { id: 'EVENKI', period: [-1000, 2025], weight: 60 },
+      { id: 'PROTO_TURKIC', period: [-2000, 1000], weight: 20 },
+      { id: 'OLD_RUSSIAN', period: [1500, 2025], weight: 20 },
+    ],
+  },
+  {
+    patterns: ['Eastern Siberia', 'Arctic Siberia'],
+    languages: [
+      { id: 'YAKUT', period: [1000, 2025], weight: 70 },
+      { id: 'EVENKI', period: [-1000, 2025], weight: 20 },
+      { id: 'OLD_RUSSIAN', period: [1700, 2025], weight: 10 },
+    ],
+  },
+  {
+    patterns: ['Greenland Coast'],
+    languages: [
+      { id: 'GREENLANDIC', period: [-2000, 2025], weight: 90 },
+      { id: 'OLD_NORSE', period: [985, 1500], weight: 10 },
+    ],
+  },
+  // Central Asia from geography.ts
+  {
+    patterns: ['Kazakh Steppes'],
+    languages: [
+      { id: 'KAZAKH', period: [1000, 2025], weight: 85 },
+      { id: 'PROTO_TURKIC', period: [-1000, 1000], weight: 15 },
+    ],
+  },
+  // Sahara from geography.ts
+  {
+    patterns: ['Central Sahara'],
+    languages: [
+      { id: 'TUAREG', period: [-1000, 2025], weight: 70 },
+      { id: 'CLASSICAL_ARABIC', period: [700, 2025], weight: 30 },
+    ],
+  },
+  // Amazon from geography.ts
+  {
+    patterns: ['Amazon Delta', 'Amazon Basin'],
+    languages: [
+      { id: 'PROTO_ARAWAKAN', period: [-2000, 1500], weight: 50 },
+      { id: 'PROTO_TUPI', period: [-2000, 1500], weight: 40 },
+      { id: 'PORTUGUESE', period: [1500, 2025], weight: 10 },
+    ],
+  },
+
+  // === ADDITIONAL PACIFIC ISLANDS ===
+  // Fiji
+  {
+    patterns: ['fiji', 'viti levu', 'vanua levu', 'suva', 'nadi', 'lautoka'],
+    languages: [
+      { id: 'PROTO_POLYNESIAN', period: [-1500, 1800], weight: 70 },
+      { id: 'FIJIAN', period: [1800, 2025], weight: 20 },
+      { id: 'HINDI', period: [1879, 2025], weight: 5 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1874, 2025], weight: 5 },
+    ],
+  },
+  // Samoa
+  {
+    patterns: ['samoa', 'savaii', 'upolu', 'apia', 'american samoa', 'pago pago', 'tutuila'],
+    languages: [
+      { id: 'PROTO_POLYNESIAN', period: [-1000, 1800], weight: 80 },
+      { id: 'SAMOAN', period: [1800, 2025], weight: 15 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1850, 2025], weight: 5 },
+    ],
+  },
+  // Tahiti & French Polynesia
+  {
+    patterns: ['tahiti', 'french polynesia', 'papeete', 'bora bora', 'moorea', 'marquesas', 'society islands'],
+    languages: [
+      { id: 'PROTO_POLYNESIAN', period: [-1000, 1800], weight: 70 },
+      { id: 'TAHITIAN', period: [1800, 2025], weight: 20 },
+      { id: 'OLD_FRENCH', period: [1842, 2025], weight: 10 },
+    ],
+  },
+  // Tonga
+  {
+    patterns: ['tonga', 'tongatapu', 'nukualofa', 'vavau', 'haapai', 'eua'],
+    languages: [
+      { id: 'PROTO_POLYNESIAN', period: [-1000, 1800], weight: 85 },
+      { id: 'TONGAN', period: [1800, 2025], weight: 10 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1900, 2025], weight: 5 },
+    ],
+  },
+  // Solomon Islands & Melanesia
+  {
+    patterns: ['solomon islands', 'guadalcanal', 'malaita', 'honiara', 'vanuatu', 'port vila', 'new caledonia', 'noumea'],
+    languages: [
+      { id: 'PROTO_AUSTRONESIAN', period: [-3000, 1800], weight: 70 },
+      { id: 'MELANESIAN_PIDGIN', period: [1800, 2025], weight: 20 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1850, 2025], weight: 5 },
+      { id: 'OLD_FRENCH', period: [1850, 2025], weight: 5 },
+    ],
+  },
+  // Micronesia
+  {
+    patterns: ['micronesia', 'guam', 'palau', 'marshall islands', 'kiribati', 'nauru', 'majuro', 'koror'],
+    languages: [
+      { id: 'PROTO_AUSTRONESIAN', period: [-3000, 1800], weight: 70 },
+      { id: 'CHAMORRO', period: [1800, 2025], weight: 10 },
+      { id: 'EARLY_SPANISH', period: [1565, 1898], weight: 10 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1898, 2025], weight: 5 },
+      { id: 'JAPANESE', period: [1914, 1945], weight: 5 },
+    ],
+  },
+
+  // === NORTHERN REGIONS ===
+  // Siberia
+  {
+    patterns: ['siberia', 'yakutsk', 'irkutsk', 'novosibirsk', 'omsk', 'tomsk', 'krasnoyarsk', 'baikal', 'lena river', 'yenisei'],
+    languages: [
+      { id: 'PROTO_TURKIC', period: [-500, 1500], weight: 25 },
+      { id: 'MIDDLE_MONGOLIAN', period: [1200, 1700], weight: 15 },
+      { id: 'EVENKI', period: [-2000, 2025], weight: 20 },
+      { id: 'YAKUT', period: [1000, 2025], weight: 20 },
+      { id: 'RUSSIAN', period: [1580, 2025], weight: 20 },
+    ],
+  },
+  // Arctic (non-Canadian)
+  {
+    patterns: ['arctic ocean', 'greenland', 'svalbard', 'north pole', 'barents sea', 'nuuk', 'ilulissat'],
+    languages: [
+      { id: 'INUKTITUT', period: [-2000, 2025], weight: 50 },
+      { id: 'GREENLANDIC', period: [1000, 2025], weight: 20 },
+      { id: 'OLD_NORSE', period: [985, 1500], weight: 15 },
+      { id: 'DANISH', period: [1721, 2025], weight: 15 },
+    ],
+  },
+
+  // === DESERT REGIONS ===
+  // Sahara Interior
+  {
+    patterns: ['sahara', 'timbuktu', 'gao', 'agadez', 'tamanrasset', 'hoggar', 'tibesti', 'air mountains', 'tenere'],
+    languages: [
+      { id: 'CLASSICAL_ARABIC', period: [700, 2025], weight: 30 },
+      { id: 'PROTO_BERBER', period: [-2000, 700], weight: 30 },
+      { id: 'TUAREG', period: [700, 2025], weight: 25 },
+      { id: 'HAUSA', period: [1000, 2025], weight: 10 },
+      { id: 'SONGHAY', period: [800, 2025], weight: 5 },
+    ],
+  },
+  // Arabian Desert
+  {
+    patterns: ['arabian desert', 'rub al khali', 'empty quarter', 'najd', 'bedouin'],
+    languages: [
+      { id: 'CLASSICAL_ARABIC', period: [500, 2025], weight: 90 },
+      { id: 'OLD_ARABIC', period: [-500, 500], weight: 10 },
+    ],
+  },
+
+  // === RAINFOREST REGIONS ===
+  // Amazon Basin
+  {
+    patterns: ['amazon', 'amazonas', 'manaus', 'iquitos', 'madre de dios', 'acre', 'rondonia', 'mato grosso', 'amazon rainforest'],
+    languages: [
+      { id: 'TUPI', period: [-1000, 2025], weight: 35 },
+      { id: 'GUARANI', period: [-1000, 2025], weight: 15 },
+      { id: 'PROTO_ARAWAKAN', period: [-2000, 1500], weight: 15 },
+      { id: 'EARLY_PORTUGUESE', period: [1540, 2025], weight: 25 },
+      { id: 'EARLY_SPANISH', period: [1540, 2025], weight: 10 },
+    ],
+  },
+  // Congo Basin
+  {
+    patterns: ['congo basin', 'congo rainforest', 'ituri', 'ubangi river', 'sangha'],
+    languages: [
+      { id: 'PROTO_BANTU', period: [-1000, 1500], weight: 40 },
+      { id: 'LINGALA', period: [1500, 2025], weight: 25 },
+      { id: 'KIKONGO', period: [1000, 2025], weight: 20 },
+      { id: 'OLD_FRENCH', period: [1880, 2025], weight: 10 },
+      { id: 'SWAHILI_CLASSICAL', period: [1800, 2025], weight: 5 },
+    ],
+  },
+
+  // === CENTRAL ASIAN STEPPES ===
+  // Kazakhstan & Northern Steppes
+  {
+    patterns: ['kazakhstan', 'astana', 'almaty', 'steppe', 'kazakh steppe', 'syr darya', 'aral sea'],
+    languages: [
+      { id: 'PROTO_TURKIC', period: [-500, 1000], weight: 30 },
+      { id: 'KAZAKH', period: [1000, 2025], weight: 35 },
+      { id: 'MIDDLE_MONGOLIAN', period: [1200, 1700], weight: 10 },
+      { id: 'PERSIAN', period: [500, 1800], weight: 10 },
+      { id: 'RUSSIAN', period: [1730, 2025], weight: 15 },
+    ],
+  },
+  // Turkmenistan & Southern Steppes
+  {
+    patterns: ['turkmenistan', 'ashgabat', 'merv', 'mary', 'turkmenbashi', 'karakum desert'],
+    languages: [
+      { id: 'PROTO_TURKIC', period: [-500, 1000], weight: 25 },
+      { id: 'TURKMEN', period: [1000, 2025], weight: 40 },
+      { id: 'PERSIAN', period: [500, 2025], weight: 20 },
+      { id: 'CLASSICAL_ARABIC', period: [700, 1800], weight: 10 },
+      { id: 'RUSSIAN', period: [1880, 2025], weight: 5 },
+    ],
+  },
+  // Uzbekistan & Transoxiana
+  {
+    patterns: ['uzbekistan', 'tashkent', 'samarkand', 'bukhara', 'khiva', 'ferghana', 'transoxiana', 'sogdiana'],
+    languages: [
+      { id: 'SOGDIAN', period: [-500, 1000], weight: 25 },
+      { id: 'PERSIAN', period: [500, 2025], weight: 25 },
+      { id: 'PROTO_TURKIC', period: [500, 1000], weight: 15 },
+      { id: 'UZBEK', period: [1000, 2025], weight: 25 },
+      { id: 'RUSSIAN', period: [1865, 2025], weight: 10 },
+    ],
+  },
+  // Mongolia
+  {
+    patterns: ['mongolia', 'ulaanbaatar', 'karakorum', 'gobi desert', 'altai mountains', 'khalkha'],
+    languages: [
+      { id: 'PROTO_MONGOLIC', period: [-500, 1200], weight: 30 },
+      { id: 'MIDDLE_MONGOLIAN', period: [1200, 1700], weight: 40 },
+      { id: 'KHALKHA_MONGOLIAN', period: [1700, 2025], weight: 25 },
+      { id: 'CLASSICAL_CHINESE', period: [1636, 1911], weight: 5 },
+    ],
+  },
+  // Silk Road Cities
+  {
+    patterns: ['silk road', 'kashgar', 'khotan', 'dunhuang', 'turpan', 'balkh', 'ctesiphon'],
+    languages: [
+      { id: 'SOGDIAN', period: [-500, 1000], weight: 30 },
+      { id: 'PERSIAN', period: [200, 2025], weight: 20 },
+      { id: 'PROTO_TURKIC', period: [500, 1500], weight: 15 },
+      { id: 'CLASSICAL_CHINESE', period: [-200, 1900], weight: 15 },
+      { id: 'CLASSICAL_ARABIC', period: [700, 2025], weight: 10 },
+      { id: 'SANSKRIT', period: [-500, 1000], weight: 10 },
     ],
   },
 ];

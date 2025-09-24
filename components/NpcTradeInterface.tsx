@@ -15,7 +15,7 @@ interface NpcTradeInterfaceProps {
   mapData: any;
   onTrade?: (traded: boolean) => void;
   onClose?: () => void;
-  onTradeComplete?: () => void;
+  onTradeComplete?: (tradeDetails?: { bought?: string[], sold?: string[], coins?: number }) => void;
 }
 
 // Helper type for compatibility
@@ -203,7 +203,21 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
     
     setTradeMessage('Trade successful!');
     if (onTrade) onTrade(true);
-    
+
+    // Pass trade details to parent
+    if (onTradeComplete) {
+      const boughtItems = Array.from(selectedNpcGoods).map(i => npcGoods[i].name);
+      const soldItems = player?.inventory
+        ?.filter((item: Item) => itemsToRemove.includes(item.id))
+        .map((item: Item) => item.name) || [];
+
+      onTradeComplete({
+        bought: boughtItems,
+        sold: soldItems,
+        coins: offeredCoins
+      });
+    }
+
     // Clear selections
     setSelectedNpcGoods(new Set());
     setSelectedPlayerItems(new Set());

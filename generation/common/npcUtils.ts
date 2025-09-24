@@ -11,6 +11,18 @@ import { generatePersonalGoal } from '../../services/goalService';
 import { getProfessionContext, getFallbackContext, ProfessionContext } from '../../services/professionContextService';
 import { getMarkingsForCharacter, selectRandomMarking, getRandomPattern, convertToAppearanceMarking, getMarkingProbability } from '../../constants/characterData/culturalMarkings';
 
+/**
+ * Create safe NPC memory to avoid proxy revocation issues
+ */
+function createSafeNpcMemory(): any {
+    return {
+        opinionOfPlayer: 0,
+        knownFactsAboutPlayer: new Set<string>(),
+        relationships: new Map<string, { opinion: number; type: 'family' | 'friend' | 'rival' }>(),
+        conversationSummaries: []
+    };
+}
+
 export function determineReligion(
     culturalZone: CulturalZone,
     region: string,
@@ -605,7 +617,7 @@ export function generateBaseProfile(noise: ValueNoise, context: { era: Historica
             backstory: '',
             family: [],
             lifeEvents: [],
-            memory: { opinionOfPlayer: 0, knownFactsAboutPlayer: new Set<string>(), relationships: new Map(), conversationSummaries: [] },
+            memory: createSafeNpcMemory(),
             inventory: [],
             currency,
             aiState: 'wandering'

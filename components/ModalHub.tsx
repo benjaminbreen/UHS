@@ -100,16 +100,17 @@ const ModalHub: React.FC = () => {
         diseaseContractedModalData, setDiseaseContractedModalData
     } = useUI();
 
-    const { 
+    const {
         mapDataCache, currentWorldCoords, initialGameSeed, handleSeedChangeFromSettings, mapData, npcs, setNpcs,
         enterSpecialMap, exitSpecialMap, isSpecialMap
     } = useMap();
-    
-    const { 
+
+    const {
         playerCharacter, onCharacterUpdate, isEnhancing,
-        handleCharacterGeneration, handleEquipItem, handleUnequipItem, 
+        handleCharacterGeneration, handleEquipItem, handleUnequipItem,
         handleDropItem, handleConsumeItem, onUseCombatItem
     } = usePlayer();
+
     
     const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay } = useGame();
 
@@ -682,6 +683,55 @@ const ModalHub: React.FC = () => {
                     <PrimarySourceModal
                         source={selectedPrimarySource}
                         onClose={() => setSelectedPrimarySource(null)}
+                        currentTile={(() => {
+                            // Try different coordinate sources
+                            let playerX = playerCharacter?.x;
+                            let playerY = playerCharacter?.y;
+
+                            // If player coordinates are undefined, try currentWorldCoords
+                            if ((playerX === null || playerX === undefined) && currentWorldCoords) {
+                                playerX = currentWorldCoords.x;
+                                playerY = currentWorldCoords.y;
+                            }
+
+                            if (!mapData || playerX === null || playerY === null || playerX === undefined || playerY === undefined) {
+                                return { biome: 'GRASSLAND', climate: mapData?.climate || climate, season: season };
+                            }
+
+                            const tile = mapData.tiles[playerY]?.[playerX];
+                            const biome = tile?.biome || 'GRASSLAND';
+                            return {
+                                biome: biome,
+                                climate: mapData?.climate || climate,
+                                season: season
+                            };
+                        })()}
+                        culturalZone={mapData?.culturalZone}
+                        weather={(() => {
+                            // Use the same approach as MapViewport - map center for consistent weather
+                            if (!mapData || !climate || !season) return undefined;
+
+                            const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
+                            const mapCenterY = Math.floor(mapData.tiles.length / 2);
+                            const centerTile = mapData.tiles[mapCenterY][mapCenterX];
+
+                            if (centerTile) {
+                                const weather = weatherService.getWeather(
+                                    mapData.climate || climate,
+                                    centerTile.biome,
+                                    season,
+                                    currentTimeOfDay,
+                                    centerTile.altitude || 0.5,
+                                    getDayOfYear(gameDate),
+                                    { x: mapCenterX, y: mapCenterY }
+                                );
+                                return weather;
+                            }
+                            return undefined;
+                        })()}
+                        gameTime={gameTimeHours !== undefined && gameTimeMinutes !== undefined ?
+                            { hours: gameTimeHours, minutes: gameTimeMinutes } : undefined}
+                        showToast={showToast}
                     />
                 </Suspense>
             )}

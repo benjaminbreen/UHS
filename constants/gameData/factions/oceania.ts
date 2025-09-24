@@ -32,7 +32,7 @@ export const OCEANIA_FACTIONS: FactionFile = {
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Aboriginal Peoples',
                 dominantPowerDescription: 'Complex Aboriginal societies with sophisticated land management, trade networks, and cultural systems spanning tens of thousands of years.',
-                eraContextSentence: "an age of ancient wisdom, where Aboriginal peoples maintain the world's oldest continuous civilization.",
+                eraContextSentence: "an age of ancient wisdom, where Aboriginal peoples maintain the world\'s oldest continuous civilization.",
                 allegianceGroups: [
                     { name: 'Aboriginal Peoples', type: 'primary', description: 'The indigenous inhabitants.' },
                     { name: 'Regional Clan Groups', type: 'secondary', description: 'Distinct family and language groups.' },
@@ -1373,6 +1373,173 @@ export const OCEANIA_FACTIONS: FactionFile = {
                     factory: ['Ocean Energy Farm', 'Floating City Module', 'Seaweed Agriculture Platform'],
                     trading_post: ['Autonomous Shipping Hub', 'Climate Refugee Port', 'Ocean Resource Exchange'],
                     holy_site: ['Sunken Land Memorial', 'Ocean Conservation Shrine']
+                }
+            }
+        },
+        "West Java Coast": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Austronesian Settlements',
+                dominantPowerDescription: 'Early seafaring communities establishing the foundations of maritime trade.',
+                eraContextSentence: 'the age of outrigger boats, as Austronesian sailors spread across the islands.',
+                allegianceGroups: [
+                    { name: 'Coastal Villages', type: 'primary', description: 'Early maritime communities.' },
+                    { name: 'Mountain Peoples', type: 'secondary', description: 'Highland agricultural groups.' }
+                ],
+                structureNames: {
+                    holy_site: ['Megalith', 'Ancestor Shrine'],
+                    trading_post: ['Beach Market', 'River Landing']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Tarumanagara Kingdom',
+                dominantPowerDescription: 'Early Hindu kingdom establishing first Javanese inscriptions and irrigation systems.',
+                eraContextSentence: 'the Hindu dawn in Java, where Sanskrit prayers echo in tropical valleys.',
+                allegianceGroups: [
+                    { name: 'Tarumanagara', type: 'primary', description: 'Hindu kingdom in West Java.' },
+                    { name: 'Sunda Kingdom', type: 'secondary', description: 'Successor state.' }
+                ],
+                structureNames: {
+                    holy_site: ['Hindu Temple', 'Sacred Spring'],
+                    palace: ['Raja Palace', 'Brahmin Quarter']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Srivijaya Empire',
+                dominantPowerDescription: 'Buddhist thalassocracy controlling the straits and maritime trade routes.',
+                eraContextSentence: 'the golden age of Buddhist maritime empire, controlling the spice routes.',
+                allegianceGroups: [
+                    { name: 'Srivijaya', type: 'primary', description: 'Buddhist maritime empire.' },
+                    { name: 'Sunda Kingdom', type: 'secondary', description: 'Hindu kingdom in West Java.' },
+                    { name: 'Chola Raiders', type: 'rebel', description: 'South Indian naval attackers.' }
+                ],
+                structureNames: {
+                    holy_site: ['Buddhist Stupa', 'Hindu Temple'],
+                    trading_post: ['Spice Port', 'Foreign Quarter'],
+                    fortress: ['Harbor Fort', 'Pirate Base']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Sultanate of Banten',
+                dominantPowerDescription: 'Islamic sultanate controlling pepper trade before Dutch conquest.',
+                eraContextSentence: 'the age of Islamic sultans and European traders competing for spices.',
+                allegianceGroups: [
+                    { name: 'Banten Sultanate', type: 'primary', description: 'Pepper trading sultanate.' },
+                    { name: 'VOC (Dutch)', type: 'trade_company', description: 'Dutch East India Company.' },
+                    { name: 'English Traders', type: 'trade_company', description: 'English pepper merchants.' },
+                    { name: 'Chinese Merchants', type: 'trade_company', description: 'Overseas Chinese traders.' }
+                ],
+                structureNames: {
+                    fortress: ['Sultan Fort', 'VOC Fort'],
+                    trading_post: ['Pepper Market', 'Chinese Quarter'],
+                    holy_site: ['Grand Mosque', 'Sufi Lodge']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Dutch East Indies',
+                dominantPowerDescription: 'Colonial exploitation through the Cultivation System forces cash crop production.',
+                eraContextSentence: 'the Cultivation System era, where Javanese peasants grow sugar and coffee for Amsterdam.',
+                allegianceGroups: [
+                    { name: 'Dutch Colonial Government', type: 'primary', description: 'Batavia-based administration.' },
+                    { name: 'Regents', type: 'secondary', description: 'Javanese aristocrat collaborators.' },
+                    { name: 'Islamic Movements', type: 'rebel', description: 'Anti-colonial resistance.' }
+                ],
+                structureNames: {
+                    fortress: ['Colonial Fort', 'Military Barracks'],
+                    factory: ['Sugar Mill', 'Coffee Plantation', 'Quinine Factory'],
+                    trading_post: ['Colonial Bank', 'Export Warehouse']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Republic of Indonesia',
+                dominantPowerDescription: 'Independent nation, with Jakarta as largest city in Southeast Asia.',
+                eraContextSentence: 'the megacity era, where the Jakarta skyline rises while it slowly sinks.',
+                allegianceGroups: [
+                    { name: 'Indonesian Government', type: 'primary', description: 'Centralized republic.' },
+                    { name: 'Military', type: 'secondary', description: 'Powerful armed forces.' },
+                    { name: 'Islamic Organizations', type: 'religious_order', description: 'Major social force.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Command', 'Police Headquarters'],
+                    factory: ['Industrial Estate', 'Tech Hub'],
+                    trading_post: ['Mall', 'Container Port']
+                }
+            }
+        },
+        "East Java Coast": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Early Javanese Kingdoms',
+                dominantPowerDescription: 'Hindu-Buddhist kingdoms establishing Javanese classical culture.',
+                eraContextSentence: 'the age of temple builders, where god-kings raise stone mountains.',
+                allegianceGroups: [
+                    { name: 'Kanjuruhan Kingdom', type: 'primary', description: 'Early East Javanese kingdom.' },
+                    { name: 'Medang Kingdom', type: 'secondary', description: 'Central Javanese power.' }
+                ],
+                structureNames: {
+                    holy_site: ['Candi', 'Sacred Volcano'],
+                    palace: ['Kraton', 'Royal Compound']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Majapahit Empire',
+                dominantPowerDescription: 'Greatest Indonesian empire, claiming authority from Sumatra to New Guinea.',
+                eraContextSentence: 'the glory of Majapahit, when Gajah Mada swears to unite Nusantara.',
+                allegianceGroups: [
+                    { name: 'Majapahit', type: 'primary', description: 'Hindu-Buddhist empire.' },
+                    { name: 'Tributary Kingdoms', type: 'secondary', description: 'Vassals across the archipelago.' },
+                    { name: 'Islamic Coastal Cities', type: 'rebel', description: 'Rising Muslim ports.' }
+                ],
+                structureNames: {
+                    palace: ['Majapahit Palace', 'Trowulan'],
+                    holy_site: ['Royal Temple', 'Buddhist Monastery'],
+                    fortress: ['Royal Fort', 'Border Garrison']
+                },
+                courtRoles: {
+                    palace: ['Rajasa', 'Mahapatih', 'Rakryan', 'Dharmadyaksa']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Mataram Sultanate',
+                dominantPowerDescription: 'Islamic successor to Majapahit, last independent Javanese empire.',
+                eraContextSentence: 'the age of Sultan Agung, Java\'s last great conqueror before the Dutch.',
+                allegianceGroups: [
+                    { name: 'Mataram Sultanate', type: 'primary', description: 'Central Javanese Islamic power.' },
+                    { name: 'Coastal Sultanates', type: 'secondary', description: 'Trading city-states.' },
+                    { name: 'VOC (Dutch)', type: 'trade_company', description: 'Growing colonial threat.' }
+                ],
+                structureNames: {
+                    palace: ['Sultan Palace', 'Alun-alun'],
+                    holy_site: ['Grand Mosque', 'Sacred Tomb'],
+                    fortress: ['Kraton Walls', 'Coastal Fort']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Dutch East Indies',
+                dominantPowerDescription: 'Full colonial control after Java War, with Surabaya as major port.',
+                eraContextSentence: 'the colonial exploitation, where Java feeds the Netherlands\' wealth.',
+                allegianceGroups: [
+                    { name: 'Dutch Administration', type: 'primary', description: 'Colonial government.' },
+                    { name: 'Princely States', type: 'secondary', description: 'Surakarta and Yogyakarta.' },
+                    { name: 'Sarekat Islam', type: 'rebel', description: 'Mass Islamic movement.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Base', 'Colonial Arsenal'],
+                    factory: ['Sugar Refinery', 'Tobacco Warehouse'],
+                    trading_post: ['Harbor District', 'Chinese Quarter']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Indonesia',
+                dominantPowerDescription: 'Industrial center with Surabaya as Indonesia\'s second city.',
+                eraContextSentence: 'the development era, where East Java drives Indonesian manufacturing.',
+                allegianceGroups: [
+                    { name: 'Indonesian Republic', type: 'primary', description: 'National government.' },
+                    { name: 'Business Conglomerates', type: 'trade_company', description: 'Major Indonesian corporations.' },
+                    { name: 'Nahdlatul Ulama', type: 'religious_order', description: 'Largest Islamic organization.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Command', 'Air Base'],
+                    factory: ['Shipyard', 'Electronics Factory'],
+                    trading_post: ['Modern Port', 'Business District']
                 }
             }
         }

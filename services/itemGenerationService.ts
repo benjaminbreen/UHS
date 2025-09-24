@@ -689,14 +689,14 @@ const ERA_MATERIALS_BY_CATEGORY: Record<HistoricalEra, { clothing: string[], wea
   'MODERN_ERA': {
     clothing: ['Cotton', 'Polyester', 'Nylon', 'Leather', 'Denim'],
     weapons: ['Steel', 'Aluminum', 'Composite'],
-    tools: ['Aluminum', 'Plastic', 'Steel', 'Electronics'],
-    all: ['Aluminum', 'Plastic', 'Synthetic', 'Steel', 'Glass', 'Electronics']
+    tools: ['Aluminum', 'Steel', ],
+    all: ['Aluminum', 'Plastic', 'Steel', 'Glass',]
   },
   'FUTURE_ERA': {
-    clothing: ['Merino Wool', 'Recycled Polyester', 'Organic Cotton', 'Hemp', 'Bamboo Fiber', 'Technical Fabrics'],
+    clothing: ['Merino Wool', 'Recycled Polyester', 'Organic Cotton', 'Hemp', 'Bamboo Fiber'],
     weapons: ['Carbon Fiber', 'Advanced Polymers', 'Titanium Alloy', 'Kevlar'],
     tools: ['Carbon Fiber', 'Silicon', 'Graphene', 'Advanced Ceramics'],
-    all: ['Carbon Fiber', 'Silicon', 'Graphene', 'Advanced Ceramics', 'Recycled Polyester', 'Hemp', 'Bamboo Fiber']
+    all: ['Polyester', 'Hemp', 'Bamboo Fiber']
   }
 };
 

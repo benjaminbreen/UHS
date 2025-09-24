@@ -153,7 +153,62 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   const [advisorChat, setAdvisorChat] = useState<string>('');
   
   // NPCToast for head farmer
-  const [farmerToast, setFarmerToast] = useState<{ message: string; type: 'advice' | 'warning' | 'quest' | 'news' } | null>(null);
+  const [farmerToast, setFarmerToastRaw] = useState<{ message: string; type: 'advice' | 'warning' | 'quest' | 'news' } | null>(null);
+
+  // Safe state setter that checks if component is unmounting
+  const setFarmerToast = useCallback((value: any) => {
+    if (!isUnmountingRef.current) {
+      setFarmerToastRaw(value);
+    }
+  }, []);
+
+  // Combat handler - convert farm family member to proper NPC entity
+  const handleInitiateEncounter = useCallback((farmCharacter: any) => {
+    // Mark component as unmounting to prevent state updates
+    isUnmountingRef.current = true;
+
+    // Convert the farm family member to a proper NPC entity structure
+    // This is necessary because farm NPCs are virtual entities not in the map's NPC array
+    const npcEntity = {
+      id: `farm_${farmCharacter.id || farmCharacter.name?.replace(/\s+/g, '_') || 'farmer'}`,
+      name: farmCharacter.name || 'Farmer',
+      type: 'human' as const,
+      x: playerCharacter.x || 0,
+      y: playerCharacter.y || 0,
+      emoji: farmCharacter.emoji || '👨‍🌾',
+      aiType: 'hostile' as const,
+      health: farmCharacter.health || 100,
+      maxHealth: farmCharacter.maxHealth || 100,
+      strength: farmCharacter.stats?.strength || 8,
+      dexterity: farmCharacter.stats?.dexterity || 6,
+      intelligence: farmCharacter.stats?.intelligence || 5,
+      charisma: farmCharacter.stats?.charisma || 4,
+      level: 3,
+      inventory: farmCharacter.inventory || [],
+      memory: {
+        opinionOfPlayer: -100, // Hostile because attacking
+        conversationSummaries: [],
+        shortTermMemory: ['Player refused to leave', 'Defending the farm'],
+        lastInteraction: Date.now()
+      },
+      statusEffects: [],
+      isHostile: true,
+      initialDialogue: farmCharacter.initialDialogue || ["You leave me no choice! Defend the farm!"],
+      profession: farmCharacter.role || 'Farmer',
+      culturalBackground: culturalZone
+    };
+
+    // Close the farm panel first to ensure clean transition
+    onClose();
+
+    // Then initiate combat after a brief delay to allow modal cleanup
+    setTimeout(() => {
+      if (onInitiateEncounter) {
+        onInitiateEncounter(npcEntity);
+      }
+    }, 100);
+  }, [onInitiateEncounter, playerCharacter, culturalZone, onClose]);
+
   const [advisorLog, setAdvisorLog] = useState<string[]>([]);
   const [isAdvisorBusy, setIsAdvisorBusy] = useState(false);
 
@@ -178,8 +233,9 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     seeds: []
   });
 
-  // Dimensions for banner
+  // Refs for lifecycle management
   const centerRef = useRef<HTMLDivElement>(null);
+  const isUnmountingRef = useRef(false);
   const [centerWidth, setCenterWidth] = useState<number>(1200);
   useEffect(() => {
     const handleResize = () => {
@@ -245,17 +301,18 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     return 'Night';
   }, [gameTimeHours]);
 
-  // Music and soundscape on mount
+  // Music and soundscape on mount + cleanup tracking
   useEffect(() => {
     // Play mining music V1 once when opening
-    gameSounds.playMiningMusic();
+    gameSounds.playFishingMusic();
 
     // Start rural farm soundscape
     gameSounds.playEnvironmentalSoundscape('FARMLAND');
 
     // Cleanup on unmount
     return () => {
-      gameSounds.stopMiningMusic();
+      isUnmountingRef.current = true;
+      gameSounds.stopFishingMusic();
       gameSounds.stopEnvironmentalSoundscape();
     };
   }, []); // Only on mount/unmount
@@ -2321,25 +2378,26 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
         </div>
       </div>
 
-      {/* Head Farmer Toast - always visible on Overview, contextual on other tabs */}
-      {activeTab === 'overview' && headFarmer ? (
+      {/* Head Farmer Toast - Render based on conditions but with stable rendering */}
+      {headFarmer && (activeTab === 'overview' || (activeTab === 'farm_work' && farmerToast)) && (
         <NPCToast
           character={{...headFarmer, culturalZone: culturalZone}}
           message={farmerToast?.message || ''}
           type={farmerToast?.type || 'greeting'}
-          persistent={true}
           position="bottom"
           onClose={() => setFarmerToast(null)}
-          enableLLMChat={true}
-          farmProsperity={farmState?.economicStatus || 'humble'}
-          era={mapData?.dateInfo?.era || 'MEDIEVAL'}
           playerCharacter={playerCharacter}
           mapData={mapData}
           npcs={npcs}
-          isFarmContext={true}
-          gameTimeHours={gameTimeHours}
-          onInitiateEncounter={onInitiateEncounter}
-          onRequestRest={(fee) => {
+          persistent={activeTab === 'overview'}
+          enableLLMChat={activeTab === 'overview'}
+          farmProsperity={activeTab === 'overview' ? (farmState?.economicStatus || 'humble') : undefined}
+          era={activeTab === 'overview' ? (mapData?.dateInfo?.era || 'MEDIEVAL') : undefined}
+          isFarmContext={activeTab === 'overview'}
+          gameTimeHours={activeTab === 'overview' ? gameTimeHours : undefined}
+          onInitiateEncounter={activeTab === 'overview' ? handleInitiateEncounter : undefined}
+          autoHideDelay={activeTab === 'farm_work' ? 10000 : undefined}
+          onRequestRest={activeTab === 'overview' ? (fee) => {
             // Handle rest request
             const coinItem = playerCharacter.inventory?.find(i => i.id === 'COIN');
             const coinAmount = coinItem?.quantity || 0;
@@ -2410,8 +2468,8 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
             } else {
               setFarmerToast({ message: "You don't have enough coins for lodging.", type: 'warning' });
             }
-          }}
-          onAcceptWork={(tasks, payment) => {
+          } : undefined}
+          onAcceptWork={activeTab === 'overview' ? (tasks, payment) => {
             // Apply the work contract
             if (farmState) {
               acceptWorkContract(farmState.tileKey, tasks, payment);
@@ -2438,8 +2496,8 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                 type: 'success'
               });
             }
-          }}
-          onRequestWork={() => {
+          } : undefined}
+          onRequestWork={activeTab === 'overview' ? () => {
             // Start work negotiation with context-aware offer
             const isGuest = farmState?.residencyStatus?.playerStatus === 'guest';
             const prosperity = farmState?.economicStatus;
@@ -2468,8 +2526,8 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                 negotiationRounds: 1
               });
             }
-          }}
-          onRequestResidency={() => {
+          } : undefined}
+          onRequestResidency={activeTab === 'overview' ? () => {
             // Check if eligible for residency (worker status + high trust)
             const status = farmState?.residencyStatus;
             if (status?.playerStatus === 'worker' && (status?.trustLevel || 0) >= 75) {
@@ -2505,27 +2563,14 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
                 type: 'warning'
               });
             }
-          }}
-          onLeave={() => {
+          } : undefined}
+          onLeave={activeTab === 'overview' ? () => {
             onClose(); // Close the farm panel when leaving
-          }}
-          onRefuse={() => {
+          } : undefined}
+          onRefuse={activeTab === 'overview' ? () => {
             console.log('Player refuses to leave');
             // The NPCToast will handle combat initiation if needed
-          }}
-        />
-      ) : activeTab === 'farm_work' && farmerToast && headFarmer && (
-        <NPCToast
-          character={headFarmer}
-          message={farmerToast.message}
-          type={farmerToast.type}
-          persistent={false}
-          position="bottom"
-          autoHideDelay={10000}
-          onClose={() => setFarmerToast(null)}
-          playerCharacter={playerCharacter}
-          mapData={mapData}
-          npcs={npcs}
+          } : undefined}
         />
       )}
 

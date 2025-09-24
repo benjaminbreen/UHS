@@ -16,6 +16,7 @@
         "lines"
       ],
       "wikisourceTitle": "The_Nazca_Lines",
+      "wikipediaArticle": "Nazca_Lines",
       "citation": {
         "originalPublication": "Nazca Civilization, 200"
       }
@@ -46,7 +47,8 @@
         "translator": "Niède Guidon",
         "originalPublication": "Serra da Capivara, Brazil, c. 8000 BCE",
         "modernSource": "FUMDHAM, 1991"
-      }
+      },
+      "wikipediaArticle": "Serra_da_Capivara_National_Park"
     },
     {
       "id": "monte-alegre-cave-art",
@@ -74,7 +76,8 @@
         "translator": "Anna C. Roosevelt",
         "originalPublication": "Monte Alegre, Brazil, c. 11000 BCE",
         "modernSource": "Science Magazine, 1996"
-      }
+      },
+      "wikipediaArticle": "Monte_Alegre_State_Park"
     },
     {
       "id": "chinchorro-mummies",
@@ -102,7 +105,8 @@
         "translator": "Bernardo Arriaza",
         "originalPublication": "Atacama Desert, c. 5000 BCE",
         "modernSource": "Smithsonian Institution, 1995"
-      }
+      },
+      "wikipediaArticle": "Chinchorro_mummies"
     }
   ]
 }

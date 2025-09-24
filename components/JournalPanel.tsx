@@ -3,8 +3,9 @@ import { GameLogEntry, PlayerJournalEntry } from '../types';
 import GamelogPanel from './GamelogPanel';
 import PlayerEntryPanel from './PlayerEntryPanel';
 import MyJournalPanel from './MyJournalPanel';
+import { JournalQuotesPanel } from './JournalQuotesPanel';
 
-type JournalSubTab = 'gamelog' | 'new_entry' | 'my_journal';
+type JournalSubTab = 'gamelog' | 'new_entry' | 'my_journal' | 'quotes';
 
 interface JournalPanelProps {
     gameLog: GameLogEntry[];
@@ -19,6 +20,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({ gameLog, playerJournal, onA
         { id: 'gamelog', label: 'Gamelog' },
         { id: 'new_entry', label: 'New Entry' },
         { id: 'my_journal', label: 'My Journal' },
+        { id: 'quotes', label: 'Quotes' },
     ];
 
     const renderContent = () => {
@@ -29,6 +31,8 @@ const JournalPanel: React.FC<JournalPanelProps> = ({ gameLog, playerJournal, onA
                 return <PlayerEntryPanel onAddEntry={onAddPlayerEntry} />;
             case 'my_journal':
                 return <MyJournalPanel entries={playerJournal} />;
+            case 'quotes':
+                return <JournalQuotesPanel />;
             default:
                 return null;
         }

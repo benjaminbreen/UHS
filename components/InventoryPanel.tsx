@@ -231,6 +231,7 @@ interface InventoryPanelProps {
     onStudy?: (items: Item[]) => void; // New prop for study functionality
     onInventoryUpdate?: () => void; // Callback to refresh inventory after vessel deployment
     deployVesselToMap?: (vesselItem: Item, playerX: number, playerY: number) => { success: boolean, vesselPosition?: { x: number, y: number } };
+    deployBridgeToMap?: (bridgeItem: Item, playerX: number, playerY: number) => { success: boolean, bridgePosition?: { x: number, y: number } };
     playerX?: number | null;
     playerY?: number | null;
     setShipDockPosition?: (x: number | null, y: number | null) => void;
@@ -271,7 +272,7 @@ const getQualityLabel = (quality?: ItemQuality): string => {
     }
 };
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onStudy, onInventoryUpdate, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onStudy, onInventoryUpdate, deployVesselToMap, deployBridgeToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set());
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
@@ -429,6 +430,11 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
     [selectedItems]
   );
   const canDeploy = selectedItemIds.size === 1 && hasSelectedVessels;
+  const canDeployBridge = selectedItemIds.size === 1 && selectedItems.some(item =>
+    item.category === 'Bridge' ||
+    (item.name?.toLowerCase().includes('bridge') &&
+     (item.name?.toLowerCase().includes('log') || item.name?.toLowerCase().includes('rope')))
+  );
 
   const handleAnimalClick = useCallback((animal: TamedAnimal) => {
     setSelectedAnimal(animal);
@@ -590,6 +596,43 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
     }
   }, [selectedItems, playerCharacter, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, onInventoryUpdate]);
 
+  const handleBridgeDeploy = useCallback(() => {
+    const bridges = selectedItems.filter(item =>
+      item.category === 'Bridge' ||
+      (item.name?.toLowerCase().includes('bridge') &&
+       (item.name?.toLowerCase().includes('log') || item.name?.toLowerCase().includes('rope')))
+    );
+
+    if (bridges.length === 0) {
+      alert('No bridges selected for deployment!');
+      return;
+    }
+
+    if (bridges.length > 1) {
+      alert('You can only deploy one bridge at a time.');
+      return;
+    }
+
+    const bridge = bridges[0];
+
+    if (deployBridgeToMap && playerX !== null && playerY !== null) {
+      const deployResult = deployBridgeToMap(bridge, playerX, playerY);
+      if (deployResult.success && deployResult.bridgePosition) {
+        // Remove bridge from inventory
+        const updatedInventory = inventory.filter(item => item.id !== bridge.id);
+        playerCharacter.inventory = updatedInventory;
+
+        setSelectedItemIds(new Set());
+        onInventoryUpdate?.();
+        alert(`${bridge.name} built! You can now cross the water at that location.`);
+      } else {
+        alert(`Cannot place bridge here. Need a single water tile with land on opposite sides within 3 tiles.`);
+      }
+    } else {
+      alert('Bridge deployment not available.');
+    }
+  }, [selectedItems, inventory, playerCharacter, deployBridgeToMap, playerX, playerY, onInventoryUpdate]);
+
   if (inventory.length === 0 && tamedAnimals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-slate-800/60 border border-slate-600/50 rounded-xl">
@@ -726,6 +769,14 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                     title="Deploy vessel for sea travel"
                 >
                     🚤 Deploy Vessel
+                </button>
+              ) : canDeployBridge ? (
+                <button
+                    onClick={handleBridgeDeploy}
+                    className="ff-action-button flex-1 text-xs px-2 py-1 bg-amber-600/80 hover:bg-amber-700 border-amber-500"
+                    title="Deploy bridge to cross water"
+                >
+                    🌉 Deploy Bridge
                 </button>
               ) : (
                 <>

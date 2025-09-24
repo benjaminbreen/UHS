@@ -1601,6 +1601,96 @@ export const SOUTH_ASIAN_FACTIONS: FactionFile = {
                     holy_site: ['Tirupati Temple']
                 }
             }
+        },
+        "Sundarbans Delta": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Early Delta Settlements',
+                dominantPowerDescription: 'Fishing and farming communities adapting to the massive river delta.',
+                eraContextSentence: 'the birth of delta civilization, where humans learn to live with tigers and tides.',
+                allegianceGroups: [
+                    { name: 'Delta Fishers', type: 'primary', description: 'Maritime communities.' },
+                    { name: 'Rice Cultivators', type: 'secondary', description: 'Early agricultural settlements.' }
+                ],
+                structureNames: {
+                    holy_site: ['River Shrine', 'Tiger God Temple'],
+                    mill: ['Fish Drying Platform', 'Rice Store']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Gangaridai Kingdom',
+                dominantPowerDescription: 'Powerful kingdom that deterred Alexander the Great with war elephants and wealth.',
+                eraContextSentence: 'the age when even Alexander feared to cross the Ganges.',
+                allegianceGroups: [
+                    { name: 'Gangaridai', type: 'primary', description: 'Wealthy delta kingdom.' },
+                    { name: 'Mauryan Empire', type: 'secondary', description: 'Expanding northern empire.' }
+                ],
+                structureNames: {
+                    fortress: ['River Fort', 'Elephant Garrison'],
+                    trading_post: ['Delta Port', 'Spice Market']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Pala Empire',
+                dominantPowerDescription: 'Buddhist empire controlling Bengal and patronizing Nalanda University.',
+                eraContextSentence: 'the Buddhist golden age, where Pala kings send teachers across Asia.',
+                allegianceGroups: [
+                    { name: 'Pala Dynasty', type: 'primary', description: 'Buddhist empire of Bengal.' },
+                    { name: 'Sena Dynasty', type: 'secondary', description: 'Hindu successors.' },
+                    { name: 'Arab Traders', type: 'trade_company', description: 'Muslim merchants.' }
+                ],
+                structureNames: {
+                    holy_site: ['Buddhist Vihara', 'Hindu Temple'],
+                    palace: ['Raja Palace', 'Governor Bhavan'],
+                    trading_post: ['Arab Quarter', 'River Ghat']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Mughal Bengal',
+                dominantPowerDescription: 'The wealthiest province of the Mughal Empire, producing half the world\'s textiles.',
+                eraContextSentence: 'the age when Bengal clothed the world in muslin and silk.',
+                allegianceGroups: [
+                    { name: 'Mughal Subah', type: 'primary', description: 'Provincial Mughal government.' },
+                    { name: 'Zamindars', type: 'secondary', description: 'Local landholding aristocracy.' },
+                    { name: 'European Factories', type: 'trade_company', description: 'Portuguese, Dutch, French, English traders.' },
+                    { name: 'Maratha Raiders', type: 'rebel', description: 'Hindu raiders from the west.' }
+                ],
+                structureNames: {
+                    fortress: ['Mughal Fort', 'European Factory'],
+                    mill: ['Muslin Workshop', 'Silk Weaving'],
+                    trading_post: ['European Quarter', 'Native Bazaar']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'British Raj',
+                dominantPowerDescription: 'Colonial exploitation transforms the world\'s workshop into a raw material supplier.',
+                eraContextSentence: 'the deindustrialization of Bengal, as Manchester mills destroy local weavers.',
+                allegianceGroups: [
+                    { name: 'British Raj', type: 'primary', description: 'Colonial government from Calcutta.' },
+                    { name: 'Zamindars', type: 'secondary', description: 'Collaborating landowners.' },
+                    { name: 'Indian National Congress', type: 'rebel', description: 'Independence movement.' },
+                    { name: 'Muslim League', type: 'rebel', description: 'Muslim separatist movement.' }
+                ],
+                structureNames: {
+                    fortress: ['Fort William', 'Cantonment'],
+                    factory: ['Jute Mill', 'Tea Processing'],
+                    trading_post: ['Writers Building', 'Dalhousie Square']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'India and Bangladesh',
+                dominantPowerDescription: 'Two nations share the delta, facing climate change and mass migration.',
+                eraContextSentence: 'the climate crisis era, where rising seas threaten millions.',
+                allegianceGroups: [
+                    { name: 'Republic of India', type: 'primary', description: 'West Bengal state government.' },
+                    { name: 'Bangladesh', type: 'primary', description: 'Independent nation since 1971.' },
+                    { name: 'Climate Refugees', type: 'secondary', description: 'Displaced populations.' }
+                ],
+                structureNames: {
+                    fortress: ['Border Security', 'Cyclone Shelter'],
+                    factory: ['Garment Factory', 'Tech Park'],
+                    trading_post: ['Export Zone', 'Shrimp Farm']
+                }
+            }
         }
     }
 };

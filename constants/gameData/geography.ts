@@ -32,10 +32,11 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Adriatic Sea": { name: "Adriatic Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
             "Tyrrhenian Sea": { name: "Tyrrhenian Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
              },
+
         "British Isles": {
             "London": { name: "London", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT, riverDirection: 'east-west'},
             "Edinburgh": { name: "Edinburgh", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
-            "Dublin": { name: "Dublin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
+            "Leinster Plain": { name: "Leinster Plain", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "York": { name: "York", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Hadrian's Wall": { name: "Hadrian's Wall", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Thames Estuary": { name: "Thames Estuary", climate: ClimateType.TEMPERATE, archetype: MapArchetype.DELTA, deltaOutlet: 'east' },
@@ -130,8 +131,8 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
 
         "Atlantic Islands": {
-            "Iceland": { name: "Iceland", climate: ClimateType.TUNDRA, archetype: MapArchetype.ISLAND, economicActivityLevel: 1, isVolcanic: true },
-            "Greenland Coast": { name: "Greenland Coast", climate: ClimateType.TUNDRA, archetype: MapArchetype.BAY, economicActivityLevel: 0 },
+            "Iceland": { name: "Iceland", climate: ClimateType.COLD, archetype: MapArchetype.ISLAND, economicActivityLevel: 1, isVolcanic: true },
+            "Greenland Coast": { name: "Greenland Coast", climate: ClimateType.POLAR, archetype: MapArchetype.BAY, economicActivityLevel: 0 },
             "Azores": { name: "Azores", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ISLAND },
             "Cape Verde": { name: "Cape Verde", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND }
         },
@@ -228,11 +229,11 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Canadian Prairies": { name: "Canadian Prairies", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Canadian Rockies": { name: "Canadian Rockies", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "British Columbia Coast": { name: "British Columbia Coast", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
-            "Canadian North": { name: "Canadian North", climate: ClimateType.TUNDRA, archetype: MapArchetype.ALL_LAND, hasLakes: true, economicActivityLevel: 1 }
+            "Canadian North": { name: "Canadian North", climate: ClimateType.POLAR, archetype: MapArchetype.ALL_LAND, hasLakes: true, economicActivityLevel: 1 }
         },
         "Arctic and Subarctic": {
             "Hudson Bay Lowlands": { name: "Hudson Bay Lowlands", climate: ClimateType.COLD, archetype: MapArchetype.BAY },
-                        "Hudson Bay": { name: "Hudson Bay", climate: ClimateType.TUNDRA, archetype: MapArchetype.OPEN_OCEAN },
+                        "Hudson Bay": { name: "Hudson Bay", climate: ClimateType.POLAR, archetype: MapArchetype.OPEN_OCEAN },
             "Bering Strait": { name: "Bering Strait", climate: ClimateType.COLD, archetype: MapArchetype.STRAITS },
             "Yukon River Valley": { name: "Yukon River Valley", climate: ClimateType.COLD, archetype: MapArchetype.RIVER_PORT, riverDirection: 'east-west', economicActivityLevel: 1 },
             "Labrador Coast": { name: "Labrador Coast", climate: ClimateType.COLD, archetype: MapArchetype.BAY },
@@ -301,6 +302,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Mapuche Territory": { name: "Mapuche Territory", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: true }
         },
         "Amazon Basin": {
+            "Amazon Delta": { name: "Amazon Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA, deltaOutlet: 'east', economicActivityLevel: 3 },
             "Manaus Region": { name: "Manaus Region", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
             "Rio Negro Junction": { name: "Rio Negro Junction", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
             "Xingu Headwaters": { name: "Xingu Headwaters", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
@@ -405,7 +407,17 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Tunisian Sahel": { name: "Tunisian Sahel", climate: ClimateType.ARID, archetype: MapArchetype.BAY },
             "Rif Coast": { name: "Rif Coast", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
             "Draa Valley": { name: "Draa Valley", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
-            "Tripolitania": { name: "Tripolitania", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY }
+            "Tripolitania": { name: "Tripolitania", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
+              "Tell Atlas": { 
+        name: "Tell Atlas", 
+        climate: ClimateType.SEMI_ARID, 
+        archetype: MapArchetype.ALL_LAND 
+    },
+    "Cyrenaica Coast": { 
+        name: "Cyrenaica Coast", 
+        climate: ClimateType.MEDITERRANEAN, 
+        archetype: MapArchetype.BAY 
+    }
         },
         "Arabian Peninsula": {
             "Hijaz Mountains": { name: "Hijaz Mountains", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
@@ -461,7 +473,9 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Gambia River Basin": { name: "Gambia River Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
             "Ashanti Forest": { name: "Ashanti Forest", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Bissagos Islands": { name: "Bissagos Islands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
-            "Gold Coast Savanna": { name: "Gold Coast Savanna", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false }
+            "Gold Coast Savanna": { name: "Gold Coast Savanna", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
+            "Lagos Coastal Belt": { name: "Lagos Coastal Belt", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY, economicActivityLevel: 4 },
+            "Ivory Coast": { name: "Ivory Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY, economicActivityLevel: 3 }
         },
         "Lower Guinea and Congo Basin": {
             "Cross River Delta": { name: "Cross River Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA },
@@ -538,7 +552,8 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Patna Lowlands": { name: "Patna Lowlands", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Delhi Region": { name: "Delhi Region", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Awadh Plains": { name: "Awadh Plains", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
-            "Bengal Delta": { name: "Bengal Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP }
+            "Bengal Delta": { name: "Bengal Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP },
+            "Sundarbans Delta": { name: "Sundarbans Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA, deltaOutlet: 'south', economicActivityLevel: 4 }
         },
         "Deccan Plateau": {
             "Hyderabad Highlands": { name: "Hyderabad Highlands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
@@ -583,13 +598,17 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "Indochina Interior": {
             "Shan Plateau": { name: "Shan Plateau", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
-            "Annamite Cordillera": { name: "Annamite Cordillera", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false }
+            "Annamite Cordillera": { name: "Annamite Cordillera", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
+            "Chao Phraya Basin": { name: "Chao Phraya Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT, riverDirection: 'north-south', economicActivityLevel: 4 },
+            "Tonle Sap Basin": { name: "Tonle Sap Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP, hasLakes: true, economicActivityLevel: 3 }
         },
         "Maritime Southeast Asia": {
             "Strait of Malacca": { name: "Strait of Malacca", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
             "Sumatra Highlands": { name: "Sumatra Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Java Sea": { name: "Java Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS },
+            "West Java Coast": { name: "West Java Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY, economicActivityLevel: 4 },
             "Central Java": { name: "Central Java", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false, isVolcanic: true },
+            "East Java Coast": { name: "East Java Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY, economicActivityLevel: 4 },
             "Sunda Strait": { name: "Sunda Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
             "Borneo": { name: "Borneo", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
             "Makassar Strait": { name: "Makassar Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
@@ -657,6 +676,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Hebei Plain": { name: "Hebei Plain", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false }
         },
         "South China": {
+            "Yangtze Delta": { name: "Yangtze Delta", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.DELTA, deltaOutlet: 'east', economicActivityLevel: 4 },
             "Pearl River Delta": { name: "Pearl River Delta", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.DELTA, deltaOutlet: 'south' },
             "Fujian Coast": { name: "Fujian Coast", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY },
             "Guangxi Highlands": { name: "Guangxi Highlands", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
@@ -788,9 +808,9 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
 
         "Antarctica": {
-        "Antarctic Peninsula": { name: "Antarctic Peninsula", climate: ClimateType.TUNDRA, archetype: MapArchetype.PENINSULA, economicActivityLevel: 0 },
-        "Transantarctic Mountains": { name: "Transantarctic Mountains", climate: ClimateType.TUNDRA, archetype: MapArchetype.ALL_LAND, altitude: 'high', economicActivityLevel: 0 },
-        "East Antarctic Plateau": { name: "East Antarctic Plateau", climate: ClimateType.TUNDRA, archetype: MapArchetype.DESERT, economicActivityLevel: 0 }
+        "Antarctic Peninsula": { name: "Antarctic Peninsula", climate: ClimateType.POLAR, archetype: MapArchetype.PENINSULA, economicActivityLevel: 0 },
+        "Transantarctic Mountains": { name: "Transantarctic Mountains", climate: ClimateType.POLAR, archetype: MapArchetype.ALL_LAND, altitude: 'high', economicActivityLevel: 0 },
+        "East Antarctic Plateau": { name: "East Antarctic Plateau", climate: ClimateType.POLAR, archetype: MapArchetype.DESERT, economicActivityLevel: 0 }
     },
     
         "Major Seas and Oceans": {
@@ -812,7 +832,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         }
    },
    
-   // Special Easter Egg Zones - Ethereal Realms
+   // Special Easter Egg Zones
    "Special": {
        "Outer Space": {
            "Outer Space": { 

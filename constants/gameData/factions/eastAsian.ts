@@ -1500,6 +1500,265 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                     palace: ['Presidential Palace', 'Party Headquarters', 'Royal Palace']
                 }
             }
+        },
+        "Yangtze Delta": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Liangzhu Culture',
+                dominantPowerDescription: 'Advanced Neolithic culture with jade working, rice agriculture, and proto-urban settlements.',
+                eraContextSentence: 'the dawn of Chinese civilization, where jade artisans and rice farmers build the foundations of empire.',
+                allegianceGroups: [
+                    { name: 'Liangzhu Settlements', type: 'primary', description: 'Jade-working proto-cities.' },
+                    { name: 'Hemudu Culture', type: 'secondary', description: 'Earlier rice-farming communities.' },
+                    { name: 'Coastal Fishers', type: 'secondary', description: 'Maritime communities.' }
+                ],
+                structureNames: {
+                    fortress: ['Earthen Walls', 'Moat Settlement'],
+                    holy_site: ['Jade Altar', 'Ancestor Shrine'],
+                    mill: ['Rice Granary', 'Jade Workshop']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Kingdom of Wu',
+                dominantPowerDescription: 'One of the Three Kingdoms, controlling the rich Yangtze delta and naval supremacy.',
+                eraContextSentence: 'the era of the Three Kingdoms, where the Wu navy controls the great river.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Wu', type: 'primary', description: 'Eastern kingdom of the Three Kingdoms period.' },
+                    { name: 'Local Aristocracy', type: 'secondary', description: 'Wealthy landholding families.' },
+                    { name: 'River Pirates', type: 'rebel', description: 'Yangtze river bandits.' }
+                ],
+                structureNames: {
+                    fortress: ['River Fort', 'Naval Base'],
+                    palace: ['Wu Palace'],
+                    trading_post: ['River Port', 'Canal Market']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Song Dynasty',
+                dominantPowerDescription: 'The economic heartland of China, with Hangzhou as the world\'s largest city.',
+                eraContextSentence: 'the Song golden age, where Hangzhou surpasses all cities in wealth and culture.',
+                allegianceGroups: [
+                    { name: 'Song Dynasty', type: 'primary', description: 'Chinese empire centered in the south.' },
+                    { name: 'Merchant Guilds', type: 'trade_company', description: 'Powerful commercial associations.' },
+                    { name: 'Buddhist Monasteries', type: 'religious_order', description: 'Chan Buddhism centers.' }
+                ],
+                structureNames: {
+                    fortress: ['City Walls', 'Canal Fort'],
+                    palace: ['Imperial Palace', 'Prefectural Yamen'],
+                    holy_site: ['Lingyin Temple', 'Pagoda'],
+                    trading_post: ['Grand Canal Port', 'Silk Market']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Ming Dynasty',
+                dominantPowerDescription: 'Prosperous region under Ming rule, center of silk production and maritime trade.',
+                eraContextSentence: 'the Ming prosperity, where Suzhou gardens and Nanjing walls showcase imperial grandeur.',
+                allegianceGroups: [
+                    { name: 'Ming Dynasty', type: 'primary', description: 'Chinese empire restored after overthrowing Mongols.' },
+                    { name: 'Japanese Pirates', type: 'rebel', description: 'Wokou raiders on the coast.' },
+                    { name: 'European Traders', type: 'trade_company', description: 'Portuguese and Dutch merchants.' }
+                ],
+                structureNames: {
+                    fortress: ['Ming City Walls', 'Coastal Fort'],
+                    palace: ['Mandarin Estate', 'Garden Villa'],
+                    factory: ['Silk Workshop', 'Porcelain Kiln'],
+                    trading_post: ['Treaty Port', 'Canal Wharf']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Treaty Port Shanghai',
+                dominantPowerDescription: 'Foreign concessions control Shanghai while the Qing dynasty weakens.',
+                eraContextSentence: 'the century of humiliation, where foreign powers carve up China\' richest region.',
+                allegianceGroups: [
+                    { name: 'International Settlement', type: 'primary', description: 'Foreign-controlled Shanghai.' },
+                    { name: 'Qing Dynasty', type: 'secondary', description: 'Weakened imperial government.' },
+                    { name: 'Taiping Rebellion', type: 'rebel', description: 'Christian-inspired uprising.' },
+                    { name: 'Green Gang', type: 'criminal', description: 'Shanghai underworld.' }
+                ],
+                structureNames: {
+                    fortress: ['Foreign Concession', 'Qing Fort'],
+                    factory: ['Cotton Mill', 'Shipyard', 'Opium Warehouse'],
+                    trading_post: ['The Bund', 'Native City Market']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'People\'s Republic of China',
+                dominantPowerDescription: 'China\'s economic powerhouse, center of global manufacturing and finance.',
+                eraContextSentence: 'the Chinese miracle, where Shanghai\'s skyline rivals any global city.',
+                allegianceGroups: [
+                    { name: 'Communist Party', type: 'primary', description: 'China\'s ruling party.' },
+                    { name: 'State Enterprises', type: 'trade_company', description: 'Government-owned corporations.' },
+                    { name: 'Foreign Investors', type: 'trade_company', description: 'Multinational corporations.' }
+                ],
+                structureNames: {
+                    fortress: ['PLA Base', 'Public Security Bureau'],
+                    factory: ['Tech Campus', 'Auto Plant', 'Semiconductor Fab'],
+                    trading_post: ['Stock Exchange', 'Free Trade Zone', 'Container Port']
+                }
+            }
+        },
+        "Chao Phraya Basin": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Ban Chiang Culture',
+                dominantPowerDescription: 'Early Bronze Age civilization known for distinctive pottery and bronze work.',
+                eraContextSentence: 'the Bronze Age dawn, where spiral pottery and bronze drums echo across the river valley.',
+                allegianceGroups: [
+                    { name: 'Ban Chiang Settlements', type: 'primary', description: 'Bronze-working communities.' },
+                    { name: 'Rice Farmers', type: 'secondary', description: 'Agricultural villages.' }
+                ],
+                structureNames: {
+                    holy_site: ['Spirit House', 'Bronze Drum Shrine'],
+                    mill: ['Bronze Foundry', 'Pottery Kiln']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Dvaravati Culture',
+                dominantPowerDescription: 'Mon Buddhist kingdoms establishing the first cities in the region.',
+                eraContextSentence: 'the arrival of Buddhism, where Mon kingdoms build the first stupas.',
+                allegianceGroups: [
+                    { name: 'Dvaravati Cities', type: 'primary', description: 'Mon Buddhist city-states.' },
+                    { name: 'Khmer Influence', type: 'secondary', description: 'Expanding Angkor empire.' }
+                ],
+                structureNames: {
+                    holy_site: ['Buddhist Stupa', 'Mon Temple'],
+                    palace: ['Mon Palace', 'City Lord Residence']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Sukhothai Kingdom',
+                dominantPowerDescription: 'First Thai kingdom, creating Thai script and establishing Theravada Buddhism.',
+                eraContextSentence: 'the Thai dawn, where King Ramkhamhaeng creates Thai writing and law.',
+                allegianceGroups: [
+                    { name: 'Sukhothai', type: 'primary', description: 'First independent Thai kingdom.' },
+                    { name: 'Lanna', type: 'secondary', description: 'Northern Thai kingdom.' },
+                    { name: 'Khmer Empire', type: 'secondary', description: 'Declining Angkor.' }
+                ],
+                structureNames: {
+                    holy_site: ['Wat', 'Buddha Image'],
+                    palace: ['Royal Palace', 'Throne Hall'],
+                    fortress: ['City Walls', 'Moat']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Ayutthaya Kingdom',
+                dominantPowerDescription: 'Powerful trading empire and regional hegemon until Burmese destruction.',
+                eraContextSentence: 'the golden age of Ayutthaya, where foreign traders call it the Venice of the East.',
+                allegianceGroups: [
+                    { name: 'Ayutthaya', type: 'primary', description: 'Siamese trading empire.' },
+                    { name: 'Portuguese Traders', type: 'trade_company', description: 'European merchants and mercenaries.' },
+                    { name: 'Japanese Guards', type: 'secondary', description: 'Samurai mercenaries.' },
+                    { name: 'Burmese Invaders', type: 'rebel', description: 'Toungoo dynasty armies.' }
+                ],
+                structureNames: {
+                    palace: ['Grand Palace', 'Foreign Quarter'],
+                    holy_site: ['Royal Temple', 'Buddhist Monastery'],
+                    trading_post: ['Portuguese Factory', 'Chinese Quarter']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Kingdom of Siam',
+                dominantPowerDescription: 'Independent kingdom modernizing to avoid colonization.',
+                eraContextSentence: 'the Chakri modernization, where Siam walks the tightrope between Britain and France.',
+                allegianceGroups: [
+                    { name: 'Chakri Dynasty', type: 'primary', description: 'Modernizing monarchy.' },
+                    { name: 'British Advisors', type: 'trade_company', description: 'Economic influence from Burma.' },
+                    { name: 'French Pressure', type: 'secondary', description: 'Colonial threat from Indochina.' }
+                ],
+                structureNames: {
+                    palace: ['Chakri Palace', 'European-style Buildings'],
+                    factory: ['Rice Mill', 'Teak Export'],
+                    fortress: ['Modern Fort', 'Railway Station']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Kingdom of Thailand',
+                dominantPowerDescription: 'Constitutional monarchy and regional economic hub.',
+                eraContextSentence: 'the Thai boom, where Bangkok becomes Southeast Asia\'s hub.',
+                allegianceGroups: [
+                    { name: 'Thai Government', type: 'primary', description: 'Constitutional monarchy.' },
+                    { name: 'Military', type: 'secondary', description: 'Powerful armed forces.' },
+                    { name: 'Business Conglomerates', type: 'trade_company', description: 'Thai corporate giants.' }
+                ],
+                structureNames: {
+                    palace: ['Government House', 'Royal Palace'],
+                    factory: ['Auto Assembly', 'Electronics Plant'],
+                    trading_post: ['Shopping Mall', 'Tourist District']
+                }
+            }
+        },
+        "Tonle Sap Basin": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Funan Kingdom',
+                dominantPowerDescription: 'Early Indianized kingdom controlling Mekong delta trade.',
+                eraContextSentence: 'the age of Funan, where Indian merchants bring Hindu gods to the Mekong.',
+                allegianceGroups: [
+                    { name: 'Funan', type: 'primary', description: 'Early maritime trading kingdom.' },
+                    { name: 'Indian Merchants', type: 'trade_company', description: 'Hindu-Buddhist traders.' }
+                ],
+                structureNames: {
+                    holy_site: ['Hindu Temple', 'Linga Shrine'],
+                    trading_post: ['River Port', 'Indian Quarter']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Khmer Empire',
+                dominantPowerDescription: 'Angkor at its height, the largest pre-industrial city in the world.',
+                eraContextSentence: 'the glory of Angkor, where god-kings build temples touching heaven.',
+                allegianceGroups: [
+                    { name: 'Khmer Empire', type: 'primary', description: 'Divine kingship at Angkor.' },
+                    { name: 'Cham Rivals', type: 'secondary', description: 'Coastal kingdom enemies.' },
+                    { name: 'Thai Vassals', type: 'secondary', description: 'Northern tributaries.' }
+                ],
+                structureNames: {
+                    holy_site: ['Angkor Wat', 'Bayon Temple', 'Royal Lingam'],
+                    palace: ['Royal Palace', 'Elephant Terrace'],
+                    fortress: ['Angkor Thom', 'Banteay Srei']
+                },
+                courtRoles: {
+                    palace: ['Devaraja', 'Purohita', 'Senapati', 'Royal Architect']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Cambodian Dark Age',
+                dominantPowerDescription: 'Post-Angkor decline with Thai and Vietnamese encroachment.',
+                eraContextSentence: 'the abandonment of Angkor, as the kingdom retreats to Phnom Penh.',
+                allegianceGroups: [
+                    { name: 'Khmer Kings', type: 'primary', description: 'Weakened monarchy.' },
+                    { name: 'Ayutthaya', type: 'secondary', description: 'Thai overlords.' },
+                    { name: 'Dai Viet', type: 'secondary', description: 'Vietnamese expansion.' }
+                ],
+                structureNames: {
+                    palace: ['Phnom Penh Palace', 'Provincial Fort'],
+                    holy_site: ['Buddhist Wat', 'Abandoned Temple']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'French Protectorate',
+                dominantPowerDescription: 'French colonial rule preserving the monarchy as a figurehead.',
+                eraContextSentence: 'the colonial protectorate, where France "protects" Cambodia from Thailand and Vietnam.',
+                allegianceGroups: [
+                    { name: 'French Protectorate', type: 'primary', description: 'Colonial administration.' },
+                    { name: 'Khmer Monarchy', type: 'secondary', description: 'Powerless king.' },
+                    { name: 'Buddhist Sangha', type: 'religious_order', description: 'Monks preserving culture.' }
+                ],
+                structureNames: {
+                    palace: ['Colonial Residence', 'Royal Palace'],
+                    trading_post: ['French Quarter', 'Chinese Market']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Kingdom of Cambodia',
+                dominantPowerDescription: 'Recovering from genocide, balancing China and Vietnam influence.',
+                eraContextSentence: 'the recovery from the Killing Fields, as Angkor becomes a tourist mecca.',
+                allegianceGroups: [
+                    { name: 'Cambodian Government', type: 'primary', description: 'Dominant party rule.' },
+                    { name: 'Chinese Investment', type: 'trade_company', description: 'Major development partner.' },
+                    { name: 'ASEAN', type: 'secondary', description: 'Regional bloc.' }
+                ],
+                structureNames: {
+                    palace: ['Prime Minister Office', 'Royal Palace'],
+                    trading_post: ['Tourist Hotels', 'Casino Complex']
+                }
+            }
         }
     }
 };

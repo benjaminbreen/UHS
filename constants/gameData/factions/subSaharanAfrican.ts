@@ -1154,6 +1154,169 @@ export const SUB_SAHARAN_AFRICAN_FACTIONS: FactionFile = {
                     mining_colony: ['Gold Mine', 'Tanzanite Mine']
                 }
             }
+        },
+        "Lagos Coastal Belt": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Nok Culture',
+                dominantPowerDescription: 'Early Iron Age civilization known for terracotta sculptures and iron smelting.',
+                eraContextSentence: 'the dawn of West African metallurgy, where Nok artists shape clay and smelt iron.',
+                allegianceGroups: [
+                    { name: 'Nok Settlements', type: 'primary', description: 'Iron-working communities.' },
+                    { name: 'Forest Peoples', type: 'secondary', description: 'Hunter-gatherer groups.' }
+                ],
+                structureNames: {
+                    holy_site: ['Sacred Grove', 'Ancestor Shrine'],
+                    mill: ['Iron Smelter', 'Pottery Workshop']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Yoruba City-States',
+                dominantPowerDescription: 'Early urban centers emerging in the forest zone.',
+                eraContextSentence: 'the birth of Yoruba civilization, where Ife becomes the spiritual center.',
+                allegianceGroups: [
+                    { name: 'Ife', type: 'primary', description: 'Sacred city of the Yoruba.' },
+                    { name: 'Forest Kingdoms', type: 'secondary', description: 'Emerging city-states.' }
+                ],
+                structureNames: {
+                    holy_site: ['Oracle Grove', 'Royal Shrine'],
+                    palace: ['Oba Palace', 'Chief Compound']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Benin Empire',
+                dominantPowerDescription: 'Powerful kingdom with sophisticated bronze-casting and massive walls.',
+                eraContextSentence: 'the glory of Benin, where bronze plaques record history and walls stretch for miles.',
+                allegianceGroups: [
+                    { name: 'Benin Empire', type: 'primary', description: 'Edo kingdom centered on Benin City.' },
+                    { name: 'Yoruba States', type: 'secondary', description: 'Oyo and other kingdoms.' },
+                    { name: 'Portuguese Traders', type: 'trade_company', description: 'Early European contact.' }
+                ],
+                structureNames: {
+                    palace: ['Oba Palace', 'Bronze Casters Quarter'],
+                    fortress: ['Benin Walls', 'City Gate'],
+                    trading_post: ['Portuguese Factory', 'Slave Port']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Atlantic Slave Trade Era',
+                dominantPowerDescription: 'Coastal kingdoms profit from but are ultimately destroyed by the slave trade.',
+                eraContextSentence: 'the era of human commerce, where African kingdoms sell captives to European slavers.',
+                allegianceGroups: [
+                    { name: 'Lagos Kingdom', type: 'primary', description: 'Coastal slave-trading state.' },
+                    { name: 'Oyo Empire', type: 'secondary', description: 'Inland Yoruba empire.' },
+                    { name: 'European Slavers', type: 'trade_company', description: 'Portuguese, Dutch, English traders.' },
+                    { name: 'Dahomey', type: 'secondary', description: 'Aggressive slave-raiding kingdom.' }
+                ],
+                structureNames: {
+                    fortress: ['Slave Fort', 'Coastal Castle'],
+                    trading_post: ['Slave Market', 'European Factory'],
+                    palace: ['Oba Palace', 'Chief\'s Compound']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'British Colonial Nigeria',
+                dominantPowerDescription: 'Britain conquers and amalgamates diverse kingdoms into Nigeria.',
+                eraContextSentence: 'the colonial conquest, where Britain creates Nigeria from hundreds of nations.',
+                allegianceGroups: [
+                    { name: 'British Colony', type: 'primary', description: 'Colonial administration in Lagos.' },
+                    { name: 'Traditional Rulers', type: 'secondary', description: 'Emirs and chiefs under indirect rule.' },
+                    { name: 'Educated Elite', type: 'secondary', description: 'Western-educated Africans.' }
+                ],
+                structureNames: {
+                    fortress: ['Colonial Fort', 'Government House'],
+                    trading_post: ['Palm Oil Depot', 'Colonial Bank'],
+                    factory: ['Railway Workshop', 'Cotton Ginnery']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Federal Republic of Nigeria',
+                dominantPowerDescription: 'Africa\'s most populous nation, oil wealth and megacity growth.',
+                eraContextSentence: 'the oil boom era, where Lagos becomes Africa\'s largest city.',
+                allegianceGroups: [
+                    { name: 'Nigerian Government', type: 'primary', description: 'Federal republic.' },
+                    { name: 'Oil Companies', type: 'trade_company', description: 'Petroleum multinationals.' },
+                    { name: 'Nollywood', type: 'trade_company', description: 'Film industry.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Barracks', 'Police Command'],
+                    factory: ['Oil Refinery', 'Cement Plant'],
+                    trading_post: ['Computer Village', 'Film Studio']
+                }
+            }
+        },
+        "Ivory Coast": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Forest Peoples',
+                dominantPowerDescription: 'Diverse ethnic groups developing agriculture in the forest zone.',
+                eraContextSentence: 'the forest dawn, where yam farmers clear the first villages.',
+                allegianceGroups: [
+                    { name: 'Akan Peoples', type: 'primary', description: 'Gold-working forest dwellers.' },
+                    { name: 'Mande Peoples', type: 'secondary', description: 'Traders from the north.' }
+                ],
+                structureNames: {
+                    holy_site: ['Forest Shrine', 'Ancestor Tree'],
+                    mill: ['Gold Workshop', 'Yam Storage']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Kong Empire',
+                dominantPowerDescription: 'Islamic trading empire connecting forest gold to Saharan trade.',
+                eraContextSentence: 'the age of gold and kola, where Kong merchants link forest to desert.',
+                allegianceGroups: [
+                    { name: 'Kong', type: 'primary', description: 'Dyula Muslim trading empire.' },
+                    { name: 'Forest Kingdoms', type: 'secondary', description: 'Gold-producing states.' },
+                    { name: 'Sahel Traders', type: 'trade_company', description: 'Trans-Saharan merchants.' }
+                ],
+                structureNames: {
+                    holy_site: ['Mosque', 'Quranic School'],
+                    trading_post: ['Gold Market', 'Kola Warehouse'],
+                    palace: ['Sultan Palace', 'Merchant Compound']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Coastal Trading Kingdoms',
+                dominantPowerDescription: 'Small kingdoms trading gold and ivory with Europeans.',
+                eraContextSentence: 'the ivory age, where elephant tusks buy European guns.',
+                allegianceGroups: [
+                    { name: 'Coastal Chiefs', type: 'primary', description: 'Trading principalities.' },
+                    { name: 'European Traders', type: 'trade_company', description: 'Portuguese, Dutch, French merchants.' },
+                    { name: 'Ashanti Empire', type: 'secondary', description: 'Powerful eastern neighbor.' }
+                ],
+                structureNames: {
+                    trading_post: ['European Fort', 'Ivory Market'],
+                    palace: ['Chief Palace', 'Oracle House']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'French West Africa',
+                dominantPowerDescription: 'French colony focused on coffee and cocoa production.',
+                eraContextSentence: 'the colonial plantation era, where Africans grow cocoa for French chocolate.',
+                allegianceGroups: [
+                    { name: 'French Colony', type: 'primary', description: 'Colonial administration.' },
+                    { name: 'Traditional Chiefs', type: 'secondary', description: 'Indirect rule authorities.' },
+                    { name: 'Forced Labor', type: 'secondary', description: 'Africans under corvée system.' }
+                ],
+                structureNames: {
+                    fortress: ['Colonial Post', 'Administrative Center'],
+                    factory: ['Cocoa Processing', 'Coffee Warehouse'],
+                    trading_post: ['Colonial Bank', 'Export Dock']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Republic of Côte d\'Ivoire',
+                dominantPowerDescription: 'World\'s largest cocoa producer, recovering from civil wars.',
+                eraContextSentence: 'the cocoa republic, where chocolate wealth fuels development and conflict.',
+                allegianceGroups: [
+                    { name: 'Ivorian Government', type: 'primary', description: 'Presidential republic.' },
+                    { name: 'Cocoa Cooperatives', type: 'trade_company', description: 'Farmer organizations.' },
+                    { name: 'French Business', type: 'trade_company', description: 'Continuing economic ties.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'UN Peacekeepers'],
+                    factory: ['Cocoa Plant', 'Cashew Processing'],
+                    trading_post: ['Modern Port', 'Commodity Exchange']
+                }
+            }
         }
     }
 };

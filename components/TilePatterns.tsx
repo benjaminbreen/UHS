@@ -274,52 +274,96 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                     ctx.fill();
                 }
 
-                // Alpine flowers - mountain varieties
-                for (let i = 0; i < 18; i++) {
-                    const x = noise.random() * PATTERN_SIZE;
-                    const y = noise.random() * PATTERN_SIZE;
-                    const flowerType = noise.random();
+                // Enhanced seasonal alpine flowers (only in summer)
+                if (season === 'summer') {
+                    const flowerCount = 25; // More flowers in summer
+                    for (let i = 0; i < flowerCount; i++) {
+                        const x = noise.random() * PATTERN_SIZE;
+                        const y = noise.random() * PATTERN_SIZE;
+                        const flowerType = noise.random();
+                        const flowerSize = 0.6 + noise.random() * 0.8;
 
-                    if (flowerType < 0.3) {
-                        // Alpine forget-me-nots (small blue flowers)
-                        ctx.fillStyle = `rgba(100, 150, 255, ${0.7 + noise.random() * 0.2})`;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 0.8 + noise.random() * 0.4, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Tiny white center
-                        ctx.fillStyle = `rgba(255, 255, 255, 0.8)`;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 0.2, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else if (flowerType < 0.6) {
-                        // Mountain avens (white/cream)
-                        ctx.fillStyle = `rgba(255, 250, 240, ${0.6 + noise.random() * 0.3})`;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 1 + noise.random() * 0.5, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Yellow center
-                        ctx.fillStyle = `rgba(255, 220, 100, 0.7)`;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 0.3, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else if (flowerType < 0.8) {
-                        // Alpine poppies (bright yellow)
-                        ctx.fillStyle = `rgba(255, 220, 100, ${0.6 + noise.random() * 0.3})`;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 1.2 + noise.random() * 0.6, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else {
-                        // Edelweiss (rare white star-shaped)
-                        const petalCount = 6;
-                        const petalSize = 1.5;
-                        for (let p = 0; p < petalCount; p++) {
-                            const angle = (p / petalCount) * Math.PI * 2;
-                            const petalX = x + Math.cos(angle) * petalSize;
-                            const petalY = y + Math.sin(angle) * petalSize;
-
-                            ctx.fillStyle = `rgba(255, 255, 250, ${0.8 + noise.random() * 0.1})`;
+                        if (flowerType < 0.25) {
+                            // Alpine forget-me-nots (small blue flowers)
+                            ctx.fillStyle = `rgba(100, 150, 255, ${0.8 + noise.random() * 0.15})`;
                             ctx.beginPath();
-                            ctx.ellipse(petalX, petalY, 0.8, 0.4, angle, 0, Math.PI * 2);
+                            ctx.arc(x, y, flowerSize, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Tiny white center
+                            ctx.fillStyle = `rgba(255, 255, 255, 0.9)`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 0.3, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (flowerType < 0.45) {
+                            // Mountain avens (white/cream)
+                            ctx.fillStyle = `rgba(255, 250, 240, ${0.7 + noise.random() * 0.2})`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 1.2, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Yellow center
+                            ctx.fillStyle = `rgba(255, 220, 100, 0.8)`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 0.4, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (flowerType < 0.65) {
+                            // Alpine poppies (bright yellow)
+                            ctx.fillStyle = `rgba(255, 220, 80, ${0.7 + noise.random() * 0.2})`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 1.4, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Orange center
+                            ctx.fillStyle = `rgba(255, 140, 50, 0.6)`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 0.3, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (flowerType < 0.8) {
+                            // Alpine pinks (magenta/purple)
+                            ctx.fillStyle = `rgba(220, 100, 180, ${0.7 + noise.random() * 0.2})`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize, 0, Math.PI * 2);
+                            ctx.fill();
+                            // White center
+                            ctx.fillStyle = `rgba(255, 255, 255, 0.7)`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 0.25, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (flowerType < 0.9) {
+                            // Mountain buttercups (bright yellow with petals)
+                            const petalCount = 5;
+                            const petalRadius = flowerSize * 0.8;
+                            for (let p = 0; p < petalCount; p++) {
+                                const angle = (p / petalCount) * Math.PI * 2;
+                                const petalX = x + Math.cos(angle) * petalRadius * 0.6;
+                                const petalY = y + Math.sin(angle) * petalRadius * 0.6;
+
+                                ctx.fillStyle = `rgba(255, 240, 60, ${0.7 + noise.random() * 0.2})`;
+                                ctx.beginPath();
+                                ctx.arc(petalX, petalY, petalRadius * 0.7, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                            // Center
+                            ctx.fillStyle = `rgba(255, 200, 50, 0.8)`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 0.4, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else {
+                            // Rare edelweiss (white star-shaped)
+                            const petalCount = 6;
+                            const petalSize = flowerSize * 1.2;
+                            for (let p = 0; p < petalCount; p++) {
+                                const angle = (p / petalCount) * Math.PI * 2;
+                                const petalX = x + Math.cos(angle) * petalSize;
+                                const petalY = y + Math.sin(angle) * petalSize;
+
+                                ctx.fillStyle = `rgba(255, 255, 250, ${0.8 + noise.random() * 0.1})`;
+                                ctx.beginPath();
+                                ctx.ellipse(petalX, petalY, petalSize * 0.6, petalSize * 0.3, angle, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                            // Fuzzy white center
+                            ctx.fillStyle = `rgba(250, 250, 240, 0.9)`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, flowerSize * 0.5, 0, Math.PI * 2);
                             ctx.fill();
                         }
                     }
@@ -352,23 +396,114 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                     ctx.fill();
                 }
 
-                // Snow patches in winter or high elevations
-                if (season === 'winter') {
-                    for (let i = 0; i < 15; i++) {
+                // Enhanced seasonal snow patches based on climate and season
+                const shouldHaveSnow = (
+                    // Cold climates: spring, fall, winter
+                    (climate === ClimateType.COLD && (season === 'spring' || season === 'fall' || season === 'winter')) ||
+                    // Temperate and Mediterranean climates: winter only
+                    ((climate === ClimateType.TEMPERATE || climate === ClimateType.MEDITERRANEAN) && season === 'winter')
+                );
+
+                if (shouldHaveSnow) {
+                    // Determine snow coverage based on season and climate (similar to taiga)
+                    const isSummer = season === 'summer';
+                    const isSpring = season === 'spring';
+                    const isFall = season === 'fall';
+                    const isWinter = season === 'winter' || !season;
+
+                    // For cold climates, add a base snow layer first to make it predominantly white
+                    if (climate === ClimateType.COLD) {
+                        const baseSnowOpacity = isWinter ? 0.7 : isSpring ? 0.5 : isFall ? 0.6 : 0;
+                        if (baseSnowOpacity > 0) {
+                            // Base white layer covering most of the tile
+                            ctx.fillStyle = `rgba(255, 255, 255, ${baseSnowOpacity})`;
+                            ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
+
+                            // Add texture with subtle variations
+                            for (let i = 0; i < 30; i++) {
+                                const x = noise.random() * PATTERN_SIZE;
+                                const y = noise.random() * PATTERN_SIZE;
+                                const size = 15 + noise.random() * 25;
+                                const opacity = 0.1 + noise.random() * 0.15;
+
+                                ctx.fillStyle = `rgba(245, 250, 255, ${opacity})`;
+                                ctx.beginPath();
+                                ctx.arc(x, y, size, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
+                    }
+
+                    // Snow patch counts by season and climate - increased for cold climates
+                    let baseSnowPatches: number;
+                    let snowOpacityBase: number;
+
+                    if (climate === ClimateType.COLD) {
+                        // Much higher patch counts for cold climates to create dense coverage
+                        baseSnowPatches = isWinter ? 60 : isSpring ? 45 : isFall ? 55 : 0;
+                        snowOpacityBase = isWinter ? 0.9 : isSpring ? 0.7 : isFall ? 0.8 : 0;
+                    } else {
+                        // Temperate and Mediterranean - winter only, lighter coverage
+                        baseSnowPatches = isWinter ? 20 : 0;
+                        snowOpacityBase = isWinter ? 0.7 : 0;
+                    }
+
+                    // Snow patches scattered throughout alpine meadow
+                    for (let i = 0; i < baseSnowPatches; i++) {
                         const x = noise.random() * PATTERN_SIZE;
                         const y = noise.random() * PATTERN_SIZE;
-                        const snowSize = 5 + noise.random() * 10;
+                        const snowSize = climate === ClimateType.COLD ?
+                                        (isWinter ? (12 + noise.random() * 20) :
+                                         isSpring ? (8 + noise.random() * 15) :
+                                         (10 + noise.random() * 18)) :
+                                        (5 + noise.random() * 8);
 
-                        ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + noise.random() * 0.3})`;
+                        // Irregular snow patch shape with rotation
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(noise.random() * Math.PI);
+                        ctx.scale(0.8 + noise.random() * 0.4, 0.6 + noise.random() * 0.8);
+
+                        // Main snow patch
+                        const snowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, snowSize);
+                        snowGrad.addColorStop(0, `rgba(255, 255, 255, ${snowOpacityBase + noise.random() * 0.15})`);
+                        snowGrad.addColorStop(0.4, `rgba(250, 250, 255, ${(snowOpacityBase - 0.1) + noise.random() * 0.15})`);
+                        snowGrad.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+
+                        ctx.fillStyle = snowGrad;
                         ctx.beginPath();
-                        ctx.arc(x, y, snowSize, 0, Math.PI * 2);
+                        ctx.arc(0, 0, snowSize, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // Snow sparkle
-                        ctx.fillStyle = `rgba(245, 245, 255, ${0.4 + noise.random() * 0.2})`;
+                        // Snow highlights
+                        ctx.fillStyle = `rgba(245, 250, 255, ${(snowOpacityBase * 0.6) + noise.random() * 0.2})`;
                         ctx.beginPath();
-                        ctx.arc(x - 1, y - 1, snowSize * 0.7, 0, Math.PI * 2);
+                        ctx.arc(-snowSize * 0.2, -snowSize * 0.2, snowSize * 0.7, 0, Math.PI * 2);
                         ctx.fill();
+
+                        ctx.restore();
+                    }
+
+                    // Additional smaller snow drifts for texture
+                    const driftCount = Math.floor(baseSnowPatches * 0.8);
+                    for (let i = 0; i < driftCount; i++) {
+                        const x = noise.random() * PATTERN_SIZE;
+                        const y = noise.random() * PATTERN_SIZE;
+                        const driftWidth = 8 + noise.random() * 12;
+                        const driftHeight = 3 + noise.random() * 6;
+
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(noise.random() * Math.PI / 4);
+
+                        const driftGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, driftWidth);
+                        driftGrad.addColorStop(0, `rgba(255, 255, 255, ${(snowOpacityBase * 0.7) + noise.random() * 0.1})`);
+                        driftGrad.addColorStop(0.6, `rgba(245, 250, 255, ${(snowOpacityBase * 0.5) + noise.random() * 0.1})`);
+                        driftGrad.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+
+                        ctx.fillStyle = driftGrad;
+                        ctx.fillRect(-driftWidth/2, -driftHeight/2, driftWidth, driftHeight);
+                        ctx.restore();
                     }
                 }
             }
@@ -620,9 +755,59 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
             break;
 
         case BiomeType.TAIGA:
-            // Enhanced taiga - dark coniferous forest with tree shadows and snow
-            // Deep tree shadows - large dark patches from towering conifers
-            for (let i = 0; i < 20; i++) {
+            // Enhanced taiga - dark coniferous forest with persistent snow year-round
+
+            // Determine snow coverage based on season
+            const isSummer = season === 'summer';
+            const isSpring = season === 'spring';
+            const isFall = season === 'fall';
+            const isWinter = season === 'winter' || !season;
+
+            // Base snow coverage (always present, even in summer)
+            const baseSnowPatches = isSummer ? 30 : isSpring ? 45 : isFall ? 55 : 70;
+            const snowOpacityBase = isSummer ? 0.5 : isSpring ? 0.65 : isFall ? 0.75 : 0.9;
+
+            // Deep persistent snow patches FIRST (so they appear under trees)
+            for (let i = 0; i < baseSnowPatches; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const snowSize = isSummer ? (10 + noise.random() * 12) :
+                               isWinter ? (15 + noise.random() * 25) :
+                               (12 + noise.random() * 18);
+
+                // Irregular snow patch shape
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(noise.random() * Math.PI * 2);
+
+                // Multi-layered snow for depth
+                const snowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, snowSize);
+                snowGrad.addColorStop(0, `rgba(250, 252, 255, ${snowOpacityBase + noise.random() * 0.1})`);
+                snowGrad.addColorStop(0.5, `rgba(240, 245, 250, ${snowOpacityBase - 0.1})`);
+                snowGrad.addColorStop(1, `rgba(235, 240, 245, ${Math.max(0.1, snowOpacityBase - 0.3)})`);
+
+                ctx.fillStyle = snowGrad;
+                ctx.beginPath();
+                // Create irregular snow shape
+                const points = 8;
+                for (let p = 0; p < points; p++) {
+                    const angle = (p / points) * Math.PI * 2;
+                    const radius = snowSize * (0.7 + noise.random() * 0.3);
+                    const px = Math.cos(angle) * radius;
+                    const py = Math.sin(angle) * radius;
+                    if (p === 0) {
+                        ctx.moveTo(px, py);
+                    } else {
+                        ctx.lineTo(px, py);
+                    }
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Deep tree shadows - reduced opacity to show snow beneath
+            for (let i = 0; i < 15; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
                 const shadowWidth = 15 + noise.random() * 25;
@@ -634,8 +819,8 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 ctx.rotate(noise.random() * Math.PI / 4); // Varied shadow direction
 
                 const shadowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, shadowWidth);
-                shadowGrad.addColorStop(0, `rgba(15, 30, 20, ${0.4 + noise.random() * 0.2})`);
-                shadowGrad.addColorStop(0.7, `rgba(25, 45, 30, ${0.2 + noise.random() * 0.1})`);
+                shadowGrad.addColorStop(0, `rgba(15, 30, 20, ${0.25 + noise.random() * 0.1})`);
+                shadowGrad.addColorStop(0.7, `rgba(25, 45, 30, ${0.1 + noise.random() * 0.05})`);
                 shadowGrad.addColorStop(1, 'transparent');
 
                 ctx.fillStyle = shadowGrad;
@@ -643,17 +828,18 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 ctx.restore();
             }
 
-            // Dense conifer needle carpet
-            for (let i = 0; i < 120; i++) {
+            // Dense conifer needle carpet (reduced visibility in heavy snow)
+            const needleCount = isWinter ? 40 : isFall ? 60 : isSpring ? 80 : 100;
+            for (let i = 0; i < needleCount; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
                 const needleLength = 1.5 + noise.random() * 3;
                 const angle = noise.random() * Math.PI * 2;
 
-                // Varied needle colors - from green to brown (fallen)
+                // Varied needle colors - more muted due to snow coverage
                 const needleColor = noise.random() > 0.3 ?
-                    `rgba(25, 65, 35, ${0.5 + noise.random() * 0.3})` : // Green needles
-                    `rgba(60, 45, 30, ${0.4 + noise.random() * 0.2})`; // Brown fallen needles
+                    `rgba(25, 65, 35, ${0.3 + noise.random() * 0.2})` : // Green needles
+                    `rgba(60, 45, 30, ${0.25 + noise.random() * 0.15})`; // Brown fallen needles
 
                 ctx.strokeStyle = needleColor;
                 ctx.lineWidth = 0.4 + noise.random() * 0.3;
@@ -663,15 +849,16 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 ctx.stroke();
             }
 
-            // Small conifer tree silhouettes
+            // Small conifer tree silhouettes with heavy snow loading
             for (let i = 0; i < 6; i++) {
                 const treeX = noise.random() * PATTERN_SIZE;
                 const treeY = noise.random() * PATTERN_SIZE;
                 const treeHeight = 8 + noise.random() * 12;
                 const treeWidth = 4 + noise.random() * 6;
 
-                // Simple triangular conifer shape
-                ctx.fillStyle = `rgba(20, 45, 25, ${0.3 + noise.random() * 0.2})`;
+                // Simple triangular conifer shape (darker in winter due to contrast with snow)
+                const treeOpacity = isWinter ? 0.4 : 0.3;
+                ctx.fillStyle = `rgba(20, 45, 25, ${treeOpacity + noise.random() * 0.15})`;
                 ctx.beginPath();
                 ctx.moveTo(treeX, treeY - treeHeight);
                 ctx.lineTo(treeX - treeWidth/2, treeY);
@@ -679,8 +866,32 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 ctx.closePath();
                 ctx.fill();
 
-                // Tree trunk
-                ctx.strokeStyle = `rgba(50, 35, 25, ${0.4 + noise.random() * 0.2})`;
+                // Heavy snow on tree branches (always present)
+                const snowOnTree = noise.random() > (isSummer ? 0.3 : 0.1);
+                if (snowOnTree) {
+                    // Multiple layers of snow on branches
+                    for (let layer = 0; layer < 3; layer++) {
+                        const layerY = treeY - treeHeight * (0.7 - layer * 0.25);
+                        const layerWidth = treeWidth * (0.8 - layer * 0.2);
+
+                        ctx.fillStyle = `rgba(245, 250, 255, ${snowOpacityBase - 0.1 - layer * 0.1})`;
+                        ctx.beginPath();
+                        ctx.moveTo(treeX, layerY);
+                        ctx.lineTo(treeX - layerWidth/2, layerY + 3);
+                        ctx.lineTo(treeX + layerWidth/2, layerY + 3);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+
+                    // Snow cap on top
+                    ctx.fillStyle = `rgba(250, 252, 255, ${snowOpacityBase})`;
+                    ctx.beginPath();
+                    ctx.arc(treeX, treeY - treeHeight, treeWidth/3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Tree trunk (partially hidden by snow)
+                ctx.strokeStyle = `rgba(50, 35, 25, ${0.25 + noise.random() * 0.1})`;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(treeX, treeY);
@@ -738,14 +949,15 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 }
             }
 
-            // Enhanced winter/cold climate snow effects
-            if (season === 'winter' || season === 'spring' || season === 'fall') {
-                // Large snow drifts covering significant portions
-                for (let i = 0; i < 15; i++) {
+            // Additional winter/cold climate snow effects (on top of base snow)
+            if (season === 'winter' || season === 'fall') {
+                // Extra large snow drifts in winter/fall
+                const extraDrifts = isWinter ? 20 : 10;
+                for (let i = 0; i < extraDrifts; i++) {
                     const x = noise.random() * PATTERN_SIZE;
                     const y = noise.random() * PATTERN_SIZE;
-                    const driftWidth = 15 + noise.random() * 25;
-                    const driftHeight = 10 + noise.random() * 15;
+                    const driftWidth = 20 + noise.random() * 30;
+                    const driftHeight = 15 + noise.random() * 20;
 
                     // Irregular snow drift shape
                     ctx.save();
@@ -753,9 +965,9 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                     ctx.rotate(noise.random() * Math.PI / 4);
 
                     const snowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, driftWidth);
-                    snowGrad.addColorStop(0, `rgba(255, 255, 255, ${0.7 + noise.random() * 0.2})`);
-                    snowGrad.addColorStop(0.6, `rgba(245, 250, 255, ${0.5 + noise.random() * 0.2})`);
-                    snowGrad.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+                    snowGrad.addColorStop(0, `rgba(255, 255, 255, ${0.8 + noise.random() * 0.15})`);
+                    snowGrad.addColorStop(0.6, `rgba(245, 250, 255, ${0.6 + noise.random() * 0.2})`);
+                    snowGrad.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
 
                     ctx.fillStyle = snowGrad;
                     ctx.fillRect(-driftWidth/2, -driftHeight/2, driftWidth, driftHeight);

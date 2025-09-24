@@ -19,7 +19,8 @@
       "wikisourceTitle": "Moche_Portrait_Vessels",
       "citation": {
         "originalPublication": "Moche Ceramicists, 400"
-      }
+      },
+      "wikipediaArticle": "Moche_culture"
     },
     {
       "id": "nazca-line-descriptions",
@@ -47,7 +48,8 @@
         "translator": "Maria Reiche",
         "originalPublication": "Nazca Desert, Peru, c. 200-700 CE",
         "modernSource": "National Geographic Society, 1968"
-      }
+      },
+      "wikipediaArticle": "Nazca_Lines"
     },
     {
       "id": "moche-pottery-narratives",
@@ -75,7 +77,8 @@
         "translator": "Christopher Donnan",
         "originalPublication": "Moche Valley, Peru, c. 100-700 CE",
         "modernSource": "UCLA Fowler Museum, 1978"
-      }
+      },
+      "wikipediaArticle": "Moche_culture"
     },
     {
       "id": "tiwanaku-gate-sun",
@@ -103,7 +106,8 @@
         "translator": "Arthur Posnansky",
         "originalPublication": "Tiwanaku, Bolivia, c. 800 CE",
         "modernSource": "Academia Nacional de Ciencias de Bolivia, 1945"
-      }
+      },
+      "wikipediaArticle": "Gate_of_the_Sun"
     }
   ]
 }

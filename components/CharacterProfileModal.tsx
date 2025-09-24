@@ -37,6 +37,13 @@ import { ANIMAL_DATA } from '../constants';
 import AnimalCompanionModal from './AnimalCompanionModal';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { isSafari } from '../utils/safariUtils';
+import {
+  generateLifeHistory,
+  EventImportance,
+  type EnhancedLifeEvent,
+  type EventKind
+} from '../services/lifeHistoryService';
+import { CharacterHistoryTab } from './CharacterHistoryTab';
 
 /* lucide icons */
 import {
@@ -73,6 +80,14 @@ import {
   BookOpen,
   Flame,
   MoreVertical,
+  Church,
+  Briefcase,
+  Baby,
+  GraduationCap,
+  Wheat,
+  Crown,
+  Scale,
+  Book,
 } from 'lucide-react';
 
 /* Attribute Components */
@@ -218,32 +233,16 @@ const TabBtn: React.FC<{ label: string; active: boolean; onClick: () => void; Ic
 );
 
 /* -------------------------------------------------------------------------- */
-/* Life Events (Richer, Icon-tagged)                                          */
+/* Life Events Icon and Color Mapping                                         */
 /* -------------------------------------------------------------------------- */
-
-type EventKind =
-  | 'birth'
-  | 'apprenticeship'
-  | 'romance'
-  | 'marriage'
-  | 'battle'
-  | 'discovery'
-  | 'journey'
-  | 'tragedy'
-  | 'plague'
-  | 'achievement'
-  | 'study'
-  | 'guild'
-  | 'rival'
-  | 'animal'
-  | 'fire'
-  | 'travel';
 
 const EVENT_ICON: Record<EventKind, any> = {
   birth: Sparkles,
   apprenticeship: Hammer,
+  education: GraduationCap,
   romance: Heart,
   marriage: Handshake,
+  childbirth: Baby,
   battle: Sword,
   discovery: FlaskConical,
   journey: Ship,
@@ -253,231 +252,84 @@ const EVENT_ICON: Record<EventKind, any> = {
   study: BookOpen,
   guild: Users,
   rival: Skull,
-  animal: PawPrint,
+  injury: Activity,
   fire: Flame,
   travel: Compass,
+  religious: Church,
+  political: Crown,
+  trade: Briefcase,
+  family: Users,
+  legal: Scale,
+  artistic: Book,
+  agricultural: Wheat,
+  maritime: Ship,
+  death: Skull
 };
 
-interface LifeEvent {
-  year: number;
-  kind: EventKind;
-  title: string;
-  text: string;
-}
+// Color scheme for event importance
+const EVENT_COLORS: Record<EventImportance, string> = {
+  [EventImportance.MILESTONE]: 'bg-yellow-600 border-yellow-500',      // Gold
+  [EventImportance.TRAGEDY]: 'bg-red-600 border-red-500',             // Red
+  [EventImportance.INJURY]: 'bg-orange-600 border-orange-500',        // Orange
+  [EventImportance.OPPORTUNITY]: 'bg-green-600 border-green-500',     // Green
+  [EventImportance.RELATIONSHIP]: 'bg-purple-600 border-purple-500',  // Purple
+  [EventImportance.MUNDANE]: 'bg-slate-600 border-slate-500'          // Gray
+};
 
-const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+interface LifeEvent extends EnhancedLifeEvent {}
+
+// Helper to determine era from year
+function getHistoricalEraFromYear(year: number): string {
+  if (year < -3000) return 'PREHISTORY';
+  if (year < 500) return 'ANTIQUITY';
+  if (year < 1450) return 'MEDIEVAL';
+  if (year < 1800) return 'RENAISSANCE_EARLY_MODERN';
+  if (year < 1950) return 'INDUSTRIAL_ERA';
+  if (year < 2050) return 'MODERN_ERA';
+  return 'FUTURE_ERA';
+}
 
 const generateExpandedLifeEvents = (
   char: PlayerCharacter,
   currentDate: string,
-  companions: TamedAnimal[]
+  companions: TamedAnimal[],
+  culturalZone?: string,
+  era?: string
 ): LifeEvent[] => {
-  const birthYear = parseInt(char.birthYear || '0', 10) || (char.year ? char.year - char.age : 1500 - char.age);
-  const nowYear = parseInt(currentDate || '', 10) || char.year || birthYear + char.age;
-  const base: LifeEvent[] = [];
+  const currentYear = parseInt(currentDate || '', 10) || char.year || 1500;
+  const nowYear = currentYear; // Keep for compatibility
 
-  // Birth (anchor)
-  base.push({
-    year: birthYear,
-    kind: 'birth',
-    title: 'Birth',
-    text: `Born in ${char.hometown || 'a small village'}, to ${char.family?.length ? 'a known family' : 'humble origins'}.`,
-  });
+  // Determine cultural zone from character data
+  const zone = (culturalZone || char.culturalZone || 'EUROPEAN') as any;
 
-  // Childhood/Apprenticeship
-  if (char.age >= 12) {
-    base.push({
-      year: birthYear + 12 + Math.floor(Math.random() * 3),
-      kind: 'apprenticeship',
-      title: 'Apprenticeship',
-      text: `Began apprenticeship as a ${char.profession?.toLowerCase() || 'craftsman'}.`,
-    });
-  }
+  // Determine historical era from year
+  const historicalEra = era || getHistoricalEraFromYear(currentYear) || 'MEDIEVAL';
 
-  // Study/Scholarship (stat-weighted)
-  if ((char.stats?.intelligence || 0) >= 14) {
-    base.push({
-      year: birthYear + 15 + Math.floor(Math.random() * 4),
-      kind: 'study',
-      title: 'Scholarly Pursuits',
-      text: `Spent seasons studying rare manuscripts under a patient mentor.`,
-    });
-  }
+  // Generate sophisticated, contextual life history
+  const events = generateLifeHistory(
+    char,
+    currentYear,
+    zone,
+    historicalEra as any
+  ) as LifeEvent[];
 
-  // Romance & Marriage (varied)
-  if (char.age >= 16 && Math.random() > 0.5) {
-    base.push({
-      year: birthYear + 16 + Math.floor(Math.random() * 6),
-      kind: 'romance',
-      title: 'First Love',
-      text: pick([
-        'A tender courtship beneath lantern-lit festivals.',
-        'An ill-fated romance with a traveling performer.',
-        'A quiet affection that never found words.',
-      ]),
-    });
-  }
-  const spouse = char.family?.find(f => f.relation === 'spouse');
-  if (spouse && char.age >= 18) {
-    base.push({
-      year: birthYear + 18 + Math.floor(Math.random() * 8),
-      kind: 'marriage',
-      title: 'Marriage',
-      text: `Wed ${spouse.name} in a ${Math.random() > 0.5 ? 'grand' : 'modest'} ceremony.`,
+  // Add companion acquisitions to generated events
+  if (companions?.length > 0) {
+    companions.forEach(animal => {
+      if (animal.tamingDate && animal.tamingDate.year) {
+        events.push({
+          year: animal.tamingDate.year,
+          kind: 'animal' as EventKind,
+          importance: EventImportance.RELATIONSHIP,
+          title: `Tamed ${animal.speciesName}`,
+          text: `Formed bond with a ${animal.speciesName.toLowerCase()}, gaining a loyal companion.`,
+        });
+      }
     });
   }
 
-  // Journeys/Travel (profession/zone flavored)
-  if (Math.random() > 0.4) {
-    base.push({
-      year: birthYear + 18 + Math.floor(Math.random() * Math.max(2, char.age - 18)),
-      kind: 'journey',
-      title: 'Set Forth',
-      text: pick([
-        'Traveled over mountain passes to trade for rare dyes.',
-        'Crossed the delta by ferry to seek new patrons.',
-        'Escorted a caravan along wind-carved canyons.',
-      ]),
-    });
-  }
-
-  // Battle/Tragedy/Plague (worldliness)
-  if (Math.random() > 0.6) {
-    base.push({
-      year: birthYear + 17 + Math.floor(Math.random() * Math.max(2, char.age - 17)),
-      kind: 'battle',
-      title: 'Clash of Steel',
-      text: pick([
-        'Defended a hamlet from marauders.',
-        'Served briefly in a lord’s levy.',
-        'Stood watch through a tense siege that never came.',
-      ]),
-    });
-  }
-  if (Math.random() > 0.7) {
-    base.push({
-      year: birthYear + 14 + Math.floor(Math.random() * Math.max(2, char.age - 14)),
-      kind: 'tragedy',
-      title: 'A Hard Season',
-      text: pick([
-        'Lost a close friend to the river.',
-        'A fire consumed part of the neighborhood.',
-        'A poor harvest forced difficult choices.',
-      ]),
-    });
-  }
-  if (Math.random() > 0.65) {
-    base.push({
-      year: birthYear + 13 + Math.floor(Math.random() * Math.max(2, char.age - 13)),
-      kind: 'plague',
-      title: 'Outbreak',
-      text: pick([
-        'Kept vigil as illness swept the ward.',
-        'Helped distribute herbal tonics door-to-door.',
-        'Recovered after weeks of feverish dreams.',
-      ]),
-    });
-  }
-
-  // Guild / Rival / Achievement
-  if (Math.random() > 0.5) {
-    base.push({
-      year: birthYear + 19 + Math.floor(Math.random() * Math.max(2, char.age - 19)),
-      kind: 'guild',
-      title: 'Guild Oath',
-      text: 'Accepted into a local guild, sworn to shared standards.',
-    });
-  }
-  if (Math.random() > 0.55) {
-    base.push({
-      year: birthYear + 20 + Math.floor(Math.random() * Math.max(2, char.age - 20)),
-      kind: 'rival',
-      title: 'A Rival Appears',
-      text: pick([
-        'A rival artisan undercuts your prices.',
-        'An officer scoffs at your methods.',
-        'A cousin vies for the same patron’s favor.',
-      ]),
-    });
-  }
-  if (Math.random() > 0.45) {
-    base.push({
-      year: birthYear + 21 + Math.floor(Math.random() * Math.max(2, char.age - 21)),
-      kind: 'achievement',
-      title: 'Notable Deed',
-      text: pick([
-        'Crafted a piece that drew a crowd to the square.',
-        'Brokered peace between feuding neighbors.',
-        'Discovered an efficient technique that spread quietly.',
-      ]),
-    });
-  }
-
-  // Discovery / Fire / Travel
-  if (Math.random() > 0.5) {
-    base.push({
-      year: birthYear + 18 + Math.floor(Math.random() * Math.max(2, char.age - 18)),
-      kind: 'discovery',
-      title: 'Small Discovery',
-      text: pick([
-        'Perfected a dye that holds its color in rain.',
-        'Mapped a shortcut between market stalls.',
-        'Learned a healing tisane recipe from a traveler.',
-      ]),
-    });
-  }
-  if (Math.random() > 0.7) {
-    base.push({
-      year: birthYear + 18 + Math.floor(Math.random() * Math.max(2, char.age - 18)),
-      kind: 'fire',
-      title: 'Embers & Ash',
-      text: pick([
-        'Helped bucket brigades hold the line.',
-        'Lost a shed, saved the workshop.',
-        'Took in a neighbor after smoke ruined their stores.',
-      ]),
-    });
-  }
-  if (Math.random() > 0.6) {
-    base.push({
-      year: birthYear + 19 + Math.floor(Math.random() * Math.max(2, char.age - 19)),
-      kind: 'travel',
-      title: 'Further Afield',
-      text: pick([
-        'Followed the coast to a lighthouse town.',
-        'Rode with a courier over stone bridges slick with moss.',
-        'Shared stories at a hilltop shrine.',
-      ]),
-    });
-  }
-
-  // Animal companions → fold taming into timeline
-  companions.forEach(a => {
-    const y = a?.tamingDate?.year ?? nowYear;
-    base.push({
-      year: y,
-      kind: 'animal',
-      title: `Tamed ${a.name || a.speciesName}`,
-      text: pick([
-        'Patience and a steady hand won its trust.',
-        'A morsel and a calm voice sealed the bond.',
-        'Found wounded; nursed back to health.',
-      ]),
-    });
-  });
-
-  // Merge with any authored lifeEvents on the character (fallback structure)
-  (char.lifeEvents || []).forEach((e: any) => {
-    if (!e?.year || !e?.event) return;
-    base.push({
-      year: e.year,
-      kind: 'achievement',
-      title: 'Life Event',
-      text: e.event,
-    });
-  });
-
-  return base
+  // Sort chronologically and filter future events
+  return events
     .filter((e) => e.year && e.year <= nowYear)
     .sort((a, b) => a.year - b.year);
 };
@@ -531,6 +383,8 @@ const CharacterProfileModal: React.FC<Props> = ({
   const [isAnimalModalOpen, setIsAnimalModalOpen] = useState(false);
 
   const [showAttributeModal, setShowAttributeModal] = useState(false);
+  const [highlightedEventYear, setHighlightedEventYear] = useState<number | null>(null);
+  const timelineRef = React.useRef<HTMLDivElement>(null);
 
   // Safari performance optimization - remove expensive CSS effects
   useEffect(() => {
@@ -625,11 +479,73 @@ const CharacterProfileModal: React.FC<Props> = ({
     }
   }, [isOpen]);
 
-  const expandedLifeEvents = useMemo(
-    () => generateExpandedLifeEvents(character, date, tamedAnimals),
-    // Only regenerate when character fundamentally changes or animals list changes
-    [character?.id, character?.birthYear, character?.age, date, tamedAnimals.length]
-  );
+  // Determine cultural zone and era for life event generation
+  const culturalZone = useMemo(() => {
+    if (location?.culturalZone) return location.culturalZone;
+    if (character.culturalZone) return character.culturalZone;
+    // Try to map from location if available
+    if (location) {
+      const mapped = mapLocationToCulture(location.x, location.y);
+      if (mapped) return mapped;
+    }
+    return 'EUROPEAN'; // default fallback
+  }, [location, character.culturalZone]);
+
+  const era = useMemo(() => {
+    const year = parseInt(date || '1500', 10);
+    return getHistoricalEraFromYear(year);
+  }, [date]);
+
+  // Lazy-load life events only when history tab is active
+  const [lifeEventsGenerated, setLifeEventsGenerated] = useState(false);
+  const [expandedLifeEvents, setExpandedLifeEvents] = useState<LifeEvent[]>([]);
+
+  useEffect(() => {
+    if (active === 'history' && !lifeEventsGenerated && character) {
+      // Generate events in background
+      setTimeout(() => {
+        const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
+        setExpandedLifeEvents(events);
+        setLifeEventsGenerated(true);
+      }, 100);
+    }
+  }, [active, lifeEventsGenerated, character, date, tamedAnimals, culturalZone, era]);
+
+  // Helper to find events mentioning family members
+  const findFamilyEvents = useCallback((familyMemberName: string) => {
+    return expandedLifeEvents.filter(event => {
+      const textMentions = event.text.toLowerCase().includes(familyMemberName.toLowerCase());
+      const titleMentions = event.title.toLowerCase().includes(familyMemberName.toLowerCase());
+
+      // Check for parent death events specifically
+      const isFatherDeath = familyMemberName === character.family?.find(f => f.relation === 'father')?.name &&
+        (event.title.toLowerCase().includes('father') || event.text.toLowerCase().includes('father'));
+      const isMotherDeath = familyMemberName === character.family?.find(f => f.relation === 'mother')?.name &&
+        (event.title.toLowerCase().includes('mother') || event.text.toLowerCase().includes('mother'));
+
+      // Check linked characters
+      const linkedMention = event.linkedCharacters?.some(char =>
+        char.toLowerCase() === familyMemberName.toLowerCase() ||
+        (char === 'father' && familyMemberName === character.family?.find(f => f.relation === 'father')?.name) ||
+        (char === 'mother' && familyMemberName === character.family?.find(f => f.relation === 'mother')?.name)
+      );
+
+      return textMentions || titleMentions || isFatherDeath || isMotherDeath || linkedMention;
+    });
+  }, [expandedLifeEvents, character.family]);
+
+  // Scroll to and highlight specific event
+  const scrollToEvent = useCallback((year: number) => {
+    setHighlightedEventYear(year);
+    if (timelineRef.current) {
+      const eventElement = timelineRef.current.querySelector(`[data-year="${year}"]`);
+      if (eventElement) {
+        eventElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Remove highlight after animation
+        setTimeout(() => setHighlightedEventYear(null), 2000);
+      }
+    }
+  }, []);
 
   const healthHistory = useMemo(() => {
     const res: Array<{ year: number; age: number; disease: string; outcome: string }> = [];
@@ -1367,53 +1283,17 @@ const CharacterProfileModal: React.FC<Props> = ({
                 </div>
               )}
 
-              {/* HISTORY (icons per event) ----------------------------------- */}
+              {/* HISTORY (enhanced with portraits and interactivity) --------- */}
               {active === 'history' && (
-                <div className="p-6 grid md:grid-cols-3 gap-6">
-                  <div>
-                    <h4 className="text-blue-400 font-semibold text-lg mb-3 border-b border-slate-700 pb-2">Family</h4>
-                    <div className="space-y-2 text-sm">
-                      {(['father', 'mother'] as const).map(rel => {
-                        const m = (character.family || []).find(f => f.relation === rel);
-                        return m ? (
-                          <div key={rel}>
-                            <strong className="capitalize">{rel}:</strong> {m.name} ({m.profession})
-                          </div>
-                        ) : null;
-                      })}
-                      <div>
-                        <strong>Children:</strong>
-                        <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
-                          {(character.family || [])
-                            .filter(f => f.relation === 'son' || f.relation === 'daughter')
-                            .map((c, idx) => (
-                              <li key={`${c.name}-${idx}`}>{c.name} (age {c.age})</li>
-                            ))}
-                          {(character.family || []).filter(f => f.relation === 'son' || f.relation === 'daughter').length === 0 && <li>None</li>}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <h4 className="text-blue-400 font-semibold text-lg mb-3 border-b border-slate-700 pb-2">Timeline</h4>
-                    <div className="relative border-l-2 border-slate-600 pl-6 space-y-4 max-h-96 overflow-y-auto scrollbar-thin">
-                      {expandedLifeEvents.map((e, i) => {
-                        const Icon = EVENT_ICON[e.kind] || Sparkles;
-                        return (
-                          <div key={`${e.kind}-${e.year}-${i}`} className="relative">
-                            <div className="absolute -left-[33px] top-1 w-5 h-5 rounded-full bg-blue-600 border-2 border-slate-900 grid place-items-center text-white">
-                              <Icon className="w-3 h-3" />
-                            </div>
-                            <div className="text-xs text-slate-400 font-semibold">{e.year}</div>
-                            <div className="text-sm text-white font-semibold">{e.title}</div>
-                            <div className="text-sm text-slate-300">{e.text}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+                <CharacterHistoryTab
+                  character={character}
+                  expandedLifeEvents={expandedLifeEvents}
+                  lifeEventsGenerated={lifeEventsGenerated}
+                  findFamilyEvents={findFamilyEvents}
+                  scrollToEvent={scrollToEvent}
+                  timelineRef={timelineRef}
+                  highlightedEventYear={highlightedEventYear}
+                />
               )}
 
               {/* HOUSEHOLD (now shows companions with Release) ---------------- */}

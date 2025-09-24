@@ -429,7 +429,7 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
     CELTIC_IRISH: {
         male: ['Seán', 'Liam', 'Conor', 'Cian', 'Aidan', 'Niall', 'Eoin', 'Oisín', 'Tadhg', 'Ruairí', 'Cillian', 'Darragh', 'Fionn', 'Ronan', 'Donnacha', 'Pádraig', 'Cormac', 'Brendan', 'Colm', 'Diarmuid', 'Eamon', 'Fergus', 'Ciarán', 'Lorcan', 'Muiris', 'Rían', 'Séamus', 'Cathal', 'Donal', 'Finn'],
         female: ['Aoife', 'Ciara', 'Niamh', 'Aisling', 'Sinéad', 'Caoimhe', 'Orla', 'Saoirse', 'Clodagh', 'Róisín', 'Ailbhe', 'Gráinne', 'Méabh', 'Siobhán', 'Muirenn', 'Brigid', 'Dervla', 'Fionnuala', 'Íde', 'Maeve', 'Nuala', 'Órlaith', 'Úna', 'Laoise', 'Aoibhinn', 'Bríd', 'Deirdre', 'Eimear', 'Fíona', 'Mairéad'],
-        surname: ["O'Brien", "O'Sullivan", "O'Connor", "O'Neill", "O'Kelly", "Murphy", "Walsh", "Ryan", "Byrne", "McCarthy", "Kelly", "Doyle", "Gallagher", "Clarke", "Kennedy", "Lynch", "Murray", "Quinn", "Moore", "McLoughlin", "Carroll", "Connolly", "Daly", "Connell", "Wilson", "Dunne", "Griffin", "Hayes", "Martin", "McDonnell"]
+        surname: ["O'Brien", "O'Sullivan", "O'Connor", "O'Neill", "O'Kelly", "Murphy", "Walsh", "Ryan", "Byrne", "McCarthy", "Kelly", "Doyle", "Gallagher", "Clarke", "Kennedy", "Lynch", "Murray", "Quinn", "Moore", "McLoughlin", "Carroll", "Connolly", "Daly", "Connell", "Wilson", "Dunne", "Griffin", "Breen", "Martin", "McDonnell"]
     },
     WELSH: {
         male: ['Gareth', 'Rhys', 'Owen', 'Dylan', 'Dafydd', 'Llyr', 'Iestyn', 'Geraint', 'Tudur', 'Aneurin', 'Cai', 'Emrys', 'Gwylim', 'Huw', 'Ieuan', 'Jestyn', 'Llewelyn', 'Mabyn', 'Neirin', 'Padrig', 'Rhodri', 'Steffan', 'Tomos', 'Wil', 'Ynyr', 'Brychan', 'Ceredig', 'Dewi', 'Efan', 'Gruffydd'],
@@ -538,7 +538,7 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
     },
     CHINESE_CANTONESE: {
         male: ['Wai', 'Ho', 'Fai', 'Wing', 'Chi', 'Man', 'Kin', 'Lok', 'Cheung', 'Kwok', 'Ming', 'Shing', 'Chun', 'Ka', 'Pak', 'Siu', 'Tsz', 'Yiu', 'Ching', 'Hang', 'Hin', 'Hoi', 'Hok', 'Hon', 'Hung', 'Jim', 'Kai', 'Kit', 'Kwan', 'Lam'],
-        female: ['Wing', 'Mei', 'Yuk', 'Yan', 'Pui', 'Ling', 'Ka', 'Siu', 'Yee', 'Man', 'Wai', 'Lai', 'Ying', 'Ching', 'Gigi', 'Heidi', 'Joey', 'Karen', 'Maggie', 'Nancy', 'Pauline', 'Queenie', 'Rosanne', 'Shirley', 'Teresa', 'Vivian', 'Wendy', 'Yoyo', 'Zita', 'Ada'],
+        female: ['Wing', 'Mei', 'Yuk', 'Yan', 'Pui', 'Ling', 'Ka', 'Siu', 'Yee', 'Man', 'Wai', 'Lai', 'Ying', 'Ching', 'Gigi',  'Yoyo'],
         surname: ['Chan', 'Leung', 'Wong', 'Li', 'Cheung', 'Lau', 'Ho', 'Mak', 'Ng', 'Ma', 'Lam', 'Fung', 'Chow', 'Yip', 'Tsang', 'Chui', 'Shek', 'Poon', 'Man', 'Lo', 'Yuen', 'Kwan', 'Mok', 'Pang', 'Tang', 'Tse', 'Tsoi', 'Wan', 'Yeung', 'Yiu']
     },
     // Ancient Korean names (Three Kingdoms period: 57 BCE - 668 CE)
@@ -567,19 +567,32 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
     },
     PERSIAN_FARSI: {
         male: ['Arash', 'Babak', 'Cyrus', 'Darius', 'Kian', 'Rostam', 'Farhad', 'Kaveh', 'Omid', 'Siavash', 'Shahriar', 'Jamshid', 'Kamran', 'Farzad', 'Hooman', 'Saeed', 'Navid', 'Reza', 'Behzad', 'Keyvan', 'Masoud', 'Parviz', 'Shahram', 'Touraj', 'Vahid', 'Bijan', 'Fariborz', 'Hossein', 'Majid', 'Sohrab'],
-        female: ['Anahita', 'Esther', 'Yasmin', 'Roxana', 'Soraya', 'Parisa', 'Golnar', 'Shirin', 'Maryam', 'Nasrin', 'Shahrzad', 'Farah', 'Laleh', 'Mahsa', 'Niloufar', 'Pardis', 'Setareh', 'Taraneh', 'Vida', 'Zohreh', 'Bahar', 'Darya', 'Goli', 'Homa', 'Irana', 'Kimia', 'Mitra', 'Nazanin', 'Pegah', 'Samira'],
-        surname: ['Rostami', 'Khorasani', 'Yazdi', 'Isfahani', 'Tabrizi', 'Shirazi', 'Mashhadi', 'Tehrani', 'Ahvazi', 'Kermani', 'Rasht', 'Qomi', 'Hamadani', 'Kashani', 'Ardebili', 'Bandar', 'Dezfuli', 'Gorgan', 'Ilami', 'Jahrom', 'Kashan', 'Lorestan', 'Mazandaran', 'Najaf', 'Orumiyeh', 'Parsian', 'Qazvin', 'Rafsanjan', 'Sanandaj', 'Urmia']
+        female: ['Anahita', 'Roya', 'Yasmin', 'Roxana', 'Soraya', 'Parisa', 'Golnar', 'Shirin', 'Maryam', 'Nasrin', 'Shahrzad', 'Farah', 'Laleh', 'Mahsa', 'Niloufar', 'Pardis', 'Setareh', 'Taraneh', 'Nava', 'Zohreh', 'Bahar', 'Darya', 'Goli', 'Homa', 'Irana', 'Yara', 'Mitra', 'Nazanin', 'Pegah', 'Samira'],
+        surname: ['Rostami', 'Khorasani', 'Yazdi', 'Isfahani', 'Tabrizi', 'Shirazi', 'Mashhadi', 'Tehrani', 'Ahvazi', 'Kermani', 'Rasht', 'Qomi', 'Hamadani', 'Kashani', 'Ardebili', 'Bandar', 'Dezfuli', 'Gorgan', 'Ilami', 'Jahrom', 'Kashan', 'Lorestan', 'Mazandaran', 'Najaf', 'Orumiyeh', 'Parsian', 'Qazvin', 'Rafsanjan', 'Sanandaj', 'Urmia', 'Pakzad']
     },
     TURKISH: {
         male: ['Ahmet', 'Mehmet', 'Mustafa', 'Ali', 'Hasan', 'Hüseyin', 'İbrahim', 'İsmail', 'Ömer', 'Osman', 'Süleyman', 'Yusuf', 'Kemal', 'Fatih', 'Emre', 'Burak', 'Murat', 'Serkan', 'Tolga', 'Cem', 'Deniz', 'Erkan', 'Gökhan', 'Hakan', 'Onur', 'Özkan', 'Selim', 'Taner', 'Volkan', 'Yakup'],
         female: ['Ayşe', 'Fatma', 'Emine', 'Hatice', 'Zeynep', 'Elif', 'Merve', 'Özge', 'Büşra', 'Gizem', 'Selin', 'Çiğdem', 'Derya', 'Esra', 'Gonca', 'Hülya', 'İrem', 'Kübra', 'Leyla', 'Melike', 'Neslihan', 'Pınar', 'Sevgi', 'Tuba', 'Ülkü', 'Yasemin', 'Asiye', 'Burcu', 'Dilek', 'Filiz'],
         surname: ['Yılmaz', 'Kaya', 'Demir', 'Şahin', 'Çelik', 'Yıldız', 'Yıldırım', 'Öztürk', 'Aydin', 'Özdemir', 'Arslan', 'Doğan', 'Kilic', 'Aslan', 'Çetin', 'Kara', 'Koç', 'Kurt', 'Özkan', 'Şimşek', 'Erdoğan', 'Güneş', 'Aksu', 'Bayram', 'Çakır', 'Duman', 'Erdem', 'Güler', 'Kılıç', 'Polat']
     },
-    HEBREW: {
-        male: ['David', 'Daniel', 'Michael', 'Yosef', 'Moshe', 'Benjamin', 'Avraham', 'Yitzhak', 'Yaakov', 'Shlomo', 'Shimon', 'Reuven', 'Gad', 'Asher', 'Naftali', 'Efraim', 'Menashe', 'Yehuda', 'Levi', 'Aharon', 'Noam', 'Eitan', 'Amit', 'Roi', 'Ido', 'Tal', 'Omer', 'Yuval', 'Gal', 'Ariel'],
-        female: ['Sarah', 'Rivka', 'Rachel', 'Leah', 'Miriam', 'Esther', 'Ruth', 'Naomi', 'Tamar', 'Abigail', 'Hannah', 'Deborah', 'Judith', 'Batsheva', 'Michal', 'Dinah', 'Shira', 'Noa', 'Maya', 'Tal', 'Chen', 'Yael', 'Orli', 'Liron', 'Gal', 'Shachar', 'Roni', 'Keren', 'Dafna', 'Hila'],
-        surname: ['Cohen', 'Levi', 'Miller', 'Goldstein', 'Rosen', 'Friedman', 'Katz', 'Schwartz', 'Klein', 'Green', 'Stern', 'Wolf', 'Weiss', 'Rosenberg', 'Goldberg', 'Shapiro', 'Kaplan', 'Berman', 'Silver', 'Reich', 'Gross', 'Adler', 'Hirsch', 'Blau', 'Stein', 'Frank', 'Geller', 'Horowitz', 'Kaufman', 'Levin']
-    },
+   HEBREW: {
+     male: [
+       "Yehoshua","Yehudah","Yosef","Moshe","Yitzhak","Yaakov","Shlomo","Shimon","Reuven","Ephraim",
+       "Menashe","Eliyahu","Yonatan","Shmuel","Natan","Baruch","Eleazar","Hillel","Gamaliel","Hananiah",
+       "Uriel","Azariah","Tobiah","Naftali","Zadok","Obadiah","Amram","Netanel","Yoel","Simeon"
+     ],
+     female: [
+       "Sarah","Rivka","Rachel","Leah","Miriam","Esther","Ruth","Tamar","Avigail","Channah",
+       "Devorah","Yehudit","Batsheva","Michal","Dinah","Yael","Tzipporah","Batya","Elisheva","Huldah",
+       "Serah","Asenath","Shulamit","Keturah","Keziah","Ada","Orpah","Salome","Yaffa","Nava"
+     ],
+     surname: [
+       "Cohen","HaCohen","Levi","HaLevi","benYosef","benAvraham","benDavid","benShimon","IbnEzra","IbnGabirol",
+       "Alfasi","Abravanel","Benveniste","Maimon","Karo","Pardo","Toledano","Farhi","Najar","IbnDanan",
+       "Dayan","Gabbai","Katzin","BenEzra","BenHayyim","Almog","Najara","Sepharadi",
+       "Toledano","Abravaneli"
+     ]
+   },
     BERBER_AMAZIGH: {
         male: ['Amellal', 'Azru', 'Ifri', 'Lmahdi', 'Massinissa', 'Yuba', 'Azalay', 'Itri', 'Tamazight', 'Akli', 'Amyas', 'Azwaw', 'Dihya', 'Gaya', 'Matoub', 'Meziane', 'Mohand', 'Ouali', 'Slimane', 'Youcef', 'Amayas', 'Ameziane', 'Aqvayli', 'Aurassi', 'Azayku', 'Azegzaw', 'Azelmad', 'Azelmat', 'Azemour', 'Azeryul'],
         female: ['Dihya', 'Tafukt', 'Tilelli', 'Yemma', 'Tislit', 'Taqbaylit', 'Thilleli', 'Wardia', 'Yelli', 'Zahra', 'Tasa', 'Tamurt', 'Tafrawt', 'Takfarinas', 'Tamazight', 'Taneqqust', 'Targia', 'Tasekkurt', 'Tawenza', 'Taziri', 'Thiziri', 'Tifawt', 'Tilla', 'Tilleli', 'Tinhinan', 'Tiska', 'Tiziri', 'Ulac', 'Warda', 'Yemma'],

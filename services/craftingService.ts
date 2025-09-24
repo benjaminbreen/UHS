@@ -90,6 +90,11 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
         - Wood planks + cloth/sail material = sailboat (medium, wind-powered)
         - Wood + oars/paddles = rowboat (medium, oar-powered)
         - Single log = improvised log raft (basic flotation)
+
+        BRIDGE CRAFTING EXAMPLES (category: "Bridge"):
+        - 2+ logs = simple log bridge (spans 1 water tile, deployable)
+        - Log + rope = rope bridge (lighter, spans 1 water tile, deployable)
+        - Multiple logs + multiple ropes = sturdy bridge (more durable, spans 1 water tile)
         
         TOOL CATEGORIES BY FUNCTION:
         - Vessels: kayak, canoe, raft, sailboat, rowboat, log_raft (enable sea travel)

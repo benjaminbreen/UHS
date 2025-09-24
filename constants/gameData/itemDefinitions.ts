@@ -40,6 +40,8 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
 
     // --- Junk/Basic ---
     STICK: { baseId: 'STICK', name: 'Sturdy Stick', description: 'A solid piece of wood. Could be useful.', emoji: '🪵', rarity: 'Junk', value: 0, weight: 0.5, wearable: false, stackable: false, attack: 1, sustenance: 0, wieldable: true, throwable: true, craftingValue: 1, category: 'Tool', material: 'Wood', equipmentSlot: 'main_hand' },
+    LOG: { baseId: 'LOG', name: 'LOG', description: 'A wooden log. Could be useful.', emoji: '🪵', rarity: 'Junk', value: 0, weight: 0.5, wearable: false, stackable: false, attack: 1, sustenance: 0, wieldable: true, throwable: true, craftingValue: 1, category: 'Material', material: 'Wood', equipmentSlot: 'main_hand' },
+    
     SMOOTH_STONE: { baseId: 'SMOOTH_STONE', name: 'Smooth Stone', description: 'A pleasant, smooth stone, worn by water.', emoji: '🪨', rarity: 'Junk', value: 0, weight: 0.2, wearable: false, stackable: true, attack: 1, sustenance: 0, wieldable: false, throwable: true, craftingValue: 1, category: 'Material', material: 'Stone' },
     DRY_LEAVES: { baseId: 'DRY_LEAVES', name: 'Dry Leaves', description: 'A handful of dry, brittle leaves. Good for tinder.', emoji: '🍂', rarity: 'Junk', value: 0, weight: 0.1, wearable: false, stackable: true, attack: 0, sustenance: -1, wieldable: false, throwable: false, craftingValue: 1, category: 'Material' },
     POTTERY_SHARD: { baseId: 'POTTERY_SHARD', name: 'Pottery Shard', description: 'A broken piece of old pottery.', emoji: '🏺', rarity: 'Junk', value: 0, weight: 0.1, wearable: false, stackable: true, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 1, category: 'Material' },

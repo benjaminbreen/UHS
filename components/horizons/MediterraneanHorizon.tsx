@@ -368,9 +368,12 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
         {/* Top atmospheric fade to transparency, masked by a soft ridge so the blend feels natural */}
         <linearGradient id={ids.topfade} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stopColor="white" stopOpacity="0" />
-          <stop offset="32%"  stopColor="white" stopOpacity=".15" />
-          <stop offset="58%"  stopColor="white" stopOpacity=".45" />
-          <stop offset="78%"  stopColor="white" stopOpacity=".80" />
+          <stop offset="15%"  stopColor="white" stopOpacity=".02" />
+          <stop offset="30%"  stopColor="white" stopOpacity=".08" />
+          <stop offset="45%"  stopColor="white" stopOpacity=".18" />
+          <stop offset="60%"  stopColor="white" stopOpacity=".35" />
+          <stop offset="75%"  stopColor="white" stopOpacity=".60" />
+          <stop offset="88%"  stopColor="white" stopOpacity=".85" />
           <stop offset="100%" stopColor="white" stopOpacity=".98" />
         </linearGradient>
         <mask id={ids.topmask}>
@@ -515,16 +518,16 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
 
       {/* Mask group for top transparency */}
       <g mask={`url(#${ids.topmask})`}>
-        {/* VERY FAR coastal violet range */}
-        <g opacity={isNight ? 0.28 : 0.34}>
+        {/* VERY FAR coastal violet range - much more transparent at night to avoid dark bands */}
+        <g opacity={isNight ? 0.08 : 0.34}>
           <path d={ridgePath(yVF, p(height * 0.12), 12, 0.7)} fill={P.vf} />
         </g>
 
         {/* Haze between vf/far */}
-        <rect x="0" y={p(yVF - height * 0.02)} width={width} height={p(height * 0.07)} fill={`url(#${ids.hazeD})`} opacity={clamp((fx?.hazeDensity ?? 0.25) * 1.2)} />
+        <rect x="0" y={p(yVF - height * 0.02)} width={width} height={p(height * 0.07)} fill={`url(#${ids.hazeD})`} opacity={clamp((fx?.hazeDensity ?? 0.25) * (isNight ? 0.4 : 1.2))} />
 
-        {/* FAR ridges */}
-        <g opacity={isNight ? 0.40 : 0.56}>
+        {/* FAR ridges - also more transparent at night */}
+        <g opacity={isNight ? 0.15 : 0.56}>
           <path d={ridgePath(yFar, p(height * 0.10), 11, 0.8)} fill={P.far} />
           {/* snow dusting (far) */}
           {isSnow && (

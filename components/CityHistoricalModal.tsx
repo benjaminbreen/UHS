@@ -1,0 +1,313 @@
+/**
+ * components/CityHistoricalModal.tsx
+ * Modal for displaying historically accurate city descriptions and AI-generated street scenes
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, MapPin, Calendar, Users, Sparkles, Info, Cloud, CloudRain, CloudSnow, Sun } from 'lucide-react';
+import { useGame } from '../contexts/GameContext';
+import { useMap } from '../contexts/MapContext';
+import { generateHistoricalCityDescription } from '../services/llmService';
+import { imageGenerationService } from '../services/imageGenerationService';
+import { weatherService } from '../services/weatherService';
+import { CulturalZone, HistoricalEra, NpcEntity } from '../types';
+
+interface CityHistoricalModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  cityName: string;
+  cityDescription?: string;
+  nearbyNpcs?: NpcEntity[];
+}
+
+export const CityHistoricalModal: React.FC<CityHistoricalModalProps> = ({
+  isOpen,
+  onClose,
+  cityName,
+  cityDescription,
+  nearbyNpcs = []
+}) => {
+  const { gameDate, gameTimeHours, currentZone, currentRegion, season, currentTimeOfDay } = useGame();
+  const { culturalZone, mapData } = useMap();
+
+  const [llmDescription, setLlmDescription] = useState<string>('');
+  const [isLoadingDescription, setIsLoadingDescription] = useState(false);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [imagePrompt, setImagePrompt] = useState<string | null>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  // Calculate current weather
+  const weather = useMemo(() => {
+    if (!mapData || !season || !currentTimeOfDay) return null;
+
+    const weatherState = weatherService.getWeather(
+      mapData.climate || 'temperate',
+      season,
+      currentTimeOfDay,
+      0, // altitude - using sea level for cities
+      null // biome - not needed for city context
+    );
+
+    return weatherState;
+  }, [mapData, season, currentTimeOfDay]);
+
+  // Format the exact date and time
+  const formatDateTime = () => {
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+                       "July", "August", "September", "October", "November", "December"];
+    const timeOfDay = gameTimeHours < 6 ? 'dawn' :
+                     gameTimeHours < 12 ? 'morning' :
+                     gameTimeHours === 12 ? 'noon' :
+                     gameTimeHours < 17 ? 'afternoon' :
+                     gameTimeHours < 20 ? 'evening' : 'night';
+
+    const dateStr = gameDate.year < 0
+      ? `${monthNames[gameDate.month - 1]} ${gameDate.day}, ${Math.abs(gameDate.year)} BCE`
+      : `${monthNames[gameDate.month - 1]} ${gameDate.day}, ${gameDate.year} CE`;
+
+    return { dateStr, timeOfDay };
+  };
+
+  // Generate historical description when modal opens
+  useEffect(() => {
+    if (isOpen && cityName) {
+      generateHistoricalDescription();
+    }
+  }, [isOpen, cityName]);
+
+  const generateHistoricalDescription = async () => {
+    setIsLoadingDescription(true);
+    setDescriptionError(null);
+
+    try {
+      const { dateStr, timeOfDay } = formatDateTime();
+      const description = await generateHistoricalCityDescription({
+        cityName,
+        date: dateStr,
+        timeOfDay,
+        culturalZone: culturalZone as CulturalZone,
+        region: currentRegion || 'Unknown Region',
+        zone: currentZone || 'Unknown Zone',
+        nearbyNpcs: nearbyNpcs.slice(0, 5), // Include up to 5 NPCs for context
+        baseDescription: cityDescription,
+        weather: weather ? {
+          precipitation: weather.precipitation,
+          intensity: weather.intensity,
+          windSpeed: weather.windSpeed,
+          temperature: weather.temperature,
+          cloudCover: weather.cloudCover,
+          visibility: weather.visibility,
+          description: weather.description
+        } : undefined
+      });
+
+      setLlmDescription(description);
+
+      // After getting description, generate image
+      if (imageGenerationService.isAvailable()) {
+        generateCityImage(description);
+      }
+    } catch (error) {
+      console.error('Failed to generate city description:', error);
+      setDescriptionError('Unable to generate historical description');
+      setLlmDescription(cityDescription || 'A settlement of this era.');
+    } finally {
+      setIsLoadingDescription(false);
+    }
+  };
+
+  const generateCityImage = async (description: string) => {
+    setIsGeneratingImage(true);
+    setImageError(null);
+
+    try {
+      const { dateStr, timeOfDay } = formatDateTime();
+      const result = await imageGenerationService.generateCitySceneImage({
+        cityName,
+        llmDescription: description,
+        culturalZone: culturalZone as CulturalZone,
+        year: gameDate.year,
+        timeOfDay,
+        dateStr
+      });
+
+      if (result.imageUrl) {
+        setImageUrl(result.imageUrl);
+        setImagePrompt(result.prompt || null);
+      } else {
+        setImageError('Failed to generate image');
+      }
+    } catch (error: any) {
+      console.error('Failed to generate city image:', error);
+      setImageError(error.message || 'Failed to generate image');
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const { dateStr, timeOfDay } = formatDateTime();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 border-b border-slate-700 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-6 h-6 text-cyan-400" />
+              <h2 className="text-2xl font-bold text-cyan-300">{cityName}</h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Date, Time and Weather Badge */}
+          <div className="flex items-center gap-4 mt-3 text-sm">
+            <div className="flex items-center gap-1.5 text-amber-300">
+              <Calendar className="w-4 h-4" />
+              <span>{dateStr}</span>
+            </div>
+            <div className="text-slate-400">•</div>
+            <div className="text-slate-300 capitalize">{timeOfDay}</div>
+            {weather && (
+              <>
+                <div className="text-slate-400">•</div>
+                <div className="flex items-center gap-1.5 text-blue-300">
+                  {weather.precipitation === 'rain' ? <CloudRain className="w-4 h-4" /> :
+                   weather.precipitation === 'snow' ? <CloudSnow className="w-4 h-4" /> :
+                   weather.cloudCover > 0.5 ? <Cloud className="w-4 h-4" /> :
+                   <Sun className="w-4 h-4" />}
+                  <span className="capitalize">{weather.description}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
+          {/* Historical Description */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="w-5 h-5 text-blue-400" />
+              <h3 className="text-lg font-semibold text-blue-300">Historical Context</h3>
+            </div>
+
+            {isLoadingDescription ? (
+              <div className="bg-slate-800/50 rounded-lg p-4 animate-pulse">
+                <div className="h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-slate-700 rounded w-full mb-2"></div>
+                <div className="h-4 bg-slate-700 rounded w-5/6"></div>
+              </div>
+            ) : (
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                <p className="text-slate-200 leading-relaxed">
+                  {llmDescription || cityDescription || 'A settlement of this era.'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Nearby NPCs */}
+          {nearbyNpcs.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-5 h-5 text-green-400" />
+                <h3 className="text-lg font-semibold text-green-300">Notable Residents</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {nearbyNpcs.slice(0, 8).map((npc, index) => (
+                  <div
+                    key={index}
+                    className="bg-green-900/20 border border-green-700/30 rounded-md px-3 py-1.5 text-sm"
+                  >
+                    <span className="text-green-200 font-medium">{npc.name}</span>
+                    <span className="text-green-400 mx-1">•</span>
+                    <span className="text-green-300 text-xs capitalize">
+                      {npc.role?.replace(/_/g, ' ').toLowerCase() || 'citizen'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI-Generated Image */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              <h3 className="text-lg font-semibold text-purple-300">Visual Reconstruction</h3>
+            </div>
+
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+              {isGeneratingImage ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mb-4"></div>
+                  <p className="text-slate-400 text-sm">Generating historical scene...</p>
+                  <p className="text-slate-500 text-xs mt-1">This may take a moment</p>
+                </div>
+              ) : imageUrl ? (
+                <div className="space-y-3">
+                  <img
+                    src={imageUrl}
+                    alt={`Historical view of ${cityName}`}
+                    className="w-full rounded-lg border border-slate-600/50"
+                    style={{ maxHeight: '400px', objectFit: 'cover' }}
+                  />
+                  <div className="flex items-center justify-between text-xs">
+                    <p className="text-slate-400">AI-generated historical reconstruction</p>
+                    {imagePrompt && (
+                      <button
+                        onClick={() => setShowPrompt(!showPrompt)}
+                        className="text-purple-400 hover:text-purple-300 underline transition-colors"
+                      >
+                        {showPrompt ? 'Hide' : 'Show'} Generation Details
+                      </button>
+                    )}
+                  </div>
+                  {showPrompt && imagePrompt && (
+                    <div className="mt-3 p-3 bg-slate-900/50 rounded border border-slate-700/50">
+                      <p className="text-xs font-semibold text-purple-300 mb-2">Image Generation Prompt:</p>
+                      <p className="text-xs text-slate-300 break-words leading-relaxed">{imagePrompt}</p>
+                    </div>
+                  )}
+                </div>
+              ) : imageError ? (
+                <div className="text-center py-8">
+                  <p className="text-red-400 text-sm">{imageError}</p>
+                  {!imageGenerationService.isAvailable() && (
+                    <p className="text-slate-500 text-xs mt-2">
+                      Image generation requires Runware API key in .env.local
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-slate-500 text-sm">No image available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

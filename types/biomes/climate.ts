@@ -9,4 +9,5 @@ export enum ClimateType {
   ARID = 'ARID',
   COLD = 'COLD',
   MEDITERRANEAN = 'MEDITERRANEAN',
+  POLAR = 'POLAR', // For Antarctica, Arctic - all snow/tundra, no trees
 }

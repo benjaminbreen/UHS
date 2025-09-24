@@ -62,3 +62,31 @@ export interface JournalEntry {
     studentInput?: string;
     analysisResponse?: string;
 }
+
+// Primary Source Quote entries
+export interface JournalQuote {
+    id: string;
+    quote: string;           // Selected text from primary source
+    sourceTitle: string;     // e.g., "The Rihla - Asian Chapters"
+    author: string;          // e.g., "Ibn Battuta"
+    year: number;           // e.g., 1345
+    era: string;            // e.g., "MEDIEVAL"
+    culturalZone: string;   // e.g., "MENA"
+    dateAdded: Date;        // When added to journal
+    gameContext?: {         // Optional: where/when player found this
+        location: string;
+        gameDate: { year: number; month: number; day: number };
+    };
+    tags?: string[];        // Auto-extracted from keywords
+}
+
+export interface TooltipPosition {
+    x: number;
+    y: number;
+}
+
+export interface TextSelectionData {
+    text: string;
+    range: Range;
+    rect: DOMRect;
+}

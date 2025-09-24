@@ -1092,6 +1092,82 @@ export const SOUTH_AMERICAN_FACTIONS: FactionFile = {
                     trading_post: ['Elevated Transport Hub', 'Drone Delivery Center']
                 }
             }
+        },
+        "Amazon Delta": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Marajoara Culture',
+                dominantPowerDescription: 'Complex pre-Columbian society building mounds in the flooded delta.',
+                eraContextSentence: 'the age of mound builders, where ancient peoples master the floods.',
+                allegianceGroups: [
+                    { name: 'Marajoara', type: 'primary', description: 'Mound-building culture.' },
+                    { name: 'River Peoples', type: 'secondary', description: 'Fishing and trading communities.' }
+                ],
+                structureNames: {
+                    holy_site: ['Burial Mound', 'Ceramic Workshop'],
+                    trading_post: ['River Port', 'Canoe Landing']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Tapajós Confederation',
+                dominantPowerDescription: 'Advanced Amazonian civilization with large settlements and terra preta agriculture.',
+                eraContextSentence: 'the hidden Amazon civilization, creating black earth and pottery.',
+                allegianceGroups: [
+                    { name: 'Tapajós', type: 'primary', description: 'Confederation of river cities.' },
+                    { name: 'Coastal Traders', type: 'trade_company', description: 'Inter-regional merchants.' }
+                ],
+                structureNames: {
+                    holy_site: ['Ceremonial Plaza', 'Shaman House'],
+                    mill: ['Terra Preta Gardens', 'Pottery Kiln']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Portuguese Colonial Frontier',
+                dominantPowerDescription: 'Early colonial outposts amid vast unconquered territories.',
+                eraContextSentence: 'the conquistador era, where Europeans seek El Dorado in the green hell.',
+                allegianceGroups: [
+                    { name: 'Portuguese Brazil', type: 'primary', description: 'Colonial settlements.' },
+                    { name: 'Jesuit Missions', type: 'religious_order', description: 'Converting natives.' },
+                    { name: 'Indigenous Confederations', type: 'rebel', description: 'Resisting colonization.' },
+                    { name: 'Dutch Invaders', type: 'secondary', description: 'Brief Dutch occupation.' }
+                ],
+                structureNames: {
+                    fortress: ['Fort', 'Mission'],
+                    trading_post: ['Trading Post', 'River Port'],
+                    holy_site: ['Jesuit Church', 'Indigenous Maloca']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Rubber Boom Era',
+                dominantPowerDescription: 'The Amazon becomes the world\'s rubber supplier, creating instant wealth and brutality.',
+                eraContextSentence: 'the rubber boom, where latex is white gold and indigenous peoples are enslaved.',
+                allegianceGroups: [
+                    { name: 'Brazilian Empire/Republic', type: 'primary', description: 'National government.' },
+                    { name: 'Rubber Barons', type: 'trade_company', description: 'Wealthy plantation owners.' },
+                    { name: 'Indigenous Peoples', type: 'rebel', description: 'Enslaved and resisting.' },
+                    { name: 'Foreign Companies', type: 'trade_company', description: 'American and European interests.' }
+                ],
+                structureNames: {
+                    palace: ['Rubber Baron Mansion', 'Opera House'],
+                    factory: ['Rubber Processing', 'Steamboat Dock'],
+                    trading_post: ['Rubber Exchange', 'Company Store']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Brazilian Federal Republic',
+                dominantPowerDescription: 'Development versus conservation in Earth\'s lungs.',
+                eraContextSentence: 'the climate crisis era, where the rainforest\'s fate determines Earth\'s future.',
+                allegianceGroups: [
+                    { name: 'Brazilian Government', type: 'primary', description: 'Federal and state authorities.' },
+                    { name: 'Agribusiness', type: 'trade_company', description: 'Cattle and soy producers.' },
+                    { name: 'Environmental NGOs', type: 'secondary', description: 'Conservation groups.' },
+                    { name: 'Indigenous Rights Movement', type: 'rebel', description: 'Fighting for land rights.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'Environmental Police'],
+                    factory: ['Timber Mill', 'Soy Processing', 'Free Trade Zone'],
+                    trading_post: ['River Port', 'Eco-Tourism Lodge']
+                }
+            }
         }
     }
 };

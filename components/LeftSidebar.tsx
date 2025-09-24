@@ -26,6 +26,7 @@ import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
 import { primarySourceService } from '../services/primarySourceService';
 import { ProceduralPortrait } from './portraits';
+import { CityHistoricalModal } from './CityHistoricalModal';
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
@@ -194,6 +195,8 @@ const LeftSidebar: React.FC<{
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [npcQuery, setNpcQuery] = useState<string>('');
+  const [showCityModal, setShowCityModal] = useState<boolean>(false);
+  const [selectedCity, setSelectedCity] = useState<{ name: string; description: string } | null>(null);
   const resizeStartX = useRef<number>(0);
   const resizeStartWidth = useRef<number>(DEFAULT_SIDEBAR_WIDTH);
 
@@ -515,9 +518,17 @@ const LeftSidebar: React.FC<{
                     <Building className="w-5 h-5" />
                     Major City
                   </h4>
-                  <div className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4">
+                  <div
+                    className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4 cursor-pointer transition-all duration-200 hover:bg-cyan-800/30 hover:border-cyan-600/40 hover:shadow-lg hover:shadow-cyan-900/20"
+                    onClick={() => {
+                      setSelectedCity(majorCity);
+                      setShowCityModal(true);
+                    }}
+                    title="Click to explore historical details"
+                  >
                     <p className="text-lg font-bold text-cyan-400 mb-1">{majorCity.name}</p>
                     <p className="text-xs italic text-gray-400">{majorCity.description}</p>
+                    <p className="text-xs text-cyan-300/60 mt-1 font-medium">Click for historical view →</p>
                   </div>
                 </>
               )}
@@ -665,9 +676,10 @@ const LeftSidebar: React.FC<{
   ];
 
   return (
-    <div
-      className={getSafariOptimizedClassName(`relative flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-left-light dark:shadow-sidebar-left backdrop-blur-xl border-r border-slate-300/80 dark:border-slate-700/80 flex flex-col text-slate-700 dark:text-slate-200 transition-all duration-300 h-full`)}
-      style={{ width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px' }}
+    <>
+      <div
+        className={getSafariOptimizedClassName(`relative flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-left-light dark:shadow-sidebar-left backdrop-blur-xl border-r border-slate-300/80 dark:border-slate-700/80 flex flex-col text-slate-700 dark:text-slate-200 transition-all duration-300 h-full`)}
+        style={{ width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px' }}
     >
       {/* Resize handle */}
       {isLeftSidebarExpanded && (
@@ -758,6 +770,18 @@ const LeftSidebar: React.FC<{
         </div>
       </div>
     </div>
+
+      {/* City Historical Modal */}
+      {showCityModal && selectedCity && (
+        <CityHistoricalModal
+          isOpen={showCityModal}
+          onClose={() => setShowCityModal(false)}
+          cityName={selectedCity.name}
+          cityDescription={selectedCity.description}
+          nearbyNpcs={npcs}
+        />
+      )}
+    </>
   );
 };
 

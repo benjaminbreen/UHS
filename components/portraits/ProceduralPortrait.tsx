@@ -102,6 +102,7 @@ interface ProceduralPortraitProps {
     class?: string;
     era: string;
     culturalZone?: 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
+    ethnicCulturalZone?: 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
     portraitSeed?: number;
   };
   size?: number;
@@ -169,7 +170,10 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   const uniqueId = useMemo(() => 'pp-' + seed.toString(36), [seed]);
 
   // ---------- Extracted Character Data ----------
-  const { age = 30, gender, stats = {}, appearance = {}, wealthLevel, era, culturalZone = 'EUROPEAN' } = character;
+  const { age = 30, gender, stats = {}, appearance = {}, wealthLevel, era } = character;
+
+  // Use ethnicCulturalZone if available, otherwise fall back to geographic culturalZone
+  const culturalZone = (character as any).ethnicCulturalZone || character.culturalZone || 'EUROPEAN';
 
   // Provide defaults for appearance properties
   const defaultAppearance = {

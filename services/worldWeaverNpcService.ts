@@ -65,13 +65,8 @@ class WorldWeaverNpcService {
       questId: questNPC.id,
       originalQuestData: questNPC,
 
-      // Memory system
-      memory: {
-        opinionOfPlayer: 0,
-        knownFactsAboutPlayer: new Set(),
-        relationships: new Map(),
-        conversationSummaries: []
-      },
+      // Memory system - Use helper to avoid proxy issues
+      memory: this.createSafeNpcMemory(),
 
       // Basic AI state
       aiState: 'idle',
@@ -242,6 +237,18 @@ class WorldWeaverNpcService {
     }
 
     return null;
+  }
+
+  /**
+   * Create safe NPC memory to avoid proxy revocation issues
+   */
+  private createSafeNpcMemory(): any {
+    return {
+      opinionOfPlayer: 0,
+      knownFactsAboutPlayer: new Set<string>(),
+      relationships: new Map<string, { opinion: number; type: 'family' | 'friend' | 'rival' }>(),
+      conversationSummaries: []
+    };
   }
 
   /**

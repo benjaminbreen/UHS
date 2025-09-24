@@ -71,35 +71,38 @@
       "wikisourceTitle": null,
       "internetArchiveId": null,
       "isStandard": true,
-      "longExcerpt": "[Undeciphered script - meaning unknown] This historical source from 1200 provides valuable insight into the oceania region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "longExcerpt": "[Undeciphered script - meaning unknown] This historical source from 1200 provides valuable insight into the oceania region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods.",
+      "wikipediaArticle": "Rongorongo",
+      "defaultTab": "wikipedia"
     },
     {
-      "id": "hawaiian-chants",
-      "title": "Ancient Hawaiian Chants",
-      "author": "Hawaiian oral tradition",
-      "year": 1000,
-      "era": "MEDIEVAL",
+      "id": "kumulipo",
+      "title": "The Kumulipo",
+      "author": "Hawaiian priests",
+      "year": 1700,
+      "era": "ANTIQUITY",
       "culturalZones": [
         "OCEANIA"
       ],
-      "excerpt": "The life of the land is perpetuated in righteousness. From Hawaii, rising up out of the sea, from the roots of Kanaloa, the darkness of the deep blue ocean.",
-      "longExcerpt": "The life of the land is perpetuated in righteousness. From Hawaii, rising up out of the sea, from the roots of Kanaloa, the darkness of the deep blue ocean. These ancient chants, passed down orally for centuries, encode Hawaiian history, navigation knowledge, and spiritual beliefs in poetic form.",
+      "excerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened to cause the moon to shine, the time of the rise of the Pleiades, the slime was the source of the earth.",
+      "longExcerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened to cause the moon to shine, the time of the rise of the Pleiades, the slime was the source of the earth. This Hawaiian creation chant, composed around 1700 for a royal birth, traces genealogy back to the origins of the universe, demonstrating sophisticated astronomical knowledge.",
       "keywords": [
         "Hawaii",
-        "chants",
-        "navigation",
-        "spirituality",
-        "ocean",
-        "tradition",
-        "oral history"
+        "creation",
+        "genealogy",
+        "astronomy",
+        "chant",
+        "cosmology",
+        "royalty"
       ],
-      "wikisourceTitle": null,
-      "internetArchiveId": "hawaiianchants00emer",
+      "wikisourceTitle": "The_Kumulipo",
+      "internetArchiveId": "kumulipo00lili",
       "citation": {
-        "translator": "Nathaniel B. Emerson",
-        "originalPublication": "Oral tradition, c. 1000-1400",
-        "modernSource": "Bureau of American Ethnology, 1909"
-      }
+        "translator": "Martha Warren Beckwith",
+        "originalPublication": "Hawaii, c. 1700",
+        "modernSource": "University of Chicago Press, 1951"
+      },
+      "wikipediaArticle": "Kumulipo"
     }
   ]
 }

@@ -27,6 +27,7 @@ export interface PrimarySourceMetadata {
     };
   }[];
   wikisourceTitle?: string;
+  wikipediaArticle?: string; // Wikipedia article name for visual/archaeological sources
   internetArchiveId?: string;
   citation: {
     translator?: string;
@@ -35,6 +36,7 @@ export interface PrimarySourceMetadata {
   };
   isStandard?: boolean; // Marks if this is a standard source for an era/zone combo
   relevanceScore?: number; // Used for search result ranking
+  defaultTab?: 'excerpt' | 'fulltext' | 'citation' | 'wikipedia'; // Which tab to show by default
 }
 
 interface ShardData {

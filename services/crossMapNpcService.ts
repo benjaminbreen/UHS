@@ -18,14 +18,22 @@ class CrossMapNpcService {
      * Queue an NPC for transfer to an adjacent map
      */
     queueNpcForTransfer(npc: NpcEntity, exitDirection: 'north' | 'south' | 'east' | 'west'): void {
+        // Mark NPC to prevent further updates
+        (npc as any).isTransferring = true;
+        (npc as any).transferDirection = exitDirection;
+
         const transfers = this.getTransfers();
 
         // Remove the NPC ID from any existing transfers (prevent duplicates)
         const filtered = transfers.filter(t => t.npc.id !== npc.id);
 
-        // Add the new transfer
+        // Add the new transfer (ensure we don't transfer the isTransferring flag)
+        const transferNpc = { ...npc };
+        delete (transferNpc as any).isTransferring;
+        delete (transferNpc as any).transferDirection;
+
         filtered.push({
-            npc: { ...npc }, // Clone to avoid reference issues
+            npc: transferNpc, // Clone without transfer flags
             exitDirection,
             exitTime: Date.now()
         });
@@ -33,7 +41,7 @@ class CrossMapNpcService {
         // Save to localStorage
         try {
             localStorage.setItem(CrossMapNpcService.STORAGE_KEY, JSON.stringify(filtered));
-            console.log(`[CrossMapNPC] Queued ${npc.name} for transfer ${exitDirection}`);
+            console.log(`[CrossMapNPC] Marked ${npc.name} for transfer ${exitDirection} (isTransferring: true)`);
         } catch (error) {
             console.error('[CrossMapNPC] Failed to queue NPC for transfer:', error);
         }

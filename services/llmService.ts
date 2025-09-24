@@ -123,7 +123,7 @@ export async function generateEncounterDialogue(
     allNpcs: NpcEntity[],
     mapData: MapData | null,
     useRealLanguage: boolean
-): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }> {
+): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean, tradeAvailable?: boolean }> {
     if (!playerCharacter || !mapData) return { text: "You feel a strange sense of detachment." };
 
     // Debug logging for time context
@@ -186,8 +186,11 @@ export async function generateEncounterDialogue(
         } else {
             // These are dialogue entries from current conversation
             // Make speaker attribution VERY clear to avoid LLM confusion
-            conversationHistoryText = (history as DialogueEntry[]).slice(-4).map(h => {
-                if (h.speaker === 'npc') {
+            conversationHistoryText = (history as DialogueEntry[]).slice(-6).map(h => {
+                if (h.speaker === 'system') {
+                    // System messages about trades, events, etc.
+                    return `[${h.text}]`;
+                } else if (h.speaker === 'npc') {
                     return `YOU (${target.name}) SAID: "${h.text}"`;
                 } else {
                     return `PLAYER (${playerCharacter?.name || 'Stranger'}) SAID: "${h.text}"`;
@@ -519,32 +522,25 @@ export async function generateEncounterDialogue(
 
         **TIME-AWARE BEHAVIOR:**
         ${mapData.timeOfDay === 'Night' || mapData.timeOfDay === 'Dawn' ?
-            '- It is NIGHTTIME/DAWN. People are suspicious of strangers at this hour. "What are you doing out at this hour?" is a natural response.' : ''}
+            '- It is NIGHTTIME/DAWN. People are suspicious of strangers at this hour. "What are you doing out at this hour?" might be a natural response, or perhaps it isnt mentioned, it depends on context.' : ''}
         ${mapData.timeOfDay === 'Night' ?
-            '- NEVER say "the sun is high" or reference daylight. It is DARK outside.' : ''}
+            '- .' : ''}
         ${mapData.timeOfDay === 'Dawn' ?
-            '- Sun is just rising. People are just waking up. "Youre up early" is appropriate.' : ''}
+            '- ' : ''}
         ${mapData.timeOfDay === 'Midday' ?
-            '- Sun is at its highest. Hot time of day. People seek shade.' : ''}
+            '- ' : ''}
         ${mapData.timeOfDay === 'Dusk' ?
             '- Sun is setting. People are finishing work, heading home.' : ''}
 
         **CRITICAL REALISM RULES:**
         1. You are a REAL PERSON in ${mapData.timeSlice}, not a fantasy character
-        2. Speak plainly and directly - avoid flowery or "spiritual" language
-        3. NO GENERIC CLICHES: Don't say "the spirits smile" or "the gods willing" unless discussing specifics
-        4. React based on PRACTICAL CONCERNS: property, safety, reputation, profit, curiosity, desire
-        5. Your first reaction should be about immediate social dynamics (stranger danger, class differences, etc.)
-        6. BE AWARE OF TIME: Don't reference the sun being high at night, don't act like it's daytime when it's not
-        7. HAVE AN INNER LIFE: an npc might act friendly but be trying to rob the player. They might be in a bad mood because their father is sick. Etc. Your NPC should have a rich inner life; they are not simple.
-
-        **REALISTIC RESPONSES BY CONTEXT:**
-        - Farmer + stranger in field = What are you doing in my field? / Don't trample my crops, stranger
-        - Merchant + well-dressed customer = What can I interest you in today?
-        - Guard + armed commoner = State your business / Move along
-        - Commoner + noble = Immediate deference, fear of punishment
-        - Anyone + elderly woman = Likely offer of aid or concern
-        - Anyone + young armed male = Wariness, possible fear
+        2. Speak plainly - avoid flowery or "spiritual" language
+        3. NO GENERIC CLICHES
+        4. React based on PRACTICAL CONCERNS: property, safety, reputation, profit, curiosity, desire, humor, love
+        5. Your first reaction may often be about immediate social dynamics (stranger danger, class differences, etc.) - or you might be humorous or kind or ask the player about something you care about - it all depends on your personality.
+        6. BE AWARE OF CONTEXT and remember who has said what
+        7. HAVE AN INNER LIFE: an npc might act friendly but be trying to rob the player. They might be in a bad mood because their father is sick. They might be having the best day of their life. And so on.
+        8. STAY IN CHARACTER: You are ${target.name}, not the player. Don't mix up who owns what or who said what.
 
         **DIALOGUE PROGRESSION:**
         Exchange #${conversationHistoryText ? conversationHistoryText.split('\n').length + 1 : 1}
@@ -554,11 +550,10 @@ export async function generateEncounterDialogue(
 
         **YOUR RESPONSE:**
         - 1-4 lines of REALISTIC dialogue for a ${target.role} in ${mapData.timeSlice}. Do not use quotation marks. 
-        - Focus on immediate, practical concerns first
         - If youre a farmer, talk like a farmer. If nobility, show appropriate bearing
         - Remember: Most people in history were wary of strangers, protective of property, and concerned with survival
         - NO mystical language unless specifically discussing religious/spiritual topics, or if you think NPC would be spiritual/religious
-        - Be specific about local concerns (actual crops, actual goods, actual threats)
+        - Be specific about local concerns
         **HISTORICAL ACCURACY:**
         Year ${mapData.timeSlice}: Only reference things that exist in this year.
         ${parseInt(mapData.timeSlice) < 1492 && (mapData.localArea.includes('America')) ?
@@ -566,37 +561,67 @@ export async function generateEncounterDialogue(
 
         **CONVERSATION HISTORY:**
         ${conversationHistoryText || 'First meeting'}
-        ${conversationHistoryText ? 'IMPORTANT: "YOU SAID" = your previous dialogue. "PLAYER SAID" = what they said.' : ''}
+        ${conversationHistoryText ? 'IMPORTANT: "YOU SAID" = what you ('+target.name+') said before. "PLAYER SAID" = what '+playerCharacter.name+' said.' : ''}
+        ${conversationHistoryText && conversationHistoryText.includes('[TRADE:') ? 'NOTE: [TRADE: ...] indicates items that were just traded between you. Reference this transaction if relevant.' : ''}
         ${target.memory?.knownFactsAboutPlayer?.has('ATTACKED_BY_PLAYER') ? '⚠️ This player attacked you before!' : ''}
 
         ${languageInstruction}
 
-        **CONVERSATION DYNAMICS:**
+        **CONVERSATION DYNAMICS & LEAVING:**
         - After 4-5 exchanges, consider naturally ending the conversation
         - If urgent danger, skip pleasantries entirely
         - Build on previous exchanges, never repeat information
+        - **IMPORTANT: If the player is being threatening, offensive, scary, or making you uncomfortable:**
+          • Express that you want to leave (e.g., "I need to go", "I should leave", "Farewell")
+          • Scared NPCs: "I... I must go!" or "Please, leave me alone!"
+          • Offended NPCs: "I won't stand for this. Good day!" or "How dare you! I'm leaving!"
+          • Guards may give warnings instead of leaving
+        - **End the conversation if:**
+          • Player is hostile or threatening (reputation would be -50 or worse)
+          • You're frightened by their behavior or appearance
+          • They've offended you deeply
+          • The conversation has reached a natural end
 
         ${target.diseaseModifier ? `**DISEASE AWARENESS:**\n        ${target.diseaseModifier}` : ''}
+
+        **REMEMBER YOUR IDENTITY:**
+        You are ${target.name} (the ${target.role})
+        You are talking to ${playerCharacter.name} (the player/stranger)
+        When reviewing conversation history, "YOU SAID" means what ${target.name} said.
     `;
 
     // Add reputation analysis to prompt
     const reputationPrompt = `
         ${prompt}
 
-        **REPUTATION IMPACT:**
+        **REPUTATION IMPACT & LEAVING DECISION:**
         Based on this interaction, determine reputation change:
-        - Threatening/hostile = -50 to -100
+        - Threatening/hostile = -50 to -100 (YOU SHOULD LEAVE OR CALL FOR HELP)
+        - Offensive/scary = -30 to -70 (EXPRESS THAT YOU WANT TO LEAVE)
+        - Absurd/nonsensical/insane statements (like "I am a dolphin", "I am god", etc.) = -20 to -40 (BE CONFUSED/CONCERNED)
         - Suspicious/unwelcome = -5 to -25
         - Normal conversation = 0
         - Helpful/kind = +5 to +20
 
-        ${target.profession?.toLowerCase().includes('guard') ?
-            'GUARD: Give ONE warning before attacking defiant intruders.' : ''}
+        **IMPORTANT: If player says something completely absurd or impossible:**
+        - React with confusion, concern, or suspicion
+        - Consider them potentially insane or dangerous
+        - Reduce reputation by at least -20
 
-        FORMAT (3 lines exactly):
+        **LEAVING INSTRUCTIONS:**
+        - If reputation is -50 or worse: Include farewell/leaving phrase in your dialogue
+        - If scared (courage < 3 and player threatening): Say you need to leave
+        - If offended (player insulting/rude): Express offense and leave
+        - Use phrases like: "I must go", "Farewell", "Good day to you", "I'm leaving"
+
+        ${target.profession?.toLowerCase().includes('guard') ?
+            'GUARD: Give ONE warning before attacking defiant intruders. You dont leave, you stand your ground.' : ''}
+
+        FORMAT (4 lines exactly):
         DIALOGUE: [1-4 sentences of realistic dialogue]
         REPUTATION: [increase/decrease/none]
         AMOUNT: [0-100]
+        TRADE: [yes/no - YES if you're willing to trade/sell/buy items with player]
     `;
     
     try {
@@ -605,7 +630,7 @@ export async function generateEncounterDialogue(
             model: 'gemini-2.5-flash-lite', 
             contents: reputationPrompt,
             config: {
-                temperature: 0.9,
+                temperature: 0.6,
                 topP: 0.95
             }
         });
@@ -616,15 +641,17 @@ export async function generateEncounterDialogue(
         
         let dialogueText = '';
         let reputationChange = 0;
-        
+        let tradeMatch = null;
+
         try {
             // Extract dialogue
             const dialogueMatch = responseText.match(/DIALOGUE:\s*(.+?)(?:\n|REPUTATION:|$)/si);
             dialogueText = dialogueMatch?.[1]?.trim() || responseText;
-            
+
             // Extract reputation change
             const reputationMatch = responseText.match(/REPUTATION:\s*([^\n]+)/i);
             const amountMatch = responseText.match(/AMOUNT:\s*(-?\d+)/i);
+            tradeMatch = responseText.match(/TRADE:\s*([^\n]+)/i);
 
             if (reputationMatch && amountMatch) {
                 const reputationType = reputationMatch[1].toLowerCase().trim();
@@ -633,10 +660,13 @@ export async function generateEncounterDialogue(
                 // Handle various reputation descriptors
                 const negativeTypes = ['suspicious', 'hostile', 'angry', 'annoyed', 'decrease', 'negative', 'wary', 'distrustful'];
                 const positiveTypes = ['friendly', 'increase', 'positive', 'grateful', 'thankful', 'appreciative', 'pleased'];
-                const neutralTypes = ['none', 'neutral', 'unchanged'];
+                const neutralTypes = ['none', 'neutral', 'unchanged', '0'];
 
-                if (negativeTypes.some(type => reputationType.includes(type))) {
-                    // For negative, if amount is positive make it negative
+                // Check if reputation itself is a negative number (e.g., "-75")
+                const reputationIsNegativeNumber = reputationType.startsWith('-') || parseInt(reputationType) < 0;
+
+                if (reputationIsNegativeNumber || negativeTypes.some(type => reputationType.includes(type))) {
+                    // For negative, ensure the amount is negative
                     reputationChange = amount > 0 ? -Math.min(amount, 100) : Math.max(amount, -100);
                 } else if (positiveTypes.some(type => reputationType.includes(type))) {
                     // For positive, ensure amount is positive
@@ -651,6 +681,7 @@ export async function generateEncounterDialogue(
             dialogueText = dialogueText
                 .replace(/REPUTATION:.*/i, '')
                 .replace(/AMOUNT:.*/i, '')
+                .replace(/TRADE:.*/i, '')
                 .replace(/```.*?```/gs, '')
                 .trim();
         } catch (parseError) {
@@ -693,7 +724,48 @@ export async function generateEncounterDialogue(
         if (wantsToLeaveNaturally) {
             console.log(`[NPC Dialogue] ${target.name} wants to leave naturally. Dialogue: "${npcText}"`);
         }
-        
+
+        // Check if NPC is offering to trade - first check LLM flag, then keywords
+        let tradeAvailable = false;
+
+        // First, check if LLM explicitly said TRADE: yes
+        if (tradeMatch) {
+            const tradeResponse = tradeMatch[1].toLowerCase().trim();
+            tradeAvailable = tradeResponse === 'yes' || tradeResponse === 'true' || tradeResponse === '1';
+            console.log(`[NPC Dialogue] LLM trade flag detected: "${tradeResponse}" -> trade available: ${tradeAvailable}`);
+
+            // If LLM explicitly said no, ensure trade stays disabled
+            if (tradeResponse === 'no' || tradeResponse === 'false' || tradeResponse === '0') {
+                console.log(`[NPC Dialogue] LLM explicitly disabled trade with: "${tradeResponse}"`);
+            }
+        } else {
+            console.log(`[NPC Dialogue] No explicit trade flag from LLM in response`);
+        }
+
+        // Only use keyword detection if LLM didn't provide ANY trade flag
+        // AND only for very explicit trade offers
+        if (!tradeMatch && !tradeAvailable) {
+            const explicitTradePhrases = [
+                'i\'ll sell you', 'i can sell you', 'would you like to buy',
+                'for sale', 'i have goods for sale', 'care to trade',
+                'shall we trade', 'let\'s trade', 'ready to trade',
+                'what would you like to buy', 'see my wares'
+            ];
+
+            // Only activate trade if NPC explicitly offers AND isn't hostile
+            tradeAvailable = explicitTradePhrases.some(phrase =>
+                npcText.toLowerCase().includes(phrase)
+            ) && reputationChange >= 0; // Must be at least neutral
+
+            if (tradeAvailable) {
+                console.log(`[NPC Dialogue] Trade detected via explicit keywords in: "${npcText}"`);
+            }
+        }
+
+        if (tradeAvailable) {
+            console.log(`[NPC Dialogue] ${target.name} is offering to trade. Dialogue: "${npcText}"`);
+        }
+
         // Determine additional flags based on reputation change and NPC type
         const shouldCallAuthorities = reputationChange <= -100;
         const shouldLeave = shouldCallAuthorities || reputationChange <= -70 || wantsToLeaveNaturally;
@@ -736,12 +808,13 @@ export async function generateEncounterDialogue(
         
         console.log(`[NPC Dialogue] Final dialogue: "${npcText}", Reputation change: ${reputationChange}`);
         
-        return { 
+        return {
             text: npcText,
             reputationChange: reputationChange !== 0 ? reputationChange : undefined,
             shouldLeave,
             shouldAttack,
-            shouldCallAuthorities
+            shouldCallAuthorities,
+            tradeAvailable
         };
     } catch (error) {
         console.error("Error generating NPC dialogue:", error);
@@ -1397,7 +1470,7 @@ export async function generateCombatSkillResponse(
         : `You are a real person in genuine pain and fear. React naturally to being hurt - cry out, gasp, express real terror or desperation. NO theatrical quips or bravado. Sound like someone actually being injured.`;
 
     const skillDescriptions: Record<string, string> = {
-        'BURN': 'engulfs you in magical flames',
+        'BURN': 'engulfs you in flames',
         'CHOP': 'strikes you with a vicious axe blow',
         'INTIMIDATING_SHOUT': 'bellows a terrifying war cry at you',
         'POWER_STRIKE': 'delivers a devastating power attack',
@@ -1575,14 +1648,14 @@ export async function generateCombatStartResponse(
         - You would try to DE-ESCALATE or understand what's happening
         - NO theatrical dialogue, no tough-guy quotes, no bravado
         - Sound like an actual human being in genuine distress
-        - Keep it under 12 words
+        - Keep it under 20 words
 
         REALISTIC REACTIONS (examples of the tone to match):
-        - "Wait, what? What are you doing?!"
-        - "Please don't hurt me! What do you want?"
-        - "Stop! I don't understand why you're doing this!"
+        - "Wait, what? What are you doing?!?"
+        - "PLEASE don't hurt me! What do you want? What is going on?!"
+        - "Stop! I don't understand why you're doing this! This is a nightmare!"
         - "What did I do wrong? Please, I have a family!"
-        - "Help! Someone help me!"
+        - "Help! Someone help me! HELP!!"
         - "I don't want to fight you!"
 
         Return a valid JSON object with one key:
@@ -1699,6 +1772,87 @@ export async function generateHistoricalSummary(year: number, region: string, lo
     } catch (error) {
         console.error("Error generating historical summary:", error);
         return `An error occurred while fetching historical data for ${localArea} in the year ${year}.`;
+    }
+}
+
+/**
+ * Generates historically accurate city descriptions for specific dates
+ */
+export async function generateHistoricalCityDescription(context: {
+    cityName: string;
+    date: string;
+    timeOfDay: string;
+    culturalZone: string;
+    region: string;
+    zone: string;
+    nearbyNpcs?: any[];
+    baseDescription?: string;
+    weather?: {
+        precipitation: string;
+        intensity: number;
+        windSpeed: number;
+        temperature: number;
+        cloudCover: number;
+        visibility: number;
+        description: string;
+    };
+}): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const npcsContext = context.nearbyNpcs && context.nearbyNpcs.length > 0
+        ? `Notable residents currently in the area include ${context.nearbyNpcs
+            .slice(0, 3)
+            .map(npc => `${npc.name} the ${npc.role?.replace(/_/g, ' ').toLowerCase() || 'citizen'}`)
+            .join(', ')}.`
+        : '';
+
+    // Build weather context
+    const weatherContext = context.weather ? `
+Current Weather: ${context.weather.description}
+- Precipitation: ${context.weather.precipitation} ${context.weather.precipitation !== 'none' ? `(intensity: ${Math.round(context.weather.intensity * 100)}%)` : ''}
+- Temperature: ${Math.round(context.weather.temperature)}°C
+- Wind: ${Math.round(context.weather.windSpeed)} km/h
+- Cloud cover: ${Math.round(context.weather.cloudCover * 100)}%
+- Visibility: ${context.weather.visibility < 0.5 ? 'poor' : context.weather.visibility < 0.8 ? 'moderate' : 'good'}` : '';
+
+    const prompt = `You are an observant person in ${context.cityName}. Write a concrete description, as if looking down on this settlement on ${context.date} at ${context.timeOfDay}.
+
+WRITING STYLE:
+• Write 4 straightforward, descriptive sentences in present tense. Describe the city as a whole. 
+• Avoid vague phrases like "one might see" or "perhaps" - state what IS there.
+• Focus on sensory details: sights, sounds, smells, textures.
+• Describe real people doing realistic activities, but don't use individual names.
+
+HISTORICAL ACCURACY for ${Math.abs(context.year)} ${context.year < 0 ? 'BCE' : 'CE'}:
+• Building materials accurate to this period and region
+• Lighting technology appropriate to the era (this might mean no lighting at all)
+• Street surfaces realistic for the time 
+• Transportation methods of the period
+• Actual activities people would be doing at ${context.timeOfDay}
+
+CONSIDER THE SPECIFIC CONTEXT:
+• ${context.culturalZone} cultural practices and architecture
+• Economic activities typical of this city and era
+${context.weather ? `• Current weather: ${context.weather.description}` : ''}
+${context.weather?.precipitation !== 'none' ? `• How ${context.weather.precipitation} affects the scene` : ''}
+
+Remember: Every era has its own logic. A Roman forum at noon is different from a medieval market at noon. A wealthy Edo period street looks different from a poor one. Be faithful to the specific time and place. Make the details incredibly historically authentic, gritty, vivid, real.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt
+        });
+
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error generating city description:", error);
+
+        // Fallback to a generic but appropriate description
+        return context.baseDescription ||
+            `${context.cityName} bustles with activity typical of a ${context.culturalZone.toLowerCase().replace(/_/g, ' ')} settlement. ` +
+            `The ${context.timeOfDay} light casts long shadows across the buildings and streets. ` +
+            `Local merchants, craftsmen, and citizens go about their daily business in this historic center.`;
     }
 }
 
@@ -1891,21 +2045,21 @@ export async function generateFarmerDecision(
 
         HISTORICAL CONTEXT for ${context.era}:
         ${context.era === 'ANTIQUITY' || context.era === 'MEDIEVAL' ?
-            '- Bandits and raiders are common threats, especially at night\n- Strangers appearing at night are assumed to be thieves or worse\n- Violence is often the first response to perceived threats\n- Farmers sleep with weapons nearby' :
+            '- Bandits and raiders are common threats, especially at night\n- Strangers appearing at night are sometimes trouble\n- On the other hand, farmers might be helpful to the needy, may be religious or in other ways have unique personalities - you as LLM must decide\n- Farmers sleep with weapons nearby' :
         context.era === 'RENAISSANCE_EARLY_MODERN' ?
-            '- Highway robbers plague rural areas\n- Local militias patrol for vagabonds\n- Trespassing at night can mean death\n- Some hospitality customs exist for daylight travelers' :
+            '-  Some hospitality customs exist for daylight travelers' :
         context.era === 'MODERN_ERA' ?
-            '- Police can be called for trespassers\n- Still suspicious of night visitors\n- More willing to help if asked politely during day' :
-            '- Extreme suspicion of outsiders\n- Tribal/community protection is paramount\n- Night visitors are almost always hostile'}
+            '- More willing to help if asked politely during day' :
+            '- Tribal/community protection is paramount'}
 
         DECISION LOGIC (BE REALISTIC AND HISTORICALLY ACCURATE):
-        1. If time is 23:00-4:00 AND player refuses to leave: You MUST threaten violence (this is life or death for you)
-        2. If time is night (20:00-5:00) AND player is armed: Be very hostile, assume they're a bandit
-        3. If player has bad reputation (<30): Never allow them to stay, always suspicious
+        1. If time is 23:00-4:00 AND player refuses to leave: You MUST threaten violence (this is life or death for you). However daytime is fine, greet player amiably during day.
+        2. If time is night (23:00-5:00) AND player is armed: Be hostile, assume they're a bandit or thief
+        3. If player has bad reputation (<20): Never allow them to stay, always suspicious
         4. If player asks to rest during day AND reputation >50: Consider allowing for a fee (2-5 coins if humble, 5-10 if prosperous)
         5. If player asks to work for lodging AND it's daytime: Consider if you need help (more likely if humble farm)
         6. If player has been resting and asks to live on farm: Only if they've proven trustworthy (worked well, paid on time)
-        7. If player is badly injured (<30 health): Might show mercy even if suspicious (but still careful)
+        7. If player is badly injured (<30 health): Might show mercy even if slightly suspicious
 
         IMPORTANT: Your response must be realistic. A real farmer in ${context.era} finding someone on their land at ${context.timeOfDay}:00 would react with:
         ${isVeryLateNight && isThreatening ? 'IMMEDIATE VIOLENCE OR THREATS - This is a home invasion!' :
@@ -1913,7 +2067,7 @@ export async function generateFarmerDecision(
         context.isNight ? 'High suspicion and defensive posture - ready to fight or call for help' :
         'Cautious curiosity if during day, but still protective of property'}
 
-        Respond with realistic dialogue (1-3 sentences) that a frightened/angry/cautious farmer would actually say.
+        Respond with realistic dialogue (1-3 sentences) that a farmer from this PRECISE place and time would actually say. Don't use "farmer-y" sounding dialect or expressions, but do stringently and profoundly evoke the actual character of this SPECIFIC farm in this SPECIFIC place.
 
         Return a JSON object with:
         - "dialogue": What you say to the player (BE REALISTIC - if it's 2:40 AM, you're terrified/angry!)

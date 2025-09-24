@@ -104,8 +104,17 @@ export const HighlightedText: React.FC<{
 }> = ({ text, era, zone, onKeywordClick }) => {
   const { matches } = usePrimarySourceKeywords(text, era, zone);
   
+  // Helper function to render text with markdown italics
+  const renderWithMarkdown = (str: string): React.ReactNode => {
+    const parts = str.split(/\*(.*?)\*/g);
+    return parts.map((part, i) =>
+      i % 2 === 1 ? <em key={i} className="italic">{part}</em> : part
+    );
+  };
+
   if (matches.length === 0) {
-    return <>{text}</>;
+    // No keywords to highlight, just parse markdown
+    return <>{renderWithMarkdown(text)}</>;
   }
 
   // Create a map of positions where keywords appear
@@ -137,11 +146,16 @@ export const HighlightedText: React.FC<{
   let lastEnd = 0;
 
   keywordPositions.forEach((pos, index) => {
-    // Add text before keyword
+    // Add text before keyword (with markdown parsing)
     if (pos.start > lastEnd) {
+      const textBefore = text.substring(lastEnd, pos.start);
+      const parts = textBefore.split(/\*(.*?)\*/g);
+      const renderedParts = parts.map((part, i) =>
+        i % 2 === 1 ? <em key={`text-${index}-${i}`} className="italic">{part}</em> : part
+      );
       elements.push(
         <span key={`text-${index}`}>
-          {text.substring(lastEnd, pos.start)}
+          {renderedParts}
         </span>
       );
     }
@@ -183,11 +197,16 @@ export const HighlightedText: React.FC<{
     lastEnd = pos.end;
   });
 
-  // Add remaining text
+  // Add remaining text (with markdown parsing)
   if (lastEnd < text.length) {
+    const remainingText = text.substring(lastEnd);
+    const parts = remainingText.split(/\*(.*?)\*/g);
+    const renderedParts = parts.map((part, i) =>
+      i % 2 === 1 ? <em key={`final-${i}`} className="italic">{part}</em> : part
+    );
     elements.push(
       <span key="text-final">
-        {text.substring(lastEnd)}
+        {renderedParts}
       </span>
     );
   }

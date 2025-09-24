@@ -15,6 +15,7 @@ import TimeAwareBackground from './TimeAwareBackground';
 import { weatherService } from '../services/weatherService';
 import { cityDescriptionCacheService } from '../services/cityDescriptionCacheService';
 import { gameSounds } from '../services/gameSoundsService';
+import { imageGenerationService } from '../services/imageGenerationService';
 import { isSafari } from '../utils/safariUtils';
 import {
     FaTimes,
@@ -260,6 +261,7 @@ const CityModal: React.FC<CityModalProps> = ({
     const [selectedWorkspace, setSelectedWorkspace] = useState<any>(null);
     const [cityDescription, setCityDescription] = useState<string>('');
     const [descriptionLoading, setDescriptionLoading] = useState(false); // Start false for instant modal
+    const [cachedCityImage, setCachedCityImage] = useState<string | null>(null);
 
     // Get all NPCs from mapData
     const allNpcs = mapData.npcs || [];
@@ -290,6 +292,31 @@ const CityModal: React.FC<CityModalProps> = ({
         // Tile registry data loaded
         setTileData(data);
     }, [tile.x, tile.y, allNpcs]);
+
+    // Load cached city image
+    useEffect(() => {
+        const loadCachedImage = async () => {
+            // Get city name from mapData
+            const cityName = mapData.majorCity?.name || mapData.name;
+
+            if (cityName && culturalZone) {
+                const currentTimeOfDay = timeOfDay.toLowerCase();
+                const cachedUrl = await imageGenerationService.getCachedCityImage(
+                    cityName,
+                    culturalZone,
+                    mapData.year || 1500,
+                    currentTimeOfDay
+                );
+
+                if (cachedUrl) {
+                    console.log(`Using cached city image for ${cityName}`);
+                    setCachedCityImage(cachedUrl);
+                }
+            }
+        };
+
+        loadCachedImage();
+    }, [mapData, culturalZone, timeOfDay]);
 
 
     // Get residents of this tile - REGISTRY FIRST approach
@@ -643,6 +670,7 @@ const CityModal: React.FC<CityModalProps> = ({
                             timeOfDay={timeOfDay}
                             season={season}
                             mapData={mapData}
+                            aiGeneratedImageUrl={cachedCityImage}
                         />
                     </div>
 

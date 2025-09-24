@@ -26,6 +26,7 @@ import { PrimarySourcesDevPanel } from './PrimarySourcesDevPanel';
 import PrimarySourcesModal from './PrimarySourcesModal';
 import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 import TestSuitePanel from './TestSuitePanel';
+import FactoryBannerTest from './FactoryBannerTest';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -125,6 +126,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showPrimarySourcesDevPanel, setShowPrimarySourcesDevPanel] = useState(false);
   const [showMiningTestPanel, setShowMiningTestPanel] = useState(false);
   const [showTestSuite, setShowTestSuite] = useState(false);
+  const [showFactoryBannerTest, setShowFactoryBannerTest] = useState(false);
   const [testInventory, setTestInventory] = useState<any[]>([]);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
@@ -680,6 +682,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     >
                       ⛏️ Mining
                     </button>
+                    <button
+                      onClick={() => setShowFactoryBannerTest(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+                    >
+                      🏭 Factory Banners
+                    </button>
                   </div>
                 </div>
 
@@ -941,6 +949,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         mapData={mapData}
         currentZone={currentZone}
         currentYear={currentYear}
+      />
+
+      {/* Factory Banner Test Panel */}
+      <FactoryBannerTest
+        isOpen={showFactoryBannerTest}
+        onClose={() => setShowFactoryBannerTest(false)}
       />
 
       {/* Mining Roguelike Test Panel */}

@@ -9,7 +9,8 @@ import { useMap } from '../contexts/MapContext';
 import { useUI } from '../contexts/UIContext';
 import { getDaysInMonth, parseDateString, formatDateWithSeason, getSeasonFromDate } from '../utils/dateUtils';
 import { getNextMapArea } from '../utils/geographyUtils';
-import { calculateAnimalUpdate, calculateNpcUpdate } from '../services/npcAIService';
+import { calculateAnimalUpdate } from '../services/npcAIService';
+import { safeCalculateNpcUpdate, shouldRemoveNpc } from '../services/safeNpcService';
 import { crossMapNpcService } from '../services/crossMapNpcService';
 import { spawnSingleAnimal } from '../generation/standardMap/features/animalGenerator';
 import { 
@@ -459,6 +460,12 @@ const useCoreLoops = (
           const npcsToRemove: number[] = [];
 
           draft.forEach((npc, index) => {
+            // Check if NPC should be removed (transferring, dead, invalid)
+            if (shouldRemoveNpc(npc)) {
+              npcsToRemove.push(index);
+              return;
+            }
+
             // Hash NPC ID to a bucket (0-3) for consistent assignment
             const npcBucket = npc.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % UPDATE_BUCKETS;
 
@@ -469,19 +476,27 @@ const useCoreLoops = (
 
             // Only update NPCs within range
             if (Math.hypot(npc.x - controlledIconX, npc.y - controlledIconY) <= AI_UPDATE_RADIUS) {
-              // Don't pass the draft directly - it's a revocable proxy
-              // Pass undefined instead since calculateNpcUpdate can handle it
-              const updates = calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, undefined);
+              try {
+                // Use safe wrapper to handle proxy issues
+                const updates = safeCalculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, undefined);
 
-              // Check if NPC is leaving the map - BUT ONLY ON STANDARD MAPS, NOT SPECIAL MAPS
-              if (updates.isLeavingMap && updates.mapExitDirection && mapData.mapType !== 'special') {
-                // Queue NPC for transfer to adjacent map
-                crossMapNpcService.queueNpcForTransfer(npc, updates.mapExitDirection);
-                // Mark for removal
-                npcsToRemove.push(index);
-              } else {
-                // Apply updates directly to draft
-                Object.assign(npc, updates);
+                // Check if NPC is leaving the map - BUT ONLY ON STANDARD MAPS, NOT SPECIAL MAPS
+                if (updates.isLeavingMap && updates.mapExitDirection && mapData.mapType !== 'special') {
+                  // Queue NPC for transfer to adjacent map
+                  crossMapNpcService.queueNpcForTransfer(npc, updates.mapExitDirection);
+                  // Mark for removal
+                  npcsToRemove.push(index);
+                } else {
+                  // Apply updates directly to draft
+                  Object.assign(npc, updates);
+                }
+              } catch (error: any) {
+                // Silently handle proxy errors for individual NPCs
+                if (error.message?.includes('revoked') || error.message?.includes('perform')) {
+                  console.debug(`[CoreLoops] Skipping NPC ${npc.id || index} due to proxy error`);
+                } else {
+                  console.error('[CoreLoops] Unexpected NPC update error:', error);
+                }
               }
             }
           });
@@ -667,6 +682,9 @@ const useCoreLoops = (
 
           const disease = npc1.health.currentDiseases[0];
 
+          // Safety check to prevent proxy revocation errors
+          if (!disease?.disease) continue;
+
           for (let j = 0; j < draft.length; j++) {
             if (i === j) continue;
             const npc2 = draft[j];
@@ -677,7 +695,8 @@ const useCoreLoops = (
             if (distance <= 2) {
               let baseChance = distance <= 1 ? 0.1 : 0.05;
 
-              const virality = disease.disease.transmissionRate || 1.0;
+              // Safe access to prevent proxy revocation errors
+              const virality = disease?.disease?.transmissionRate ?? 1.0;
               baseChance *= virality;
 
               const constitution = npc2.stats?.constitution || 10;
@@ -1630,7 +1649,7 @@ useEffect(() => {
     });
 
     if (playerMode === 'ship') {
-      if (targetTile.isLand && targetTile.biome !== BiomeType.ESTUARY) {
+      if ((targetTile.isLand || targetTile.hasBridge) && targetTile.biome !== BiomeType.ESTUARY) {
         setPlayerMode('onFoot');
         setShipDockX(controlledIconX);
         setShipDockY(controlledIconY);
@@ -1653,12 +1672,29 @@ useEffect(() => {
         setShipDockY(null);
         gameSounds.playEmbarkSound(); // Embark sound (improved with higher pitched footsteps)
         showToast('Embarked!');
-      } else if (targetTile.isLand) {
+      } else if (targetTile.isLand || targetTile.hasBridge) {
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
         
+        // Check if crossing a bridge and add narration
+        if (targetTile.hasBridge) {
+          // Play sand footstep sound for bridges (wooden creaking effect)
+          gameSounds.playFootstepSound('sand');
+
+          // Add bridge crossing narration (only once per bridge to avoid spam)
+          if (setNarrationHistory) {
+            const bridgeNarrationKey = `bridge-${targetTile.bridgeId}-${Math.floor(Date.now() / 10000)}`; // Cache for ~10 seconds
+            if (!npcNarrationHistory.current.has(bridgeNarrationKey)) {
+              npcNarrationHistory.current.add(bridgeNarrationKey);
+              setNarrationHistory(prev => [...prev, {
+                sender: 'narrator',
+                text: 'Crossing bridge...'
+              }]);
+            }
+          }
+        }
         // Play footstep sound for special maps based on floor type
-        if (isSpecialMap) {
+        else if (isSpecialMap) {
           const floorType = targetTile.biome;
           switch(floorType) {
             case BiomeType.FLOOR_STONE:

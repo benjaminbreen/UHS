@@ -33,7 +33,8 @@
       },
       "wikisourceTitle": null,
       "internetArchiveId": "codexmendoza00coopgoog",
-      "isStandard": true
+      "isStandard": true,
+      "wikipediaArticle": "Codex_Mendoza"
     },
     {
       "id": "popol-vuh",
@@ -68,7 +69,8 @@
       },
       "wikisourceTitle": "Popol_Vuh",
       "internetArchiveId": "popolvuhsacredb00goet",
-      "isStandard": true
+      "isStandard": true,
+      "wikipediaArticle": "Popol_Vuh"
     },
     {
       "id": "bartolome-de-las-casas",
@@ -140,7 +142,8 @@
         "modernSource": "Beacon Press (from 'The Broken Spears')"
       },
       "wikisourceTitle": null,
-      "internetArchiveId": null
+      "internetArchiveId": null,
+      "wikipediaArticle": "Florentine_Codex"
     },
     {
       "id": "inca-garcilaso",

@@ -118,6 +118,10 @@ export interface Tile {
     ownerNpc?: string; // ID of NPC who owns this item/container
     isValuable?: boolean; // Whether taking this triggers theft awareness
   };
+
+  // Bridge system - allows crossing water tiles
+  hasBridge?: boolean; // Whether this tile has a bridge over it
+  bridgeId?: string; // ID of the bridge structure on this tile
 }
 
 /**

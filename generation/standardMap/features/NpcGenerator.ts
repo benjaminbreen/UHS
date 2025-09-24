@@ -16,6 +16,7 @@ import { generateCulturalAccessory } from '../../../services/culturalAccessorySe
 import { worldEntityRegistry } from '../../../services/worldEntityRegistry';
 import { urbanTileRegistry } from '../../../services/urbanTileRegistryService';
 import { generateWorkplaceName, shouldHaveIndividualWorkplace, getBusinessType, generateWorkingHours, detectProfessionCategory } from '../../../services/workplaceGenerationService';
+import { detectEthnicityFromName } from '../../../services/characterGenerator';
 
 /**
  * Get a random profession suitable for business ownership using the same system as real NPCs
@@ -514,7 +515,10 @@ function createNpc(
             // console.log(`[NPC Generator] Generated ${attributes.length} attribute(s) for ${name}:`,
             //     attributes.map(a => `${a.name} (${a.rarity})`).join(', '));
         }
-        
+
+        // Detect ethnicity from name for proper portrait generation
+        const detectedEthnicity = detectEthnicityFromName(name);
+
         const npc: NpcEntity = {
             ...baseProfile,
             id, x, y, name, class: socialClass, role,
@@ -532,6 +536,11 @@ function createNpc(
             health, // Add disease health with potential disease
             attributes, // Add generated attribute badges
         };
+
+        // Add ethnicCulturalZone if different from geographic zone
+        if (detectedEthnicity && detectedEthnicity !== context.culturalZone) {
+            (npc as any).ethnicCulturalZone = detectedEthnicity;
+        }
         
         statsTracker.successful++;
         statsTracker.byProfession[npc.role] = (statsTracker.byProfession[npc.role] || 0) + 1;
@@ -632,10 +641,18 @@ export function generateNpcsForStandardMap(
 ): NpcEntity[] {
     const startTime = performance.now();
     let npcs: NpcEntity[] = [];
-    
+    // Global NPC limit for performance
+    const MAX_NPCS = 10; // Keep this low to prevent proxy issues
+
     // Skip NPC generation for ocean archetypes (no people floating in open ocean)
     if (mapData.archetype === 'SHOALS' || mapData.archetype === 'OPEN_OCEAN') {
         console.log(`[NPC] Skipping NPC generation for ${mapData.archetype} archetype`);
+        return [];
+    }
+
+    // Skip NPC generation for POLAR climates (Antarctica, Arctic - uninhabited)
+    if (climate === ClimateType.POLAR) {
+        console.log(`[NPC] Skipping NPC generation for POLAR climate`);
         return [];
     }
     
@@ -714,6 +731,12 @@ export function generateNpcsForStandardMap(
             }
             
             if (spawnPosition) {
+                // Check limit before creating palace noble
+                if (npcs.length >= MAX_NPCS) {
+                    console.log(`[NPC Gen] Reached limit of ${MAX_NPCS} NPCs, skipping palace noble`);
+                    break;
+                }
+
                 // Determine the appropriate noble role based on era and culture
                 let nobleRole = 'Lady'; // Default
                 const nobilityRoles = PROFESSIONS[context.culturalZone]?.[context.era]?.['NOBILITY'];
@@ -820,9 +843,15 @@ export function generateNpcsForStandardMap(
                  }
                  
                 for (const role of rolesToSpawn) {
+                    // Check limit before creating more NPCs
+                    if (npcs.length >= MAX_NPCS) {
+                        console.log(`[NPC Gen] Reached limit of ${MAX_NPCS} NPCs, stopping generation`);
+                        break;
+                    }
+
                     const position = findValidNpcPosition(tiles, npcPositions, noise, structure.location, 5);
                     if (!position) continue;
-                    
+
                     const npc = createNpc(position.x, position.y, context, noise, stats, structure, role);
                     if (npc) {
                         npcs.push(npc);
@@ -861,9 +890,8 @@ export function generateNpcsForStandardMap(
                     
                     // Generate more workers if we don't have enough
                     // BUT respect the hard limit of 10 NPCs total
-                    const MAX_NPCS = 10;
                     let workersGenerated = nearbyWorkers.length;
-                    while (workersGenerated < workersNeeded * 0.5 && npcs.length < MAX_NPCS) { // Respect 10 NPC limit
+                    while (workersGenerated < workersNeeded * 0.5 && npcs.length < MAX_NPCS) { // Respect NPC limit
                         const position = findValidNpcPosition(tiles, npcPositions, noise, factory.location, 10);
                         if (!position) break;
                         
@@ -884,7 +912,8 @@ export function generateNpcsForStandardMap(
         
         // 3. Spawn remaining wandering NPCs
         // Increased limit for better urban population
-        const MAX_NPCS_TOTAL = 20; // Increased from 10 to allow proper urban populations
+        // Use the same global limit for consistency
+        const MAX_NPCS_TOTAL = MAX_NPCS; // Consistent limit to prevent proxy issues
         const baseNpcCount = calculateNpcCount(tiles, climate, noise, region, mapAreaName, dateInfo.year);
 
         // Count urban tiles to ensure proper urban NPC distribution
@@ -1193,10 +1222,10 @@ export function generateNpcsForStandardMap(
         // 4. Generate enhanced descriptions for all NPCs
         enhanceNpcDescriptions(npcs);
         
-        // Final safety check: Ensure we never exceed 10 NPCs
-        if (npcs.length > 10) {
-            console.warn(`[NPC Gen] Generated ${npcs.length} NPCs, trimming to 10 for performance`);
-            npcs = npcs.slice(0, 10);
+        // Final safety check: Ensure we never exceed MAX_NPCS
+        if (npcs.length > MAX_NPCS) {
+            console.warn(`[NPC Gen] Warning: Generated ${npcs.length} NPCs despite limits, trimming to ${MAX_NPCS}`);
+            npcs = npcs.slice(0, MAX_NPCS);
         }
         
         logGenerationStats(stats, startTime);

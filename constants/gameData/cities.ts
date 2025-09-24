@@ -138,7 +138,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -400,
       description: "The holiest city in Islam, birthplace of the Prophet Muhammad.",
       allegianceHistory: {
-        "-400": "Quraysh Tribe",
+        [-400]: "Quraysh Tribe",
         630: "Rashidun Caliphate",
         661: "Umayyad Caliphate",
         750: "Abbasid Caliphate",
@@ -157,7 +157,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -500,
       description: "The second holiest city in Islam, where Muhammad established the first Muslim community.",
       allegianceHistory: {
-        "-500": "Local Tribes",
+        [-500]: "Local Tribes",
         622: "Islamic State of Medina",
         661: "Umayyad Caliphate",
         750: "Abbasid Caliphate",
@@ -236,43 +236,42 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       economicFocus: ['mining', 'silver', 'trade']
     }
   ],
-  "London": [
-    {
-      name: "Londinium",
-      isHistorical: true,
-      foundingYear: 47,
-      declineYear: 410,
-      description: "A major commercial center of Roman Britain, established after the conquest of 43 AD.",
-      allegianceHistory: {
-        47: "Roman Empire"
-      },
-      urbanDensity: 'moderate',
-      populationPeak: 60000,
-      economicFocus: ['trade', 'administration', 'military']
+  "Thames Estuary": [
+  {
+    name: "Londinium",
+    isHistorical: true,
+    foundingYear: 47,
+    declineYear: 410,
+    description: "A major commercial center of Roman Britain, established after the conquest of 43 AD.",
+    allegianceHistory: {
+      47: "Roman Empire"
     },
-    {
-        name: "London",
-        isHistorical: true,
-        foundingYear: 411,
-
-        description: "A resilient metropolis that has been a center of trade, finance, and culture for centuries.",
-        allegianceHistory: {
-            411: "Anglo-Saxons",
-            1066: "Kingdom of England",
-            1707: "British Empire"
-        },
-        urbanDensity: 'large',
-        eraSpecificDensity: {
-          'prehistoric': 'small',
-          'ancient': 'small',
-          'medieval': 'moderate',
-          'early_modern': 'large',
-          'modern': 'massive'
-        },
-        populationPeak: 7900000,
-        economicFocus: ['finance', 'trade', 'manufacturing', 'government']
-    }
-  ],
+    urbanDensity: "moderate",
+    populationPeak: 60000,
+    economicFocus: ["grain_trade", "pottery", "administration", "military_supplies"]
+  },
+  {
+    name: "London",
+    isHistorical: true,
+    foundingYear: 411,
+    description: "A resilient metropolis that has been a center of trade, finance, and culture for centuries.",
+    allegianceHistory: {
+      411: "Anglo-Saxons",
+      1066: "Kingdom of England",
+      1707: "British Empire"
+    },
+    urbanDensity: "large",
+    eraSpecificDensity: {
+      "prehistoric": "small",
+      "ancient": "small",
+      "medieval": "moderate",
+      "early_modern": "large",
+      "modern": "massive"
+    },
+    populationPeak: 7900000,
+    economicFocus: ["finance", "textiles", "shipping", "government"]
+  }
+],
   "Edinburgh": [
     {
       name: "Edinburgh",
@@ -286,29 +285,35 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
-  "Dublin": [
-    {
-      name: "Dyflin",
-      isHistorical: true,
-      foundingYear: 841,
-      declineYear: 1171,
-      description: "A major Viking longphort and center of the Norse Kingdom of Dublin.",
-      allegianceHistory: {
-        841: "Norse Kingdom of Dublin"
-      }
+  "Leinster Plain": [
+  {
+    name: "Dyflin",
+    isHistorical: true,
+    foundingYear: 841,
+    declineYear: 1171,
+    description: "A major Viking longphort and center of the Norse Kingdom of Dublin.",
+    allegianceHistory: {
+      841: "Norse Kingdom of Dublin"
     },
-    {
-      name: "Dublin",
-      isHistorical: true,
-      foundingYear: 1172,
-      description: "The center of English and later British power in Ireland for centuries.",
-      allegianceHistory: {
-        1172: "Lordship of Ireland (English rule)",
-        1542: "Kingdom of Ireland",
-        1801: "United Kingdom"
-      }
-    }
-  ],
+    urbanDensity: "small",
+    populationPeak: 10000,
+    economicFocus: ["slave_trade", "furs", "fish", "timber"]
+  },
+  {
+    name: "Dublin",
+    isHistorical: true,
+    foundingYear: 1172,
+    description: "The center of English and later British power in Ireland for centuries.",
+    allegianceHistory: {
+      1172: "Lordship of Ireland (English rule)",
+      1542: "Kingdom of Ireland",
+      1801: "United Kingdom"
+    },
+    urbanDensity: "moderate",
+    populationPeak: 200000,
+    economicFocus: ["textiles", "beer_brewing", "government", "shipping"]
+  }
+],
   "Oxfordshire": [
     {
       name: "Oxford",
@@ -328,7 +333,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       economicFocus: ['education', 'religion', 'publishing', 'trade']
     }
   ],
-  "Cape Cod": [
+  "Boston Harbor": [
     {
       name: "Boston",
       isHistorical: true,
@@ -844,6 +849,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
+
+  // MESOAMERICA AND SOUTH AMERICA
   "Valley of Mexico": [
     {
         name: "Tenochtitlan",
@@ -903,6 +910,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
+
+  // NORTH AMERICA
   "Cahokia Mounds": [
     {
       name: "Cahokia",
@@ -958,6 +967,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
+
+
   "Cuzco Valley": [
     {
         name: "Cusco",
@@ -1040,91 +1051,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
-  "Nile Delta": [
-    {
-        name: "Alexandria",
-        isHistorical: true,
-        foundingYear: -331,
-        description: "Founded by Alexander the Great, a legendary center of Hellenistic learning and trade, home to the Great Library.",
-        allegianceHistory: {
-            [-331]: "Ptolemaic Kingdom",
-            [-30]: "Roman Empire",
-            641: "Rashidun Caliphate",
-            1517: "Ottoman Empire"
-        }
-    }
-  ],
-  "Thebes Valley": [
-    {
-      name: "Thebes",
-      isHistorical: true,
-      foundingYear: -3200,
-      description: "The magnificent capital of the New Kingdom, city of a hundred gates and the Valley of the Kings.",
-      allegianceHistory: {
-        [-3200]: "Ancient Egypt",
-        [-30]: "Roman Empire",
-        641: "Rashidun Caliphate"
-      }
-    }
-  ],
-  "Jerusalem Hills": [
-    {
-      name: "Jerusalem",
-      isHistorical: true,
-      foundingYear: -1000,
-      description: "The holy city of three faiths, eternal focus of pilgrimage and prayer.",
-      allegianceHistory: {
-        [-1000]: "Kingdom of Israel",
-        [-586]: "Babylonian Empire",
-        [-332]: "Macedonian Empire",
-        [-63]: "Roman Republic",
-        638: "Rashidun Caliphate",
-        1099: "Crusader States",
-        1187: "Ayyubid Dynasty"
-      }
-    }
-  ],
-  "Tigris–Euphrates Confluence": [
-    {
-      name: "Baghdad",
-      isHistorical: true,
-      foundingYear: 762,
-      description: "The round city of peace, capital of the Abbasid Caliphate and center of the Islamic Golden Age.",
-      allegianceHistory: {
-        762: "Abbasid Caliphate",
-        1258: "Mongol Empire",
-        1534: "Ottoman Empire"
-      }
-    }
-  ],
-  "Babylon Region": [
-    {
-      name: "Babylon",
-      isHistorical: true,
-      foundingYear: -2300,
-      declineYear: 141,
-      description: "The great city of Hammurabi and Nebuchadnezzar, where the Hanging Gardens amazed the ancient world.",
-      allegianceHistory: {
-        [-2300]: "Babylonian Empire",
-        [-539]: "Persian Empire",
-        [-331]: "Macedonian Empire",
-        [-141]: "Parthian Empire"
-      }
-    }
-  ],
-  "Isfahan Basin": [
-    {
-      name: "Isfahan",
-      isHistorical: true,
-      foundingYear: 1598,
-      description: "Half the world, as the Persians say - the magnificent Safavid capital of gardens and mosques.",
-      allegianceHistory: {
-        1598: "Safavid Empire",
-        1722: "Afghan Invasion",
-        1729: "Afsharid Dynasty"
-      }
-    }
-  ],
+
+// AFRICA
   "Fez Plateau": [
     {
       name: "Fez",
@@ -1239,59 +1167,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
-  "Harappa Basin": [
-      {
-        name: "Harappa",
-        isHistorical: true,
-        foundingYear: -2600,
-        declineYear: -1900,
-        description: "A major urban center of the Indus Valley Civilization, one of the world's earliest and most advanced civilizations.",
-        allegianceHistory: {
-            [-2600]: "Indus Valley Civilization"
-        }
-      }
-  ],
-  "Varanasi Basin": [
-    {
-      name: "Varanasi",
-      isHistorical: true,
-      foundingYear: -1200,
-      description: "The eternal city on the Ganges, holiest of Hindu cities where pilgrims seek liberation.",
-      allegianceHistory: {
-        [-1200]: "Vedic Kingdoms",
-        321: "Maurya Empire",
-        320: "Gupta Empire",
-        1194: "Delhi Sultanate",
-        1526: "Mughal Empire"
-      }
-    }
-  ],
-  "Delhi Region": [
-    {
-      name: "Delhi",
-      isHistorical: true,
-      foundingYear: -1000,
-      description: "The seat of empires, where the fate of India has been decided for a thousand years.",
-      allegianceHistory: {
-        [-1000]: "Indraprastha",
-        1206: "Delhi Sultanate",
-        1526: "Mughal Empire",
-        1803: "British Empire"
-      }
-    }
-  ],
-  "Kandy Plateau": [
-    {
-      name: "Kandy",
-      isHistorical: true,
-      foundingYear: 1592,
-      description: "The mountain capital of the last independent Sinhalese kingdom, guardian of the sacred tooth relic.",
-      allegianceHistory: {
-        1592: "Kingdom of Kandy",
-        1815: "British Empire"
-      }
-    }
-  ],
+
   "Yellow River Valley": [
       {
         name: "Yinxu",
@@ -1666,8 +1542,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         declineYear: 698,
         description: "The great Phoenician rival to Rome, a maritime empire that dominated the Western Mediterranean.",
         allegianceHistory: {
-            "-814": "Carthaginian Republic",
-            "-146": "Roman Republic",
+            [-814]: "Carthaginian Republic",
+            [-146]: "Roman Republic",
             439: "Vandal Kingdom",
             534: "Byzantine Empire",
             698: "Umayyad Caliphate"
@@ -1684,8 +1560,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -3000,
       description: "One of the oldest continuously inhabited cities, capital of the Umayyad Caliphate at its height.",
       allegianceHistory: {
-        "-3000": "Ancient Semitic Peoples",
-        "-64": "Roman Empire",
+        [-3000]: "Ancient Semitic Peoples",
+        [-64]: "Roman Empire",
         661: "Umayyad Caliphate",
         750: "Abbasid Caliphate",
         1516: "Ottoman Empire"
@@ -1749,8 +1625,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         foundingYear: -300,
         description: "A magnificent Hellenistic city, a cradle of early Christianity and a key Crusader prize.",
         allegianceHistory: {
-            "-300": "Seleucid Empire",
-            "-64": "Roman Empire",
+            [-300]: "Seleucid Empire",
+            [-64]: "Roman Empire",
             395: "Byzantine Empire",
             1098: "Crusader States",
             1268: "Mamluk Sultanate"
@@ -1860,7 +1736,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -400,
       description: "The capital of the Western Roman Empire and later a powerful ducal seat and center of the Renaissance.",
       allegianceHistory: {
-        "-222": "Roman Republic",
+        [-222]: "Roman Republic",
         286: "Western Roman Empire",
         1395: "Duchy of Milan",
         1535: "Spanish Empire"
@@ -1874,7 +1750,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -400,
       description: "The proud maritime republic, whose powerful navy and savvy merchants rivaled Venice for control of the seas.",
       allegianceHistory: {
-        "-209": "Roman Republic",
+        [-209]: "Roman Republic",
         1005: "Republic of Genoa",
         1815: "Kingdom of Sardinia"
       },
@@ -1975,26 +1851,12 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         economicFocus: ['spices', 'trade', 'shipping']
     }
   ],
-  "Yangtze Gorges": [
-    {
-        name: "Nanjing",
-        isHistorical: true,
-        foundingYear: -495,
-        populationPeak: 8500000, // Modern Nanjing
-        description: "The great southern capital of several Chinese dynasties, rivaling Beijing for preeminence.",
-        allegianceHistory: {
-            229: "Kingdom of Wu",
-            1368: "Ming Dynasty",
-            1912: "Republic of China"
-        },
-        urbanDensity: 'large',
-        economicFocus: ['government', 'trade', 'textiles', 'shipbuilding']
-    },
+  "Yangtze Delta": [
     {
         name: "Shanghai",
         isHistorical: true,
         foundingYear: 960,
-        populationPeak: 24300000, // Modern Shanghai metropolitan area
+        populationPeak: 230000, // Modern Shanghai metropolitan area
         description: "The Pearl of the Orient, China's largest city and global financial center.",
         allegianceHistory: {
             960: "Song Dynasty",
@@ -2006,6 +1868,56 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         urbanDensity: 'massive',
         economicFocus: ['trade', 'banking', 'manufacturing', 'shipping']
     },
+    {
+        name: "Suzhou",
+        isHistorical: true,
+        foundingYear: [-514],
+        populationPeak: 100000,
+        description: "The Venice of the East, famous for its canals, gardens, and silk production.",
+        allegianceHistory: {
+            [-514]: "State of Wu",
+            [-222]: "Qin Dynasty",
+            589: "Sui Dynasty",
+            960: "Song Dynasty",
+            1368: "Ming Dynasty",
+            1644: "Qing Dynasty"
+        },
+        urbanDensity: 'large',
+        economicFocus: ['silk', 'textiles', 'gardens', 'canals']
+    },
+    {
+        name: "Hangzhou",
+        isHistorical: true,
+        foundingYear: [-222],
+        populationPeak: 98000,
+        description: "Heaven on Earth, former capital of Southern Song and terminus of the Grand Canal.",
+        allegianceHistory: {
+            [-222]: "Qin Dynasty",
+            589: "Sui Dynasty",
+            907: "Wuyue Kingdom",
+            1127: "Southern Song Capital",
+            1368: "Ming Dynasty",
+            1644: "Qing Dynasty"
+        },
+        urbanDensity: 'large',
+        economicFocus: ['silk', 'tea', 'porcelain', 'printing']
+    },
+    {
+        name: "Nanjing",
+        isHistorical: true,
+        foundingYear: [-495],
+        populationPeak: 85000,
+        description: "The great southern capital of several Chinese dynasties, rivaling Beijing for preeminence.",
+        allegianceHistory: {
+            229: "Kingdom of Wu",
+            1368: "Ming Dynasty",
+            1912: "Republic of China"
+        },
+        urbanDensity: 'large',
+        economicFocus: ['government', 'trade', 'textiles', 'shipbuilding']
+    }
+  ],
+  "Yangtze Gorges": [
     {
         name: "Hangzhou",
         isHistorical: true,
@@ -2074,7 +1986,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         foundingYear: -700,
         description: "The jewel of the Silk Road, made the glittering capital of a vast empire by Timur (Tamerlane).",
         allegianceHistory: {
-            "-329": "Macedonian Empire",
+            [-329]: "Macedonian Empire",
             712: "Umayyad Caliphate",
             1370: "Timurid Empire",
             1500: "Khanate of Bukhara"
@@ -2111,20 +2023,55 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         economicFocus: ['religion', 'architecture', 'agriculture']
     }
   ],
-  "Shiraz Valley": [
-    {
-        name: "Persepolis",
-        isHistorical: true,
-        foundingYear: -515,
-        declineYear: -330,
-        description: "The magnificent ceremonial capital of the Achaemenid Persian Empire, built to awe the world.",
-        allegianceHistory: {
-            "-515": "Achaemenid Empire"
-        },
-        urbanDensity: 'moderate',
-        economicFocus: ['government', 'tribute', 'ceremony', 'monumental_architecture']
-    }
-  ],
+ "Khuzestan Plain": [
+  {
+    name: "Susa",
+    isHistorical: true,
+    foundingYear: -4200,
+    description: "An ancient Elamite and later Achaemenid capital, famed for its palaces and administrative role.",
+    allegianceHistory: {
+      [-4200]: "Elamite Civilization",
+      [-539]: "Achaemenid Empire",
+      [-331]: "Macedonian Empire",
+      638: "Rashidun Caliphate"
+    },
+    urbanDensity: "moderate",
+    populationPeak: 50000,
+    economicFocus: ["grain", "administration", "textiles", "ceramics"]
+  }
+],
+
+"Shiraz Valley": [
+  {
+    name: "Persepolis",
+    isHistorical: true,
+    foundingYear: -518,
+    declineYear: -330,
+    description: "The ceremonial capital of the Achaemenid Empire, built by Darius the Great.",
+    allegianceHistory: {
+      [-518]: "Achaemenid Empire",
+      [-330]: "Macedonian Empire"
+    },
+    urbanDensity: "large",
+    populationPeak: 40000,
+    economicFocus: ["administration", "monumental_architecture", "stone_carving"]
+  },
+  {
+    name: "Shiraz",
+    isHistorical: true,
+    foundingYear: 693,
+    description: "A cultural capital of Persia, celebrated for its poets, gardens, and wine.",
+    allegianceHistory: {
+      693: "Umayyad Caliphate",
+      819: "Saffarid Dynasty",
+      1055: "Seljuk Empire",
+      1501: "Safavid Empire"
+    },
+    urbanDensity: "large",
+    populationPeak: 200000,
+    economicFocus: ["wine", "poetry", "gardens", "ceramics"]
+  }
+],
   "Novgorod Woods": [
     {
         name: "Novgorod",
@@ -2229,7 +2176,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -180,
       description: "A powerful maritime republic, whose naval prowess and architectural marvels challenged its rivals.",
       allegianceHistory: {
-        "-180": "Roman Republic",
+        [-180]: "Roman Republic",
         1000: "Republic of Pisa",
         1406: "Republic of Florence"
       },
@@ -2276,8 +2223,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -315,
       description: "The second city of the Byzantine Empire and a major port and cultural melting pot under the Ottomans.",
       allegianceHistory: {
-        "-315": "Kingdom of Macedon",
-        "-148": "Roman Empire",
+        [-315]: "Kingdom of Macedon",
+        [-148]: "Roman Empire",
         395: "Byzantine Empire",
         1430: "Ottoman Empire",
         1912: "Kingdom of Greece"
@@ -2306,7 +2253,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
     }
   ],
 
-  // === ASIA & MENA ===
+  // === SOUTH AND CENTRAL ASIA ===
   "Ferghana Valley": [
     {
         name: "Merv",
@@ -2315,7 +2262,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         declineYear: 1221,
         description: "An ancient oasis city on the Silk Road, once one of the largest and most brilliant cities in the world.",
         allegianceHistory: {
-            "-500": "Achaemenid Empire",
+            [-500]: "Achaemenid Empire",
             700: "Umayyad Caliphate",
             1037: "Seljuk Empire",
             1221: "Mongol Empire"
@@ -2354,6 +2301,131 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       },
       urbanDensity: 'moderate',
       economicFocus: ['trade', 'spices', 'religion', 'shipping']
+    }
+  ],
+
+  "Harappa Basin": [
+      {
+        name: "Harappa",
+        isHistorical: true,
+        foundingYear: -2600,
+        declineYear: -1900,
+        description: "A major urban center of the Indus Valley Civilization, one of the world's earliest and most advanced civilizations.",
+        allegianceHistory: {
+            [-2600]: "Indus Valley Civilization"
+        }
+      }
+  ],
+  "Varanasi Basin": [
+    {
+      name: "Varanasi",
+      isHistorical: true,
+      foundingYear: -1200,
+      description: "The eternal city on the Ganges, holiest of Hindu cities where pilgrims seek liberation.",
+      allegianceHistory: {
+        [-1200]: "Vedic Kingdoms",
+        321: "Maurya Empire",
+        320: "Gupta Empire",
+        1194: "Delhi Sultanate",
+        1526: "Mughal Empire"
+      }
+    }
+  ],
+  "Delhi Region": [
+    {
+      name: "Delhi",
+      isHistorical: true,
+      foundingYear: -1000,
+      description: "The seat of empires, where the fate of India has been decided for a thousand years.",
+      allegianceHistory: {
+        [-1000]: "Indraprastha",
+        1206: "Delhi Sultanate",
+        1526: "Mughal Empire",
+        1803: "British Empire"
+      }
+    }
+  ],
+  "Kandy Plateau": [
+    {
+      name: "Kandy",
+      isHistorical: true,
+      foundingYear: 1592,
+      description: "The mountain capital of the last independent Sinhalese kingdom, guardian of the sacred tooth relic.",
+      allegianceHistory: {
+        1592: "Kingdom of Kandy",
+        1815: "British Empire"
+      }
+    }
+  ],
+  "Nile Delta": [
+    {
+        name: "Alexandria",
+        isHistorical: true,
+        foundingYear: -331,
+        description: "Founded by Alexander the Great, a legendary center of Hellenistic learning and trade, home to the Great Library.",
+        allegianceHistory: {
+            [-331]: "Ptolemaic Kingdom",
+            [-30]: "Roman Empire",
+            641: "Rashidun Caliphate",
+            1517: "Ottoman Empire"
+        }
+    }
+  ],
+  "Thebes Valley": [
+    {
+      name: "Thebes",
+      isHistorical: true,
+      foundingYear: -3200,
+      description: "The magnificent capital of the New Kingdom, city of a hundred gates and the Valley of the Kings.",
+      allegianceHistory: {
+        [-3200]: "Ancient Egypt",
+        [-30]: "Roman Empire",
+        641: "Rashidun Caliphate"
+      }
+    }
+  ],
+  "Jerusalem Hills": [
+    {
+      name: "Jerusalem",
+      isHistorical: true,
+      foundingYear: -1000,
+      description: "The holy city of three faiths, eternal focus of pilgrimage and prayer.",
+      allegianceHistory: {
+        [-1000]: "Kingdom of Israel",
+        [-586]: "Babylonian Empire",
+        [-332]: "Macedonian Empire",
+        [-63]: "Roman Republic",
+        638: "Rashidun Caliphate",
+        1099: "Crusader States",
+        1187: "Ayyubid Dynasty"
+      }
+    }
+  ],
+  "Tigris–Euphrates Confluence": [
+    {
+      name: "Baghdad",
+      isHistorical: true,
+      foundingYear: 762,
+      description: "The round city of peace, capital of the Abbasid Caliphate and center of the Islamic Golden Age.",
+      allegianceHistory: {
+        762: "Abbasid Caliphate",
+        1258: "Mongol Empire",
+        1534: "Ottoman Empire"
+      }
+    }
+  ],
+
+  "Isfahan Basin": [
+    {
+      name: "Isfahan",
+      isHistorical: true,
+      foundingYear: 1598,
+      description: "Half the world, as the Persians say - the magnificent Safavid capital of gardens and mosques.",
+      allegianceHistory: {
+        1598: "Safavid Empire",
+        1722: "Afghan Invasion",
+        1729: "Afsharid Dynasty"
+      }
     }
   ],
   "Punjab Plains": [
@@ -2405,6 +2477,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       economicFocus: ['religion', 'government', 'monasticism']
     }
   ],
+
+
   "Inland Sea Coast": [
     {
       name: "Osaka",
@@ -2423,38 +2497,243 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       economicFocus: ['trade', 'rice', 'finance', 'crafts']
     }
   ],
-  "Mesopotamia": [
-    {
-        name: "Susa",
-        isHistorical: true,
-        foundingYear: -4200,
-        description: "An ancient capital of Elam and a favorite administrative center of the Persian Achaemenid Empire.",
-        allegianceHistory: {
-            "-4200": "Elamite Civilization",
-            "-539": "Achaemenid Empire",
-            "-331": "Macedonian Empire",
-            638: "Rashidun Caliphate"
-        },
-        urbanDensity: 'moderate',
-        economicFocus: ['administration', 'trade', 'agriculture']
-    }
-  ],
-  "Mount Lebanon Range": [
-    {
-        name: "Tyre",
-        isHistorical: true,
-        foundingYear: -2750,
-        description: "The great island-fortress of Phoenicia, a mercantile powerhouse that founded colonies across the sea.",
-        allegianceHistory: {
-            "-2750": "Phoenician City-State",
-            "-332": "Macedonian Empire",
-            "-64": "Roman Empire",
-            638: "Rashidun Caliphate"
-        },
-        urbanDensity: 'moderate',
-        economicFocus: ['trade', 'shipping', 'colonization', 'purple_dye']
-    }
-  ],
+
+
+
+  // === MENA & MAGHREB ===
+
+  "Rif Coast": [
+  {
+    name: "Tangier",
+    isHistorical: true,
+    foundingYear: -500,
+    description: "A strategic port at the Strait of Gibraltar, fought over by many empires.",
+    allegianceHistory: {
+      [-500]: "Carthaginian Empire",
+      [-146]: "Roman Empire",
+      711: "Umayyad Caliphate",
+      1471: "Portuguese Empire",
+      1661: "English Crown",
+      1684: "Alaouite Dynasty"
+    },
+    urbanDensity: "moderate",
+    populationPeak: 80000,
+    economicFocus: ["shipping", "grain", "salt", "smuggling"]
+  }
+],
+
+"Tunisian Sahel": [
+  {
+    name: "Carthage",
+    isHistorical: true,
+    foundingYear: -814,
+    declineYear: -146,
+    description: "The great Punic capital, rival of Rome, destroyed in the Third Punic War.",
+    allegianceHistory: {
+      [-814]: "Carthaginian Empire",
+      [-146]: "Roman Republic"
+    },
+    urbanDensity: "large",
+    populationPeak: 400000,
+    economicFocus: ["grain", "purple_dye", "shipping", "mercenaries"]
+  },
+  {
+    name: "Tunis",
+    isHistorical: true,
+    foundingYear: 698,
+    description: "A medieval and modern capital of Tunisia, rising after Carthage’s fall.",
+    allegianceHistory: {
+      698: "Umayyad Caliphate",
+      1229: "Hafsid Dynasty",
+      1574: "Ottoman Empire",
+      1881: "French Protectorate"
+    },
+    urbanDensity: "large",
+    populationPeak: 300000,
+    economicFocus: ["olive_oil", "grain", "ceramics", "trade"]
+  }
+],
+
+  "Diyala Valley": [
+  {
+    name: "Ctesiphon",
+    isHistorical: true,
+    foundingYear: 120,
+    declineYear: 637,
+    description: "Capital of the Parthian and Sassanian Empires, famous for its vaulted palace arch.",
+    allegianceHistory: {
+      120: "Parthian Empire",
+      224: "Sassanian Empire",
+      637: "Rashidun Caliphate"
+    },
+    urbanDensity: "large",
+    populationPeak: 500000,
+    economicFocus: ["administration", "luxury_trade", "stone_architecture"]
+  }
+],
+
+
+"Babylon Region": [
+  {
+    name: "Babylon",
+    isHistorical: true,
+    foundingYear: -2300,
+    description: "One of the most iconic cities of Mesopotamia, famed for its walls, ziggurats, and the legendary Hanging Gardens.",
+    allegianceHistory: {
+      [-1792]: "Babylonian Empire",
+      [-539]: "Achaemenid Empire",
+      [-331]: "Macedonian Empire",
+      650: "Sassanian Empire"
+    },
+    urbanDensity: 'large',
+    populationPeak: 200000,
+    economicFocus: ['WHEAT', 'DATES', 'TEXTILES', 'BRICK_CONSTRUCTION']
+  }
+],
+"Nineveh Plain": [
+  {
+    name: "Nineveh",
+    isHistorical: true,
+    foundingYear: -6000,
+    declineYear: -612,
+    description: "The last great capital of the Assyrian Empire, with monumental walls and palaces on the Tigris River.",
+    allegianceHistory: {
+      [-6000]: "Assyrian Settlements",
+      [-700]: "Neo-Assyrian Empire",
+      [-612]: "Medes & Babylonians"
+    },
+    urbanDensity: 'large',
+    populationPeak: 150000,
+    economicFocus: ['IRON_TOOLS', 'LINEN_TEXTILES', 'STONE_BLOCK', 'HORSES']
+  }
+],
+"Jerusalem Hills": [
+  {
+    name: "Jerusalem",
+    isHistorical: true,
+    foundingYear: -2000,
+    description: "A sacred and contested city, central to Judaism, Christianity, and Islam.",
+    allegianceHistory: {
+      [-1000]: "Kingdom of Judah",
+      [-586]: "Neo-Babylonian Empire",
+      [-63]: "Roman Republic",
+      638: "Rashidun Caliphate",
+      1099: "Crusader Kingdom of Jerusalem",
+      1187: "Ayyubid Sultanate",
+      1517: "Ottoman Empire"
+    },
+    urbanDensity: 'large',
+    populationPeak: 1000000,
+    economicFocus: ['WINE', 'OLIVE_OIL', 'STONEWORK', 'PILGRIMAGE_GOODS']
+  }
+],
+"Mount Lebanon Range": [
+  {
+    name: "Tyre",
+    isHistorical: true,
+    foundingYear: -2750,
+    description: "The great island-fortress of Phoenicia, a mercantile powerhouse that founded colonies across the Mediterranean.",
+    allegianceHistory: {
+      [-2750]: "Phoenician City-State",
+      [-332]: "Macedonian Empire",
+      [-64]: "Roman Empire",
+      638: "Rashidun Caliphate"
+    },
+    urbanDensity: 'moderate',
+    populationPeak: 50000,
+    economicFocus: ['PURPLE_DYE', 'CEDAR_TIMBER', 'GLASSWARE', 'OLIVE_OIL']
+  }
+],
+"Tunisian Sahel": [
+  {
+    name: "Carthage",
+    isHistorical: true,
+    foundingYear: -814,
+    declineYear: -146,
+    description: "The Phoenician-founded metropolis, a dominant naval and commercial power of the western Mediterranean until its destruction by Rome.",
+    allegianceHistory: {
+      [-814]: "Phoenician (Tyre)",
+      [-575]: "Carthaginian Republic",
+      [-146]: "Roman Republic"
+    },
+    urbanDensity: 'large',
+    populationPeak: 400000,
+    economicFocus: ['WHEAT', 'OLIVE_OIL', 'POTTERY', 'NAVAL_SHIPS']
+  }
+],
+"Fez Plateau": [
+  {
+    name: "Fez",
+    isHistorical: true,
+    foundingYear: 789,
+    description: "A spiritual and cultural capital of Morocco, home to one of the world’s oldest universities.",
+    allegianceHistory: {
+      789: "Idrisid Dynasty",
+      1040: "Almoravid Dynasty",
+      1147: "Almohad Caliphate",
+      1271: "Marinid Dynasty",
+      1666: "Alaouite Dynasty"
+    },
+    urbanDensity: 'large',
+    populationPeak: 400000,
+    economicFocus: ['BOOK_MANUSCRIPTS', 'LEATHERWORK', 'CERAMICS', 'CARPETS']
+  }
+],
+"Tripolitania": [
+  {
+    name: "Tripoli",
+    isHistorical: true,
+    foundingYear: -700,
+    description: "A key Mediterranean port in modern Libya, contested across Phoenician, Roman, Ottoman, and Italian rule.",
+    allegianceHistory: {
+      [-700]: "Phoenician Colonies",
+      [-146]: "Roman Empire",
+      642: "Rashidun Caliphate",
+      1551: "Ottoman Empire",
+      1911: "Italian Empire"
+    },
+    urbanDensity: 'moderate',
+    populationPeak: 100000,
+    economicFocus: ['OLIVE_OIL', 'SPICES', 'SLAVE_TRADE', 'SHIPBUILDING']
+  }
+],
+"Cyrenaica Coast": [
+  {
+    name: "Cyrene",
+    isHistorical: true,
+    foundingYear: -630,
+    declineYear: 365,
+    description: "A prosperous Greek colony in Cyrenaica, later an important Roman city until devastated by an earthquake.",
+    allegianceHistory: {
+      [-630]: "Greek Colonists (Thera)",
+      [-323]: "Ptolemaic Kingdom",
+      [-96]: "Roman Republic",
+      365: "Roman Empire (destroyed by earthquake)"
+    },
+    urbanDensity: 'moderate',
+    populationPeak: 100000,
+    economicFocus: ['BARLEY', 'WINE', 'PHILOSOPHY_SCHOOLS', 'STATUARY']
+  }
+],
+"Atlas Mountains": [
+  {
+    name: "Marrakesh",
+    isHistorical: true,
+    foundingYear: 1070,
+    description: "The red city of Morocco, an imperial capital and a hub for trade, religion, and politics.",
+    allegianceHistory: {
+      1070: "Almoravid Dynasty",
+      1147: "Almohad Caliphate",
+      1269: "Marinid Dynasty",
+      1549: "Saadian Dynasty",
+      1666: "Alaouite Dynasty"
+    },
+    urbanDensity: 'large',
+    populationPeak: 900000,
+    economicFocus: ['CARPETS', 'SPICE_TRADE', 'ARCHITECTURE', 'METALWORK']
+  }
+],
+
 
   // === AFRICA (CONTINUED) ===
   "Nile Valley": [
@@ -2465,9 +2744,9 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       declineYear: 641,
       description: "The ancient capital of the Old Kingdom of Egypt, seat of the pharaohs who built the great pyramids.",
       allegianceHistory: {
-        "-3100": "Ancient Egypt (Old Kingdom)",
-        "-332": "Ptolemaic Kingdom",
-        "-30": "Roman Empire"
+        [-3100]: "Ancient Egypt (Old Kingdom)",
+        [-332]: "Ptolemaic Kingdom",
+        [-30]: "Roman Empire"
       },
       urbanDensity: 'large',
       economicFocus: ['government', 'religion', 'monumental_architecture', 'crafts']
@@ -2589,7 +2868,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       declineYear: 900,
       description: "A dominant Maya city-state whose towering temples pierced the jungle canopy.",
       allegianceHistory: {
-        "-400": "Maya City-States",
+        [-400]: "Maya City-States",
       },
       urbanDensity: 'large',
       economicFocus: ['government', 'religion', 'monumental_architecture', 'warfare']
@@ -2656,7 +2935,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
     }
   ],
   
-  "Low Countries": [
+  "Zuiderzee Coast": [
     {
       name: "Amsterdam",
       isHistorical: true,
@@ -2697,17 +2976,17 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
     }
   ],
   
-  "Greece and Aegean": [
+  "Athens Basin": [
     {
       name: "Athens",
       isHistorical: true,
       foundingYear: -3000,
       description: "The cradle of democracy and Western philosophy.",
       allegianceHistory: {
-        "-3000": "Mycenaean Greeks",
-        "-508": "Athenian Democracy",
-        "-338": "Macedonian Empire",
-        "-146": "Roman Republic",
+        [-3000]: "Mycenaean Greeks",
+        [-508]: "Athenian Democracy",
+        [-338]: "Macedonian Empire",
+        [-146]: "Roman Republic",
         395: "Byzantine Empire",
         1458: "Ottoman Empire",
         1833: "Kingdom of Greece"
@@ -2725,8 +3004,8 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       foundingYear: -315,
       description: "Byzantine Empire's second city and gateway to the Balkans.",
       allegianceHistory: {
-        "-315": "Macedonian Kingdom",
-        "-146": "Roman Republic",
+        [-315]: "Macedonian Kingdom",
+        [-146]: "Roman Republic",
         395: "Byzantine Empire",
         1430: "Ottoman Empire",
         1912: "Kingdom of Greece"
@@ -2737,7 +3016,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
   ],
   
   // North America additions
-  "Northern California": [
+  "Pacific Coast Ranges": [
     {
       name: "Eureka",
       isHistorical: true,
@@ -2751,7 +3030,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
     }
   ],
   
-  "Central California Coast": [
+  "San Francisco Bay": [
     {
       name: "San Francisco",
       isHistorical: true,
@@ -2768,7 +3047,11 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         'modern': 'massive'
       },
       economicFocus: ['gold', 'shipping', 'finance', 'technology']
-    },
+    }
+  ],
+
+  "Monterey Bay": [
+
     {
       name: "Monterey",
       isHistorical: true,
@@ -2784,7 +3067,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
     }
   ],
   
-  "Southern California": [
+  "Los Angeles Basin": [
     {
       name: "Los Angeles",
       isHistorical: true,
@@ -2800,7 +3083,10 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         'modern': 'massive'
       },
       economicFocus: ['ranching', 'oil', 'entertainment', 'aerospace']
-    },
+    }
+  ],
+
+  "San Diego Bay": [
     {
       name: "San Diego",
       isHistorical: true,
@@ -2841,7 +3127,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       declineYear: 900,
       description: "One of the largest Maya cities, with towering pyramids.",
       allegianceHistory: {
-        "-600": "Maya City-States"
+        [-600]: "Maya City-States"
       },
       urbanDensity: 'large',
       populationPeak: 100000,
@@ -2921,7 +3207,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       declineYear: 350,
       description: "Capital of the Kingdom of Kush, city of iron and pyramids.",
       allegianceHistory: {
-        "-800": "Kingdom of Kush"
+        [-800]: "Kingdom of Kush"
       },
       urbanDensity: 'moderate',
       populationPeak: 25000,
@@ -2992,6 +3278,1357 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         'modern': 'moderate'
       },
       economicFocus: ['salt', 'copper', 'munitions', 'chemicals']
+    }
+  ],
+
+  "Sundarbans Delta": [
+    {
+      name: "Kolkata",
+      isHistorical: true,
+      foundingYear: 1690,
+      description: "Major colonial port city and capital of British India until 1911.",
+      allegianceHistory: {
+        1690: "British East India Company",
+        1858: "British Raj",
+        1947: "Republic of India"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'industrial': 'massive',
+        'modern': 'massive'
+      },
+      populationPeak: 14850000,
+      economicFocus: ['trade', 'jute', 'industry', 'finance']
+    },
+    {
+      name: "Dhaka",
+      isHistorical: true,
+      foundingYear: 1608,
+      description: "Historic Mughal capital and center of muslin textile production.",
+      allegianceHistory: {
+        1608: "Mughal Empire",
+        1765: "British East India Company",
+        1858: "British Raj",
+        1947: "Pakistan",
+        1971: "Bangladesh"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 21000000,
+      economicFocus: ['textiles', 'muslin', 'jute', 'commerce']
+    },
+    {
+      name: "Khulna",
+      isHistorical: true,
+      foundingYear: 1882,
+      description: "Major industrial port city in southwestern Bangladesh.",
+      allegianceHistory: {
+        1882: "British Raj",
+        1947: "Pakistan",
+        1971: "Bangladesh"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 1500000,
+      economicFocus: ['jute', 'shipbuilding', 'fishing', 'shrimp']
+    }
+  ],
+
+  "Chao Phraya Basin": [
+    {
+      name: "Bangkok",
+      isHistorical: true,
+      foundingYear: 1782,
+      description: "Capital of Siam founded after the fall of Ayutthaya.",
+      allegianceHistory: {
+        1782: "Kingdom of Siam"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 10700000,
+      economicFocus: ['trade', 'rice', 'manufacturing', 'services']
+    },
+    {
+      name: "Ayutthaya",
+      isHistorical: true,
+      foundingYear: 1350,
+      declineYear: 1767,
+      description: "Former capital of the Ayutthaya Kingdom, major trading hub.",
+      allegianceHistory: {
+        1350: "Ayutthaya Kingdom",
+        1767: "Destroyed by Burma"
+      },
+      urbanDensity: 'large',
+      eraSpecificDensity: {
+        'renaissance': 'massive'
+      },
+      populationPeak: 1000000,
+      economicFocus: ['trade', 'ceramics', 'rice', 'diplomacy']
+    },
+    {
+      name: "Nakhon Pathom",
+      isHistorical: true,
+      foundingYear: 500,
+      description: "Ancient Mon-Dvaravati city with important Buddhist sites.",
+      allegianceHistory: {
+        500: "Dvaravati",
+        1100: "Khmer Empire",
+        1238: "Sukhothai Kingdom",
+        1438: "Ayutthaya Kingdom",
+        1782: "Kingdom of Siam"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['religion', 'agriculture', 'crafts']
+    }
+  ],
+
+  "Tonle Sap Basin": [
+    {
+      name: "Angkor",
+      isHistorical: true,
+      foundingYear: 802,
+      declineYear: 1431,
+      description: "Capital of the Khmer Empire, largest pre-industrial city in the world.",
+      allegianceHistory: {
+        802: "Khmer Empire",
+        1431: "Abandoned"
+      },
+      urbanDensity: 'massive',
+      eraSpecificDensity: {
+        'medieval': 'massive'
+      },
+      populationPeak: 1000000,
+      economicFocus: ['religion', 'hydraulic engineering', 'rice', 'administration']
+    },
+    {
+      name: "Phnom Penh",
+      isHistorical: true,
+      foundingYear: 1372,
+      description: "Capital founded after the fall of Angkor, at the confluence of rivers.",
+      allegianceHistory: {
+        1372: "Khmer Kingdom",
+        1863: "French Protectorate",
+        1953: "Kingdom of Cambodia"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 2200000,
+      economicFocus: ['trade', 'administration', 'crafts', 'fishing']
+    },
+    {
+      name: "Battambang",
+      isHistorical: true,
+      foundingYear: 1100,
+      description: "Historic trading post and rice-growing center.",
+      allegianceHistory: {
+        1100: "Khmer Empire",
+        1795: "Siam",
+        1907: "French Protectorate",
+        1953: "Kingdom of Cambodia"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['rice', 'trade', 'agriculture']
+    }
+  ],
+
+  "West Java Coast": [
+    {
+      name: "Jakarta",
+      isHistorical: true,
+      foundingYear: 397,
+      description: "Major port city, known as Sunda Kelapa, then Jayakarta, then Batavia.",
+      allegianceHistory: {
+        397: "Kingdom of Tarumanagara",
+        669: "Sunda Kingdom",
+        1527: "Sultanate of Banten",
+        1619: "Dutch East Indies",
+        1942: "Japanese Occupation",
+        1945: "Republic of Indonesia"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 10600000,
+      economicFocus: ['trade', 'spices', 'administration', 'manufacturing']
+    },
+    {
+      name: "Bandung",
+      isHistorical: true,
+      foundingYear: 1810,
+      description: "Highland city founded as a Dutch colonial retreat and plantation center.",
+      allegianceHistory: {
+        1810: "Dutch East Indies",
+        1942: "Japanese Occupation",
+        1945: "Republic of Indonesia"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 2500000,
+      economicFocus: ['textiles', 'tea', 'quinine', 'education']
+    },
+    {
+      name: "Banten",
+      isHistorical: true,
+      foundingYear: 1526,
+      declineYear: 1832,
+      description: "Major sultanate and pepper trading port before Dutch conquest.",
+      allegianceHistory: {
+        1526: "Sultanate of Banten",
+        1682: "Dutch East Indies"
+      },
+      urbanDensity: 'moderate',
+      economicFocus: ['pepper', 'trade', 'Islam', 'shipbuilding']
+    }
+  ],
+
+  "East Java Coast": [
+    {
+      name: "Surabaya",
+      isHistorical: true,
+      foundingYear: 1293,
+      description: "Major port city and naval base, second largest city in Indonesia.",
+      allegianceHistory: {
+        1293: "Majapahit Empire",
+        1500: "Demak Sultanate",
+        1625: "Mataram Sultanate",
+        1743: "Dutch East Indies",
+        1942: "Japanese Occupation",
+        1945: "Republic of Indonesia"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 2900000,
+      economicFocus: ['trade', 'shipbuilding', 'sugar', 'manufacturing']
+    },
+    {
+      name: "Malang",
+      isHistorical: true,
+      foundingYear: 760,
+      description: "Highland city with ancient Hindu-Buddhist kingdom heritage.",
+      allegianceHistory: {
+        760: "Kingdom of Kanjuruhan",
+        1222: "Singhasari Kingdom",
+        1293: "Majapahit Empire",
+        1500: "Demak Sultanate",
+        1767: "Dutch East Indies",
+        1942: "Japanese Occupation",
+        1945: "Republic of Indonesia"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'moderate'
+      },
+      populationPeak: 850000,
+      economicFocus: ['agriculture', 'coffee', 'education', 'tourism']
+    },
+    {
+      name: "Gresik",
+      isHistorical: true,
+      foundingYear: 1100,
+      description: "Historic Islamic port and center of early Islamic propagation in Java.",
+      allegianceHistory: {
+        1100: "Independent port city",
+        1487: "Demak Sultanate",
+        1680: "Dutch East Indies",
+        1942: "Japanese Occupation",
+        1945: "Republic of Indonesia"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['trade', 'Islam', 'shipbuilding', 'fishing']
+    }
+  ],
+
+  "Lagos Coastal Belt": [
+    {
+      name: "Lagos",
+      isHistorical: true,
+      foundingYear: 1472,
+      description: "Major Atlantic port founded by Portuguese, later British colonial capital.",
+      allegianceHistory: {
+        1472: "Kingdom of Awori",
+        1730: "Kingdom of Benin",
+        1861: "British Colony",
+        1960: "Nigeria"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 21000000,
+      economicFocus: ['trade', 'palm oil', 'finance', 'entertainment']
+    },
+    {
+      name: "Benin City",
+      isHistorical: true,
+      foundingYear: 1180,
+      description: "Capital of the Benin Empire, famous for bronze casting and walls.",
+      allegianceHistory: {
+        1180: "Benin Empire",
+        1897: "British Protectorate",
+        1960: "Nigeria"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'renaissance': 'large'
+      },
+      populationPeak: 1500000,
+      economicFocus: ['bronze', 'ivory', 'administration', 'trade']
+    },
+    {
+      name: "Porto-Novo",
+      isHistorical: true,
+      foundingYear: 1688,
+      description: "Capital of Dahomey kingdom and later French colonial Benin.",
+      allegianceHistory: {
+        1688: "Kingdom of Porto-Novo",
+        1883: "French Protectorate",
+        1960: "Republic of Dahomey",
+        1975: "Benin"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['trade', 'palm oil', 'administration']
+    }
+  ],
+
+  "Ivory Coast": [
+    {
+      name: "Abidjan",
+      isHistorical: true,
+      foundingYear: 1898,
+      description: "Major port city developed during French colonial period.",
+      allegianceHistory: {
+        1898: "French West Africa",
+        1960: "Ivory Coast"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 5000000,
+      economicFocus: ['cocoa', 'coffee', 'timber', 'finance']
+    },
+    {
+      name: "Grand-Bassam",
+      isHistorical: true,
+      foundingYear: 1842,
+      declineYear: 1896,
+      description: "First French colonial capital, abandoned due to yellow fever.",
+      allegianceHistory: {
+        1842: "French Trading Post",
+        1893: "French West Africa",
+        1960: "Ivory Coast"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['trade', 'ivory', 'palm oil', 'rubber']
+    },
+    {
+      name: "Kong",
+      isHistorical: true,
+      foundingYear: 1100,
+      declineYear: 1895,
+      description: "Major Islamic scholarly and trading center in West Africa.",
+      allegianceHistory: {
+        1100: "Kong Empire",
+        1710: "Independent city-state",
+        1895: "Destroyed by Samory Touré"
+      },
+      urbanDensity: 'moderate',
+      economicFocus: ['trade', 'Islamic scholarship', 'kola nuts', 'gold']
+    }
+  ],
+
+  "Amazon Delta": [
+    {
+      name: "Belém",
+      isHistorical: true,
+      foundingYear: 1616,
+      description: "Gateway to the Amazon, major rubber boom port city.",
+      allegianceHistory: {
+        1616: "Portuguese Brazil",
+        1822: "Empire of Brazil",
+        1889: "Republic of Brazil"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'industrial': 'moderate',
+        'modern': 'large'
+      },
+      populationPeak: 2500000,
+      economicFocus: ['rubber', 'brazil nuts', 'timber', 'fishing']
+    },
+    {
+      name: "Macapá",
+      isHistorical: true,
+      foundingYear: 1758,
+      description: "Strategic fortress city at the Amazon mouth on the equator.",
+      allegianceHistory: {
+        1758: "Portuguese Brazil",
+        1822: "Empire of Brazil",
+        1889: "Republic of Brazil"
+      },
+      urbanDensity: 'small',
+      populationPeak: 500000,
+      economicFocus: ['defense', 'fishing', 'minerals', 'timber']
+    },
+    {
+      name: "Santarém",
+      isHistorical: true,
+      foundingYear: 1661,
+      description: "River confluence city, center of pre-Columbian Tapajós culture.",
+      allegianceHistory: {
+        [-1000]: "Tapajós culture",
+        1661: "Portuguese Brazil",
+        1822: "Empire of Brazil",
+        1889: "Republic of Brazil"
+      },
+      urbanDensity: 'small',
+      populationPeak: 300000,
+      economicFocus: ['rubber', 'agriculture', 'fishing', 'soybeans']
+    }
+  ],
+
+  "Iceland": [
+    {
+      name: "Reykjavik",
+      isHistorical: true,
+      foundingYear: 874,
+      description: "Nordic settlement that became Iceland's capital and largest city.",
+      allegianceHistory: {
+        874: "Norse Commonwealth",
+        1262: "Kingdom of Norway",
+        1380: "Kalmar Union",
+        1814: "Kingdom of Denmark",
+        1918: "Kingdom of Iceland",
+        1944: "Republic of Iceland"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'moderate'
+      },
+      populationPeak: 140000,
+      economicFocus: ['fishing', 'trade', 'government']
+    },
+    {
+      name: "Thingvellir",
+      isHistorical: true,
+      foundingYear: 930,
+      declineYear: 1798,
+      description: "Site of the Althing, one of the world's oldest parliaments.",
+      allegianceHistory: {
+        930: "Norse Commonwealth",
+        1262: "Kingdom of Norway"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['government', 'law', 'assembly']
+    },
+    {
+      name: "Akureyri",
+      isHistorical: true,
+      foundingYear: 1602,
+      description: "Northern Iceland's main trading port and fishing center.",
+      allegianceHistory: {
+        1602: "Kingdom of Denmark",
+        1918: "Kingdom of Iceland",
+        1944: "Republic of Iceland"
+      },
+      urbanDensity: 'small',
+      populationPeak: 20000,
+      economicFocus: ['fishing', 'whaling', 'trade']
+    }
+  ],
+
+  "Kashmir Valley": [
+    {
+      name: "Srinagar",
+      isHistorical: true,
+      foundingYear: [-250],
+      description: "Ancient city on Dal Lake, summer capital of Kashmir.",
+      allegianceHistory: {
+        [-250]: "Mauryan Empire",
+        320: "Gupta Empire",
+        700: "Karkota Dynasty",
+        1339: "Kashmir Sultanate",
+        1586: "Mughal Empire",
+        1752: "Durrani Empire",
+        1819: "Sikh Empire",
+        1846: "Dogra Dynasty",
+        1947: "Disputed Territory"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 1500000,
+      economicFocus: ['handicrafts', 'tourism', 'horticulture', 'silk']
+    },
+    {
+      name: "Anantnag",
+      isHistorical: true,
+      foundingYear: [-250],
+      description: "Ancient pilgrimage center with sacred springs.",
+      allegianceHistory: {
+        [-250]: "Local Kingdom",
+        700: "Kashmir Kingdom",
+        1586: "Mughal Empire",
+        1846: "Dogra Dynasty",
+        1947: "Disputed Territory"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['pilgrimage', 'agriculture', 'handicrafts']
+    }
+  ],
+
+  "Manchurian Plain": [
+    {
+      name: "Shenyang",
+      isHistorical: true,
+      foundingYear: [-300],
+      description: "Ancient city that became the Manchu capital before conquering China.",
+      allegianceHistory: {
+        [-300]: "Yan State",
+        1625: "Later Jin",
+        1636: "Qing Dynasty",
+        1912: "Republic of China",
+        1931: "Manchukuo",
+        1945: "Republic of China",
+        1949: "People's Republic of China"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 9000000,
+      economicFocus: ['industry', 'machinery', 'military']
+    },
+    {
+      name: "Harbin",
+      isHistorical: true,
+      foundingYear: 1898,
+      description: "Russian-built railway city, the 'Moscow of the East'.",
+      allegianceHistory: {
+        1898: "Russian Empire",
+        1917: "Russian Civil War",
+        1932: "Manchukuo",
+        1945: "Soviet Occupation",
+        1946: "Republic of China",
+        1949: "People's Republic of China"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 10000000,
+      economicFocus: ['railways', 'industry', 'trade']
+    },
+    {
+      name: "Changchun",
+      isHistorical: true,
+      foundingYear: 1800,
+      description: "Former capital of Manchukuo, major industrial center.",
+      allegianceHistory: {
+        1800: "Qing Dynasty",
+        1932: "Manchukuo",
+        1945: "Republic of China",
+        1949: "People's Republic of China"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 8000000,
+      economicFocus: ['automobiles', 'film', 'railways']
+    }
+  ],
+
+  "Jerusalem Hills": [
+    {
+      name: "Jerusalem",
+      isHistorical: true,
+      foundingYear: [-3000],
+      description: "Holy city sacred to Judaism, Christianity, and Islam.",
+      allegianceHistory: {
+        [-3000]: "Canaanite City",
+        [-1000]: "Kingdom of Israel",
+        [-586]: "Babylonian Empire",
+        [-538]: "Persian Empire",
+        [-332]: "Macedonian Empire",
+        [-63]: "Roman Empire",
+        638: "Rashidun Caliphate",
+        1099: "Kingdom of Jerusalem",
+        1187: "Ayyubid Dynasty",
+        1517: "Ottoman Empire",
+        1917: "British Mandate",
+        1948: "Divided City",
+        1967: "Israeli Control"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 1000000,
+      economicFocus: ['pilgrimage', 'tourism', 'government', 'technology']
+    },
+    {
+      name: "Bethlehem",
+      isHistorical: true,
+      foundingYear: [-1350],
+      description: "Birthplace of Jesus Christ, major Christian pilgrimage site.",
+      allegianceHistory: {
+        [-1350]: "Canaanite Settlement",
+        [-1000]: "Kingdom of Judah",
+        638: "Rashidun Caliphate",
+        1099: "Kingdom of Jerusalem",
+        1187: "Ayyubid Dynasty",
+        1517: "Ottoman Empire",
+        1917: "British Mandate",
+        1948: "Jordanian Control",
+        1967: "Israeli Occupation",
+        1995: "Palestinian Authority"
+      },
+      urbanDensity: 'small',
+      populationPeak: 30000,
+      economicFocus: ['pilgrimage', 'tourism', 'olive wood', 'mother-of-pearl']
+    },
+    {
+      name: "Hebron",
+      isHistorical: true,
+      foundingYear: [-3500],
+      description: "Ancient city with the Tomb of the Patriarchs, sacred to Jews and Muslims.",
+      allegianceHistory: {
+        [-3500]: "Canaanite City",
+        [-1000]: "Kingdom of Judah",
+        638: "Rashidun Caliphate",
+        1099: "Kingdom of Jerusalem",
+        1187: "Ayyubid Dynasty",
+        1517: "Ottoman Empire",
+        1917: "British Mandate",
+        1948: "Jordanian Control",
+        1967: "Israeli Occupation"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 250000,
+      economicFocus: ['glass', 'pottery', 'leather', 'grapes']
+    }
+  ],
+
+  "Orinoco Delta": [
+    {
+      name: "Ciudad Guayana",
+      isHistorical: false,
+      foundingYear: 1961,
+      description: "Modern planned industrial city at the Orinoco-Caroni confluence.",
+      allegianceHistory: {
+        1961: "Venezuela"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 900000,
+      economicFocus: ['steel', 'aluminum', 'hydropower', 'mining']
+    },
+    {
+      name: "Tucupita",
+      isHistorical: true,
+      foundingYear: 1848,
+      description: "Capital of Delta Amacuro state, gateway to the Orinoco Delta.",
+      allegianceHistory: {
+        1848: "Venezuela"
+      },
+      urbanDensity: 'small',
+      populationPeak: 100000,
+      economicFocus: ['fishing', 'agriculture', 'oil', 'indigenous crafts']
+    }
+  ],
+
+  "Guyana Highlands": [
+    {
+      name: "Georgetown",
+      isHistorical: true,
+      foundingYear: 1781,
+      description: "Capital built by the Dutch below sea level, the 'Garden City of the Caribbean'.",
+      allegianceHistory: {
+        1781: "Dutch Colony",
+        1814: "British Guiana",
+        1966: "Guyana"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 240000,
+      economicFocus: ['sugar', 'rice', 'bauxite', 'gold']
+    },
+    {
+      name: "Ciudad Bolivar",
+      isHistorical: true,
+      foundingYear: 1764,
+      description: "Historic river port on the Orinoco, gateway to Venezuelan Guayana.",
+      allegianceHistory: {
+        1764: "Spanish Empire",
+        1817: "Gran Colombia",
+        1830: "Venezuela"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 500000,
+      economicFocus: ['river trade', 'cattle', 'gold', 'diamonds']
+    }
+  ],
+
+  "Tierra del Fuego": [
+    {
+      name: "Ushuaia",
+      isHistorical: true,
+      foundingYear: 1884,
+      description: "Southernmost city in the world, gateway to Antarctica.",
+      allegianceHistory: {
+        1884: "Argentina"
+      },
+      urbanDensity: 'small',
+      populationPeak: 80000,
+      economicFocus: ['tourism', 'fishing', 'electronics', 'prison']
+    },
+    {
+      name: "Rio Grande",
+      isHistorical: true,
+      foundingYear: 1893,
+      description: "Sheep ranching center on the Atlantic coast.",
+      allegianceHistory: {
+        1893: "Argentina"
+      },
+      urbanDensity: 'small',
+      populationPeak: 100000,
+      economicFocus: ['sheep', 'oil', 'gas', 'manufacturing']
+    }
+  ],
+
+  "Norwegian Fjords": [
+    {
+      name: "Bergen",
+      isHistorical: true,
+      foundingYear: 1070,
+      description: "Historic Hanseatic trading city, gateway to the fjords.",
+      allegianceHistory: {
+        1070: "Kingdom of Norway",
+        1380: "Kalmar Union",
+        1814: "Sweden-Norway Union",
+        1905: "Kingdom of Norway",
+        1940: "German Occupation",
+        1945: "Kingdom of Norway"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 300000,
+      economicFocus: ['fish trade', 'shipping', 'oil', 'tourism']
+    },
+    {
+      name: "Trondheim",
+      isHistorical: true,
+      foundingYear: 997,
+      description: "Medieval capital and pilgrimage center with Nidaros Cathedral.",
+      allegianceHistory: {
+        997: "Kingdom of Norway",
+        1380: "Kalmar Union",
+        1814: "Sweden-Norway Union",
+        1905: "Kingdom of Norway"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 200000,
+      economicFocus: ['pilgrimage', 'trade', 'education', 'technology']
+    },
+    {
+      name: "Tromsø",
+      isHistorical: true,
+      foundingYear: 1794,
+      description: "Arctic city, the 'Paris of the North' and gateway to polar exploration.",
+      allegianceHistory: {
+        1794: "Denmark-Norway",
+        1814: "Sweden-Norway Union",
+        1905: "Kingdom of Norway"
+      },
+      urbanDensity: 'small',
+      populationPeak: 80000,
+      economicFocus: ['arctic trade', 'whaling', 'fishing', 'research']
+    }
+  ],
+
+  "Azores": [
+    {
+      name: "Ponta Delgada",
+      isHistorical: true,
+      foundingYear: 1450,
+      description: "Capital of the Azores, strategic Atlantic waystation.",
+      allegianceHistory: {
+        1450: "Kingdom of Portugal",
+        1580: "Iberian Union",
+        1640: "Kingdom of Portugal",
+        1910: "Portuguese Republic"
+      },
+      urbanDensity: 'small',
+      populationPeak: 70000,
+      economicFocus: ['whaling', 'agriculture', 'tourism', 'shipping']
+    },
+    {
+      name: "Angra do Heroísmo",
+      isHistorical: true,
+      foundingYear: 1478,
+      description: "Historic port city, crucial stop for treasure fleets from the Americas.",
+      allegianceHistory: {
+        1478: "Kingdom of Portugal",
+        1580: "Iberian Union",
+        1640: "Kingdom of Portugal",
+        1910: "Portuguese Republic"
+      },
+      urbanDensity: 'small',
+      populationPeak: 35000,
+      economicFocus: ['naval base', 'trade', 'agriculture']
+    }
+  ],
+
+  "Korean Peninsula": [
+    {
+      name: "Seoul",
+      isHistorical: true,
+      foundingYear: [-18],
+      description: "Capital of Korea for over 600 years, from Joseon to modern megacity.",
+      allegianceHistory: {
+        [-18]: "Baekje Kingdom",
+        475: "Goguryeo Kingdom",
+        553: "Silla Kingdom",
+        918: "Goryeo Dynasty",
+        1394: "Joseon Dynasty",
+        1910: "Japanese Colony",
+        1945: "US Occupation",
+        1948: "Republic of Korea"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 10000000,
+      economicFocus: ['government', 'technology', 'finance', 'entertainment']
+    },
+    {
+      name: "Pyongyang",
+      isHistorical: true,
+      foundingYear: [-2333],
+      description: "Ancient capital of Goguryeo, now capital of North Korea.",
+      allegianceHistory: {
+        [-2333]: "Gojoseon",
+        [-108]: "Han Commandery",
+        427: "Goguryeo Capital",
+        668: "Tang Dynasty",
+        918: "Goryeo Dynasty",
+        1394: "Joseon Dynasty",
+        1910: "Japanese Colony",
+        1945: "Soviet Occupation",
+        1948: "Democratic People's Republic of Korea"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 3200000,
+      economicFocus: ['government', 'heavy industry', 'military']
+    },
+    {
+      name: "Busan",
+      isHistorical: true,
+      foundingYear: [-100],
+      description: "Major port city, Korea's gateway to the sea.",
+      allegianceHistory: {
+        [-100]: "Geumgwan Gaya",
+        532: "Silla Kingdom",
+        918: "Goryeo Dynasty",
+        1394: "Joseon Dynasty",
+        1910: "Japanese Colony",
+        1948: "Republic of Korea"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'massive'
+      },
+      populationPeak: 3500000,
+      economicFocus: ['shipping', 'shipbuilding', 'fishing', 'trade']
+    }
+  ],
+
+  "Kyushu Island": [
+    {
+      name: "Fukuoka",
+      isHistorical: true,
+      foundingYear: [-100],
+      description: "Ancient gateway between Japan and Asia, major commercial center.",
+      allegianceHistory: {
+        [-100]: "Na Kingdom",
+        300: "Yamato State",
+        1185: "Kamakura Shogunate",
+        1333: "Ashikaga Shogunate",
+        1600: "Tokugawa Shogunate",
+        1868: "Empire of Japan",
+        1945: "Occupied Japan",
+        1952: "Japan"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 1600000,
+      economicFocus: ['trade', 'commerce', 'technology', 'culture']
+    },
+    {
+      name: "Nagasaki",
+      isHistorical: true,
+      foundingYear: 1571,
+      description: "Historic port, Japan's window to the West during isolation.",
+      allegianceHistory: {
+        1571: "Portuguese Trading Post",
+        1600: "Tokugawa Shogunate",
+        1868: "Empire of Japan",
+        1945: "Atomic Bombing",
+        1952: "Japan"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 450000,
+      economicFocus: ['international trade', 'shipbuilding', 'Christianity', 'tourism']
+    },
+    {
+      name: "Kumamoto",
+      isHistorical: true,
+      foundingYear: 1607,
+      description: "Castle town with one of Japan's most impressive fortresses.",
+      allegianceHistory: {
+        1607: "Hosokawa Domain",
+        1868: "Empire of Japan",
+        1945: "Occupied Japan",
+        1952: "Japan"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 750000,
+      economicFocus: ['military', 'agriculture', 'education', 'electronics']
+    }
+  ],
+
+  "Cyprus": [
+    {
+      name: "Nicosia",
+      isHistorical: true,
+      foundingYear: [-280],
+      description: "Last divided capital in Europe, contested between Greeks and Turks.",
+      allegianceHistory: {
+        [-280]: "Ptolemaic Kingdom",
+        58: "Roman Empire",
+        395: "Byzantine Empire",
+        1191: "Kingdom of Cyprus",
+        1489: "Republic of Venice",
+        1571: "Ottoman Empire",
+        1878: "British Administration",
+        1960: "Republic of Cyprus",
+        1974: "Divided City"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 350000,
+      economicFocus: ['government', 'finance', 'trade', 'services']
+    },
+    {
+      name: "Famagusta",
+      isHistorical: true,
+      foundingYear: [-300],
+      description: "Medieval port city with Venetian walls, ghost town since 1974.",
+      allegianceHistory: {
+        [-300]: "Ptolemaic Kingdom",
+        1191: "Kingdom of Cyprus",
+        1489: "Republic of Venice",
+        1571: "Ottoman Empire",
+        1878: "British Administration",
+        1960: "Republic of Cyprus",
+        1974: "Turkish Occupation"
+      },
+      urbanDensity: 'small',
+      declineYear: 1974,
+      populationPeak: 40000,
+      economicFocus: ['trade', 'tourism', 'port']
+    },
+    {
+      name: "Paphos",
+      isHistorical: true,
+      foundingYear: [-1400],
+      description: "Mythical birthplace of Aphrodite, ancient capital with Roman mosaics.",
+      allegianceHistory: {
+        [-1400]: "Mycenaean Settlement",
+        [-800]: "Cypriot Kingdoms",
+        58: "Roman Empire",
+        395: "Byzantine Empire",
+        1191: "Kingdom of Cyprus",
+        1489: "Republic of Venice",
+        1571: "Ottoman Empire",
+        1878: "British Administration",
+        1960: "Republic of Cyprus"
+      },
+      urbanDensity: 'small',
+      populationPeak: 35000,
+      economicFocus: ['tourism', 'archaeology', 'agriculture']
+    }
+  ],
+
+  "Crete": [
+    {
+      name: "Heraklion",
+      isHistorical: true,
+      foundingYear: [-2000],
+      description: "Capital near ancient Knossos, center of Minoan civilization.",
+      allegianceHistory: {
+        [-2000]: "Minoan Civilization",
+        [-1100]: "Mycenaean Greeks",
+        [-67]: "Roman Empire",
+        395: "Byzantine Empire",
+        824: "Emirate of Crete",
+        961: "Byzantine Empire",
+        1204: "Republic of Venice",
+        1669: "Ottoman Empire",
+        1898: "Cretan State",
+        1913: "Kingdom of Greece"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 180000,
+      economicFocus: ['tourism', 'archaeology', 'shipping', 'agriculture']
+    },
+    {
+      name: "Chania",
+      isHistorical: true,
+      foundingYear: [-1500],
+      description: "Venetian harbor city, one of the Mediterranean's most beautiful ports.",
+      allegianceHistory: {
+        [-1500]: "Minoan Settlement",
+        [-500]: "Greek City-State",
+        [-67]: "Roman Empire",
+        395: "Byzantine Empire",
+        1252: "Republic of Venice",
+        1645: "Ottoman Empire",
+        1898: "Cretan State",
+        1913: "Kingdom of Greece"
+      },
+      urbanDensity: 'small',
+      populationPeak: 110000,
+      economicFocus: ['tourism', 'olive oil', 'shipping', 'crafts']
+    }
+  ],
+
+  "Rhodes": [
+    {
+      name: "Rhodes City",
+      isHistorical: true,
+      foundingYear: [-408],
+      description: "Medieval city of the Knights Hospitaller, site of the Colossus.",
+      allegianceHistory: {
+        [-408]: "Rhodes City-State",
+        [-164]: "Roman Republic",
+        395: "Byzantine Empire",
+        1309: "Knights Hospitaller",
+        1523: "Ottoman Empire",
+        1912: "Kingdom of Italy",
+        1947: "Kingdom of Greece"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 120000,
+      economicFocus: ['tourism', 'shipping', 'sponge diving', 'wine']
+    },
+    {
+      name: "Lindos",
+      isHistorical: true,
+      foundingYear: [-1000],
+      description: "Ancient acropolis town with Temple of Athena.",
+      allegianceHistory: {
+        [-1000]: "Dorian Settlement",
+        [-408]: "Rhodes City-State",
+        [-164]: "Roman Republic",
+        395: "Byzantine Empire",
+        1309: "Knights Hospitaller",
+        1523: "Ottoman Empire",
+        1947: "Kingdom of Greece"
+      },
+      urbanDensity: 'small',
+      populationPeak: 4000,
+      economicFocus: ['tourism', 'fishing', 'crafts']
+    }
+  ],
+
+  "Yucatan Peninsula": [
+    {
+      name: "Mérida",
+      isHistorical: true,
+      foundingYear: 1542,
+      description: "Spanish colonial city built atop Maya T'ho, the 'White City'.",
+      allegianceHistory: {
+        [-600]: "Maya City of T'ho",
+        1542: "Spanish Empire",
+        1821: "Mexican Empire",
+        1823: "Republic of Yucatan",
+        1848: "Mexico"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 1000000,
+      economicFocus: ['henequen', 'tourism', 'commerce', 'culture']
+    },
+    {
+      name: "Chichen Itza",
+      isHistorical: true,
+      foundingYear: 600,
+      declineYear: 1200,
+      description: "Major Maya city with the famous pyramid of Kukulkan.",
+      allegianceHistory: {
+        600: "Maya City-State",
+        900: "Toltec-Maya Fusion",
+        1200: "Abandoned"
+      },
+      urbanDensity: 'large',
+      populationPeak: 50000,
+      economicFocus: ['pilgrimage', 'trade', 'astronomy', 'ball game']
+    },
+    {
+      name: "Cancún",
+      isHistorical: false,
+      foundingYear: 1970,
+      description: "Modern resort city built from scratch on Caribbean coast.",
+      allegianceHistory: {
+        1970: "Mexico"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 900000,
+      economicFocus: ['tourism', 'hospitality', 'entertainment']
+    }
+  ],
+
+  "Cuba": [
+    {
+      name: "Havana",
+      isHistorical: true,
+      foundingYear: 1519,
+      description: "Pearl of the Caribbean, frozen in time by revolution and embargo.",
+      allegianceHistory: {
+        1519: "Spanish Empire",
+        1762: "British Occupation",
+        1763: "Spanish Empire",
+        1898: "US Occupation",
+        1902: "Republic of Cuba",
+        1959: "Revolutionary Cuba"
+      },
+      urbanDensity: 'large',
+      populationPeak: 2200000,
+      economicFocus: ['tourism', 'cigars', 'rum', 'culture']
+    },
+    {
+      name: "Santiago de Cuba",
+      isHistorical: true,
+      foundingYear: 1515,
+      description: "Cradle of the Revolution and Afro-Cuban culture.",
+      allegianceHistory: {
+        1515: "Spanish Empire",
+        1898: "US Occupation",
+        1902: "Republic of Cuba",
+        1959: "Revolutionary Cuba"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 500000,
+      economicFocus: ['port', 'mining', 'music', 'revolution']
+    },
+    {
+      name: "Trinidad",
+      isHistorical: true,
+      foundingYear: 1514,
+      description: "Perfectly preserved colonial city built on sugar wealth.",
+      allegianceHistory: {
+        1514: "Spanish Empire",
+        1898: "US Occupation",
+        1902: "Republic of Cuba",
+        1959: "Revolutionary Cuba"
+      },
+      urbanDensity: 'small',
+      populationPeak: 75000,
+      economicFocus: ['sugar', 'tourism', 'crafts', 'music']
+    }
+  ],
+
+  "Hispaniola": [
+    {
+      name: "Santo Domingo",
+      isHistorical: true,
+      foundingYear: 1496,
+      description: "First European city in the Americas, Columbus's base.",
+      allegianceHistory: {
+        1496: "Spanish Empire",
+        1795: "French Colony",
+        1809: "Spanish Empire",
+        1821: "Republic of Spanish Haiti",
+        1822: "Unified Hispaniola",
+        1844: "Dominican Republic"
+      },
+      urbanDensity: 'large',
+      populationPeak: 3000000,
+      economicFocus: ['government', 'tourism', 'manufacturing', 'services']
+    },
+    {
+      name: "Port-au-Prince",
+      isHistorical: true,
+      foundingYear: 1749,
+      description: "Capital of the first Black republic after successful slave revolution.",
+      allegianceHistory: {
+        1749: "French Saint-Domingue",
+        1804: "Empire of Haiti",
+        1806: "Republic of Haiti"
+      },
+      urbanDensity: 'large',
+      populationPeak: 2800000,
+      economicFocus: ['government', 'commerce', 'manufacturing', 'NGOs']
+    },
+    {
+      name: "Cap-Haïtien",
+      isHistorical: true,
+      foundingYear: 1670,
+      description: "The 'Paris of the Antilles' before the revolution.",
+      allegianceHistory: {
+        1670: "French Saint-Domingue",
+        1804: "Kingdom of Haiti",
+        1820: "Republic of Haiti"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 280000,
+      economicFocus: ['tourism', 'port', 'history', 'voodoo']
+    }
+  ],
+
+  "Jamaica": [
+    {
+      name: "Kingston",
+      isHistorical: true,
+      foundingYear: 1693,
+      description: "Capital built after Port Royal's earthquake, birthplace of reggae.",
+      allegianceHistory: {
+        1693: "British Colony",
+        1962: "Jamaica"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 700000,
+      economicFocus: ['shipping', 'tourism', 'music', 'bauxite']
+    },
+    {
+      name: "Port Royal",
+      isHistorical: true,
+      foundingYear: 1518,
+      declineYear: 1692,
+      description: "The 'wickedest city on Earth', pirate haven destroyed by earthquake.",
+      allegianceHistory: {
+        1518: "Spanish Empire",
+        1655: "British Colony",
+        1692: "Destroyed"
+      },
+      urbanDensity: 'large',
+      populationPeak: 8000,
+      economicFocus: ['piracy', 'privateering', 'trade', 'vice']
+    },
+    {
+      name: "Montego Bay",
+      isHistorical: true,
+      foundingYear: 1510,
+      description: "Major tourist resort and cruise ship destination.",
+      allegianceHistory: {
+        1510: "Spanish Empire",
+        1655: "British Colony",
+        1962: "Jamaica"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 120000,
+      economicFocus: ['tourism', 'sugar', 'bananas', 'cruise ships']
+    }
+  ],
+
+  "New Guinea Highlands": [
+    {
+      name: "Mount Hagen",
+      isHistorical: true,
+      foundingYear: 1934,
+      description: "Highland town discovered by Australian gold prospectors.",
+      allegianceHistory: {
+        1934: "Australian Territory",
+        1975: "Papua New Guinea"
+      },
+      urbanDensity: 'small',
+      populationPeak: 50000,
+      economicFocus: ['coffee', 'vegetables', 'traditional markets', 'tourism']
+    },
+    {
+      name: "Goroka",
+      isHistorical: true,
+      foundingYear: 1926,
+      description: "Coffee capital and site of famous tribal gathering shows.",
+      allegianceHistory: {
+        1926: "Australian Territory",
+        1975: "Papua New Guinea"
+      },
+      urbanDensity: 'small',
+      populationPeak: 20000,
+      economicFocus: ['coffee', 'cultural festivals', 'education']
+    },
+    {
+      name: "Wabag",
+      isHistorical: true,
+      foundingYear: 1938,
+      description: "Remote highland center of Enga Province.",
+      allegianceHistory: {
+        1938: "Australian Territory",
+        1975: "Papua New Guinea"
+      },
+      urbanDensity: 'small',
+      populationPeak: 5000,
+      economicFocus: ['gold mining', 'subsistence agriculture', 'administration']
+    }
+  ],
+
+  "Fiji Islands": [
+    {
+      name: "Suva",
+      isHistorical: true,
+      foundingYear: 1882,
+      description: "Colonial capital and largest city in the South Pacific islands.",
+      allegianceHistory: {
+        1882: "British Colony",
+        1970: "Dominion of Fiji",
+        1987: "Republic of Fiji"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 180000,
+      economicFocus: ['government', 'shipping', 'education', 'regional headquarters']
+    },
+    {
+      name: "Levuka",
+      isHistorical: true,
+      foundingYear: 1820,
+      declineYear: 1882,
+      description: "First modern town in Fiji, former capital with wild colonial history.",
+      allegianceHistory: {
+        1820: "Beachcomber Settlement",
+        1874: "British Colony",
+        1970: "Fiji"
+      },
+      urbanDensity: 'small',
+      populationPeak: 1000,
+      economicFocus: ['whaling', 'copra', 'historical tourism']
+    },
+    {
+      name: "Nadi",
+      isHistorical: false,
+      foundingYear: 1947,
+      description: "Tourism gateway with international airport.",
+      allegianceHistory: {
+        1947: "British Colony",
+        1970: "Fiji"
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 50000,
+      economicFocus: ['tourism', 'sugar', 'aviation']
     }
   ]
 

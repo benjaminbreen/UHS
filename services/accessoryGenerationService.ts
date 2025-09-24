@@ -65,7 +65,7 @@ const accessoriesByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Rec
       scholar: ['JADE_PENDANT', 'SIMPLE_RING']
     },
     MENA: {
-      default: ['SIMPLE_RING', 'HAMSA_HAND'],
+      default: ['SIMPLE_RING', 'HAMSA_PENDANT'],
       soldier: ['IRON_RING', 'SIMPLE_RING'],
       merchant: ['SILVER_RING', 'SILVER_CHAIN'],
       aristocrat: ['GOLD_RING', 'EMERALD_RING', 'SAPPHIRE_RING'],
@@ -130,7 +130,7 @@ const accessoriesByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Rec
       monk: ['BUDDHIST_WHEEL', 'SIMPLE_RING']
     },
     MENA: {
-      default: ['SIMPLE_RING', 'HAMSA_HAND'],
+      default: ['SIMPLE_RING', 'HAMSA_PENDANT'],
       soldier: ['IRON_RING', 'SIMPLE_RING'],
       merchant: ['SILVER_RING', 'SILVER_CHAIN'],
       emir: ['GOLD_RING', 'EMERALD_RING', 'SAPPHIRE_RING'],
@@ -198,7 +198,7 @@ const accessoriesByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Rec
       scholar: ['JADE_PENDANT', 'SILVER_RING']
     },
     MENA: {
-      default: ['SIMPLE_RING', 'HAMSA_HAND'],
+      default: ['SIMPLE_RING', 'HAMSA_PENDANT'],
       soldier: ['IRON_RING', 'SILVER_RING'],
       merchant: ['SILVER_RING', 'SILVER_CHAIN', 'GOLD_RING'],
       pasha: ['GOLD_RING', 'EMERALD_RING', 'SAPPHIRE_RING', 'DIAMOND_RING'],
@@ -262,7 +262,7 @@ const accessoriesByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Rec
       official: ['GOLD_RING', 'JADE_PENDANT', 'PEARL_NECKLACE']
     },
     MENA: {
-      default: ['SIMPLE_RING', 'HAMSA_HAND'],
+      default: ['SIMPLE_RING', 'HAMSA_PENDANT'],
       worker: ['SIMPLE_RING', 'IRON_RING'],
       merchant: ['SILVER_RING', 'GOLD_RING'],
       official: ['GOLD_RING', 'EMERALD_RING', 'SAPPHIRE_RING']
@@ -314,7 +314,7 @@ const accessoriesByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Rec
       executive: ['GOLD_RING', 'JADE_PENDANT', 'DIAMOND_RING']
     },
     MENA: {
-      default: ['SIMPLE_RING', 'HAMSA_HAND'],
+      default: ['SIMPLE_RING', 'HAMSA_PENDANT'],
       professional: ['SILVER_RING', 'GOLD_RING'],
       executive: ['GOLD_RING', 'EMERALD_RING', 'DIAMOND_RING']
     },
@@ -362,7 +362,7 @@ const accessoriesByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Rec
       tech_worker: ['SIMPLE_RING', 'SILVER_RING']
     },
     MENA: {
-      default: ['SIMPLE_RING', 'HAMSA_HAND'],
+      default: ['SIMPLE_RING', 'HAMSA_PENDANT'],
       professional: ['SILVER_RING', 'GOLD_RING'],
       executive: ['GOLD_RING', 'EMERALD_RING', 'DIAMOND_RING'],
       tech_worker: ['SIMPLE_RING', 'SILVER_RING']
@@ -510,7 +510,7 @@ function getAccessoryValue(accessoryId: string): number {
     'OBSIDIAN_AMULET': 8,
     'HINDU_OM': 5,
     'BUDDHIST_WHEEL': 5,
-    'HAMSA_HAND': 5,
+    'HAMSA_PENDANT': 5,
     'WOODEN_CROSS': 3,
     'SHELL_NECKLACE': 2,
     'BONE_NECKLACE': 2,

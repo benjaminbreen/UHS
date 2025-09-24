@@ -32,6 +32,9 @@ import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, Cactu
 import DugEarthSymbol from './symbols/DugEarthSymbol';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
+import SpaceSymbol from './symbols/SpaceSymbol';
+import UnderseaSymbol from './symbols/UnderseaSymbol';
+import CloudSymbol from './symbols/CloudSymbol';
 import ShipTooltip from './ShipTooltip';
 import PlayerTooltip from './PlayerTooltip';
 import { StairsUpPixel } from './symbols/architecture/specialMap/StairsUpPixel';
@@ -73,6 +76,7 @@ import MapCanvasPerformance from './MapCanvasPerformance';
 import POIHoverTooltip from './POIHoverTooltip';
 import TileHoverTooltip from './TileHoverTooltip';
 import QuestMarkers from './QuestMarkers';
+import { NpcHelperOverlay } from './NpcHelperModeHandler';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle, getSafariGPUStyle, getSafariOptimizedTransform, isSafari } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
@@ -1263,6 +1267,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           break;
         case BiomeType.STAIRS_UP:
           componentInfo = { fileName: 'StairsUpPixel.tsx', symbolName: 'StairsUpPixel' };
+          break;
+        case BiomeType.AIR:
+          // Check climate to determine which ethereal realm we're in
+          if (mapData?.climate === ClimateType.ARID) {
+            // Outer Space (dark with stars)
+            componentInfo = { fileName: 'SpaceSymbol.tsx', symbolName: 'SpaceSymbol' };
+          } else {
+            // Heaven/clouds/storm realms (fluffy white or storm clouds)
+            componentInfo = { fileName: 'CloudSymbol.tsx', symbolName: 'CloudSymbol' };
+          }
+          break;
+        case BiomeType.UNDERSEA:
+          // Underwater realm
+          componentInfo = { fileName: 'UnderseaSymbol.tsx', symbolName: 'UnderseaSymbol' };
           break;
       }
     }
@@ -2520,6 +2538,42 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
+            {/* Ethereal Realms - Space, Undersea, Heaven/Clouds */}
+            {shouldRenderDetailedSymbols && (
+              <g>
+                {flatTiles.map((tile) => {
+                  // Space tiles (AIR biome in ARID climate)
+                  if (tile.biome === BiomeType.AIR && climate === ClimateType.ARID) {
+                    const symbolX = tile.x * TILE_SIZE_PX;
+                    const symbolY = tile.y * TILE_SIZE_PX;
+                    // Use stable seed based on tile position, not the map seed
+                    const tileSeed = tile.x * 137 + tile.y * 149 + 12345;
+                    return <SpaceSymbol key={`space-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />;
+                  }
+
+                  // Cloud/Heaven tiles (AIR biome in other climates)
+                  if (tile.biome === BiomeType.AIR && climate !== ClimateType.ARID) {
+                    const symbolX = tile.x * TILE_SIZE_PX;
+                    const symbolY = tile.y * TILE_SIZE_PX;
+                    // Use stable seed based on tile position
+                    const tileSeed = tile.x * 163 + tile.y * 173 + 54321;
+                    return <CloudSymbol key={`cloud-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} climate={climate} />;
+                  }
+
+                  // Undersea tiles
+                  if (tile.biome === BiomeType.UNDERSEA) {
+                    const symbolX = tile.x * TILE_SIZE_PX;
+                    const symbolY = tile.y * TILE_SIZE_PX;
+                    // Use stable seed based on tile position
+                    const tileSeed = tile.x * 181 + tile.y * 191 + 98765;
+                    return <UnderseaSymbol key={`undersea-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />;
+                  }
+
+                  return null;
+                })}
+              </g>
+            )}
+
             {/* Snow and seasonal riverbank snow */}
             {shouldRenderDetailedSymbols && (
               <g>
@@ -3895,6 +3949,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   })()}
                   
                   <NpcIcon npc={npc} size={TILE_SIZE_PX * 1.2} tileSize={TILE_SIZE_PX} />
+
+                  {/* NPC Helper Mode Overlay */}
+                  <NpcHelperOverlay
+                    npc={npc}
+                    playerX={logicalControlledIconX || 0}
+                    playerY={logicalControlledIconY || 0}
+                  />
                 </g>
               ))}
             </g>
@@ -4082,11 +4143,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             )}
 
             {/* Special Map Lighting Effects - Glow around light sources */}
-            {isSpecialMap && mapData && (() => {
+            {isSpecialMap && mapData && (mapData as any)?.specialArchetype !== 'ESTATES' && (() => {
+              // Skip lighting effects for ESTATES to prevent NaN coordinate bugs
               // Using memoized lightSourceTiles instead of filtering every render
-              
+
               // Light sources found for glow effects
-              
+
               return (
                 <g className="lighting-effects">
                   <defs>

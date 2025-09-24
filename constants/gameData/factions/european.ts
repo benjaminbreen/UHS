@@ -2815,6 +2815,93 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     trading_post: ['Pipeline Terminal', 'Railway Junction', 'Arctic Port']
                 }
             }
+        },
+
+        "Iceland": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Uninhabited Island',
+                dominantPowerDescription: 'Volcanic island untouched by humans, shaped by fire and ice.',
+                eraContextSentence: 'the land of fire and ice, where volcanoes meet glaciers in primordial silence.',
+                allegianceGroups: [],
+                structureNames: {
+                    holy_site: ['Geyser', 'Volcanic Crater', 'Glacier']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Irish Monks',
+                dominantPowerDescription: 'Irish hermit monks seeking solitude in the North Atlantic.',
+                eraContextSentence: 'the age of the Papar, where Irish monks pray in volcanic wilderness.',
+                allegianceGroups: [
+                    { name: 'Irish Papar', type: 'primary', description: 'Hermit monks from Ireland.' }
+                ],
+                structureNames: {
+                    holy_site: ['Hermit Cell', 'Stone Cross', 'Cave Chapel']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Icelandic Commonwealth',
+                dominantPowerDescription: 'Free state of Norse settlers with the world\'s oldest parliament.',
+                eraContextSentence: 'the saga age, where the Althing governs free farmers and poets compose epic tales.',
+                allegianceGroups: [
+                    { name: 'Icelandic Commonwealth', type: 'primary', description: 'Association of chieftains.' },
+                    { name: 'Norwegian Traders', type: 'trade_company', description: 'Merchants from the homeland.' },
+                    { name: 'Sturlungar', type: 'secondary', description: 'Powerful family faction.' }
+                ],
+                structureNames: {
+                    fortress: ['Chieftain Farmstead', 'Thing Site'],
+                    holy_site: ['Stave Church', 'Pagan Temple', 'Bishop Seat'],
+                    trading_post: ['Coastal Trading Post', 'Fish Market']
+                },
+                courtRoles: {
+                    palace: ['Lawspeaker', 'Godi', 'Skald', 'Bishop']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Danish Crown',
+                dominantPowerDescription: 'Remote Danish possession suffering from volcanic eruptions and monopoly trade.',
+                eraContextSentence: 'the dark centuries, where volcanic winter and Danish monopoly impoverish the island.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Denmark', type: 'primary', description: 'Colonial overlord.' },
+                    { name: 'Danish Merchants', type: 'trade_company', description: 'Monopoly traders.' },
+                    { name: 'Icelandic Farmers', type: 'declining', description: 'Impoverished population.' }
+                ],
+                structureNames: {
+                    trading_post: ['Danish Factory', 'Monopoly Warehouse'],
+                    holy_site: ['Lutheran Church', 'Bishop Residence'],
+                    fortress: ['Danish Fort', 'Governor House']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Danish Iceland',
+                dominantPowerDescription: 'Growing independence movement as fishing industry modernizes.',
+                eraContextSentence: 'the national awakening, where Icelandic identity reasserts through literature and politics.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Denmark', type: 'primary', description: 'Constitutional monarchy.' },
+                    { name: 'Independence Movement', type: 'rebel', description: 'Icelandic nationalists.' },
+                    { name: 'Fishing Companies', type: 'trade_company', description: 'Modernizing industry.' }
+                ],
+                structureNames: {
+                    fortress: ['Coastal Defense', 'Government Building'],
+                    factory: ['Fish Processing', 'Freezing Plant'],
+                    trading_post: ['Export Dock', 'Cooperative Store']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Republic of Iceland',
+                dominantPowerDescription: 'Independent Nordic nation balancing fishing, tourism, and renewable energy.',
+                eraContextSentence: 'the Nordic miracle, where geothermal power and tourism transform a volcanic island.',
+                allegianceGroups: [
+                    { name: 'Republic of Iceland', type: 'primary', description: 'Independent democracy.' },
+                    { name: 'NATO', type: 'secondary', description: 'Defense alliance.' },
+                    { name: 'Fishing Industry', type: 'trade_company', description: 'Economic backbone.' },
+                    { name: 'Tourism Sector', type: 'trade_company', description: 'Growing industry.' }
+                ],
+                structureNames: {
+                    fortress: ['NATO Base', 'Coast Guard Station'],
+                    factory: ['Aluminum Smelter', 'Geothermal Plant', 'Data Center'],
+                    trading_post: ['Tourist Center', 'Fish Market', 'Keflavik Airport']
+                }
+            }
         }
     }
 };

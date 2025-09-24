@@ -3,6 +3,7 @@
  */
 import { PlayerCharacter, HistoricalEra, Item, CharacterStats, CharacterPersonality, CharacterSocialContext, Appearance, ClothingPiece, ClothingPalette, MapAreaDefinition } from '../types';
 import { PROFESSIONS, CHARACTER_NAMES, CulturalZone, STARTING_PACKAGES, ProfessionDefinition, PERSONAL_BELIEFS } from '../constants/index';
+import { CHARACTER_NAMES as NAME_LISTS } from '../constants/characterData/names';
 import { parseDateString } from '../utils/dateUtils';
 import { createItemInstance, addItemToInventory, assembleStartingPackage } from '../utils/inventoryUtils';
 import { ValueNoise } from '../utils/noise';
@@ -15,6 +16,93 @@ import { AttributeBadgeService } from './attributeBadgeService';
 import { getMarkingsForCharacter, selectRandomMarking, getRandomPattern, convertToAppearanceMarking, getMarkingProbability } from '../constants/characterData/culturalMarkings';
 
 let characterIdCounter = 0;
+
+/**
+ * Detect likely ethnicity/cultural origin from a character's name
+ * Uses the existing name lists from constants to determine cultural zone
+ */
+export function detectEthnicityFromName(name: string): CulturalZone | null {
+    // Split name into parts
+    const nameParts = name.split(/\s+/);
+    const firstName = nameParts[0]?.toLowerCase() || '';
+    const lastName = nameParts[nameParts.length - 1]?.toLowerCase() || '';
+
+    // Check each name list for matches
+    for (const [listKey, nameList] of Object.entries(NAME_LISTS)) {
+        // Check if first name exists in male or female lists
+        const firstNameMatch = nameList.male.some(n =>
+            n.toLowerCase() === firstName ||
+            n.toLowerCase().replace(/[áéíóúàèìòùäëïöüâêîôûñç]/g, '') === firstName
+        ) || nameList.female.some(n =>
+            n.toLowerCase() === firstName ||
+            n.toLowerCase().replace(/[áéíóúàèìòùäëïöüâêîôûñç]/g, '') === firstName
+        );
+
+        // Check if surname matches
+        const surnameMatch = nameList.surname.some(s => {
+            const cleanSurname = s.toLowerCase()
+                .replace(/^(o'|mc|mac|de |von |van |le |la |del |della |di |da |al-|ibn |bin )/i, '');
+            return cleanSurname === lastName || s.toLowerCase() === lastName;
+        });
+
+        if (firstNameMatch || surnameMatch) {
+            // Map name list keys to cultural zones
+            if (listKey.includes('CELTIC_IRISH') || listKey.includes('SCOTTISH') || listKey.includes('WELSH')) {
+                return 'EUROPEAN'; // Celtic peoples
+            }
+            if (listKey.includes('ENGLISH') || listKey.includes('FRENCH') || listKey.includes('GERMAN') ||
+                listKey.includes('ITALIAN') || listKey.includes('SPANISH') || listKey.includes('PORTUGUESE') ||
+                listKey.includes('DUTCH') || listKey.includes('SCANDINAVIAN') || listKey.includes('RUSSIAN') ||
+                listKey.includes('POLISH') || listKey.includes('GREEK') || listKey.includes('FRANKISH') ||
+                listKey.includes('NORMAN') || listKey.includes('BYZANTINE') || listKey.includes('SLAVIC') ||
+                listKey.includes('HUNGARIAN') || listKey.includes('CZECH') || listKey.includes('ROMANIAN')) {
+                return 'EUROPEAN';
+            }
+            if (listKey.includes('CHINESE') || listKey.includes('JAPANESE') || listKey.includes('KOREAN') ||
+                listKey.includes('VIETNAMESE') || listKey.includes('MONGOLIAN') || listKey.includes('THAI') ||
+                listKey.includes('KHMER') || listKey.includes('BURMESE')) {
+                return 'EAST_ASIAN';
+            }
+            if (listKey.includes('ARABIC') || listKey.includes('PERSIAN') || listKey.includes('TURKISH') ||
+                listKey.includes('HEBREW') || listKey.includes('BERBER') || listKey.includes('COPTIC') ||
+                listKey.includes('NUBIAN')) {
+                return 'MENA';
+            }
+            if (listKey.includes('INDIAN') || listKey.includes('BENGALI') || listKey.includes('PUNJABI') ||
+                listKey.includes('TAMIL') || listKey.includes('GUJARATI') || listKey.includes('MARATHI') ||
+                listKey.includes('TELUGU') || listKey.includes('KANNADA') || listKey.includes('MALAYALAM') ||
+                listKey.includes('NEPALI') || listKey.includes('SINHALA')) {
+                return 'SOUTH_ASIAN';
+            }
+            if (listKey.includes('AFRICAN') || listKey.includes('SWAHILI') || listKey.includes('YORUBA') ||
+                listKey.includes('HAUSA') || listKey.includes('ZULU') || listKey.includes('ETHIOPIAN') ||
+                listKey.includes('SOMALI') || listKey.includes('MAASAI') || listKey.includes('BANTU')) {
+                return 'SUB_SAHARAN_AFRICAN';
+            }
+            if (listKey.includes('POLYNESIAN') || listKey.includes('MELANESIAN') || listKey.includes('MALAY') ||
+                listKey.includes('INDONESIAN') || listKey.includes('ABORIGINAL') || listKey.includes('MAORI') ||
+                listKey.includes('HAWAIIAN') || listKey.includes('SAMOAN') || listKey.includes('TAHITIAN')) {
+                return 'OCEANIA';
+            }
+            if (listKey.includes('INCA') || listKey.includes('MAYA') || listKey.includes('AZTEC') ||
+                listKey.includes('GUARANI') || listKey.includes('QUECHUA') || listKey.includes('TUPI') ||
+                listKey.includes('MAPUCHE') || listKey.includes('AYMARA')) {
+                return 'SOUTH_AMERICAN';
+            }
+            if (listKey.includes('IROQUOIS') || listKey.includes('ALGONQUIAN') || listKey.includes('SIOUX') ||
+                listKey.includes('APACHE') || listKey.includes('NAVAJO') || listKey.includes('CHEROKEE') ||
+                listKey.includes('PUEBLO') || listKey.includes('INUIT') || listKey.includes('CREEK') ||
+                listKey.includes('CHOCTAW') || listKey.includes('PLAINS_NATIVE')) {
+                return 'NORTH_AMERICAN_PRE_COLUMBIAN';
+            }
+            if (listKey.includes('NORTH_AMERICAN_COLONIAL') || listKey.includes('AMERICAN')) {
+                return 'NORTH_AMERICAN_COLONIAL';
+            }
+        }
+    }
+
+    return null;
+}
 
 interface GenerationContext {
     date: string;
@@ -96,7 +184,7 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
     'deaf': 'deaf',
     'nearsighted': 'nearsighted',
     'athletic': 'naturally athletic',
-    'limping': 'walk with a limp',
+    'limping': 'walking with a limp',
     'scarred': 'covered in scars',
     'giant': 'unusually tall',
     'tiny': 'remarkably small',
@@ -125,20 +213,20 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
 
     // Spiritual
     'spiritual': 'deeply spiritual',
-    'prophet': 'claim divine visions',
+    'prophet': 'gifted with divine visions',
     'blessed': 'blessed by fortune',
     'cursed': 'cursed',
-    'mystic': 'have mystical insights',
-    'skeptic': 'doubt all religions',
+    'mystic': 'blessed with mystical insights',
+    'skeptic': 'doubtful of all religions',
 
     // Skills/Background
     'survivor': 'a hardened survivor',
     'hunter': 'an experienced hunter',
-    'healer': 'know healing arts',
-    'merchant': 'have merchant experience',
+    'healer': 'a skilled healer',
+    'merchant': 'good with money',
     'sailor': 'experienced at sea',
-    'farmer': 'know farming',
-    'knight_errant': 'a former knight',
+    'farmer': 'an experienced farmer',
+    'knight_errant': 'a former soldier',
 
     // Conditions
     'alcoholic': 'dependent on drink',
@@ -149,7 +237,7 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
     'gambler': 'addicted to gambling',
     'melancholic': 'chronically sad',
     'glutton': 'constantly eating',
-    'ascetic': 'reject worldly pleasures',
+    'ascetic': 'disaindful of worldly pleasures',
     'curious': 'insatiably curious',
     'cautious': 'extremely cautious',
     'reckless': 'dangerously reckless',
@@ -160,15 +248,15 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
 
     // Social
     'animal_lover': 'an animal lover',
-    'loner': 'prefer solitude',
+    'loner': 'one who prefers solitude',
     'leader': 'a natural leader',
     'follower': 'prefer to follow',
     'romantic': 'hopelessly romantic',
     'orphan': 'an orphan',
-    'twin': 'have a twin',
-    'noble_blood': 'of noble blood',
+    'twin': 'a twin',
+    'noble_blood': 'of ancient but fallen family',
     'nightowl': 'most active at night',
-    'weather_sense': 'can predict weather',
+    'weather_sense': 'able to predict weather',
 
     // Cultural/Professional
     'calligrapher': 'a skilled calligrapher',
@@ -178,7 +266,7 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
     'craftsman': 'a craftsman',
 
     // New universal ones
-    'veteran': 'a grizzled veteran',
+    'veteran': 'a veteran of war',
     'street_smart': 'street smart',
     'pessimist': 'deeply pessimistic',
     'optimist': 'eternally optimistic',
@@ -1277,6 +1365,14 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
     );
 
     // Add attributes to character before generating backstory
+    // Detect ethnicity from name for portrait generation
+    const detectedEthnicity = detectEthnicityFromName(name);
+    if (detectedEthnicity) {
+        console.log(`[Character Generator] Detected ethnicity '${detectedEthnicity}' from name '${name}' (geographic zone: ${culturalZone})`);
+        // Store as ethnicCulturalZone to distinguish from geographic culturalZone
+        (partialCharacter as any).ethnicCulturalZone = detectedEthnicity;
+    }
+
     const characterWithAttributes = { ...partialCharacter, attributes };
 
     // The backstory is generated from the final, consistent character data including attributes

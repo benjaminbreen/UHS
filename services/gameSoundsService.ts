@@ -5076,7 +5076,7 @@ class GameSoundsService {
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(synthGain);
+      gain.connect(masterGain);
 
       osc.type = 'sine';
       osc.frequency.value = baseFreq;

@@ -16,6 +16,11 @@ import { CulturalZone } from '../types/characterData';
 import { unifiedQuestPipeline, QuestGenerationContext } from '../services/unifiedQuestPipeline';
 import { worldEntityRegistry } from '../services/worldEntityRegistry';
 import { historicalContextEngine } from '../services/historicalContextEngine';
+import { worldWeaverService } from '../services/worldWeaverService';
+import { worldWeaverQuestChain } from '../services/worldWeaverQuestChain';
+import { worldWeaverQuestService } from '../services/worldWeaverQuestService';
+import { questStorageCleanupService } from '../services/questStorageCleanupService';
+import { mapQuestAnalyzer } from '../services/mapQuestAnalyzer';
 
 interface QuestTestingPanelProps {
   isOpen: boolean;
@@ -33,6 +38,9 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
   const [testResults, setTestResults] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [worldWeaverPrompt, setWorldWeaverPrompt] = useState('Help a merchant with their trade problems');
+  const [questChainStats, setQuestChainStats] = useState({ activeChainCount: 0, totalQuestsInChains: 0, totalCompletedQuests: 0 });
+  const [storageStats, setStorageStats] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -43,7 +51,22 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
   const refreshQuests = () => {
     setActiveQuests(questService.getActiveQuests());
     setCompletedQuests(questService.getCompletedQuests());
-    addTestResult('Refreshed quest lists');
+
+    // Also refresh WorldWeaver stats
+    try {
+      const chains = worldWeaverQuestChain.getAllActiveChains();
+      setQuestChainStats({
+        activeChainCount: chains.length,
+        totalQuestsInChains: chains.reduce((sum, chain) => sum + chain.questIds.length, 0),
+        totalCompletedQuests: chains.reduce((sum, chain) => sum + chain.completedQuests.length, 0)
+      });
+
+      setStorageStats(questStorageCleanupService.getStorageReport());
+    } catch (error) {
+      console.error('Error refreshing WorldWeaver stats:', error);
+    }
+
+    addTestResult('Refreshed quest lists and WorldWeaver stats');
   };
 
   const addTestResult = (message: string) => {
@@ -215,7 +238,7 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
   // Test entity registry
   const testEntityRegistry = () => {
     addTestResult('🔍 Testing World Entity Registry...');
-    
+
     const stats = worldEntityRegistry.getStatistics();
     addTestResult(`📊 Registry Statistics:`);
     addTestResult(`   • NPCs: ${stats.npcs}`);
@@ -223,20 +246,172 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
     addTestResult(`   • Rulers: ${stats.rulers}`);
     addTestResult(`   • Settlements: ${stats.settlements}`);
     addTestResult(`   • Total: ${stats.total}`);
-    
+
     if (playerCharacter) {
       const nearbyNpcs = worldEntityRegistry.queryEntities({
         type: 'npc',
         maxDistance: 20,
         active: true
       });
-      
+
       if (nearbyNpcs.length > 0) {
         addTestResult(`📍 Nearby NPCs (20 tiles):`);
         nearbyNpcs.slice(0, 3).forEach(npc => {
           addTestResult(`   • ${npc.name} at (${npc.location.x}, ${npc.location.y})`);
         });
       }
+    }
+  };
+
+  // WorldWeaver quest testing functions
+  const testMapAnalysis = async () => {
+    if (!mapData || !playerCharacter) {
+      addTestResult('❌ Cannot analyze map: No map or player data');
+      return;
+    }
+
+    addTestResult('🗺️ Analyzing map for quest locations...');
+
+    try {
+      const playerLocation = { x: playerCharacter.x, y: playerCharacter.y };
+      const locations = mapQuestAnalyzer.extractQuestLocations(mapData, playerLocation);
+
+      addTestResult(`✅ Found ${locations.length} quest-suitable locations:`);
+      locations.slice(0, 5).forEach(loc => {
+        addTestResult(`   • ${loc.type} at (${loc.coordinates.x}, ${loc.coordinates.y}) - ${loc.description}`);
+      });
+
+      if (locations.length > 5) {
+        addTestResult(`   ... and ${locations.length - 5} more locations`);
+      }
+
+      const summary = mapQuestAnalyzer.getLocationSummary(locations);
+      addTestResult(`📋 Location Summary: ${summary}`);
+
+    } catch (error) {
+      addTestResult(`❌ Error analyzing map: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const generateWorldWeaverQuest = async () => {
+    if (!mapData || !playerCharacter) {
+      addTestResult('❌ Cannot generate WorldWeaver quest: No map or player data');
+      return;
+    }
+
+    setIsGenerating(true);
+    addTestResult(`🔮 Generating WorldWeaver quest: "${worldWeaverPrompt}"...`);
+
+    try {
+      const quest = await worldWeaverService.generateQuest(
+        worldWeaverPrompt,
+        gameDate?.year || 1500,
+        `${getCulturalZone()} region`,
+        undefined, // characterSpec
+        undefined, // gameMode
+        mapData,
+        { x: playerCharacter.x, y: playerCharacter.y }
+      );
+
+      if (quest) {
+        // Add quest via WorldWeaver service to get full integration
+        const questId = await worldWeaverQuestService.addWorldWeaverQuest(
+          quest,
+          mapData,
+          { x: playerCharacter.x, y: playerCharacter.y },
+          getCulturalZone(),
+          getEraFromDate(gameDate?.year || 1500)
+        );
+
+        addTestResult(`✅ Generated WorldWeaver quest: "${quest.title}"`);
+        addTestResult(`   📜 ID: ${questId}`);
+        addTestResult(`   🎭 NPC: ${quest.specialNPC?.name} at (${quest.specialNPC?.location?.x}, ${quest.specialNPC?.location?.y})`);
+        addTestResult(`   📋 Stages: ${quest.stages?.length || 0}`);
+        addTestResult(`   🏛️ Historical: ${quest.historicalContext ? 'YES' : 'NO'}`);
+
+        refreshQuests();
+      } else {
+        addTestResult('❌ Failed to generate WorldWeaver quest');
+      }
+    } catch (error) {
+      addTestResult(`❌ Error generating WorldWeaver quest: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const createTestQuestChain = async () => {
+    if (!mapData || !playerCharacter) {
+      addTestResult('❌ Cannot create quest chain: No map or player data');
+      return;
+    }
+
+    setIsGenerating(true);
+    addTestResult(`🔗 Creating test quest chain: "${worldWeaverPrompt}"...`);
+
+    try {
+      const chainContext = {
+        mapData,
+        playerLocation: { x: playerCharacter.x, y: playerCharacter.y },
+        culturalZone: getCulturalZone(),
+        era: getEraFromDate(gameDate?.year || 1500),
+        year: gameDate?.year || 1500,
+        location: `${getCulturalZone()} region, ${gameDate?.year || 1500}`
+      };
+
+      const chainId = await worldWeaverQuestChain.createQuestChain(worldWeaverPrompt, chainContext);
+
+      addTestResult(`✅ Created quest chain: ${chainId}`);
+      addTestResult(`   📋 Chain will auto-generate follow-ups when quests are completed`);
+      addTestResult(`   🎯 Max chain length: 3 quests`);
+
+      refreshQuests();
+    } catch (error) {
+      addTestResult(`❌ Error creating quest chain: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const testStorageCleanup = async () => {
+    addTestResult('🧹 Testing storage cleanup...');
+
+    try {
+      const statsBefore = questStorageCleanupService.getStorageStats();
+      addTestResult(`📊 Before cleanup: ${(statsBefore.quotaUsage * 100).toFixed(1)}% usage`);
+
+      await questStorageCleanupService.performMaintenanceCleanup();
+
+      const statsAfter = questStorageCleanupService.getStorageStats();
+      addTestResult(`📊 After cleanup: ${(statsAfter.quotaUsage * 100).toFixed(1)}% usage`);
+      addTestResult(`✅ Cleanup complete!`);
+
+      refreshQuests(); // Update storage stats display
+    } catch (error) {
+      addTestResult(`❌ Storage cleanup error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const simulateQuestCompletion = () => {
+    if (activeQuests.length === 0) {
+      addTestResult('❌ No active quests to complete');
+      return;
+    }
+
+    const randomQuest = activeQuests[Math.floor(Math.random() * activeQuests.length)];
+    addTestResult(`🎯 Simulating completion of: "${randomQuest.title}"`);
+
+    // Simulate quest completion event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('questCompleted', {
+        detail: {
+          quest: randomQuest,
+          questId: randomQuest.id
+        }
+      }));
+
+      addTestResult(`✅ Completion event fired for quest: ${randomQuest.id}`);
+      addTestResult(`   🔗 If part of a chain, follow-up quest should generate`);
     }
   };
 
@@ -547,10 +722,76 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
             <h3 className="text-sm font-semibold text-slate-300 mb-3">Generate Test Quests</h3>
             
             <div className="space-y-2 mb-4">
+              {/* WorldWeaver Tests */}
+              <div className="bg-gradient-to-br from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-lg p-2 mb-2">
+                <div className="text-xs font-semibold text-cyan-400 mb-2">🔮 WorldWeaver Quest System</div>
+
+                {/* Quest Prompt Input */}
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    value={worldWeaverPrompt}
+                    onChange={(e) => setWorldWeaverPrompt(e.target.value)}
+                    placeholder="Enter quest prompt..."
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+
+                <button
+                  onClick={generateWorldWeaverQuest}
+                  disabled={isGenerating}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 disabled:bg-slate-700 text-white text-sm rounded-lg transition-all flex items-center gap-2 font-semibold mb-2"
+                >
+                  <Activity className="w-4 h-4" />
+                  Generate WorldWeaver Quest
+                </button>
+
+                <button
+                  onClick={createTestQuestChain}
+                  disabled={isGenerating}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:bg-slate-700 text-white text-sm rounded-lg transition-all flex items-center gap-2 font-semibold mb-2"
+                >
+                  <span className="text-lg">🔗</span>
+                  Create Quest Chain
+                </button>
+
+                <button
+                  onClick={testMapAnalysis}
+                  className="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2 mb-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Analyze Map Locations
+                </button>
+
+                <div className="flex gap-1 mb-2">
+                  <button
+                    onClick={simulateQuestCompletion}
+                    className="flex-1 px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <CheckCircle className="w-3 h-3" />
+                    Simulate Completion
+                  </button>
+                  <button
+                    onClick={testStorageCleanup}
+                    className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Test Cleanup
+                  </button>
+                </div>
+
+                {/* Quest Chain Stats */}
+                <div className="bg-slate-800/50 rounded p-1 text-xs text-slate-300">
+                  <div>Active Chains: {questChainStats.activeChainCount}</div>
+                  <div>Chain Quests: {questChainStats.totalQuestsInChains}</div>
+                  <div>Completed: {questChainStats.totalCompletedQuests}</div>
+                </div>
+              </div>
+
               {/* Unified Pipeline Tests */}
               <div className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-2 mb-2">
                 <div className="text-xs font-semibold text-purple-400 mb-2">🚀 Unified Pipeline Tests</div>
-                
+
                 <button
                   onClick={() => generateUnifiedQuest('manual')}
                   disabled={isGenerating}
@@ -559,7 +800,7 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
                   <Zap className="w-4 h-4" />
                   Generate Unified Quest
                 </button>
-                
+
                 <button
                   onClick={generateMultipleQuests}
                   disabled={isGenerating}
@@ -568,7 +809,7 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
                   <Database className="w-4 h-4" />
                   Generate 3 Diverse Quests
                 </button>
-                
+
                 <button
                   onClick={testHistoricalContext}
                   className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2 mb-2"
@@ -576,7 +817,7 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
                   <History className="w-4 h-4" />
                   Test Historical Context
                 </button>
-                
+
                 <button
                   onClick={testEntityRegistry}
                   className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
@@ -635,6 +876,16 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
                 <div>Year: {gameDate?.year || 1500}</div>
               </div>
             </div>
+
+            {/* Storage Stats */}
+            {storageStats && (
+              <div className="bg-slate-800 rounded-lg p-2 mb-3">
+                <h4 className="text-xs font-semibold text-slate-400 mb-1">Storage Status</h4>
+                <pre className="text-xs text-slate-300 whitespace-pre-wrap">
+                  {storageStats}
+                </pre>
+              </div>
+            )}
 
             <div className="border-t border-slate-700 pt-3">
               <h3 className="text-sm font-semibold text-slate-300 mb-3">Utility Actions</h3>

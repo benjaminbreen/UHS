@@ -533,28 +533,33 @@ export function useSpecialMapNpcBehavior(
     return blockingBiomes.includes(biome);
   };
 
+  // Store npcs in a ref to avoid re-running effect on every NPC update
+  const npcsRef = useRef(npcs);
+  npcsRef.current = npcs;
+
   // Main update loop with batched state updates
   useEffect(() => {
     // Only log when we actually have a special map and NPCs to avoid spam
-    if (!mapArchetype || !npcs || npcs.length === 0) {
+    if (!mapArchetype || !npcsRef.current || npcsRef.current.length === 0) {
       return; // Skip silently when not in special map
     }
 
-    console.log('[useSpecialMapNpcBehavior] Starting behavior updates for', npcs.length, 'NPCs in', mapArchetype, 'archetype');
+    console.log('[useSpecialMapNpcBehavior] Starting behavior updates for', npcsRef.current.length, 'NPCs in', mapArchetype, 'archetype');
 
     const updateAllNpcs = () => {
       const updateAccumulator = new NpcUpdateAccumulator();
+      const currentNpcs = npcsRef.current;
 
       // Update behavior states for all NPCs
-      npcs.forEach(npc => {
+      currentNpcs.forEach(npc => {
         updateNpcBehavior(npc);
       });
 
       // Apply behavior changes using the accumulator
-      npcs.forEach(npc => {
+      currentNpcs.forEach(npc => {
         const state = npcStates.current.get(npc.id);
         if (state) {
-          applyBehaviorToNpc(npc, state, npcs, player, updateAccumulator);
+          applyBehaviorToNpc(npc, state, currentNpcs, player, updateAccumulator);
         }
       });
 
@@ -565,7 +570,7 @@ export function useSpecialMapNpcBehavior(
     };
 
     // Initial update
-    // updateAllNpcs(); // TEMP: Testing if this causes infinite loop
+    updateAllNpcs();
 
     // Set up periodic updates (every 2 seconds)
     updateInterval.current = setInterval(updateAllNpcs, 2000);
@@ -575,7 +580,7 @@ export function useSpecialMapNpcBehavior(
         clearInterval(updateInterval.current);
       }
     };
-  }, [npcs, mapArchetype, updateNpcBehavior, applyBehaviorToNpc, player]);
+  }, [mapArchetype, updateNpcBehavior, applyBehaviorToNpc, player]);
 
   // Get behavior state for a specific NPC
   const getNpcBehaviorState = useCallback((npcId: string): NpcBehaviorState | undefined => {

@@ -593,7 +593,14 @@ export function applyClimateBiomeChanges(
 
       const biomeAtClimateCheckStart: BiomeType = tile.biome;
 
-      if (climate === ClimateType.COLD) {
+      if (climate === ClimateType.POLAR) {
+        // POLAR climate: Only snow and tundra, no vegetation
+        if (tile.altitude > 0.4 || biomeVar > 0.3) {
+          tile.biome = BiomeType.SNOW;
+        } else {
+          tile.biome = BiomeType.TUNDRA;
+        }
+      } else if (climate === ClimateType.COLD) {
         // Convert forests to TAIGA in cold climates
         if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) {
           tile.biome = BiomeType.TAIGA;
@@ -602,11 +609,13 @@ export function applyClimateBiomeChanges(
         if (tile.biome === BiomeType.GRASSLAND && biomeVar < 0.6) {
           tile.biome = BiomeType.STEPPE;
         }
-        // Add alpine meadows below snow line
-        if (tile.altitude > 0.65 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE * 0.7 && (tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.GRASSLAND)) {
+        // Add alpine meadows below snow line - expanded range for more visibility
+        // In cold climates, alpine meadows appear at mid to high altitudes (0.45 to 0.75)
+        if (tile.altitude > 0.45 && tile.altitude < 0.75 && (tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.STEPPE || tile.biome === BiomeType.HILLS)) {
           tile.biome = BiomeType.ALPINE_MEADOW;
         }
-        if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE * 0.7 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
+        // Snow starts higher in cold climates to allow more alpine meadows
+        if (tile.altitude >= 0.75 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else if (climate === ClimateType.TEMPERATE) {
         // Add PRAIRIE for continental grasslands
         if (tile.biome === BiomeType.GRASSLAND && tile.altitude < 0.4) {
@@ -615,12 +624,16 @@ export function applyClimateBiomeChanges(
             tile.biome = BiomeType.PRAIRIE;
           }
         }
-        // Add alpine meadows at high altitudes
-        if (tile.altitude > 0.7 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.SCRUB)) {
+        // Add alpine meadows at high altitudes - expanded range
+        if (tile.altitude > 0.55 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.HILLS || tile.biome === BiomeType.FOREST)) {
           tile.biome = BiomeType.ALPINE_MEADOW;
         }
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else if (climate === ClimateType.MEDITERRANEAN) {
+        // Add alpine meadows in Mediterranean high elevations
+        if (tile.altitude > 0.65 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE * 1.05 && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.HILLS || tile.biome === BiomeType.FOREST)) {
+          tile.biome = BiomeType.ALPINE_MEADOW;
+        }
         // Mediterranean has snow only on the highest peaks
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE * 1.1 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else {
@@ -632,6 +645,10 @@ export function applyClimateBiomeChanges(
 
       const currentBiomeAfterSnowCheck: BiomeType = tile.biome;
       if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
+        // Add alpine meadows in semitropical high elevations (not tropical - too hot)
+        if (climate === ClimateType.SEMITROPICAL && tile.altitude > 0.6 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE && (currentBiomeAfterSnowCheck === BiomeType.GRASSLAND || currentBiomeAfterSnowCheck === BiomeType.SCRUB || currentBiomeAfterSnowCheck === BiomeType.HILLS || currentBiomeAfterSnowCheck === BiomeType.FOREST)) {
+          tile.biome = BiomeType.ALPINE_MEADOW;
+        }
         // Add SAVANNA for tropical grasslands
         if (currentBiomeAfterSnowCheck === BiomeType.GRASSLAND && tile.altitude < ALTITUDE_LEVELS.HILLS_MAX) {
           const savannaChance = climate === ClimateType.TROPICAL ? 0.6 : 0.4;
@@ -1571,7 +1588,15 @@ export function generateSpecialTerrainTiles(
                 const desertNoise = featurePlacementNoise.noise(x * 0.08, y * 0.08);
                 
                 // Base biome depends on climate
-                if (climate === ClimateType.COLD) {
+                if (climate === ClimateType.POLAR) {
+                    // Polar desert = only snow and tundra
+                    if (desertNoise > 0.1) {
+                        tile.biome = BiomeType.SNOW;
+                        tile.altitude = Math.max(tile.altitude, ALTITUDE_LEVELS.FOOTHILL);
+                    } else {
+                        tile.biome = BiomeType.TUNDRA;
+                    }
+                } else if (climate === ClimateType.COLD) {
                     // Cold desert = icy wasteland (snow/tundra)
                     if (desertNoise > 0.3) {
                         tile.biome = BiomeType.SNOW;

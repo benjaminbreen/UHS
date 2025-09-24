@@ -413,7 +413,7 @@ export function addBridgesToMap(mapData: MapData, bridges: Bridge[]): MapData {
     structureType: 'bridge',
     // Convert pixel coordinates to tile coordinates for the location field
     location: [
-      Math.floor(bridge.start.x / TILE_SIZE_PX), 
+      Math.floor(bridge.start.x / TILE_SIZE_PX),
       Math.floor(bridge.start.y / TILE_SIZE_PX)
     ],
     economicRole: 'commerce' as const,
@@ -421,10 +421,25 @@ export function addBridgesToMap(mapData: MapData, bridges: Bridge[]): MapData {
     state: 'active' as const,
     customData: bridge, // Store full bridge data with pixel coordinates
   }));
-  
-  // Add to map's terrain structures
-  return {
+
+  // Mark water tiles with bridge information so they can be crossed
+  const updatedMapData = {
     ...mapData,
     terrainStructures: [...(mapData.terrainStructures || []), ...bridgeStructures],
   };
+
+  // Mark each water tile that has a bridge over it
+  bridges.forEach(bridge => {
+    bridge.waterTiles.forEach(waterTileCoord => {
+      // waterTiles are stored as tile coordinates
+      const tile = updatedMapData.tiles[waterTileCoord.y]?.[waterTileCoord.x];
+      if (tile) {
+        // Mark this tile as having a bridge so it can be crossed on foot
+        tile.hasBridge = true;
+        tile.bridgeId = bridge.id;
+      }
+    });
+  });
+
+  return updatedMapData;
 }

@@ -20,6 +20,7 @@ interface MiningRoguelikeDisplayProps {
     onHealthChange?: (newHealth: number) => void;
     onInventoryAdd?: (item: any) => void;
     onFatigueChange?: (newFatigue: number) => void;
+    onPlayerDeath?: (deathInfo: any) => void;
 }
 
 // Tile types for mining
@@ -51,12 +52,14 @@ interface MineTile {
     oreQuality?: 'poor' | 'low' | 'medium' | 'high' | 'exquisite';
     mineralType?: string; // Specific mineral/rock type
     waterLevel?: number;
-    gasLevel?: number;
+    gasLevel?: number; // 0-100, gas concentration
     heat?: number; // For lava proximity
     oreHint?: boolean; // Shows if adjacent to ore
     hazard?: 'gas' | 'water' | 'unstable'; // Hazard warnings
     hasPickup?: boolean; // Ore/gem dropped on ground
     pickupItem?: any; // The actual item to pickup
+    isGasSource?: boolean; // Tile actively emits gas
+    supportBeam?: boolean; // Has structural support
 }
 
 interface MiningPlayer {
@@ -72,6 +75,8 @@ interface MiningPlayer {
     torchLight: number; // Light radius
     pickaxeLevel: number; // 0 = hands, 1 = basic, 2 = iron, 3 = steel, 4 = diamond
     oresCollected: { [key: string]: number }; // Track collected ores
+    isFalling?: boolean; // Track if player is currently falling
+    fallDistance?: number; // How far the player has fallen
 }
 
 // Colors for different depths (gradient from surface to deep)
@@ -285,7 +290,8 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
     onExit,
     onHealthChange,
     onInventoryAdd,
-    onFatigueChange
+    onFatigueChange,
+    onPlayerDeath
 }) => {
     const MAP_WIDTH = 80;
     const MAP_HEIGHT = 40;
@@ -360,7 +366,17 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
                     // Add hazards at deeper levels
                     let hazard: 'gas' | 'water' | 'unstable' | undefined = undefined;
-                    if (y > 10) {
+                    let isGasSource = false;
+
+                    // Add gas pockets
+                    if (y > 5 && Math.random() < 0.05 && tileType === 'rock') {
+                        tileType = 'gas_pocket';
+                        durability = 1;
+                        isGasSource = true;
+                        hazard = 'gas';
+                    }
+
+                    if (y > 10 && tileType === 'rock') {
                         const hazardRoll = Math.random();
                         if (hazardRoll < 0.02) hazard = 'gas';
                         else if (hazardRoll < 0.04) hazard = 'water';
@@ -374,7 +390,9 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                         durability: durability,
                         oreType: tileType !== 'rock' ? oreType : undefined,
                         oreAmount: tileType !== 'rock' ? oreAmount : undefined,
-                        hazard: hazard
+                        hazard: hazard,
+                        isGasSource: isGasSource,
+                        gasLevel: isGasSource ? 100 : 0
                     });
                 }
             }
@@ -434,6 +452,11 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
     const [miningDirection, setMiningDirection] = useState<'north' | 'south' | 'east' | 'west' | null>(null);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [showLegend, setShowLegend] = useState(true);
+    const [isDead, setIsDead] = useState(false);
+    const [deathCause, setDeathCause] = useState<string>('');
+    const [lastDamageSource, setLastDamageSource] = useState<'fall' | 'gas' | 'cave-in' | 'drowning' | ''>('');
+    const [consecutiveFalls, setConsecutiveFalls] = useState(0);
+    const [gasWarningShown, setGasWarningShown] = useState(false);
     const [particles, setParticles] = useState<Array<{
         id: string;
         x: number;
@@ -526,7 +549,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
     // Update visibility based on torch light and detect ore hints
     const updateVisibility = useCallback((playerX: number, playerY: number, map: MineTile[][]) => {
-        const newMap = [...map];
+        const newMap = map.map(row => row.map(tile => ({ ...tile })));
         const lightRadius = player.torchLight;
 
         // Clear old ore hints
@@ -566,6 +589,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
         switch (hazardType) {
             case 'gas':
                 setMessages(prev => [...prev.slice(-4), '⚠️ Gas pocket! You feel dizzy...']);
+                gameSoundsService.playPoisonEffect(); // Use poison effect for gas hazard
                 const gasDamage = Math.floor(Math.random() * 10) + 5;
                 const newHpGas = Math.max(0, player.hp - gasDamage);
                 setPlayer(prev => ({ ...prev, hp: newHpGas, oxygen: Math.max(0, prev.oxygen - 20) }));
@@ -574,8 +598,9 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
             case 'water':
                 setMessages(prev => [...prev.slice(-4), '💧 Water rushes in!']);
+                gameSoundsService.playWaterSound(); // Water rushing sound
                 // Fill nearby empty tiles with water
-                const newMapWater = [...mineMap];
+                const newMapWater = mineMap.map(row => row.map(tile => ({ ...tile })));
                 for (let dy = -1; dy <= 1; dy++) {
                     for (let dx = -1; dx <= 1; dx++) {
                         const wx = x + dx;
@@ -592,6 +617,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
             case 'unstable':
                 setMessages(prev => [...prev.slice(-4), '⚠️ Cave-in! Rocks fall from above!']);
+                gameSoundsService.playExplosionSound(); // Explosion sound for cave-in
                 const caveDamage = Math.floor(Math.random() * 15) + 10;
                 const newHpCave = Math.max(0, player.hp - caveDamage);
                 setPlayer(prev => ({ ...prev, hp: newHpCave }));
@@ -632,8 +658,12 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
         const targetTile = mineMap[targetY][targetX];
 
         // Handle mineable tiles
-        const mineableTiles = ['rock', 'ore_vein', 'rare_ore', 'crystal', 'fossil', 'cave_painting', 'ancient_tool', 'graffiti', 'ruins_entrance'];
+        const mineableTiles = ['rock', 'ore_vein', 'rare_ore', 'crystal', 'fossil', 'cave_painting', 'ancient_tool', 'graffiti', 'ruins_entrance', 'gas_pocket'];
         if (mineableTiles.includes(targetTile.type)) {
+            // Check for gas pocket BEFORE mining it
+            if (targetTile.type === 'gas_pocket') {
+                setMessages(prev => [...prev.slice(-4), '⚠️ WARNING: Gas pocket detected! Mining will release toxic gas!']);
+            }
             // Check if can mine with current tool (only restrict for crystal and rare ore)
             const requiredLevel = targetTile.type === 'crystal' ? 3 : targetTile.type === 'rare_ore' ? 2 : 1;
             if (player.pickaxeLevel < requiredLevel && targetTile.type !== 'rock' && targetTile.type !== 'ore_vein') {
@@ -649,7 +679,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
             // Add dust particles when mining
             addParticle(targetX, targetY, 'dust');
 
-            const newMap = [...mineMap];
+            const newMap = mineMap.map(row => row.map(tile => ({ ...tile })));
 
             // Pickaxe efficiency reduces hits needed
             const miningPower = Math.max(1, player.pickaxeLevel);
@@ -869,12 +899,310 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
             setPlayer(newPlayer);
             setMineMap(updateVisibility(newX, newY, mineMap));
 
+            // Play footstep sound based on surface type
+            if (targetTile.type === 'water') {
+                gameSoundsService.playFootstepSound('sand'); // Water splashing sound
+            } else if (targetTile.type === 'ore_deposit' || targetTile.type === 'gem_deposit') {
+                gameSoundsService.playFootstepSound('metal'); // Metallic clink when stepping on ore
+            } else {
+                gameSoundsService.playFootstepSound('stone'); // Stone footsteps for most surfaces
+            }
+
             // Check for special tiles
             if (targetTile.type === 'entrance' && newY === 0) {
                 setMessages(prev => [...prev.slice(-4), 'Press ESC to exit the mine']);
             }
+
+            // Immediately check for gravity after moving
+            setTimeout(() => applyGravity(), 50);
         }
     }, [player, mineMap, updateVisibility]);
+
+    // Apply gravity to player and rocks
+    const applyGravity = useCallback(() => {
+        // First check if player should fall
+        if (player.y < MAP_HEIGHT - 1) {
+            const tileBelowPlayer = mineMap[player.y + 1][player.x];
+
+            // Player falls if tile below is empty and not on a ladder
+            if (tileBelowPlayer.type === 'empty' || tileBelowPlayer.type === 'water') {
+                const fallStartY = player.y;
+                let fallDistance = 0;
+                let newY = player.y;
+
+                // Calculate how far player will fall
+                while (newY < MAP_HEIGHT - 1) {
+                    const nextTile = mineMap[newY + 1][player.x];
+                    if (nextTile.type === 'empty' || nextTile.type === 'water') {
+                        newY++;
+                        fallDistance++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (fallDistance > 0) {
+                    // Player is falling!
+                    setPlayer(prev => ({ ...prev, y: newY, isFalling: true, fallDistance: (prev.fallDistance || 0) + fallDistance }));
+
+                    // Add dust particles while falling
+                    for (let i = 0; i < fallDistance; i++) {
+                        addParticle(player.x, fallStartY + i, 'dust');
+                    }
+
+                    // Calculate fall damage
+                    if (fallDistance > 2) {
+                        const damage = Math.min(fallDistance * 10, 80); // Cap at 80 damage
+                        const newHp = Math.max(0, player.hp - damage);
+                        setPlayer(prev => ({ ...prev, hp: newHp }));
+
+                        if (onHealthChange) onHealthChange(newHp);
+
+                        // Play impact sound based on severity
+                        if (fallDistance > 5) {
+                            gameSoundsService.playExplosionSound(); // Heavy impact
+                            setMessages(prev => [...prev.slice(-4),
+                                `💥 You fell ${fallDistance}m! Took ${damage} damage!`]);
+                            addFloatingText(player.x, newY, `-${damage} HP`, '#FF0000');
+                        } else {
+                            gameSoundsService.playImpactSound();
+                            setMessages(prev => [...prev.slice(-4),
+                                `You fell ${fallDistance}m and took ${damage} damage`]);
+                            addFloatingText(player.x, newY, `-${damage} HP`, '#FFA500');
+                        }
+
+                        setLastDamageSource('fall');
+                        setConsecutiveFalls(prev => prev + 1);
+
+                        // Check for death
+                        if (newHp <= 0) {
+                            handleDeath('fall', fallDistance);
+                        }
+                    } else {
+                        // Safe drop
+                        setMessages(prev => [...prev.slice(-4), 'You dropped down safely']);
+                    }
+
+                    // Update map visibility
+                    setMineMap(updateVisibility(player.x, newY, mineMap));
+                    return true; // Gravity was applied
+                }
+            } else {
+                // Player is on solid ground, reset fall tracking
+                if (player.isFalling) {
+                    setPlayer(prev => ({ ...prev, isFalling: false, fallDistance: 0 }));
+                    setConsecutiveFalls(0);
+                }
+            }
+        }
+
+        // Apply gravity to rocks (cave-ins)
+        let mapChanged = false;
+        const newMap = mineMap.map(row => row.map(tile => ({ ...tile })));
+
+        // Check from bottom to top to avoid processing the same rock multiple times
+        for (let y = MAP_HEIGHT - 2; y >= 0; y--) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                const tile = newMap[y][x];
+
+                // Check if rock should fall
+                if (tile.type === 'rock' && !tile.supportBeam) {
+                    const tileBelow = newMap[y + 1][x];
+
+                    // Rock falls if space below is empty
+                    if (tileBelow.type === 'empty') {
+                        // Check if player is below falling rock
+                        if (player.x === x && player.y === y + 1) {
+                            // Player gets crushed!
+                            const damage = 50;
+                            const newHp = Math.max(0, player.hp - damage);
+                            setPlayer(prev => ({ ...prev, hp: newHp }));
+
+                            if (onHealthChange) onHealthChange(newHp);
+
+                            gameSoundsService.playExplosionSound();
+                            setMessages(prev => [...prev.slice(-4),
+                                '⚠️ CRUSHED by falling rock! Massive damage!']);
+                            addFloatingText(x, y + 1, `-${damage} HP!`, '#FF0000');
+                            setLastDamageSource('cave-in');
+
+                            if (newHp <= 0) {
+                                handleDeath('cave-in', 0);
+                            }
+                        }
+
+                        // Move rock down
+                        newMap[y + 1][x] = { ...tile };
+                        newMap[y][x] = { type: 'empty', visible: true, explored: true };
+                        mapChanged = true;
+
+                        // Add dust particles
+                        addParticle(x, y, 'dust');
+                    }
+                }
+            }
+        }
+
+        if (mapChanged) {
+            setMineMap(newMap);
+            gameSoundsService.playRockSlideSound();
+        }
+
+        return mapChanged;
+    }, [player, mineMap, onHealthChange, updateVisibility, addParticle, addFloatingText]);
+
+    // Gas expansion system - gas spreads to adjacent empty tiles
+    const expandGas = useCallback(() => {
+        // Create a deep copy of the map to avoid mutating original tiles
+        const newMap = mineMap.map(row => row.map(tile => ({ ...tile })));
+        let gasExpanded = false;
+
+        // First pass: identify gas sources and current gas tiles
+        const gasTiles: {x: number, y: number, level: number}[] = [];
+
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                const tile = newMap[y][x];
+                if (tile.gasLevel && tile.gasLevel > 0) {
+                    gasTiles.push({x, y, level: tile.gasLevel});
+                }
+                // Gas pockets emit gas when broken
+                if (tile.type === 'gas_pocket' || tile.isGasSource) {
+                    tile.gasLevel = 100; // Maximum gas concentration
+                    gasTiles.push({x, y, level: 100});
+                }
+            }
+        }
+
+        // Second pass: expand gas to adjacent tiles
+        gasTiles.forEach(({x, y, level}) => {
+            // Check all adjacent tiles
+            const adjacent = [
+                {dx: 0, dy: -1}, // up
+                {dx: 0, dy: 1},  // down
+                {dx: -1, dy: 0}, // left
+                {dx: 1, dy: 0},  // right
+            ];
+
+            adjacent.forEach(({dx, dy}) => {
+                const nx = x + dx;
+                const ny = y + dy;
+
+                if (nx >= 0 && nx < MAP_WIDTH && ny >= 0 && ny < MAP_HEIGHT) {
+                    const adjacentTile = newMap[ny][nx];
+
+                    // Gas spreads to empty spaces
+                    if (adjacentTile.type === 'empty' || adjacentTile.type === 'water') {
+                        const currentGas = adjacentTile.gasLevel || 0;
+                        const spreadAmount = level * 0.25; // Gas spreads at 25% concentration
+
+                        if (spreadAmount > currentGas) {
+                            adjacentTile.gasLevel = Math.min(100, spreadAmount);
+                            gasExpanded = true;
+
+                            // Add gas particle effect
+                            if (Math.random() < 0.3) {
+                                addParticle(nx, ny, 'gas');
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // Third pass: gas dissipation (slowly reduces over time)
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                const tile = newMap[y][x];
+                if (tile.gasLevel && tile.gasLevel > 0 && !tile.isGasSource) {
+                    // Gas slowly dissipates
+                    tile.gasLevel = Math.max(0, tile.gasLevel - 1);
+                }
+            }
+        }
+
+        if (gasExpanded || gasTiles.length > 0) {
+            setMineMap(newMap);
+        }
+
+        // Check if player is in gas
+        const playerTile = newMap[player.y][player.x];
+        if (playerTile.gasLevel && playerTile.gasLevel > 0) {
+            // Deplete oxygen based on gas concentration
+            const oxygenLoss = Math.ceil(playerTile.gasLevel / 20); // 5% per turn at max concentration
+            const newOxygen = Math.max(0, player.oxygen - oxygenLoss);
+
+            setPlayer(prev => ({ ...prev, oxygen: newOxygen }));
+
+            // Warning messages based on oxygen level
+            if (newOxygen <= 0) {
+                // Player suffocates!
+                const newHp = 0;
+                setPlayer(prev => ({ ...prev, hp: newHp }));
+                if (onHealthChange) onHealthChange(newHp);
+                handleDeath('gas', 0);
+            } else if (newOxygen < 30) {
+                setMessages(prev => [...prev.slice(-4),
+                    '💀 CRITICAL: You\'re suffocating! Get to fresh air NOW!']);
+                gameSoundsService.playPoisonEffect();
+                addFloatingText(player.x, player.y, 'Can\'t breathe!', '#FF00FF');
+            } else if (newOxygen < 60) {
+                setMessages(prev => [...prev.slice(-4),
+                    '⚠️ Warning: Toxic gas! Oxygen dropping fast!']);
+                if (!gasWarningShown) {
+                    gameSoundsService.playWarningSound();
+                    setGasWarningShown(true);
+                }
+            } else {
+                setMessages(prev => [...prev.slice(-4),
+                    'You smell gas... be careful!']);
+            }
+        } else {
+            // Player in fresh air, slowly recover oxygen
+            if (player.oxygen < 100) {
+                setPlayer(prev => ({ ...prev, oxygen: Math.min(100, prev.oxygen + 5) }));
+                setGasWarningShown(false);
+            }
+        }
+    }, [mineMap, player, onHealthChange, addParticle, addFloatingText]);
+
+    // Handle death - integrates with existing game death system
+    const handleDeath = useCallback((cause: 'fall' | 'gas' | 'cave-in' | 'drowning', fallDistance: number) => {
+        setIsDead(true);
+
+        let description = '';
+        switch (cause) {
+            case 'fall':
+                description = `Fell ${fallDistance}m down a mine shaft`;
+                break;
+            case 'gas':
+                description = 'Suffocated in toxic mine gases';
+                break;
+            case 'cave-in':
+                description = 'Crushed by falling rocks in a cave-in';
+                break;
+            case 'drowning':
+                description = 'Drowned in a flooded mine shaft';
+                break;
+        }
+
+        setDeathCause(description);
+
+        // Use the existing game death system
+        if (onPlayerDeath) {
+            onPlayerDeath({
+                type: 'accident' as const,
+                description: description
+            });
+        } else {
+            // Fallback if no death handler
+            setMessages(prev => [...prev.slice(-4),
+                '☠️ YOU DIED!',
+                description,
+                'The mine has claimed another life...'
+            ]);
+        }
+    }, [onPlayerDeath]);
 
     // Handle ore pickup
     const handlePickup = useCallback(() => {
@@ -890,23 +1218,27 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
             // Play appropriate sound based on item type
             if (item.isGem) {
-                // Play victory music for gems + pickup chime
-                gameSoundsService.playVictoryMelody();
-                gameSoundsService.playItemPickup();
+                // Play Treasure Opening sound for gems (Zelda-style)
+                gameSoundsService.playTreasureOpeningSound();
                 setMessages(prev => [...prev.slice(-4),
                     `🎉 AMAZING! You collected a ${item.quality} ${item.name}! Value: ${item.value} gold!`]);
                 addFloatingText(player.x, player.y, `💎 +${item.name}`, '#FFD700');
             } else if (item.quality === 'exquisite' || item.quality === 'high') {
-                // Play special sound for high quality ores + pickup chime
+                // Play discovery sound for high quality ores
                 gameSoundsService.playDiscoverySound();
-                gameSoundsService.playItemPickup();
+                gameSoundsService.playItemPickupSound('gold');
                 setMessages(prev => [...prev.slice(-4),
                     `✨ Excellent find! ${item.quality} ${item.name} collected! Value: ${item.value} gold`]);
                 addFloatingText(player.x, player.y, `✨ +${item.name}`, '#FFA500');
+            } else if (item.quality === 'medium') {
+                // Play success sound for medium quality items
+                gameSoundsService.playTradeSuccessSound();
+                setMessages(prev => [...prev.slice(-4),
+                    `Good find! ${item.quality} ${item.name} collected`]);
+                addFloatingText(player.x, player.y, `+${item.name}`, '#FFFF00');
             } else {
-                // Play normal collection sound + pickup chime
-                gameSoundsService.playOreCollected();
-                gameSoundsService.playItemPickup();
+                // Play normal collection sound for common items
+                gameSoundsService.playItemPickupSound('generic');
                 setMessages(prev => [...prev.slice(-4),
                     `Collected ${item.quality} ${item.name} (${item.geologicalContext})`]);
                 addFloatingText(player.x, player.y, `+${item.name}`, '#90EE90');
@@ -992,6 +1324,23 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
         }
     }, [player, mineMap, onInventoryAdd, addFloatingText]);
 
+    // Initialize environmental sounds when component mounts
+    useEffect(() => {
+        // Play cave/underground environmental soundscape
+        gameSoundsService.playEnvironmentalSoundscape('RUINS'); // Using RUINS for cave-like atmosphere
+
+        // Start the roguelike music after a short delay
+        const musicTimer = setTimeout(() => {
+            gameSoundsService.playRoguelikeMusic();
+        }, 2000);
+
+        // Cleanup on unmount
+        return () => {
+            clearTimeout(musicTimer);
+            gameSoundsService.stopRoguelikeMusic();
+        };
+    }, []);
+
     // Keyboard controls
     useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
@@ -1018,16 +1367,49 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                 case ' ': handlePickup(); break;
 
                 // Toggle legend
-                case 'l': setShowLegend(prev => !prev); break;
+                case 'l':
+                    gameSoundsService.playUIClickSound();
+                    setShowLegend(prev => !prev);
+                    break;
 
                 // Exit
                 case 'escape': setShowExitConfirm(true); break;
             }
         };
 
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
+        // Don't process input if dead
+        if (!isDead) {
+            window.addEventListener('keydown', handleKeyPress);
+            return () => window.removeEventListener('keydown', handleKeyPress);
+        }
     }, [handleMove, handleMine, handlePickup, onExit, player.x, player.y]);
+
+    // Periodic physics update (gravity and gas)
+    useEffect(() => {
+        if (isDead) return; // Stop updates if dead
+
+        const physicsInterval = setInterval(() => {
+            // Apply gravity every tick
+            applyGravity();
+
+            // Expand gas every few ticks
+            expandGas();
+        }, 500); // Update every 500ms
+
+        return () => clearInterval(physicsInterval);
+    }, [applyGravity, expandGas, isDead]);
+
+    // Trigger gravity check after any movement or mining action
+    useEffect(() => {
+        if (!isDead) {
+            // Small delay to let the map update first
+            const gravityTimer = setTimeout(() => {
+                applyGravity();
+            }, 100);
+
+            return () => clearTimeout(gravityTimer);
+        }
+    }, [player.x, player.y, mineMap, applyGravity, isDead]);
 
     // Render the mining view
     const renderMineView = () => {
@@ -1059,7 +1441,16 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                             // Show ore hints with special character
                             row += tile.oreHint ? '▓' : getRockPattern(mapX, mapY, mapY);
                             break;
-                        case 'empty': row += '·'; break;
+                        case 'empty':
+                            // Show gas density if present
+                            if (tile.gasLevel && tile.gasLevel > 70) {
+                                row += '▓'; // Dense gas cloud
+                            } else if (tile.gasLevel && tile.gasLevel > 30) {
+                                row += '░'; // Light gas
+                            } else {
+                                row += '·'; // Normal empty
+                            }
+                            break;
                         case 'cave': row += ' '; break;
                         case 'ore_vein': row += '◊'; break;
                         case 'rare_ore': row += '◈'; break;
@@ -1070,6 +1461,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                         case 'water': row += '~'; break;
                         case 'lava': row += '≈'; break;
                         case 'mushroom': row += '♠'; break;
+                        case 'gas_pocket': row += '☠'; break;
                         case 'fossil': row += '◎'; break;
                         case 'cave_painting': row += '▣'; break;
                         case 'ancient_tool': row += '⚒'; break;
@@ -1298,7 +1690,28 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
                                     // Add glowing effects for ores and crystals
                                     let textShadow = 'none';
+
+                                    // Check for gas overlay first
+                                    if (tile?.gasLevel && tile.gasLevel > 0) {
+                                        // Green tint for gas
+                                        const gasOpacity = tile.gasLevel / 100;
+                                        const baseColor = color;
+
+                                        // Mix green with base color based on gas concentration
+                                        if (tile.gasLevel > 70) {
+                                            color = '#00FF00'; // Dense toxic gas
+                                            textShadow = '0 0 20px #00FF00, 0 0 40px #00AA00';
+                                        } else if (tile.gasLevel > 30) {
+                                            color = '#66FF66'; // Medium gas
+                                            textShadow = `0 0 10px #00FF00, 0 0 20px #00AA00`;
+                                        } else {
+                                            // Light gas - tint the existing color
+                                            textShadow = `0 0 5px #00FF0066`;
+                                        }
+                                    }
+
                                     if (isPlayer) {
+                                        // Player glow (override gas if player)
                                         textShadow = '0 0 12px #FFD700, 0 0 24px #FFA500';  // Brighter gold glow
                                     } else if (tile?.type === 'ore_vein') {
                                         textShadow = `0 0 6px ${color}, 0 0 12px ${color}`;
@@ -1512,7 +1925,10 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-yellow-400 font-semibold text-sm">Legend</span>
                             <button
-                                onClick={() => setShowLegend(false)}
+                                onClick={() => {
+                                    gameSoundsService.playUIClickSound();
+                                    setShowLegend(false);
+                                }}
                                 className="text-gray-400 hover:text-white transition-colors text-sm px-1"
                                 title="Hide legend (press L to toggle)"
                             >
@@ -1597,13 +2013,19 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                         <div className="flex gap-2">
                             <button
                                 className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-                                onClick={onExit}
+                                onClick={() => {
+                                    gameSoundsService.playUIClickSound();
+                                    onExit();
+                                }}
                             >
                                 Exit Mine
                             </button>
                             <button
                                 className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
-                                onClick={() => setShowExitConfirm(false)}
+                                onClick={() => {
+                                    gameSoundsService.playUIClickSound();
+                                    setShowExitConfirm(false);
+                                }}
                             >
                                 Keep Mining
                             </button>

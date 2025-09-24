@@ -38,7 +38,8 @@
       "wikisourceTitle": null,
       "internetArchiveId": null,
       "isStandard": true,
-      "longExcerpt": "In the beginning the earth was a bare plain. There was no life, no death. The sun, the moon, and the stars slept beneath the earth. This historical source from -40000 provides valuable insight into the oceania region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "longExcerpt": "In the beginning the earth was a bare plain. There was no life, no death. The sun, the moon, and the stars slept beneath the earth. This historical source from -40000 provides valuable insight into the oceania region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods.",
+      "wikipediaArticle": "Dreamtime"
     },
     {
       "id": "kumulipo",
@@ -66,7 +67,8 @@
         "translator": "Martha Warren Beckwith",
         "originalPublication": "Hawaii, c. 1700",
         "modernSource": "University of Chicago Press, 1951"
-      }
+      },
+      "wikipediaArticle": "Kumulipo"
     }
   ]
 }

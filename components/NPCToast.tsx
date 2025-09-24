@@ -320,7 +320,10 @@ const NPCToast: React.FC<NPCToastProps> = ({
                   isHostile: true,
                   initialDialogue: ["You leave me no choice! Defend the farm!", "Help! Bandits!"]
                 };
-                handleClose(); // Close before initiating combat
+                // Don't close NPCToast if in farm context - the handler will close entire panel
+                if (!isFarmContext) {
+                  handleClose(); // Close before initiating combat
+                }
                 onInitiateEncounter(combatFarmer);
               }
             }, 2000); // Give player time to read the threat
@@ -405,7 +408,10 @@ const NPCToast: React.FC<NPCToastProps> = ({
                   isHostile: true,
                   initialDialogue: ["You leave me no choice! Defend the farm!", "Help! Bandits!"]
                 };
-                handleClose(); // Close before initiating combat
+                // Don't close NPCToast if in farm context - the handler will close entire panel
+                if (!isFarmContext) {
+                  handleClose(); // Close before initiating combat
+                }
                 onInitiateEncounter(combatFarmer);
               }
             }, 2000);
@@ -563,7 +569,10 @@ const NPCToast: React.FC<NPCToastProps> = ({
                                   isHostile: true,
                                   initialDialogue: ["You leave me no choice! Defend the farm!", "Help! Bandits!"]
                                 };
-                                handleClose(); // Close before initiating combat
+                                // Don't close NPCToast if in farm context - the handler will close entire panel
+                                if (!isFarmContext) {
+                                  handleClose(); // Close before initiating combat
+                                }
                                 onInitiateEncounter(combatFarmer);
                               }
                             }, 1500);

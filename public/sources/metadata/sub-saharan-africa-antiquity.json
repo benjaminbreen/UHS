@@ -40,7 +40,8 @@
       "wikisourceTitle": "Egyptian_Book_of_the_Dead",
       "internetArchiveId": "bookofdeadpapyru00budg",
       "isStandard": true,
-      "longExcerpt": "I have not done evil to mankind. I have not oppressed the members of my family. This historical source from -1550 provides valuable insight into the sub-saharan-africa region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "longExcerpt": "I have not done evil to mankind. I have not oppressed the members of my family. This historical source from -1550 provides valuable insight into the sub-saharan-africa region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods.",
+      "wikipediaArticle": "Book_of_the_Dead"
     },
     {
       "id": "periplus-erythraean-sea",
@@ -83,7 +84,8 @@
         "translator": "Wilfred H. Schoff",
         "originalPublication": "Greek manuscript, c. 60 CE",
         "modernSource": "University of Pennsylvania Press, 1912"
-      }
+      },
+      "wikipediaArticle": "Periplus_of_the_Erythraean_Sea"
     },
     {
       "id": "hanno-navigator-voyage",

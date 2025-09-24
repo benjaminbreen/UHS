@@ -206,6 +206,7 @@ interface CityBannerProps {
   elevationLevel?: ElevationLevel;
   size?: CitySize;
   timeOfDay?: TimeOfDay;
+  aiGeneratedImageUrl?: string; // Optional AI-generated city image
   seed: number;
   width?: number;
   height?: number;
@@ -229,6 +230,7 @@ const CityBanner: React.FC<CityBannerProps> = ({
   elevationLevel = 'normal',
   size = 'smaller_city',
   timeOfDay = 'Midday' as TimeOfDay,
+  aiGeneratedImageUrl,
   seed,
   width = 900,
   height = 220,
@@ -1354,8 +1356,45 @@ const CityBanner: React.FC<CityBannerProps> = ({
     );
   };
 
-  /* --------------------------------- SVG ---------------------------------- */
+  /* --------------------------------- Render ---------------------------------- */
 
+  // If we have an AI-generated image, use it instead of procedural banner
+  if (aiGeneratedImageUrl) {
+    return (
+      <div
+        className="relative w-full rounded-t-lg overflow-hidden"
+        style={{
+          height: `${height}px`,
+          background: 'linear-gradient(to bottom, #1a3a7a, #4A90E2)'
+        }}
+      >
+        <img
+          src={aiGeneratedImageUrl}
+          alt="City view"
+          className="w-full h-full object-cover"
+          style={{
+            objectPosition: 'center 30%', // Focus on upper part of image (buildings/sky)
+            filter: sky.isNight ? 'brightness(0.7)' : undefined
+          }}
+        />
+        {/* Optional overlay for weather effects */}
+        {weather?.precipitation !== 'none' && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: weather.precipitation === 'rain'
+                ? 'linear-gradient(to bottom, rgba(100, 120, 140, 0.3), transparent)'
+                : weather.precipitation === 'snow'
+                ? 'linear-gradient(to bottom, rgba(240, 248, 255, 0.4), transparent)'
+                : 'none'
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Fallback to procedural SVG banner
   return (
     <svg
       width="100%"

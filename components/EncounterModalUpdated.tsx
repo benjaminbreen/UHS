@@ -48,6 +48,8 @@ import { SubmittedSource, SourceDiscussion } from '../types/primarySource';
 import { FileText, Book } from 'lucide-react';
 import { addDiscussionToHistory } from '../services/sourceDiscussionPersistence';
 import { isSafari } from '../utils/safariUtils';
+import { useNpcHelperMode } from './NpcHelperModeHandler';
+import { initiateHelperMode } from '../services/npcHelperService';
 
 // Styles for animations
 const styles = `
@@ -71,6 +73,43 @@ const styles = `
 
 .dialogue-entry {
   animation: slide-up 0.3s ease-out;
+}
+
+@keyframes unlock-puff {
+  0% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2) rotate(180deg);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(360deg);
+    filter: blur(8px);
+  }
+}
+
+@keyframes amber-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(251, 191, 36, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+.unlock-animation {
+  animation: unlock-puff 0.6s ease-out forwards;
+}
+
+.amber-glow-animation {
+  animation: amber-glow 1s ease-out;
 }
 
 /* Custom scrollbar */
@@ -208,6 +247,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     // Trade availability state
     const [tradeEnabled, setTradeEnabled] = useState(false);
     const [tradeStatusMessage, setTradeStatusMessage] = useState<string | null>(null);
+    const [showTradeUnlockAnimation, setShowTradeUnlockAnimation] = useState(false);
     
     // Taming states
     const [tamingApproach, setTamingApproach] = useState('');
@@ -328,12 +368,15 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const relevantQuests = activeQuests.filter(quest => {
         if (isNpc(target)) {
             const npcName = target.name.toLowerCase();
-            return quest.objectives.some(obj => 
+            return quest.objectives.some(obj =>
                 obj.description.toLowerCase().includes(npcName)
             );
         }
         return false;
     });
+
+    // Initialize helper mode hooks
+    const { initiateFollowMe, initiateGiftGiving } = useNpcHelperMode();
     
     // Keyboard shortcuts
     useEffect(() => {
@@ -730,7 +773,9 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 if (!wasEnabled && response.tradeAvailable) {
                     setTradeStatusMessage(`${target.name} is now willing to trade with you!`);
                     showToast(`💰 ${target.name} is willing to trade!`, 'success');
-                    setTimeout(() => setTradeStatusMessage(null), 3000);
+                    setShowTradeUnlockAnimation(true);
+                    // Animation will auto-clear after playing
+                    setTimeout(() => setShowTradeUnlockAnimation(false), 1000);
                 } else if (wasEnabled && !response.tradeAvailable) {
                     setTradeStatusMessage(response.tradeReason || `${target.name} no longer wants to trade.`);
                     showToast(`🚫 Trade unavailable: ${response.tradeReason || 'The NPC refuses'}`, 'error');
@@ -750,6 +795,63 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 if (crisis) {
                     console.log(`[Crisis] Detected crisis from ${target.name}: ${crisis.pattern.id}`);
                     showToast(`⚠️ ${target.name} speaks of ${crisis.pattern.flavorText.toLowerCase()}`);
+                }
+            }
+
+            // Check for helper mode triggers in NPC response
+            if (isNpc(target)) {
+                const lowerResponse = response.text.toLowerCase();
+
+                // Check for "follow me" / "lead you" patterns
+                if (lowerResponse.includes('follow me') ||
+                    lowerResponse.includes('lead you') ||
+                    lowerResponse.includes('show you where') ||
+                    lowerResponse.includes('come with me') ||
+                    lowerResponse.includes('i\'ll show you') ||
+                    lowerResponse.includes('let me show you')) {
+
+                    // Extract destination from context (home, shop, place of interest)
+                    let destination = { x: target.x + Math.floor(Math.random() * 10) - 5, y: target.y + Math.floor(Math.random() * 10) - 5 };
+                    let destinationName = 'my place';
+
+                    if (lowerResponse.includes('home') || lowerResponse.includes('house')) {
+                        destinationName = `${target.name}'s home`;
+                    } else if (lowerResponse.includes('shop') || lowerResponse.includes('workshop')) {
+                        destinationName = `${target.name}'s workshop`;
+                    } else if (lowerResponse.includes('live') || lowerResponse.includes('stay')) {
+                        destinationName = 'where I live';
+                    }
+
+                    // Initiate helper mode FIRST, then close modal
+                    initiateFollowMe(target, destination, destinationName, () => {
+                        // Callback when player arrives
+                        showToast(`🎉 You've arrived at ${destinationName}!`, 'success');
+                        // Could trigger new interaction here
+                    });
+
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        onClose(history);
+                    }, 500);
+                }
+
+                // Check for gift-giving patterns
+                if (lowerResponse.includes('have something for you') ||
+                    lowerResponse.includes('give you') ||
+                    lowerResponse.includes('take this') ||
+                    lowerResponse.includes('here\'s a')) {
+
+                    // Generate a simple gift (would be better to extract from context)
+                    const gift = {
+                        id: `gift-${Date.now()}`,
+                        name: 'Small Gift',
+                        category: 'Special' as any,
+                        value: 10
+                    };
+
+                    setTimeout(() => {
+                        initiateGiftGiving(target, gift, "I have something for you!");
+                    }, 500);
                 }
             }
         } catch (err) {
@@ -782,11 +884,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     if (!currentTarget.memory.conversationSummaries) {
                         currentTarget.memory.conversationSummaries = [];
                     }
-                    currentTarget.memory.conversationSummaries.push(summary.summary);
+                    // Create a new array to avoid frozen array issues
+                    const updatedSummaries = [...(currentTarget.memory.conversationSummaries || []), summary.summary];
                     // Keep only last 5 conversations
-                    if (currentTarget.memory.conversationSummaries.length > 5) {
-                        currentTarget.memory.conversationSummaries = currentTarget.memory.conversationSummaries.slice(-5);
-                    }
+                    currentTarget.memory.conversationSummaries = updatedSummaries.slice(-5);
 
                     // Update opinion based on sentiment
                     if (summary.sentiment === 'positive') {
@@ -934,7 +1035,32 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             <span className="text-slate-200">{target.occupation || target.role || 'Unknown'}</span>
                                         </div>
                                     </div>
-                                    
+
+                                    {/* Language Historical Context - Subtle educational note */}
+                                    {isNpc(target) && (() => {
+                                        const language = getLanguageForCharacter(
+                                            target.culturalZone || mapData?.culturalZone || 'EUROPEAN',
+                                            parseInt(mapData?.timeSlice || '1500'),
+                                            mapData?.region,
+                                            mapData?.localArea,
+                                            target.name,
+                                            target.profession
+                                        );
+                                        return language ? (
+                                            <div className="mt-3 p-2 bg-slate-900/40 rounded-lg border border-slate-700/30">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xs font-semibold text-amber-400/80">Language:</span>
+                                                    <span className="text-xs font-medium text-slate-300">{language.name}</span>
+                                                </div>
+                                                {language.historicalContext && (
+                                                    <p className="text-xs text-slate-400 italic leading-relaxed">
+                                                        {language.historicalContext}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ) : null;
+                                    })()}
+
                                     {/* Action Icons - Hidden on mobile, shown in tabs instead */}
                                     <div className="hidden sm:flex justify-center gap-2 mt-4">
                                         <button 
@@ -1082,18 +1208,21 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         }}
                                         className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
                                             activeTab === 'trade' || activeTab === 'taming'
-                                                ? 'text-blue-400 border-b-2 border-blue-400'
+                                                ? isNpc(target) ? 'text-amber-400 border-b-2 border-amber-400' : 'text-blue-400 border-b-2 border-blue-400'
                                                 : isNpc(target) && !tradeEnabled
                                                     ? 'text-slate-600 hover:text-slate-500 border-b-2 border-transparent cursor-not-allowed'
                                                     : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
-                                        }`}
+                                        } ${showTradeUnlockAnimation && isNpc(target) ? 'amber-glow-animation' : ''}`}
                                         title={isNpc(target) && !tradeEnabled ? 'Trade not available yet' : undefined}
                                     >
                                         {isNpc(target) ? (
                                             <>
-                                                Trade
-                                                {!tradeEnabled && (
+                                                <span className={tradeEnabled ? 'text-amber-400' : ''}>Trade</span>
+                                                {!tradeEnabled && !showTradeUnlockAnimation && (
                                                     <span className="ml-1 text-xs text-slate-600">🔒</span>
+                                                )}
+                                                {showTradeUnlockAnimation && (
+                                                    <span className="ml-1 text-xs text-amber-400 unlock-animation absolute">🔒</span>
                                                 )}
                                             </>
                                         ) : 'Tame'}
@@ -1161,33 +1290,60 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             <>
                                                 {history.map((entry, index) => (
                                                     <div key={index} className="dialogue-entry">
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="flex-1">
-                                                                <div className="flex items-baseline gap-2 mb-1">
-                                                                    <span className="font-semibold text-amber-400">
-                                                                        {entry.speaker === 'player' ? 'You' : targetName}
-                                                                    </span>
-                                                                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                                                                        <Clock className="w-3 h-3" />
-                                                                        {getTimeAgo(entry.timestamp)}
-                                                                    </span>
+                                                        {entry.speaker === 'system' ? (
+                                                            // System messages (trades, etc.)
+                                                            <div className="flex justify-center my-3">
+                                                                <div className="px-3 py-1 bg-slate-800/50 border border-slate-700 rounded text-xs font-mono text-slate-400 uppercase tracking-wider">
+                                                                    {entry.text}
                                                                 </div>
-                                                                <p className="text-slate-200 leading-relaxed">
-                                                                    <HighlightedText 
-                                                                        text={entry.text}
-                                                                        era={currentEra}
-                                                                        zone={culturalZone}
-                                                                        onKeywordClick={(source) => setSelectedPrimarySource(source)}
-                                                                    />
-                                                                </p>
                                                             </div>
-                                                        </div>
+                                                        ) : (
+                                                            // Regular dialogue
+                                                            <div className="flex items-start gap-3">
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-baseline gap-2 mb-1">
+                                                                        <span className="font-semibold text-amber-400">
+                                                                            {entry.speaker === 'player' ? 'You' : targetName}
+                                                                        </span>
+                                                                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            {getTimeAgo(entry.timestamp)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-slate-200 leading-relaxed">
+                                                                        <HighlightedText
+                                                                            text={entry.text}
+                                                                            era={currentEra}
+                                                                            zone={culturalZone}
+                                                                            onKeywordClick={(source) => setSelectedPrimarySource(source)}
+                                                                        />
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                         
                                                         {/* Quest hint for relevant dialogue */}
                                                         {relevantQuests.length > 0 && entry.speaker === 'npc' && index === history.length - 1 && (
                                                             <div className="mt-2 pl-4 border-l-2 border-amber-500/50">
                                                                 <p className="text-xs text-amber-400/80">
                                                                     ↳ Related to active quest: {relevantQuests[0].title}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Trade availability notification */}
+                                                        {tradeEnabled && tradeStatusMessage && entry.speaker === 'npc' && index === history.length - 1 && (
+                                                            <div
+                                                                className="mt-3 p-3 bg-amber-900/20 border border-amber-600/40 rounded-lg cursor-pointer hover:bg-amber-900/30 transition-all"
+                                                                onClick={() => {
+                                                                    setActiveTab('trade');
+                                                                    setTradeStatusMessage(null);
+                                                                }}
+                                                            >
+                                                                <p className="text-sm text-amber-400 flex items-center gap-2">
+                                                                    <span className="text-amber-500">💰</span>
+                                                                    {tradeStatusMessage}
+                                                                    <span className="text-xs text-amber-400/70 ml-auto">(Click to open trade)</span>
                                                                 </p>
                                                             </div>
                                                         )}
@@ -1217,7 +1373,33 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             playerCharacter={playerCharacter}
                                             mapData={mapData}
                                             onClose={() => setActiveTab('dialogue')}
-                                            onTradeComplete={() => {}}
+                                            onTradeComplete={(tradeDetails) => {
+                                                // Add trade completion to dialogue history
+                                                if (tradeDetails) {
+                                                    let tradeText = 'TRADE: ';
+                                                    if (tradeDetails.bought && tradeDetails.bought.length > 0) {
+                                                        tradeText += `BOUGHT ${tradeDetails.bought.join(', ').toUpperCase()}`;
+                                                    }
+                                                    if (tradeDetails.sold && tradeDetails.sold.length > 0) {
+                                                        if (tradeDetails.bought && tradeDetails.bought.length > 0) tradeText += ' | ';
+                                                        tradeText += `SOLD ${tradeDetails.sold.join(', ').toUpperCase()}`;
+                                                    }
+                                                    if (tradeDetails.coins && tradeDetails.coins > 0) {
+                                                        if ((tradeDetails.bought && tradeDetails.bought.length > 0) ||
+                                                            (tradeDetails.sold && tradeDetails.sold.length > 0)) {
+                                                            tradeText += ' | ';
+                                                        }
+                                                        tradeText += `PAID ${tradeDetails.coins} COINS`;
+                                                    }
+
+                                                    const tradeEntry: DialogueEntry = {
+                                                        speaker: 'system',
+                                                        text: tradeText,
+                                                        timestamp: new Date()
+                                                    };
+                                                    setHistory(prev => [...prev, tradeEntry]);
+                                                }
+                                            }}
                                         />
                                     ) : (
                                         <div className="p-4 text-center text-slate-400">
@@ -1760,19 +1942,27 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 </div>
                                             </div>
                                         )}
+                                        {npcWantsToLeave && (
+                                            <div className="mb-3 p-3 bg-orange-900/30 border border-orange-600/50 rounded-lg animate-pulse">
+                                                <div className="text-sm text-orange-300 flex items-center gap-2">
+                                                    <span className="text-lg">👋</span>
+                                                    <span className="font-medium">{target.name} is leaving the conversation...</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="flex gap-2 sm:gap-3">
                                             <input
                                                 type="text"
-                                                placeholder={placeholder}
+                                                placeholder={npcWantsToLeave ? "The conversation is ending..." : placeholder}
                                                 value={playerInput}
                                                 onChange={(e) => setPlayerInput(e.target.value)}
                                                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                                disabled={isLoading}
-                                                className={inputClassName}
+                                                disabled={isLoading || npcWantsToLeave}
+                                                className={npcWantsToLeave ? `${inputClassName} opacity-50 cursor-not-allowed` : inputClassName}
                                             />
                                             <button
                                                 onClick={handleSend}
-                                                disabled={isLoading || !playerInput.trim()}
+                                                disabled={isLoading || !playerInput.trim() || npcWantsToLeave}
                                                 className="ff-action-button"
                                             >
                                                 Send

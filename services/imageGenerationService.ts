@@ -527,6 +527,266 @@ class ImageGenerationService {
   }
 
   /**
+   * Generates a photorealistic city scene based on historical context
+   */
+  async generateCitySceneImage(context: {
+    cityName: string;
+    llmDescription: string;
+    culturalZone: CulturalZone;
+    year: number;
+    timeOfDay: string;
+    dateStr: string;
+  }): Promise<{ imageUrl: string | null; prompt: string }> {
+    // Build cache key for city scenes
+    const cacheKey = `city-${context.cityName}-${context.culturalZone}-${Math.floor(context.year / 100)}-${context.timeOfDay}`;
+
+    // Check cache first
+    const cached = await this.getCachedImage(cacheKey);
+    if (cached) {
+      console.log(`Using cached city scene for ${context.cityName}`);
+      return { imageUrl: cached.url, prompt: cached.prompt };
+    }
+
+    if (!this.runware) {
+      console.warn('Runware not available for city scene generation');
+      return { imageUrl: null, prompt: '' };
+    }
+
+    // Build the highly detailed prompt
+    const prompt = this.buildCityScenePrompt(context);
+
+    // Enforce rate limiting
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+
+    if (timeSinceLastRequest < this.MIN_INTERVAL) {
+      const waitTime = this.MIN_INTERVAL - timeSinceLastRequest;
+      const seconds = Math.ceil(waitTime / 1000);
+      throw new Error(`Rate limited. Please wait ${seconds} seconds before generating another image.`);
+    }
+
+    try {
+      this.lastRequestTime = now;
+
+      console.log(`[ImageGen] Generating city scene for ${context.cityName}:`, prompt);
+
+      const images = await this.runware.requestImages({
+        positivePrompt: prompt,
+        negativePrompt: '',
+        model: 'runware:101@1',
+        width: 768,  // Wider for city scenes
+        height: 512,
+        numberResults: 1,
+        outputType: 'URL',
+        outputFormat: 'WEBP',
+        steps: 40,  // Higher quality for city scenes
+        CFGScale: 9.5,  // Strong adherence to prompt
+        scheduler: 'DPMSolverMultistepScheduler'
+      });
+
+      if (images && images.length > 0 && images[0].imageURL) {
+        const imageUrl = images[0].imageURL;
+
+        // Cache the generated image
+        await this.cacheImage(cacheKey, {
+          url: imageUrl,
+          timestamp: Date.now(),
+          prompt
+        });
+
+        console.log(`City scene generated successfully for ${context.cityName}`);
+        return { imageUrl, prompt };
+      } else {
+        console.error('No city image generated');
+        return { imageUrl: null, prompt };
+      }
+    } catch (error) {
+      console.error('Failed to generate city scene:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Builds a detailed prompt for city scene generation
+   */
+  private buildCityScenePrompt(context: {
+    cityName: string;
+    llmDescription: string;
+    culturalZone: CulturalZone;
+    year: number;
+    timeOfDay: string;
+    dateStr: string;
+  }): string {
+    // Extract key visual elements from the LLM description
+    const descriptionKeywords = this.extractVisualKeywords(context.llmDescription);
+
+    // Cultural and architectural styles
+    const architecturalStyles: Record<string, string> = {
+      'EUROPEAN': context.year < 500 ? 'Roman stone architecture with columns and arches' :
+                  context.year < 1000 ? 'Early medieval timber and stone buildings with thatched roofs' :
+                  context.year < 1500 ? 'Gothic stone architecture with pointed arches and narrow streets' :
+                  'Renaissance architecture with symmetrical facades and domed buildings',
+      'EAST_ASIAN': context.year < 500 ? 'Ancient Chinese wooden architecture with curved tile roofs' :
+                    context.year < 1000 ? 'Tang dynasty pagodas and traditional courtyard houses' :
+                    context.year < 1500 ? 'Song/Yuan dynasty buildings with upturned eaves' :
+                    'Ming dynasty architecture with elaborate decorations',
+      'MENA': context.year < 700 ? 'Byzantine/Sassanid stone architecture with domes' :
+              context.year < 1500 ? 'Islamic architecture with horseshoe arches, minarets, geometric patterns' :
+              'Ottoman architecture with large domes and slender minarets',
+      'SUB_SAHARAN_AFRICAN': 'Traditional mud-brick architecture with organic shapes and wooden supports',
+      'SOUTH_ASIAN': context.year < 500 ? 'Ancient Indian stone temples with intricate carvings' :
+                     context.year < 1500 ? 'Medieval Indian architecture with stepped temples' :
+                     'Mughal architecture with onion domes and decorative arches',
+      'NORTH_AMERICAN_PRE_COLUMBIAN': 'Indigenous architecture with adobe, stone, or wooden structures',
+      'NORTH_AMERICAN_COLONIAL': 'Colonial wooden buildings with shutters and pitched roofs',
+      'OCEANIA': 'Traditional Polynesian structures with thatched roofs and natural materials',
+      'SOUTH_AMERICAN': context.year < 1500 ? 'Pre-Columbian stone architecture with precise masonry' :
+                        'Colonial Spanish architecture with courtyards and balconies'
+    };
+
+    const style = architecturalStyles[context.culturalZone] || 'historical period-appropriate architecture';
+
+    // Time of day lighting
+    const lightingDescriptions: Record<string, string> = {
+      'dawn': 'dawn light',
+      'morning': 'morning light',
+      'noon': 'noon light',
+      'afternoon': ' afternoon light',
+      'evening': 'sunset light',
+      'night': 'moonlit scene '
+    };
+
+    const lighting = lightingDescriptions[context.timeOfDay] || 'natural daylight';
+
+    // Start with the actual LLM description as the primary content
+    let prompt = `${context.llmDescription} `;
+
+    // Add just the essential context
+    prompt += `IMPORTANT: THE IMAGE MUST BE ACCURATE TO THIS DATE: ${context.cityName}, ${Math.abs(context.year)} ${context.year < 0 ? 'BCE' : 'CE'}. `;
+
+    // Add the lighting for this time of day
+    prompt += `${lighting}. `;
+
+    // Simple quality and style markers
+    prompt += 'Strictly realistic historical scene, accurate period details, street-level view, high resolution pixel art, no awnings, ';
+    prompt += 'detailed, natural colors, clear details, high quality';
+
+    return prompt;
+  }
+
+  /**
+   * Extracts visual keywords from LLM description
+   */
+  private extractVisualKeywords(description: string): string[] {
+    const keywords: string[] = [];
+    const lowerDesc = description.toLowerCase();
+
+    // Look for architectural features
+    const architecturalTerms = [
+      'tower', 'dome', 'arch', 'column', 'spire', 'wall', 'gate', 'bridge',
+      'temple', 'palace', 'market', 'bazaar', 'forum', 'cathedral', 'church',
+      'timber-framed', 'half-timbered', 'jutting', 'overhanging', 'cobbled',
+      'narrow', 'winding', 'alley', 'lane'
+    ];
+    architecturalTerms.forEach(term => {
+      if (lowerDesc.includes(term)) {
+        // Don't add redundant "s visible" for descriptive terms
+        if (term.includes('-') || term === 'narrow' || term === 'winding' || term === 'jutting' || term === 'overhanging') {
+          keywords.push(term);
+        } else {
+          keywords.push(term);
+        }
+      }
+    });
+
+    // Look for specific architectural descriptions
+    if (lowerDesc.includes('timber-framed') || lowerDesc.includes('timber framed')) {
+      keywords.push('timber-framed buildings with visible beams');
+    }
+    if (lowerDesc.includes('upper stories jutting') || lowerDesc.includes('upper floors')) {
+      keywords.push('overhanging upper floors');
+    }
+    if (lowerDesc.includes('cobbled') || lowerDesc.includes('cobblestone')) {
+      keywords.push('cobblestone streets');
+    }
+
+    // Look for material references with better context
+    const materials = [
+      'stone', 'marble', 'wood', 'timber', 'brick', 'mud', 'clay',
+      'bronze', 'iron', 'thatch', 'tile', 'slate', 'plaster', 'wattle'
+    ];
+    materials.forEach(material => {
+      if (lowerDesc.includes(material)) {
+        keywords.push(`${material} visible`);
+      }
+    });
+
+    // Look for atmosphere and activity
+    if (lowerDesc.includes('smoke') || lowerDesc.includes('smoky')) {
+      keywords.push('smoke from chimneys');
+    }
+    if (lowerDesc.includes('merchant') || lowerDesc.includes('vendor')) {
+      keywords.push('street vendors and merchants');
+    }
+    if (lowerDesc.includes('crowd') || lowerDesc.includes('busy') || lowerDesc.includes('bustle')) {
+      keywords.push('bustling street life');
+    }
+    if (lowerDesc.includes('quiet') || lowerDesc.includes('peaceful')) {
+      keywords.push('quiet atmosphere');
+    }
+
+    // Look for specific period details mentioned
+    if (lowerDesc.includes('blacksmith')) {
+      keywords.push('blacksmith shop visible');
+    }
+    if (lowerDesc.includes('church bell') || lowerDesc.includes('bell tower')) {
+      keywords.push('church tower in background');
+    }
+
+    return keywords;
+  }
+
+  /**
+   * Retrieves a cached city image if available
+   * Tries multiple time-of-day variants to find any cached image
+   */
+  async getCachedCityImage(
+    cityName: string,
+    culturalZone: CulturalZone,
+    year: number,
+    preferredTimeOfDay?: string
+  ): Promise<string | null> {
+    if (!this.db) return null;
+
+    const century = Math.floor(year / 100);
+
+    // Time variants to check, in order of preference
+    const timeVariants = preferredTimeOfDay
+      ? [preferredTimeOfDay, 'afternoon', 'morning', 'noon', 'evening', 'dawn', 'night']
+      : ['afternoon', 'morning', 'noon', 'evening', 'dawn', 'night'];
+
+    // Remove duplicates while preserving order
+    const uniqueTimeVariants = [...new Set(timeVariants)];
+
+    // Try each time variant
+    for (const timeOfDay of uniqueTimeVariants) {
+      const cacheKey = `city-${cityName}-${culturalZone}-${century}-${timeOfDay}`;
+
+      try {
+        const cached = await this.getCachedImage(cacheKey);
+        if (cached && cached.url) {
+          console.log(`Found cached city image for ${cityName} at ${timeOfDay}`);
+          return cached.url;
+        }
+      } catch (error) {
+        console.error(`Error checking cache for ${cacheKey}:`, error);
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Clears the entire image cache
    */
   async clearCache(): Promise<void> {

@@ -2250,12 +2250,7 @@ export class QuestService {
           objectives: [{ type: 'collect_item', description: 'Collect firewood', targetAmount: 10 }],
           category: 'survival'
         },
-        'spring': { 
-          title: 'Spring Renewal', 
-          description: 'Take advantage of the changing season to gather fresh resources.',
-          objectives: [{ type: 'collect_item', description: 'Gather fresh herbs', targetAmount: 5 }],
-          category: 'survival'
-        },
+       
         'summer': { 
           title: 'Summer Preparation', 
           description: 'Store resources for the coming seasons.',

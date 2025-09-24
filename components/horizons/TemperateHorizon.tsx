@@ -287,8 +287,8 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
       {/* Masked group allows top to fade into background sky */}
       <g mask="url(#temperateTopMask)">
 
-      {/* FAR rolling hills */}
-      <g filter="url(#softMist)" opacity="0.8">
+      {/* FAR rolling hills - much more transparent at night to avoid dark bands */}
+      <g filter="url(#softMist)" opacity={isNight ? 0.25 : 0.8}>
         <path
           d={`
             M 0 ${p(height * 0.58)}
@@ -301,11 +301,11 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
         />
       </g>
 
-      {/* Haze between far/mid */}
-      <rect x="0" y={p(height * 0.48)} width={width} height={p(height * 0.08)} fill="url(#hazeDark)" />
+      {/* Haze between far/mid - also reduced at night */}
+      <rect x="0" y={p(height * 0.48)} width={width} height={p(height * 0.08)} fill="url(#hazeDark)" opacity={isNight ? 0.3 : 1} />
 
-      {/* MID hills */}
-      <g opacity="0.95">
+      {/* MID hills - slightly reduced at night */}
+      <g opacity={isNight ? 0.7 : 0.95}>
         <path
           d={`
             M 0 ${p(height * 0.66)}

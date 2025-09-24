@@ -7,107 +7,107 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   // === EUROPE === 
   // British Isles
   "London": { N: "York", S: "Cliffs of Dover", E: "Thames Estuary", W: "Oxfordshire" },
-  "Edinburgh": { N: "Norwegian Fjords", S: "Hadrian's Wall", E: "North Sea", W: "Irish Sea" },
-  "Dublin": { N: "Irish Sea", S: "Irish Sea", E: "Irish Sea", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Edinburgh": { N: "LIMINAL_NORTH_ATLANTIC_CROSSING", S: "Hadrian's Wall", E: "North Sea", W: "Irish Sea" },
+  "Leinster Plain": { N: "Irish Sea", S: "Irish Sea", E: "Irish Sea", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "York": { N: "Hadrian's Wall", S: "London", E: "Thames Estuary", W: "Irish Sea" },
   "Hadrian's Wall": { N: "Edinburgh", S: "York", E: "North Sea", W: "Irish Sea" },
-  "Thames Estuary": { W: "London", E: "Rhine–Meuse Delta", S: "York" },
+  "Thames Estuary": { N: "York", S: "English Channel", E: "North Sea", W: "London" },
   "Oxfordshire": { N: "York", S: "London", E: "London", W: "Irish Sea" },
    "Cliffs of Dover": { N: "London", E: "Thames Estuary", S: "English Channel", W: "English Channel"  },
   
   // British Waters
-  "Irish Sea": { N: "Edinburgh", S: "Dublin", E: "York", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Irish Sea": { N: "Edinburgh", S: "Leinster Plain", E: "York", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "North Sea": { N: "Norwegian Fjords", S: "English Channel", E: "Hamburg Coast", W: "Thames Estuary" },
-  "English Channel": { N: "Cliffs of Dover", S: "Normandy", E: "Rhine–Meuse Delta", W: "Bay of Biscay" },
+  "English Channel": { N: "Cliffs of Dover", S: "Normandy", E: "Rhine-Meuse Delta", W: "Bay of Biscay" },
 
   // France
   "Paris Basin": { N: "Normandy", S: "Loire Valley", E: "Rhine Valley", W: "Normandy" },
   "Loire Valley": { N: "Paris Basin", S: "Languedoc", E: "Paris Basin", W: "Bay of Biscay" },
-  "Marseille Coast": { W: "Languedoc", E: "Tyrrhenian Sea", N: "Languedoc", S: "Western Mediterranean" },
-  "Pyrenees Foothills": { N: "Languedoc", S: "Catalonian Hills", E: "Languedoc" },
+  "Marseille Coast": { W: "Languedoc", E: "Po Valley", N: "Languedoc", S: "Western Mediterranean" },
+  "Pyrenees Foothills": { N: "Languedoc", S: "Catalonian Hills", E: "Languedoc", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "Normandy": { S: "Paris Basin", N: "English Channel", E: "Paris Basin", W: "Bay of Biscay" },
   "Languedoc": { N: "Loire Valley", E: "Marseille Coast", S: "Pyrenees Foothills", W: "Pyrenees Foothills" },
   "Bay of Biscay": { N: "Normandy", S: "Catalonian Hills", E: "Loire Valley", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
     "Atlantic Ocean": { N: "Irish Sea", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Bay of Biscay", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 
   // Iberian Peninsula
-  "Andalusian Plain": { N: "Toledo Plateau", S: "Strait of Gibraltar", E: "Toledo Plateau" },
-  "Lisbon Coast": { E: "Toledo Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS", N: "Toledo Plateau" },
-  "Ebro Valley": { N: "Catalonian Hills", W: "Toledo Plateau", S: "Toledo Plateau" },
+  "Andalusian Plain": { N: "Toledo Plateau", S: "Strait of Gibraltar", E: "Toledo Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Lisbon Coast": { N: "Toledo Plateau", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Toledo Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Ebro Valley": { N: "Catalonian Hills", S: "Toledo Plateau", E: "Western Mediterranean", W: "Toledo Plateau" },
   "Toledo Plateau": { E: "Ebro Valley", S: "Andalusian Plain", W: "Lisbon Coast", N: "Loire Valley" },
-  "Strait of Gibraltar": { N: "Andalusian Plain", S: "Rif Coast" },
-  "Catalonian Hills": { N: "Pyrenees Foothills", S: "Ebro Valley", E: "Marseille Coast" },
+  "Strait of Gibraltar": { N: "Andalusian Plain", S: "Rif Coast", E: "Western Mediterranean", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Catalonian Hills": { N: "Pyrenees Foothills", S: "Ebro Valley", E: "Marseille Coast", W: "Western Mediterranean" },
 
   // Italy
   "Roman Campagna": { N: "Florence Hills", S: "Tyrrhenian Sea", E: "Bay of Naples", W: "Tyrrhenian Sea" },
-  "Venetian Lagoon": { W: "Po Valley", E: "Adriatic Sea", S: "Adriatic Sea", N: "Po Valley" },
-  "Apennine Foothills": { N: "Po Valley", S: "Florence Hills", E: "Venetian Lagoon" },
-  "Bay of Naples": { N: "Roman Campagna", S: "Tyrrhenian Sea", E: "Adriatic Sea", W: "Tyrrhenian Sea" },
-  "Florence Hills": { N: "Po Valley", S: "Roman Campagna", W: "Po Valley" },
-  "Po Valley": { N: "Bavarian Highlands", S: "Florence Hills", E: "Venetian Lagoon", W: "Languedoc" },
+  "Venetian Lagoon": { W: "Po Valley", E: "Adriatic Sea", S: "Dalmatian Coast", N: "Po Valley" },
+  "Apennine Foothills": { N: "Po Valley", S: "Florence Hills", E: "Venetian Lagoon", W: "Tyrrhenian Sea" },
+  "Bay of Naples": { N: "Roman Campagna", S: "Tyrrhenian Sea", E: "Roman Campagna", W: "Tyrrhenian Sea" },
+  "Florence Hills": { N: "Po Valley", S: "Roman Campagna", E: "Apennine Foothills", W: "Po Valley" },
+  "Po Valley": { N: "Bavarian Highlands", S: "Florence Hills", E: "Venetian Lagoon", W: "Marseille Coast" },
   
   // Mediterranean Seas
   "Western Mediterranean": { N: "Marseille Coast", S: "Tunisian Sahel", E: "Tyrrhenian Sea", W: "Strait of Gibraltar" },
   "Eastern Mediterranean": { N: "Aegean Sea", S: "Nile Delta", E: "Levantine Coast", W: "Tyrrhenian Sea" },
   "Tyrrhenian Sea": { N: "Roman Campagna", S: "Western Mediterranean", E: "Bay of Naples", W: "Marseille Coast" },
-  "Adriatic Sea": { N: "Venetian Lagoon", S: "Athens Basin", E: "Dalmatian Coast", W: "Bay of Naples" },
+  "Adriatic Sea": { N: "Venetian Lagoon", S: "LIMINAL_ADRIATIC_TO_MEDITERRANEAN", E: "Dalmatian Coast", W: "Venetian Lagoon" },
   "Aegean Sea": { N: "Thracian Plain", S: "Eastern Mediterranean", E: "Anatolia", W: "Athens Basin" },
 
   // Germanic Lands
-  "Rhine Valley": { N: "Hamburg Coast", S: "Black Forest", E: "Brandenburg Plain", W: "Rhine–Meuse Delta" },
-  "Black Forest": { N: "Rhine Valley", S: "Bavarian Highlands", E: "Bavarian Highlands" },
+  "Rhine Valley": { N: "Hamburg Coast", S: "Black Forest", E: "Brandenburg Plain", W: "Rhine-Meuse Delta" },
+  "Black Forest": { N: "Rhine Valley", S: "Bavarian Highlands", E: "Bavarian Highlands", W: "Rhine Valley" },
   "Brandenburg Plain": { N: "Baltic Sea", S: "Saxon Uplands", E: "Dnieper River Valley", W: "Rhine Valley" },
   "Hamburg Coast": { N: "Jutland Peninsula", S: "Rhine Valley", E: "Baltic Sea", W: "North Sea" },
   "Bavarian Highlands": { N: "Black Forest", S: "Po Valley", E: "Vienna Basin", W: "Black Forest" },
   "Saxon Uplands": { N: "Brandenburg Plain", S: "Bavarian Highlands", E: "Bohemian Plateau", W: "Hamburg Coast"},
   "Baltic Sea": { N: "Stockholm Archipelago", S: "Brandenburg Plain", E: "St. Petersburg Outskirts", W: "Hamburg Coast" },
 
-  // Central Europe
-  "Danube Bend": { N: "Vienna Basin", S: "Carpathian Foothills", E: "Thracian Plain", W: "Bavarian Highlands" },
-  "Bohemian Plateau": { N: "Brandenburg Plain", S: "Vienna Basin", E: "Moravian Gate" },
-  "Carpathian Foothills": { N: "Danube Bend", S: "Vardar Valley", E: "Dnieper River Valley" },
-  "Vienna Basin": { N: "Bohemian Plateau", S: "Danube Bend", E: "Danube Bend" },
-  "Moravian Gate": { N: "Dnieper River Valley", S: "Vardar Valley", W: "Bohemian Plateau" },
-  "Tatra Mountains": { N: "Novgorod Woods", S: "Carpathian Foothills", W: "Moravian Gate", E: "Danube Bend" },
+ // Central Europe
+"Danube Bend": { N: "Vienna Basin", S: "Dinaric Alps", E: "Carpathian Ridge", W: "Bavarian Highlands" },
+"Bohemian Plateau": { N: "Brandenburg Plain", S: "Vienna Basin", E: "Moravian Gate", W: "Bavarian Highlands" },
+"Carpathian Foothills": { N: "Danube Bend", S: "Thracian Plain", E: "Dnieper River Valley", W: "Moravian Gate" },
+"Vienna Basin": { N: "Bohemian Plateau", S: "Danube Bend", E: "Carpathian Ridge", W: "Bavarian Highlands" },
+"Moravian Gate": { N: "Tatra Mountains", S: "Vienna Basin", E: "Carpathian Foothills", W: "Bohemian Plateau" },
+"Tatra Mountains": { N: "Novgorod Woods", S: "Carpathian Foothills", W: "Moravian Gate", E: "Carpathian Ridge" },
 
-  // Balkans
-  "Dinaric Alps": { N: "Vienna Basin", S: "Pindus Mountains", E: "Vardar Valley" },
-  "Bosporus": { N: "Thracian Plain", S: "Bosporus Straits", E: "Bosporus Straits" },
-  "Pindus Mountains": { N: "Dinaric Alps", S: "Athens Basin", E: "Thracian Plain" },
-  "Thracian Plain": { N: "Dnieper River Valley", S: "Bosporus", W: "Pindus Mountains", E: "Bosporus" },
-  "Dalmatian Coast": { W: "Dinaric Alps", E: "Bosporus", N: "Vienna Basin" },
-  "Vardar Valley": { N: "Dinaric Alps", S: "Pindus Mountains", W: "Dinaric Alps" , E: "Bosporus"},
+// Balkans
+"Dinaric Alps": { N: "Danube Bend", S: "Pindus Mountains", E: "Vardar Valley", W: "Dalmatian Coast" },
+"Bosporus": { N: "Thracian Plain", S: "Bosporus Straits", E: "Bosporus Straits", W: "Thracian Plain" },
+"Pindus Mountains": { N: "Dinaric Alps", S: "Athens Basin", E: "Vardar Valley", W: "Dalmatian Coast" },
+"Thracian Plain": { N: "Carpathian Ridge", S: "Bosporus", W: "Pindus Mountains", E: "Bosporus" },
+"Dalmatian Coast": { N: "Venetian Lagoon", S: "LIMINAL_ADRIATIC_TO_MEDITERRANEAN", E: "Dinaric Alps", W: "Adriatic Sea" },
+"Vardar Valley": { N: "Dinaric Alps", S: "Pindus Mountains", W: "Dinaric Alps", E: "Thracian Plain" },
 
-  // Scandinavia
-  "Stockholm Archipelago": { N: "Lapland", S: "Øresund Strait", W: "Norwegian Fjords", E: "Novgorod Woods" },
-  "Norwegian Fjords": { S: "Jutland Peninsula", E: "Stockholm Archipelago", N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", W: "Edinburgh" },
-  "Jutland Peninsula": { N: "Norwegian Fjords", S: "Hamburg Coast", E: "Øresund Strait" },
-  "Lapland": { S: "Stockholm Archipelago", W: "Norwegian Fjords", E: "White Sea Coast", N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA" },
-  "Gotland": { W: "Stockholm Archipelago", E: "Novgorod Woods" },
-  "Øresund Strait": { N: "Stockholm Archipelago", S: "Hamburg Coast", W: "Jutland Peninsula", E: "White Sea Coast" },
+// Scandinavia
+"Stockholm Archipelago": { N: "Lapland", S: "Øresund Strait", W: "Norwegian Fjords", E: "Novgorod Woods" },
+"Norwegian Fjords": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "Jutland Peninsula", E: "Stockholm Archipelago", W: "LIMINAL_NORTH_ATLANTIC_CROSSING" },
+"Jutland Peninsula": { N: "Norwegian Fjords", S: "Hamburg Coast", E: "Øresund Strait", W: "LIMINAL_NORTH_SEA_TO_BRITAIN" },
+"Lapland": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "Stockholm Archipelago", W: "Norwegian Fjords", E: "White Sea Coast" },
+"Gotland": { W: "Stockholm Archipelago", E: "Novgorod Woods" },
+"Øresund Strait": { N: "Stockholm Archipelago", S: "Hamburg Coast", W: "Jutland Peninsula", E: "Novgorod Woods" },
 
-  // Eastern Europe
-  "Moscow Basin": { N: "Novgorod Woods", S: "Volga Bend", E: "Caspian Foothills", W: "Stockholm Archipelago" },
-  "Dnieper River Valley": { N: "Novgorod Woods", S: "Steppe Borderlands", E: "Volga Bend", W: "Brandenburg Plain" },
-  "Volga Bend": { N: "Moscow Basin", S: "Steppe Borderlands", W: "Dnieper River Valley", E: "Caspian Depression" },
-  "Carpathian Ridge": { N: "Tatra Mountains", S: "Thracian Plain", E: "Dnieper River Valley" },
-  "Steppe Borderlands": { N: "Dnieper River Valley", S: "Tbilisi Valley", E: "Volga Bend", W: "Carpathian Ridge" },
-  "Novgorod Woods": { S: "Moscow Basin", E: "Ural Mountains", W: "Stockholm Archipelago", N: "White Sea Coast" },
-  
+// Eastern Europe
+"Moscow Basin": { N: "Novgorod Woods", S: "Volga Bend", E: "Caspian Foothills", W: "Dnieper River Valley" },
+"Dnieper River Valley": { N: "Tatra Mountains", S: "Steppe Borderlands", E: "Volga Bend", W: "Carpathian Ridge" },
+"Volga Bend": { N: "Moscow Basin", S: "Steppe Borderlands", W: "Dnieper River Valley", E: "Caspian Depression" },
+"Carpathian Ridge": { N: "Tatra Mountains", S: "Thracian Plain", E: "Dnieper River Valley", W: "Vienna Basin" },
+"Steppe Borderlands": { N: "Dnieper River Valley", S: "Tbilisi Valley", E: "Volga Bend", W: "Carpathian Ridge" },
+"Novgorod Woods": { S: "Moscow Basin", E: "LIMINAL_TRANS_SIBERIAN", W: "Stockholm Archipelago", N: "White Sea Coast" },
+
   // Ural and Arctic Europe
-  "Ural Mountains": { N: "LIMINAL_ARCTIC_OCEAN_TO_ASIA", S: "Kazakh Steppes", E: "Western Siberia", W: "White Sea Coast" },
+  "Ural Mountains": { N: "LIMINAL_ARCTIC_OCEAN_TO_ASIA", S: "Kazakh Steppes", E: "Western Siberia", W: "LIMINAL_TRANS_SIBERIAN" },
   "White Sea Coast": { N: "Lapland", S: "Novgorod Woods", E: "Ural Mountains", W: "Lapland" },
 
   // Low Countries
-  "Rhine–Meuse Delta": { S: "Scheldt Basin", E: "Rhine Valley", W: "Thames Estuary" },
-  "Flanders Fields": { N: "Rhine–Meuse Delta", S: "Ardennes Forest", E: "Brabant Highlands" },
-  "Zuiderzee Coast": { S: "Rhine–Meuse Delta", E: "Rhine Valley", W: "LIMINAL_NORTH_SEA_TO_BRITAIN" },
-  "Brabant Highlands": { N: "Rhine–Meuse Delta", S: "Ardennes Forest", W: "Flanders Fields" },
-  "Ardennes Forest": { N: "Flanders Fields", S: "Paris Basin", E: "Brabant Highlands" },
-  "Scheldt Basin": { N: "Rhine–Meuse Delta", S: "Paris Basin", E: "Flanders Fields", W: "Zuiderzee Coast" },
+  "Rhine-Meuse Delta": { S: "Scheldt Basin", E: "Rhine Valley", W: "Thames Estuary" },
+  "Flanders Fields": { N: "Rhine-Meuse Delta", S: "Ardennes Forest", E: "Brabant Highlands", W: "Scheldt Basin" },
+  "Zuiderzee Coast": { S: "Rhine-Meuse Delta", E: "Rhine Valley", W: "LIMINAL_NORTH_SEA_TO_BRITAIN", N: "LIMINAL_NORTH_SEA_TO_BRITAIN" },
+  "Brabant Highlands": { N: "Rhine-Meuse Delta", S: "Ardennes Forest", W: "Flanders Fields", E: "Saxon Uplands" },
+  "Ardennes Forest": { N: "Flanders Fields", S: "Paris Basin", E: "Brabant Highlands", W: "Paris Basin" },
+  "Scheldt Basin": { N: "Rhine-Meuse Delta", S: "Paris Basin", E: "Flanders Fields", W: "Zuiderzee Coast" },
 
   // Greece and Aegean
-  "Athens Basin": { N: "Thessalian Plain", S: "Peloponnesian Hills", E: "Delos Archipelago", W: "Bay of Naples" },
+  "Athens Basin": { N: "Thessalian Plain", S: "Peloponnesian Hills", E: "Delos Archipelago", W: "Pindus Mountains" },
   "Peloponnesian Hills": { N: "Athens Basin", S: "Crete", E: "Cilician Plain" },
   "Crete": { N: "Peloponnesian Hills", E: "Cilician Plain", S: "Alexandria Coast" },
   "Delos Archipelago": { W: "Athens Basin", E: "Cilician Plain", N: "Thessalian Plain" },
@@ -121,7 +121,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // === ATLANTIC ISLANDS ===
   "Iceland": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "LIMINAL_ATLANTIC_TO_EUROPE", E: "Norwegian Fjords", W: "Greenland Coast" },
-  "Greenland Coast": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Iceland", W: "Labrador Coast" },
+  "Greenland Coast": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Iceland", W: "LIMINAL_DAVIS_STRAIT" },
   "Azores": { N: "LIMINAL_ATLANTIC_TO_EUROPE", S: "LIMINAL_ATLANTIC_TO_AFRICA", E: "Lisbon Coast", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "Cape Verde": { N: "Western Sahara Coast", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Gambia River Basin", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 
@@ -142,20 +142,20 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // Central Asian Oases and Deserts
   "Kyzylkum Desert": { N: "Aral Sea Basin", S: "Ferghana Valley", E: "Tian Shan Range", W: "Caspian Foothills" },
-  "Ferghana Valley": { N: "Kyzylkum Desert", S: "Pamir Mountains", E: "Tarim Basin", W: "Samarkand Region" },
-  "Samarkand Region": { N: "Kyzylkum Desert", S: "Balkh Plains", E: "Ferghana Valley", W: "Isfahan Basin" },
+  "Ferghana Valley": { N: "Kyzylkum Desert", S: "Pamir Mountains", E: "Kazakh Steppes", W: "Samarkand Region" },
+  "Samarkand Region": { N: "Kyzylkum Desert", S: "Balkh Plains", E: "Ferghana Valley", W: "LIMINAL_SILK_ROAD_WEST" },
   "Balkh Plains": { N: "Samarkand Region", S: "Hindu Kush", E: "Pamir Mountains", W: "Harappa Basin" },
-  "Pamir Mountains": { N: "Ferghana Valley", S: "Hindu Kush", E: "Tarim Basin", W: "Balkh Plains" },
+  "Pamir Mountains": { N: "Ferghana Valley", S: "Hindu Kush", E: "LIMINAL_SILK_ROAD_WEST", W: "Balkh Plains" },
   "Hindu Kush": { N: "Balkh Plains", S: "Kashmir Valley", E: "Pamir Mountains", W: "Harappa Basin" },
 
   // Western China - Xinjiang
-  "Tarim Basin": { N: "Tian Shan Range", S: "Kunlun Mountains", E: "Gobi Desert", W: "Pamir Mountains" },
+  "Tarim Basin": { N: "Tian Shan Range", S: "Kunlun Mountains", E: "Kunlun Mounains", W: "Fergana Valley" },
   "Kunlun Mountains": { N: "Tarim Basin", S: "Tibetan Plateau", E: "Qaidam Basin", W: "Pamir Mountains" },
   "Qaidam Basin": { N: "Gobi Desert", S: "Tibetan Plateau", E: "Loess Plateau", W: "Kunlun Mountains" },
 
   // Mongolia
   "Mongolian Steppes": { N: "Eastern Siberia", S: "Gobi Desert", E: "Manchurian Plain", W: "Altai Mountains" },
-  "Gobi Desert": { N: "Mongolian Steppes", S: "Beijing Basin", E: "Manchurian Plain", W: "Qaidam Basin" },
+  "Gobi Desert": { N: "Mongolian Steppes", S: "Beijing Basin", E: "Manchurian Plain", W: "LIMINAL_GOBI_DESERT" },
   "Manchurian Plain": { N: "Eastern Siberia", S: "Baekdu Mountain Zone", E: "Sakhalin Island", W: "Gobi Desert" },
 
   // Far Eastern Islands
@@ -164,17 +164,18 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   // === EAST ASIA - CHINA ===
   // North China Plain
   "Yellow River Valley": { N: "Beijing Basin", S: "Shandong Peninsula", E: "Shandong Peninsula", W: "Loess Plateau" },
-  "Shandong Peninsula": { N: "Beijing Basin", S: "Yangtze Gorges", W: "Yellow River Valley", E: "Yellow Sea" },
+  "Shandong Peninsula": { N: "Beijing Basin", S: "Yangtze Delta", W: "Yellow River Valley", E: "Yellow Sea" },
   "Loess Plateau": { N: "Gobi Desert", S: "Yangtze Gorges", E: "Yellow River Valley", W: "Tarim Basin" },
   "Beijing Basin": { N: "Manchurian Plain", S: "Yellow River Valley", E: "Yellow Sea", W: "Taihang Mountains" },
   "Taihang Mountains": { N: "Manchurian Plain", S: "Yellow River Valley", E: "Beijing Basin", W: "Loess Plateau" },
   "Hebei Plain": { N: "Manchurian Plain", S: "Shandong Peninsula", W: "Beijing Basin", E: "Yellow Sea" },
 
   // South China
+  "Yangtze Delta": { N: "Shandong Peninsula", S: "Fujian Coast", E: "East China Sea", W: "Yangtze Gorges" },
   "Pearl River Delta": { N: "Yangtze Gorges", S: "Hainan Island", E: "Fujian Coast", W: "Guangxi Highlands" },
-  "Fujian Coast": { N: "Yangtze Gorges", S: "Taiwan Strait", W: "Pearl River Delta", E: "Taiwan Strait" },
+  "Fujian Coast": { N: "Yangtze Delta", S: "Taiwan Strait", W: "Pearl River Delta", E: "Taiwan Strait" },
   "Guangxi Highlands": { N: "Sichuan Basin", S: "Red River Delta", E: "Pearl River Delta", W: "Yunnan Plateau" },
-  "Yangtze Gorges": { N: "Sichuan Basin", S: "Pearl River Delta", E: "Fujian Coast", W: "Sichuan Basin" },
+  "Yangtze Gorges": { N: "Sichuan Basin", S: "Pearl River Delta", E: "Yangtze Delta", W: "Sichuan Basin" },
   "Hainan Island": { N: "Pearl River Delta", S: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", E: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", W: "Red River Delta" },
   "Wuyi Mountains": { N: "Yangtze Gorges", S: "Fujian Coast", E: "Fujian Coast", W: "Guangxi Highlands" },
 
@@ -219,7 +220,9 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // === SOUTHEAST ASIA ===
   // Indochina Interior
-  "Shan Plateau": { N: "Yunnan Plateau", S: "Tenasserim Coast", E: "Annamite Cordillera", W: "Irrawaddy Valley" },
+  "Shan Plateau": { N: "Yunnan Plateau", S: "Chao Phraya Basin", E: "Annamite Cordillera", W: "Irrawaddy Valley" },
+  "Chao Phraya Basin": { N: "Shan Plateau", S: "Malay Peninsula", E: "Tonle Sap Basin", W: "Tenasserim Coast" },
+  "Tonle Sap Basin": { N: "Mekong River Basin", S: "Mekong Delta", E: "Annamite Cordillera", W: "Chao Phraya Basin" },
   "Annamite Cordillera": { N: "Yunnan Plateau", S: "Mekong River Basin", E: "Red River Delta", W: "Shan Plateau" },
   
   // Mainland Southeast Asia
@@ -227,16 +230,18 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Mekong Delta": { N: "Annamite Cordillera", S: "Malay Peninsula", E: "Red River Delta", W: "Irrawaddy Valley" },
   "Red River Delta": { N: "Annamite Cordillera", S: "Hainan Island", E: "Hainan Island", W: "Mekong Delta" },
   "Annam Highlands": { N: "Red River Delta", S: "Mekong River Basin", E: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", W: "Mekong Delta" },
-  "Mekong River Basin": { N: "Annamite Cordillera", S: "Malay Peninsula", E: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", W: "Mekong Delta" },
-  "Tenasserim Coast": { N: "Irrawaddy Valley", S: "Malay Peninsula", E: "Mekong River Basin", W: "Bengal Delta" },
+  "Mekong River Basin": { N: "Annamite Cordillera", S: "Tonle Sap Basin", E: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", W: "Mekong Delta" },
+  "Tenasserim Coast": { N: "Irrawaddy Valley", S: "Malay Peninsula", E: "Chao Phraya Basin", W: "Bengal Delta" },
   "Malay Peninsula": { N: "Mekong River Basin", S: "Strait of Malacca", E: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", W: "Tenasserim Coast" },
 
   // Maritime Southeast Asia
   "Strait of Malacca": { N: "Malay Peninsula", S: "Sumatra Highlands", E: "Borneo", W: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA" },
   "Sumatra Highlands": { N: "Strait of Malacca", S: "Sunda Strait", E: "Java Sea", W: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA" },
-  "Java Sea": { N: "Borneo", S: "Central Java", E: "Makassar Strait", W: "Sumatra Highlands" },
-  "Central Java": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Makassar Strait", W: "Sunda Strait" },
-  "Sunda Strait": { N: "Sumatra Highlands", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Central Java", W: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA" },
+  "Java Sea": { N: "Borneo", S: "West Java Coast", E: "Makassar Strait", W: "Sumatra Highlands" },
+  "West Java Coast": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Central Java", W: "Sunda Strait" },
+  "Central Java": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "East Java Coast", W: "West Java Coast" },
+  "East Java Coast": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Makassar Strait", W: "Central Java" },
+  "Sunda Strait": { N: "Sumatra Highlands", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "West Java Coast", W: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA" },
   "Borneo": { N: "South China Sea", S: "Java Sea", E: "Celebes Sea", W: "Strait of Malacca" },
   "Makassar Strait": { N: "Celebes Sea", S: "Timor Sea", E: "Spice Islands", W: "Borneo" },
   "Spice Islands": { N: "Celebes Sea", S: "Banda Sea", E: "Sepik River Basin", W: "Makassar Strait" },
@@ -271,65 +276,66 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Sierra Nevada": { N: "Shasta Region", S: "Central Valley", E: "Great Basin", W: "Sacramento Valley" },
   "Pacific Coast Ranges": { N: "Redwood Coast", S: "Marin Headlands", E: "Sacramento Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
    "Marin Headlands": { N: "Redwood Coast", S: "San Francisco Bay", E: "Sacramento Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
+
   
   // Central California Coast
-  "San Francisco Bay": { N: "Marin Headlands", S: "Monterey Bay", E: "Central Valley", W: "Pacific Coast Ranges" },
-  "Monterey Bay": { N: "San Francisco Bay", S: "Big Sur Coast", E: "Santa Cruz Mountains", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Santa Cruz Mountains": { N: "San Francisco Bay", S: "Salinas Valley", E: "Central Valley", W: "Monterey Bay" },
-  "Salinas Valley": { N: "Santa Cruz Mountains", S: "San Luis Obispo", E: "Central Valley", W: "Big Sur Coast" },
-  "Big Sur Coast": { N: "Monterey Bay", S: "San Luis Obispo", E: "Salinas Valley", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Central Valley": { N: "Sacramento Valley", S: "San Luis Obispo", E: "Sierra Nevada", W: "Santa Cruz Mountains" },
-  "San Luis Obispo": { N: "Salinas Valley", S: "Santa Barbara Channel", E: "Mojave Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  
-  // Southern California
-  "Santa Barbara Channel": { N: "San Luis Obispo", S: "Los Angeles Basin", E: "Mojave Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Los Angeles Basin": { N: "Santa Barbara Channel", S: "San Diego Bay", E: "Mojave Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "San Diego Bay": { N: "Los Angeles Basin", S: "Baja California", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Mojave Desert": { N: "Central Valley", S: "Sonoran Desert", E: "Colorado Plateau", W: "Los Angeles Basin" },
-  "Channel Islands": { E: "Los Angeles Basin", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Baja California": { N: "San Diego Bay", S: "Sinaloa Coast", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Sinaloa Coast": { N: "Baja California", S: "Valley of Mexico", E: "Chihuahuan Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Great Basin": { W: "Sierra Nevada", S: "Mojave Desert", E: "Colorado Plateau", N: "Snake River Plain" },
+"San Francisco Bay": { N: "Marin Headlands", S: "Monterey Bay", E: "Central Valley", W: "Pacific Coast Ranges" },
+"Monterey Bay": { N: "San Francisco Bay", S: "Big Sur Coast", E: "Santa Cruz Mountains", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"Santa Cruz Mountains": { N: "San Francisco Bay", S: "Salinas Valley", E: "Central Valley", W: "Monterey Bay" },
+"Salinas Valley": { N: "Santa Cruz Mountains", S: "San Luis Obispo", E: "Central Valley", W: "Big Sur Coast" },
+"Big Sur Coast": { N: "Monterey Bay", S: "San Luis Obispo", E: "Salinas Valley", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"Central Valley": { N: "Sacramento Valley", S: "San Luis Obispo", E: "Sierra Nevada", W: "Santa Cruz Mountains" },
+"San Luis Obispo": { N: "Salinas Valley", S: "Santa Barbara Channel", E: "Central Valley", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
 
-  // Southwest
-  "Sonoran Desert": { E: "Colorado Plateau", W: "San Diego Bay", N: "Mojave Desert", S: "Valley of Mexico" },
-  "Chaco Canyon": { N: "Colorado Plateau", S: "Rio Grande Valley", E: "Black Hills" },
-  "Rio Grande Valley": { N: "Chaco Canyon", S: "Valley of Mexico", E: "Tallgrass Prairie", W: "Colorado Plateau" },
-  "Colorado Plateau": { S: "Rio Grande Valley", W: "Sonoran Desert", E: "Black Hills", N: "Yellowstone Basin" },
-  "Ancestral Puebloan Lands": { N: "Colorado Plateau", S: "Rio Grande Valley", E: "Chaco Canyon" },
-  "Mogollon Rim": { N: "Colorado Plateau", S: "Sonoran Desert", E: "Rio Grande Valley" },
+// Southern California
+"Santa Barbara Channel": { N: "San Luis Obispo", S: "Los Angeles Basin", E: "Los Angeles Basin", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"Los Angeles Basin": { N: "Santa Barbara Channel", S: "San Diego Bay", E: "Mojave Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"San Diego Bay": { N: "Los Angeles Basin", S: "Baja California", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"Mojave Desert": { N: "Great Basin", S: "Sonoran Desert", E: "Colorado Plateau", W: "Los Angeles Basin" },
+"Channel Islands": { N: "Santa Barbara Channel", S: "Los Angeles Basin", E: "Los Angeles Basin", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"Baja California": { N: "San Diego Bay", S: "Sinaloa Coast", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"Sinaloa Coast": { N: "Baja California", S: "Valley of Mexico", E: "Chihuahuan Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+"Great Basin": { N: "Snake River Plain", S: "Mojave Desert", E: "Colorado Plateau", W: "Sierra Nevada" },
 
-  // Great Plains
-  "Black Hills": { N: "Glacier Foothills", S: "Platte River Basin", E: "Tallgrass Prairie", W: "Colorado Plateau" },
-  "Platte River Basin": { N: "Black Hills", S: "Flint Hills", E: "Tallgrass Prairie", W: "Snake River Plain" },
-  "Flint Hills": { N: "Platte River Basin", S: "Cahokia Mounds", E: "Tallgrass Prairie", W: "Platte River Basin" },
-  "Badlands": { S: "Black Hills", E: "Tallgrass Prairie", W: "Yellowstone Basin" },
-  "Tallgrass Prairie": { N: "Black Hills", S: "Cahokia Mounds", W: "Platte River Basin", E: "Illinois River Valley" },
-  "Missouri Breaks": { S: "Black Hills", E: "Tallgrass Prairie", W: "Glacier Foothills" },
+// Southwest
+"Sonoran Desert": { N: "Mojave Desert", S: "Valley of Mexico", E: "Colorado Plateau", W: "San Diego Bay" },
+"Chaco Canyon": { N: "Ancestral Puebloan Lands", S: "Rio Grande Valley", E: "Mogollon Rim", W: "Colorado Plateau" },
+"Rio Grande Valley": { N: "Ancestral Puebloan Lands", S: "Valley of Mexico", E: "Tallgrass Prairie", W: "Colorado Plateau" },
+"Colorado Plateau": { N: "Yellowstone Basin", S: "Ancestral Puebloan Lands", E: "Black Hills", W: "Great Basin" },
+"Ancestral Puebloan Lands": { N: "Colorado Plateau", S: "Rio Grande Valley", E: "Chaco Canyon", W: "Mogollon Rim" },
+"Mogollon Rim": { N: "Colorado Plateau", S: "Sonoran Desert", E: "Rio Grande Valley", W: "Great Basin" },
 
-  // Mississippi Valley
-  "Cahokia Mounds": { N: "Great Lakes Shoreline", S: "Lower Mississippi Delta", E: "Illinois River Valley", W: "Tallgrass Prairie" },
-  "Lower Mississippi Delta": { N: "Cahokia Mounds", S: "Gulf of Mexico", E: "Mississippi Bayou", W: "Rio Grande Valley" },
-  "Ozark Plateau": { N: "Cahokia Mounds", S: "Natchez Bluffs", E: "Illinois River Valley" },
-  "Natchez Bluffs": { N: "Ozark Plateau", S: "Lower Mississippi Delta", E: "Mississippi Bayou" },
-  "Illinois River Valley": { N: "Great Lakes Shoreline", S: "Ozark Plateau", W: "Cahokia Mounds", E: "Hudson River Valley" },
-  "Driftless Area": { S: "Illinois River Valley", E: "Great Lakes Shoreline", W: "Tallgrass Prairie" },
+// Great Plains
+"Black Hills": { N: "Glacier Foothills", S: "Platte River Basin", E: "Tallgrass Prairie", W: "Colorado Plateau" },
+"Platte River Basin": { N: "Black Hills", S: "Flint Hills", E: "Tallgrass Prairie", W: "Missouri Breaks" },
+"Flint Hills": { N: "Platte River Basin", S: "Cahokia Mounds", E: "Tallgrass Prairie", W: "Platte River Basin" },
+"Badlands": { N: "Glacier Foothills", S: "Black Hills", E: "Tallgrass Prairie", W: "Yellowstone Basin" },
+"Tallgrass Prairie": { N: "Black Hills", S: "Cahokia Mounds", W: "Platte River Basin", E: "Illinois River Valley" },
+"Missouri Breaks": { N: "Glacier Foothills", S: "Platte River Basin", E: "Tallgrass Prairie", W: "LIMINAL_NORTHWEST_TO_MOUNTAINS" },
 
-  // Northeast Woodlands
-  "Hudson River Valley": { N: "Adirondacks", S: "Chesapeake Bay", E: "Cape Cod", W: "Finger Lakes" },
-  "Great Lakes Shoreline": { S: "Finger Lakes", E: "Hudson River Valley", W: "Cahokia Mounds", N: "Hudson Bay Lowlands" },
-  "Adirondacks": { S: "Hudson River Valley", E: "Champlain Valley", W: "Great Lakes Shoreline" },
-  "Finger Lakes": { N: "Great Lakes Shoreline", S: "Hudson River Valley", E: "Hudson River Valley", W: "Great Lakes Shoreline" },
-  "Champlain Valley": { S: "Hudson River Valley", W: "Adirondacks", N: "Labrador Coast" },
-  "Mohawk River": { S: "Hudson River Valley", E: "Champlain Valley", W: "Finger Lakes" },
+// Mississippi Valley
+"Cahokia Mounds": { N: "Great Lakes Shoreline", S: "Lower Mississippi Delta", E: "Illinois River Valley", W: "Tallgrass Prairie" },
+"Lower Mississippi Delta": { N: "Cahokia Mounds", S: "Gulf of Mexico", E: "Mississippi Bayou", W: "Natchez Bluffs" },
+"Ozark Plateau": { N: "Cahokia Mounds", S: "Natchez Bluffs", E: "Mississippi Bayou", W: "Illinois River Valley" },
+"Natchez Bluffs": { N: "Ozark Plateau", S: "Lower Mississippi Delta", E: "Mississippi Bayou", W: "Ozark Plateau" },
+"Illinois River Valley": { N: "Great Lakes Shoreline", S: "Ozark Plateau", W: "Cahokia Mounds", E: "Hudson River Valley" },
+"Driftless Area": { N: "Great Lakes Shoreline", S: "Illinois River Valley", E: "Great Lakes Shoreline", W: "Tallgrass Prairie" },
 
-  // Southeast
-  "Smoky Mountains": { N: "Hudson River Valley", S: "Piedmont Uplands", E: "Chesapeake Bay", W: "Cahokia Mounds" },
-  "Okefenokee Swamp": { N: "Piedmont Uplands", S: "Everglades", E: "Outer Banks" },
-  "Piedmont Uplands": { N: "Smoky Mountains", S: "Okefenokee Swamp", E: "Tidewater Region", W: "Ozark Plateau" },
-  "Everglades": { N: "Okefenokee Swamp", E: "Outer Banks", W: "Mississippi Bayou", S: "Gulf of Mexico" },
-  "Mississippi Bayou": { N: "Lower Mississippi Delta", S: "Gulf of Mexico", E: "Everglades", W: "Gulf of Mexico" },
-  "Blue Ridge Foothills": { N: "Smoky Mountains", S: "Smoky Mountains", E: "Chesapeake Bay" },
+// Northeast Woodlands
+"Hudson River Valley": { N: "Adirondacks", S: "Chesapeake Bay", E: "Cape Cod", W: "Finger Lakes" },
+"Adirondacks": { N: "Labrador Coast", S: "Hudson River Valley", E: "Champlain Valley", W: "Great Lakes Shoreline" },
+"Finger Lakes": { N: "Great Lakes Shoreline", S: "Hudson River Valley", E: "Hudson River Valley", W: "Driftless Area" },
+"Champlain Valley": { N: "Labrador Coast", S: "Hudson River Valley", E: "Cape Cod", W: "Adirondacks" },
+"Mohawk River": { N: "Champlain Valley", S: "Hudson River Valley", E: "Champlain Valley", W: "Finger Lakes" },
+
+// Southeast
+"Smoky Mountains": { N: "Blue Ridge Foothills", S: "Piedmont Uplands", E: "Chesapeake Bay", W: "Ozark Plateau" },
+"Okefenokee Swamp": { N: "Piedmont Uplands", S: "Everglades", E: "Outer Banks", W: "Mississippi Bayou" },
+"Piedmont Uplands": { N: "Smoky Mountains", S: "Okefenokee Swamp", E: "Tidewater Region", W: "Ozark Plateau" },
+"Everglades": { N: "Okefenokee Swamp", S: "Gulf of Mexico", E: "Outer Banks", W: "Mississippi Bayou" },
+"Mississippi Bayou": { N: "Lower Mississippi Delta", S: "Gulf of Mexico", E: "Everglades", W: "Lower Mississippi Delta" },
+"Blue Ridge Foothills": { N: "Smoky Mountains", S: "Smoky Mountains", E: "Chesapeake Bay", W: "Piedmont Uplands" },
+
 
   // Arctic and Subarctic
   "Hudson Bay": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "Ontario Shield", E: "Labrador Coast", W: "Canadian North" },
@@ -340,8 +346,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Mackenzie Delta": { N: "LIMINAL_ARCTIC_OCEAN_TO_ASIA", S: "Canadian North", E: "Canadian North", W: "Yukon River Valley" },
   "Aleutian Islands": { E: "Bering Strait", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Great Lakes Shoreline": { N: "Ontario Shield", S: "Finger Lakes", E: "Hudson River Valley", W: "Illinois River Valley" },
-  "Adirondacks": { N: "St. Lawrence River", S: "Hudson River Valley", E: "Champlain Valley", W: "Ontario Shield" },
-  "Finger Lakes": { N: "Great Lakes Shoreline", S: "Hudson River Valley", E: "Hudson River Valley", W: "Great Lakes Shoreline" },
+
 
   // Mexico and Central Highlands
   "Valley of Mexico": { N: "Rio Grande Valley", S: "Oaxaca Highlands", E: "Yucatán Peninsula", W: "Sierra Madre Oriental" },
@@ -380,13 +385,13 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Outer Banks": { N: "Chesapeake Bay", S: "Everglades", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Delaware River Valley": { N: "Cape Cod", S: "Pine Barrens", W: "Hudson River Valley", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Tidewater Region": { N: "Chesapeake Bay", S: "Virginia", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Virginia" },
-  "Virginia": { N: "Chesapeake Bay", S: "Okefenokee Swamp", E: "Tidewater Region" },
+ "Virginia": { N: "Chesapeake Bay", S: "Piedmont Uplands", E: "Tidewater Region", W: "Smoky Mountains" },
 
     // MISSING NORTH AMERICAN REGIONS 
   "Texas Hill Country": { N: "Llano Estacado", S: "Rio Grande Valley", E: "Gulf Coast Texas", W: "Rio Grande Valley" },
   "Llano Estacado": { N: "Tallgrass Prairie", S: "Texas Hill Country", E: "Tallgrass Prairie", W: "Rio Grande Valley" },
   "Gulf Coast Texas": { N: "Mississippi Bayou", S: "Gulf of Mexico", E: "Gulf of Mexico", W: "Texas Hill Country" },
-  "Virginia": { N: "Chesapeake Bay", S: "Piedmont Uplands", E: "Tidewater Region", W: "Smoky Mountains" },
+ 
   "Lake Superior Basin": { N: "Hudson Bay Lowlands", S: "Great Lakes Shoreline", E: "Great Lakes Shoreline", W: "Driftless Area" },
   "Newfoundland Grand Banks": { N: "Labrador Coast", S: "Cape Cod", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Champlain Valley" },
   "Boston Harbor": { S: "Cape Cod", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Connecticut River Valley" },
@@ -407,15 +412,15 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // === SOUTH AMERICA ===
   // Andes North
-  "Quito Plateau": { N: "Darien Swamp", S: "Cajamarca Highlands", E: "Manaus Region" },
+  "Quito Plateau": { N: "Darien Swamp", W: "Cajamarca Highlands", E: "Manaus Region", S: "Chimborazo Slopes"},
   "Cajamarca Highlands": { N: "Quito Plateau", S: "Lake Titicaca Basin", E: "Manaus Region" },
   "Lake Titicaca Basin": { N: "Cajamarca Highlands", S: "Cuzco Valley", E: "Manaus Region", W: "Chimborazo Slopes" },
-  "Chimborazo Slopes": { E: "Lake Titicaca Basin", S: "Cordillera Blanca", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Cordillera Blanca": { N: "Chimborazo Slopes", S: "Altiplano", E: "Acre Rainforest" },
-  "Chachapoyas Forest": { W: "Cajamarca Highlands", E: "Manaus Region", S: "Acre Rainforest" },
+  "Chimborazo Slopes": { E: "Lake Titicaca Basin", S: "Cordillera Blanca", W: "LIMINAL_PACIFIC_TO_OCEANIA", N: "Quito Plateau" },
+  "Cordillera Blanca": { N: "Chimborazo Slopes", S: "Altiplano", E: "Acre Rainforest", W: "LIMINAL_PACIFIC_TO_OCEANIA"},
+  "Chachapoyas Forest": { W: "Cajamarca Highlands", E: "Manaus Region", S: "Acre Rainforest",  N: "Quito Plateau" },
 
   // Andes South
-  "Cuzco Valley": { N: "Lake Titicaca Basin", S: "Altiplano", E: "Acre Rainforest" },
+  "Cuzco Valley": { N: "Lake Titicaca Basin", S: "Altiplano", E: "Acre Rainforest", W: "Cordillera Blanca"},
   "Altiplano": { N: "Cuzco Valley", S: "Potosí Region", E: "Gran Chaco", W: "Atacama Desert" },
   "Atacama Desert": { E: "Altiplano", S: "Mendoza Foothills", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Mendoza Foothills": { N: "Atacama Desert", S: "Mapuche Territory", E: "Pampas Grasslands" },
@@ -423,11 +428,12 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Mapuche Territory": { N: "Mendoza Foothills", S: "Andean Foothills", E: "Pampas Grasslands" },
 
   // Amazon Basin
-  "Manaus Region": { N: "Orinoco Delta", S: "Acre Rainforest", E: "Rio Negro Junction", W: "Cajamarca Highlands" },
+  "Manaus Region": { N: "Amazon Delta", S: "Acre Rainforest", E: "Rio Negro Junction", W: "Cajamarca Highlands" },
   "Rio Negro Junction": { W: "Manaus Region", S: "Tapajós Basin", E: "Xingu Headwaters" },
-  "Xingu Headwaters": { W: "Rio Negro Junction", S: "Tapajós Basin", E: "Bahia Coast" },
-  "Acre Rainforest": { N: "Manaus Region", S: "Yungas Slopes", W: "Cuzco Valley" },
-  "Varzea Floodplains": { N: "Rio Negro Junction", S: "Tapajós Basin", E: "São Paulo Plateau" },
+  "Xingu Headwaters": { W: "Rio Negro Junction", S: "Tapajós Basin", E: "Bahia Coast", N:"Maroni Basin" },
+  "Acre Rainforest": { N: "Manaus Region", S: "Yungas Slopes", W: "Cuzco Valley", E: "Tapajós Basin" },
+  "Amazon Delta": { N: "Orinoco Delta", S: "Varzea Floodplains", E: "LIMINAL_ATLANTIC_TO_AMERICAS", W: "Manaus Region" },
+  "Varzea Floodplains": { N: "Amazon Delta", S: "Tapajós Basin", E: "São Paulo Plateau", W: "Manaus Region" },
   "Tapajós Basin": { N: "Rio Negro Junction", S: "Santa Cruz Lowlands", W: "Acre Rainforest", E: "Xingu Headwaters" },
 
   // Gran Chaco and Pampas
@@ -481,12 +487,12 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // === MENA ===
   // Nile Valley
-  "Thebes Valley": { N: "Aswan Cataracts", S: "Nubian Desert", E: "Eastern Desert Wadis", W: "Faiyum Oasis" },
-  "Nile Delta": { S: "Alexandria Coast", E: "Jerusalem Hills", W: "Alexandria Coast" },
-  "Aswan Cataracts": { S: "Thebes Valley", E: "Eastern Desert Wadis", N: "Nubian Desert" },
-  "Faiyum Oasis": { E: "Thebes Valley", N: "Alexandria Coast", S: "Eastern Desert Wadis" },
+  "Thebes Valley": { S: "Aswan Cataracts", N: "Nile Delta", E: "Eastern Desert Wadis", W: "Faiyum Oasis" },
+  "Nile Delta": { N: "Alexandria Coast", E: "Jerusalem Hills", W: "Alexandria Coast", S: "Thebes Valley" },
+  "Aswan Cataracts": { N: "Thebes Valley", E: "Eastern Desert Wadis", S: "Nubian Desert" },
+  "Faiyum Oasis": { E: "Thebes Valley", N: "Alexandria Coast", S: "Nubian Desert", W: "Tripolitania" },
   "Eastern Desert Wadis": { W: "Thebes Valley", E: "Red Sea Coast", N: "Alexandria Coast" },
-  "Alexandria Coast": { N: "Nile Delta", S: "Faiyum Oasis", E: "Jerusalem Hills", W: "Tripolitania" },
+  "Alexandria Coast": { S: "Nile Delta", N: "LIMINAL_MEDITERRANEAN_ISLANDS", E: "Jerusalem Hills", W: "Cyrenaica Coast" },
   
   // Nubian Corridor
   "Nubian Desert": { N: "Thebes Valley", S: "Bayuda Desert", E: "Eastern Desert Highlands", W: "Saharan Heart" },
@@ -507,7 +513,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Cilician Plain": { N: "Cappadocian Highlands", S: "Mount Lebanon Range", E: "Nineveh Plain" },
   "Tarsus Foothills": { N: "Cappadocian Highlands", S: "Cilician Plain", E: "Zagros Foothills" },
   "Central Plateau": { N: "Pontic Coast", S: "Cappadocian Highlands", E: "Tbilisi Valley", W: "Bosporus Straits" },
-  "Bosporus Straits": { E: "Central Plateau", W: "Bosporus", S: "Cilician Plain" },
+  "Bosporus Straits": { E: "Central Plateau", W: "Bosporus", S: "Cilician Plain", N: "LIMINAL_BLACK_SEA_TO_EUROPE" },
 
   // Mesopotamia
   "Tigris–Euphrates Confluence": { N: "Nineveh Plain", S: "Marsh Arab Wetlands", E: "Isfahan Basin", W: "Jerusalem Hills" },
@@ -517,53 +523,110 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Zagros Foothills": { W: "Nineveh Plain", S: "Diyala Valley", E: "Zagros Highlands" },
   "Diyala Valley": { N: "Zagros Foothills", W: "Babylon Region", S: "Isfahan Basin" },
 
-  // Maghreb
-  "Atlas Mountains": { N: "Rif Coast", S: "Draa Valley", E: "Tunisian Sahel", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
-  "Fez Plateau": { S: "Atlas Mountains", E: "Atlas Mountains", W: "Rif Coast", N: "Rif Coast" },
-  "Tunisian Sahel": { W: "Atlas Mountains", S: "Tripolitania" },
-  "Rif Coast": { E: "Fez Plateau", N: "Strait of Gibraltar", S: "Atlas Mountains", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
-  "Draa Valley": { N: "Atlas Mountains", S: "Timbuktu Basin" },
-  "Tripolitania": { N: "Tunisian Sahel", S: "Lake Chad", W: "Atlas Mountains", E: "Alexandria Coast" },
+// --- Maghreb
+"Atlas Mountains": { N: "Rif Coast", S: "Draa Valley", E: "Tell Atlas", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+"Fez Plateau": { N: "Rif Coast", S: "Atlas Mountains", E: "Tell Atlas", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+"Tell Atlas": { N: "Rif Coast", S: "Draa Valley", E: "Tunisian Sahel", W: "Fez Plateau" },
+"Tunisian Sahel": { N: "Tell Atlas", S: "Tripolitania", E: "Cyrenaica Coast", W: "Tell Atlas" },
+"Rif Coast": { N: "Strait of Gibraltar", S: "Fez Plateau", E: "Fez Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+"Draa Valley": { N: "Atlas Mountains", S: "Central Sahara", E: "Tell Atlas", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+"Tripolitania": { N: "Tunisian Sahel", S: "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH", E: "Cyrenaica Coast", W: "Tell Atlas" },
+"Cyrenaica Coast": { N: "LIMINAL_MEDITERRANEAN_ISLANDS", S: "Central Sahara", E: "Alexandria Coast", W: "Tripolitania" },
 
-  // Arabian Peninsula
-  "Hijaz Mountains": { N: "Dead Sea Shore", S: "Najd Plateau", E: "Najd Plateau", W: "Red Sea Coast" },
-  "Empty Quarter": { N: "Najd Plateau", S: "Dhofar Hills", E: "Isfahan Basin", W: "Najd Plateau" },
-  "Hadhramaut Valley": { N: "Empty Quarter", S: "LIMINAL_ARABIAN_SEA_TO_SOUTH_ASIA", E: "Shiraz Valley" },
-  "Dhofar Hills": { N: "Empty Quarter", E: "Shiraz Valley", W: "Hadhramaut Valley" },
-  "Najd Plateau": { N: "Hijaz Mountains", S: "Empty Quarter", E: "Marsh Arab Wetlands", W: "Hijaz Mountains" },
-  "Red Sea Coast": { E: "Hijaz Mountains", N: "Eastern Desert Wadis", S: "Red Sea Shore" },
+// --- Arabian Peninsula
+"Hejaz Mountains": { N: "Dead Sea Shore", S: "Red Sea Coast", E: "Hejaz Interior", W: "Red Sea Coast" },
+"Hejaz Interior": { N: "Hejaz Mountains", S: "Najd Plateau", E: "Najd Plateau", W: "Hejaz Mountains" },
+"Najd Plateau": { N: "Hejaz Interior", S: "Empty Quarter", E: "Marsh Arab Wetlands", W: "Hejaz Interior" },
+"Empty Quarter": { N: "Najd Plateau", S: "Dhofar Hills", E: "LIMINAL_ARABIAN_DESERT", W: "Najd Plateau" },
+"Dhofar Hills": { N: "Empty Quarter", S: "LIMINAL_ARABIAN_SEA_TO_SOUTH_ASIA", E: "Shiraz Valley", W: "Hadhramaut Valley" },
+"Hadhramaut Valley": { N: "Empty Quarter", S: "LIMINAL_ARABIAN_SEA_TO_SOUTH_ASIA", E: "Shiraz Valley", W: "Dhofar Hills" },
+"Red Sea Coast": { N: "Eastern Desert Wadis", S: "Red Sea Shore", E: "Hejaz Mountains", W: "Sudanese Red Sea" },
 
-  // Persian Plateau
-  "Isfahan Basin": { N: "Caspian Foothills", S: "Shiraz Valley", E: "Harappa Basin", W: "Tigris–Euphrates Confluence" },
-  "Zagros Highlands": { N: "Caspian Foothills", S: "Shiraz Valley", W: "Zagros Foothills", E: "Isfahan Basin" },
-  "Caspian Foothills": { S: "Isfahan Basin", E: "Harappa Basin", W: "Tbilisi Valley", N: "LIMINAL_CASPIAN_SEA_TO_EUROPE" },
-  "Dasht-e Kavir": { W: "Isfahan Basin", S: "Shiraz Valley", E: "Harappa Basin" },
-  "Shiraz Valley": { N: "Isfahan Basin", E: "Harappa Basin", W: "Zagros Highlands", S: "Diyala Valley" },
-  "Alborz Mountains": { N: "Caspian Foothills", E: "Harappa Basin", W: "Tbilisi Valley", S: "Isfahan Basin" },
+// --- === ADDITIONAL MENA REGIONS ===
+"Khorasan": { N: "Samarkand Region", S: "Isfahan Basin", E: "Balkh Plains", W: "Dasht-e Kavir" },
+"Transoxiana": { N: "Kyzylkum Desert", S: "Balkh Plains", E: "Ferghana Valley", W: "Samarkand Region" },
+"Khuzestan Plain": { N: "Zagros Foothills", S: "Marsh Arab Wetlands", E: "Isfahan Basin", W: "Babylon Region" },
 
-  // Caucasus
-  "Tbilisi Valley": { N: "Chechen Highlands", S: "Mount Ararat", E: "Caspian Depression", W: "Black Sea Foothills" },
-  "Mount Ararat": { N: "Tbilisi Valley", S: "Central Plateau", E: "Caspian Depression" },
-  "Kura River Basin": { N: "Chechen Highlands", S: "Tbilisi Valley", E: "Caspian Depression" },
-  "Chechen Highlands": { S: "Tbilisi Valley", E: "Caspian Depression", W: "Black Sea Foothills", N: "Steppe Borderlands" },
-  "Black Sea Foothills": { E: "Tbilisi Valley", S: "Pontic Coast", W: "Thracian Plain" },
-  "Caspian Depression": { W: "Tbilisi Valley", S: "Caspian Foothills", N: "Volga Bend", E: "Aral Sea Basin" },
+// --- Persian Plateau
+"Isfahan Basin": { N: "Alborz Mountains", S: "Shiraz Valley", E: "Samarkand Region", W: "Zagros Highlands" },
+"Zagros Highlands": { N: "Caspian Foothills", S: "Shiraz Valley", E: "Isfahan Basin", W: "Khuzestan Plain" },
+"Caspian Foothills": { N: "LIMINAL_CASPIAN_SEA_TO_EUROPE", S: "Alborz Mountains", E: "Harappa Basin", W: "Tbilisi Valley" },
+"Dasht-e Kavir": { N: "Alborz Mountains", S: "Shiraz Valley", E: "Harappa Basin", W: "Khorasan" },
+"Shiraz Valley": { N: "Isfahan Basin", S: "Zagros Highlands", E: "Harappa Basin", W: "Zagros Highlands" },
+"Alborz Mountains": { N: "Caspian Foothills", E: "Harappa Basin", W: "Tbilisi Valley", S: "Isfahan Basin" },
 
-  // Eastern Desert and Red Sea
-  "Eastern Desert Highlands": { W: "Nubian Desert", S: "Berenice Hinterland", E: "Sudanese Red Sea" },
-  "Sudanese Red Sea": { W: "Eastern Desert Highlands", S: "Red Sea Shore", N: "Red Sea Coast" },
-  "Wadi Hammamat": { N: "Eastern Desert Highlands", S: "Berenice Hinterland", W: "Thebes Valley" },
-  "Berenice Hinterland": { N: "Eastern Desert Highlands", S: "Gebel Elba Region", E: "Sudanese Red Sea" },
-  "Suez Isthmus": { N: "Alexandria Coast", S: "Eastern Desert Highlands", E: "Dead Sea Shore" },
-  "Gebel Elba Region": { N: "Berenice Hinterland", S: "Ethiopian Highlands", E: "Red Sea Shore",  W: "Thebes Valley"},
+// --- Caucasus
+"Tbilisi Valley": { N: "Black Sea Foothills", S: "Alborz Mountains", E: "Caspian Foothills", W: "Mount Ararat" },
+"Mount Ararat": { N: "Black Sea Foothills", S: "Kura River Basin", E: "Caspian Depression", W: "Cilician Plain" },
+"Kura River Basin": { N: "Mount Ararat", S: "Caspian Depression", E: "Caspian Depression", W: "Tbilisi Valley" },
+"Chechen Highlands": { N: "Novgorod Woods", S: "Tbilisi Valley", E: "Caspian Depression", W: "Black Sea Foothills" },
+"Black Sea Foothills": { N: "LIMINAL_CASPIAN_SEA_TO_EUROPE", S: "Mount Ararat", E: "Tbilisi Valley", W: "Pontic Coast" },
+"Caspian Depression": { N: "Kura River Basin", S: "Dasht-e Kavir", E: "Harappa Basin", W: "Kura River Basin" },
+
+
+  // Consolidated Eastern Desert & Red Sea block (replace duplicated/conflicting entries)
+"Alexandria Coast": {
+  N: "LIMINAL_MEDITERRANEAN_ISLANDS",
+  S: "Nile Delta",
+  E: "Jerusalem Hills",
+  W: "Cyrenaica Coast"
+},
+"Eastern Desert Highlands": {
+  N: "Alexandria Coast",
+  S: "Wadi Hammamat",
+  E: "Red Sea Coast",
+  W: "Thebes Valley"
+},
+"Wadi Hammamat": {
+  N: "Eastern Desert Highlands",
+  S: "Berenice Hinterland",
+  E: "Red Sea Coast",
+  W: "Suez Isthmus"
+},
+"Berenice Hinterland": {
+  N: "Wadi Hammamat",
+  S: "Gebel Elba Region",
+  E: "Sudanese Red Sea",
+  W: "Alexandria Coast"
+},
+"Gebel Elba Region": {
+  N: "Berenice Hinterland",
+  S: "Ethiopian Highlands",
+  E: "Red Sea Shore",
+  W: "Sudanese Red Sea"
+},
+"Sudanese Red Sea": {
+  N: "Red Sea Shore",
+  S: "Gebel Elba Region",
+  E: "Red Sea Coast",
+  W: "Berenice Hinterland"
+},
+"Red Sea Shore": {
+  N: "Sudanese Red Sea",
+  S: "Danakil Depression",
+  E: "Red Sea Coast",
+  W: "Sudanese Red Sea"
+},
+"Red Sea Coast": {
+  N: "Hejaz Mountains",
+  S: "Sudanese Red Sea",
+  E: "LIMINAL_ARABIAN_SEA_TO_MENA",
+  W: "Eastern Desert Highlands"
+},
+"Suez Isthmus": {
+  N: "Alexandria Coast",
+  S: "Eastern Desert Highlands",
+  E: "Red Sea Coast",
+  W: "Alexandria Coast"
+},
 
   // === SUB SAHARAN AFRICA ===
   // Sahel
-  "Timbuktu Basin": { N: "Atlas Mountains", S: "Niger Bend", E: "Gao Region", W: "Fouta Djallon Highlands" },
-  "Lake Chad": { N: "Tripolitania", S: "Ubangi Basin", E: "Ethiopian Highlands", W: "Gao Region" },
+  "Timbuktu Basin": { N: "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH", S: "Niger Bend", E: "Gao Region", W: "Fouta Djallon Highlands" },
+  "Lake Chad": { N: "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH", S: "Ubangi Basin", E: "LIMINAL_SAHARA_CROSSING_EAST_WEST", W: "Gao Region" },
   "Niger Bend": { N: "Timbuktu Basin", S: "Ashanti Forest", E: "Dogon Plateau", W: "Fouta Djallon Highlands" },
   "Gao Region": { N: "Tripolitania", S: "Dogon Plateau", W: "Timbuktu Basin", E: "Lake Chad" },
-  "Sahelian Scrublands": { N: "Atlas Mountains", S: "Ibo Plateau", E: "Lake Chad" },
+  "Sahelian Scrublands": { N: "Atlas Mountains", S: "Ibo Plateau", E: "Lake Chad", W: "LIMINAL_SAHARA_CROSSING_EAST_WEST" },
   "Dogon Plateau": { N: "Gao Region", S: "Ashanti Forest", W: "Niger Bend", E: "Sahelian Scrublands" },
 
   // Upper Guinea
@@ -572,7 +635,9 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Gambia River Basin": { N: "Timbuktu Basin", S: "Fouta Djallon Highlands", E: "Gold Coast Savanna", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "Ashanti Forest": { N: "Niger Bend", S: "Cross River Delta", W: "Fouta Djallon Highlands", E: "Gold Coast Savanna" },
   "Bissagos Islands": { E: "Sierra Leone Coast", N: "Gambia River Basin", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
-  "Gold Coast Savanna": { N: "Dogon Plateau", S: "Cross River Delta", W: "Ashanti Forest", E: "Ibo Plateau" },
+  "Gold Coast Savanna": { N: "Dogon Plateau", S: "Ivory Coast", W: "Ashanti Forest", E: "Lagos Coastal Belt" },
+  "Lagos Coastal Belt": { N: "Gold Coast Savanna", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Niger Delta", W: "Ivory Coast" },
+  "Ivory Coast": { N: "Gold Coast Savanna", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Lagos Coastal Belt", W: "Sierra Leone Coast" },
 
   // Lower Guinea and Congo Basin
   "Cross River Delta": { N: "Gold Coast Savanna", S: "Kongo Coast", E: "Bantu Uplands", W: "Ashanti Forest" },
@@ -583,7 +648,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Kongo Coast": { N: "Cross River Delta", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Congo River Bend", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 
   // Horn of Africa
-  "Ethiopian Highlands": { N: "Bayuda Desert", S: "Rift Valley Lakes", E: "Harar Plateau", W: "Bayuda Desert" },
+  "Ethiopian Highlands": { N: "Bayuda Desert", S: "Rift Valley Lakes", E: "Harar Plateau", W: "LIMINAL_SAHARA_CROSSING_EAST_WEST" },
   "Danakil Depression": { N: "Red Sea Shore", S: "Ethiopian Highlands", E: "Somali Steppe", W: "Ethiopian Highlands" },
   "Rift Valley Lakes": { N: "Ethiopian Highlands", S: "Serengeti Plain", E: "Somali Steppe", W: "Bangui Highlands" },
   "Harar Plateau": { N: "Danakil Depression", S: "Rift Valley Lakes", W: "Ethiopian Highlands", E: "Somali Steppe" },
@@ -616,9 +681,9 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // West African Forests
   "Ibo Plateau": { N: "Sahelian Scrublands", S: "Niger Delta", E: "Jos Plateau", W: "Gold Coast Savanna" },
-  "Niger Delta": { N: "Ibo Plateau", S: "Cross River Delta", E: "Ogun River Basin", W: "Gold Coast Savanna" },
+  "Niger Delta": { N: "Ibo Plateau", S: "Cross River Delta", E: "Ogun River Basin", W: "Lagos Coastal Belt" },
   "Benin Lowlands": { N: "Dogon Plateau", S: "Oyo Hinterland", E: "Jos Plateau", W: "Gold Coast Savanna" },
-  "Oyo Hinterland": { N: "Benin Lowlands", S: "Ogun River Basin", E: "Jos Plateau" },
+  "Oyo Hinterland": { N: "Benin Lowlands", S: "Ogun River Basin", E: "Jos Plateau", W:"Benin Lowlands" },
   "Jos Plateau": { N: "Sahelian Scrublands", S: "Oyo Hinterland", W: "Benin Lowlands", E: "Ubangi Basin" },
   "Ogun River Basin": { N: "Oyo Hinterland", W: "Niger Delta", S: "Cross River Delta" },
 
@@ -645,7 +710,8 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Patna Lowlands": { N: "Darjeeling Hills", S: "Chota Nagpur Plateau", W: "Varanasi Basin", E: "Bengal Delta" },
   "Delhi Region": { N: "Kashmir Valley", S: "Malwa Plateau", E: "Varanasi Basin", W: "Harappa Basin" },
   "Awadh Plains": { N: "Darjeeling Hills", S: "Allahabad Confluence", E: "Patna Lowlands", W: "Delhi Region" },
-  "Bengal Delta": { N: "Brahmaputra Valley", S: "Eastern Ghats", W: "Patna Lowlands", E: "Irrawaddy Valley" },
+  "Bengal Delta": { N: "Brahmaputra Valley", S: "Sundarbans Delta", W: "Patna Lowlands", E: "Irrawaddy Valley" },
+  "Sundarbans Delta": { N: "Bengal Delta", S: "Bay of Bengal", E: "Chittagong Hills", W: "Eastern Ghats" },
 
   // Deccan Plateau
   "Hyderabad Highlands": { N: "Malwa Plateau", S: "Karnataka Plateau", E: "Eastern Ghats", W: "Western Ghats" },
@@ -767,11 +833,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Pantanal Wetlands": { N: "Acre Rainforest", S: "Gran Chaco", E: "São Paulo Plateau", W: "Altiplano" },
   "Maracaibo Basin": { N: "Caribbean Sea", S: "Orinoco Delta", E: "Orinoco Delta", W: "Quito Plateau" },
   
-  // === MISSING MENA REGIONS ===
-  "Khorasan": { N: "Samarkand Region", S: "Isfahan Basin", E: "Balkh Plains", W: "Dasht-e Kavir" },
-  "Transoxiana": { N: "Kyzylkum Desert", S: "Balkh Plains", E: "Ferghana Valley", W: "Samarkand Region" },
-  "Hejaz Mountains": { N: "Dead Sea Shore", S: "Red Sea Coast", E: "Najd Plateau", W: "Red Sea Coast" },
-  "Khuzestan Plain": { N: "Zagros Foothills", S: "Marsh Arab Wetlands", E: "Isfahan Basin", W: "Babylon Region" },
+ 
 
   // === MISSING SUB-SAHARAN AFRICAN REGIONS ===
   "Central Sahara": { N: "Tripolitania", S: "Timbuktu Basin", E: "Lake Chad", W: "Atlas Mountains" },
@@ -803,6 +865,12 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
   // === OCEANIC CROSSINGS === 
   
   // === SMALL SEAS AND REGIONAL WATERWAYS ===
+  // Adriatic to Mediterranean (through strait of Otranto)
+  "LIMINAL_ADRIATIC_TO_MEDITERRANEAN": {
+    destination: "Aegean Sea",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
+  },
+
   // English Channel and North Sea (short crossings - 1 ocean map)
   "LIMINAL_CHANNEL_CROSSING": { 
     destination: "Normandy", 
@@ -1086,6 +1154,86 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
       MapArchetype.SHOALS
     ]
   },
+
+  "LIMINAL_NORTH_ATLANTIC_CROSSING": {
+  // Shorter North Atlantic hop (e.g., Britain ↔ Iceland via Faroes)
+  destination: "Iceland",
+  sequence: [
+    MapArchetype.SHOALS,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.ISLAND,     // Faroes / Shetland stand-in
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.SHOALS
+  ]
+},
+
+"LIMINAL_DAVIS_STRAIT": {
+  // Greenland ↔ Labrador/Baffin route
+  destination: "Labrador Coast",
+  sequence: [
+    MapArchetype.SHOALS,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.SHOALS
+  ]
+},
+
+"LIMINAL_NORTHWEST_TO_MOUNTAINS": {
+  // Great Plains break to the Northern Rockies
+  destination: "Bitterroot Range",
+  sequence: [
+    MapArchetype.ALL_LAND,
+    MapArchetype.ALL_LAND
+  ]
+},
+
+"LIMINAL_MEDITERRANEAN_ISLANDS": {
+  // Levant/North Africa ↔ Aegean stepping through islands
+  destination: "Crete",
+  sequence: [
+    MapArchetype.SHOALS,
+    MapArchetype.ISLAND,     // Cyprus/Rhodes/Crete stand-in
+    MapArchetype.SHOALS
+  ]
+},
+
+"LIMINAL_PACIFIC_TO_ANTARCTICA": {
+  // South Pacific/Drake Passage toward Antarctic Peninsula
+  destination: "Antarctic Peninsula",
+  sequence: [
+    MapArchetype.SHOALS,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.SHOALS
+  ]
+},
+
+"LIMINAL_TRANS_SIBERIAN": {
+  // Overland corridor across northern Eurasia
+  destination: "Ural Mountains",
+  sequence: [
+    MapArchetype.ALL_LAND,
+    MapArchetype.ALL_LAND,
+    MapArchetype.ALL_LAND,
+    MapArchetype.ALL_LAND
+  ]
+},
+
+"LIMINAL_ARABIAN_SEA_TO_SOUTH_ASIA": {
+  // Arabian Sea lanes into the Indian subcontinent
+  destination: "Malabar Coast",
+  sequence: [
+    MapArchetype.SHOALS,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.OPEN_OCEAN,
+    MapArchetype.SHOALS
+  ]
+},
   
   // Mediterranean island hopping
   "LIMINAL_MEDITERRANEAN_ISLANDS": {
@@ -1136,6 +1284,32 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
       MapArchetype.ISLAND,  // Hispaniola
       MapArchetype.OPEN_OCEAN,
       MapArchetype.ISLAND,  // Puerto Rico
+      MapArchetype.SHOALS
+    ]
+  },
+
+  // North Atlantic crossing between Scotland and Norway
+  "LIMINAL_NORTH_ATLANTIC_CROSSING": {
+    destination: "Norwegian Fjords",
+    sequence: [
+      MapArchetype.SHOALS,
+      MapArchetype.OPEN_OCEAN,
+      MapArchetype.ISLAND,  // Faroe Islands
+      MapArchetype.OPEN_OCEAN,
+      MapArchetype.ISLAND,  // Shetlands
+      MapArchetype.OPEN_OCEAN,
+      MapArchetype.SHOALS
+    ]
+  },
+
+  // Davis Strait between Greenland and Labrador
+  "LIMINAL_DAVIS_STRAIT": {
+    destination: "Labrador Coast",
+    sequence: [
+      MapArchetype.SHOALS,
+      MapArchetype.OPEN_OCEAN,  // Ice floes
+      MapArchetype.ISLAND,  // Baffin Island
+      MapArchetype.OPEN_OCEAN,
       MapArchetype.SHOALS
     ]
   }

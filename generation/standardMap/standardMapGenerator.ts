@@ -715,17 +715,49 @@ export function proceduralGenerateMap(
     // console.log("[Gen] Phase 1.5: Lake edge cleanup - END");
   }
 
-  // console.log("[Gen] Phase 2: Altitude and biome assignment - START");
-  generateAltitudeAndInitialBiomes(tiles, altitudeNoiseGen, biomeVariationNoise, archetype, altitudeSetting, archetype === MapArchetype.DELTA ? oceanEdgeForDelta : determinedHarborSide, neighboringEdges, hasLakes);
-  // console.log("[Gen] Phase 2: Altitude and biome assignment - END");
+  // Check for special ethereal realms FIRST before normal terrain generation
+  const etherealRealms = ['Outer Space', 'Heaven', 'Undersea '];
+  const isEtherealRealm = etherealRealms.includes(localArea);
 
-  // Phase 2.3: Extend rivers from neighboring edges
-  if (neighboringEdges) {
+  if (!isEtherealRealm) {
+    // console.log("[Gen] Phase 2: Altitude and biome assignment - START");
+    generateAltitudeAndInitialBiomes(tiles, altitudeNoiseGen, biomeVariationNoise, archetype, altitudeSetting, archetype === MapArchetype.DELTA ? oceanEdgeForDelta : determinedHarborSide, neighboringEdges, hasLakes);
+    // console.log("[Gen] Phase 2: Altitude and biome assignment - END");
+
+    // Special handling for POLAR climate - override all biomes to only snow/tundra/mountains
+    if (climate === ClimateType.POLAR) {
+      console.log("[Gen] Applying POLAR climate - converting all biomes to snow/tundra");
+      for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+        for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+          const tile = tiles[y][x];
+          if (!tile.isLand) continue;
+
+          // Keep mountains as mountains
+          if (tile.biome === BiomeType.MOUNTAIN || tile.biome === BiomeType.HIGH_PEAK) {
+            continue; // Keep as is
+          }
+
+          // Convert everything else based on altitude and noise
+          const noiseVal = altitudeNoiseGen.noise(x * 0.1, y * 0.1);
+          if (tile.altitude > 0.5 || noiseVal > 0.2) {
+            tile.biome = BiomeType.SNOW;
+          } else {
+            tile.biome = BiomeType.TUNDRA;
+          }
+        }
+      }
+    }
+  }
+
+  // Phase 2.3: Extend rivers from neighboring edges (skip for ethereal realms)
+  if (!isEtherealRealm && neighboringEdges) {
     extendRiversFromEdges(tiles, neighboringEdges);
   }
 
   // console.log("[Gen] Phase 2.5: Volcanic Complex Generation - START");
-  generateVolcanicComplex(tiles, temperatureNoise, featurePlacementNoise, archetype, forceVolcanic);
+  if (!isEtherealRealm) {
+    generateVolcanicComplex(tiles, temperatureNoise, featurePlacementNoise, archetype, forceVolcanic);
+  }
   // console.log("[Gen] Phase 2.5: Volcanic Complex Generation - END");
 
 
@@ -748,57 +780,34 @@ export function proceduralGenerateMap(
         tiles[y][x].isLand = true; // Make walkable
       }
     }
-  } else if (localArea === 'Undersea Kingdom') {
-    console.log("[Gen] Special Zone: Undersea Kingdom - Creating underwater realm");
+  } else if (localArea === 'Undersea ') {
+    console.log("[Gen] Special Zone: Undersea - Creating underwater realm");
     // Undersea is all UNDERSEA tiles
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
       for (let x = 0; x < MAP_WIDTH_TILES; x++) {
         tiles[y][x].biome = BiomeType.UNDERSEA;
         tiles[y][x].isLand = true; // Make walkable
-      }
-    }
-  } else if (localArea === 'Storm Realm') {
-    console.log("[Gen] Special Zone: Storm Realm - Creating tempest dimension");
-    // Storm realm mixes AIR and UNDERSEA for a chaotic effect
-    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
-      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
-        // Create swirling patterns of air and water
-        const noise = featurePlacementNoise.octaveNoise(x * 0.1, y * 0.1, 2, 0.5, 2.0);
-        tiles[y][x].biome = noise > 0 ? BiomeType.AIR : BiomeType.UNDERSEA;
-        tiles[y][x].isLand = true; // Make walkable
-      }
-    }
-  } else if (localArea === 'Frozen Wastes') {
-    console.log("[Gen] Special Zone: Frozen Wastes - Creating ice crystal dimension");
-    // Frozen Wastes is AIR in cold climate (ice crystals)
-    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
-      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
-        tiles[y][x].biome = BiomeType.AIR;
-        tiles[y][x].isLand = true;
-      }
-    }
-  } else if (localArea === 'Typhoon Realm') {
-    console.log("[Gen] Special Zone: Typhoon Realm - Creating hurricane dimension");
-    // Typhoon is AIR in tropical climate (hurricane storms)
-    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
-      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
-        tiles[y][x].biome = BiomeType.AIR;
-        tiles[y][x].isLand = true;
+        tiles[y][x].altitude = 0.2; // Ocean floor
+        tiles[y][x].walkable = true;
       }
     }
   } else {
-    // Normal generation for regular zones
-    // console.log("[Gen] Phase 3: Climate-specific biome modifications - START");
-    applyClimateBiomeChanges(tiles, climate, humidityNoise, desertificationNoise, biomeVariationNoise, featurePlacementNoise, neighboringEdges);
-    // console.log("[Gen] Phase 3: Climate-specific biome modifications - END");
-    
-    // console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - START");
-    generateClimateEnhancedBiomes(tiles, climate, archetype, temperatureNoise, humidityNoise, featurePlacementNoise);
-    // console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - END");
+    // Normal generation for regular zones (skip for POLAR)
+    if (climate !== ClimateType.POLAR) {
+      // console.log("[Gen] Phase 3: Climate-specific biome modifications - START");
+      applyClimateBiomeChanges(tiles, climate, humidityNoise, desertificationNoise, biomeVariationNoise, featurePlacementNoise, neighboringEdges);
+      // console.log("[Gen] Phase 3: Climate-specific biome modifications - END");
+
+      // console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - START");
+      generateClimateEnhancedBiomes(tiles, climate, archetype, temperatureNoise, humidityNoise, featurePlacementNoise);
+      // console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - END");
+    }
 
 
     // console.log("[Gen] Phase 4: Dense forest generation - START");
-    generateDenseForests(tiles, climate, humidityNoise, biomeVariationNoise, featurePlacementNoise);
+    if (climate !== ClimateType.POLAR) {
+      generateDenseForests(tiles, climate, humidityNoise, biomeVariationNoise, featurePlacementNoise);
+    }
     // console.log("[Gen] Phase 4: Dense forest generation - END");
   }
 
@@ -1219,10 +1228,11 @@ export function proceduralGenerateMap(
   // console.log("[Gen] Phase 10: Urban area generation - START");
   console.log(`[Gen] Urban generation check: economicActivityLevel=${generationParams?.economicActivityLevel}, localArea="${localArea}", region="${region}"`);
   
-  // Skip urban areas in ethereal realms
-  const etherealRealms = ['Outer Space', 'Heaven', 'Undersea Kingdom', 'Storm Realm', 'Frozen Wastes', 'Typhoon Realm'];
-  if (etherealRealms.includes(localArea)) {
+  // Skip urban areas in ethereal realms and POLAR climates
+  if (isEtherealRealm) {
       console.log("[Gen] Skipping urban generation for special zone:", localArea);
+  } else if (climate === ClimateType.POLAR) {
+      console.log("[Gen] Skipping urban generation for POLAR climate");
   } else if (generationParams?.economicActivityLevel === 0) {
       console.log("[Gen] Skipping urban generation due to economicActivityLevel = 0");
   } else {
@@ -1236,8 +1246,8 @@ export function proceduralGenerateMap(
   mapDataObject.marketplaces = generateMarketplaceNames(mapDataObject);
 
   // console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - START");
-  // Skip structures in ethereal realms
-  if (!etherealRealms.includes(localArea)) {
+  // Skip structures in ethereal realms and POLAR climates
+  if (!isEtherealRealm && climate !== ClimateType.POLAR) {
     generateFarmland(mapDataObject, featurePlacementNoise, continent, timeSlice, societalProfile);
     const ruins = generateRuins(tiles, featurePlacementNoise, societalProfile, mapDataObject);
     if (ruins.length > 0) mapDataObject.terrainStructures!.push(...ruins);
@@ -1266,7 +1276,7 @@ export function proceduralGenerateMap(
 
   // console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - START");
   // Skip POIs in ethereal realms
-  if (!etherealRealms.includes(localArea)) {
+  if (!isEtherealRealm) {
     const palaces = generatePalaces(tiles, featurePlacementNoise, societalProfile, mapDataObject);
     const holyPlaces = generateHolyPlaces(mapDataObject, featurePlacementNoise, societalProfile);
     if (palaces.length > 0) mapDataObject.terrainStructures!.push(...palaces);
@@ -1275,8 +1285,8 @@ export function proceduralGenerateMap(
   // console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - END");
   
   // console.log("[Gen] Phase 11.5b: Terrain Structure Generation - START");
-  // Skip structures in ethereal realms
-  if (!etherealRealms.includes(localArea)) {
+  // Skip structures in ethereal realms and POLAR climates
+  if (!isEtherealRealm && climate !== ClimateType.POLAR) {
     // Only skip structure generation if economicActivityLevel is explicitly 0
     if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
       // Check if the map has cities by scanning for city biomes
@@ -1304,7 +1314,7 @@ export function proceduralGenerateMap(
   // DISABLED: Old paddock generation that created fence paths
   // Now using new PaddockSymbol component for better visual representation
   // Skip animal paddocks in ethereal realms
-  if (!etherealRealms.includes(localArea)) {
+  if (!isEtherealRealm) {
     // COMMENTED OUT: generateAnimalPaddocks(mapDataObject, featurePlacementNoise, societalProfile);
     // The new system still uses paddockType on tiles but renders fences differently
     generateAnimalPaddocks(mapDataObject, featurePlacementNoise, societalProfile);
@@ -1314,24 +1324,32 @@ export function proceduralGenerateMap(
   // console.log("[Gen] Phase 11.6: Animal Paddock Generation - END");
 
   // console.log("[Gen] Phase 11.7: Vegetation Generation - START");
-  // Skip vegetation in ethereal realms
-  if (!etherealRealms.includes(localArea)) {
+  // Skip vegetation in ethereal realms and POLAR climates
+  if (!isEtherealRealm && climate !== ClimateType.POLAR) {
     mapDataObject.vegetation = generateVegetation(mapDataObject, vegetationNoise);
   } else {
     mapDataObject.vegetation = [];
-    console.log("[Gen] Skipping vegetation for special zone:", localArea);
+    if (isEtherealRealm) {
+      console.log("[Gen] Skipping vegetation for special zone:", localArea);
+    } else {
+      console.log("[Gen] Skipping vegetation for POLAR climate");
+    }
   }
   // console.log("[Gen] Phase 11.7: Vegetation Generation - END");
   
   // console.log("[Gen] Phase 11.8: Animal & NPC Spawning - START");
-  // Only skip animal/NPC generation if economicActivityLevel is explicitly 0
-  if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
+  // Skip animal/NPC generation for POLAR climate, special zones, or economicActivityLevel = 0
+  if (climate === ClimateType.POLAR) {
+    mapDataObject.animals = [];
+    mapDataObject.npcs = [];
+    console.log("[Gen] POLAR climate: Skipping both animals and NPCs");
+  } else if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
     // Skip animals in Heaven but keep NPCs
     if (localArea === 'Heaven') {
       mapDataObject.animals = [];
       mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
       console.log("[Gen] Heaven: Skipping animals, keeping NPCs");
-    } else if (localArea === 'Outer Space' || localArea === 'Undersea Kingdom') {
+    } else if (localArea === 'Outer Space' || localArea === 'Undersea ') {
       // Skip both in other special zones
       mapDataObject.animals = [];
       mapDataObject.npcs = [];

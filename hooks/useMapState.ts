@@ -503,8 +503,39 @@ export const useMapState = (props: useMapStateProps) => {
             if (!foundWater) { // Disembark if no water found
                 finalMode = 'onFoot';
             }
+        } else if (finalMode === 'onFoot' && !targetTile.isLand) {
+            // Find nearby land tile if player enters water while on foot
+            let foundLand = false;
+            for (let r = 1; r <= 3; r++) {
+                for (let dy = -r; dy <= r; dy++) {
+                    for (let dx = -r; dx <= r; dx++) {
+                        if (Math.abs(dx) < r && Math.abs(dy) < r) continue; // Only check ring
+                        const searchX = transitionInfo.entryX + dx;
+                        const searchY = transitionInfo.entryY + dy;
+                        if (searchX >= 0 && searchX < MAP_WIDTH_TILES &&
+                            searchY >= 0 && searchY < MAP_HEIGHT_TILES) {
+                            const adjTile = targetMap.tiles[searchY][searchX];
+                            if (adjTile.isLand) {
+                                finalX = searchX;
+                                finalY = searchY;
+                                foundLand = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (foundLand) break;
+                }
+                if (foundLand) break;
+            }
+            // If still no land found after searching, use fallback position finder
+            if (!foundLand) {
+                const fallbackPos = setPlayerState.findInitialIconPosition(targetMap.tiles, finalMode) ||
+                    { x: MAP_WIDTH_TILES / 2, y: MAP_HEIGHT_TILES / 2, mode: finalMode };
+                finalX = fallbackPos.x;
+                finalY = fallbackPos.y;
+            }
         }
-        
+
         setPlayerState.setControlledIconX(finalX);
         setPlayerState.setControlledIconY(finalY);
         setPlayerState.setPlayerMode(finalMode);
@@ -1623,6 +1654,115 @@ export const useMapState = (props: useMapStateProps) => {
         return { success: true, vesselPosition: { x: waterPosition.x, y: waterPosition.y } };
     }, [mapData, deployedVessels, currentWorldCoords, mapDataCache]);
 
+    const deployBridgeToMap = useCallback((bridgeItem: Item, playerX: number, playerY: number): { success: boolean, bridgePosition?: { x: number, y: number } } => {
+        if (!mapData) return { success: false };
+
+        console.log(`[deployBridgeToMap] Looking for water crossing near (${playerX}, ${playerY})`);
+
+        // Find nearest single-tile water crossing within 3 tiles
+        const findValidBridgeLocation = (): { x: number, y: number } | null => {
+            const candidates: { x: number, y: number, distance: number }[] = [];
+
+            // Check all nearby tiles for valid bridge locations
+            for (let dx = -3; dx <= 3; dx++) {
+                for (let dy = -3; dy <= 3; dy++) {
+                    const x = playerX + dx;
+                    const y = playerY + dy;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > 3 || distance === 0) continue;
+                    if (x < 0 || x >= MAP_WIDTH_TILES || y < 0 || y >= MAP_HEIGHT_TILES) continue;
+
+                    const tile = mapData.tiles[y]?.[x];
+                    if (!tile || tile.isLand || tile.hasBridge) continue; // Must be water without existing bridge
+
+                    // Check if this water tile has land on opposite sides (valid crossing)
+                    const hasHorizontalCrossing =
+                        (x > 0 && mapData.tiles[y][x-1]?.isLand) &&
+                        (x < MAP_WIDTH_TILES-1 && mapData.tiles[y][x+1]?.isLand);
+
+                    const hasVerticalCrossing =
+                        (y > 0 && mapData.tiles[y-1][x]?.isLand) &&
+                        (y < MAP_HEIGHT_TILES-1 && mapData.tiles[y+1][x]?.isLand);
+
+                    if (hasHorizontalCrossing || hasVerticalCrossing) {
+                        candidates.push({ x, y, distance });
+                    }
+                }
+            }
+
+            if (candidates.length > 0) {
+                // Return closest valid location
+                candidates.sort((a, b) => a.distance - b.distance);
+                return { x: candidates[0].x, y: candidates[0].y };
+            }
+
+            return null;
+        };
+
+        const bridgeLocation = findValidBridgeLocation();
+        if (!bridgeLocation) {
+            console.warn('[deployBridgeToMap] No valid bridge location found within 3 tiles');
+            return { success: false };
+        }
+
+        // Create a bridge structure (similar to how bridges are added in BridgeGenerator)
+        const bridgeId = `player_bridge_${Date.now()}`;
+        const bridgeStructure: TerrainStructure = {
+            id: bridgeId,
+            name: bridgeItem.name || 'Bridge',
+            structureType: 'bridge',
+            location: [bridgeLocation.x, bridgeLocation.y],
+            economicRole: 'commerce' as const,
+            npcAnchor: 'trader',
+            state: 'active' as const,
+            customData: {
+                id: bridgeId,
+                waterTiles: [bridgeLocation],
+                type: bridgeItem.name?.toLowerCase().includes('rope') ? 'wooden' : 'wooden',
+                style: 'plank',
+                width: 1,
+                playerBuilt: true
+            }
+        };
+
+        // Mark the water tile as having a bridge
+        const tile = mapData.tiles[bridgeLocation.y][bridgeLocation.x];
+        if (tile) {
+            tile.hasBridge = true;
+            tile.bridgeId = bridgeId;
+        }
+
+        // Add bridge to terrain structures
+        setMapData(prevData => {
+            if (!prevData) return prevData;
+            return {
+                ...prevData,
+                terrainStructures: [...(prevData.terrainStructures || []), bridgeStructure]
+            };
+        });
+
+        // Update cache if needed
+        const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+        const cachedEntry = mapDataCache.get(cacheKey);
+        if (cachedEntry) {
+            setMapDataCache(prevCache => {
+                const newCache = new Map(prevCache);
+                newCache.set(cacheKey, {
+                    ...cachedEntry,
+                    mapData: {
+                        ...cachedEntry.mapData,
+                        terrainStructures: [...(cachedEntry.mapData.terrainStructures || []), bridgeStructure]
+                    }
+                });
+                return newCache;
+            });
+        }
+
+        console.log(`[deployBridgeToMap] Deployed ${bridgeItem.name} at (${bridgeLocation.x}, ${bridgeLocation.y})`);
+        return { success: true, bridgePosition: bridgeLocation };
+    }, [mapData, currentWorldCoords, mapDataCache]);
+
     return {
         mapData, setMapData,
         animals, setAnimals,
@@ -1665,6 +1805,7 @@ export const useMapState = (props: useMapStateProps) => {
         addDugTile,
         updateStructureData,
         deployVesselToMap,
+        deployBridgeToMap,
         pendingScenarioData,
         setPendingScenarioData,
         

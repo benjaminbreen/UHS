@@ -11,6 +11,8 @@ import { llmEventService } from './llmEventService';
 import { GAME_MODES, suggestGameMode } from '../constants/gameData/gameModes';
 import { GameMode, EventArchetype, SpecialNPC } from '../types/eventTypes';
 import { DISEASES } from '../constants/gameData/diseases';
+import { mapQuestAnalyzer, QuestLocation } from './mapQuestAnalyzer';
+import { MapData } from '../types';
 
 export interface CharacterSpecification {
   name?: string;
@@ -71,7 +73,14 @@ export interface WorldWeaverQuest {
   description: string;
   historicalContext: string;
   stages: QuestStage[];
-  specialNPCs: QuestNPC[];
+  specialNPC: {
+    name: string;
+    profession: string;
+    personality: string;
+    location: { x: number; y: number };
+  };
+  // Legacy support for old format
+  specialNPCs?: QuestNPC[];
   branches?: {
     [stageId: string]: {
       choice: string;
@@ -164,6 +173,10 @@ Examples of how to interpret prompts for settings:
 - "ancient rome" → 100 "Central Italy"
 - "turkey" or "anatolia" → "Cappadocian Highlands" (for inland Turkey)
 - "mesopotamia" or "babylon" → "Mesopotamia"
+- "space", "astronaut", "cosmonaut", "yuri gagarin", "space station", "orbit" → 1961-1990 "Outer Space"
+- "submarine", "u-boat", "underwater", "deep sea", "ocean floor", "atlantis" → 1915 (WWI) or 1942 (WWII) "Undersea " (with trailing space)
+- "heaven", "paradise", "afterlife", "angel", "divine realm", "pearly gates" → 1500 "Heaven"
+- "dream", "nightmare", "ethereal", "surreal" → any year "Heaven" or "Undersea " (choose based on tone)
 
 CRITICAL REQUIREMENT: You MUST select a map area name that appears EXACTLY in the list below. Do not create variations, do not use similar names, do not use city names that aren't listed. ONLY use the exact names from this list:
 
@@ -442,13 +455,15 @@ class WorldWeaverService {
       // Set the game mode in the event service
       eventService.setGameMode(gameMode);
       
-      // Generate an elaborate quest based on the scenario
+      // Generate a map-aware quest based on the scenario
+      // Note: mapData and playerLocation should be provided by the caller
       const quest = await this.generateQuest(
         userPrompt,
         baseResult.year!,
         baseResult.mapArea!,
         baseResult.characterSpec,
         gameMode
+        // mapData and playerLocation will be added by the calling component
       );
       
       return {
@@ -564,116 +579,112 @@ class WorldWeaverService {
   }
 
   /**
-   * Generate an elaborate, historically-grounded quest
+   * Generate a map-aware, historically-grounded quest
    */
   async generateQuest(
     userPrompt: string,
     year: number,
     location: string,
     characterSpec?: CharacterSpecification,
-    gameMode?: GameMode
+    gameMode?: GameMode,
+    mapData?: MapData,
+    playerLocation?: { x: number; y: number }
   ): Promise<WorldWeaverQuest | undefined> {
     console.log('[WorldWeaverService] Generating quest for:', { year, location, gameMode: gameMode?.name });
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
-      const prompt = `
-You are creating a rich, multi-stage quest for an educational history simulation game.
+
+      // PHASE 1: Analyze the map if data is provided
+      let locationPrompt = '';
+      let availableLocations: QuestLocation[] = [];
+
+      if (mapData && playerLocation) {
+        console.log('[WorldWeaverService] Analyzing map for quest locations...');
+        availableLocations = mapQuestAnalyzer.extractQuestLocations(mapData, playerLocation);
+
+        if (availableLocations.length > 0) {
+          locationPrompt = `\n\nACTUAL MAP LOCATIONS AVAILABLE:
+${mapQuestAnalyzer.formatLocationsForPrompt(availableLocations)}
+
+IMPORTANT: Use ONLY the locations listed above with their EXACT coordinates.`;
+          console.log(`[WorldWeaverService] Found ${availableLocations.length} locations for quest generation`);
+        } else {
+          console.warn('[WorldWeaverService] No suitable quest locations found on map');
+        }
+      } else {
+        console.log('[WorldWeaverService] No map data provided, generating abstract quest');
+      }
+
+      const prompt = `Create a simple, historically accurate quest for ${location} in ${year}.
 
 CONTEXT:
 - Year: ${year}
 - Location: ${location}
 - Player Character: ${characterSpec ? `${characterSpec.profession || 'commoner'}, ${characterSpec.socialClass || 'commoner'} class` : 'ordinary person'}
 - Game Mode: ${gameMode?.name || 'Survival'}
-- Original Request: "${userPrompt}"
-
-TASK: Create a historically accurate, branching quest with multiple stages and special NPCs.
+- Original Request: "${userPrompt}"${locationPrompt}
 
 REQUIREMENTS:
-1. The quest MUST be specific to ${location} in ${year}
-2. Include real historical events, tensions, or situations from that time/place
-3. Create 4-6 quest stages with clear objectives
-4. Design 2-3 special NPCs who are integral to the quest
-5. Include branching paths where player choices matter
-6. NPCs should have period-appropriate names and occupations
-7. Dialogue should feel authentic to the era (but in modern English)
+1. 1-3 stages maximum (not 4-6!)
+2. 1 special NPC only (not 2-3!)
+3. Use ONLY these objective types: talk_to_npc, visit_location, collect_item, deliver_item
+4. Each stage must be completable with existing game mechanics
+5. No branching paths or complex narratives
+6. If map locations are provided, use their exact coordinates
+7. Quest must be specific to ${location} in ${year}
 
-QUEST STRUCTURE:
-- Title: Compelling and specific (not generic)
-- Description: 2-3 sentences setting up the situation
-- Historical Context: 1-2 sentences of real history
-- Stages: Each with clear objectives and progression
-- NPCs: Characters with personalities and roles in the story
-
-IMPORTANT STAGE TYPES:
-- "talk_to_npc": Player must find and speak with specific NPC
-- "obtain_item": Player must acquire specific item(s)
-- "reach_location": Player must travel to coordinates
-- "survive_days": Player must survive for X days
-- "defeat_enemy": Player must overcome antagonist
-
-Return JSON only:
+QUEST STRUCTURE (simplified):
 {
-  "title": "Quest title",
-  "description": "2-3 sentence setup",
-  "historicalContext": "Real historical context",
+  "title": "Brief, specific title",
+  "description": "1-2 sentences max",
+  "historicalContext": "1 sentence of real history",
   "stages": [
     {
       "id": "stage1",
-      "description": "What's happening",
-      "objective": "What player must do",
-      "locationHint": "Where to go (optional)",
-      "completionTrigger": "talk_to_npc|obtain_item|reach_location|survive_days|defeat_enemy",
-      "targetId": "npc_id or item_id (if applicable)",
-      "dialogue": ["Line 1", "Line 2"],
-      "rewards": [{"type": "item|reputation", "value": "item_name or amount"}]
+      "objective": "Talk to Master Weaver about the missing apprentice",
+      "completionTrigger": "talk_to_npc",
+      "targetLocation": {"x": 45, "y": 23}
     }
   ],
-  "specialNPCs": [
-    {
-      "id": "npc1",
-      "name": "Full Name",
-      "role": "Their role in the quest",
-      "personality": "Brief personality",
-      "profession": "Their job",
-      "stages": {
-        "stage1": {
-          "dialogue": ["What they say in stage 1"],
-          "triggersNextStage": true/false,
-          "givesItem": "item_id (optional)"
-        }
-      }
-    }
-  ],
-  "branches": {
-    "stage2": [
-      {"choice": "Help the merchant", "leadsTo": "stage3a"},
-      {"choice": "Report to authorities", "leadsTo": "stage3b"}
-    ]
+  "specialNPC": {
+    "name": "Hendrik van Groenendaal",
+    "profession": "Master Weaver",
+    "personality": "Worried but trying to stay calm",
+    "location": {"x": 45, "y": 23}
   }
-}`;
+}
+
+Return JSON only. Keep it simple and actionable.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 1500
+          temperature: 0.6,  // Reduced for more consistent coordinate usage
+          maxOutputTokens: 600  // Much reduced from 1500
         }
       });
 
       let result = response.text;
       console.log('[WorldWeaverService] Quest generation response:', result);
-      
+
       // Track API call
       eventService.trackAPICall(prompt, result);
-      
+
       // Clean and parse response
       result = result.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
       const quest = JSON.parse(result) as WorldWeaverQuest;
-      
-      console.log('[WorldWeaverService] Generated quest with', quest.stages.length, 'stages and', quest.specialNPCs.length, 'NPCs');
+
+      // PHASE 2: Validate and fix coordinates if map data was provided
+      if (availableLocations.length > 0) {
+        const validatedQuest = this.validateAndFixQuestCoordinates(quest, availableLocations);
+        return validatedQuest;
+      }
+
+      console.log(`[WorldWeaverService] Generated quest "${quest.title}" with ${quest.stages.length} stages`);
+      console.log(`[WorldWeaverService] NPC: ${quest.specialNPC?.name} at coordinates:`, quest.specialNPC?.location);
+
       return quest;
       
     } catch (error) {
@@ -692,16 +703,63 @@ Return JSON only:
             dialogue: ['These are difficult times...', 'You should be careful around here.']
           },
           {
-            id: 'stage2', 
+            id: 'stage2',
             description: 'Secure basic necessities',
             objective: 'Obtain food and shelter',
             completionTrigger: 'obtain_item',
             targetId: 'food'
           }
         ],
-        specialNPCs: []
+        specialNPC: {
+          name: 'Local Resident',
+          profession: 'Survivor',
+          personality: 'Cautious but helpful',
+          location: playerLocation || { x: 50, y: 50 }
+        },
+        specialNPCs: [] // Legacy support
       };
     }
+  }
+
+  /**
+   * Validate and fix quest coordinates to ensure they match available map locations
+   */
+  private validateAndFixQuestCoordinates(quest: WorldWeaverQuest, availableLocations: QuestLocation[]): WorldWeaverQuest {
+    const validCoords = availableLocations.map(loc => `${loc.coordinates.x},${loc.coordinates.y}`);
+
+    console.log('[WorldWeaverService] Validating quest coordinates...');
+    console.log('[WorldWeaverService] Available coordinates:', validCoords);
+
+    // Validate stage coordinates
+    quest.stages.forEach((stage, index) => {
+      if (stage.targetLocation) {
+        const stageCoords = `${stage.targetLocation.x},${stage.targetLocation.y}`;
+        if (!validCoords.includes(stageCoords)) {
+          console.warn(`[WorldWeaverService] Invalid coordinates in stage ${index + 1}: ${stageCoords}`);
+          // Fallback to nearest valid location
+          const fallback = availableLocations[index % availableLocations.length];
+          stage.targetLocation = fallback.coordinates;
+          console.log(`[WorldWeaverService] Fixed stage ${index + 1} coordinates to:`, fallback.coordinates);
+        } else {
+          console.log(`[WorldWeaverService] Stage ${index + 1} coordinates validated:`, stage.targetLocation);
+        }
+      }
+    });
+
+    // Validate NPC coordinates
+    if (quest.specialNPC?.location) {
+      const npcCoords = `${quest.specialNPC.location.x},${quest.specialNPC.location.y}`;
+      if (!validCoords.includes(npcCoords)) {
+        console.warn(`[WorldWeaverService] Invalid NPC coordinates: ${npcCoords}`);
+        // Fallback to first valid location
+        quest.specialNPC.location = availableLocations[0].coordinates;
+        console.log(`[WorldWeaverService] Fixed NPC coordinates to:`, quest.specialNPC.location);
+      } else {
+        console.log(`[WorldWeaverService] NPC coordinates validated:`, quest.specialNPC.location);
+      }
+    }
+
+    return quest;
   }
 
   /**
@@ -807,6 +865,64 @@ Return JSON only:
       // Return original spec if enhancement fails
       return characterSpec;
     }
+  }
+
+  /**
+   * Generate a quest chain (integrates with WorldWeaverQuestChain)
+   * This method creates a quest that's designed to be part of a chain
+   */
+  async generateQuestForChain(
+    userPrompt: string,
+    year: number,
+    location: string,
+    mapData: MapData,
+    playerLocation: { x: number; y: number },
+    previousQuestSummaries?: Array<{
+      questId: string;
+      title: string;
+      outcome: string;
+    }>
+  ): Promise<WorldWeaverQuest | undefined> {
+    console.log('[WorldWeaverService] Generating quest for chain with context:', {
+      year,
+      location,
+      previousQuests: previousQuestSummaries?.length || 0
+    });
+
+    try {
+      // Build enhanced prompt with chain context
+      let enhancedPrompt = userPrompt;
+
+      if (previousQuestSummaries && previousQuestSummaries.length > 0) {
+        const questHistory = previousQuestSummaries
+          .map(q => `- "${q.title}" (${q.outcome})`)
+          .join('\n');
+
+        enhancedPrompt = `Continuing from previous events:\n${questHistory}\n\nNow: ${userPrompt}`;
+      }
+
+      // Generate with chain-aware parameters
+      return await this.generateQuest(
+        enhancedPrompt,
+        year,
+        location,
+        undefined, // characterSpec
+        undefined, // gameMode
+        mapData,
+        playerLocation
+      );
+
+    } catch (error) {
+      console.error('[WorldWeaverService] Failed to generate quest for chain:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Check if quest generation is ready (has all required dependencies)
+   */
+  isReadyForGeneration(): boolean {
+    return !!process.env.API_KEY;
   }
 }
 
