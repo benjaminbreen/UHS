@@ -61,9 +61,9 @@ const RomanVilla3D: React.FC<RomanVilla3DProps> = React.memo(({
                 </pattern>
             </defs>
             
-            {/* Ground shadow */}
-            <ellipse cx={cx + 5} cy={y + height + 5} rx={villaWidth * 0.8} ry={villaWidth * 0.35} 
-                fill="rgba(0,0,0,0.3)" />
+            {/* Ground shadow - subtle positioning */}
+            <ellipse cx={cx + 1} cy={y + height + 2} rx={villaWidth * 0.8} ry={villaWidth * 0.35}
+                fill="rgba(0,0,0,0.25)" filter="blur(1px)" />
             
             {/* Outer walls forming courtyard */}
             {/* North wing */}

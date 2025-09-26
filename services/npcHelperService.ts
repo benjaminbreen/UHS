@@ -167,6 +167,30 @@ export function checkPlayerArrival(
 
     if (distance <= 2) {
         // Player has arrived!
+
+        // Emit toast event for UI to handle
+        eventBus.emit('showToast', {
+            message: `🎉 Welcome to ${helperData.destinationName || 'the destination'}!`,
+            type: 'success'
+        });
+
+        // Get NPC for additional context
+        eventBus.emit('npcInteraction', {
+            npc: { id: npcId },
+            type: 'arrival',
+            location: helperData.destination
+        });
+
+        // If NPC has a home here, try to trigger POI modal
+        if (helperData.destinationName?.includes('home')) {
+            // Emit event to open a dwelling/interior modal
+            eventBus.emit('openPOIModal', {
+                type: 'dwelling',
+                ownerId: npcId,
+                location: helperData.destination
+            });
+        }
+
         if (helperData.completionCallback) {
             helperData.completionCallback();
         }

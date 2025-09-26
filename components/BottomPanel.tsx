@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tile, PlayerCharacter, MapData, Season, Item, BiomeType, ActionableTile, TerrainStructure, TimeOfDay } from '../types';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { weatherService } from '../services/weatherService';
@@ -46,10 +46,10 @@ interface BottomPanelProps {
     gameTime?: { hours: number; minutes: number };
 }
 
-const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string, variant?: 'blue' | 'red' }> = ({ onClick, children, icon, variant = 'blue' }) => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string, variant?: 'blue' | 'red' }> = React.memo(({ onClick, children, icon, variant = 'blue' }) => {
+    const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
     const isRed = variant === 'red';
-    const baseClass = isRed 
+    const baseClass = isRed
         ? `group relative ${isMobile ? 'px-8 py-4' : 'px-6 py-3'} bg-gradient-to-r from-red-600 to-red-700 active:from-red-500 active:to-red-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-300 ease-out border border-red-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`
         : `group relative ${isMobile ? 'px-8 py-4' : 'px-6 py-3'} bg-gradient-to-r from-blue-600 to-blue-700 active:from-blue-500 active:to-blue-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`;
     const boxShadowColor = isRed ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
@@ -84,12 +84,12 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
             <div className={`absolute inset-0 rounded-xl ${glowBg} opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm`} />
         </button>
     );
-};
+});
 
-const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = ({ title, subtitle, icon }) => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = React.memo(({ title, subtitle, icon }) => {
+    const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
     return (
-        <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} bg-slate-800/40 rounded-lg ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} border border-slate-700/50 backdrop-blur-sm`)}>
+        <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} bg-slate-800/40 rounded-lg ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'} border border-slate-700/50 backdrop-blur-sm`)}>
             {icon && (
                 <div className={`${isMobile ? 'text-xl' : 'text-2xl'} drop-shadow-lg`}>{icon}</div>
             )}
@@ -99,7 +99,7 @@ const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string
             </div>
         </div>
     );
-};
+});
 
 // Enhanced LocationDisplay with POV preview - can be reverted by swapping back to LocationDisplay
 const LocationDisplayWithPreview: React.FC<{
@@ -110,6 +110,30 @@ const LocationDisplayWithPreview: React.FC<{
     showPreview?: boolean;
 }> = ({ title, subtitle, icon, backgroundUrl, showPreview = false }) => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const [isImageLoaded, setIsImageLoaded] = useState(false);
+    const [isImageLoading, setIsImageLoading] = useState(false);
+
+    // Reset loading state when background URL changes
+    useEffect(() => {
+        setIsImageLoaded(false);
+        setIsImageLoading(false);
+    }, [backgroundUrl]);
+
+    // Lazy load background image
+    useEffect(() => {
+        if (backgroundUrl && showPreview && !isImageLoaded) {
+            setIsImageLoading(true);
+            const img = new Image();
+            img.onload = () => {
+                setIsImageLoaded(true);
+                setIsImageLoading(false);
+            };
+            img.onerror = () => {
+                setIsImageLoading(false);
+            };
+            img.src = backgroundUrl;
+        }
+    }, [backgroundUrl, showPreview, isImageLoaded]);
 
     // If preview is active (POV is shown), use normal display
     if (!showPreview) {
@@ -117,45 +141,52 @@ const LocationDisplayWithPreview: React.FC<{
     }
 
     return (
-        <div className={getSafariOptimizedClassName(`relative group bg-slate-800/30 rounded-lg ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} border border-slate-700/50 overflow-hidden backdrop-blur-sm transition-all duration-300 hover:bg-slate-800/20`)}>
+        <div className={getSafariOptimizedClassName(`relative group bg-slate-800/30 rounded-lg ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'} border border-slate-700/50 overflow-hidden backdrop-blur-sm transition-all duration-300 hover:bg-slate-800/20 hover:border-slate-600/60`)}>
             {/* Background preview layer - more visible, especially on hover */}
-            {backgroundUrl && (
+            {backgroundUrl && isImageLoaded && (
                 <div
-                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-300 group-hover:opacity-60"
+                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 group-hover:opacity-90"
                     style={{
                         backgroundImage: `url(${backgroundUrl})`,
-                        opacity: 0.45,
-                        filter: 'brightness(1.3) saturate(1.4)'
+                        opacity: 0.4,
+                        filter: 'brightness(1.2) saturate(1.2) contrast(1.1)'
                     }}
                 />
             )}
 
-            {/* Gradient overlay with transparency in top-middle */}
+            {/* Loading state indicator */}
+            {isImageLoading && (
+                <div className="absolute inset-0 bg-slate-700/50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-400 border-t-transparent"></div>
+                </div>
+            )}
+
+            {/* Enhanced gradient overlay with better visibility */}
             <div
-                className="absolute inset-0 transition-opacity duration-300 group-hover:opacity-80"
+                className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-75"
                 style={{
                     background: `linear-gradient(to right,
-                        rgba(15, 23, 42, 0.85) 0%,
-                        rgba(15, 23, 42, 0.70) 25%,
-                        rgba(15, 23, 42, 0.35) 50%,
-                        rgba(15, 23, 42, 0.70) 75%,
-                        rgba(15, 23, 42, 0.85) 100%)`
+                        rgba(15, 23, 42, 0.90) 0%,
+                        rgba(15, 23, 42, 0.75) 20%,
+                        rgba(15, 23, 42, 0.40) 50%,
+                        rgba(15, 23, 42, 0.75) 80%,
+                        rgba(15, 23, 42, 0.90) 100%)`
                 }}
             />
 
-            {/* Content layer with proper z-index */}
-            <div className="relative z-10 flex items-center">
+            {/* Content layer with enhanced styling */}
+            <div className="relative z-10 flex items-center justify-center text-center">
                 {icon && (
-                    <div className={`${isMobile ? 'text-xl' : 'text-2xl'} drop-shadow-xl mr-3`}>{icon}</div>
+                    <div className={`${isMobile ? 'text-xl mr-2' : 'text-2xl mr-3'} drop-shadow-xl`}>{icon}</div>
                 )}
                 <div>
-                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-300 font-medium uppercase tracking-wide`}>
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-300 font-medium uppercase tracking-wider`}>
                         {title}
                     </p>
                     <p
-                        className={`${isMobile ? 'text-sm' : 'text-base'} text-slate-100 font-semibold capitalize`}
+                        className={`${isMobile ? 'text-sm' : 'text-base'} text-slate-100 font-bold capitalize mt-0.5`}
                         style={{
-                            textShadow: '0 0 10px rgba(147, 197, 253, 0.5), 0 0 20px rgba(147, 197, 253, 0.3)'
+                            textShadow: '0 0 12px rgba(147, 197, 253, 0.6), 0 0 25px rgba(147, 197, 253, 0.4), 1px 1px 3px rgba(0,0,0,0.8)'
                         }}
                     >
                         {subtitle}
@@ -166,12 +197,57 @@ const LocationDisplayWithPreview: React.FC<{
     );
 };
 
-const ContextualAlert: React.FC<{ message: string }> = ({ message }) => (
-    <div className={getSafariOptimizedClassName("flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-900/40 to-orange-900/40 rounded-lg px-4 py-3 border border-amber-600/30 backdrop-blur-sm animate-pulse")}>
-        <div className="text-2xl text-amber-400 animate-bounce">⚠️</div>
-        <p className="text-amber-200 font-semibold text-center">{message}</p>
-    </div>
-);
+const ContextualAlert: React.FC<{ message: string }> = ({ message }) => {
+    // Determine notification type and styling
+    const getNotificationStyle = (msg: string) => {
+        if (msg.includes('is nearby')) {
+            // Check if it's an animal (starts with "A ") or NPC (contains name)
+            const isAnimal = msg.startsWith('A ');
+
+            if (isAnimal) {
+                // Animal nearby - green theme
+                return {
+                    background: "bg-gradient-to-r from-green-900/30 to-emerald-900/30",
+                    border: "border-green-600/40",
+                    textColor: "text-green-200",
+                    animation: ""
+                };
+            } else {
+                // NPC nearby - blue theme with subtle bounce animation
+                return {
+                    background: "bg-gradient-to-r from-blue-900/30 to-cyan-900/30",
+                    border: "border-blue-600/40",
+                    textColor: "text-blue-200",
+                    animation: "animate-bounce"
+                };
+            }
+        } else if (msg.includes('border')) {
+            // Border warning - use brown/amber theme but more subtle
+            return {
+                background: "bg-gradient-to-r from-amber-900/25 to-orange-900/25",
+                border: "border-amber-600/25",
+                textColor: "text-amber-300",
+                animation: ""
+            };
+        } else {
+            // Default fallback
+            return {
+                background: "bg-gradient-to-r from-slate-900/30 to-slate-800/30",
+                border: "border-slate-600/30",
+                textColor: "text-slate-300",
+                animation: ""
+            };
+        }
+    };
+
+    const style = getNotificationStyle(message);
+
+    return (
+        <div className={getSafariOptimizedClassName(`flex items-center justify-center ${style.background} rounded-lg px-4 py-2 border ${style.border} backdrop-blur-sm transition-all duration-300 ${style.animation}`)}>
+            <p className={`${style.textColor} font-medium text-center text-sm`}>{message}</p>
+        </div>
+    );
+};
 
 const BottomPanel: React.FC<BottomPanelProps> = ({
     actionableTile,
@@ -217,9 +293,106 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     const [previewBackgroundUrl, setPreviewBackgroundUrl] = useState<string | null>(null);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
+    // Mobile detection for main component
+    const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
+
     // Create stable keys for dependencies
     const weatherKey = weather ? `${weather.precipitation}-${weather.special}` : 'none';
     const timeKey = gameTime ? `${gameTime.hours}-${Math.floor(gameTime.minutes / 15)}` : 'unknown';
+
+    // Handle Enter key to trigger the current action button
+    useEffect(() => {
+        const handleKeyPress = (event: KeyboardEvent) => {
+            // Only respond to Enter key when no input is focused
+            if (event.key === 'Enter') {
+                const activeElement = document.activeElement;
+                const isInputFocused = activeElement?.tagName === 'INPUT' ||
+                                       activeElement?.tagName === 'TEXTAREA';
+
+                if (!isInputFocused) {
+                    event.preventDefault();
+
+                    // Determine current action based on state
+                    if (inMiningRoguelike && onExitMine) {
+                        onExitMine();
+                    } else if (isSpecialMap && onExitSpecialMap) {
+                        onExitSpecialMap();
+                    } else if (actionableTile) {
+                        const { type, tile, structure } = actionableTile;
+
+                        switch (type) {
+                            case 'farm':
+                                onEnterFarm(tile);
+                                break;
+                            case 'city':
+                                onEnterCity(tile);
+                                break;
+                            case 'marketplace':
+                                if (isMarketplaceModalOpen && onExitMarketplace) {
+                                    onExitMarketplace();
+                                } else {
+                                    gameSounds.playButtonClickSound();
+                                    onEnterMarketplace(tile);
+                                }
+                                break;
+                            case 'ruin':
+                                if (inRuinRoguelike || isRuinModalOpen) {
+                                    if (onExitRuin) onExitRuin();
+                                } else {
+                                    gameSounds.playMysteriousRuinsSound();
+                                    onEnterRuin(tile);
+                                }
+                                break;
+                            case 'building':
+                                onEnterBuilding(tile);
+                                break;
+                            case 'fishing_hut':
+                                gameSounds.playButtonClickSound();
+                                onEnterFishingHut(tile);
+                                break;
+                        }
+                    } else {
+                        // Handle mobile special tiles
+                        const currentTile = playerCharacter && mapData && playerX !== null && playerY !== null
+                            && playerY >= 0 && playerY < mapData.tiles.length
+                            && playerX >= 0 && playerX < (mapData.tiles[playerY]?.length || 0)
+                            ? mapData.tiles[playerY][playerX]
+                            : null;
+
+                        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+                        const needsMobileEntryButton = isMobile && currentTile && [
+                            'GOVERNMENT_DISTRICT',
+                            'HOLY_SITE',
+                            'PALACE',
+                            'RUINS'
+                        ].includes(currentTile.biome);
+
+                        if (needsMobileEntryButton) {
+                            gameSounds.playButtonClickSound();
+                            if (currentTile.biome === 'RUINS') {
+                                onEnterRuin(currentTile);
+                            } else if (currentTile.biome === 'GOVERNMENT_DISTRICT' && onEnterGovernmentDistrict) {
+                                onEnterGovernmentDistrict(currentTile);
+                            } else if (currentTile.biome === 'HOLY_SITE' && onEnterHolySite) {
+                                onEnterHolySite(currentTile);
+                            } else if (currentTile.biome === 'PALACE' && onEnterPalace) {
+                                onEnterPalace(currentTile);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [
+        inMiningRoguelike, isSpecialMap, actionableTile, isMarketplaceModalOpen,
+        inRuinRoguelike, isRuinModalOpen, playerCharacter, mapData, playerX, playerY,
+        onExitMine, onExitSpecialMap, onEnterFarm, onEnterCity, onEnterMarketplace,
+        onExitMarketplace, onEnterRuin, onExitRuin, onEnterBuilding, onEnterFishingHut,
+        onEnterGovernmentDistrict, onEnterHolySite, onEnterPalace
+    ]);
 
     // Load background for preview when POV is NOT active
     useEffect(() => {
@@ -310,7 +483,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         }
     }, [mapData, season, timeOfDay, dayOfYear, useFahrenheit]); // Update hourly, not on movement
     
-    const renderActionableContent = () => {
+    const renderActionableContent = useMemo(() => {
         // Special map exit takes priority over everything else
         // Check for mining roguelike first
         if (inMiningRoguelike) {
@@ -502,36 +675,35 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             //     break;
         }
 
-        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-        
+
         return (
             <div className={`w-full flex flex-col ${isMobile ? 'gap-3 p-3' : 'sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-2 sm:p-4 lg:p-5'} animate-in slide-in-from-bottom duration-500`}>
                 <div className={`flex ${isMobile ? 'justify-center' : 'justify-center sm:justify-start'} w-full sm:w-auto`}>
                     {contextualInfo}
                 </div>
-                
+
                 <div className="flex items-center justify-center">
-                    <ActionButton 
-                        onClick={onClickAction} 
+                    <ActionButton
+                        onClick={onClickAction}
                         icon={buttonIcon}
                         variant={((inRuinRoguelike || isRuinModalOpen) && type === 'ruin') || (isMarketplaceModalOpen && type === 'marketplace') ? 'red' : 'blue'}
                     >
-                        {buttonText}
+                        {buttonText} {/* Press Enter key to activate */}
                     </ActionButton>
                 </div>
-                
-                {!isMobile && (
-                    <div className="hidden sm:flex justify-end">
-                        <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
-                            {helperText}
-                        </div>
+
+                {/* Show helper text on mobile too, but with adapted styling */}
+                <div className={isMobile ? "flex justify-center" : "hidden sm:flex justify-end"}>
+                    <div className={`text-center ${isMobile ? '' : 'text-right'} text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30`}>
+                        {helperText}
+                        {isMobile && <div className="text-[10px] mt-1 opacity-70">Tap button or press Enter</div>}
                     </div>
-                )}
+                </div>
             </div>
         );
-    };
+    }, [inMiningRoguelike, isSpecialMap, actionableTile, inRuinRoguelike, isRuinModalOpen, isMarketplaceModalOpen, onExitMine, onExitSpecialMap, onEnterFarm, onEnterCity, onEnterMarketplace, onExitMarketplace, onEnterRuin, onExitRuin, onEnterBuilding, onEnterFishingHut]);
 
-    const renderDefaultContent = () => {
+    const renderDefaultContent = useMemo(() => {
         const currentTile = playerCharacter && mapData && playerX !== null && playerY !== null
             && playerY >= 0 && playerY < mapData.tiles.length
             && playerX >= 0 && playerX < (mapData.tiles[playerY]?.length || 0)
@@ -539,7 +711,6 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             : null;
 
         // Mobile-specific: Check for special tiles that need entry buttons
-        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
         const needsMobileEntryButton = isMobile && currentTile && [
             BiomeType.GOVERNMENT_DISTRICT,
             BiomeType.HOLY_SITE,
@@ -568,18 +739,13 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             return 'rgb(148, 163, 184)';
         };
         
-        const getBiomeIcon = (biome: string) => {
-            if (biome.includes('ocean')) return '🌊';
-            if (biome.includes('forest')) return '🌲';
-            if (biome.includes('mountain')) return '⛰️';
-            if (biome.includes('desert')) return '🏜️';
-            if (biome.includes('grass')) return '🌾';
-            if (biome.includes('city') || biome.includes('hamlet')) return '🏘️';
-            if (biome.includes('river')) return '🏞️';
-            if (biome.includes('beach')) return '🏖️';
-            if (biome.includes('farmland')) return '🚜';
-            return '📍';
-        };
+       const getBiomeIcon = (biome: string) => {
+
+
+    
+
+    return '';
+};
 
         // Mobile special tile handling - show entry button
         if (needsMobileEntryButton) {
@@ -610,44 +776,46 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     break;
             }
 
+            // Create handler for mobile special tiles
+            const handleMobileSpecialTileEntry = () => {
+                gameSounds.playButtonClickSound();
+                if (currentTile.biome === BiomeType.RUINS) {
+                    onEnterRuin(currentTile);
+                } else if (currentTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+                    if (onEnterGovernmentDistrict) {
+                        onEnterGovernmentDistrict(currentTile);
+                    } else {
+                        console.log('Government District entry handler not provided');
+                    }
+                } else if (currentTile.biome === BiomeType.HOLY_SITE) {
+                    if (onEnterHolySite) {
+                        onEnterHolySite(currentTile);
+                    } else {
+                        console.log('Holy Site entry handler not provided');
+                    }
+                } else if (currentTile.biome === BiomeType.PALACE) {
+                    if (onEnterPalace) {
+                        onEnterPalace(currentTile);
+                    } else {
+                        console.log('Palace entry handler not provided');
+                    }
+                }
+            };
+
+
             return (
                 <div className="w-full flex flex-col gap-3 p-3 animate-in slide-in-from-bottom duration-500">
                     <div className="flex justify-center">
                         <LocationDisplay
                             title={locationTitle}
-                            subtitle="Tap to enter"
+                            subtitle="Tap to enter or press Enter"
                             icon={entryButtonIcon}
                         />
                     </div>
 
                     <div className="flex items-center justify-center">
                         <ActionButton
-                            onClick={() => {
-                                // Trigger the appropriate modal/action based on biome type
-                                // This will need to be connected to the proper modal triggers
-                                gameSounds.playButtonClickSound();
-                                if (currentTile.biome === BiomeType.RUINS) {
-                                    onEnterRuin(currentTile);
-                                } else if (currentTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
-                                    if (onEnterGovernmentDistrict) {
-                                        onEnterGovernmentDistrict(currentTile);
-                                    } else {
-                                        console.log('Government District entry handler not provided');
-                                    }
-                                } else if (currentTile.biome === BiomeType.HOLY_SITE) {
-                                    if (onEnterHolySite) {
-                                        onEnterHolySite(currentTile);
-                                    } else {
-                                        console.log('Holy Site entry handler not provided');
-                                    }
-                                } else if (currentTile.biome === BiomeType.PALACE) {
-                                    if (onEnterPalace) {
-                                        onEnterPalace(currentTile);
-                                    } else {
-                                        console.log('Palace entry handler not provided');
-                                    }
-                                }
-                            }}
+                            onClick={handleMobileSpecialTileEntry}
                             icon={entryButtonIcon}
                             variant="blue"
                         >
@@ -658,10 +826,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             );
         }
 
-        const isMobileView = typeof window !== 'undefined' && window.innerWidth <= 768;
-
         return (
-             <div className={isMobileView ? "w-full flex flex-col gap-3 p-3 mb-1" : "w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-1"}>
+             <div className={isMobile ? "w-full flex flex-col gap-3 p-3 mb-1" : "w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-1"}>
                  <div className="flex justify-start">
                      <button
                          onClick={onToggleAmbientText}
@@ -677,18 +843,15 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                          />
                      </button>
                  </div>
-                 
+
                  <div className="flex items-center justify-center">
                     {showAmbientText ? (
                         <div className="text-slate-400 text-center max-w-md animate-in fade-in duration-300">
-                            <p className="text-sm italic">
-                                {/* This is where ambient text would appear based on current tile */}
-                                The {locationPhrase} stretches before you, alive with possibilities...
-                            </p>
+                            {/* POV mode active - no placeholder text needed */}
                         </div>
                     ) : mineral ? (
                         <div className="text-center animate-in fade-in duration-300">
-                            <p 
+                            <p
                                 className="text-sm font-bold animate-pulse"
                                 style={{ color: getMineralTextColor() }}
                             >
@@ -722,7 +885,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                         </div>
                     )}
                  </div>
-                 
+
                  <div className="flex justify-end">
                     {contextualMessage ? (
                         <ContextualAlert message={contextualMessage} />
@@ -744,10 +907,10 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                  </div>
              </div>
         );
-    };
+    }, [playerCharacter, mapData, playerX, playerY, showAmbientText, previewBackgroundUrl, contextualMessage, weatherDisplay, weatherState, useFahrenheit, onToggleAmbientText, onEnterGovernmentDistrict, onEnterHolySite, onEnterPalace, onEnterRuin]);
 
     return (
-        <div className={getSafariOptimizedClassName("relative bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md shadow-2xl transition-all duration-500 ease-in-out border-t border-slate-700/50 overflow-hidden")}>
+        <div className={getSafariOptimizedClassName("fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md shadow-2xl transition-all duration-500 ease-in-out border-t border-slate-700/50 overflow-hidden")}>
             {/* Animated background pattern */}
             <div className="absolute inset-0 opacity-5">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
@@ -756,7 +919,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             
             {/* Main content */}
             <div className="relative z-10">
-                {actionableTile ? renderActionableContent() : renderDefaultContent()}
+                {actionableTile ? renderActionableContent : renderDefaultContent}
             </div>
             
             {/* Toast message */}

@@ -27,10 +27,9 @@ const MedievalBuilding3D: React.FC<MedievalBuilding3DProps> = React.memo(({ x, y
     const depth = safeSize * 0.3;
     const roofPitch = safeHeight * 0.5;
     
-    // Cast Shadow
+    // Cast Shadow - single unified shadow
     elements.push(
-      <path key="shadow-soft" d={`M ${x + depth * 0.5} ${y + safeHeight + depth * 0.2} l ${safeWidth} 0 l ${-depth*0.5} ${depth*0.3} l ${-safeWidth} 0 Z`} fill="rgba(0,0,0,0.2)" />,
-      <path key="shadow-hard" d={`M ${x + depth} ${y + safeHeight + depth * 0.5} L ${x + safeWidth + depth} ${y + safeHeight + depth * 0.5} L ${x + safeWidth} ${y + safeHeight} L ${x} ${y + safeHeight} Z`} fill="rgba(0,0,0,0.15)" filter="url(#buildingShadow)" />
+      <ellipse key="shadow" cx={x + safeWidth/2} cy={y + safeHeight + 2} rx={safeWidth * 0.55} ry={safeHeight * 0.12} fill="rgba(0,0,0,0.25)" filter="blur(1px)" />
     );
 
     const groundFloorHeight = hasJetty ? safeHeight * 0.5 : safeHeight;

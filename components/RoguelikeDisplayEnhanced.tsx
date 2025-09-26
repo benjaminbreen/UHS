@@ -1393,7 +1393,44 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         return `ruin_${ruinType.name}_${location}_depth_${currentDepth}`;
     }, [structureLocation, ruinType.name, currentDepth]);
 
-    // Save dungeon state to localStorage
+    // Clear old dungeon caches to free up storage space
+    const clearOldDungeonCaches = useCallback(() => {
+        try {
+            const keysToRemove: string[] = [];
+            const now = Date.now();
+            const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+            // Find old dungeon cache keys
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('ruin_')) {
+                    try {
+                        const cached = localStorage.getItem(key);
+                        if (cached) {
+                            const data = JSON.parse(cached);
+                            if (data.timestamp && (now - data.timestamp) > maxAge) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                    } catch {
+                        // If we can't parse it, it's probably corrupted, remove it
+                        keysToRemove.push(key);
+                    }
+                }
+            }
+
+            // Remove old caches
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+
+            if (keysToRemove.length > 0) {
+                console.log(`Cleared ${keysToRemove.length} old dungeon caches`);
+            }
+        } catch (error) {
+            console.warn('Failed to clear old dungeon caches:', error);
+        }
+    }, []);
+
+    // Save dungeon state to localStorage with quota management
     const saveDungeonState = useCallback((dungeonData: DungeonTile[][], entitiesData: Entity[]) => {
         try {
             const cacheKey = getCacheKey();
@@ -1403,9 +1440,38 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 timestamp: Date.now(),
                 version: '1.0' // For future compatibility
             };
-            localStorage.setItem(cacheKey, JSON.stringify(stateData));
+
+            const serialized = JSON.stringify(stateData);
+
+            // Check if data is too large (rough estimate: 4MB limit)
+            if (serialized.length > 4 * 1024 * 1024) {
+                console.warn('Dungeon state too large to cache, skipping storage');
+                return;
+            }
+
+            localStorage.setItem(cacheKey, serialized);
         } catch (error) {
-            console.warn('Failed to cache dungeon state:', error);
+            if (error.name === 'QuotaExceededError') {
+                // Clear old dungeon caches when quota exceeded
+                console.warn('Storage quota exceeded, clearing old dungeon caches');
+                clearOldDungeonCaches();
+
+                // Try one more time after cleanup
+                try {
+                    const cacheKey = getCacheKey();
+                    const stateData = {
+                        dungeon: dungeonData,
+                        entities: entitiesData,
+                        timestamp: Date.now(),
+                        version: '1.0'
+                    };
+                    localStorage.setItem(cacheKey, JSON.stringify(stateData));
+                } catch (retryError) {
+                    console.warn('Failed to cache dungeon state after cleanup:', retryError);
+                }
+            } else {
+                console.warn('Failed to cache dungeon state:', error);
+            }
         }
     }, [getCacheKey]);
 

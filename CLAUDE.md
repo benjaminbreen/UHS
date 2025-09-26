@@ -30,7 +30,7 @@
 **Legacy Archetypes**: PALACE_COMPLEX | MARKET_BAZAAR | GOVERNMENT_FORUM | MILITARY_FORTRESS | SACRED_COMPLEX | UNIVERSITY | THEATER | ARENA | EXHIBITION
 
 ## Map Stitching System - WORKING ✅
-Comprehensive multi-layered system ensuring seamless transitions between adjacent maps through edge data collection, land/water stitching, altitude continuity, and climate-aware biome transitions. Fixed Sept 21, 2025.
+Comprehensive multi-layered system ensuring seamless transitions between adjacent maps through edge data collection, land/water stitching, altitude continuity, and climate-aware biome transitions. Fixed Sept 21, 2024.
 
 ### Active Systems Status
 
@@ -38,7 +38,7 @@ Comprehensive multi-layered system ensuring seamless transitions between adjacen
 **Container System**: Players can interact with containers in special maps with theft detection
 **Workshop System**: WORKSHOP archetype for craftsman buildings with culture/era-specific routing
 
-### 4. Complete BiomeType Reference (172+ total)
+### 4. Complete BiomeType Reference (110 total)
 **All BiomeType enum values from `types/biomes/base.ts`:**
 
 **Natural Terrain:**
@@ -90,6 +90,7 @@ Comprehensive multi-layered system ensuring seamless transitions between adjacen
 - Bathroom: `TOILET`, `BASIN`, `BATH`, `MIRROR`
 - Security: `GUARD_POST`, `WEAPON_RACK`, `ARMOR_STAND`
 - Utility: `WORKSHOP`, `CELL`, `TREASURY`, `STAIRS_UP`, `STAIRS_DOWN`
+- Workshop Equipment: `ANVIL`, `OVEN_BRICK`, `SPINNING_WHEEL`, `LOOM`, `WORKBENCH`
 
 **Lighting & Heating:**
 - `FIRE_PIT`, `HEARTH`, `BRAZIER`, `TORCH`, `LANTERN`
@@ -255,13 +256,30 @@ interface SavedGame {
 }
 ```
 
-## ✅ Special Map Workspace Routing Enhancement (COMPLETED - September 19, 2025)
+## ✅ Workshop System - FULLY IMPLEMENTED (December 2024)
 
-### **Problem Analysis:**
-CityModal workspaces previously incorrectly routed to government district special maps instead of appropriate workspace archetypes. The system lacked:
-1. ❌ Dedicated WORKSHOP archetype for small craftsman buildings → ✅ **FIXED**
-2. ❌ Culture/era-specific routing logic → ✅ **IMPLEMENTED**
-3. ❌ Proper archetype mapping between business types and special map generators → ✅ **FIXED**
+### **Overview:**
+Complete workshop system for craftsman buildings (smithies, pottery shops, bakeries, weaving shops, carpentry workshops) with culture/era-specific variations.
+
+### **Key Components:**
+1. **✅ Routing (CityModal.tsx)**: Business types correctly route to WORKSHOP archetype
+2. **✅ Generation (workshopGenerator.ts)**: Creates workshop layouts with appropriate equipment
+3. **✅ Equipment BiomeTypes**: ANVIL, OVEN_BRICK, SPINNING_WHEEL, LOOM, WORKBENCH
+4. **✅ Visual Rendering**: Detailed SVG symbols with cultural/era variations
+5. **✅ NPC Generation**: Appropriate craftsmen spawn based on business type
+
+### **Supported Workshop Types:**
+- **Smithy**: Anvil, forge, metal storage → Blacksmith NPCs
+- **Pottery**: Kiln, pottery wheel, clay storage → Potter NPCs
+- **Weaving**: Loom, spinning wheel, thread storage → Weaver NPCs
+- **Bakery**: Brick oven, work tables, flour storage → Baker NPCs
+- **Carpentry**: Workbench, tool storage, lumber → Carpenter NPCs
+
+### **Features:**
+- Population-based scaling (larger settlements get more equipment)
+- Era-appropriate technology (Industrial Era gets steam-powered equipment)
+- Cultural material variations (Japanese vs European vs MENA styles)
+- Wealth-based NPC counts (wealthy shops have apprentices/assistants)
 
 ## Disease Progression System Enhancement (September 20, 2025)
 

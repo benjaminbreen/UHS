@@ -11,7 +11,7 @@ export enum HistoricalEra {
   FUTURE_ERA = 'FUTURE_ERA',
 }
 
-export type TimeOfDay = 'Dawn' | 'Morning' | 'Midday' | 'Afternoon' | 'Dusk' | 'Night';
+export type TimeOfDay = 'Predawn' | 'Dawn' | 'Morning' | 'Midday' | 'Afternoon' | 'Late Afternoon' | 'Golden Hour' | 'Dusk' | 'Late Twilight' | 'Early Evening' | 'Night';
 
 export interface VisibleLandInfo {
   biome: BiomeType;

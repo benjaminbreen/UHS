@@ -58,13 +58,18 @@ const NativeTeepee3D: React.FC<NativeTeepee3DProps> = React.memo(({ x, y, width,
             {/* Background pole bundle */}
             <circle cx={cx} cy={y-3} r="1.5" fill={poleColor} stroke={outlineColor} strokeWidth="0.4"/>
 
-            {/* Extended poles for better visibility */}
-            {[...Array(8)].map((_, i) => (
-                <line key={`pole-${i}`} 
-                    x1={cx + (i-3.5)*0.8} y1={y+2} 
-                    x2={cx + (i-3.5)*1.8 + (rand4-0.5)*3} y2={y - 8 - rand5*4} 
-                    stroke={poleColor} strokeWidth="1.2" strokeLinecap="round" />
-            ))}
+            {/* Extended poles clamped to tile bounds */}
+            {[...Array(8)].map((_, i) => {
+                const poleSpread = Math.min((i-3.5)*1.2, width*0.4); // Clamp spread to 40% of tile width
+                const poleTopX = cx + poleSpread + (rand4-0.5)*2; // Reduced randomness
+                const poleTopY = Math.max(y - 6 - rand5*2, y - height*0.8); // Clamp extension to tile height
+                return (
+                    <line key={`pole-${i}`}
+                        x1={cx + (i-3.5)*0.8} y1={y+2}
+                        x2={poleTopX} y2={poleTopY}
+                        stroke={poleColor} strokeWidth="1.2" strokeLinecap="round" />
+                );
+            })}
 
             {/* Main cone with enhanced contrast */}
             <path d={`M ${cx - width/2} ${y+height} L ${cx} ${y-2} L ${cx + width/2} ${y+height} Z`} 

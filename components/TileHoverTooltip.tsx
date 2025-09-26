@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Tile, NpcEntity, BiomeType, MapData } from '../types';
 import { getFarmState } from '../services/farmService';
 
@@ -42,6 +43,14 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
   }, [visible]);
 
   if (!tile) return null;
+
+  // Don't render tooltips on mobile devices
+  const isMobile = window.innerWidth < 640; // sm breakpoint
+  if (isMobile) return null;
+
+  // Get portal element
+  const portalElement = document.getElementById('tooltip-portal');
+  if (!portalElement) return null;
 
   // Get NPCs living/working at this tile
   const tileNpcs = npcs.filter(npc => 
@@ -204,43 +213,34 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
   // Calculate position to keep tooltip on screen
   const tooltipWidth = 240;
   const tooltipHeight = 120;
-  const offset = 10;
+  const offset = 20;
 
-  // Check if we're on the right side of the screen
-  const isRightSide = x > window.innerWidth / 2;
+  // Position tooltip near the cursor
+  let adjustedX = x + offset;
+  let adjustedY = y - tooltipHeight - offset;
 
-  // Apply offset based on screen position
-  let adjustedX;
-  if (isRightSide) {
-    // On right side: offset to the left of cursor
-    adjustedX = x - 400;  // Larger leftward offset for right side
-  } else {
-    // On left side: smaller offset works fine
-    adjustedX = x - 200;
+  // Bounds checking to keep tooltip on screen
+  if (adjustedX + tooltipWidth > window.innerWidth - 10) {
+    // If tooltip would go off right edge, show it to the left of cursor
+    adjustedX = x - tooltipWidth - offset;
   }
-
-  let adjustedY = y - offset;
-
-  // Simple bounds checking
   if (adjustedX < 10) {
     adjustedX = 10;
-  } else if (adjustedX > window.innerWidth - tooltipWidth - 10) {
-    adjustedX = window.innerWidth - tooltipWidth - 10;
   }
 
   if (adjustedY < 10) {
+    // Show below cursor if no room above
     adjustedY = y + offset;
   }
-  
-  return (
+
+  const tooltipContent = (
     <div
-      className="fixed pointer-events-none z-50"
+      className="fixed pointer-events-none"
       style={{
         left: `${adjustedX}px`,
         top: `${adjustedY}px`,
         opacity,
-        transition: 'opacity 0.2s ease-in-out',
-        transform: 'translate(-50%, -100%)'
+        transition: 'opacity 0.2s ease-in-out'
       }}
     >
       <div className="bg-slate-900/95 backdrop-blur-sm border border-amber-500/50 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
@@ -254,7 +254,7 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
             <p className="text-xs text-amber-400">{tile.biome.replace(/_/g, ' ')}</p>
           </div>
         </div>
-        
+
         {/* Info sections */}
         <div className="space-y-1 text-xs">
           <div className="flex justify-between items-center">
@@ -268,6 +268,8 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(tooltipContent, portalElement);
 };
 
 export default TileHoverTooltip;

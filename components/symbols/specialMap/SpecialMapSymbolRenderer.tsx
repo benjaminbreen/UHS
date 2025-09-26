@@ -83,6 +83,13 @@ import FirePitSymbol from '../FirePitSymbol';
 // Import Persian rug symbol
 import PersianRugSymbol from '../architecture/specialMap/PersianRugSymbol';
 
+// Import workshop equipment symbols
+import AnvilSymbol from '../workshop/AnvilSymbol';
+import OvenBrickSymbol from '../workshop/OvenBrickSymbol';
+import SpinningWheelSymbol from '../workshop/SpinningWheelSymbol';
+import LoomSymbol from '../workshop/LoomSymbol';
+import WorkbenchSymbol from '../workshop/WorkbenchSymbol';
+
 interface SpecialMapSymbolRendererProps {
   x: number;
   y: number;
@@ -175,11 +182,13 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         
       case BiomeType.PILLAR:
         // Check if this is part of a multi-tile pillar
+        console.log(`[MultiTile Debug] PILLAR tile at (${tileX}, ${tileY}) multiTileData:`, multiTileData);
         if (multiTileData && multiTileData.isBase) {
           // For base tiles, render the PillarBase
-          return <PillarBase 
-            x={0} 
-            y={0} 
+          console.log(`[MultiTile Debug] Rendering PillarBase with material: ${multiTileData.material}`);
+          return <PillarBase
+            x={0}
+            y={0}
             material={multiTileData.material as any}
             tileWidth={size}
             tileHeight={size}
@@ -188,9 +197,11 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
           />;
         } else if (multiTileData) {
           // For non-base tiles that are part of multi-tile pillar, render nothing (pillar renders from top)
+          console.log(`[MultiTile Debug] Non-base pillar tile, rendering nothing`);
           return null;
         } else {
           // Regular single-tile pillar
+          console.log(`[MultiTile Debug] Rendering regular PillarSymbol (no multiTileData)`);
           return <PillarSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
         }
       
@@ -461,7 +472,23 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       case BiomeType.OASIS:
         // Don't render these in SpecialMapSymbolRenderer - let MapCanvasPerformance handle them
         return null;
-        
+
+      // Workshop Equipment
+      case BiomeType.ANVIL:
+        return <AnvilSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={year || 1500} />;
+
+      case BiomeType.OVEN_BRICK:
+        return <OvenBrickSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={year || 1500} isLit={true} />;
+
+      case BiomeType.SPINNING_WHEEL:
+        return <SpinningWheelSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={year || 1500} />;
+
+      case BiomeType.LOOM:
+        return <LoomSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={year || 1500} hasCloth={true} />;
+
+      case BiomeType.WORKBENCH:
+        return <WorkbenchSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={year || 1500} hasTools={true} />;
+
       default:
         // Return null for biomes that don't need special symbols
         return null;

@@ -81,11 +81,19 @@ export function detectPhysicalFeatIntent(input: string): PhysicalFeatAttempt | n
     /\b(climb|get|come)\s+(down|out)(\s+(from|of)\s+(the\s+)?(tree|wall|cliff|rock|mountain|tower))?/i
   ];
   
-  // Jumping patterns - require explicit gaps or obstacles
+  // Jumping patterns - permissive for dangerous actions
   const jumpingPatterns = [
+    // Traditional jumping across things
     /\b(jump|leap)\s+(across|over)\s+(the\s+|a\s+)?(gap|chasm|ravine|stream|fence|wall|obstacle)/i,
     /\b(vault)\s+(over)\s+(the\s+|a\s+)?(wall|fence|barrier|obstacle)/i,
-    /\b(try|attempt|want)\s+to\s+(jump|leap|vault)\s+(across|over)\s+(the\s+|a\s+)?(\w+)/i
+
+    // Dangerous jumping off/into things - be permissive
+    /\b(jump|leap)\s+(off|from|down)\s+(the\s+|a\s+)?(cliff|mountain|peak|height|ledge|wall|tree)(\s+(to\s+the\s+)?(north|south|east|west|left|right))?/i,
+    /\b(jump|leap)\s+(into|in)\s+(the\s+|a\s+)?(water|ocean|river|lake|sea|pond|stream)(\s+(to\s+the\s+)?(north|south|east|west|left|right))?/i,
+    /\b(jump|leap)\s+(down|off)(\s+(from\s+)?(here|this|the\s+\w+))?(\s+(to\s+the\s+)?(north|south|east|west|left|right))?/i,
+
+    // General attempts
+    /\b(try|attempt|want)\s+to\s+(jump|leap|vault)\s+(across|over|off|into|down)\s+(the\s+|a\s+)?(\w+)/i
   ];
   
   // Swimming patterns - require explicit water bodies
@@ -127,9 +135,12 @@ export function detectPhysicalFeatIntent(input: string): PhysicalFeatAttempt | n
   for (const pattern of jumpingPatterns) {
     const match = lowercaseInput.match(pattern);
     if (match) {
+      // Extract direction from jump command (including left/right)
+      const directionMatch = match[0].match(/\b(north|south|east|west|left|right)\b/i);
       return {
         type: 'jump',
-        targetDescription: match[0]
+        targetDescription: match[0],
+        direction: directionMatch ? directionMatch[1].toLowerCase() as any : undefined
       };
     }
   }
@@ -177,25 +188,30 @@ Evaluate this physical feat attempt and respond in JSON format:
   "reasoning": "Brief explanation of your decision",
   "consequences": {
     "fatigueCost": number (0-50 fatigue points),
-    "healthRisk": number (0-50 potential damage if failed),
+    "healthRisk": number (0-100 potential damage if failed),
     "itemLossChance": number (0.0-1.0 chance of losing items),
     "alternativeSuggestion": "string (optional suggestion if not possible)"
   }
 }
 
-Consider:
-- Physical feasibility (can a human actually do this?)
-- Environmental factors (weather, terrain, obstacles)
-- Character capabilities (strength, equipment, fatigue)
-- Historical realism (would this make sense in the time period?)
-- Risk vs reward (is this unnecessarily dangerous?)
+IMPORTANT PHILOSOPHY: Players should be allowed to do dangerous things if they choose to!
+- Jumping off cliffs: ALWAYS POSSIBLE (but high damage risk)
+- Jumping into water: ALWAYS POSSIBLE (but drowning risk)
+- Dangerous climbing: Usually possible (but fall risk)
 
-IMPORTANT: Be generous with success chances. This is a game where players should succeed more often than fail.
-- For low risk actions: 70-90% success chance
-- For medium risk: 50-70% success chance
-- For high risk: 30-50% success chance
-- For extreme risk: 10-30% success chance
-Player stats should significantly boost these base rates. Aim for fun gameplay over harsh realism. Trees are easy to climb.`;
+This is a permissive system - let players make bad decisions and face consequences.
+The game will handle health consequences automatically. Your job is to evaluate feasibility, not prevent stupidity.
+
+Success chance guidelines (be generous):
+- For low risk actions: 80-95% success chance
+- For medium risk: 60-80% success chance
+- For high risk: 40-60% success chance
+- For extreme risk: 20-40% success chance
+
+For dangerous actions like "jump off cliff" or "jump into water":
+- Always mark as possible: true
+- Set high healthRisk (30-80) for serious consequences
+- Give reasonable success chances (players should usually succeed at the action itself, but face the health consequences)`;
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -562,11 +578,71 @@ function detectTargetTile(
     }
   }
 
-  // For jumping, look for gaps or obstacles to cross
+  // For jumping, handle different jump scenarios
   if (attempt.type === 'jump') {
+    const currentTile = mapData.tiles[currentY][currentX];
+
+    // Jump off cliff/mountain (dangerous downward jumps)
+    if (attempt.targetDescription.toLowerCase().includes('off') ||
+        attempt.targetDescription.toLowerCase().includes('down')) {
+
+      const jumpDownTargets = adjacentTiles.filter(({tile}) =>
+        tile.altitude < currentTile.altitude - 0.5 || // Lower terrain
+        !['MOUNTAIN', 'CLIFF', 'HIGH_PEAK'].includes(tile.biome as any) // Non-cliff terrain
+      );
+
+      if (jumpDownTargets.length === 1) {
+        return {
+          direction: jumpDownTargets[0].direction,
+          targetTile: jumpDownTargets[0].tile
+        };
+      } else if (jumpDownTargets.length > 1) {
+        // Multiple valid targets, pick random if no direction specified
+        const randomTarget = jumpDownTargets[Math.floor(Math.random() * jumpDownTargets.length)];
+        return {
+          direction: randomTarget.direction,
+          targetTile: randomTarget.tile
+        };
+      }
+    }
+
+    // Jump into water
+    if (attempt.targetDescription.toLowerCase().includes('into') &&
+        attempt.targetDescription.toLowerCase().includes('water')) {
+
+      console.log('[PhysicalFeat] Looking for water tiles. Adjacent tiles:',
+        adjacentTiles.map(t => ({ dir: t.direction, biome: t.tile.biome })));
+
+      const waterTargets = adjacentTiles.filter(({tile}) =>
+        ['RIVER', 'STREAM', 'LAKE', 'OCEAN', 'SHALLOW_OCEAN', 'DEEP_OCEAN', 'POND', 'WETLANDS'].includes(tile.biome as any)
+      );
+
+      console.log('[PhysicalFeat] Found water targets:', waterTargets.length,
+        waterTargets.map(t => ({ dir: t.direction, biome: t.tile.biome })));
+
+      if (waterTargets.length === 1) {
+        console.log('[PhysicalFeat] Single water target found:', waterTargets[0].direction);
+        return {
+          direction: waterTargets[0].direction,
+          targetTile: waterTargets[0].tile
+        };
+      } else if (waterTargets.length > 1) {
+        // Multiple water tiles, pick random
+        const randomTarget = waterTargets[Math.floor(Math.random() * waterTargets.length)];
+        console.log('[PhysicalFeat] Multiple water targets, picking:', randomTarget.direction);
+        return {
+          direction: randomTarget.direction,
+          targetTile: randomTarget.tile
+        };
+      } else {
+        console.log('[PhysicalFeat] No water targets found adjacent to player');
+      }
+    }
+
+    // Traditional gap jumping or obstacle crossing
     const jumpTargets = adjacentTiles.filter(({tile}) =>
       ['CHASM', 'RAVINE', 'STREAM'].includes(tile.biome as any) ||
-      tile.altitude < mapData.tiles[currentY][currentX].altitude - 2
+      tile.altitude < currentTile.altitude - 2
     );
 
     if (jumpTargets.length === 1) {
@@ -644,7 +720,39 @@ export async function executePhysicalFeat(
     if (evaluation.consequences?.fatigueCost) {
       effects.fatigue = evaluation.consequences.fatigueCost;
     }
-    
+
+    // Apply immediate damage for dangerous actions
+    const isDangerousJump = attempt.type === 'jump' &&
+      (attempt.targetDescription.toLowerCase().includes('off') ||
+       attempt.targetDescription.toLowerCase().includes('into water'));
+
+    if (isDangerousJump) {
+      // Calculate damage based on danger level
+      let immediateDamage = 0;
+
+      if (attempt.targetDescription.toLowerCase().includes('off')) {
+        // Jumping off cliff/mountain - significant fall damage
+        const currentTile = mapData?.tiles?.[player.location.y]?.[player.location.x];
+        if (currentTile?.biome === 'CLIFF' || currentTile?.biome === 'MOUNTAIN' || currentTile?.biome === 'HIGH_PEAK') {
+          immediateDamage = Math.floor(Math.random() * 30) + 20; // 20-50 damage
+        } else {
+          immediateDamage = Math.floor(Math.random() * 15) + 10; // 10-25 damage for lower heights
+        }
+      }
+
+      if (attempt.targetDescription.toLowerCase().includes('into water')) {
+        // Jumping into water - moderate impact damage
+        immediateDamage = Math.floor(Math.random() * 10) + 5; // 5-15 damage
+        // Mark player as in water for drowning system
+        effects.inWater = true;
+        effects.waterEntryTime = Date.now();
+      }
+
+      if (immediateDamage > 0) {
+        effects.damage = (effects.damage || 0) + immediateDamage;
+      }
+    }
+
     // Calculate new position if applicable
     let targetDirection = attempt.direction;
     let targetTile = attempt.targetTile;
@@ -655,6 +763,45 @@ export async function executePhysicalFeat(
       if (autoTarget) {
         targetDirection = autoTarget.direction;
         targetTile = autoTarget.targetTile;
+        console.log('[PhysicalFeat] Auto-detected target:', targetDirection, 'to', targetTile?.biome);
+      } else if ((attempt.type === 'climb') ||
+                 (attempt.type === 'jump' && !attempt.targetDescription.toLowerCase().includes('water'))) {
+        // Fallback for climbing or non-water jumps: if no specific target found,
+        // pick a random adjacent tile (let them move somewhere dangerous)
+        console.log('[PhysicalFeat] Using fallback movement - no specific target detected');
+        const adjacentDirections = ['north', 'south', 'east', 'west'] as const;
+        const validDirections = adjacentDirections.filter(dir => {
+          const currentPos = { x: player.location.x, y: player.location.y };
+          let targetX = currentPos.x, targetY = currentPos.y;
+
+          switch (dir) {
+            case 'north': targetY--; break;
+            case 'south': targetY++; break;
+            case 'east': targetX++; break;
+            case 'west': targetX--; break;
+          }
+
+          // Check if target position is within bounds
+          return targetY >= 0 && targetY < mapData.tiles.length &&
+                 targetX >= 0 && targetX < mapData.tiles[0].length;
+        });
+
+        if (validDirections.length > 0) {
+          // Pick random valid direction
+          targetDirection = validDirections[Math.floor(Math.random() * validDirections.length)];
+          const currentPos = { x: player.location.x, y: player.location.y };
+          let targetX = currentPos.x, targetY = currentPos.y;
+
+          switch (targetDirection) {
+            case 'north': targetY--; break;
+            case 'south': targetY++; break;
+            case 'east': targetX++; break;
+            case 'west': targetX--; break;
+          }
+
+          targetTile = mapData.tiles[targetY][targetX];
+          console.log('[PhysicalFeat] Fallback movement - no specific target found, moving', targetDirection, 'to', targetTile.biome);
+        }
       }
     }
 
@@ -783,10 +930,10 @@ function getSuccessMessage(featType: FeatType, risk: FeatRisk): string {
       extreme: 'By sheer determination, you complete the dangerous climb.'
     },
     jump: {
-      low: 'You clear the gap with room to spare.',
-      medium: 'You land safely on the other side after a well-timed leap.',
-      high: 'You barely make the jump, stumbling on landing but staying upright.',
-      extreme: 'Your desperate leap just reaches the other side.'
+      low: 'You leap gracefully and land safely on the other side.',
+      medium: 'You make the jump successfully, landing with a solid thud.',
+      high: 'You barely make the dangerous leap, stumbling on landing but staying upright.',
+      extreme: 'Against all odds, your desperate jump carries you to safety.'
     },
     swim: {
       low: 'You swim across with steady strokes.',
@@ -795,7 +942,7 @@ function getSuccessMessage(featType: FeatType, risk: FeatRisk): string {
       extreme: 'You nearly drown but somehow make it across.'
     }
   } as any;
-  
+
   return messages[featType]?.[risk] || 'You successfully complete the physical feat.';
 }
 

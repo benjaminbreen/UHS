@@ -38,6 +38,7 @@ import { generatePalaceVariant } from './archetypes/palaceVariantGenerator';
 import { generateGovernmentForum } from './archetypes/governmentGenerator';
 import { generateTribalCouncil } from './archetypes/tribalCouncilGenerator';
 import { generateCourtChamber } from './archetypes/courtChamberGenerator';
+import { generateColonialAdministration } from './archetypes/colonialAdministrationGenerator';
 import { generateMarketBazaar } from './archetypes/marketGenerator';
 import { generateSacredComplex } from './archetypes/sacredGenerator';
 import generateUniversityAcademy from './archetypes/universityGeneratorV2';
@@ -111,6 +112,8 @@ function determineMapSize(archetype: SpecialMapArchetype, era: HistoricalEra, sp
     [SpecialMapArchetype.ASSEMBLY_HALL]: { min: 'large', max: 'xl' },
     // Administrative complexes grow with bureaucracy
     [SpecialMapArchetype.ADMINISTRATIVE_COMPLEX]: { min: 'medium', max: 'xl' },
+    // Colonial administration buildings need space for cultural synthesis
+    [SpecialMapArchetype.COLONIAL_ADMINISTRATION]: { min: 'medium', max: 'large' },
     // Estates scale dramatically with era
     [SpecialMapArchetype.ESTATES]: { min: 'xs', max: 'xl' },
     // FIXED: Royal palaces should be at least medium size, even in antiquity
@@ -295,7 +298,17 @@ export function generateSpecialMap(
       rooms = generatedData.rooms || [];
       multiTileObjects = (generatedData as any).multiTileObjects || [];
       break;
-      
+
+    case SpecialMapArchetype.COLONIAL_ADMINISTRATION:
+      console.log(`[SpecialMapGen] COLONIAL_ADMINISTRATION archetype - using dedicated colonial administration generator`);
+      generatedData = generateColonialAdministration(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
+      break;
+
     case SpecialMapArchetype.TOWN_HALL:
       console.log(`[SpecialMapGen] TOWN_HALL archetype - using enhanced government generator`);
       generatedData = generateGovernmentForum(tiles, config, noise, size, 'town_hall');

@@ -9,12 +9,24 @@ interface SynagogueSymbolProps {
   tile: Tile;
 }
 
-const SynagogueSymbol: React.FC<SynagogueSymbolProps> = ({ x, y, size }) => {
+const SynagogueSymbol: React.FC<SynagogueSymbolProps> = ({ x, y, size, seed, tile }) => {
   const baseX = x * size + size / 2;
   const baseY = y * size + size / 2;
-  
+  const uniqueId = `synagogue-${tile?.x || 0}-${tile?.y || 0}`;
+
   return (
     <g>
+      <defs>
+        <linearGradient id={`star-grad-${uniqueId}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#FFD700" />
+          <stop offset="50%" stopColor="#FFA500" />
+          <stop offset="100%" stopColor="#DAA520" />
+        </linearGradient>
+        <linearGradient id={`dome-grad-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5A92D1" />
+          <stop offset="100%" stopColor="#36648B" />
+        </linearGradient>
+      </defs>
       {/* Main building */}
       <rect
         x={baseX - size * 0.35}
@@ -26,29 +38,56 @@ const SynagogueSymbol: React.FC<SynagogueSymbolProps> = ({ x, y, size }) => {
         strokeWidth={0.5}
       />
       
-      {/* Dome */}
+      {/* Dome with gradient */}
       <ellipse
         cx={baseX}
         cy={baseY - size * 0.1}
         rx={size * 0.25}
         ry={size * 0.2}
-        fill="#4682B4"
+        fill={`url(#dome-grad-${uniqueId})`}
         stroke="#36648B"
         strokeWidth={0.5}
       />
       
-      {/* Star of David on dome */}
+      {/* Star of David with 3D effect */}
       <g transform={`translate(${baseX}, ${baseY - size * 0.15})`}>
+        {/* Shadow/depth layer */}
         <path
-          d={`M 0,${-size * 0.08} 
-              L ${size * 0.07},${size * 0.04} 
+          d={`M 0,${-size * 0.08}
+              L ${size * 0.07},${size * 0.04}
               L ${-size * 0.07},${size * 0.04} Z
-              M 0,${size * 0.08} 
-              L ${size * 0.07},${-size * 0.04} 
+              M 0,${size * 0.08}
+              L ${size * 0.07},${-size * 0.04}
               L ${-size * 0.07},${-size * 0.04} Z`}
-          fill="none"
-          stroke="#FFD700"
-          strokeWidth={1}
+          fill="rgba(0,0,0,0.2)"
+          transform="translate(1,1)"
+        />
+        {/* Main star with gradient */}
+        <path
+          d={`M 0,${-size * 0.08}
+              L ${size * 0.07},${size * 0.04}
+              L ${-size * 0.07},${size * 0.04} Z`}
+          fill={`url(#star-grad-${uniqueId})`}
+          stroke="#DAA520"
+          strokeWidth={0.8}
+          opacity="0.9"
+        />
+        <path
+          d={`M 0,${size * 0.08}
+              L ${size * 0.07},${-size * 0.04}
+              L ${-size * 0.07},${-size * 0.04} Z`}
+          fill={`url(#star-grad-${uniqueId})`}
+          stroke="#DAA520"
+          strokeWidth={0.8}
+          opacity="0.9"
+        />
+        {/* Highlight on top triangle */}
+        <path
+          d={`M 0,${-size * 0.08}
+              L ${size * 0.03},${-size * 0.02}
+              L ${-size * 0.03},${-size * 0.02} Z`}
+          fill="#FFFF00"
+          opacity="0.4"
         />
       </g>
       

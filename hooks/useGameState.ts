@@ -13,6 +13,7 @@ interface LiminalTravelState {
     destination: string;
     originArea: string;
     originDirection: AdjacencyDirection;
+    key: string; // Added to store the liminal key for proper naming
 }
 
 const getInitialDate = (): GameDate => {

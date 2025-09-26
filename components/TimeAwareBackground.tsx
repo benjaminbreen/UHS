@@ -22,8 +22,8 @@ const BASE_GRADIENT_COLORS = {
     DAY: ['#4A90E2', '#87CEEB', '#E6F3FF'],   // Clear blue sky gradient
     DUSK: ['#1F2937', '#FF8C69', '#FFA07A'],   // Dark blue-gray at top through salmon to light salmon
     TWILIGHT: ['#4B5C8A', '#2E3A5F', '#1a2644'], // Twilight blues
-    NIGHT: ['#0a0e27', '#1a1a3e', '#16213e'], // Deep space blue gradients
-    MIDNIGHT: ['#000814', '#001d3d', '#003566'], // Very deep blues
+    NIGHT: ['#050820', '#0d0d2a', '#101535'], // Darker deep space blues
+    MIDNIGHT: ['#000408', '#000d1a', '#001833'], // Extremely deep blues, almost black
     PRE_DAWN: ['#1a1a3e', '#2d3561', '#4a5568'], // Gradual lightening
 };
 
@@ -186,17 +186,53 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
         let finalEndColor = endColor;
         
         if (weather && weather.cloudCover > 0.7) {
-            // Overcast - gray gradient
-            const grayLevel = Math.floor(140 - weather.cloudCover * 40); // Darker with more clouds
-            finalStartColor = `rgb(${grayLevel}, ${grayLevel}, ${grayLevel + 5})`;
-            finalEndColor = `rgb(${grayLevel + 20}, ${grayLevel + 20}, ${grayLevel + 25})`;
-            finalMidColor = `rgb(${grayLevel + 10}, ${grayLevel + 10}, ${grayLevel + 15})`;
+            // Overcast - adjust based on time of day
+            const isNight = gameTimeHours >= 22 || gameTimeHours < 4;
+            const isDusk = gameTimeHours >= 18 && gameTimeHours < 22;
+            const isDawn = gameTimeHours >= 4 && gameTimeHours < 7;
+
+            if (isNight) {
+                // Cloudy night: very dark blue-gray instead of light gray
+                const grayLevel = Math.floor(25 - weather.cloudCover * 10); // Much darker (15-25 range)
+                finalStartColor = `rgb(${grayLevel}, ${grayLevel + 8}, ${grayLevel + 20})`; // Blue tint
+                finalEndColor = `rgb(${grayLevel + 10}, ${grayLevel + 18}, ${grayLevel + 30})`;
+                finalMidColor = `rgb(${grayLevel + 5}, ${grayLevel + 13}, ${grayLevel + 25})`;
+            } else if (isDusk || isDawn) {
+                // Twilight clouds: darker with purple/blue tint
+                const grayLevel = Math.floor(70 - weather.cloudCover * 20);
+                finalStartColor = `rgb(${grayLevel}, ${grayLevel + 5}, ${grayLevel + 15})`; // Slight blue
+                finalEndColor = `rgb(${grayLevel + 20}, ${grayLevel + 25}, ${grayLevel + 35})`;
+                finalMidColor = `rgb(${grayLevel + 10}, ${grayLevel + 15}, ${grayLevel + 25})`;
+            } else {
+                // Daytime clouds: normal gray behavior
+                const grayLevel = Math.floor(140 - weather.cloudCover * 40);
+                finalStartColor = `rgb(${grayLevel}, ${grayLevel}, ${grayLevel + 5})`;
+                finalEndColor = `rgb(${grayLevel + 20}, ${grayLevel + 20}, ${grayLevel + 25})`;
+                finalMidColor = `rgb(${grayLevel + 10}, ${grayLevel + 10}, ${grayLevel + 15})`;
+            }
             gradient = `linear-gradient(180deg, ${finalStartColor} 0%, ${finalEndColor} 100%)`;
         } else if (weather && weather.precipitation !== 'none') {
             // Rainy/snowy - darker version of time gradient
-            finalStartColor = blendColors(startColor, '#404040', 0.4);
-            finalMidColor = midColor ? blendColors(midColor, '#505050', 0.4) : finalStartColor;
-            finalEndColor = blendColors(endColor, '#606060', 0.4);
+            const isNight = gameTimeHours >= 22 || gameTimeHours < 4;
+            const isDusk = gameTimeHours >= 18 && gameTimeHours < 22;
+            const isDawn = gameTimeHours >= 4 && gameTimeHours < 7;
+
+            if (isNight) {
+                // Rainy night: very dark blue-black
+                finalStartColor = blendColors(startColor, '#0a0a1a', 0.6); // Dark blue-black
+                finalMidColor = midColor ? blendColors(midColor, '#0d0d20', 0.6) : finalStartColor;
+                finalEndColor = blendColors(endColor, '#101030', 0.6);
+            } else if (isDusk || isDawn) {
+                // Twilight rain: darker purple-gray
+                finalStartColor = blendColors(startColor, '#2a2a3a', 0.5);
+                finalMidColor = midColor ? blendColors(midColor, '#303040', 0.5) : finalStartColor;
+                finalEndColor = blendColors(endColor, '#353545', 0.5);
+            } else {
+                // Daytime rain: normal darkening
+                finalStartColor = blendColors(startColor, '#404040', 0.4);
+                finalMidColor = midColor ? blendColors(midColor, '#505050', 0.4) : finalStartColor;
+                finalEndColor = blendColors(endColor, '#606060', 0.4);
+            }
             gradient = midColor
                 ? `linear-gradient(180deg, ${finalStartColor} 0%, ${finalMidColor} 60%, ${finalEndColor} 100%)`
                 : `linear-gradient(180deg, ${finalStartColor} 0%, ${finalEndColor} 100%)`;

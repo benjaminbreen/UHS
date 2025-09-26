@@ -4,6 +4,7 @@
 import { AnimalEntity, Point, Tile, MapData, BiomeType, NpcEntity, PersonalGoal } from '../types';
 import { ANIMAL_DATA } from '../constants/index';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants/index';
+import { getHelperMode, updateLeadingNpc } from './npcHelperService';
 
 interface AIMemory {
     lastSeen: Point | null;
@@ -1175,6 +1176,20 @@ function calculateNpcUpdateUnsafe(
 
     const memory = getNpcMemory(npc.id);
     const now = Date.now();
+
+    // Check if NPC is in helper mode (following/leading player)
+    const helperMode = getHelperMode(npc.id);
+    if (helperMode?.mode === 'lead' && helperMode.destination) {
+        const newPos = updateLeadingNpc(npc, playerPos, map.width, map.height);
+        if (newPos.x !== npc.x || newPos.y !== npc.y) {
+            return {
+                x: newPos.x,
+                y: newPos.y,
+                aiState: 'wandering' as const,
+                activity: 'leading' // Special activity for leading player
+            };
+        }
+    }
 
     // Check if this is an uninhabited area (no urban tiles)
     const isUninhabitedArea = !hasUrbanTiles(map);

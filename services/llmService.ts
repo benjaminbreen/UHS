@@ -2,7 +2,7 @@
  * services/llmService.ts - Centralized service for all Gemini API interactions.
  */
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile } from '../types';
+import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile, BiomeType } from '../types';
 import { StudyContext, StudyAction } from '../types/studyTypes';
 import type { Season } from '../types';
 import { CulturalZone, FACTION_DATA, GEOGRAPHICAL_DATA, ANIMAL_DATA } from '../constants/index';
@@ -10,12 +10,13 @@ import { generateAmbianceText } from "./ambianceGenerator";
 import { generateNpcName } from "../generation/common/npcUtils";
 import { mapLocationToCulture } from "../utils/mapUtils";
 import { ValueNoise } from "../utils/noise";
-import { parseDateString } from "../utils/dateUtils";
+import { parseDateString, getDayOfYear } from "../utils/dateUtils";
 import { findNpcFriends } from './socialService';
 import { primarySourceService } from './primarySourceService';
 import { loadTamedAnimals, TamedAnimal } from './animalTamingService';
-import { WeatherService, WeatherState } from './weatherService';
+import { WeatherService, WeatherState, weatherService } from './weatherService';
 import { dialectContinuumService } from './dialectContinuumService';
+import { atmosphericContextService } from './atmosphericContextService';
 
 // Cache for historical events to avoid regenerating them every dialogue
 interface HistoricalEventCache {
@@ -26,6 +27,157 @@ interface HistoricalEventCache {
 
 const historicalEventCache: Map<string, HistoricalEventCache> = new Map();
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
+
+/**
+ * Helper function to get surrounding terrain information for LLM context
+ */
+function getSurroundingTerrain(mapData: MapData | null, playerX: number, playerY: number, radius: number = 2): string {
+    if (!mapData?.tiles) return 'Unable to determine surrounding terrain.';
+
+    const directions = {
+        'north': [0, -1],
+        'northeast': [1, -1],
+        'east': [1, 0],
+        'southeast': [1, 1],
+        'south': [0, 1],
+        'southwest': [-1, 1],
+        'west': [-1, 0],
+        'northwest': [-1, -1]
+    };
+
+    const terrainInfo: string[] = [];
+    const tileCount: Record<string, number> = {};
+
+    // Check immediate adjacent tiles
+    for (const [dir, [dx, dy]] of Object.entries(directions)) {
+        const x = playerX + dx;
+        const y = playerY + dy;
+        if (y >= 0 && y < mapData.tiles.length && x >= 0 && x < mapData.tiles[0].length) {
+            const tile = mapData.tiles[y][x];
+            const biome = isStandardTile(tile) ? tile.biome : 'unknown';
+
+            // Special callouts for barriers
+            if (biome === BiomeType.CLIFF) {
+                terrainInfo.push(`impassable cliff to the ${dir}`);
+            } else if (biome === BiomeType.DEEP_OCEAN) {
+                terrainInfo.push(`deep ocean to the ${dir}`);
+            } else if (biome === BiomeType.MOUNTAIN || biome === BiomeType.HIGH_PEAK) {
+                terrainInfo.push(`mountain barrier to the ${dir}`);
+            }
+
+            tileCount[biome] = (tileCount[biome] || 0) + 1;
+        }
+    }
+
+    // Count tiles in wider radius for general terrain sense
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const x = playerX + dx;
+            const y = playerY + dy;
+            if (y >= 0 && y < mapData.tiles.length && x >= 0 && x < mapData.tiles[0].length) {
+                const tile = mapData.tiles[y][x];
+                const biome = isStandardTile(tile) ? tile.biome : 'unknown';
+                tileCount[biome] = (tileCount[biome] || 0) + 1;
+            }
+        }
+    }
+
+    // Build description
+    const dominant = Object.entries(tileCount)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .map(([biome, count]) => `${biome.toLowerCase().replace(/_/g, ' ')} (${count} tiles)`)
+        .join(', ');
+
+    let description = terrainInfo.length > 0
+        ? `Immediate obstacles: ${terrainInfo.join(', ')}. `
+        : '';
+    description += `Surrounding terrain within ${radius} tiles: ${dominant}`;
+
+    return description;
+}
+
+/**
+ * Helper function to format precise time information for LLMs
+ */
+function getTimeContext(context: PlayerContext): string {
+    const { gameTime, ambianceContext } = context;
+    if (!gameTime) return ambianceContext?.timeOfDay || 'unknown time';
+
+    const { hours, minutes } = gameTime;
+    const timeOfDay = ambianceContext?.timeOfDay || 'Day';
+
+    // Convert 24-hour to 12-hour format
+    const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const minuteStr = minutes.toString().padStart(2, '0');
+
+    // Add descriptive context for specific times
+    let timeDescription = `${hour12}:${minuteStr} ${ampm}`;
+
+    if (hours === 0) timeDescription += ' (midnight)';
+    else if (hours === 12) timeDescription += ' (noon)';
+    else if (hours >= 1 && hours <= 5) timeDescription += ' (deep night)';
+    else if (hours >= 6 && hours <= 8) timeDescription += ' (early morning)';
+    else if (hours >= 18 && hours <= 20) timeDescription += ' (evening)';
+    else if (hours >= 21 && hours <= 23) timeDescription += ' (late night)';
+
+    return `${timeDescription} during ${timeOfDay.toLowerCase()}`;
+}
+
+/**
+ * Helper function to get weather context for LLM
+ */
+function getWeatherContext(mapData: MapData | null, context: PlayerContext): string {
+    // Try to use existing weather data first
+    if (mapData?.currentWeather) {
+        const w = mapData.currentWeather;
+        let desc = `Current weather: ${w.description}. `;
+        desc += `Temperature: ${w.feelsLike}°C (${w.condition || 'moderate'}). `;
+        if (w.precipitation !== 'none') {
+            desc += `${w.precipitation} with ${Math.round(w.intensity * 100)}% intensity. `;
+        }
+        if (w.windSpeed > 20) {
+            desc += `Strong winds at ${w.windSpeed} km/h. `;
+        }
+        if (w.special) {
+            desc += `Special condition: ${w.special}. `;
+        }
+        return desc;
+    }
+
+    // Fallback to calculating weather if not available
+    if (mapData && context.gameTime && context.gameDate && context.season) {
+        const centerX = Math.floor(mapData.tiles[0].length / 2);
+        const centerY = Math.floor(mapData.tiles.length / 2);
+        const centerTile = mapData.tiles[centerY][centerX];
+
+        const weather = weatherService.getWeather(
+            mapData.climate,
+            centerTile.biome,
+            context.season as Season,
+            context.ambianceContext?.timeOfDay,
+            centerTile.altitude || 0.5,
+            getDayOfYear(context.gameDate),
+            { x: centerX, y: centerY }
+        );
+
+        if (weather) {
+            let desc = `Current weather: ${weather.description}. `;
+            desc += `Temperature feels like ${weather.feelsLike}°C. `;
+            if (weather.precipitation !== 'none') {
+                desc += `${weather.precipitation} occurring. `;
+            }
+            if (weather.windSpeed > 20) {
+                desc += `Strong winds at ${weather.windSpeed} km/h. `;
+            }
+            return desc;
+        }
+    }
+
+    return 'Weather conditions unknown.';
+}
 
 const formatAppearance = (character: PlayerCharacter | NpcEntity): string => {
     if (!character.appearance) return "of average appearance.";
@@ -399,6 +551,47 @@ export async function generateEncounterDialogue(
         return conditions.length > 0 ? conditions.join('. ') + '.' : 'Mild weather.';
     })();
 
+    // Get atmospheric context (celestial phenomena) if there's something notable happening
+    const atmosphericContext = (() => {
+        try {
+            const dateInfo = parseDateString(String(mapData.timeSlice));
+
+            // Create game time state from mapData
+            const gameTime = {
+                timeOfDay: mapData.timeOfDay || 'Day',
+                hours: mapData.timeOfDay === 'Night' ? 23 : mapData.timeOfDay === 'Dawn' ? 6 :
+                       mapData.timeOfDay === 'Dusk' ? 18 : 12,
+                minutes: 0,
+                totalMinutes: (mapData.timeOfDay === 'Night' ? 23 : mapData.timeOfDay === 'Dawn' ? 6 :
+                              mapData.timeOfDay === 'Dusk' ? 18 : 12) * 60
+            };
+
+            const gameDate = {
+                year: dateInfo.year,
+                month: dateInfo.month,
+                day: dateInfo.day
+            };
+
+            // Use current weather from above
+            const weatherForAtmosphere = {
+                condition: mapData.currentWeather?.condition || 'clear',
+                cloudCover: mapData.currentWeather?.cloudCover || 0.3,
+                isRaining: mapData.currentWeather?.precipitation === 'rain',
+                isSnowing: mapData.currentWeather?.precipitation === 'snow',
+                temperature: mapData.currentWeather?.temperature || 20
+            };
+
+            const context = atmosphericContextService.getContext(gameTime, gameDate, weatherForAtmosphere);
+            const promptAdditions = atmosphericContextService.getNpcPromptAdditions(context);
+
+            // Only return atmospheric context if there's actually something notable happening
+            return promptAdditions.trim() ? promptAdditions : '';
+        } catch (error) {
+            console.error('Error getting atmospheric context:', error);
+            return '';
+        }
+    })();
+
     // Determine personality-driven response style
     const personalityStyle = (() => {
         const npc = target as NpcEntity;
@@ -518,6 +711,7 @@ export async function generateEncounterDialogue(
         **CURRENT CONDITIONS:**
         Time: ${mapData.timeOfDay || 'Day'}
         Weather: ${weatherContext}
+        ${atmosphericContext}
         ${historicalContext}
 
         **TIME-AWARE BEHAVIOR:**
@@ -597,9 +791,9 @@ export async function generateEncounterDialogue(
         **REPUTATION IMPACT & LEAVING DECISION:**
         Based on this interaction, determine reputation change:
         - Threatening/hostile = -50 to -100 (YOU SHOULD LEAVE OR CALL FOR HELP)
-        - Offensive/scary = -30 to -70 (EXPRESS THAT YOU WANT TO LEAVE)
+        - Offensive/scary = -10 to -50 (EXPRESS THAT YOU WANT TO LEAVE)
         - Absurd/nonsensical/insane statements (like "I am a dolphin", "I am god", etc.) = -20 to -40 (BE CONFUSED/CONCERNED)
-        - Suspicious/unwelcome = -5 to -25
+        - Suspicious/unwelcome = -5 to -10
         - Normal conversation = 0
         - Helpful/kind = +5 to +20
 
@@ -610,7 +804,7 @@ export async function generateEncounterDialogue(
 
         **LEAVING INSTRUCTIONS:**
         - If reputation is -50 or worse: Include farewell/leaving phrase in your dialogue
-        - If scared (courage < 3 and player threatening): Say you need to leave
+        - If scared (courage < 5 and player threatening): Say you need to leave
         - If offended (player insulting/rude): Express offense and leave
         - Use phrases like: "I must go", "Farewell", "Good day to you", "I'm leaving"
 
@@ -627,7 +821,7 @@ export async function generateEncounterDialogue(
     try {
         // Use flash-lite with delimiter format for speed
         const response = await ai.models.generateContent({ 
-            model: 'gemini-2.5-flash-lite', 
+            model: 'gemini-2.5-flash-lite-preview-09-2025', 
             contents: reputationPrompt,
             config: {
                 temperature: 0.6,
@@ -911,13 +1105,20 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         locationContext = `The player is in a ${isStandardTile(context.currentTile) ? context.currentTile.biome : 'exterior'} landscape.`;
     }
 
+    // Add enhanced environmental context
+    const surroundingTerrain = getSurroundingTerrain(mapData, playerX!, playerY!, 3);
+    const weatherContext = getWeatherContext(mapData, context);
+    const timeContext = getTimeContext(context);
+
     const fullContext = `
         **Player:** ${playerCharacter?.name}, a ${playerCharacter?.age}-year-old ${playerCharacter?.profession}.
         **Date & Location:** ${mapData?.timeSlice} in ${mapData?.localArea}, a region with a ${mapData?.climate} climate.
-        **Immediate Surroundings:** ${locationContext}
+        **Current Time:** ${timeContext}
+        **Immediate Position:** ${locationContext}
+        **Surrounding Terrain:** ${surroundingTerrain}
+        **Weather:** ${weatherContext}
         **Tamed Companions:** ${tamedAnimalsContext || 'No tamed animals currently following the player.'}
         **Nearby Entities:** NPCs: ${nearbyNpcs}. Animals: ${nearbyAnimals}. Structures: ${nearbyStructures}.
-        **Overall Ambiance:** [Ambiance system deprecated - using raw environmental data instead]
     `;
 
     const metaKeywords = ['game', 'ChatGPT', 'simulation', 'software', 'developer', 'code', 'AI', 'reality', 'app', 'developer'];
@@ -934,8 +1135,15 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     }
 
     const prompt = `
-        You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query. If a player asks about their character's backstory or life, invent something compelling, brutally realistic, remarkably authentic, and specific, not too long. 
-        If a query is purely didactic or educational - like "how can i learn more about this?" and the like, then go into "historian mode" where you simply offer high quality academic secondary source suggestions (peer reviewed books or articles) or references to scholars and scholarship that help understand the given setting. 
+        You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query.
+
+        IMPORTANT ENVIRONMENTAL AWARENESS: Pay special attention to the Current Time, Surrounding Terrain and Weather sections.
+        Reference the specific time when relevant (e.g., "at this late hour", "in the dead of night", "as dawn breaks").
+        If the player is trapped (e.g., surrounded by cliffs or deep water), acknowledge this dire situation.
+        If weather is extreme (freezing, scorching, storms), incorporate its effects into your narration.
+
+        If a player asks about their character's backstory or life, invent something compelling, brutally realistic, remarkably authentic, and specific, not too long.
+        If a query is purely didactic or educational - like "how can i learn more about this?" and the like, then go into "historian mode" where you simply offer high quality academic secondary source suggestions (peer reviewed books or articles) or references to scholars and scholarship that help understand the given setting.
         But only do this if the player seems to want to learn. Otherwise:
 
         **Current Persona Instruction:** ${personaInstruction}
@@ -986,25 +1194,34 @@ export async function generateObservationText(context: PlayerContext): Promise<s
         }.`
         : '';
 
+    // Get enhanced environmental context
+    const surroundingTerrain = getSurroundingTerrain(context.mapData, context.playerX!, context.playerY!, 2);
+    const weatherContext = getWeatherContext(context.mapData, context);
+    const timeContext = getTimeContext(context);
+
     const prompt = `
         You are the narrator for an immersive, text-based, raw and unflinching, super-historically-accurate educational historical simulation game. Describe what the player character experiences through their senses. Be precise, crisp (no purple prose!) yet evocative.
-        
+
         CONTEXT:
         - View: I am in a ${viewMode} view.
-        - Time: It is ${timeOfDay} during the ${historicalEra.toLowerCase().replace(/_/g, ' ')}.
+        - Precise Time: It is ${timeContext} during the ${historicalEra.toLowerCase().replace(/_/g, ' ')}.
         - Climate: The climate is ${climate.toLowerCase()}.
         - My exact location is a tile with these properties: ${JSON.stringify(currentTile)}. (If a tile is on water, it almost always means the player is embarked on a boat)
-        - General environmental context: [Ambiance system deprecated - using raw tile/climate data instead]
+        - Surrounding terrain: ${surroundingTerrain}
+        - Weather conditions: ${weatherContext}
         ${tamedAnimalsDescription ? `- IMPORTANT - Tamed Animals: ${tamedAnimalsDescription}` : ''}
-        
+
         TASK:
         Write a single, short paragraph from a first-person perspective ("You see...", "You hear...").
-        Describe the sights, sounds, smells, and feelings of this precise moment. 
+        Describe the sights, sounds, smells, and feelings of this precise moment, including environmental hazards.
+        IMPORTANT: Reference the specific time of day (e.g., "at this midnight hour", "in the early morning light", "as noon approaches").
+        If trapped by cliffs or deep water, mention the feeling of being hemmed in or isolated.
+        If weather is extreme, describe its physical effects (cold numbing fingers, heat beating down, etc.).
         ${tamedAnimalsDescription ? 'Include your tamed animal companion(s) in the description - what are they doing, how do they react to the environment?' : ''}
         Do not give game advice or mention stats. Do not put it in quotes.
     `;
     
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite-preview-09-2025', contents: prompt });
     return response.text;
 }
 
@@ -1264,7 +1481,7 @@ export async function enhanceCharacterProfile(character: PlayerCharacter, contex
         Return ONLY a valid JSON object with the keys: "name", "profession", and "backstory".
         Example response:
         {
-            "name": "Alaric the Grim",
+            "name": "Alaric",
             "profession": "Exiled Blacksmith",
             "backstory": "Alaric was once the most sought-after blacksmith in the capital, his skill with steel matched only by his fiery temper. After a dispute with a powerful guild master left a nobleman's prize stallion shod incorrectly, he was forced to flee under threat of imprisonment."
         }
@@ -2104,7 +2321,7 @@ export async function generateFarmerDecision(
 }`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-lite',
+            model: 'gemini-2.5-flash-lite-preview-09-2025',
             contents: fullPrompt
         });
 
@@ -2379,7 +2596,7 @@ export async function generateNpcQuestOffer(
     
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-lite',
+            model: 'gemini-2.5-flash-lite-preview-09-2025',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -2833,7 +3050,7 @@ RESPONSE FORMAT - JSON ONLY:
 
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-lite-preview-09-2025',
             contents: prompt,
             config: {
                 temperature: 0.7,

@@ -50,6 +50,7 @@ import { addDiscussionToHistory } from '../services/sourceDiscussionPersistence'
 import { isSafari } from '../utils/safariUtils';
 import { useNpcHelperMode } from './NpcHelperModeHandler';
 import { initiateHelperMode } from '../services/npcHelperService';
+import { LanguageFamilyTree } from './LanguageFamilyTree';
 
 // Styles for animations
 const styles = `
@@ -249,6 +250,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const [tradeStatusMessage, setTradeStatusMessage] = useState<string | null>(null);
     const [showTradeUnlockAnimation, setShowTradeUnlockAnimation] = useState(false);
     
+    // Language tree modal state
+    const [showLanguageTree, setShowLanguageTree] = useState(false);
+    const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
+
     // Taming states
     const [tamingApproach, setTamingApproach] = useState('');
     const [tamingInProgress, setTamingInProgress] = useState(false);
@@ -407,13 +412,23 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         if (!playerCharacter) return;
         if (!hasFetchedInitialDialogue.current) {
             hasFetchedInitialDialogue.current = true;
+
+            // Auto-trigger combat for hostile farm NPCs
+            if (isNpc(target) && target.id?.startsWith('farm_') && target.isHostile) {
+                console.log('[Combat] Auto-triggering combat with hostile farm defender:', target.name);
+                setTimeout(() => {
+                    onInitiateCombat(target);
+                }, 100);
+                return;
+            }
+
             setIsLoading(true);
-            
+
             if (isNpc(target)) {
                 // Generate appropriate greeting based on whether NPC knows the player
                 const hasMetBefore = currentTarget.memory?.conversationSummaries && currentTarget.memory.conversationSummaries.length > 0;
                 const greeting = hasMetBefore ? "I approach again." : "Hello.";
-                
+
                 generateEncounterDialogue(currentTarget, currentTarget.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage)
                     .then(response => {
                         const initialEntry: DialogueEntry = {
@@ -810,16 +825,28 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     lowerResponse.includes('i\'ll show you') ||
                     lowerResponse.includes('let me show you')) {
 
-                    // Extract destination from context (home, shop, place of interest)
-                    let destination = { x: target.x + Math.floor(Math.random() * 10) - 5, y: target.y + Math.floor(Math.random() * 10) - 5 };
-                    let destinationName = 'my place';
+                    // Use NPC's actual home or workplace location
+                    let destination = target.homeLocation ||
+                                    target.workplaceLocation ||
+                                    { x: target.x + 5, y: target.y }; // Fallback to nearby location
 
-                    if (lowerResponse.includes('home') || lowerResponse.includes('house')) {
+                    let destinationName = 'my favorite spot';
+
+                    // Determine destination based on dialogue context
+                    if (target.homeLocation && (lowerResponse.includes('home') || lowerResponse.includes('house') || lowerResponse.includes('place'))) {
+                        destination = target.homeLocation;
                         destinationName = `${target.name}'s home`;
-                    } else if (lowerResponse.includes('shop') || lowerResponse.includes('workshop')) {
+                    } else if (target.workplaceLocation && (lowerResponse.includes('shop') || lowerResponse.includes('workshop') || lowerResponse.includes('work'))) {
+                        destination = target.workplaceLocation;
                         destinationName = `${target.name}'s workshop`;
-                    } else if (lowerResponse.includes('live') || lowerResponse.includes('stay')) {
-                        destinationName = 'where I live';
+                    } else if (target.homeLocation) {
+                        // Default to home if they have one
+                        destination = target.homeLocation;
+                        destinationName = `${target.name}'s home`;
+                    } else if (target.workplaceLocation) {
+                        // Otherwise workplace
+                        destination = target.workplaceLocation;
+                        destinationName = `${target.name}'s workplace`;
                     }
 
                     // Initiate helper mode FIRST, then close modal
@@ -1050,7 +1077,16 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             <div className="mt-3 p-2 bg-slate-900/40 rounded-lg border border-slate-700/30">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className="text-xs font-semibold text-amber-400/80">Language:</span>
-                                                    <span className="text-xs font-medium text-slate-300">{language.name}</span>
+                                                    <span
+                                                        className="text-xs font-medium text-slate-300 cursor-pointer hover:text-amber-400 transition-colors underline decoration-dotted"
+                                                        onClick={() => {
+                                                            setSelectedLanguageId(language.id);
+                                                            setShowLanguageTree(true);
+                                                        }}
+                                                        title="Click to explore language family tree"
+                                                    >
+                                                        {language.name}
+                                                    </span>
                                                 </div>
                                                 {language.historicalContext && (
                                                     <p className="text-xs text-slate-400 italic leading-relaxed">
@@ -2044,6 +2080,19 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Language Family Tree Modal */}
+            {showLanguageTree && selectedLanguageId && (
+                <LanguageFamilyTree
+                    isOpen={showLanguageTree}
+                    onClose={() => {
+                        setShowLanguageTree(false);
+                        setSelectedLanguageId(null);
+                    }}
+                    initialLanguageId={selectedLanguageId}
+                    currentYear={playerCharacter?.year || 1500}
+                />
+            )}
         </>
     );
 };

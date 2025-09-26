@@ -13,6 +13,7 @@ interface LiminalTravelState {
     destination: string;
     originArea: string;
     originDirection: AdjacencyDirection;
+    key: string; // Added to store the liminal key for proper naming
 }
 
 const getInitialDate = (): GameDate => {
@@ -74,11 +75,18 @@ export const useGameState = () => {
     }, [gameDate.month]);
 
     const currentTimeOfDay = useMemo((): TimeOfDay => {
-        if (gameTimeHours >= 5 && gameTimeHours < 8) return 'Dawn';
+        // More detailed time gradations
+        if (gameTimeHours >= 4 && gameTimeHours < 6) return 'Predawn';
+        if (gameTimeHours >= 6 && gameTimeHours < 8) return 'Dawn';
         if (gameTimeHours >= 8 && gameTimeHours < 12) return 'Morning';
-        if (gameTimeHours >= 12 && gameTimeHours < 16) return 'Midday';
-        if (gameTimeHours >= 16 && gameTimeHours < 19) return 'Afternoon';
-        if (gameTimeHours >= 19 && gameTimeHours < 21) return 'Dusk';
+        if (gameTimeHours >= 12 && gameTimeHours < 15) return 'Midday';
+        if (gameTimeHours >= 15 && gameTimeHours < 17) return 'Afternoon';
+        if (gameTimeHours >= 17 && gameTimeHours < 18) return 'Late Afternoon';
+        if (gameTimeHours >= 18 && gameTimeHours < 19) return 'Golden Hour';
+        if (gameTimeHours >= 19 && gameTimeHours < 20) return 'Dusk';
+        if (gameTimeHours >= 20 && gameTimeHours < 21) return 'Late Twilight';
+        if (gameTimeHours >= 21 && gameTimeHours < 23) return 'Early Evening';
+        if (gameTimeHours >= 23 || gameTimeHours < 4) return 'Night';
         return 'Night';
     }, [gameTimeHours]);
 

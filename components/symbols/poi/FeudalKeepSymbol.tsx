@@ -23,17 +23,27 @@ const FeudalKeepSymbol: React.FC<FeudalKeepSymbolProps> = ({ x, y, size }) => {
             {/* Main Keep Front Wall */}
             <rect x={x + size * 0.25} y={y + size * 0.1} width={size * 0.5} height={size * 0.8} fill={stoneColor} stroke={outlineColor} strokeWidth="0.3" />
             
-            {/* Crenellations */}
-            {Array.from({ length: 4 }, (_, i) => (
+            {/* Crenellations - Fixed spacing */}
+            {Array.from({ length: 5 }, (_, i) => (
                 <g key={`cren-group-${i}`}>
-                    <path d={`M ${x + size * 0.25 + i * (size * 0.125) + size*0.06} ${y+size*0.05} L ${x + size * 0.25 + i * (size * 0.125) + size*0.06 + depth*0.3} ${y+size*0.05-depth*0.15} L ${x + size * 0.25 + i * (size * 0.125) + size*0.06 + depth*0.3} ${y+size*0.1-depth*0.15} L ${x + size * 0.25 + i * (size * 0.125) + size*0.06} ${y+size*0.1} Z`} fill={shadowColor} />
-                    <rect x={x + size * 0.25 + i * (size * 0.125)} y={y + size * 0.05} width={size * 0.06} height={size * 0.05} fill={stoneColor} />
+                    {/* Crenellation 3D side */}
+                    <path d={`M ${x + size * 0.25 + i * (size * 0.1) + size * 0.05} ${y + size * 0.05} L ${x + size * 0.25 + i * (size * 0.1) + size * 0.05 + depth * 0.3} ${y + size * 0.05 - depth * 0.15} L ${x + size * 0.25 + i * (size * 0.1) + size * 0.05 + depth * 0.3} ${y + size * 0.1 - depth * 0.15} L ${x + size * 0.25 + i * (size * 0.1) + size * 0.05} ${y + size * 0.1} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.2" />
+                    {/* Crenellation front face */}
+                    <rect x={x + size * 0.25 + i * (size * 0.1)} y={y + size * 0.05} width={size * 0.05} height={size * 0.05} fill={stoneColor} stroke={outlineColor} strokeWidth="0.2" />
                 </g>
             ))}
             
-            {/* Corner Turret */}
+            {/* Corner Turret with 3D side */}
             <rect x={x + size * 0.65} y={y} width={size * 0.15} height={size * 0.4} fill={stoneColor} stroke={outlineColor} strokeWidth="0.2" />
-            <path d={`M ${x + size * 0.65} ${y} L ${x + size * 0.725} ${y - size * 0.1} L ${x + size * 0.8} ${y} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.2" />
+
+            {/* Turret 3D side */}
+            <path d={`M ${x + size * 0.8} ${y} L ${x + size * 0.8 + depth * 0.2} ${y - depth * 0.1} L ${x + size * 0.8 + depth * 0.2} ${y + size * 0.4 - depth * 0.1} L ${x + size * 0.8} ${y + size * 0.4} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.2" />
+
+            {/* Turret roof sitting ON turret */}
+            <path d={`M ${x + size * 0.65} ${y} L ${x + size * 0.725} ${y - size * 0.08} L ${x + size * 0.8} ${y} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.2" />
+
+            {/* Turret roof 3D side */}
+            <path d={`M ${x + size * 0.8} ${y} L ${x + size * 0.8 + depth * 0.2} ${y - depth * 0.1} L ${x + size * 0.725 + depth * 0.2} ${y - size * 0.08 - depth * 0.1} L ${x + size * 0.725} ${y - size * 0.08} Z`} fill={roofColor} style={{filter: 'brightness(0.7)'}} stroke={outlineColor} strokeWidth="0.2" />
         </g>
     );
 };

@@ -552,7 +552,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 "Zagros Highlands": { N: "Caspian Foothills", S: "Shiraz Valley", E: "Isfahan Basin", W: "Khuzestan Plain" },
 "Caspian Foothills": { N: "LIMINAL_CASPIAN_SEA_TO_EUROPE", S: "Alborz Mountains", E: "Harappa Basin", W: "Tbilisi Valley" },
 "Dasht-e Kavir": { N: "Alborz Mountains", S: "Shiraz Valley", E: "Harappa Basin", W: "Khorasan" },
-"Shiraz Valley": { N: "Isfahan Basin", S: "Zagros Highlands", E: "Harappa Basin", W: "Zagros Highlands" },
+"Shiraz Valley": { N: "Isfahan Basin", S: "Zagros Highlands", E: "Thar Desert Margin", W: "Zagros Highlands" },
 "Alborz Mountains": { N: "Caspian Foothills", E: "Harappa Basin", W: "Tbilisi Valley", S: "Isfahan Basin" },
 
 // --- Caucasus

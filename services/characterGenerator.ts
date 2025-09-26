@@ -425,12 +425,18 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     
     const noise = new ValueNoise(Date.now() + Math.random() * 10000);
     const dateInfo = parseDateString(context.date);
-    const culturalZone = mapLocationToCulture(context.location, dateInfo.year);
-    const generationContext = { 
-        era: dateInfo.era as HistoricalEra, 
+    // Use ethnicity from spec if provided, otherwise geographic cultural zone
+    const culturalZone = (spec as any).ethnicity || mapLocationToCulture(context.location, dateInfo.year);
+    const generationContext = {
+        era: dateInfo.era as HistoricalEra,
         culturalZone,
-        region: finalContext.region,
+        region: context.region,
     };
+
+    // Log ethnicity usage for debugging
+    if ((spec as any).ethnicity) {
+        console.log(`[Character Generator] Using ethnicity '${(spec as any).ethnicity}' for character generation (geographic zone would be: ${mapLocationToCulture(context.location, dateInfo.year)})`);
+    }
     
     // Generate base profile but allow overrides from spec
     let baseProfile = generateBaseProfile(noise, generationContext);
@@ -1089,9 +1095,17 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         diseaseHealth, // Add disease health with potential disease
         attributes, // Add generated attribute badges
     };
-    
+
+    // Add ethnicCulturalZone if ethnicity is different from geographic zone
+    const specEthnicity = (spec as any).ethnicity;
+    const geographicZone = mapLocationToCulture(context.location, dateInfo.year);
+    if (specEthnicity && specEthnicity !== geographicZone) {
+        (character as any).ethnicCulturalZone = specEthnicity;
+        console.log(`[Character Generator] Set ethnicCulturalZone '${specEthnicity}' for ${name} (geographic zone: ${geographicZone})`);
+    }
+
     console.log(`[Character Generator] Generated custom character ${name}, a ${role} with specifications`);
-    
+
     return character;
 }
 

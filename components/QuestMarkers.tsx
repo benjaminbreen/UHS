@@ -68,13 +68,23 @@ const QuestMarkers: React.FC<QuestMarkersProps> = ({
     <div className="absolute inset-0 pointer-events-none z-30">
       {currentObjectives.map((objective, index) => {
         if (!objective.targetLocation) return null;
-        
+
         const { x, y } = objective.targetLocation;
+
+        // Don't render quest markers at invalid coordinates (0,0)
+        if (x === 0 && y === 0) return null;
+
         const distance = getDistanceToPlayer(x, y);
-        
+
         // Calculate screen position
         const screenX = (x - playerX) * tileSize + viewportOffsetX;
         const screenY = (y - playerY) * tileSize + viewportOffsetY;
+
+        // Don't render if the screen position ends up at the origin (likely a bug)
+        if (Math.abs(screenX) < 10 && Math.abs(screenY) < 10) {
+          console.warn('[QuestMarkers] Skipping marker at suspicious screen position:', { x, y, screenX, screenY, playerX, playerY });
+          return null;
+        }
         
         // Don't render if too far off screen
         if (Math.abs(screenX - viewportOffsetX) > 1000 || Math.abs(screenY - viewportOffsetY) > 1000) {

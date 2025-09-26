@@ -121,23 +121,23 @@ export function NpcHelperOverlay({ npc, playerX, playerY }: NpcHelperOverlayProp
             {/* Dialogue bubble above NPC - SVG based */}
             {helperMode.dialogueBubble && (
                 <g className="pointer-events-none">
-                    {/* Bubble background */}
+                    {/* Bubble background - dark themed like game UI */}
                     <rect
                         x={-80}
                         y={-60}
                         width={160}
                         height={30}
                         rx={5}
-                        fill="rgba(255, 255, 255, 0.95)"
-                        stroke="rgba(59, 130, 246, 0.8)"
+                        fill="rgba(15, 23, 42, 0.95)"
+                        stroke="rgba(16, 185, 129, 0.8)"
                         strokeWidth="2"
                     />
 
                     {/* Bubble tail */}
                     <polygon
                         points="0,-30 -10,-20 10,-20"
-                        fill="rgba(255, 255, 255, 0.95)"
-                        stroke="rgba(59, 130, 246, 0.8)"
+                        fill="rgba(15, 23, 42, 0.95)"
+                        stroke="rgba(16, 185, 129, 0.8)"
                         strokeWidth="2"
                     />
 
@@ -153,15 +153,16 @@ export function NpcHelperOverlay({ npc, playerX, playerY }: NpcHelperOverlayProp
                          helperMode.mode === 'show' ? '🏠' : '👥'}
                     </text>
 
-                    {/* Text */}
+                    {/* Text - green like game UI */}
                     <text
                         x={0}
                         y={-40}
                         fontSize="14"
-                        fontFamily="'Courier New', monospace"
+                        fontFamily="ui-monospace, 'SF Mono', Monaco, monospace"
                         fontWeight="bold"
-                        fill="rgba(30, 41, 59, 0.9)"
+                        fill="rgba(134, 239, 172, 0.9)"
                         textAnchor="middle"
+                        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}
                     >
                         {helperMode.dialogueBubble}
                     </text>

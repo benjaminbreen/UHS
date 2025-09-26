@@ -9,7 +9,7 @@ import { useMap } from '../contexts/MapContext';
 import { useUI } from '../contexts/UIContext';
 import { getDaysInMonth, parseDateString, formatDateWithSeason, getSeasonFromDate } from '../utils/dateUtils';
 import { getNextMapArea } from '../utils/geographyUtils';
-import { calculateAnimalUpdate } from '../services/npcAIService';
+import { calculateAnimalUpdate } from '../services/animalAIService';
 import { safeCalculateNpcUpdate, shouldRemoveNpc } from '../services/safeNpcService';
 import { crossMapNpcService } from '../services/crossMapNpcService';
 import { spawnSingleAnimal } from '../generation/standardMap/features/animalGenerator';
@@ -380,6 +380,64 @@ const useCoreLoops = (
     return () => clearInterval(clockInterval);
   }, [isAnyModalOpen]); // Remove playerCharacter to prevent frequent recreations
 
+  // Drowning system - check every second when player is in water
+  useEffect(() => {
+    const drowningInterval = setInterval(() => {
+      if (isAnyModalOpen || !playerCharacter || viewMode !== 'standard') return;
+      if (controlledIconX === null || controlledIconY === null || !mapData) return;
+
+      // Check if player is in water and not on a boat
+      const currentTile = mapData.tiles[controlledIconY][controlledIconX];
+      const isInWater = ['RIVER', 'STREAM', 'LAKE', 'OCEAN', 'SHALLOW_OCEAN', 'DEEP_OCEAN',].includes(currentTile.biome as any);
+      const isOnBoat = playerMode === 'ship' || playerCharacter.currentVessel;
+
+      if (isInWater && !isOnBoat) {
+        // Player is drowning - apply damage every second
+        let drowningDamage = 2; // Base drowning damage per second
+
+        // Increase damage based on water type
+        if (currentTile.biome === 'DEEP_OCEAN' || currentTile.biome === 'OCEAN') {
+          drowningDamage = 4; // More dangerous in deep water
+        }
+
+        // Apply drowning damage
+        setPlayerCharacter(prev => {
+          if (!prev) return null;
+          const newHealth = Math.max(0, prev.health - drowningDamage);
+
+          // Check for death
+          if (newHealth <= 0 && onDeath) {
+            onDeath({
+              type: 'drowning',
+              description: `You drowned in the ${currentTile.biome.toLowerCase().replace(/_/g, ' ')}.`
+            });
+          }
+
+          return { ...prev, health: newHealth };
+        });
+
+        // Add drowning message to narration (throttled)
+        if (Math.random() < 0.1) { // Only 10% chance per second to avoid spam
+          const drowningMessages = [
+            "You struggle to stay afloat as the water pulls you under.",
+            "Your lungs burn as you fight against the current.",
+            "The cold water saps your strength with each passing moment.",
+            "You gasp for air as waves wash over your head.",
+            "Your body grows numb as hypothermia sets in."
+          ];
+          const randomMessage = drowningMessages[Math.floor(Math.random() * drowningMessages.length)];
+
+          setNarrationHistory(prev => [...prev, {
+            sender: 'narrator',
+            text: randomMessage
+          }]);
+        }
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(drowningInterval);
+  }, [isAnyModalOpen, playerCharacter, viewMode, controlledIconX, controlledIconY, mapData, playerMode, onDeath, setPlayerCharacter, setNarrationHistory]);
+
   // Clear animals when entering special or interior maps
   useEffect(() => {
     if (mapData?.mapType === 'special' || viewMode === 'interior') {
@@ -578,19 +636,23 @@ const useCoreLoops = (
               const approachingNPC = draft.find(npc => npc.id === approach.npcId);
               
               if (approachingNPC) {
+                // Extract values from proxy before async operations to prevent revocation errors
+                const npcName = approachingNPC.name;
+                const npcData = { ...approachingNPC }; // Shallow copy for async operations
+
                 const currentTime = Date.now();
-                const canGenerateNarration = !npcNarrationHistory.current.has(approach.npcId) && 
+                const canGenerateNarration = !npcNarrationHistory.current.has(approach.npcId) &&
                                            currentTime - lastNarrationTime.current > 60000; // 1 minute throttle
-                
+
                 // Show immediate toast notification
                 const approachIcon = approach.isHostile ? '⚠️' : '💬';
                 const toastType = approach.isHostile ? 'error' : 'info';
-                showToast(`${approachIcon} ${approachingNPC.name} approaches`, toastType);
+                showToast(`${approachIcon} ${npcName} approaches`, toastType);
                 
                 if (canGenerateNarration) {
                   // Generate rich LLM narration (once per NPC, max 1 per minute)
                   generateNPCApproachNarration(
-                    approachingNPC,
+                    npcData,
                     playerCharacter,
                     approach.approachType,
                     approach.distance
@@ -599,25 +661,25 @@ const useCoreLoops = (
                       sender: 'narrator',
                       text: narration
                     }]);
-                    
+
                     // Track this NPC and update last narration time
                     npcNarrationHistory.current.add(approach.npcId);
                     lastNarrationTime.current = currentTime;
-                    
-                    console.log(`[NPCNarration] Generated for ${approachingNPC.name}: ${narration}`);
+
+                    console.log(`[NPCNarration] Generated for ${npcName}: ${narration}`);
                   }).catch(err => {
                     console.error('Failed to generate approach narration:', err);
                     // Fallback to basic narration
                     setNarrationHistory(prev => [...prev, {
-                      sender: 'narrator', 
-                      text: `${approachingNPC.name} approaches you with ${approach.isHostile ? 'hostile' : 'curious'} intent.`
+                      sender: 'narrator',
+                      text: `${npcName} approaches you with ${approach.isHostile ? 'hostile' : 'curious'} intent.`
                     }]);
                   });
                 } else {
                   // Basic fallback for throttled cases
                   setNarrationHistory(prev => [...prev, {
                     sender: 'narrator',
-                    text: `${approachingNPC.name} draws closer to you.`
+                    text: `${npcName} draws closer to you.`
                   }]);
                 }
                 

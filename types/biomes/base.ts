@@ -147,6 +147,13 @@ export enum BiomeType {
   TREASURY = 'TREASURY',
   STAIRS_UP = 'STAIRS_UP',
   STAIRS_DOWN = 'STAIRS_DOWN',
+
+  // Workshop Equipment (for craftsman buildings)
+  ANVIL = 'ANVIL',                    // Smithy anvil for metalworking
+  OVEN_BRICK = 'OVEN_BRICK',          // Brick oven for baking/pottery kilns
+  SPINNING_WHEEL = 'SPINNING_WHEEL',   // For thread/textile production
+  LOOM = 'LOOM',                       // Weaving loom for textiles
+  WORKBENCH = 'WORKBENCH',             // Carpentry workbench
   
   // Additional Architectural Elements
   FIRE_PIT = 'FIRE_PIT',

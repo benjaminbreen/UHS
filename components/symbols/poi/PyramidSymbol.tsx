@@ -131,10 +131,10 @@ const PyramidSymbol: React.FC<PyramidSymbolProps> = ({ x, y, size, seed }) => {
             
             {/* Right face (in shadow) with perspective */}
             <g>
-                <path 
+                <path
                     d={`M ${scaledSize * 0.85} ${scaledSize * 0.78}
                         L ${scaledSize * 0.5} ${scaledSize * 0.2}
-                        L ${scaledSize * 0.72} ${scaledSize * 0.15}
+                        L ${scaledSize * 0.65} ${scaledSize * 0.25}
                         L ${scaledSize * 0.95} ${scaledSize * 0.73}
                         Z`}
                     fill={`url(#shadow-${uniqueId})`}

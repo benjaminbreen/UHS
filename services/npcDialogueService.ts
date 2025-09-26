@@ -8,6 +8,24 @@ import { NpcEntity, PlayerCharacter, MapData, HistoricalEra, CulturalZone } from
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { guardPermissionService } from './guardPermissionService';
+import { atmosphericContextService, type WeatherState, type GameTimeState, type GameDateState } from './atmosphericContextService';
+
+/**
+ * Helper function to create atmospheric-aware dialogue context
+ */
+export function createAtmosphericDialogueContext(
+  baseContext: Omit<DialogueContext, 'gameTime' | 'gameDate' | 'weather'>,
+  gameTime?: GameTimeState,
+  gameDate?: GameDateState,
+  weather?: WeatherState
+): DialogueContext {
+  return {
+    ...baseContext,
+    gameTime,
+    gameDate,
+    weather
+  };
+}
 
 export interface DialogueContext {
   era: HistoricalEra;
@@ -17,6 +35,11 @@ export interface DialogueContext {
   isMarketplace?: boolean;
   timeOfDay?: string;
   season?: string;
+
+  // Atmospheric context (optional)
+  gameTime?: GameTimeState;
+  gameDate?: GameDateState;
+  weather?: WeatherState;
 }
 
 export interface DialogueResponse {
@@ -37,6 +60,17 @@ export async function generateNpcGreeting(
   context: DialogueContext,
   playerCharacter?: PlayerCharacter
 ): Promise<DialogueResponse> {
+  // Get atmospheric context if available
+  let atmosphericPrompt = '';
+  if (context.gameTime && context.gameDate && context.weather) {
+    const atmosphericContext = atmosphericContextService.getContext(
+      context.gameTime,
+      context.gameDate,
+      context.weather
+    );
+    atmosphericPrompt = atmosphericContextService.getNpcPromptAdditions(atmosphericContext);
+  }
+
   const prompt = `
 You are ${npc.name}, a ${npc.age}-year-old ${npc.role} in ${context.location} during ${context.year}.
 
@@ -51,7 +85,7 @@ CONTEXT:
 - Cultural Zone: ${context.culturalZone}
 - Location: ${context.isMarketplace ? 'marketplace' : 'local area'}
 - Time: ${context.timeOfDay || 'midday'}
-- Season: ${context.season || 'spring'}
+- Season: ${context.season || 'spring'}${atmosphericPrompt}
 
 ${playerCharacter ? `A ${playerCharacter.profession} named ${playerCharacter.name} approaches you.` : 'Someone approaches you.'}
 
@@ -60,6 +94,7 @@ Generate a brief, authentic greeting or comment (1-2 sentences) that reflects:
 2. The historical period and cultural context
 3. Your current activity or thoughts
 4. Appropriate level of familiarity (first meeting)
+5. Any notable celestial phenomena or atmospheric conditions (if relevant)
 
 Keep it natural, period-appropriate, and under 25 words. Show your character's personality subtly.
   `;
@@ -84,6 +119,17 @@ export async function generateNpcResponse(
   context: DialogueContext,
   playerCharacter?: PlayerCharacter
 ): Promise<DialogueResponse> {
+  // Get atmospheric context if available
+  let atmosphericPrompt = '';
+  if (context.gameTime && context.gameDate && context.weather) {
+    const atmosphericContext = atmosphericContextService.getContext(
+      context.gameTime,
+      context.gameDate,
+      context.weather
+    );
+    atmosphericPrompt = atmosphericContextService.getNpcPromptAdditions(atmosphericContext);
+  }
+
   const prompt = `
 You are ${npc.name}, a ${npc.age}-year-old ${npc.role} in ${context.location} during ${context.year}.
 
@@ -97,7 +143,7 @@ CHARACTER DETAILS:
 CONTEXT:
 - Era: ${context.era}
 - Cultural Zone: ${context.culturalZone}
-- Location: ${context.isMarketplace ? 'marketplace' : 'local area'}
+- Location: ${context.isMarketplace ? 'marketplace' : 'local area'}${atmosphericPrompt}
 
 ${playerCharacter ? `${playerCharacter.name}, a ${playerCharacter.profession}, says to you: "${playerInput}"` : `Someone says to you: "${playerInput}"`}
 
@@ -106,6 +152,7 @@ Respond naturally as your character would, considering:
 2. The historical context and cultural norms
 3. Your personality and likely knowledge
 4. Whether this is marketplace business or casual conversation
+5. Any notable celestial phenomena or atmospheric conditions (if relevant)
 
 Determine if you would be willing to trade:
 - Merchants, traders, shopkeepers, and craftsmen should generally be open to trade

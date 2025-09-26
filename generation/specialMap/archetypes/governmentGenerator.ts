@@ -32,6 +32,7 @@ import {
   placeBarrelWithItems
 } from '../storageUtilitySystem';
 import { SpecialMapArchetype } from '../../../types/specialMapTypes';
+import { multiTileObjectManager, MultiTileObjectManager } from '../../../services/multiTileObjectService';
 
 // Import cultural generators to ensure they register
 import '../archetypes/cultures/nativeAmericanGenerators';
@@ -55,7 +56,7 @@ export function generateGovernmentForum(
   noise: ValueNoise,
   size: { width: number, height: number },
   subtype?: 'town_hall' | 'assembly_hall' | 'administrative_complex'
-): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[], multiTileObjects?: any[] } {
   
   const interactionZones: InteractionZone[] = [];
   const exitZones: ExitZone[] = [];
@@ -143,8 +144,8 @@ export function generateGovernmentForum(
       npcDensity: 'normal'
     });
   }
-  
-  return { tiles, interactionZones, exitZones, rooms };
+
+  return { tiles, interactionZones, exitZones, rooms, multiTileObjects: multiTileObjectManager.getObjects() };
 }
 
 /**
@@ -1738,7 +1739,7 @@ function generateTownHall(
   interactionZones: InteractionZone[],
   exitZones: ExitZone[],
   rooms: RoomDefinition[]
-): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[], multiTileObjects?: any[] } {
   
   const centerX = Math.floor(size.width / 2);
   
@@ -1750,7 +1751,29 @@ function generateTownHall(
   
   fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2,
     config.culturalZone, config.era);
-  
+
+  // MULTI-TILE PILLARS - Grand civic architecture
+  const pillarHeight = MultiTileObjectManager.getPillarHeight(config);
+  const pillarMaterial = MultiTileObjectManager.getMaterialForContext(config);
+
+  console.log(`[TownHall Debug] Adding pillars with height ${pillarHeight}, material ${pillarMaterial}`);
+
+  // Place pillars in the council chamber to create a grand civic feel
+  if (size.width >= 12 && size.height >= 10) {
+    // Two pillars flanking the council area
+    const leftPillarX = Math.floor(size.width * 0.25);
+    const rightPillarX = Math.floor(size.width * 0.75);
+    const pillarY = 5; // In the council chamber area
+
+    // Left pillar
+    console.log(`[TownHall Debug] Placing left pillar at (${leftPillarX}, ${pillarY})`);
+    multiTileObjectManager.placePillar(tiles, leftPillarX, pillarY, pillarHeight, pillarMaterial);
+
+    // Right pillar
+    console.log(`[TownHall Debug] Placing right pillar at (${rightPillarX}, ${pillarY})`);
+    multiTileObjectManager.placePillar(tiles, rightPillarX, pillarY, pillarHeight, pillarMaterial);
+  }
+
   // MAIN COUNCIL CHAMBER - North section
   const councilY = 3;
   const councilWidth = size.width - 4;
@@ -1825,8 +1848,8 @@ function generateTownHall(
       npcDensity: 'normal'
     }
   );
-  
-  return { tiles, interactionZones, exitZones, rooms };
+
+  return { tiles, interactionZones, exitZones, rooms, multiTileObjects: multiTileObjectManager.getObjects() };
 }
 
 function generateAssemblyHall(
@@ -1837,7 +1860,7 @@ function generateAssemblyHall(
   interactionZones: InteractionZone[],
   exitZones: ExitZone[],
   rooms: RoomDefinition[]
-): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[], multiTileObjects?: any[] } {
   
   const centerX = Math.floor(size.width / 2);
   
@@ -1904,8 +1927,8 @@ function generateAssemblyHall(
     accessLevel: 'restricted',
     npcDensity: 'high'
   });
-  
-  return { tiles, interactionZones, exitZones, rooms };
+
+  return { tiles, interactionZones, exitZones, rooms, multiTileObjects: multiTileObjectManager.getObjects() };
 }
 
 function generateAdministrativeComplex(
@@ -1916,7 +1939,7 @@ function generateAdministrativeComplex(
   interactionZones: InteractionZone[],
   exitZones: ExitZone[],
   rooms: RoomDefinition[]
-): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[], multiTileObjects?: any[] } {
   
   const centerX = Math.floor(size.width / 2);
   
@@ -2003,6 +2026,6 @@ function generateAdministrativeComplex(
     accessLevel: 'restricted',
     npcDensity: 'high'
   });
-  
-  return { tiles, interactionZones, exitZones, rooms };
+
+  return { tiles, interactionZones, exitZones, rooms, multiTileObjects: multiTileObjectManager.getObjects() };
 }

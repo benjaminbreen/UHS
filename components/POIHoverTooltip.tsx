@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { TerrainStructure, NpcEntity } from '../types';
 import { getReligionDisplay, detectReligion } from '../constants/gameData/religionIcons';
 import { calculateHolySiteWealth } from '../constants/gameData/religiousEconomy';
@@ -42,6 +43,14 @@ const POIHoverTooltip: React.FC<POIHoverTooltipProps> = ({
   }, [visible]);
 
   if (!structure) return null;
+
+  // Don't render tooltips on mobile devices
+  const isMobile = window.innerWidth < 640; // sm breakpoint
+  if (isMobile) return null;
+
+  // Get portal element
+  const portalElement = document.getElementById('tooltip-portal');
+  if (!portalElement) return null;
 
   // Get key figure (highest ranking NPC at this location)
   const keyFigure = npcs
@@ -189,43 +198,34 @@ const POIHoverTooltip: React.FC<POIHoverTooltipProps> = ({
   // Calculate position to keep tooltip on screen
   const tooltipWidth = 240; // Approximate width
   const tooltipHeight = 120; // Approximate height
-  const offset = 10; // Distance from cursor
+  const offset = 20; // Distance from cursor
 
-  // Check if we're on the right side of the screen
-  const isRightSide = x > window.innerWidth / 2;
+  // Position tooltip near the cursor
+  let adjustedX = x + offset;
+  let adjustedY = y - tooltipHeight - offset;
 
-  // Apply offset based on screen position
-  let adjustedX;
-  if (isRightSide) {
-    // On right side: offset to the left of cursor
-    adjustedX = x - 400;  // Larger leftward offset for right side
-  } else {
-    // On left side: smaller offset works fine
-    adjustedX = x - 200;
+  // Bounds checking to keep tooltip on screen
+  if (adjustedX + tooltipWidth > window.innerWidth - 10) {
+    // If tooltip would go off right edge, show it to the left of cursor
+    adjustedX = x - tooltipWidth - offset;
   }
-
-  let adjustedY = y - offset;
-
-  // Simple bounds checking
   if (adjustedX < 10) {
     adjustedX = 10;
-  } else if (adjustedX > window.innerWidth - tooltipWidth - 10) {
-    adjustedX = window.innerWidth - tooltipWidth - 10;
   }
 
   if (adjustedY < 10) {
-    adjustedY = y + offset; // Show below if no room above
+    // Show below cursor if no room above
+    adjustedY = y + offset;
   }
-  
-  return (
+
+  const tooltipContent = (
     <div
-      className="fixed pointer-events-none z-50"
+      className="fixed pointer-events-none"
       style={{
         left: `${adjustedX}px`,
         top: `${adjustedY}px`,
         opacity,
-        transition: 'opacity 0.2s ease-in-out',
-        transform: 'translate(-50%, -100%)'
+        transition: 'opacity 0.2s ease-in-out'
       }}
     >
       <div className="bg-slate-900/95 backdrop-blur-sm border border-amber-500/50 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
@@ -239,7 +239,7 @@ const POIHoverTooltip: React.FC<POIHoverTooltipProps> = ({
             <p className="text-xs text-amber-400">{info.title}</p>
           </div>
         </div>
-        
+
         {/* Info sections */}
         <div className="space-y-1 text-xs">
           <div className="flex justify-between items-center">
@@ -253,6 +253,8 @@ const POIHoverTooltip: React.FC<POIHoverTooltipProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(tooltipContent, portalElement);
 };
 
 export default POIHoverTooltip;

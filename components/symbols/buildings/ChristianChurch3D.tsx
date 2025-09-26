@@ -41,10 +41,15 @@ const ChristianChurch3D: React.FC<ChristianChurch3DProps> = React.memo(({ x, y, 
     return (
         <g filter="url(#symbolShadow)">
             <defs>
-                 <linearGradient id={`stainedGlass-${uniqueId}`} x1="0" y1="0" x2="1" y2="1">
+                <linearGradient id={`stainedGlass-${uniqueId}`} x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0%" stopColor="#8b5cf6" />
                     <stop offset="50%" stopColor="#ef4444" />
                     <stop offset="100%" stopColor="#3b82f6" />
+                </linearGradient>
+                <linearGradient id={`roofGrad-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(210, 20%, 55%)" />
+                    <stop offset="50%" stopColor="hsl(210, 20%, 45%)" />
+                    <stop offset="100%" stopColor="hsl(210, 20%, 35%)" />
                 </linearGradient>
             </defs>
              {/* Main Nave - Enlarged */}
@@ -53,25 +58,25 @@ const ChristianChurch3D: React.FC<ChristianChurch3DProps> = React.memo(({ x, y, 
             <path d={`M ${x+width*1.2} ${mainY} L ${x+width*1.2+depth} ${mainY-depth*0.5} L ${x+width*1.2+depth} ${y+height-depth*0.5} L ${x+width*1.2} ${y+height} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.5"/>
             
             {/* Pitched Roof - Taller and wider */}
-            <path d={`M ${x-width*0.25} ${mainY} L ${x+width*0.5} ${mainY-height*0.7*scaleFactor} L ${x+width*1.25} ${mainY} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.5"/>
-            <path d={`M ${x+width*1.25} ${mainY} L ${x+width*1.25+depth} ${mainY-depth*0.5} L ${x+width*0.5+depth} ${mainY-height*0.7*scaleFactor-depth*0.5} L ${x+width*0.5} ${mainY-height*0.7*scaleFactor} Z`} fill={roofColor} style={{filter: 'brightness(0.7)'}} stroke={outlineColor} strokeWidth="0.5"/>
+            <path d={`M ${x-width*0.25} ${mainY} L ${x+width*0.5} ${mainY-height*0.7*scaleFactor} L ${x+width*1.25} ${mainY} Z`} fill={`url(#roofGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.5"/>
+            <path d={`M ${x+width*1.25} ${mainY} L ${x+width*1.25+depth} ${mainY-depth*0.5} L ${x+width*0.5+depth} ${mainY-height*0.7*scaleFactor-depth*0.5} L ${x+width*0.5} ${mainY-height*0.7*scaleFactor} Z`} fill="hsl(210, 20%, 30%)" stroke={outlineColor} strokeWidth="0.5"/>
             
             {/* Bell Tower - Taller and wider */}
             <rect x={x+width*0.9} y={y-height*0.3} width={18} height={height*1.5} fill={stoneColor} stroke={outlineColor} strokeWidth="0.5"/>
             <path d={`M ${x+width*0.9+18} ${y-height*0.3} L ${x+width*0.9+18+depth} ${y-height*0.3-depth*0.5} L ${x+width*0.9+18+depth} ${y+height*1.2-depth*0.5} L ${x+width*0.9+18} ${y+height*1.2} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.5"/>
-            <path d={`M ${x+width*0.9} ${y-height*0.3} L ${x+width*0.9+9} ${y-height*0.6} L ${x+width*0.9+18} ${y-height*0.3} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.5"/>
+            <path d={`M ${x+width*0.9} ${y-height*0.3} L ${x+width*0.9+9} ${y-height*0.6} L ${x+width*0.9+18} ${y-height*0.3} Z`} fill={`url(#roofGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.5"/>
 
             {/* Arched Windows */}
             {[...Array(isGothic ? 3 : 2)].map((_, i) => (
                 <g key={`window-${i}`}>
-                    <rect x={x - width*0.15 + 6 + i*12} y={mainY+15} width="9" height="12" fill={windowColor} />
-                    <path d={`M ${x - width*0.15 + 6 + i*12} ${mainY+15} A 4.5 6 0 0 1 ${x - width*0.15 + 15 + i*12} ${mainY+15}`} fill={isGothic ? stainedGlass : windowColor} />
+                    <rect x={x - width*0.15 + 6 + i*12} y={mainY+15} width="9" height="12" fill={windowColor} stroke={outlineColor} strokeWidth="0.3"/>
+                    <path d={`M ${x - width*0.15 + 6 + i*12} ${mainY+15} A 4.5 6 0 0 1 ${x - width*0.15 + 15 + i*12} ${mainY+15}`} fill={isGothic ? stainedGlass : windowColor} stroke={outlineColor} strokeWidth="0.3"/>
                 </g>
             ))}
 
             {/* Buttresses */}
             {isGothic && [...Array(3)].map((_,i) => (
-                 <rect key={`buttress-${i}`} x={x - width*0.2 + i * 16} y={mainY+8} width="5" height={mainHeight-8} fill={shadowColor} opacity="0.6"/>
+                 <rect key={`buttress-${i}`} x={x - width*0.2 + i * 16} y={mainY+8} width="5" height={mainHeight-8} fill={shadowColor} stroke={outlineColor} strokeWidth="0.3" opacity="0.6"/>
             ))}
         </g>
     );

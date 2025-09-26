@@ -28,10 +28,79 @@ import {
   AnimistShrineSymbol
 } from './index';
 
-export const getHolySiteSymbol = (religion: string, culture?: string) => {
+export const getHolySiteSymbol = (religion: string, culture?: string, holyPlaceType?: string) => {
   const rel = religion?.toLowerCase() || '';
   const cult = culture?.toUpperCase() || '';
-  
+  const placeType = holyPlaceType?.toLowerCase() || '';
+
+  // === SPECIFIC HOLY PLACE TYPES (check first) ===
+  if (placeType.includes('spirit house')) {
+    return ShrineSymbol; // Thai/Southeast Asian spirit houses
+  }
+  if (placeType.includes('sacred grove') || placeType.includes('grove')) {
+    return SacredGroveSymbol;
+  }
+  if (placeType.includes('burial mound') || placeType.includes('mound') || placeType.includes('temple mound')) {
+    return StandingStoneSymbol;
+  }
+  if (placeType.includes('stone circle') || placeType.includes('circle') || placeType.includes('standing stones')) {
+    return StandingStoneSymbol;
+  }
+
+  // Native American specific sites
+  if (placeType.includes('kiva') || placeType.includes('great kiva') || placeType.includes('pueblo kiva')) {
+    return AnimistShrineSymbol; // Underground ceremonial chambers
+  }
+  if (placeType.includes('medicine wheel')) {
+    return StandingStoneSymbol; // Sacred stone circles
+  }
+  if (placeType.includes('sun dance') || placeType.includes('dance ground') || placeType.includes('dance circle')) {
+    return SacredFireSymbol; // Ceremony grounds with sacred fire
+  }
+  if (placeType.includes('totem field') || placeType.includes('totem')) {
+    return TotemPoleSymbol;
+  }
+  if (placeType.includes('sweat house') || placeType.includes('ceremonial lodge')) {
+    return AnimistShrineSymbol;
+  }
+
+  // Polynesian/Oceanic sites
+  if (placeType.includes('marae') || placeType.includes('heiau')) {
+    return StandingStoneSymbol; // Stone ceremonial platforms
+  }
+  if (placeType.includes('moai')) {
+    return TotemPoleSymbol; // Easter Island statues
+  }
+
+  // Asian Buddhist sites
+  if (placeType.includes('wat') || placeType.includes('vihara') || placeType.includes('monastery')) {
+    return BuddhistTempleSymbol;
+  }
+  if (placeType.includes('stupa') || placeType.includes('dagoba') || placeType.includes('pagoda')) {
+    return StupaSymbol;
+  }
+
+  // European megalithic sites
+  if (placeType.includes('dolmen') || placeType.includes('megalith')) {
+    return StandingStoneSymbol;
+  }
+  if (placeType.includes('rune stone') || placeType.includes('stone ship')) {
+    return StandingStoneSymbol;
+  }
+
+  // Islamic sites
+  if (placeType.includes('madrasa') || placeType.includes('masjid') || placeType.includes('juma masjid')) {
+    return GenericMosqueSymbol;
+  }
+
+  // Specific religious buildings
+  if (placeType.includes('gurdwara')) {
+    return PagodaSymbol; // Sikh temples - distinctive domed architecture
+  }
+  if (placeType.includes('synagogue')) {
+    return SynagogueSymbol;
+  }
+
   // === CHRISTIANITY ===
   // Catholic
   if (rel.includes('roman catholic') || rel.includes('catholic') || rel.includes('papist')) {
@@ -80,8 +149,8 @@ export const getHolySiteSymbol = (religion: string, culture?: string) => {
   }
   
   // === BUDDHISM ===
-  if (rel.includes('theravada') || rel.includes('mahayana') || rel.includes('tibetan buddhis') ||
-      rel.includes('zen') || rel.includes('buddhist') || rel.includes('buddha') || 
+  if (rel.includes('theravada buddhism') || rel.includes('tibetan buddhism') || rel.includes('buddhism') ||
+      rel.includes('zen') || rel.includes('buddhist') || rel.includes('buddha') ||
       rel.includes('dharma') || rel.includes('sangha')) {
     // Use stupa for South Asian and specific Buddhist contexts
     if (rel.includes('stupa') || rel.includes('dagoba') || rel.includes('chaitya') ||
@@ -103,12 +172,12 @@ export const getHolySiteSymbol = (religion: string, culture?: string) => {
   }
   
   // === OTHER DHARMIC RELIGIONS ===
-  if (rel.includes('jain')) {
+  if (rel.includes('jain') || rel.includes('jainism')) {
     return HinduTempleSymbol; // Similar architecture
   }
-  
-  if (rel.includes('sikh')) {
-    return GenericChurchSymbol; // Gurdwara - could create specific symbol later
+
+  if (rel.includes('sikh') || rel.includes('sikhism') || rel.includes('gurdwara')) {
+    return PagodaSymbol; // Gurdwara - distinctive domed architecture, better than generic church
   }
   
   // === EAST ASIAN RELIGIONS ===
@@ -216,26 +285,42 @@ export const getHolySiteSymbol = (religion: string, culture?: string) => {
   }
   
   // === AFRICAN RELIGIONS ===
-  if (rel.includes('yoruba') || rel.includes('orisha') || rel.includes('vodun') || 
-      rel.includes('african traditional') || rel.includes('bantu') || 
-      rel.includes('khoisan') || rel.includes('malagasy')) {
+  if (rel.includes('yoruba traditional religion') || rel.includes('african traditional religion') ||
+      rel.includes('west african traditional religion') || rel.includes('central african traditional religion') ||
+      rel.includes('east african traditional religion') || rel.includes('southern african traditional religion') ||
+      rel.includes('igbo traditional religion') || rel.includes('malagasy traditional religion') ||
+      rel.includes('berber traditional religion') || rel.includes('ethiopian traditional religion')) {
     return AnimistShrineSymbol;
   }
   
   // === ZOROASTRIANISM ===
-  if (rel.includes('zoroastrian') || rel.includes('ahura mazda') || rel.includes('fire temple') || 
-      rel.includes('fire worship')) {
+  if (rel.includes('zoroastrianism') || rel.includes('persian zoroastrianism') || rel.includes('ahura mazda') ||
+      rel.includes('fire temple') || rel.includes('fire worship')) {
     return SacredFireSymbol;
+  }
+
+  // === OTHER RELIGIONS ===
+  if (rel.includes('jainism')) {
+    return HinduTempleSymbol; // Similar architecture
+  }
+
+  if (rel.includes('tengrism') || rel.includes('mongolian')) {
+    return AnimistShrineSymbol; // Central Asian shamanic traditions
+  }
+
+  if (rel.includes('manichaeism')) {
+    return SacredFireSymbol; // Dualistic fire-based religion
   }
   
   // === PACIFIC/OCEANIC ===
-  if (rel.includes('polynesian') || rel.includes('hawaiian') || rel.includes('maori') || 
-      rel.includes('pacific') || rel.includes('melanesian')) {
-    return TotemPoleSymbol; // Could be tiki statues
+  if (rel.includes('polynesian traditional religion') || rel.includes('hawaiian traditional religion') ||
+      rel.includes('maori traditional religion') || rel.includes('melanesian traditional religion') ||
+      rel.includes('micronesian traditional religion') || rel.includes('austronesian traditional religion')) {
+    return TotemPoleSymbol; // Could be tiki statues or marae structures
   }
-  
-  if (rel.includes('aboriginal australian')) {
-    return StandingStoneSymbol;
+
+  if (rel.includes('aboriginal dreamtime')) {
+    return StandingStoneSymbol; // Sacred stones and sites
   }
   
   // === CENTRAL ASIAN ===
@@ -244,7 +329,7 @@ export const getHolySiteSymbol = (religion: string, culture?: string) => {
   }
   
   // === GENERIC CATEGORIES ===
-  if (rel.includes('animis') || rel.includes('shaman') || rel.includes('spirit') || 
+  if (rel.includes('animis') || rel.includes('shaman') || rel.includes('spirit') ||
       rel.includes('ancestor') || rel.includes('local spirits')) {
     return AnimistShrineSymbol;
   }

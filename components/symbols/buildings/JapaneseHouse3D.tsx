@@ -70,15 +70,26 @@ const JapaneseHouse3D: React.FC<JapaneseHouse3DProps> = React.memo(({
             <ellipse cx={cx + 4} cy={y + height + 4} rx={houseWidth * 0.6} ry={houseWidth * 0.25} 
                 fill="rgba(0,0,0,0.3)" />
             
-            {/* Raised foundation platform */}
-            <rect 
-                x={cx - houseWidth * 0.55} 
-                y={houseY + houseHeight - 5} 
-                width={houseWidth * 1.1} 
-                height={8}
-                fill={darkWood} 
-                stroke={shadowColor} 
-                strokeWidth="0.8" 
+            {/* Enhanced raised foundation platform */}
+            <rect
+                x={cx - houseWidth * 0.55}
+                y={houseY + houseHeight - 7}
+                width={houseWidth * 1.1}
+                height={10}
+                fill={lightWood}
+                stroke={shadowColor}
+                strokeWidth="1.0"
+                opacity="0.95"
+            />
+            {/* Foundation detail line */}
+            <line
+                x1={cx - houseWidth * 0.55}
+                y1={houseY + houseHeight - 2}
+                x2={cx + houseWidth * 0.55}
+                y2={houseY + houseHeight - 2}
+                stroke={darkWood}
+                strokeWidth="0.5"
+                opacity="0.7"
             />
             
             {/* Main house structure */}
@@ -103,27 +114,92 @@ const JapaneseHouse3D: React.FC<JapaneseHouse3DProps> = React.memo(({
                 strokeWidth="0.8" 
             />
             
-            {/* Traditional curved Japanese roof */}
+            {/* Traditional curved Japanese roof with better colors */}
             {isGabled ? (
                 // Gabled roof style
-                <path 
-                    d={`M ${cx - houseWidth * 0.65} ${houseY} 
-                        L ${cx} ${houseY - houseHeight * 0.5} 
+                <path
+                    d={`M ${cx - houseWidth * 0.65} ${houseY}
+                        L ${cx} ${houseY - houseHeight * 0.5}
                         L ${cx + houseWidth * 0.65} ${houseY} Z`}
-                    fill={grayRoof} 
-                    stroke={shadowColor} 
-                    strokeWidth="0.8" 
+                    fill={grayRoof}
+                    stroke={shadowColor}
+                    strokeWidth="0.8"
                 />
             ) : (
                 // Hip roof style with curve
-                <path 
-                    d={`M ${cx - houseWidth * 0.65} ${houseY} 
-                        Q ${cx - houseWidth * 0.3} ${houseY - houseHeight * 0.4} ${cx} ${houseY - houseHeight * 0.5} 
+                <path
+                    d={`M ${cx - houseWidth * 0.65} ${houseY}
+                        Q ${cx - houseWidth * 0.3} ${houseY - houseHeight * 0.4} ${cx} ${houseY - houseHeight * 0.5}
                         Q ${cx + houseWidth * 0.3} ${houseY - houseHeight * 0.4} ${cx + houseWidth * 0.65} ${houseY} Z`}
-                    fill={grayRoof} 
-                    stroke={shadowColor} 
-                    strokeWidth="0.8" 
+                    fill={grayRoof}
+                    stroke={shadowColor}
+                    strokeWidth="0.8"
                 />
+            )}
+
+            {/* Simple window rectangles */}
+            {woodVariation[3] > 0.3 && (
+                <>
+                    {/* Left window - traditional style */}
+                    <rect
+                        x={cx - houseWidth * 0.35}
+                        y={houseY + houseHeight * 0.25}
+                        width={houseWidth * 0.12}
+                        height={houseHeight * 0.18}
+                        fill="rgba(20,20,25,0.7)"
+                        stroke={darkWood}
+                        strokeWidth="0.5"
+                    />
+                    {/* Window cross bars */}
+                    <line
+                        x1={cx - houseWidth * 0.29}
+                        y1={houseY + houseHeight * 0.25}
+                        x2={cx - houseWidth * 0.29}
+                        y2={houseY + houseHeight * 0.43}
+                        stroke={darkWood}
+                        strokeWidth="0.3"
+                    />
+                    <line
+                        x1={cx - houseWidth * 0.35}
+                        y1={houseY + houseHeight * 0.34}
+                        x2={cx - houseWidth * 0.23}
+                        y2={houseY + houseHeight * 0.34}
+                        stroke={darkWood}
+                        strokeWidth="0.3"
+                    />
+
+                    {/* Right window if not too small */}
+                    {houseWidth > size * 0.6 && (
+                        <>
+                            <rect
+                                x={cx + houseWidth * 0.23}
+                                y={houseY + houseHeight * 0.25}
+                                width={houseWidth * 0.12}
+                                height={houseHeight * 0.18}
+                                fill="rgba(20,20,25,0.7)"
+                                stroke={darkWood}
+                                strokeWidth="0.5"
+                            />
+                            {/* Window cross bars */}
+                            <line
+                                x1={cx + houseWidth * 0.29}
+                                y1={houseY + houseHeight * 0.25}
+                                x2={cx + houseWidth * 0.29}
+                                y2={houseY + houseHeight * 0.43}
+                                stroke={darkWood}
+                                strokeWidth="0.3"
+                            />
+                            <line
+                                x1={cx + houseWidth * 0.23}
+                                y1={houseY + houseHeight * 0.34}
+                                x2={cx + houseWidth * 0.35}
+                                y2={houseY + houseHeight * 0.34}
+                                stroke={darkWood}
+                                strokeWidth="0.3"
+                            />
+                        </>
+                    )}
+                </>
             )}
             
             {/* Roof 3D perspective */}
@@ -137,16 +213,16 @@ const JapaneseHouse3D: React.FC<JapaneseHouse3DProps> = React.memo(({
                 strokeWidth="0.8" 
             />
             
-            {/* Traditional roof tiles */}
+            {/* Traditional roof tiles with improved visibility */}
             {Array.from({length: 7}).map((_, i) => (
                 <path key={`tile-${i}`}
-                    d={`M ${cx - houseWidth * (0.6 - i * 0.1)} ${houseY - i * houseHeight * 0.06} 
-                        Q ${cx} ${houseY - houseHeight * 0.45 - i * houseHeight * 0.06} 
+                    d={`M ${cx - houseWidth * (0.6 - i * 0.1)} ${houseY - i * houseHeight * 0.06}
+                        Q ${cx} ${houseY - houseHeight * 0.45 - i * houseHeight * 0.06}
                         ${cx + houseWidth * (0.6 - i * 0.1)} ${houseY - i * houseHeight * 0.06}`}
-                    stroke={darkGray} 
-                    strokeWidth="0.3" 
+                    stroke={darkGray}
+                    strokeWidth="0.3"
                     fill="none"
-                    opacity="0.7"
+                    opacity="0.5"
                 />
             ))}
             
@@ -202,25 +278,42 @@ const JapaneseHouse3D: React.FC<JapaneseHouse3DProps> = React.memo(({
                 strokeWidth="0.5" 
             />
             
-            {/* Sliding paper doors (shoji) */}
+            {/* Sliding paper doors (shoji) with position variation */}
             {Array.from({length: 3}).map((_, doorIdx) => {
-                const doorX = cx - houseWidth * 0.25 + doorIdx * (houseWidth * 0.25);
+                // Add some randomness to door positions
+                const doorOffset = (woodVariation[doorIdx + 2] - 0.5) * houseWidth * 0.05;
+                const doorX = cx - houseWidth * 0.25 + doorIdx * (houseWidth * 0.25) + doorOffset;
                 const doorWidth = houseWidth * 0.2;
                 const doorHeight = houseHeight * 0.6;
                 const doorY = houseY + houseHeight * 0.25;
+                // Some doors can be partially open
+                const isOpen = woodVariation[doorIdx] > 0.7;
+                const openOffset = isOpen ? doorWidth * 0.3 : 0;
                 
                 return (
                     <g key={`door-${doorIdx}`}>
-                        {/* Door frame */}
-                        <rect 
-                            x={doorX} 
-                            y={doorY} 
-                            width={doorWidth} 
+                        {/* Door frame - can be partially open */}
+                        <rect
+                            x={doorX + openOffset}
+                            y={doorY}
+                            width={doorWidth - openOffset}
                             height={doorHeight}
-                            fill={paperWhite} 
-                            stroke={darkWood} 
-                            strokeWidth="0.6" 
+                            fill={paperWhite}
+                            stroke={darkWood}
+                            strokeWidth="0.6"
                         />
+                        {/* Show dark opening if door is open */}
+                        {isOpen && (
+                            <rect
+                                x={doorX}
+                                y={doorY}
+                                width={openOffset}
+                                height={doorHeight}
+                                fill="rgba(15,15,20,0.8)"
+                                stroke={darkWood}
+                                strokeWidth="0.4"
+                            />
+                        )}
                         
                         {/* Grid pattern (traditional shoji) */}
                         <line 

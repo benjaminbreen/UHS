@@ -66,14 +66,38 @@ const IncaStoneHouse3D: React.FC<IncaStoneHouse3DProps> = React.memo(({
             </defs>
             
             {/* Main stone walls */}
-            <rect 
-                x={houseX} 
-                y={houseY} 
-                width={houseWidth} 
+            <rect
+                x={houseX}
+                y={houseY}
+                width={houseWidth}
                 height={houseHeight}
-                fill={`url(#stone-${uniqueId})`} 
-                stroke={stoneDark} 
-                strokeWidth="0.6" 
+                fill={`url(#stone-${uniqueId})`}
+                stroke={stoneDark}
+                strokeWidth="0.6"
+            />
+
+            {/* 3D side wall - added missing depth */}
+            <path
+                d={`M ${houseX + houseWidth} ${houseY}
+                    L ${houseX + houseWidth + size * 0.15} ${houseY - size * 0.075}
+                    L ${houseX + houseWidth + size * 0.15} ${houseY + houseHeight - size * 0.075}
+                    L ${houseX + houseWidth} ${houseY + houseHeight}
+                    Z`}
+                fill={stoneDark}
+                stroke={stoneDark}
+                strokeWidth="0.6"
+            />
+
+            {/* 3D roof side */}
+            <path
+                d={`M ${houseX + houseWidth * 1.08} ${houseY}
+                    L ${houseX + houseWidth * 1.08 + size * 0.15} ${houseY - size * 0.075}
+                    L ${houseX + houseWidth * 0.5 + size * 0.15} ${houseY - height * 0.3 - size * 0.075}
+                    L ${houseX + houseWidth * 0.5} ${houseY - height * 0.3}
+                    Z`}
+                fill={thatchDark}
+                stroke={stoneDark}
+                strokeWidth="0.6"
             />
             
             {/* Simple trapezoidal doorway */}

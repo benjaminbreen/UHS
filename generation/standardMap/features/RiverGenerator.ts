@@ -318,11 +318,11 @@ function calculateDirectionScore(
 
     const altitudeDrop = currentTile.altitude - neighborTile.altitude;
     if (altitudeDrop > 0) {
-        score += altitudeDrop * 2000; 
+        score += altitudeDrop * 2000;
     } else {
-        score += altitudeDrop * 3000; 
-        if (altitudeDrop > -0.005 && pathLength > 5) score += 100; 
-        else return -Infinity; 
+        score -= Math.abs(altitudeDrop) * 3000; // FIX: Properly penalize uphill flow
+        if (altitudeDrop > -0.005 && pathLength > 5) score += 100;
+        else return -Infinity;
     }
     
     if (drainageTarget) {
@@ -363,7 +363,7 @@ function calculateDirectionScore(
         score -= 100;
     }
 
-    score += Math.random() * 5; 
+    score += Math.random() * 50; // Increased randomness for more natural meandering 
 
     return score;
 }

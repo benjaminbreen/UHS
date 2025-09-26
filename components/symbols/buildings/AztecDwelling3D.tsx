@@ -69,14 +69,44 @@ const AztecDwelling3D: React.FC<AztecDwelling3DProps> = React.memo(({ x, y, widt
         elements.push(<rect key="temple-door" x={templeX + templeWidth/2 - 3} y={templeY + templeHeight * 0.3} width={6} height={templeHeight*0.7} fill="#2c1e12"/>);
     }
   
-    // Stairs
+    // Stairs with 3D perspective
     const stairWidth = width * 0.3;
     const stairX = x + (width - stairWidth) / 2;
-    
+    const stairDepth = depth * 0.15;
+
     for(let i = 0; i < tiers * 6; i++) {
       const stepHeight = (height * 0.8) / (tiers * 6);
       const stepY = y + height - i * stepHeight;
-      elements.push(<rect key={`step-${i}`} x={stairX} y={stepY - stepHeight} width={stairWidth} height={stepHeight} fill={i%2 === 0 ? stairShadowColor : highlightColor} opacity="0.8"/>);
+      const stepTaper = i * 0.5; // Steps get narrower as they go up
+
+      // Step face
+      elements.push(
+        <rect
+          key={`step-face-${i}`}
+          x={stairX + stepTaper}
+          y={stepY - stepHeight}
+          width={stairWidth - stepTaper * 2}
+          height={stepHeight}
+          fill={i%2 === 0 ? stairShadowColor : highlightColor}
+          stroke={outlineColor}
+          strokeWidth="0.2"
+        />
+      );
+
+      // Step top (3D effect)
+      elements.push(
+        <path
+          key={`step-top-${i}`}
+          d={`M ${stairX + stepTaper} ${stepY - stepHeight}
+              L ${stairX + stepTaper + stairDepth} ${stepY - stepHeight - stairDepth * 0.3}
+              L ${stairX + stairWidth - stepTaper + stairDepth} ${stepY - stepHeight - stairDepth * 0.3}
+              L ${stairX + stairWidth - stepTaper} ${stepY - stepHeight} Z`}
+          fill={highlightColor}
+          opacity="0.6"
+          stroke={outlineColor}
+          strokeWidth="0.1"
+        />
+      );
     }
 
     // Add torch braziers for night lighting (33% chance)

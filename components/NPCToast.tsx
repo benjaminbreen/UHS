@@ -578,7 +578,7 @@ const NPCToast: React.FC<NPCToastProps> = ({
                             }, 1500);
                           } else {
                             // Otherwise, send refusal message for farmer to respond
-                            handleLLMResponse("I'm not leaving. This is public land.");
+                            handleLLMResponse("I'm not leaving.");
                           }
                           if (onRefuse) onRefuse();
                         }}

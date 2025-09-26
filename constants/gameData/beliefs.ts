@@ -109,7 +109,7 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   // Social and Political Worldviews
   {
     id: 'FEUDAL_OBLIGATION',
-    text: 'Accepts hierarchical social bonds as natural and necessary',
+    text: 'Believes hierarchical social bonds are natural and necessary',
     tags: ['social', 'hierarchical', 'traditional'],
     icon: '🤝'
   },
@@ -133,7 +133,7 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   },
   {
     id: 'COMMERCIAL_ACUMEN',
-    text: 'Views trade and profit as beneficial forces that improve society',
+    text: 'Believes trade and profit are beneficial forces that improve society',
     tags: ['economic', 'pragmatic', 'progressive'],
     icon: '💰'
   },

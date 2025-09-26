@@ -1070,7 +1070,7 @@ export const DISEASES: Disease[] = [
 
   {
     id: 'BRUCELLOSIS',
-    name: 'Brucellosis (Undulant Fever)',
+    name: 'Brucellosis',
     type: 'zoonotic',
     severity: 'moderate',
     isAnimalDisease: true, // Common in cattle, goats, pigs
@@ -1150,7 +1150,7 @@ export const DISEASES: Disease[] = [
 
   {
     id: 'PSITTACOSIS',
-    name: 'Psittacosis (Parrot Fever)',
+    name: 'Psittacosis',
     type: 'zoonotic',
     severity: 'moderate',
     isAnimalDisease: true, // Primarily in birds
@@ -1271,7 +1271,7 @@ export const DISEASES: Disease[] = [
 
   {
     id: 'GAOL_FEVER',
-    name: 'Gaol Fever (Typhus)',
+    name: 'Typhus',
     type: 'vector_borne',
     severity: 'severe',
     availableEras: ['MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL'],

@@ -39,7 +39,8 @@ const BuddhistTemple3D: React.FC<BuddhistTemple3DProps> = React.memo(({ x, y, wi
     for(let i=0; i<tiers; i++) {
         const tierWidth = width * (1 - i * 0.15) * scaleFactor;
         const tierHeight = (height / (tiers * 1.2)) * scaleFactor;
-        const tierX = x + (width - tierWidth)/2;
+        // Center building properly after scaling
+        const tierX = x + (width * scaleFactor - tierWidth) / 2 - (width * (scaleFactor - 1) / 2);
         const tierY = y + height - (i+1) * (height / (tiers * 1.1)) * scaleFactor;
         const tierDepth = depth * (1 - i * 0.15);
 
@@ -47,9 +48,9 @@ const BuddhistTemple3D: React.FC<BuddhistTemple3DProps> = React.memo(({ x, y, wi
         const roofHeight = tierHeight * 1.8;
         const roofY = tierY;
 
-        // Wall section - Enhanced stroke for visibility
-        elements.push(<rect key={`wall-${i}`} x={tierX} y={tierY} width={tierWidth} height={tierHeight} fill={wallColor} stroke={outlineColor} strokeWidth="0.4"/>);
-        elements.push(<path key={`side-${i}`} d={`M ${tierX+tierWidth} ${tierY} L ${tierX+tierWidth+tierDepth} ${tierY-tierDepth*0.5} L ${tierX+tierWidth+tierDepth} ${tierY+tierHeight-tierDepth*0.5} L ${tierX+tierWidth} ${tierY+tierHeight} Z`} fill={woodColor} stroke={outlineColor} strokeWidth="0.4"/>);
+        // Wall section - Standardized stroke width
+        elements.push(<rect key={`wall-${i}`} x={tierX} y={tierY} width={tierWidth} height={tierHeight} fill={wallColor} stroke={outlineColor} strokeWidth="0.5"/>);
+        elements.push(<path key={`side-${i}`} d={`M ${tierX+tierWidth} ${tierY} L ${tierX+tierWidth+tierDepth} ${tierY-tierDepth*0.5} L ${tierX+tierWidth+tierDepth} ${tierY+tierHeight-tierDepth*0.5} L ${tierX+tierWidth} ${tierY+tierHeight} Z`} fill={woodColor} stroke={outlineColor} strokeWidth="0.5"/>);
         
         // Roof section
         const roofPath = `M ${tierX-roofOverhang} ${roofY}
@@ -60,9 +61,11 @@ const BuddhistTemple3D: React.FC<BuddhistTemple3DProps> = React.memo(({ x, y, wi
         elements.push(<path key={`roof-${i}`} d={roofPath} fill={roofColor} stroke={outlineColor} strokeWidth="0.5"/>);
     }
     
-    // Finial on top - Taller and more prominent
-    elements.push(<line key="finial" x1={x+width/2} y1={y+height-tiers*(height/(tiers*1.1))*scaleFactor-height*0.35} x2={x+width/2} y2={y-height*0.2} stroke={goldColor} strokeWidth="2.5"/>);
-    elements.push(<circle key="finial-ball" cx={x+width/2} cy={y-height*0.2-2} r="4" fill={goldColor}/>);
+    // Finial on top - Simplified position calculation
+    const finialX = x + (width * scaleFactor) / 2 - (width * (scaleFactor - 1) / 2);
+    const finialTopY = y - height * 0.1;
+    elements.push(<line key="finial" x1={finialX} y1={y} x2={finialX} y2={finialTopY} stroke={goldColor} strokeWidth="2.5"/>);
+    elements.push(<circle key="finial-ball" cx={finialX} cy={finialTopY - 2} r="4" fill={goldColor}/>);
 
     return <g filter="url(#symbolShadow)">{elements}</g>;
 });

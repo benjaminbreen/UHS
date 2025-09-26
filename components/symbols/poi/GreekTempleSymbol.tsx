@@ -21,7 +21,14 @@ const GreekTempleSymbol: React.FC<GreekTempleSymbolProps> = ({ x, y, size, seed 
           <stop offset="0%" stopColor="#faf8f5" />
           <stop offset="100%" stopColor="#e0d8d0" />
         </linearGradient>
-        
+
+        <linearGradient id={`column-grad-${uniqueId}`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#e8e0d8" />
+          <stop offset="30%" stopColor="#faf8f5" />
+          <stop offset="70%" stopColor="#faf8f5" />
+          <stop offset="100%" stopColor="#d0c8c0" />
+        </linearGradient>
+
         <linearGradient id={`pediment-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#f5f0e8" />
           <stop offset="100%" stopColor="#d8d0c8" />
@@ -63,8 +70,8 @@ const GreekTempleSymbol: React.FC<GreekTempleSymbolProps> = ({ x, y, size, seed 
               fill="#d0c8c0"
             />
             
-            {/* Column shaft with entasis (slight bulge) */}
-            <path 
+            {/* Column shaft with entasis (slight bulge) - now with gradient */}
+            <path
               d={`M ${colX - scaledSize * 0.018} ${scaledSize * 0.7}
                   L ${colX - scaledSize * 0.016} ${scaledSize * 0.5}
                   L ${colX - scaledSize * 0.015} ${scaledSize * 0.45}
@@ -72,7 +79,7 @@ const GreekTempleSymbol: React.FC<GreekTempleSymbolProps> = ({ x, y, size, seed 
                   L ${colX + scaledSize * 0.016} ${scaledSize * 0.5}
                   L ${colX + scaledSize * 0.018} ${scaledSize * 0.7}
                   Z`}
-              fill={`url(#marble-grad-${uniqueId})`}
+              fill={`url(#column-grad-${uniqueId})`}
               stroke="#a09890"
               strokeWidth="0.4"
             />

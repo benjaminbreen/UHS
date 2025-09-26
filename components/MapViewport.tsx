@@ -65,10 +65,11 @@ type ActivePanel = 'farm' | null;
 
 interface MapViewportProps {
   mapVisible?: boolean;
+  isProcessingWorldWeaver?: boolean;
   onPlayerDeath?: (deathInfo: any) => void;
 }
 
-const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDeath }) => {
+const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
@@ -1315,13 +1316,13 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
                 timeOfDay={currentTimeOfDay}
               />
             ) : (
-              <TimeAwareBackground 
-                gameTimeHours={gameTimeHours} 
-                gameTimeMinutes={gameTimeMinutes} 
+              <TimeAwareBackground
+                gameTimeHours={isProcessingWorldWeaver ? 0 : gameTimeHours}
+                gameTimeMinutes={isProcessingWorldWeaver ? 0 : gameTimeMinutes}
                 viewMode={viewMode}
-                season={season}
-                climate={mapData?.climate}
-                weather={currentWeather}
+                season={isProcessingWorldWeaver ? 'winter' : season}
+                climate={isProcessingWorldWeaver ? 'tundra' : mapData?.climate}
+                weather={isProcessingWorldWeaver ? 'clear' : currentWeather}
               />
             )}
             
@@ -1341,6 +1342,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
               gameTimeMinutes={gameTimeMinutes}
               weather={currentWeather}
               gameDay={gameDate?.day || 1}
+              gameMonth={gameDate?.month || 1}
+              gameYear={gameDate?.year || 1500}
+              climate={mapData?.climate}
             />
             
             {/* Weather Effects - behind map but above background */}
@@ -1373,11 +1377,11 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
                className={`w-full h-full flex flex-col relative transition-all`}
                style={{
                  zIndex: 10,
-                 opacity: (mapVisible && !isMapTransitioning) ? 1 : 0,
-                 transform: (mapVisible && !isMapTransitioning) ? 'scale(1)' : 'scale(0.95)',
-                 transition: 'opacity 1.5s ease-out, transform 1.5s ease-out',
-                 transitionDelay: (mapVisible && !isMapTransitioning) ? '0s' : '0.5s',
-                 pointerEvents: (mapVisible && !isMapTransitioning) ? 'auto' : 'none'
+                 opacity: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 1 : 0,
+                 transform: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 'scale(1)' : 'scale(0.95)',
+                 transition: 'opacity 5s ease-out, transform 5s ease-out',
+                 transitionDelay: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? '0s' : '0s',
+                 pointerEvents: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 'auto' : 'none'
                }}
              >
               {/* POV Viewport - shows above map when toggled (only for standard map, not interior/special maps) */}

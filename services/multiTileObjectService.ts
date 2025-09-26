@@ -89,12 +89,14 @@ export class MultiTileObjectManager {
       tiles[tileY][x].biome = BiomeType.PILLAR;
       tiles[tileY][x].isBlocking = true;
       // Store metadata for rendering
-      (tiles[tileY][x] as any).multiTileData = {
+      const multiTileData = {
         objectId: pillar.id,
         isBase: h === 0,
         material: material,
         height: height
       };
+      (tiles[tileY][x] as any).multiTileData = multiTileData;
+      console.log(`[MultiTile Debug] Set multiTileData on tile (${x}, ${tileY}):`, multiTileData);
     }
     
     return true;

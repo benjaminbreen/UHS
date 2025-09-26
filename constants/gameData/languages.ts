@@ -172,6 +172,27 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'The language of Rome evolved into the Romance languages (Spanish, French, Italian, Portuguese, Romanian) and remained the lingua franca of Western scholarship until the 18th century.',
   },
 
+  ITALIAN: {
+    id: 'ITALIAN',
+    name: 'Italian',
+    nativeName: 'Italiano',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1200, 2025],
+    regions: ['Italy', 'San Marino', 'Vatican', 'Switzerland', 'Istria'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['LATIN'],
+    greetings: {
+      hello: 'Ciao',
+      goodbye: 'Arrivederci',
+      yes: 'Sì',
+      no: 'No',
+      thanks: 'Grazie',
+    },
+    llmPrompt: 'Emulate modern Italian. Romance language with rich vowel system. Extensive use of gestures (described in dialogue). Regional variations between north and south. Include food and art vocabulary. Use passionate, expressive tone.',
+    historicalContext: 'Evolved from Vulgar Latin, standardized during the Renaissance based on Tuscan dialect. Became unified national language after Italian unification in 1861.',
+  },
+
   ANCIENT_GREEK: {
     id: 'ANCIENT_GREEK',
     name: 'Ancient Greek',
@@ -491,21 +512,6 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'Spoken by Germanic tribes around 500 BCE-200 CE, this reconstructed language was the ancestor of English, German, Dutch, and Scandinavian languages.',
   },
 
-  GAULISH: {
-    id: 'GAULISH',
-    name: 'Gaulish',
-    nativeName: 'Galatis',
-    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
-    isReconstructed: true, // It is very poorly attested
-    script: ['Greek', 'Latin'],
-    period: [-600, 500],
-    regions: ['Gaul', 'Celtic Europe', 'Britannia'],
-    culturalZones: ['EUROPEAN' as CulturalZone],
-    description: 'A poorly-attested Continental Celtic language. Not a direct ancestor of Irish or Welsh.',
-    llmPrompt: 'This is a poorly attested language. Reconstruct plausible dialogue using vocabulary from known inscriptions and borrowings in French/Latin. For grammar, model it on related Insular Celtic languages (like Welsh or Irish), likely using a Verb-Subject-Object (VSO) word order and noun cases. The tone should reflect a pre-literate, oral tradition.',
-    historicalContext: 'The poorly-attested Continental Celtic language of ancient Gaul, largely replaced by Latin but leaving traces in French place names and vocabulary.',
-  },
-
   // Native American Ancient Languages
   PROTO_ALGONQUIAN: {
     id: 'PROTO_ALGONQUIAN',
@@ -723,6 +729,233 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'The language of troubadours and the Song of Roland, Old French bridged Latin and modern French, spreading courtly culture across medieval Europe.',
   },
 
+  FRENCH: {
+    id: 'FRENCH',
+    name: 'Modern French',
+    nativeName: 'Français',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1600, 2025],
+    regions: ['France', 'Quebec', 'Belgium', 'Switzerland', 'West Africa', 'Global'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_FRENCH'],
+    greetings: {
+      hello: 'Bonjour',
+      goodbye: 'Au revoir',
+      yes: 'Oui',
+      no: 'Non',
+      thanks: 'Merci',
+    },
+    llmPrompt: 'Use modern French with appropriate register. Include formal/informal distinctions (tu/vous). Regional variations when relevant (Metropolitan, Quebec, African French). Rich vocabulary for cuisine, art, philosophy.',
+    historicalContext: 'Modern French became the language of diplomacy and high culture, spreading through colonial expansion to become a major world language spoken by 280 million people.',
+  },
+
+  // === MISSING ANCIENT MENA LANGUAGES ===
+
+  PHOENICIAN: {
+    id: 'PHOENICIAN',
+    name: 'Phoenician',
+    nativeName: '𐤊𐤍𐤏𐤍𐤉𐤌',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Phoenician alphabet',
+    period: [-1200, -300],
+    regions: ['Tyre', 'Sidon', 'Byblos', 'Carthage', 'Levantine coast', 'Mediterranean colonies'],
+    culturalZones: ['MENA' as CulturalZone],
+    successors: ['PUNIC', 'HEBREW', 'ARAMAIC'],
+    description: 'Maritime trading language that gave the world its alphabet',
+    greetings: {
+      hello: 'šlm',
+      goodbye: 'šlm',
+      yes: 'hn',
+      no: 'bl',
+      thanks: 'yšlm',
+    },
+    llmPrompt: 'Emulate the concise, practical style of Phoenician merchant inscriptions. VSO word order. Focus on maritime, commercial, and religious terminology. References to Baal, Astarte, and Melqart common. Tone should be pragmatic and direct, befitting a trading civilization.',
+    historicalContext: 'The Phoenicians (1200-300 BCE) spread the alphabet across the Mediterranean, influencing Greek, Latin, Arabic, and Hebrew scripts that billions use today.',
+  },
+
+  ANCIENT_HEBREW: {
+    id: 'ANCIENT_HEBREW',
+    name: 'Ancient Hebrew',
+    nativeName: 'עִבְרִית עַתִּיקָה',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Paleo-Hebrew',
+    period: [-1000, 500],
+    regions: ['Judah', 'Israel', 'Samaria', 'Jerusalem', 'Levant'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['PHOENICIAN'],
+    successors: ['MISHNAIC_HEBREW', 'ARAMAIC'],
+    description: 'Biblical Hebrew of the First Temple period',
+    greetings: {
+      hello: 'shalom',
+      goodbye: 'shalom',
+      yes: 'ken',
+      no: 'lo',
+      thanks: 'todah',
+    },
+    llmPrompt: 'Use Biblical Hebrew style with VSO word order and construct chains. Employ parallelism and poetic devices from Psalms and Prophets. Rich use of metaphor and covenantal language. Tone ranges from legal/priestly precision to prophetic poetry.',
+    historicalContext: 'The language of the Hebrew Bible (1000-500 BCE), preserved Jewish identity through millennia and was revived as Modern Hebrew in the 20th century.',
+  },
+
+  OLD_PERSIAN: {
+    id: 'OLD_PERSIAN',
+    name: 'Old Persian',
+    nativeName: '𐎠𐎼𐎹',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Old Persian cuneiform',
+    period: [-600, -300],
+    regions: ['Persepolis', 'Susa', 'Ecbatana', 'Persian Empire', 'Iran'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['PROTO_INDO_IRANIAN'],
+    successors: ['MIDDLE_PERSIAN'],
+    description: 'Imperial language of the Achaemenid Empire',
+    greetings: {
+      hello: 'draya',
+      goodbye: 'vašna',
+      yes: 'ava',
+      no: 'naiy',
+      thanks: 'spas',
+    },
+    llmPrompt: 'Emulate the monumental inscriptions of Darius and Xerxes. SOV word order. Formal, imperial tone invoking Ahura Mazda. Use titles like "King of Kings" and "King of Countries". Focus on royal achievements, divine mandate, and imperial administration.',
+    historicalContext: 'The official language of the Persian Empire (600-300 BCE), Old Persian inscriptions at Persepolis and Behistun provide our earliest records of Persian civilization.',
+  },
+
+  MIDDLE_PERSIAN: {
+    id: 'MIDDLE_PERSIAN',
+    name: 'Middle Persian',
+    nativeName: 'Pārsīg',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Pahlavi', 'Manichaean', 'Inscriptional Pahlavi'],
+    period: [-300, 700],
+    regions: ['Sassanid Empire', 'Persia', 'Mesopotamia', 'Central Asia'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['OLD_PERSIAN'],
+    successors: ['CLASSICAL_PERSIAN'],
+    description: 'Language of the Sassanid Empire and Zoroastrian texts',
+    greetings: {
+      hello: 'drōd',
+      goodbye: 'pad drōd',
+      yes: 'hā',
+      no: 'nē',
+      thanks: 'spās',
+    },
+    llmPrompt: 'Use Zoroastrian religious terminology and dualistic concepts (light/darkness, truth/lie). SOV word order. Complex honorific system. Tone should be formal and often religious, reflecting Sassanid court culture and Zoroastrian theology.',
+    historicalContext: 'The language of the Sassanid Empire (224-651 CE) and Zoroastrian scriptures, Middle Persian preserved ancient Iranian culture through the Islamic conquest.',
+  },
+
+  CLASSICAL_PERSIAN: {
+    id: 'CLASSICAL_PERSIAN',
+    name: 'Classical Persian',
+    nativeName: 'فارسی کلاسیک',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Arabic script',
+    period: [900, 1500],
+    regions: ['Persia', 'Central Asia', 'India', 'Ottoman Empire'],
+    culturalZones: ['MENA' as CulturalZone, 'SOUTH_ASIAN' as CulturalZone],
+    predecessors: ['MIDDLE_PERSIAN'],
+    successors: ['MODERN_PERSIAN'],
+    description: 'Literary language of Persian poetry and administration',
+    greetings: {
+      hello: 'salām',
+      goodbye: 'khodā hāfez',
+      yes: 'baleh',
+      no: 'nakheyr',
+      thanks: 'sepās',
+    },
+    llmPrompt: 'Emulate the poetic style of Ferdowsi, Hafez, or Rumi. SOV word order with extensive Arabic loanwords. Use elaborate metaphors, wine imagery, and mystical themes. Employ complex compound verbs and ezāfe construction. Tone should be refined, poetic, and philosophically sophisticated.',
+    historicalContext: 'The language of Persian literature\'s golden age (900-1500 CE), used by poets like Rumi and Hafez, became the cultural language from Istanbul to Delhi.',
+  },
+
+  ANCIENT_SOUTH_ARABIAN: {
+    id: 'ANCIENT_SOUTH_ARABIAN',
+    name: 'Ancient South Arabian',
+    nativeName: 'Sabaean',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'South Arabian script',
+    period: [-1000, 600],
+    regions: ['Yemen', 'Sheba', 'Himyar', 'Hadhramaut', 'Southern Arabia'],
+    culturalZones: ['MENA' as CulturalZone],
+    successors: ['CLASSICAL_ARABIC', 'ETHIOPIC'],
+    description: 'Languages of ancient Yemen kingdoms, including Sabaean and Himyarite',
+    greetings: {
+      hello: 'slm',
+      goodbye: 'slm',
+      yes: 'hn',
+      no: 'l',
+      thanks: 'šlm',
+    },
+    llmPrompt: 'Use monumental inscription style with references to irrigation, frankincense trade, and moon deity Almaqah. VSO word order. Formal tone appropriate for royal dedications and trade agreements. Focus on agricultural and commercial terminology.',
+    historicalContext: 'The languages of the Queen of Sheba\'s realm (1000 BCE-600 CE), these inscriptions reveal the sophisticated kingdoms that controlled the incense trade.',
+  },
+
+  COPTIC: {
+    id: 'COPTIC',
+    name: 'Coptic',
+    nativeName: 'ⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Coptic alphabet',
+    period: [100, 1700],
+    regions: ['Egypt', 'Nubia', 'Nile Valley'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['ANCIENT_EGYPTIAN', 'DEMOTIC'],
+    description: 'Last stage of Egyptian language, used by Christian Egyptians',
+    greetings: {
+      hello: 'nofri',
+      goodbye: 'oujai',
+      yes: 'aha',
+      no: 'mmon',
+      thanks: 'šepe hmot',
+    },
+    llmPrompt: 'Use Christian theological vocabulary with Egyptian substrate. SVO word order influenced by Greek. Extensive Greek loanwords. Tone should be liturgical and formal, appropriate for religious texts and monastic correspondence.',
+    historicalContext: 'The final stage of the Egyptian language (100-1700 CE), Coptic preserves Ancient Egyptian in Christian liturgy and provides the key to deciphering hieroglyphs.',
+  },
+
+  DEMOTIC: {
+    id: 'DEMOTIC',
+    name: 'Demotic Egyptian',
+    nativeName: 'sš n šˤ.t',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Demotic script',
+    period: [-700, 500],
+    regions: ['Egypt', 'Nile Delta', 'Upper Egypt'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['ANCIENT_EGYPTIAN'],
+    successors: ['COPTIC'],
+    description: 'Popular script and language of Late Period Egypt',
+    greetings: {
+      hello: 'ii.wy',
+      goodbye: 'seneb.ty',
+      yes: 'iw',
+      no: 'bn',
+      thanks: 'dua',
+    },
+    llmPrompt: 'Use simplified Egyptian with reduced morphology. Focus on practical, everyday vocabulary for contracts, letters, and stories. Less formal than hieroglyphic texts. VSO word order. Tone should be more colloquial than earlier Egyptian.',
+    historicalContext: 'The "people\'s script" of ancient Egypt (700 BCE-500 CE), Demotic was used for everyday documents and helped decode the Rosetta Stone.',
+  },
+
+  BYZANTINE_GREEK: {
+    id: 'BYZANTINE_GREEK',
+    name: 'Byzantine Greek',
+    nativeName: 'Ῥωμαϊκή',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Greek alphabet',
+    period: [300, 1453],
+    regions: ['Constantinople', 'Anatolia', 'Greece', 'Syria', 'Egypt'],
+    culturalZones: ['EUROPEAN' as CulturalZone, 'MENA' as CulturalZone],
+    predecessors: ['ANCIENT_GREEK', 'KOINE_GREEK'],
+    successors: ['MODERN_GREEK'],
+    description: 'Medieval Greek of the Byzantine Empire',
+    greetings: {
+      hello: 'Χαῖρε',
+      goodbye: 'Ἔρρωσο',
+      yes: 'Ναί',
+      no: 'Οὔ',
+      thanks: 'Εὐχαριστῶ',
+    },
+    llmPrompt: 'Use formal Byzantine court language with Christian theological vocabulary. Mix of classical and vernacular elements. Complex honorific titles. References to Emperor and Patriarch. Tone should be ceremonial and orthodox Christian.',
+    historicalContext: 'The language of the Byzantine Empire (330-1453 CE), it preserved Greek learning through the Middle Ages and influenced Church Slavonic and Arabic science.',
+  },
+
   CLASSICAL_ARABIC: {
     id: 'CLASSICAL_ARABIC',
     name: 'Classical Arabic',
@@ -801,6 +1034,27 @@ export const LANGUAGES: Record<string, LanguageData> = {
     },
     llmPrompt: 'Emulate the first Slavic literary language. It has a very rich inflectional system with seven noun cases and complex verb aspects (perfective/imperfective). Word order is flexible SVO. The vocabulary should be largely Slavic, with some Greek loanwords for religious concepts. The tone should be formal, liturgical, and suitable for religious texts and chronicles.',
     historicalContext: 'Created by Saints Cyril and Methodius in the 9th century, this liturgical language gave Slavic peoples literacy and influenced all modern Slavic languages.',
+  },
+
+  RUSSIAN: {
+    id: 'RUSSIAN',
+    name: 'Russian',
+    nativeName: 'Русский',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Cyrillic',
+    period: [1400, 2025],
+    regions: ['Russia', 'Ukraine', 'Belarus', 'Kazakhstan', 'Central Asia'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_SLAVONIC'],
+    greetings: {
+      hello: 'Здравствуйте',
+      goodbye: 'До свидания',
+      yes: 'Да',
+      no: 'Нет',
+      thanks: 'Спасибо',
+    },
+    llmPrompt: 'Emulate Russian. Rich case system with six cases. Flexible word order emphasizing new information. Extensive use of prefixes and suffixes. Include Soviet-era vocabulary for modern contexts. Use formal register unless context suggests informal speech.',
+    historicalContext: 'Russian evolved from Old East Slavic and became the lingua franca of the Soviet Union, expanding across Eurasia as a major international language.',
   },
 
   MIDDLE_MONGOLIAN: {
@@ -909,6 +1163,27 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'The language of Shakespeare and the King James Bible, Early Modern English saw an explosion of vocabulary and became the foundation of English as a global language.',
   },
 
+  ENGLISH: {
+    id: 'ENGLISH',
+    name: 'Modern English',
+    nativeName: 'English',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['England', 'United States', 'Canada', 'Australia', 'India', 'Global'],
+    culturalZones: ['EUROPEAN' as CulturalZone, 'NORTH_AMERICAN_COLONIAL' as CulturalZone],
+    predecessors: ['EARLY_MODERN_ENGLISH'],
+    greetings: {
+      hello: 'Hello',
+      goodbye: 'Goodbye',
+      yes: 'Yes',
+      no: 'No',
+      thanks: 'Thank you',
+    },
+    llmPrompt: 'Use modern English with appropriate register for the context. Include regional variations when relevant (American, British, Australian, etc.). Vocabulary should reflect the time period and setting.',
+    historicalContext: 'Modern English became the global lingua franca through British colonial expansion and American economic dominance, now spoken by over 1.5 billion people worldwide.',
+  },
+
   EARLY_SPANISH: {
     id: 'EARLY_SPANISH',
     name: 'Early Modern Spanish',
@@ -953,6 +1228,48 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'The language of global exploration, Portuguese navigators spread their language from Brazil to Goa to Macau, creating the first truly worldwide trade network.',
   },
 
+  MODERN_PORTUGUESE: {
+    id: 'MODERN_PORTUGUESE',
+    name: 'Modern Portuguese',
+    nativeName: 'Português',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1700, 2050],
+    regions: ['Portugal', 'Brazil', 'Angola', 'Mozambique', 'Cape Verde', 'Guinea-Bissau', 'São Tomé', 'East Timor', 'Macau'],
+    culturalZones: ['EUROPEAN' as CulturalZone, 'SOUTH_AMERICAN' as CulturalZone, 'SUB_SAHARAN_AFRICAN' as CulturalZone],
+    predecessors: ['EARLY_PORTUGUESE'],
+    greetings: {
+      hello: 'Olá',
+      goodbye: 'Tchau',
+      yes: 'Sim',
+      no: 'Não',
+      thanks: 'Obrigado',
+    },
+    llmPrompt: 'Use modern Portuguese with Brazilian colloquialisms when in South America, European Portuguese when in Portugal/Africa. Be informal and conversational. Use diminutives frequently (inho/inha). Drop subject pronouns as is natural in Portuguese. Include regional slang appropriate to the location.',
+    historicalContext: 'Modern Portuguese is spoken by over 260 million people across four continents, with distinct Brazilian and European varieties that diverged after Brazilian independence in 1822.',
+  },
+
+  MODERN_SPANISH: {
+    id: 'MODERN_SPANISH',
+    name: 'Modern Spanish',
+    nativeName: 'Español',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1700, 2050],
+    regions: ['Spain', 'Mexico', 'Argentina', 'Colombia', 'Peru', 'Venezuela', 'Chile', 'Ecuador', 'Guatemala', 'Cuba', 'Bolivia', 'Dominican Republic', 'Honduras', 'Paraguay', 'Nicaragua', 'El Salvador', 'Costa Rica', 'Panama', 'Uruguay', 'Puerto Rico'],
+    culturalZones: ['EUROPEAN' as CulturalZone, 'SOUTH_AMERICAN' as CulturalZone, 'MESOAMERICAN' as CulturalZone],
+    predecessors: ['EARLY_SPANISH'],
+    greetings: {
+      hello: 'Hola',
+      goodbye: 'Adiós',
+      yes: 'Sí',
+      no: 'No',
+      thanks: 'Gracias',
+    },
+    llmPrompt: 'Use modern Spanish appropriate to the region. For South America use voseo in Argentina/Uruguay, tuteo elsewhere. Include regional vocabulary: che (Argentina), güey (Mexico), pana (Venezuela), etc. Be conversational and informal unless context requires formality. Avoid overly archaic constructions.',
+    historicalContext: 'The world\'s second most spoken language by native speakers, modern Spanish has evolved distinct regional varieties across 21 countries while maintaining mutual intelligibility.',
+  },
+
   OTTOMAN_TURKISH: {
     id: 'OTTOMAN_TURKISH',
     name: 'Ottoman Turkish',
@@ -973,6 +1290,762 @@ export const LANGUAGES: Record<string, LanguageData> = {
     },
     llmPrompt: 'Emulate the formal court language. This is a linguistic hybrid. The grammar is Turkic (agglutinative, SOV word order, vowel harmony). However, the vocabulary and style are heavily saturated with loanwords, set phrases, and even grammatical constructions from Arabic (for religion, law) and Persian (for poetry, administration, and courtly life). Employ extreme politeness and elaborate honorifics.',
     historicalContext: 'The cosmopolitan language of the Ottoman Empire, blending Turkish grammar with Arabic and Persian vocabulary to administer territories from Budapest to Baghdad.',
+  },
+
+  // === Additional MENA Languages for Regional Mappings ===
+
+  BERBER: {
+    id: 'BERBER',
+    name: 'Berber (Tamazight)',
+    nativeName: 'ⵜⴰⵎⴰⵣⵉⵖⵜ',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: ['Tifinagh', 'Arabic script', 'Latin script'],
+    period: [-3000, 2025],
+    regions: ['North Africa', 'Sahara', 'Atlas Mountains', 'Maghreb'],
+    culturalZones: ['MENA' as CulturalZone],
+    description: 'Indigenous languages of North Africa',
+    greetings: {
+      hello: 'Azul',
+      goodbye: 'Ar tufat',
+      yes: 'Ih',
+      no: 'Uhu',
+      thanks: 'Tanemmirt',
+    },
+    llmPrompt: 'Use VSO word order typical of Berber languages. Employ complex verb morphology with person, number, and gender marking. Include Arabic loanwords for Islamic concepts. Tone should reflect oral tradition and tribal identity.',
+    historicalContext: 'The indigenous languages of North Africa, spoken by the Amazigh people for over 4000 years, survived Phoenician, Roman, Arab, and French colonization.',
+  },
+
+  ANDALUSI_ARABIC: {
+    id: 'ANDALUSI_ARABIC',
+    name: 'Andalusi Arabic',
+    nativeName: 'العربية الأندلسية',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Arabic',
+    period: [711, 1609],
+    regions: ['Al-Andalus', 'Iberian Peninsula', 'Maghreb'],
+    culturalZones: ['MENA' as CulturalZone, 'EUROPEAN' as CulturalZone],
+    predecessors: ['CLASSICAL_ARABIC'],
+    description: 'Arabic dialect of Islamic Spain',
+    greetings: {
+      hello: 'Marḥaban',
+      goodbye: 'Wadāʿan',
+      yes: 'Naʿam',
+      no: 'Lā',
+      thanks: 'Shukran',
+    },
+    llmPrompt: 'Mix Classical Arabic with Romance substrate influence. Include botanical, architectural, and scientific terminology. References to gardens, water features, and geometric patterns. Tone should be cultured and poetic, reflecting the sophisticated court culture of Córdoba and Granada.',
+    historicalContext: 'The Arabic of Islamic Spain (711-1492) created a unique fusion culture, contributing hundreds of words to Spanish and Portuguese while advancing science and philosophy.',
+  },
+
+  MEROITIC: {
+    id: 'MEROITIC',
+    name: 'Meroitic',
+    nativeName: 'Meroitic',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Meroitic hieroglyphic', 'Meroitic cursive'],
+    period: [-300, 400],
+    regions: ['Kush', 'Meroe', 'Nubia', 'Sudan'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone, 'MENA' as CulturalZone],
+    description: 'Language of the Kingdom of Kush',
+    isReconstructed: true,
+    greetings: {
+      hello: 'yetmde',
+      goodbye: 'arite',
+      yes: 'owe',
+      no: 'mke',
+      thanks: 'arite',
+    },
+    llmPrompt: 'Use the partially deciphered Meroitic script patterns. Mix Egyptian influences with indigenous African elements. References to iron working, archery, and powerful queens (Kandakes). Formal royal inscriptions style.',
+    historicalContext: 'The language of the Kushite kingdom (300 BCE-400 CE) that ruled Egypt as the 25th Dynasty, Meroitic remains only partially deciphered.',
+  },
+
+  OLD_NUBIAN: {
+    id: 'OLD_NUBIAN',
+    name: 'Old Nubian',
+    nativeName: 'ⲙⲓⲥⲓⲣ ⲛ ⲕⲟⲩϣ',
+    family: LANGUAGE_FAMILIES.NILO_SAHARAN,
+    script: ['Coptic alphabet', 'Greek alphabet'],
+    period: [400, 1500],
+    regions: ['Nubia', 'Dongola', 'Nobatia', 'Makuria', 'Alodia'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone, 'MENA' as CulturalZone],
+    description: 'Medieval language of Christian Nubia',
+    greetings: {
+      hello: 'eirēnē',
+      goodbye: 'ōšal',
+      yes: 'aï',
+      no: 'men',
+      thanks: 'eucharistō',
+    },
+    llmPrompt: 'Use SOV word order with postpositions. Heavy Greek and Coptic influence for Christian terminology. References to monasteries, churches, and the Nile. Formal religious register.',
+    historicalContext: 'The language of medieval Christian Nubian kingdoms (400-1500 CE), preserved in religious texts and tombstones along the Nile.',
+  },
+
+  GEORGIAN: {
+    id: 'GEORGIAN',
+    name: 'Georgian',
+    nativeName: 'ქართული',
+    family: 'Kartvelian',
+    script: 'Georgian script',
+    period: [-500, 2025],
+    regions: ['Georgia', 'Caucasus', 'Tbilisi', 'Colchis', 'Iberia'],
+    culturalZones: ['MENA' as CulturalZone, 'EUROPEAN' as CulturalZone],
+    description: 'Ancient language of the Caucasus',
+    greetings: {
+      hello: 'Gamarjoba',
+      goodbye: 'Nakhvamdis',
+      yes: 'Diakh',
+      no: 'Ara',
+      thanks: 'Madloba',
+    },
+    llmPrompt: 'Use ergative-absolutive alignment and complex verb morphology with polypersonal agreement. SOV word order. Rich consonant clusters. References to wine, hospitality, and mountain traditions. Tone ranges from epic poetry to warm hospitality.',
+    historicalContext: 'One of the world\'s oldest living languages with its own unique script, Georgian has been written since the 5th century and preserves ancient Caucasian culture.',
+  },
+
+  ARMENIAN: {
+    id: 'ARMENIAN',
+    name: 'Classical Armenian',
+    nativeName: 'Հայերեն',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Armenian alphabet',
+    period: [405, 2025],
+    regions: ['Armenia', 'Caucasus', 'Anatolia', 'Cilicia'],
+    culturalZones: ['MENA' as CulturalZone, 'EUROPEAN' as CulturalZone],
+    description: 'Ancient Indo-European language of Armenia',
+    greetings: {
+      hello: 'Barev',
+      goodbye: 'Tstesutyun',
+      yes: 'Ayo',
+      no: 'Voch',
+      thanks: 'Shnorhakalutyun',
+    },
+    llmPrompt: 'Use Classical Armenian (Grabar) style. SOV word order with seven cases. Rich in compound words. Christian theological vocabulary mixed with ancient Indo-European roots. References to Mount Ararat, manuscripts, and survival.',
+    historicalContext: 'Created its unique alphabet in 405 CE to translate the Bible, Armenian preserved its identity through centuries of foreign rule between empires.',
+  },
+
+  ETHIOPIC: {
+    id: 'ETHIOPIC',
+    name: 'Ethiopic (Ge\'ez)',
+    nativeName: 'ግዕዝ',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Ethiopic script',
+    period: [-1000, 2025],
+    regions: ['Ethiopia', 'Eritrea', 'Axum', 'Horn of Africa'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    predecessors: ['ANCIENT_SOUTH_ARABIAN'],
+    successors: ['AMHARIC', 'TIGRINYA'],
+    description: 'Classical language of Ethiopia',
+    greetings: {
+      hello: 'Selam',
+      goodbye: 'Dehna hun',
+      yes: 'Awo',
+      no: 'Albo',
+      thanks: 'Egziabher yimesgen',
+    },
+    llmPrompt: 'Use VSO word order typical of Semitic languages. Complex verb system with stems indicating causative, passive, and intensive. Christian liturgical vocabulary. References to the Ark of the Covenant, coffee, and ancient kingdoms.',
+    historicalContext: 'The ancient language of the Axumite Empire and Ethiopian Orthodox Church, Ge\'ez preserves one of the world\'s oldest Christian traditions.',
+  },
+
+  BEJA: {
+    id: 'BEJA',
+    name: 'Beja (Bedawi)',
+    nativeName: 'Bidhaawyeet',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: ['Arabic script', 'Latin script'],
+    period: [-2000, 2025],
+    regions: ['Eastern Desert', 'Red Sea Hills', 'Sudan', 'Eritrea', 'Egypt'],
+    culturalZones: ['MENA' as CulturalZone, 'SUB_SAHARAN_AFRICAN' as CulturalZone],
+    description: 'Language of the Beja nomads',
+    greetings: {
+      hello: 'Asalaamu',
+      goodbye: 'Aaman',
+      yes: 'Aha',
+      no: 'Kaaki',
+      thanks: 'Win daayiib',
+    },
+    llmPrompt: 'Use SOV word order with complex aspect system. Mix of Cushitic substrate with Arabic loanwords. References to camels, desert navigation, gold mining, and Red Sea trade. Tone reflects nomadic independence and ancient traditions.',
+    historicalContext: 'Spoken by the Beja nomads for over 4000 years in the Eastern Desert, they were known to ancient Egyptians as the Medjay, elite desert scouts and police.',
+  },
+
+  // === CENTRAL ASIAN LANGUAGES ===
+
+  PROTO_TURKIC: {
+    id: 'PROTO_TURKIC',
+    name: 'Proto-Turkic',
+    nativeName: '*Proto-Türkik',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: ['Reconstructed', 'Old Turkic runes'],
+    period: [-500, 1000],
+    regions: ['Altai Mountains', 'Mongolian Steppes', 'Central Asia'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    isReconstructed: true,
+    successors: ['OLD_TURKIC', 'KAZAKH', 'UZBEK', 'TURKMEN', 'OTTOMAN_TURKISH'],
+    description: 'Reconstructed ancestor of all Turkic languages',
+    llmPrompt: 'Use SOV word order with agglutinative morphology. Focus on pastoral nomadic vocabulary: horses, sheep, sky, steppe. Simple phonology with vowel harmony. References to Tengri (sky god) and shamanic practices.',
+    historicalContext: 'The ancestor of Turkish, Kazakh, Uzbek and dozens of other languages, Proto-Turkic spread from the Altai Mountains across Eurasia with nomadic confederations.',
+  },
+
+  SOGDIAN: {
+    id: 'SOGDIAN',
+    name: 'Sogdian',
+    nativeName: 'swγδyk',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Sogdian alphabet', 'Manichaean script', 'Syriac script'],
+    period: [-500, 1000],
+    regions: ['Samarkand', 'Bukhara', 'Ferghana Valley', 'Silk Road', 'Transoxiana'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['OLD_PERSIAN'],
+    description: 'Lingua franca of the Silk Road',
+    greetings: {
+      hello: 'δrwt',
+      goodbye: 'pδ δrwt',
+      yes: 'ʾʾw',
+      no: 'nʾ',
+      thanks: 'spʾs',
+    },
+    llmPrompt: 'Use SOV word order typical of Eastern Iranian. Rich merchant vocabulary: trade, caravan, silk, jade, spices. Buddhist and Manichaean religious terminology. Cosmopolitan tone reflecting cultural exchange.',
+    historicalContext: 'The international language of the Silk Road (500 BCE-1000 CE), Sogdian merchants connected China with Rome and spread Buddhism across Central Asia.',
+  },
+
+  KAZAKH: {
+    id: 'KAZAKH',
+    name: 'Kazakh',
+    nativeName: 'Қазақ тілі',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: ['Cyrillic', 'Arabic script', 'Latin'],
+    period: [1000, 2025],
+    regions: ['Kazakh Steppes', 'Altai Mountains', 'Aral Sea Basin', 'Tian Shan Range'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_TURKIC'],
+    description: 'Language of the Kazakh nomads',
+    greetings: {
+      hello: 'Сәлеметсіз бе',
+      goodbye: 'Сау болыңыз',
+      yes: 'Иә',
+      no: 'Жоқ',
+      thanks: 'Рахмет',
+    },
+    llmPrompt: 'Use SOV word order with extensive case system. Rich vocabulary for horses, eagle hunting, and steppe life. Persian and Arabic loanwords for Islamic concepts. Russian loanwords in modern period. Epic storytelling tradition.',
+    historicalContext: 'The language of the vast Kazakh steppes, it preserves ancient Turkic nomadic traditions while adapting to Russian and Chinese influences.',
+  },
+
+  UZBEK: {
+    id: 'UZBEK',
+    name: 'Uzbek',
+    nativeName: 'Oʻzbek tili',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: ['Arabic script', 'Cyrillic', 'Latin'],
+    period: [1000, 2025],
+    regions: ['Samarkand Region', 'Ferghana Valley', 'Transoxiana', 'Khorasan'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_TURKIC', 'SOGDIAN'],
+    description: 'Language of the settled Turkic peoples of Central Asia',
+    greetings: {
+      hello: 'Assalomu alaykum',
+      goodbye: 'Xayr',
+      yes: 'Ha',
+      no: 'Yoʻq',
+      thanks: 'Rahmat',
+    },
+    llmPrompt: 'Mix of Turkic grammar with heavy Persian influence. Urban vocabulary: bazaar, crafts, irrigation. References to Timur, Islamic scholarship, and Silk Road heritage. More Persian loanwords than other Turkic languages.',
+    historicalContext: 'Heir to the great cities of Samarkand and Bukhara, Uzbek blends Turkic structure with Persian cultural vocabulary from centuries of Timurid rule.',
+  },
+
+  TURKMEN: {
+    id: 'TURKMEN',
+    name: 'Turkmen',
+    nativeName: 'Türkmençe',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: ['Arabic script', 'Cyrillic', 'Latin'],
+    period: [1000, 2025],
+    regions: ['Kyzylkum Desert', 'Karakum Desert', 'Kopet Dag', 'Merv'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone, 'MENA' as CulturalZone],
+    predecessors: ['PROTO_TURKIC'],
+    description: 'Language of Turkmen tribes',
+    greetings: {
+      hello: 'Salam',
+      goodbye: 'Hoş',
+      yes: 'Hawa',
+      no: 'Ýok',
+      thanks: 'Sag bol',
+    },
+    llmPrompt: 'SOV word order with vowel harmony. Desert vocabulary: camels, oases, carpet weaving. Tribal identity markers. Persian influence but less than Uzbek. References to Akhal-Teke horses and traditional crafts.',
+    historicalContext: 'The language of the fierce Turkmen tribes who controlled the desert routes between Iran and Central Asia, famous for their horses and carpets.',
+  },
+
+  YAKUT: {
+    id: 'YAKUT',
+    name: 'Yakut (Sakha)',
+    nativeName: 'Саха тыла',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: ['Cyrillic'],
+    period: [1000, 2025],
+    regions: ['Eastern Siberia', 'Arctic Siberia', 'Sakha'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_TURKIC'],
+    description: 'Northernmost Turkic language',
+    greetings: {
+      hello: 'Дорообо',
+      goodbye: 'Көрсүөххэ диэри',
+      yes: 'Ээх',
+      no: 'Суох',
+      thanks: 'Баһыыба',
+    },
+    llmPrompt: 'Turkic structure heavily influenced by local languages. Arctic vocabulary: reindeer, permafrost, long winter nights. Shamanistic traditions. Russian loanwords. Unique among Turkic languages.',
+    historicalContext: 'The remarkable northward migration of Turkic speakers to Arctic Siberia created this unique language adapted to the world\'s coldest inhabited region.',
+  },
+
+  EVENKI: {
+    id: 'EVENKI',
+    name: 'Evenki',
+    nativeName: 'Эвэнки',
+    family: 'Tungusic',
+    script: ['Cyrillic'],
+    period: [-2000, 2025],
+    regions: ['Western Siberia', 'Central Siberia', 'Eastern Siberia', 'Manchurian Plain'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    description: 'Language of Siberian reindeer herders',
+    greetings: {
+      hello: 'Дорово',
+      goodbye: 'Аят',
+      yes: 'Э-э',
+      no: 'Ачин',
+      thanks: 'Бэлэм',
+    },
+    llmPrompt: 'SOV word order with complex spatial deixis for navigation. Reindeer herding vocabulary. Intimate knowledge of taiga and tundra. Shamanistic terminology. Traditional ecological knowledge.',
+    historicalContext: 'The Evenki people and their language spread across the vast Siberian taiga with their reindeer, influencing place names from Mongolia to the Arctic.',
+  },
+
+  // === MODERN SUCCESSOR LANGUAGES ===
+
+  MODERN_TURKISH: {
+    id: 'MODERN_TURKISH',
+    name: 'Modern Turkish',
+    nativeName: 'Türkçe',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: 'Latin',
+    period: [1928, 2025],
+    regions: ['Turkey', 'Cyprus', 'Balkans'],
+    culturalZones: ['MENA' as CulturalZone, 'EUROPEAN' as CulturalZone],
+    predecessors: ['OTTOMAN_TURKISH'],
+    greetings: {
+      hello: 'Merhaba',
+      goodbye: 'Hoşça kal',
+      yes: 'Evet',
+      no: 'Hayır',
+      thanks: 'Teşekkür ederim',
+    },
+    llmPrompt: 'SOV word order with agglutination. Vowel harmony. French loanwords for modern concepts replacing Arabic/Persian. Informal vs formal distinction (sen/siz). Atatürk\'s language reforms evident.',
+    historicalContext: 'Radically reformed in 1928 by Atatürk\'s alphabet change and language purification, Modern Turkish replaced Arabic script and thousands of Arabic-Persian words.',
+  },
+
+  MODERN_PERSIAN: {
+    id: 'MODERN_PERSIAN',
+    name: 'Modern Persian (Farsi)',
+    nativeName: 'فارسی',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Arabic script',
+    period: [1500, 2025],
+    regions: ['Iran', 'Afghanistan', 'Tajikistan'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['CLASSICAL_PERSIAN'],
+    greetings: {
+      hello: 'سلام',
+      goodbye: 'خداحافظ',
+      yes: 'بله',
+      no: 'نه',
+      thanks: 'متشکرم',
+    },
+    llmPrompt: 'SOV word order. Politeness levels (formal/informal). French loanwords for technology. Continue poetic tradition but with modern themes. Regional variations between Iran, Afghanistan, and Tajikistan.',
+    historicalContext: 'Modern Persian continues the classical tradition while adapting to nationalism, modernization, and regional variations across Iran, Afghanistan, and Tajikistan.',
+  },
+
+  MODERN_GREEK: {
+    id: 'MODERN_GREEK',
+    name: 'Modern Greek',
+    nativeName: 'Νέα Ελληνικά',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Greek alphabet',
+    period: [1453, 2025],
+    regions: ['Greece', 'Cyprus', 'Greek diaspora'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['BYZANTINE_GREEK'],
+    greetings: {
+      hello: 'Γεια σου',
+      goodbye: 'Αντίο',
+      yes: 'Ναι',
+      no: 'Όχι',
+      thanks: 'Ευχαριστώ',
+    },
+    llmPrompt: 'Simplified grammar compared to ancient Greek. SVO word order. Katharevousa (formal) vs Demotic (popular) diglossia resolved. Turkish and Italian loanwords. EU terminology.',
+    historicalContext: 'Emerging from Byzantine Greek, the modern language underwent intense debate between archaic and popular forms before standardizing on demotic Greek in 1976.',
+  },
+
+  MODERN_HEBREW: {
+    id: 'MODERN_HEBREW',
+    name: 'Modern Hebrew',
+    nativeName: 'עברית חדשה',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Hebrew alphabet',
+    period: [1880, 2025],
+    regions: ['Israel', 'Palestine'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['ANCIENT_HEBREW'],
+    greetings: {
+      hello: 'שלום',
+      goodbye: 'להתראות',
+      yes: 'כן',
+      no: 'לא',
+      thanks: 'תודה',
+    },
+    llmPrompt: 'Revived ancient language with modern innovations. SVO word order (vs biblical VSO). Simplified verb system. New vocabulary for modern concepts. Slang from Arabic, English, Russian.',
+    historicalContext: 'The only successfully revived dead language, Modern Hebrew was reconstructed from ancient texts to become Israel\'s national language, spoken natively by millions.',
+  },
+
+  MODERN_STANDARD_ARABIC: {
+    id: 'MODERN_STANDARD_ARABIC',
+    name: 'Modern Standard Arabic',
+    nativeName: 'العربية الفصحى الحديثة',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: 'Arabic',
+    period: [1800, 2025],
+    regions: ['Arab League countries', 'Middle East', 'North Africa'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['CLASSICAL_ARABIC'],
+    greetings: {
+      hello: 'مرحبا',
+      goodbye: 'وداعا',
+      yes: 'نعم',
+      no: 'لا',
+      thanks: 'شكرا',
+    },
+    llmPrompt: 'Formal register based on Classical Arabic but simplified. VSO word order. Modern vocabulary for technology, politics, media. No one\'s native language but universal in formal contexts. Avoids dialectical features.',
+    historicalContext: 'The formal language of Arab media, education, and literature, MSA modernized Classical Arabic for contemporary use while maintaining mutual intelligibility across dialects.',
+  },
+
+  // === MISSING MONGOLIAN AND MANCHURIAN LANGUAGES ===
+
+  PROTO_MONGOLIC: {
+    id: 'PROTO_MONGOLIC',
+    name: 'Proto-Mongolic',
+    nativeName: '*Proto-Mongolic',
+    family: LANGUAGE_FAMILIES.MONGOLIC,
+    script: ['Reconstructed'],
+    period: [-500, 1200],
+    regions: ['Mongolian Steppes', 'Northern China'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    isReconstructed: true,
+    successors: ['MIDDLE_MONGOLIAN', 'KHITAN'],
+    description: 'Reconstructed ancestor of Mongolian languages',
+    llmPrompt: 'SOV word order with vowel harmony. Pastoral nomadic vocabulary. References to sky worship (Tengri), horses, and clan structure. Simple agglutinative morphology.',
+    historicalContext: 'The reconstructed ancestor of Mongolian languages, spoken by steppe nomads before the rise of the Mongol Empire.',
+  },
+
+  KHALKHA_MONGOLIAN: {
+    id: 'KHALKHA_MONGOLIAN',
+    name: 'Khalkha Mongolian',
+    nativeName: 'Халх Монгол',
+    family: LANGUAGE_FAMILIES.MONGOLIC,
+    script: ['Cyrillic', 'Traditional Mongolian script'],
+    period: [1700, 2025],
+    regions: ['Mongolia', 'Inner Mongolia'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['MIDDLE_MONGOLIAN'],
+    greetings: {
+      hello: 'Сайн байна уу',
+      goodbye: 'Баяртай',
+      yes: 'Тийм',
+      no: 'Үгүй',
+      thanks: 'Баярлалаа',
+    },
+    llmPrompt: 'Modern Mongolian with Cyrillic influence. SOV word order with complex case system. Buddhist and shamanistic vocabulary. Russian loanwords for modern concepts.',
+    historicalContext: 'The official language of Mongolia, standardized from the central dialect and written in Cyrillic since 1941.',
+  },
+
+  MANCHU: {
+    id: 'MANCHU',
+    name: 'Manchu',
+    nativeName: 'ᠮᠠᠨᠵᡠ ᡤᡳᠰᡠᠨ',
+    family: 'Tungusic',
+    script: ['Manchu script', 'Chinese characters'],
+    period: [1200, 1900],
+    regions: ['Manchuria', 'Beijing', 'Qing Empire'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    description: 'Language of the Qing Dynasty rulers',
+    greetings: {
+      hello: 'Si saiyin',
+      goodbye: 'Sain achambi',
+      yes: 'Inu',
+      no: 'Waka',
+      thanks: 'Baniha',
+    },
+    llmPrompt: 'SOV word order with vowel harmony. Imperial vocabulary mixing military, administrative, and shamanic terms. Influences from Mongolian and Chinese.',
+    historicalContext: 'The language of the Manchu people who ruled China as the Qing Dynasty (1644-1912), now nearly extinct.',
+  },
+
+  KHITAN: {
+    id: 'KHITAN',
+    name: 'Khitan',
+    nativeName: '契丹',
+    family: LANGUAGE_FAMILIES.MONGOLIC,
+    script: ['Khitan large script', 'Khitan small script'],
+    period: [400, 1200],
+    regions: ['Northern China', 'Manchuria', 'Mongolia'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_MONGOLIC'],
+    description: 'Language of the Liao Dynasty',
+    isReconstructed: true,
+    llmPrompt: 'Partially deciphered language. Mix Mongolic structure with Chinese administrative vocabulary. References to dual administration system.',
+    historicalContext: 'The language of the Khitan Liao Dynasty (907-1125), their scripts remain only partially deciphered.',
+  },
+
+  OLD_UYGHUR: {
+    id: 'OLD_UYGHUR',
+    name: 'Old Uyghur',
+    nativeName: 'ئۇيغۇرچە',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: ['Old Uyghur alphabet', 'Runic script'],
+    period: [700, 1500],
+    regions: ['Tarim Basin', 'Turpan', 'Xinjiang'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_TURKIC'],
+    description: 'Medieval Turkic language of the Silk Road',
+    greetings: {
+      hello: 'Ässalamu',
+      goodbye: 'Xoş',
+      yes: 'Hä',
+      no: 'Yaq',
+      thanks: 'Rähmät',
+    },
+    llmPrompt: 'SOV Turkic structure with Buddhist and Manichaean vocabulary. Trade terminology from the Silk Road. Sogdian loanwords.',
+    historicalContext: 'The literary language of the Uyghur Khaganate (744-840) and Silk Road city-states.',
+  },
+
+  // === CHINESE DIALECTS ===
+
+  MIN: {
+    id: 'MIN',
+    name: 'Min Chinese (Hokkien/Fujianese)',
+    nativeName: '閩語',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: 'Chinese characters',
+    period: [800, 2025],
+    regions: ['Fujian', 'Taiwan', 'Southeast Asia'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['MIDDLE_CHINESE'],
+    greetings: {
+      hello: 'Lí-hó',
+      goodbye: 'Tsài-kiàn',
+      yes: 'Sī',
+      no: 'M̄-sī',
+      thanks: 'To-siā',
+    },
+    llmPrompt: 'Preserves many Old Chinese features lost in Mandarin. Complex tone system (7-8 tones). Maritime vocabulary. Southeast Asian loanwords.',
+    historicalContext: 'The language of Fujian province and Chinese diaspora in Southeast Asia, Min preserves ancient Chinese pronunciations.',
+  },
+
+  WU: {
+    id: 'WU',
+    name: 'Wu Chinese (Shanghainese)',
+    nativeName: '吳語',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: 'Chinese characters',
+    period: [800, 2025],
+    regions: ['Shanghai', 'Jiangsu', 'Zhejiang'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['MIDDLE_CHINESE'],
+    greetings: {
+      hello: 'Nong hao',
+      goodbye: 'Zei wei',
+      yes: 'Eh',
+      no: 'Veh',
+      thanks: 'Xia xia nong',
+    },
+    llmPrompt: 'Soft consonants compared to Mandarin. Complex tone sandhi. Commercial and urban vocabulary from Shanghai.',
+    historicalContext: 'The language of Shanghai and the Yangtze Delta, Wu Chinese was the prestige language of medieval Chinese poetry.',
+  },
+
+  TAIWANESE_HOKKIEN: {
+    id: 'TAIWANESE_HOKKIEN',
+    name: 'Taiwanese Hokkien',
+    nativeName: '臺灣話',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: ['Chinese characters', 'Pe̍h-ōe-jī romanization'],
+    period: [1600, 2025],
+    regions: ['Taiwan', 'Fujian'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['MIN'],
+    greetings: {
+      hello: 'Lí-hó',
+      goodbye: 'Tsài-kiàn',
+      yes: 'Sī',
+      no: 'M̄-sī',
+      thanks: 'Kám-siā',
+    },
+    llmPrompt: 'Min dialect with Japanese loanwords from colonial period. Aboriginal Austronesian substrate. Code-switching with Mandarin common.',
+    historicalContext: 'Brought by Fujian settlers in the 1600s, evolved separately with Japanese colonial and indigenous influences.',
+  },
+
+  // === HIMALAYAN AND TIBETAN LANGUAGES ===
+
+  TIBETAN: {
+    id: 'TIBETAN',
+    name: 'Classical Tibetan',
+    nativeName: 'བོད་སྐད',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: 'Tibetan script',
+    period: [600, 2025],
+    regions: ['Tibet', 'Himalayas', 'Ladakh', 'Bhutan'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone, 'EAST_ASIAN' as CulturalZone],
+    description: 'Language of Tibetan Buddhism',
+    greetings: {
+      hello: 'Tashi delek',
+      goodbye: 'Kale pe',
+      yes: 'Yin',
+      no: 'Men',
+      thanks: 'Thuk je che',
+    },
+    llmPrompt: 'SOV word order with ergative-absolutive alignment. Rich honorific system. Buddhist philosophical vocabulary. Sanskrit loanwords for religious terms.',
+    historicalContext: 'The liturgical language of Tibetan Buddhism, remarkably stable since the 7th century due to religious conservatism.',
+  },
+
+  NEPALI: {
+    id: 'NEPALI',
+    name: 'Nepali',
+    nativeName: 'नेपाली',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Devanagari',
+    period: [1200, 2025],
+    regions: ['Nepal', 'Sikkim', 'Darjeeling', 'Bhutan'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    predecessors: ['SANSKRIT'],
+    greetings: {
+      hello: 'Namaste',
+      goodbye: 'Bidāī',
+      yes: 'Ho',
+      no: 'Hoina',
+      thanks: 'Dhanyabād',
+    },
+    llmPrompt: 'SOV Indo-Aryan language. Honorific levels (high, medium, low). Sanskrit vocabulary for formal speech. Tibetan loanwords for mountain terminology.',
+    historicalContext: 'The language of the Gorkha Kingdom that unified Nepal, bridging Indo-Aryan and Tibeto-Burman linguistic worlds.',
+  },
+
+  // === JAPANESE HISTORICAL LANGUAGES ===
+
+  OLD_JAPANESE: {
+    id: 'OLD_JAPANESE',
+    name: 'Old Japanese',
+    nativeName: '上代日本語',
+    family: 'Japonic',
+    script: ['Man\'yōgana', 'Chinese characters'],
+    period: [300, 800],
+    regions: ['Nara', 'Yamato', 'Ancient Japan'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    successors: ['CLASSICAL_JAPANESE'],
+    description: 'Language of ancient Yamato court',
+    llmPrompt: 'SOV word order. Eight vowel system (lost in modern Japanese). No Chinese loanwords yet. Native Japanese vocabulary only.',
+    historicalContext: 'The earliest stage of Japanese recorded in the Kojiki and Man\'yōshū, before Chinese influence.',
+  },
+
+  AINU: {
+    id: 'AINU',
+    name: 'Ainu',
+    nativeName: 'アイヌ・イタㇰ',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Katakana', 'Latin'],
+    period: [-2000, 2025],
+    regions: ['Hokkaido', 'Sakhalin', 'Kurils'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    description: 'Indigenous language of northern Japan',
+    greetings: {
+      hello: 'Irankarapte',
+      goodbye: 'Suy unukar',
+      yes: 'E',
+      no: 'Somo',
+      thanks: 'Iyairaikere',
+    },
+    llmPrompt: 'Polysynthetic language with complex verb morphology. Nature-based vocabulary: bears, salmon, forests. Spiritual relationship with kamuy (spirits).',
+    historicalContext: 'The indigenous language of Japan\'s north, predates Japanese but now critically endangered.',
+  },
+
+  RYUKYUAN: {
+    id: 'RYUKYUAN',
+    name: 'Ryukyuan Languages',
+    nativeName: '琉球語',
+    family: 'Japonic',
+    script: ['Japanese scripts', 'Chinese characters'],
+    period: [500, 2025],
+    regions: ['Okinawa', 'Ryukyu Islands'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    description: 'Languages of the Ryukyu Kingdom',
+    greetings: {
+      hello: 'Haisai',
+      goodbye: 'Mata yaasai',
+      yes: 'Uu',
+      no: 'Aibiran',
+      thanks: 'Nifeedeebiru',
+    },
+    llmPrompt: 'Sister language to Japanese but not mutually intelligible. Preserves ancient features. Maritime vocabulary.',
+    historicalContext: 'The languages of the independent Ryukyu Kingdom (1429-1879), showing what Japanese might have become without Chinese influence.',
+  },
+
+  // === MINORITY REGIONAL LANGUAGES ===
+
+  YI: {
+    id: 'YI',
+    name: 'Yi (Nuosu)',
+    nativeName: 'ꆈꌠꉙ',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: 'Yi syllabary',
+    period: [500, 2025],
+    regions: ['Yunnan', 'Sichuan', 'Guizhou'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    description: 'Language of Yi people in Southwest China',
+    greetings: {
+      hello: 'Os se la',
+      goodbye: 'Mu ga',
+      yes: 'Nge',
+      no: 'A nge',
+      thanks: 'Ka sha mu ga',
+    },
+    llmPrompt: 'SOV word order. Complex tone system. Clan-based social vocabulary. Mountain agricultural terms. Animistic religious concepts.',
+    historicalContext: 'The Yi people maintained independent kingdoms in mountainous Southwest China for centuries.',
+  },
+
+  BAI: {
+    id: 'BAI',
+    name: 'Bai',
+    nativeName: '白语',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: ['Chinese characters', 'Latin'],
+    period: [500, 2025],
+    regions: ['Dali', 'Yunnan'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    description: 'Language of Bai people in Yunnan',
+    greetings: {
+      hello: 'Gou zeix',
+      goodbye: 'Zai jian',
+      yes: 'Ngv',
+      no: 'Mv',
+      thanks: 'Xie xie',
+    },
+    llmPrompt: 'Heavy Chinese influence but retains Tibeto-Burman substrate. Three tones. Buddhist and indigenous religious mixture.',
+    historicalContext: 'The Bai kingdom of Dali (937-1253) was a cultural bridge between Chinese and Tibetan civilizations.',
+  },
+
+  TOCHARIAN: {
+    id: 'TOCHARIAN',
+    name: 'Tocharian',
+    nativeName: 'Toxri',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Brahmi script', 'Manichaean script'],
+    period: [-500, 800],
+    regions: ['Tarim Basin', 'Silk Road', 'Xinjiang'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_INDO_EUROPEAN'],
+    description: 'Extinct Indo-European language of Chinese Turkestan',
+    isReconstructed: true,
+    llmPrompt: 'Most eastern Indo-European language. Buddhist monastery vocabulary. Silk Road trade terms.',
+    historicalContext: 'Spoken by European-looking mummies of the Tarim Basin, proving Indo-European languages reached China before the Silk Road.',
   },
 
   PERSIAN: {
@@ -1904,6 +2977,43 @@ export const LANGUAGES: Record<string, LanguageData> = {
     llmPrompt: 'Emulate Navajo/Diné. Complex verb morphology with aspectual rather than tense marking. Animacy hierarchy affects word order. Use fourth person (obviative) pronoun. The language emphasizes process over state.',
   },
 
+  PROTO_TUPI: {
+    id: 'PROTO_TUPI',
+    name: 'Proto-Tupi',
+    nativeName: '*Proto-Tupi',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Reconstructed'],
+    period: [-2000, 1000],
+    regions: ['Amazon Basin', 'Atlantic Coast Brazil', 'São Paulo Plateau'],
+    culturalZones: ['SOUTH_AMERICAN' as CulturalZone],
+    isReconstructed: true,
+    successors: ['TUPI', 'GUARANI'],
+    description: 'Reconstructed ancestor of Tupi-Guarani languages, spoken by indigenous peoples across much of eastern South America.',
+    llmPrompt: 'Use polysynthetic word formation with extensive prefixation and agglutination. Focus on animacy distinctions and inclusive/exclusive pronouns. Include terms for tropical ecology, agriculture, and river navigation. Use simple ceremonial and kinship vocabulary.',
+    historicalContext: 'Proto-Tupi was likely spoken around 3000 years ago by indigenous peoples who expanded from the Amazon throughout eastern South America, giving rise to the Tupi-Guarani language family with over 70 languages.',
+  },
+
+  TUPI: {
+    id: 'TUPI',
+    name: 'Tupi',
+    nativeName: 'Tupinambá',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Latin',
+    period: [-1000, 1700],
+    regions: ['Atlantic Coast Brazil', 'São Paulo Plateau', 'Amazon Basin'],
+    culturalZones: ['SOUTH_AMERICAN' as CulturalZone],
+    predecessors: ['PROTO_TUPI'],
+    greetings: {
+      hello: 'Ereiupé',
+      goodbye: 'Oré robasépe',
+      yes: 'Etá',
+      no: 'Aáni',
+      thanks: 'Aguîyé',
+    },
+    llmPrompt: 'Emulate historical Tupi (Tupinambá). Polysynthetic with complex verbal morphology. Strong animacy distinctions. Use indigenous terms for tropical flora/fauna. Include ceremonial and shamanic vocabulary. Avoid European loanwords for pre-contact contexts.',
+    historicalContext: 'Tupi (Tupinambá) was the main indigenous language of coastal Brazil when Europeans arrived. It served as a lingua franca and was documented by Jesuit missionaries, becoming the basis for the colonial Língua Geral.',
+  },
+
   GUARANI: {
     id: 'GUARANI',
     name: 'Guarani',
@@ -1913,6 +3023,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     period: [1000, 2025],
     regions: ['Paraguay', 'Misiones', 'Chaco', 'Parana River'],
     culturalZones: ['SOUTH_AMERICAN' as CulturalZone],
+    predecessors: ['PROTO_TUPI'],
     greetings: {
       hello: 'Mba\'éichapa',
       goodbye: 'Jajotopáta',
@@ -2031,6 +3142,23 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
     ],
     namePatterns: [
       { pattern: /Etxe|Iturri|Zugasti|Aguirre|Azkuna/i, language: 'BASQUE', weight: 90 },
+    ],
+  },
+  // Iberian Peninsula (general regions)
+  {
+    patterns: ['iberia', 'ebro valley', 'toledo plateau', 'andalusian plain', 'lisbon coast', 'strait of gibraltar'],
+    languages: [
+      // 1059 is medieval period - blend of Arabic and Romance languages
+      { id: 'CLASSICAL_ARABIC', period: [711, 1492], weight: 40 },  // Al-Andalus influence
+      { id: 'LATIN', period: [0, 1200], weight: 30 },  // Church and educated class
+      { id: 'FRENCH_MEDIEVAL', period: [900, 1300], weight: 20 },  // Occitan/Provencal influence in north
+      { id: 'BASQUE', period: [-2000, 2025], weight: 5 },  // Basque substrate
+      { id: 'EARLY_SPANISH', period: [1500, 2025], weight: 60 },  // Later period
+      { id: 'EARLY_PORTUGUESE', period: [1500, 2025], weight: 20 },  // Portuguese areas
+    ],
+    namePatterns: [
+      { pattern: /Ibn |Abu |Al-/i, language: 'CLASSICAL_ARABIC', weight: 80 },
+      { pattern: /Fernandez|Rodriguez|Gonzalez|Sanchez/i, language: 'EARLY_SPANISH', weight: 75 },
     ],
   },
   // Switzerland
@@ -2461,21 +3589,29 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { id: 'PROTO_POLYNESIAN', period: [-2000, -1000], weight: 5 },
     ],
   },
-  // Siberia from geography.ts
+  // === PROPERLY MAPPED TO EAST ASIA FROM GEOGRAPHY.TS ===
+
+  // Siberia region (exact case-insensitive names from geography.ts)
   {
-    patterns: ['Western Siberia', 'Central Siberia'],
+    patterns: ['western siberia', 'central siberia'],
     languages: [
       { id: 'EVENKI', period: [-1000, 2025], weight: 60 },
       { id: 'PROTO_TURKIC', period: [-2000, 1000], weight: 20 },
-      { id: 'OLD_RUSSIAN', period: [1500, 2025], weight: 20 },
+      { id: 'RUSSIAN', period: [1500, 2025], weight: 20 },
+    ],
+    namePatterns: [
+      { pattern: /Tungus|Evenk|Solon/i, language: 'EVENKI', weight: 90 },
     ],
   },
   {
-    patterns: ['Eastern Siberia', 'Arctic Siberia'],
+    patterns: ['eastern siberia', 'arctic siberia', 'kamchatka peninsula', 'sakhalin island'],
     languages: [
       { id: 'YAKUT', period: [1000, 2025], weight: 70 },
       { id: 'EVENKI', period: [-1000, 2025], weight: 20 },
-      { id: 'OLD_RUSSIAN', period: [1700, 2025], weight: 10 },
+      { id: 'RUSSIAN', period: [1700, 2025], weight: 10 },
+    ],
+    namePatterns: [
+      { pattern: /Sakha|Yakut/i, language: 'YAKUT', weight: 90 },
     ],
   },
   {
@@ -2485,12 +3621,76 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { id: 'OLD_NORSE', period: [985, 1500], weight: 10 },
     ],
   },
-  // Central Asia from geography.ts
+  // Kazakh Steppes region from geography.ts
   {
-    patterns: ['Kazakh Steppes'],
+    patterns: ['kazakh steppes', 'altai mountains', 'aral sea basin', 'tian shan range', 'dzungarian basin'],
     languages: [
-      { id: 'KAZAKH', period: [1000, 2025], weight: 85 },
-      { id: 'PROTO_TURKIC', period: [-1000, 1000], weight: 15 },
+      { id: 'KAZAKH', period: [1000, 2025], weight: 60 },
+      { id: 'PROTO_TURKIC', period: [-1000, 1000], weight: 25 },
+      { id: 'MIDDLE_MONGOLIAN', period: [1200, 1700], weight: 10 },
+      { id: 'RUSSIAN', period: [1730, 2025], weight: 5 },
+    ],
+    namePatterns: [
+      { pattern: /bek$|bay$|khan$/i, language: 'KAZAKH', weight: 85 },
+    ],
+  },
+  {
+    patterns: ['khorasan', 'transoxiana'],
+    languages: [
+      { id: 'SOGDIAN', period: [-500, 1000], weight: 35 },
+      { id: 'CLASSICAL_PERSIAN', period: [700, 1500], weight: 35 },
+      { id: 'UZBEK', period: [1000, 2025], weight: 30 },
+    ],
+  },
+
+  // Central Asian Oases region from geography.ts
+  {
+    patterns: ['kyzylkum desert', 'ferghana valley', 'samarkand region', 'balkh plains', 'pamir mountains', 'hindu kush'],
+    languages: [
+      { id: 'SOGDIAN', period: [-500, 1000], weight: 40 },
+      { id: 'CLASSICAL_PERSIAN', period: [500, 1500], weight: 30 },
+      { id: 'UZBEK', period: [1000, 2025], weight: 30 },
+    ],
+    namePatterns: [
+      { pattern: /Timur|Babur|Ulugh/i, language: 'UZBEK', weight: 90 },
+    ],
+  },
+
+  // Xinjiang region from geography.ts
+  {
+    patterns: ['tarim basin', 'kunlun mountains', 'qaidam basin'],
+    languages: [
+      { id: 'TOCHARIAN', period: [-500, 800], weight: 25 }, // Ancient Indo-European presence
+      { id: 'SOGDIAN', period: [200, 1000], weight: 30 },
+      { id: 'OLD_UYGHUR', period: [700, 1500], weight: 35 },
+      { id: 'TIBETAN', period: [600, 900], weight: 10 }, // Tibetan Empire control
+      { id: 'CLASSICAL_CHINESE', period: [-200, 1900], weight: 15 }, // Han dynasty onwards
+      { id: 'MONGOLIAN', period: [1200, 1400], weight: 5 }, // Mongol period
+    ],
+    namePatterns: [
+      { pattern: /Kuchean|Agnean/i, language: 'TOCHARIAN', weight: 85 },
+    ],
+  },
+
+  // Mongolia and Manchuria region from geography.ts
+  {
+    patterns: ['mongolian steppes', 'gobi desert'],
+    languages: [
+      { id: 'PROTO_MONGOLIC', period: [-500, 1200], weight: 40 },
+      { id: 'MIDDLE_MONGOLIAN', period: [1200, 1700], weight: 50 },
+      { id: 'KHALKHA_MONGOLIAN', period: [1700, 2025], weight: 10 },
+    ],
+    namePatterns: [
+      { pattern: /Temujin|Borjigin|Kublai/i, language: 'MIDDLE_MONGOLIAN', weight: 95 },
+    ],
+  },
+  {
+    patterns: ['manchurian plain'],
+    languages: [
+      { id: 'MANCHU', period: [1200, 1900], weight: 40 },
+      { id: 'CLASSICAL_CHINESE', period: [200, 1900], weight: 30 },
+      { id: 'KHITAN', period: [900, 1200], weight: 20 },
+      { id: 'EVENKI', period: [-1000, 2025], weight: 10 },
     ],
   },
   // Sahara from geography.ts
@@ -2615,18 +3815,134 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
     ],
   },
 
-  // === RAINFOREST REGIONS ===
-  // Amazon Basin
+  // === SOUTH AMERICA - DETAILED REGIONAL MAPPINGS ===
+
+  // Atlantic Coast Brazil (Portuguese-speaking)
   {
-    patterns: ['amazon', 'amazonas', 'manaus', 'iquitos', 'madre de dios', 'acre', 'rondonia', 'mato grosso', 'amazon rainforest'],
+    patterns: ['rio de janeiro', 'rio de janeiro bay', 'são paulo', 'são paulo plateau', 'bahia', 'bahia coast', 'salvador', 'pernambuco', 'recife', 'recôncavo', 'espírito santo', 'minas gerais', 'santos', 'vitória'],
     languages: [
-      { id: 'TUPI', period: [-1000, 2025], weight: 35 },
-      { id: 'GUARANI', period: [-1000, 2025], weight: 15 },
-      { id: 'PROTO_ARAWAKAN', period: [-2000, 1500], weight: 15 },
-      { id: 'EARLY_PORTUGUESE', period: [1540, 2025], weight: 25 },
-      { id: 'EARLY_SPANISH', period: [1540, 2025], weight: 10 },
+      { id: 'PROTO_TUPI', period: [-2000, 1000], weight: 70 },
+      { id: 'TUPI', period: [-1000, 1600], weight: 80 },
+      { id: 'EARLY_PORTUGUESE', period: [1500, 1700], weight: 80 },
+      { id: 'MODERN_PORTUGUESE', period: [1700, 2050], weight: 95 },
+      { id: 'YORUBA', period: [1550, 2050], weight: 5 }, // African influence from slave trade
     ],
   },
+
+  // Amazon Basin (Mixed Portuguese/Spanish with strong indigenous)
+  {
+    patterns: ['amazon', 'amazonas', 'manaus', 'amazon delta', 'amazon basin', 'manaus region', 'rio negro', 'xingu', 'tapajós', 'acre', 'rondônia', 'mato grosso', 'amazon rainforest', 'varzea floodplains'],
+    languages: [
+      { id: 'TUPI', period: [-1000, 2050], weight: 35 },
+      { id: 'GUARANI', period: [-1000, 2050], weight: 15 },
+      { id: 'PROTO_ARAWAKAN', period: [-2000, 1500], weight: 15 },
+      { id: 'EARLY_PORTUGUESE', period: [1540, 1700], weight: 25 },
+      { id: 'MODERN_PORTUGUESE', period: [1700, 2050], weight: 30 },
+      { id: 'EARLY_SPANISH', period: [1540, 1700], weight: 10 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 10 },
+    ],
+  },
+
+  // Andes North (Spanish-speaking with Quechua)
+  {
+    patterns: ['quito', 'quito plateau', 'cajamarca', 'chimborazo', 'cordillera blanca', 'chachapoyas', 'ecuador', 'colombia highlands'],
+    languages: [
+      { id: 'QUECHUA_ANCIENT', period: [-500, 1530], weight: 80 },
+      { id: 'EARLY_SPANISH', period: [1530, 1700], weight: 50 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 70 },
+      { id: 'QUECHUA_ANCIENT', period: [1530, 2050], weight: 25 }, // Continued indigenous use
+    ],
+  },
+
+  // Andes South & Altiplano (Spanish with strong indigenous)
+  {
+    patterns: ['cuzco', 'cusco', 'altiplano', 'lake titicaca', 'la paz', 'potosí', 'sucre', 'cochabamba', 'tarija', 'mendoza'],
+    languages: [
+      { id: 'QUECHUA_ANCIENT', period: [-500, 1530], weight: 70 },
+      { id: 'AYMARA', period: [-500, 2050], weight: 30 },
+      { id: 'EARLY_SPANISH', period: [1530, 1700], weight: 40 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 60 },
+    ],
+  },
+
+  // Southern Cone - Argentina/Uruguay (Spanish with Italian influence)
+  {
+    patterns: ['pampas', 'buenos aires', 'montevideo', 'córdoba', 'rosario', 'paraná delta', 'santa fe', 'uruguay river'],
+    languages: [
+      { id: 'GUARANI', period: [-1000, 1600], weight: 30 },
+      { id: 'EARLY_SPANISH', period: [1530, 1700], weight: 60 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 85 },
+      { id: 'ITALIAN', period: [1850, 2050], weight: 10 }, // Immigration influence
+    ],
+  },
+
+  // Chile & Mapuche Territory
+  {
+    patterns: ['mapuche', 'santiago', 'valparaíso', 'concepción', 'atacama', 'chile'],
+    languages: [
+      { id: 'MAPUDUNGUN', period: [-1000, 2050], weight: 25 },
+      { id: 'EARLY_SPANISH', period: [1540, 1700], weight: 50 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 75 },
+    ],
+  },
+
+  // Gran Chaco (Mixed Spanish/Guaraní)
+  {
+    patterns: ['gran chaco', 'chaco', 'asunción', 'paraguay', 'formosa'],
+    languages: [
+      { id: 'GUARANI', period: [-1000, 2050], weight: 45 },
+      { id: 'EARLY_SPANISH', period: [1530, 1700], weight: 35 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 50 },
+    ],
+  },
+
+  // Pantanal (Portuguese/Spanish border region)
+  {
+    patterns: ['pantanal', 'pantanal wetlands', 'campo grande', 'cuiabá'],
+    languages: [
+      { id: 'GUARANI', period: [-1000, 2050], weight: 20 },
+      { id: 'EARLY_PORTUGUESE', period: [1540, 1700], weight: 35 },
+      { id: 'MODERN_PORTUGUESE', period: [1700, 2050], weight: 45 },
+      { id: 'EARLY_SPANISH', period: [1540, 1700], weight: 15 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 20 },
+    ],
+  },
+
+  // Guiana Shield (Mixed colonial languages)
+  {
+    patterns: ['guiana', 'guyana', 'suriname', 'french guiana', 'orinoco delta', 'essequibo', 'maroni', 'rupununi', 'kaieteur'],
+    languages: [
+      { id: 'PROTO_ARAWAKAN', period: [-2000, 1500], weight: 30 },
+      { id: 'PROTO_CARIBAN', period: [-2000, 2050], weight: 25 },
+      { id: 'DUTCH', period: [1600, 2050], weight: 20 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1750, 2050], weight: 15 },
+      { id: 'FRENCH', period: [1600, 2050], weight: 10 },
+    ],
+  },
+
+  // Venezuela & Llanos (Spanish)
+  {
+    patterns: ['venezuela', 'caracas', 'maracaibo', 'valencia', 'llanos', 'apure', 'meta river', 'orinoco rapids', 'villavicencio'],
+    languages: [
+      { id: 'PROTO_CARIBAN', period: [-2000, 1500], weight: 20 },
+      { id: 'EARLY_SPANISH', period: [1520, 1700], weight: 50 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 80 },
+    ],
+  },
+
+  // Patagonia (Spanish with Welsh pockets)
+  {
+    patterns: ['patagonia', 'tierra del fuego', 'valdés', 'magellanic', 'strait of magellan', 'ushuaia', 'bariloche'],
+    languages: [
+      { id: 'MAPUDUNGUN', period: [-1000, 1880], weight: 30 },
+      { id: 'TEHUELCHE', period: [-1000, 1900], weight: 20 },
+      { id: 'EARLY_SPANISH', period: [1520, 1700], weight: 30 },
+      { id: 'MODERN_SPANISH', period: [1700, 2050], weight: 70 },
+      { id: 'WELSH', period: [1865, 2050], weight: 5 }, // Welsh colony in Chubut
+    ],
+  },
+
+  // === RAINFOREST REGIONS ===
   // Congo Basin
   {
     patterns: ['congo basin', 'congo rainforest', 'ituri', 'ubangi river', 'sangha'],
@@ -2693,6 +4009,181 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { id: 'CLASSICAL_CHINESE', period: [-200, 1900], weight: 15 },
       { id: 'CLASSICAL_ARABIC', period: [700, 2025], weight: 10 },
       { id: 'SANSKRIT', period: [-500, 1000], weight: 10 },
+    ],
+  },
+
+  // === COMPREHENSIVE MENA REGIONAL MAPPINGS ===
+
+  // Mesopotamia - Cradle of Civilization
+  {
+    patterns: ['mesopotamia', 'tigris', 'euphrates', 'babylon region', 'nineveh plain', 'marsh arab', 'zagros foothills', 'diyala valley', 'tigris–euphrates'],
+    languages: [
+      { id: 'SUMERIAN', period: [-3500, -1750], weight: 95 },
+      { id: 'AKKADIAN', period: [-2500, -100], weight: 90 },
+      { id: 'ARAMAIC', period: [-1000, 700], weight: 70 },
+      { id: 'MIDDLE_PERSIAN', period: [224, 651], weight: 30 },
+      { id: 'CLASSICAL_ARABIC', period: [637, 2025], weight: 85 },
+      { id: 'OTTOMAN_TURKISH', period: [1534, 1918], weight: 35 },
+    ],
+    namePatterns: [
+      { pattern: /Hammurabi|Nebuchadnezzar|Sargon|Ashur|Tiglath|Sennacherib/i, language: 'AKKADIAN', weight: 95 },
+      { pattern: /Gilgamesh|Lugal|Enki|Inanna|Enkidu|Urukagina/i, language: 'SUMERIAN', weight: 95 },
+      { pattern: /Bar-|Ben-|Shimun|Yohannan|Mattai/i, language: 'ARAMAIC', weight: 85 },
+      { pattern: /ibn |bin |al-|Abu |Abdul/i, language: 'CLASSICAL_ARABIC', weight: 90 },
+    ],
+  },
+
+  // Levant - Cultural Crossroads
+  {
+    patterns: ['levant', 'jerusalem hills', 'bekaa valley', 'dead sea', 'golan', 'galilee', 'mount lebanon', 'jordan valley'],
+    languages: [
+      { id: 'ANCIENT_HEBREW', period: [-1000, 500], weight: 60 },
+      { id: 'PHOENICIAN', period: [-1200, -300], weight: 50 },
+      { id: 'ARAMAIC', period: [-800, 700], weight: 75 },
+      { id: 'ANCIENT_GREEK', period: [-332, 637], weight: 35 },
+      { id: 'BYZANTINE_GREEK', period: [330, 637], weight: 40 },
+      { id: 'CLASSICAL_ARABIC', period: [637, 2025], weight: 80 },
+      { id: 'OTTOMAN_TURKISH', period: [1516, 1918], weight: 30 },
+    ],
+    namePatterns: [
+      { pattern: /Hiram|Ithobal|Ahab|Jezebel|Dido/i, language: 'PHOENICIAN', weight: 90 },
+      { pattern: /David|Solomon|Saul|Samuel|Elijah|Isaiah/i, language: 'ANCIENT_HEBREW', weight: 95 },
+      { pattern: /Yeshua|Shimeon|Yohanan|Miriam|Martha/i, language: 'ARAMAIC', weight: 85 },
+      { pattern: /Saladin|Nureddin|Khalil|Hassan|Fatima/i, language: 'CLASSICAL_ARABIC', weight: 90 },
+    ],
+  },
+
+  // Persian Plateau & Iranian Highlands
+  {
+    patterns: ['persian plateau', 'isfahan basin', 'zagros highlands', 'caspian foothills', 'shiraz valley', 'alborz', 'khuzestan', 'fars', 'elam'],
+    languages: [
+      { id: 'ELAMITE', period: [-3200, -539], weight: 85 },
+      { id: 'OLD_PERSIAN', period: [-600, -330], weight: 90 },
+      { id: 'MIDDLE_PERSIAN', period: [-330, 651], weight: 85 },
+      { id: 'CLASSICAL_PERSIAN', period: [651, 1500], weight: 90 },
+      { id: 'CLASSICAL_ARABIC', period: [651, 1200], weight: 25 },
+    ],
+    namePatterns: [
+      { pattern: /Cyrus|Darius|Xerxes|Artaxerxes|Cambyses/i, language: 'OLD_PERSIAN', weight: 95 },
+      { pattern: /Ardashir|Shapur|Khosrow|Bahram|Yazdegerd/i, language: 'MIDDLE_PERSIAN', weight: 90 },
+      { pattern: /Ferdowsi|Hafez|Saadi|Omar|Rumi/i, language: 'CLASSICAL_PERSIAN', weight: 85 },
+      { pattern: /Untash|Shutruk|Tepti|Huban/i, language: 'ELAMITE', weight: 90 },
+    ],
+  },
+
+  // Anatolia - Bridge Between Continents
+  {
+    patterns: ['anatolia', 'cappadocian', 'pontic coast', 'cilician plain', 'tarsus', 'central plateau', 'bosporus', 'hattusa'],
+    languages: [
+      { id: 'HITTITE', period: [-1700, -1180], weight: 85 },
+      { id: 'PHOENICIAN', period: [-1000, -300], weight: 25 },
+      { id: 'ANCIENT_GREEK', period: [-800, 330], weight: 60 },
+      { id: 'ARAMAIC', period: [-500, 500], weight: 40 },
+      { id: 'BYZANTINE_GREEK', period: [330, 1453], weight: 70 },
+      { id: 'OTTOMAN_TURKISH', period: [1299, 1922], weight: 85 },
+      { id: 'CLASSICAL_ARABIC', period: [700, 1500], weight: 20 },
+    ],
+    namePatterns: [
+      { pattern: /Muwatalli|Hattusili|Suppiluliuma|Tudhaliya/i, language: 'HITTITE', weight: 95 },
+      { pattern: /Constantine|Justinian|Theodora|Basil|Alexios/i, language: 'BYZANTINE_GREEK', weight: 90 },
+      { pattern: /Mehmet|Suleiman|Selim|Osman|Bayezid/i, language: 'OTTOMAN_TURKISH', weight: 95 },
+    ],
+  },
+
+  // Nile Valley - Gift of the River
+  {
+    patterns: ['nile valley', 'thebes valley', 'nile delta', 'aswan', 'faiyum oasis', 'alexandria coast', 'upper egypt', 'lower egypt'],
+    languages: [
+      { id: 'ANCIENT_EGYPTIAN', period: [-3100, -700], weight: 95 },
+      { id: 'DEMOTIC', period: [-700, 400], weight: 80 },
+      { id: 'COPTIC', period: [100, 1700], weight: 70 },
+      { id: 'ANCIENT_GREEK', period: [-332, 641], weight: 40 },
+      { id: 'BYZANTINE_GREEK', period: [330, 641], weight: 35 },
+      { id: 'CLASSICAL_ARABIC', period: [641, 2025], weight: 85 },
+    ],
+    namePatterns: [
+      { pattern: /Ramesses|Amenhotep|Thutmose|Hatshepsut|Nefertiti|Akhenaten/i, language: 'ANCIENT_EGYPTIAN', weight: 95 },
+      { pattern: /Ptolemy|Cleopatra|Arsinoe|Berenice/i, language: 'ANCIENT_GREEK', weight: 90 },
+      { pattern: /Shenoute|Pachomius|Athanasius|Kyrillos/i, language: 'COPTIC', weight: 85 },
+      { pattern: /Amr|Saladin|Muhammad Ali|Ahmad|Fatimah/i, language: 'CLASSICAL_ARABIC', weight: 90 },
+    ],
+  },
+
+  // Arabian Peninsula - Desert and Oases
+  {
+    patterns: ['arabian peninsula', 'hejaz', 'empty quarter', 'hadhramaut', 'dhofar', 'najd plateau', 'red sea coast', 'yemen', 'mecca', 'medina'],
+    languages: [
+      { id: 'ANCIENT_SOUTH_ARABIAN', period: [-1000, 600], weight: 80 },
+      { id: 'CLASSICAL_ARABIC', period: [400, 2025], weight: 95 },
+      { id: 'ETHIOPIC', period: [100, 1000], weight: 15 }, // Trade influence
+    ],
+    namePatterns: [
+      { pattern: /Muhammad|Abdullah|Khadijah|Fatima|Ali|Umar|Abu Bakr|Uthman/i, language: 'CLASSICAL_ARABIC', weight: 95 },
+      { pattern: /Abraha|Dhu Nuwas|Karib|Sheba|Bilqis/i, language: 'ANCIENT_SOUTH_ARABIAN', weight: 90 },
+    ],
+  },
+
+  // Maghreb - Western Islamic World
+  {
+    patterns: ['maghreb', 'atlas mountains', 'fez plateau', 'tunisian sahel', 'rif coast', 'draa valley', 'tripolitania', 'tell atlas', 'cyrenaica'],
+    languages: [
+      { id: 'PHOENICIAN', period: [-814, -146], weight: 40 }, // Carthage
+      { id: 'LATIN', period: [-146, 429], weight: 35 },
+      { id: 'BERBER', period: [-3000, 2025], weight: 50 },
+      { id: 'CLASSICAL_ARABIC', period: [647, 2025], weight: 85 },
+      { id: 'ANDALUSI_ARABIC', period: [711, 1609], weight: 30 },
+    ],
+    namePatterns: [
+      { pattern: /Hannibal|Hasdrubal|Hamilcar|Sophonisba/i, language: 'PHOENICIAN', weight: 90 },
+      { pattern: /Massinissa|Jugurtha|Juba|Tacfarinas/i, language: 'BERBER', weight: 85 },
+      { pattern: /Ibn Battuta|Ibn Khaldun|Tariq|Musa|Yusuf/i, language: 'CLASSICAL_ARABIC', weight: 90 },
+    ],
+  },
+
+  // Nubia & Sudan - Land of Kush
+  {
+    patterns: ['nubian', 'nubian desert', 'bayuda desert', 'kush', 'meroe', 'dongola', 'napata'],
+    languages: [
+      { id: 'ANCIENT_EGYPTIAN', period: [-2500, -500], weight: 40 },
+      { id: 'MEROITIC', period: [-300, 400], weight: 70 },
+      { id: 'OLD_NUBIAN', period: [400, 1500], weight: 60 },
+      { id: 'COPTIC', period: [400, 1200], weight: 30 },
+      { id: 'CLASSICAL_ARABIC', period: [1200, 2025], weight: 75 },
+    ],
+    namePatterns: [
+      { pattern: /Piye|Taharqa|Amanirenas|Kandake/i, language: 'MEROITIC', weight: 90 },
+      { pattern: /Merkurios|Georgios|Qalidurut/i, language: 'OLD_NUBIAN', weight: 85 },
+    ],
+  },
+
+  // Caucasus - Mountain Crossroads
+  {
+    patterns: ['caucasus', 'tbilisi valley', 'mount ararat', 'kura river', 'chechen highlands', 'black sea foothills', 'caspian depression'],
+    languages: [
+      { id: 'GEORGIAN', period: [-500, 2025], weight: 45 },
+      { id: 'ARMENIAN', period: [-500, 2025], weight: 40 },
+      { id: 'OLD_PERSIAN', period: [-550, -330], weight: 20 },
+      { id: 'MIDDLE_PERSIAN', period: [224, 651], weight: 25 },
+      { id: 'CLASSICAL_ARABIC', period: [654, 1200], weight: 30 },
+      { id: 'OTTOMAN_TURKISH', period: [1500, 1918], weight: 35 },
+    ],
+    namePatterns: [
+      { pattern: /Davit|Tamar|Giorgi|Vakhtang|Erekle/i, language: 'GEORGIAN', weight: 90 },
+      { pattern: /Tigranes|Artashes|Vahan|Vardan|Hayk/i, language: 'ARMENIAN', weight: 90 },
+    ],
+  },
+
+  // Eastern Desert and Red Sea
+  {
+    patterns: ['eastern desert', 'red sea', 'sudanese red sea', 'wadi hammamat', 'berenice', 'suez', 'gebel elba'],
+    languages: [
+      { id: 'ANCIENT_EGYPTIAN', period: [-3100, -700], weight: 40 },
+      { id: 'ANCIENT_SOUTH_ARABIAN', period: [-1000, 600], weight: 30 },
+      { id: 'CLASSICAL_ARABIC', period: [641, 2025], weight: 80 },
+      { id: 'BEJA', period: [-2000, 2025], weight: 35 },
+    ],
+    namePatterns: [
+      { pattern: /Kharamadoye|Bishari|Hadendoa/i, language: 'BEJA', weight: 85 },
     ],
   },
 ];
@@ -2816,80 +4307,184 @@ export function getLanguageForCharacter(
     }
   }
 
-  // Fallback to general cultural zone language for the period
+  // STEP 5: Smart regional fallback based on specific region patterns
+  // Check for more specific MENA regional defaults before generic fallback
+  if (culturalZone === 'MENA' && region) {
+    const regionLower = region.toLowerCase();
+
+    // Mesopotamia/Iraq region defaults
+    if (regionLower.includes('mesopotam') || regionLower.includes('babylon') ||
+        regionLower.includes('tigris') || regionLower.includes('euphrates')) {
+      if (year < -1500) {
+        const sumerian = LANGUAGES['SUMERIAN'];
+        if (sumerian && year >= sumerian.period[0] && year <= sumerian.period[1]) return sumerian;
+      }
+      if (year >= -2500 && year < 0) {
+        const akkadian = LANGUAGES['AKKADIAN'];
+        if (akkadian && year >= akkadian.period[0] && year <= akkadian.period[1]) return akkadian;
+      }
+    }
+
+    // Egypt/Nile region defaults
+    if (regionLower.includes('nile') || regionLower.includes('egypt') ||
+        regionLower.includes('thebes') || regionLower.includes('alexandria')) {
+      if (year < 0) {
+        const egyptian = LANGUAGES['ANCIENT_EGYPTIAN'];
+        if (egyptian && year >= egyptian.period[0] && year <= egyptian.period[1]) return egyptian;
+      }
+      if (year >= -700 && year < 500) {
+        const demotic = LANGUAGES['DEMOTIC'];
+        if (demotic && year >= demotic.period[0] && year <= demotic.period[1]) return demotic;
+      }
+      if (year >= 100 && year < 1700) {
+        const coptic = LANGUAGES['COPTIC'];
+        if (coptic && year >= coptic.period[0] && year <= coptic.period[1]) return coptic;
+      }
+    }
+
+    // Persian/Iranian region defaults
+    if (regionLower.includes('persia') || regionLower.includes('isfahan') ||
+        regionLower.includes('shiraz') || regionLower.includes('elam')) {
+      if (year < -500) {
+        const elamite = LANGUAGES['ELAMITE'];
+        if (elamite && year >= elamite.period[0] && year <= elamite.period[1]) return elamite;
+      }
+      if (year >= -600 && year < -300) {
+        const oldPersian = LANGUAGES['OLD_PERSIAN'];
+        if (oldPersian && year >= oldPersian.period[0] && year <= oldPersian.period[1]) return oldPersian;
+      }
+      if (year >= -300 && year < 700) {
+        const middlePersian = LANGUAGES['MIDDLE_PERSIAN'];
+        if (middlePersian && year >= middlePersian.period[0] && year <= middlePersian.period[1]) return middlePersian;
+      }
+      if (year >= 700 && year < 1600) {
+        const classicalPersian = LANGUAGES['CLASSICAL_PERSIAN'];
+        if (classicalPersian && year >= classicalPersian.period[0] && year <= classicalPersian.period[1]) return classicalPersian;
+      }
+    }
+
+    // Levant region defaults
+    if (regionLower.includes('levant') || regionLower.includes('jerusalem') ||
+        regionLower.includes('lebanon') || regionLower.includes('galilee')) {
+      if (year >= -1200 && year < -300) {
+        const phoenician = LANGUAGES['PHOENICIAN'];
+        if (phoenician && year >= phoenician.period[0] && year <= phoenician.period[1]) return phoenician;
+      }
+      if (year >= -1000 && year < 500) {
+        const hebrew = LANGUAGES['ANCIENT_HEBREW'];
+        if (hebrew && year >= hebrew.period[0] && year <= hebrew.period[1]) return hebrew;
+      }
+    }
+
+    // Anatolia region defaults
+    if (regionLower.includes('anatolia') || regionLower.includes('cappadocia') ||
+        regionLower.includes('hittite') || regionLower.includes('hattusa')) {
+      if (year >= -1700 && year < -1180) {
+        const hittite = LANGUAGES['HITTITE'];
+        if (hittite && year >= hittite.period[0] && year <= hittite.period[1]) return hittite;
+      }
+      if (year >= 330 && year < 1453) {
+        const byzantine = LANGUAGES['BYZANTINE_GREEK'];
+        if (byzantine && year >= byzantine.period[0] && year <= byzantine.period[1]) return byzantine;
+      }
+    }
+
+    // Arabian Peninsula defaults
+    if (regionLower.includes('arabia') || regionLower.includes('hejaz') ||
+        regionLower.includes('yemen') || regionLower.includes('mecca')) {
+      if (year < 600) {
+        const southArabian = LANGUAGES['ANCIENT_SOUTH_ARABIAN'];
+        if (southArabian && year >= southArabian.period[0] && year <= southArabian.period[1]) return southArabian;
+      }
+    }
+  }
+
+  // STEP 6: Fallback to general cultural zone language for the period
   const fallbackLanguages: Record<string, Record<string, string>> = {
     EUROPEAN: {
       ancient: 'LATIN',
       medieval: 'OLD_FRENCH',
       earlyModern: 'EARLY_MODERN_ENGLISH',
       modern: 'EARLY_MODERN_ENGLISH',
+      future: 'EARLY_MODERN_ENGLISH',
     },
     MENA: {
-      ancient: 'ARAMAIC',
+      ancient: 'AKKADIAN', // Changed from ARAMAIC - Akkadian was more widespread in ancient times
       medieval: 'CLASSICAL_ARABIC',
       earlyModern: 'OTTOMAN_TURKISH',
       modern: 'CLASSICAL_ARABIC',
+      future: 'CLASSICAL_ARABIC',
     },
     SOUTH_ASIAN: {
       ancient: 'SANSKRIT',
       medieval: 'SANSKRIT',
       earlyModern: 'MUGHAL_URDU',
       modern: 'MUGHAL_URDU',
+      future: 'MUGHAL_URDU',
     },
     EAST_ASIAN: {
       ancient: 'CLASSICAL_CHINESE',
       medieval: 'MIDDLE_CHINESE',
       earlyModern: 'EARLY_MANDARIN',
       modern: 'EARLY_MANDARIN',
+      future: 'EARLY_MANDARIN',
     },
     SUB_SAHARAN_AFRICAN: {
       ancient: 'SWAHILI_CLASSICAL',
       medieval: 'SWAHILI_CLASSICAL',
       earlyModern: 'SWAHILI_CLASSICAL',
       modern: 'SWAHILI_CLASSICAL',
+      future: 'SWAHILI_CLASSICAL',
     },
     NORTH_AMERICAN_PRE_COLUMBIAN: {
       ancient: 'PROTO_ALGONQUIAN',
       medieval: 'MOHAWK',
       earlyModern: 'MOHAWK',
       modern: 'LAKOTA',
+      future: 'LAKOTA',
     },
     NORTH_AMERICAN_COLONIAL: {
       ancient: 'PROTO_ALGONQUIAN',
       medieval: 'MOHAWK',
       earlyModern: 'EARLY_MODERN_ENGLISH',
       modern: 'EARLY_MODERN_ENGLISH',
+      future: 'EARLY_MODERN_ENGLISH',
     },
     SOUTH_AMERICAN: {
       ancient: 'QUECHUA_ANCIENT',
       medieval: 'QUECHUA_ANCIENT',
       earlyModern: 'EARLY_SPANISH',
-      modern: 'EARLY_SPANISH',
+      modern: 'MODERN_SPANISH',
+      future: 'MODERN_SPANISH',
     },
     MESOAMERICAN: {
       ancient: 'CLASSICAL_MAYA',
       medieval: 'CLASSICAL_NAHUATL',
       earlyModern: 'EARLY_SPANISH',
-      modern: 'EARLY_SPANISH',
+      modern: 'MODERN_SPANISH',
+      future: 'MODERN_SPANISH',
     },
     OCEANIAN: {
       ancient: 'PROTO_PAMA_NYUNGAN',
       medieval: 'PROTO_POLYNESIAN',
       earlyModern: 'MAORI',
       modern: 'HAWAIIAN',
+      future: 'HAWAIIAN',
     },
     OCEANIA: {
       ancient: 'PROTO_PAMA_NYUNGAN',
       medieval: 'PROTO_POLYNESIAN',
       earlyModern: 'MAORI',
       modern: 'HAWAIIAN',
+      future: 'HAWAIIAN',
     },
   };
 
   const period = year < 500 ? 'ancient' :
                  year < 1500 ? 'medieval' :
-                 year < 1800 ? 'earlyModern' : 
-                 'modern';
+                 year < 1800 ? 'earlyModern' :
+                 year < 2000 ? 'modern' :
+                 'future';
 
   const fallbackLangId = fallbackLanguages[culturalZone]?.[period];
   if (fallbackLangId) {

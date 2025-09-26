@@ -249,12 +249,15 @@ export function generateGovernmentForumFixed(
     destination: 'parent_map'
   });
   
-  return { 
-    tiles, 
-    interactionZones, 
-    exitZones, 
+  const multiTileObjects = multiTileManager.getObjects();
+  console.log(`[MultiTile Debug] Government forum returning ${multiTileObjects.length} multi-tile objects:`, multiTileObjects);
+
+  return {
+    tiles,
+    interactionZones,
+    exitZones,
     rooms,
-    multiTileObjects: multiTileManager.getObjects() 
+    multiTileObjects
   };
 }
 
@@ -1040,7 +1043,8 @@ function addClassicalColonnade(
     const y = chamberY + 4 + (i * spacing);
     if (y < chamberY + chamberHeight - 3) {
       if (pillarHeight > 1 && y - pillarHeight + 1 >= chamberY) {
-        multiTileManager.placePillar(tiles, leftX, y, pillarHeight, pillarMaterial);
+        const success = multiTileManager.placePillar(tiles, leftX, y, pillarHeight, pillarMaterial);
+        console.log(`[MultiTile Debug] Left pillar placed at (${leftX}, ${y}) height=${pillarHeight} material=${pillarMaterial} success=${success}`);
       } else {
         tiles[y][leftX].biome = BiomeType.COLUMN;
         tiles[y][leftX].isBlocking = true;
@@ -1054,7 +1058,8 @@ function addClassicalColonnade(
     const y = chamberY + 4 + (i * spacing);
     if (y < chamberY + chamberHeight - 3) {
       if (pillarHeight > 1 && y - pillarHeight + 1 >= chamberY) {
-        multiTileManager.placePillar(tiles, rightX, y, pillarHeight, pillarMaterial);
+        const success = multiTileManager.placePillar(tiles, rightX, y, pillarHeight, pillarMaterial);
+        console.log(`[MultiTile Debug] Right pillar placed at (${rightX}, ${y}) height=${pillarHeight} material=${pillarMaterial} success=${success}`);
       } else {
         tiles[y][rightX].biome = BiomeType.COLUMN;
         tiles[y][rightX].isBlocking = true;

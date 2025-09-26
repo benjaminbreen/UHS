@@ -69,14 +69,33 @@ const EastAsianPagoda3D: React.FC<EastAsianPagoda3DProps> = React.memo(
 
     const uid = `pagoda-${tile.x}-${tile.y}-${seed}`;
 
-    // Palette (muted walls, rich crimson roof)
-    const wallLight = isHumbleDwelling ? 'hsl(36, 30%, 75%)' : 'hsl(36, 40%, 82%)';
-    const wallMid   = isHumbleDwelling ? 'hsl(34, 26%, 60%)' : 'hsl(34, 36%, 68%)';
-    const wallDark  = isHumbleDwelling ? 'hsl(32, 22%, 48%)' : 'hsl(32, 32%, 56%)';
-    const roofMain  = isHumbleDwelling 
-      ? `hsl(${30 + rand() * 10}, 35%, 38%)` // More brown/earth tones for humble dwellings
-      : `hsl(${10 + rand() * 6}, 64%, 44%)`; // Rich crimson for pagodas
-    const roofDark  = isHumbleDwelling 
+    // Palette with more variation
+    const wallVariant = rand();
+    const wallLight = isHumbleDwelling
+      ? `hsl(${36 + wallVariant * 10}, ${25 + wallVariant * 10}%, ${70 + wallVariant * 10}%)`
+      : `hsl(${36 + wallVariant * 8}, ${35 + wallVariant * 10}%, ${77 + wallVariant * 10}%)`;
+    const wallMid   = isHumbleDwelling
+      ? `hsl(${34 + wallVariant * 10}, ${23 + wallVariant * 8}%, ${55 + wallVariant * 10}%)`
+      : `hsl(${34 + wallVariant * 8}, ${31 + wallVariant * 10}%, ${63 + wallVariant * 10}%)`;
+    const wallDark  = isHumbleDwelling
+      ? `hsl(${32 + wallVariant * 10}, ${20 + wallVariant * 8}%, ${43 + wallVariant * 10}%)`
+      : `hsl(${32 + wallVariant * 8}, ${28 + wallVariant * 10}%, ${51 + wallVariant * 10}%)`;
+
+    // More roof color variations
+    const roofVariant = rand();
+    const roofColors = isHumbleDwelling
+      ? [ // Humble dwelling roofs: browns, grays
+          `hsl(${25 + roofVariant * 15}, ${30 + roofVariant * 10}%, ${35 + roofVariant * 8}%)`,
+          `hsl(0, 0%, ${35 + roofVariant * 15}%)`, // gray tiles
+          `hsl(${30 + roofVariant * 10}, ${25 + roofVariant * 10}%, ${40 + roofVariant * 5}%)`
+        ]
+      : [ // Pagoda roofs: crimson, blue-gray, dark gray
+          `hsl(${8 + roofVariant * 8}, ${60 + roofVariant * 10}%, ${42 + roofVariant * 6}%)`,
+          `hsl(210, ${15 + roofVariant * 10}%, ${35 + roofVariant * 10}%)`, // blue-gray
+          `hsl(0, 0%, ${30 + roofVariant * 10}%)` // dark gray
+        ];
+    const roofMain = roofColors[Math.floor(rand() * roofColors.length)];
+    const roofDark  = isHumbleDwelling
       ? `hsl(25, 30%, 28%)`
       : `hsl(10, 58%, 34%)`;
     const outline   = 'hsl(12, 40%, 16%)'; // thinner strokes everywhere
@@ -92,6 +111,7 @@ const EastAsianPagoda3D: React.FC<EastAsianPagoda3DProps> = React.memo(
 
     const doorW = adjustedSize * 0.10;
     const doorH = adjustedSize * 0.15;
+    const doorOffset = (rand() - 0.5) * bodyW * 0.3; // Random door position
 
     const sideQuad = (x0: number, y0: number, w: number, h: number, d = depth) =>
       `M ${x0 + w} ${y0} L ${x0 + w + d} ${y0 - d * 0.5} L ${x0 + w + d} ${y0 + h - d * 0.5} L ${x0 + w} ${y0 + h} Z`;
@@ -135,20 +155,120 @@ const EastAsianPagoda3D: React.FC<EastAsianPagoda3DProps> = React.memo(
       />
     );
 
-    // Door (simple dark opening)
-    gEls.push(
-      <rect
-        key="door"
-        x={bodyX + bodyW / 2 - doorW / 2}
-        y={bodyY + bodyH - doorH}
-        width={doorW}
-        height={doorH}
-        rx={size * 0.014}
-        fill="rgba(15,15,20,0.85)"
-        stroke={outline}
-        strokeWidth={0.5}
-      />
-    );
+    // Door with position variation
+    const isDoorDouble = rand() > 0.7 && !isHumbleDwelling;
+    if (isDoorDouble) {
+      // Double doors
+      gEls.push(
+        <g key="door-double">
+          <rect
+            x={bodyX + bodyW / 2 - doorW * 0.6 + doorOffset}
+            y={bodyY + bodyH - doorH}
+            width={doorW * 0.5}
+            height={doorH}
+            rx={size * 0.01}
+            fill="rgba(15,15,20,0.85)"
+            stroke={outline}
+            strokeWidth={0.5}
+          />
+          <rect
+            x={bodyX + bodyW / 2 + doorW * 0.1 + doorOffset}
+            y={bodyY + bodyH - doorH}
+            width={doorW * 0.5}
+            height={doorH}
+            rx={size * 0.01}
+            fill="rgba(15,15,20,0.85)"
+            stroke={outline}
+            strokeWidth={0.5}
+          />
+        </g>
+      );
+    } else {
+      // Single door
+      gEls.push(
+        <rect
+          key="door"
+          x={bodyX + bodyW / 2 - doorW / 2 + doorOffset}
+          y={bodyY + bodyH - doorH}
+          width={doorW}
+          height={doorH}
+          rx={size * 0.014}
+          fill="rgba(15,15,20,0.85)"
+          stroke={outline}
+          strokeWidth={0.5}
+        />
+      );
+    }
+
+    // Add windows (simple dark rectangles)
+    const windowW = adjustedSize * 0.06;
+    const windowH = adjustedSize * 0.08;
+    if (!isHumbleDwelling || rand() > 0.5) {
+      // Left window
+      gEls.push(
+        <rect
+          key="window-left"
+          x={bodyX + bodyW * 0.2}
+          y={bodyY + bodyH * 0.3}
+          width={windowW}
+          height={windowH}
+          fill="rgba(20,20,25,0.7)"
+          stroke={outline}
+          strokeWidth={0.4}
+        />
+      );
+      // Right window
+      if (!isHumbleDwelling) {
+        gEls.push(
+          <rect
+            key="window-right"
+            x={bodyX + bodyW * 0.7}
+            y={bodyY + bodyH * 0.3}
+            width={windowW}
+            height={windowH}
+            fill="rgba(20,20,25,0.7)"
+            stroke={outline}
+            strokeWidth={0.4}
+          />
+        );
+      }
+    }
+
+    // Add details for humble dwellings
+    if (isHumbleDwelling) {
+      // Add a small chimney
+      if (rand() > 0.5) {
+        gEls.push(
+          <rect
+            key="chimney"
+            x={bodyX + bodyW * 0.75}
+            y={bodyY - adjustedSize * 0.05}
+            width={adjustedSize * 0.04}
+            height={adjustedSize * 0.08}
+            fill={wallDark}
+            stroke={outline}
+            strokeWidth={0.4}
+          />
+        );
+      }
+      // Add a small fence
+      if (rand() > 0.6) {
+        for (let i = 0; i < 3; i++) {
+          gEls.push(
+            <line
+              key={`fence-${i}`}
+              x1={bodyX - adjustedSize * 0.08 + i * adjustedSize * 0.04}
+              y1={bodyY + bodyH}
+              x2={bodyX - adjustedSize * 0.08 + i * adjustedSize * 0.04}
+              y2={bodyY + bodyH - adjustedSize * 0.04}
+              stroke={wallDark}
+              strokeWidth={0.5}
+              opacity={0.7}
+            />
+          );
+        }
+      }
+    }
 
     // 3) Roof tiers: for each tier, draw side wedge first (behind), then front
     for (let t = 0; t < tiers; t++) {
@@ -172,18 +292,38 @@ const EastAsianPagoda3D: React.FC<EastAsianPagoda3DProps> = React.memo(
         />
       );
 
-      // Front roof (in front)
+      // Front roof with upturned corners
       gEls.push(
         <path
           key={`roof-front-${t}`}
           d={`M ${roofX - adjustedSize * 0.04} ${roofY}
+              Q ${roofX - adjustedSize * 0.02} ${roofY - adjustedSize * 0.015}, ${roofX} ${roofY - adjustedSize * 0.008}
               L ${roofX + roofW / 2} ${roofY - peak}
-              L ${roofX + roofW + adjustedSize * 0.04} ${roofY} Z`}
+              L ${roofX + roofW} ${roofY - adjustedSize * 0.008}
+              Q ${roofX + roofW + adjustedSize * 0.02} ${roofY - adjustedSize * 0.015}, ${roofX + roofW + adjustedSize * 0.04} ${roofY} Z`}
           fill={`url(#tiles-${uid})`}
           stroke={outline}
           strokeWidth={0.6}
         />
       );
+
+      // Add horizontal tile lines
+      if (t === 0 || tiers <= 2) { // Only on first tier or small buildings
+        for (let i = 1; i <= 2; i++) {
+          gEls.push(
+            <line
+              key={`tile-line-${t}-${i}`}
+              x1={roofX + adjustedSize * 0.02}
+              y1={roofY - peak * (i * 0.3)}
+              x2={roofX + roofW - adjustedSize * 0.02}
+              y2={roofY - peak * (i * 0.3)}
+              stroke={roofDark}
+              strokeWidth={0.3}
+              opacity={0.5}
+            />
+          );
+        }
+      }
 
       // Short tips (very subtle)
       gEls.push(

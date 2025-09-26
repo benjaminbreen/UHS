@@ -30,10 +30,10 @@ class DialectContinuumService {
         this.state.originMapArea = mapArea;
         this.state.originCoordinates = coordinates;
         this.state.visitedAreas.clear();
-        // Start with 10% native language even on home map for more noticeable effect
-        this.state.visitedAreas.set(mapArea, 10);
-        this.state.currentDistance = 10;
-        console.log('[Dialect Continuum] Initialized at', mapArea, 'with 10% native language');
+        // Start with 0% on home map - only a single greeting if appropriate
+        this.state.visitedAreas.set(mapArea, 0);
+        this.state.currentDistance = 0;
+        console.log('[Dialect Continuum] Initialized at', mapArea, 'with 0% foreign language (greeting only)');
     }
 
     /**
@@ -43,10 +43,8 @@ class DialectContinuumService {
         this.state.enabled = enabled;
         if (!enabled) {
             this.state.currentDistance = 0; // Reset to default when disabled
-        } else if (this.state.originMapArea && this.state.currentDistance === 0) {
-            // If enabling and we're on origin map but distance is 0, set to 10%
-            this.state.currentDistance = 10;
         }
+        // When enabled, keep whatever distance we have (0% for home map is now correct)
         console.log('[Dialect Continuum]', enabled ? 'Enabled' : 'Disabled', 'distance:', this.state.currentDistance + '%');
     }
 
@@ -71,26 +69,49 @@ class DialectContinuumService {
         }
 
         // Calculate new distance based on area transitions
+        // Note: visitedAreas.size includes the home map, so we need to account for that
         const areaTransitions = this.state.visitedAreas.size;
-        // More aggressive progression: start at 30% for first new map, then +20% per transition
-        let newDistance = Math.min(30 + ((areaTransitions - 1) * 20), 100);
+        const mapsFromHome = areaTransitions; // This is the actual count including home
 
-        // Accelerate if crossing cultural zones
-        if (culturalZoneChanged) {
-            newDistance = Math.min(newDistance + 30, 100);
-            console.log('[Dialect Continuum] Cultural zone change detected, accelerating distance');
+        // Slower progression to reach ~90% by map 8:
+        // Map 1 (home): 0%, Map 2: 15%, Map 3: 25%, Map 4: 35%, Map 5: 50%, Map 6: 65%, Map 7: 80%, Map 8: 90%
+        let newDistance: number;
+
+        if (mapsFromHome === 2) {
+            newDistance = 15; // First new map after home: 1-2 foreign words
+        } else if (mapsFromHome === 3) {
+            newDistance = 25; // Second new map: 2-3 foreign words
+        } else if (mapsFromHome === 4) {
+            newDistance = 35; // Third new map: 3-4 foreign words
+        } else if (mapsFromHome === 5) {
+            newDistance = 50; // Fourth new map: half and half
+        } else if (mapsFromHome === 6) {
+            newDistance = 65; // Fifth new map: mostly foreign
+        } else if (mapsFromHome === 7) {
+            newDistance = 80; // Sixth new map: predominantly foreign
+        } else if (mapsFromHome >= 8) {
+            newDistance = 90; // Seventh+ new maps: almost entirely foreign
+        } else {
+            // Shouldn't happen, but default to low percentage
+            newDistance = 15;
         }
 
-        // Cap at 70% for same cultural zone, 90% for different cultural zone
-        if (!culturalZoneChanged && newDistance > 70) {
-            newDistance = 70;
-        } else if (culturalZoneChanged && newDistance > 90) {
+        // Moderate acceleration if crossing cultural zones (+15% instead of +30%)
+        if (culturalZoneChanged) {
+            const originalDistance = newDistance;
+            newDistance = Math.min(newDistance + 15, 90); // Cap at 90% even with cultural zone bonus
+            console.log('[Dialect Continuum] Cultural zone change detected, acceleration from', originalDistance, 'to', newDistance);
+        }
+
+        // Hard cap at 90% to always keep some English for gameplay clarity
+        if (newDistance > 90) {
+            console.log('[Dialect Continuum] Capping distance from', newDistance, 'to 90%');
             newDistance = 90;
         }
 
         this.state.visitedAreas.set(newArea, newDistance);
         this.state.currentDistance = newDistance;
-        console.log('[Dialect Continuum] New area:', newArea, 'distance:', newDistance + '%');
+        console.log('[Dialect Continuum] New area:', newArea, 'maps from home:', mapsFromHome, 'distance:', newDistance + '%');
     }
 
     /**
@@ -148,37 +169,52 @@ class DialectContinuumService {
         const distance = percentage ?? this.state.currentDistance;
 
         if (distance === 0) {
-            return 'Respond in modern English.';
+            return 'Respond in modern English. You may use ONE greeting word in the native language if contextually appropriate.';
         }
 
-        if (distance >= 100) {
-            return `Respond entirely in ${nativeLanguage}. Do not use any English words.`;
+        // Never allow 100% foreign language
+        if (distance >= 95) {
+            console.warn('[Dialect Continuum] Warning: Distance at or above 95%, capping at 90% for prompts');
+            const cappedDistance = 90;
+            return this.generateLLMPrompt(nativeLanguage, cappedDistance); // Recursive call with capped value
         }
 
         // More explicit word category instructions based on percentage
         let wordTypesToReplace = '';
         let concreteInstructions = '';
 
-        if (distance === 10) {
-            // Home map: 10% - greetings and exclamations
-            wordTypesToReplace = 'greetings (hello, goodbye), exclamations (yes, no, oh), and titles (sir, friend)';
-            concreteInstructions = 'Start every dialogue with a greeting in ' + nativeLanguage + '. Add 1-2 more native words.';
-        } else if (distance <= 30) {
-            // First new map: 30% - common nouns and simple verbs
-            wordTypesToReplace = 'greetings, common nouns (village, house, food, water, person, thing), simple verbs (come, go, see, want, have), and basic adjectives (good, bad, big, small)';
-            concreteInstructions = 'Every sentence MUST have at least 2-3 words in ' + nativeLanguage + '. Mix individual words AND short phrases.';
+        if (distance === 0) {
+            // Home map: 0% - single greeting only
+            wordTypesToReplace = 'ONE greeting word ONLY (hello, goodbye, yes, no)';
+            concreteInstructions = 'Use ONLY ONE ' + nativeLanguage + ' greeting/exclamation per dialogue IF contextually appropriate. Otherwise use pure English.';
+        } else if (distance <= 15) {
+            // Map 2: 15% - 1-2 words max
+            wordTypesToReplace = 'greetings and 1-2 common nouns (village, house, food)';
+            concreteInstructions = 'Use exactly 1-2 ' + nativeLanguage + ' words TOTAL in the entire response. No more.';
+        } else if (distance <= 25) {
+            // Map 3: 25% - 2-3 words
+            wordTypesToReplace = 'greetings, 2-3 common nouns or simple verbs (come, go, want)';
+            concreteInstructions = 'Use exactly 2-3 ' + nativeLanguage + ' words TOTAL in the entire response. Choose the most impactful words.';
+        } else if (distance <= 35) {
+            // Map 4: 35% - 3-4 words
+            wordTypesToReplace = 'greetings, nouns, simple verbs, and basic adjectives (good, bad, big)';
+            concreteInstructions = 'Use exactly 3-4 ' + nativeLanguage + ' words per 2-3 sentences. Space them out naturally.';
         } else if (distance <= 50) {
-            // Second new map: 50% - half the dialogue
-            wordTypesToReplace = 'HALF of all words';
-            concreteInstructions = 'Alternate between English and ' + nativeLanguage + ' phrases. Every other phrase should be in ' + nativeLanguage + '.';
-        } else if (distance <= 70) {
-            // Further maps: 70% - mostly native
-            wordTypesToReplace = 'MOST words except item names and numbers';
-            concreteInstructions = 'Speak primarily in ' + nativeLanguage + '. Only game-critical terms (item names, quest objectives, numbers) stay in English.';
+            // Map 5: 50% - half and half
+            wordTypesToReplace = 'half of all content words (nouns, verbs, adjectives)';
+            concreteInstructions = 'Alternate between English and ' + nativeLanguage + ' phrases. Every other meaningful phrase should be in ' + nativeLanguage + '.';
+        } else if (distance <= 65) {
+            // Map 6: 65% - mostly foreign
+            wordTypesToReplace = 'most words except critical game terms';
+            concreteInstructions = 'Speak mostly in ' + nativeLanguage + ' but keep item names, numbers, and quest objectives in English.';
+        } else if (distance <= 80) {
+            // Map 7: 80% - predominantly foreign
+            wordTypesToReplace = 'nearly all words except essential gameplay information';
+            concreteInstructions = 'Speak predominantly in ' + nativeLanguage + '. Use English only for critical gameplay terms and clarifications.';
         } else {
-            // Cultural zone change: 90% - almost entirely native
-            wordTypesToReplace = 'NEARLY ALL words';
-            concreteInstructions = 'Speak almost entirely in ' + nativeLanguage + '. Maximum 1-2 English words per sentence.';
+            // Map 8+: 90% - almost entirely foreign
+            wordTypesToReplace = 'ALMOST ALL words';
+            concreteInstructions = 'Speak almost entirely in ' + nativeLanguage + '. Keep only the most critical words (item names, numbers) in English.';
         }
 
         return `
@@ -196,15 +232,19 @@ class DialectContinuumService {
             3. If you don't know ${nativeLanguage}, create phonetically plausible words based on that language family
             4. For non-Latin scripts (Chinese/Arabic/Japanese), use romanization/pinyin
 
-            ENFORCEMENT: If your response doesn't contain ${distance}% foreign words, you have FAILED.
+            ENFORCEMENT: If your response doesn't contain the EXACT amount of foreign words specified, you have FAILED.
 
             Example for ${distance}% mixing:
-            - 10%: "Hello traveler, welcome to our village" → "*Bonjour* traveler, and welcome to our village."
-            - 30%: "Hello traveler, welcome to our village" → "*Bonjour* traveler, and welcome to *notre village.*"
-            - 50%: "Hello traveler, welcome to our village?" → "*Bonjour voyageur*, y welcome to *notre village.*"
-            - 70%: "Hello friend, welcome to our village?" → "*Bonjour voyageur*, y welcome a *notre village."
+            - 0%: "Hello traveler, welcome to our village." → "Hello traveler, welcome to our village." (or "*Bonjour*, traveler, welcome to our village." if greeting appropriate)
+            - 15%: "Hello traveler, welcome to our village." → "*Bonjour* traveler, welcome to our *village*." (1-2 words max)
+            - 25%: "Hello traveler, welcome to our village." → "*Bonjour* *ami*, welcome to our village." (2-3 words total)
+            - 35%: "Hello traveler, welcome to our village." → "*Bonjour* traveler, welcome to *notre* *village*." (3-4 words)
+            - 50%: "Hello traveler, welcome to our village." → "*Bonjour voyageur*, welcome to *notre village*."
+            - 65%: "Hello traveler, welcome to our village." → "*Bonjour voyageur*, *bienvenue à notre village*."
+            - 80%: "Hello traveler, welcome to our village." → "*Bonjour voyageur, bienvenue à notre* village."
+            - 90%: "Hello friend, welcome to our village." → "*Bonjour ami, bienvenue à notre village.*"
 
-            The player expects ${distance}% foreign language, regardless of the challenge. DELIVER IT.
+            The player expects EXACTLY the amount specified. DELIVER IT PRECISELY.
         `;
     }
 

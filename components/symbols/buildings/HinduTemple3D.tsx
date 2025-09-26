@@ -25,45 +25,48 @@ const HinduTemple3D: React.FC<HinduTemple3DProps> = React.memo(({ x, y, width, h
 
     const depth = size * 0.4 * scaleFactor;
 
-    // Cast Shadow
+    // Single soft shadow for performance
     elements.push(
-      <path key="shadow-soft" d={`M ${x + depth * 0.5} ${y + height + depth * 0.2} l ${width} 0 l ${-depth*0.5} ${depth*0.3} l ${-width} 0 Z`} fill="rgba(0,0,0,0.2)" />,
-      <path key="shadow-hard" d={`M ${x + depth} ${y + height + depth*0.5} L ${x + width + depth} ${y + height + depth*0.5} L ${x + width} ${y + height} L ${x} ${y + height} Z`} fill="rgba(0,0,0,0.15)" filter="url(#buildingShadow)" />
+      <ellipse key="shadow" cx={x + width/2} cy={y + height + 2} rx={width * 0.6} ry={height * 0.15} fill="rgba(0,0,0,0.25)" filter="blur(1px)" />
     );
 
 
-    // Base Platform - Enlarged
+    // Base Platform - Properly centered after scaling
     const platformHeight = height * 0.25 * scaleFactor;
-    elements.push(<rect x={x - width * 0.2} y={y + height * 0.75} width={width * 1.4} height={platformHeight} fill={`url(#stoneGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.5"/>);
-    elements.push(<path d={`M ${x+width*1.2} ${y+height*0.75} L ${x+width*1.2+depth} ${y+height*0.75-depth*0.5} L ${x+width*1.2+depth} ${y+height*1.25-depth*0.5} L ${x+width*1.2} ${y+height*1.25} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.5"/>);
+    const scaledWidth = width * scaleFactor;
+    const centerOffset = (scaledWidth - width) / 2;
+    elements.push(<rect x={x - centerOffset} y={y + height * 0.75} width={scaledWidth} height={platformHeight} fill={`url(#stoneGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.5"/>);
+    elements.push(<path d={`M ${x + scaledWidth - centerOffset} ${y+height*0.75} L ${x + scaledWidth - centerOffset + depth} ${y+height*0.75-depth*0.5} L ${x + scaledWidth - centerOffset + depth} ${y+height*1.25-depth*0.5} L ${x + scaledWidth - centerOffset} ${y+height*1.25} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.5"/>);
 
-    // Main Structure (Mandapa) - Larger
+    // Main Structure (Mandapa) - Properly centered
     const mandapaHeight = height * 0.6 * scaleFactor;
     const mandapaY = y + height * 0.75 - mandapaHeight;
-    elements.push(<rect x={x - width * 0.1} y={mandapaY} width={width * 1.2} height={mandapaHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.5"/>);
-    elements.push(<path d={`M ${x+width*1.1} ${mandapaY} L ${x+width*1.1+depth*0.8} ${mandapaY-depth*0.4} L ${x+width*1.1+depth*0.8} ${y+height*0.75-depth*0.4} L ${x+width*1.1} ${y+height*0.75} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.5"/>);
+    const mandapaWidth = width * 1.2 * scaleFactor;
+    const mandapaOffset = (mandapaWidth - width) / 2;
+    elements.push(<rect x={x - mandapaOffset} y={mandapaY} width={mandapaWidth} height={mandapaHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.5"/>);
+    elements.push(<path d={`M ${x + mandapaWidth - mandapaOffset} ${mandapaY} L ${x + mandapaWidth - mandapaOffset + depth*0.8} ${mandapaY-depth*0.4} L ${x + mandapaWidth - mandapaOffset + depth*0.8} ${y+height*0.75-depth*0.4} L ${x + mandapaWidth - mandapaOffset} ${y+height*0.75} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.5"/>);
     
-    // Shikhara (Tower) - Taller and more prominent
+    // Shikhara (Tower) - Fixed pyramid shape
     const shikharaY = mandapaY;
     const shikharaHeight = height * 0.7 * scaleFactor;
     elements.push(
-        <path 
-            d={`M ${x + width*0.2} ${shikharaY} C ${x + width*0.2} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.8} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.8} ${shikharaY} L ${x+width*0.65} ${y - height*0.2} L ${x+width*0.35} ${y - height*0.2} Z`}
+        <path
+            d={`M ${x + width*0.3} ${shikharaY} L ${x + width*0.5} ${shikharaY - shikharaHeight} L ${x + width*0.7} ${shikharaY} Z`}
             fill={accentColor}
             stroke={outlineColor}
-            strokeWidth="0.6"
+            strokeWidth="0.5"
         />
     );
     // Shikhara carving pattern - More detailed
     for(let i = 0; i < 7; i++) {
         const lineY = shikharaY - i * 5;
         if (lineY > y - height*0.15) {
-             elements.push(<path d={`M ${x+width*0.25} ${lineY} C ${x+width/2} ${lineY-4}, ${x+width*0.75} ${lineY}`} stroke={goldColor} strokeWidth="0.8" fill="none" opacity="0.7"/>);
+             elements.push(<path d={`M ${x+width*0.25} ${lineY} C ${x+width/2} ${lineY-4}, ${x+width*0.75} ${lineY}`} stroke={goldColor} strokeWidth="0.3" fill="none" opacity="0.7"/>);
         }
     }
     
-    // Finial (Kalasha) on top - Larger and more prominent
-    elements.push(<circle cx={x + width/2} cy={y-height*0.2-3} r={5} fill={goldColor} stroke="black" strokeWidth="0.4"/>);
+    // Finial (Kalasha) on top - Standardized stroke
+    elements.push(<circle cx={x + width/2} cy={y-height*0.2-3} r={5} fill={goldColor} stroke="black" strokeWidth="0.3"/>);
     elements.push(<line x1={x+width/2} y1={y-height*0.2-3} x2={x+width/2} y2={y-height*0.2-10} stroke={goldColor} strokeWidth="2"/>);
 
     // Entrance - Larger

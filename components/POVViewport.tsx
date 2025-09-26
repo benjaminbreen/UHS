@@ -39,6 +39,8 @@ const POVViewport: React.FC<POVViewportProps> = ({
   onObserve
 }) => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [nextBackgroundImage, setNextBackgroundImage] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUsingNightImage, setIsUsingNightImage] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.15 }); // Start near top to show horizon
@@ -59,29 +61,38 @@ const POVViewport: React.FC<POVViewportProps> = ({
   const weatherKey = weather ? `${weather.precipitation}-${weather.special}` : 'none';
   const timeKey = gameTime ? `${gameTime.hours}-${Math.floor(gameTime.minutes / 15)}` : 'unknown'; // Only re-render every 15 min
 
+  // Create stable references for other potentially complex props
+  const stableBiome = typeof biome === 'string' ? biome : JSON.stringify(biome);
+  const stableClimate = typeof climate === 'string' ? climate : JSON.stringify(climate);
+  const stableSeason = typeof season === 'string' ? season : JSON.stringify(season);
+  const stableCulturalZone = typeof culturalZone === 'string' ? culturalZone : JSON.stringify(culturalZone);
+
   // Load appropriate background image
   useEffect(() => {
     if (!visible) return;
 
     const loadBackground = async () => {
-      setIsLoading(true);
+      // Only show initial loading if there's no background image yet
+      if (!backgroundImage) {
+        setIsLoading(true);
+      }
 
       // Generate priority-ordered background paths
       const paths = getBackgroundPaths(
-        biome,
+        stableBiome,
         weather,
         gameTime,
-        culturalZone,
-        climate,
-        season
+        stableCulturalZone,
+        stableClimate,
+        stableSeason
       );
 
       console.log('[POVViewport] Loading background for:', {
-        biome,
-        climate,
-        season,
-        culturalZone,
-        weather: weather,
+        biome: stableBiome,
+        climate: stableClimate,
+        season: stableSeason,
+        culturalZone: stableCulturalZone,
+        weather: weather?.type || 'unknown',
         weatherPrecipitation: weather?.precipitation,
         weatherSpecial: weather?.special,
         weatherIntensity: weather?.intensity,
@@ -96,12 +107,26 @@ const POVViewport: React.FC<POVViewportProps> = ({
       const usingNightImage = backgroundUrl ? backgroundUrl.includes('_night') : false;
       setIsUsingNightImage(usingNightImage);
 
-      setBackgroundImage(backgroundUrl);
-      setIsLoading(false);
+      // If we already have an image, do a smooth transition
+      if (backgroundImage && backgroundUrl !== backgroundImage) {
+        setNextBackgroundImage(backgroundUrl);
+        setIsTransitioning(true);
+
+        // After a short delay, swap the images
+        setTimeout(() => {
+          setBackgroundImage(backgroundUrl);
+          setNextBackgroundImage(null);
+          setIsTransitioning(false);
+        }, 300); // 300ms transition
+      } else {
+        // First load or same image
+        setBackgroundImage(backgroundUrl);
+        setIsLoading(false);
+      }
     };
 
     loadBackground();
-  }, [visible, biome, climate, season, culturalZone, weatherKey, timeKey]);
+  }, [visible, stableBiome, stableClimate, stableSeason, stableCulturalZone, weatherKey, timeKey, backgroundImage]);
 
   // Handle mouse movement for panning effect
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -160,7 +185,7 @@ const POVViewport: React.FC<POVViewportProps> = ({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          {/* Background Image with panning */}
+          {/* Background Image with panning - Current Image */}
           {backgroundImage && (
             <>
               <div
@@ -170,7 +195,9 @@ const POVViewport: React.FC<POVViewportProps> = ({
                   backgroundPosition: `${50 + panX}% ${50 + panY}%`, // Now using corrected pan values
                   backgroundSize: '110%', // Zoomed out more to show more of the scene
                   filter: shouldApplyNightTint ? getNightFilter(nightIntensity) : 'none',
-                  borderRadius: '24px'
+                  borderRadius: '24px',
+                  opacity: isTransitioning ? 0 : 1,
+                  transition: 'opacity 300ms ease-in-out'
                 }}
               />
               {/* Night overlay with blend mode - only if not using custom night image */}
@@ -188,6 +215,22 @@ const POVViewport: React.FC<POVViewportProps> = ({
             </>
           )}
 
+          {/* Next Background Image for transition */}
+          {nextBackgroundImage && (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${nextBackgroundImage})`,
+                backgroundPosition: `${50 + panX}% ${50 + panY}%`,
+                backgroundSize: '110%',
+                filter: shouldApplyNightTint ? getNightFilter(nightIntensity) : 'none',
+                borderRadius: '24px',
+                opacity: isTransitioning ? 1 : 0,
+                transition: 'opacity 300ms ease-in-out'
+              }}
+            />
+          )}
+
           {/* Weather effects overlay */}
           {weather && (
             <div style={{ borderRadius: '24px', overflow: 'hidden', position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
@@ -199,9 +242,9 @@ const POVViewport: React.FC<POVViewportProps> = ({
             </div>
           )}
 
-          {/* Loading overlay */}
-          {isLoading && (
-            <div className="absolute inset-0 bg-slate-800/80 flex items-center justify-center">
+          {/* Loading overlay - only shows on initial load when there's no image yet */}
+          {isLoading && !backgroundImage && (
+            <div className="absolute inset-0 bg-slate-800/80 flex items-center justify-center z-10">
               <div className="text-center text-white">
                 <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                 <p className="text-sm opacity-80">Loading view...</p>

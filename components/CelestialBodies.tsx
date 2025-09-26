@@ -24,9 +24,12 @@ interface CelestialBodiesProps {
     precipitation: 'none' | 'rain' | 'snow' | 'sleet' | 'hail';
     cloudCover: number;
     intensity: number;
+    previousPrecipitation?: 'none' | 'rain' | 'snow' | 'sleet' | 'hail';
   } | null;
   gameDay?: number;
   gameMonth?: number;
+  gameYear?: number;
+  climate?: string;
 }
 
 /* ------------------------------- Utilities -------------------------------- */
@@ -94,7 +97,9 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
   height = typeof window !== 'undefined' ? window.innerHeight : 720,
   weather = null,
   gameDay = 1,
-  gameMonth = 1
+  gameMonth = 1,
+  gameYear = 1500,
+  climate = 'TEMPERATE'
 }) => {
   const totalMinutes = gameTimeHours * 60 + gameTimeMinutes;
   const isRaining = weather?.precipitation === 'rain';
@@ -184,8 +189,8 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
 
   /* -------------------------- Planets along ecliptic ------------------------ */
   const planetPositions = useMemo(() => {
-    if (timeOfDay !== 'Night' && timeOfDay !== 'Dusk') return [];
-    const planets: { name: string; x: number; y: number; size: number; color: string; glow: string; opacity?: number }[] = [];
+    if (timeOfDay !== 'Night' && timeOfDay !== 'Dusk' && timeOfDay !== 'Dawn') return [];
+    const planets: { name: string; x: number; y: number; size: number; color: string; glow: string; opacity?: number; description?: string }[] = [];
     const bandY = height * 0.18; // base ecliptic height
     const eclipticAmp = height * 0.06 * (1 + 0.3 * Math.cos(month01 * 2 * Math.PI));
 
@@ -196,31 +201,97 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
       return { x, y };
     };
 
-    // Visibility damping by clouds
-    const vis = clamp(1 - cloudIntensity * 0.85, 0, 1);
+    // Visibility damping by clouds (but keep planets somewhat visible)
+    const vis = clamp(1 - cloudIntensity * 0.65, 0.2, 1); // Minimum 20% visibility
 
-    // Venus (evening star half the year; bright)
+    // Venus (evening/morning star; brightest planet)
     if (((gameMonth + 3) % 12) < 6) {
       const p = place(0.28, 0.05);
-      planets.push({ name: 'Venus', x: p.x, y: p.y, size: 4, color: '#FFF8DC', glow: '#FFFACD', opacity: vis });
+      planets.push({
+        name: 'Venus',
+        x: p.x,
+        y: p.y,
+        size: 6, // Increased from 4
+        color: '#FFFAF0',
+        glow: '#FFE4B5',
+        opacity: vis * 1.2, // Extra bright
+        description: 'The Evening Star'
+      });
+    } else {
+      // Venus as morning star
+      const p = place(0.75, 0.05);
+      planets.push({
+        name: 'Venus',
+        x: p.x,
+        y: p.y,
+        size: 6,
+        color: '#FFFAF0',
+        glow: '#FFE4B5',
+        opacity: vis * 1.2,
+        description: 'The Morning Star'
+      });
     }
 
-    // Mars (rusty)
+    // Mars (rusty red, closer during opposition)
+    const marsOpposition = ((gameMonth + 7) % 12) === 0; // Special brightness
     if (((gameMonth + 7) % 12) < 8) {
       const p = place(0.52, -0.03);
-      planets.push({ name: 'Mars', x: p.x, y: p.y, size: 3, color: '#D2691E', glow: '#FF7F50', opacity: vis });
+      planets.push({
+        name: 'Mars',
+        x: p.x,
+        y: p.y,
+        size: marsOpposition ? 5.5 : 4.5, // Bigger during opposition
+        color: '#FF6B35', // More vibrant orange-red
+        glow: '#FF4500',
+        opacity: marsOpposition ? vis * 1.3 : vis,
+        description: marsOpposition ? 'Mars at Opposition!' : 'The Red Planet'
+      });
     }
 
-    // Jupiter (bright gold)
+    // Jupiter (king of planets, always prominent)
     if (gameMonth % 12 > 2 && gameMonth % 12 < 10) {
       const p = place(0.65, 0.02);
-      planets.push({ name: 'Jupiter', x: p.x, y: p.y, size: 2.5, color: '#FFD700', glow: '#FFF6A6', opacity: vis });
+      planets.push({
+        name: 'Jupiter',
+        x: p.x,
+        y: p.y,
+        size: 5, // Increased from 2.5
+        color: '#FFDAA0', // Warmer cream color
+        glow: '#FFE4B5',
+        opacity: vis * 1.1,
+        description: 'The Giant Planet'
+      });
     }
 
-    // Saturn (paler)
+    // Saturn (pale gold with rings hint)
     if (((gameMonth + 5) % 12) > 4 && ((gameMonth + 5) % 12) < 11) {
       const p = place(0.38, -0.06);
-      planets.push({ name: 'Saturn', x: p.x, y: p.y, size: 2, color: '#F0E68C', glow: '#FFF8C6', opacity: vis });
+      planets.push({
+        name: 'Saturn',
+        x: p.x,
+        y: p.y,
+        size: 4, // Increased from 2
+        color: '#F4E4C1',
+        glow: '#FFF8DC',
+        opacity: vis,
+        description: 'The Ringed Planet'
+      });
+    }
+
+    // Mercury (small, close to sun, only visible at twilight)
+    if (timeOfDay === 'Dusk' || timeOfDay === 'Dawn') {
+      const mercuryEvening = timeOfDay === 'Dusk';
+      const p = place(mercuryEvening ? 0.15 : 0.85, 0);
+      planets.push({
+        name: 'Mercury',
+        x: p.x,
+        y: p.y,
+        size: 2.5,
+        color: '#E0E0E0',
+        glow: '#F5F5F5',
+        opacity: vis * 0.7,
+        description: 'The Swift Planet'
+      });
     }
 
     return planets;
@@ -277,6 +348,16 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
   const starVisibilityBase = timeOfDay === 'Night' ? 1 : timeOfDay === 'Dusk' ? 0.35 : timeOfDay === 'Dawn' ? 0.25 : 0;
   const starVisibility = clamp(starVisibilityBase * (1 - cloudIntensity * 0.9), 0, 1);
   const starSeed = Math.floor((gameMonth + 1) * 1000 + gameDay * 17);
+
+  // Moon and planet hover states (moved outside conditional rendering to fix React hooks)
+  const [isMoonHovered, setIsMoonHovered] = React.useState(false);
+  const [planetHoverStates, setPlanetHoverStates] = React.useState<boolean[]>([]);
+
+  // Initialize planet hover states when planetPositions change
+  React.useEffect(() => {
+    setPlanetHoverStates(new Array(planetPositions.length).fill(false));
+  }, [planetPositions.length]);
+
   const stars = useMemo(() => {
     if (starVisibility <= 0) return [];
     const rng = mulberry32(starSeed);
@@ -318,6 +399,136 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
             filter: 'blur(6px)'
           }}
         />
+      )}
+
+      {/* Enhanced Shooting Stars & Meteor Showers */}
+      {starVisibility > 0.2 && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
+          {(() => {
+            // Check for named meteor showers by month
+            const isPerseids = gameMonth === 8; // August - most spectacular
+            const isGeminids = gameMonth === 12; // December
+            const isLyrids = gameMonth === 4; // April
+            const isQuadrantids = gameMonth === 1; // January
+            const isOrionids = gameMonth === 10; // October
+            const isLeonids = gameMonth === 11; // November - storms every 33 years
+
+            const showerData = isPerseids ? { intensity: 12, name: 'Perseid Meteor Shower', radiant: { x: 60, y: 25 } } :
+                               isGeminids ? { intensity: 10, name: 'Geminid Meteor Shower', radiant: { x: 30, y: 30 } } :
+                               isLeonids ? { intensity: 8, name: 'Leonid Meteor Shower', radiant: { x: 45, y: 35 } } :
+                               isOrionids ? { intensity: 6, name: 'Orionid Meteor Shower', radiant: { x: 50, y: 20 } } :
+                               isLyrids ? { intensity: 5, name: 'Lyrid Meteor Shower', radiant: { x: 70, y: 40 } } :
+                               isQuadrantids ? { intensity: 7, name: 'Quadrantid Meteor Shower', radiant: { x: 25, y: 45 } } :
+                               { intensity: 2, name: null, radiant: null }; // Sporadic meteors
+
+            const meteors = [];
+            const rng = mulberry32(starSeed + gameTimeMinutes * 13);
+
+            // Generate meteors based on intensity
+            for (let i = 0; i < showerData.intensity; i++) {
+              const chance = showerData.name ? 0.08 : 0.02; // Higher chance during showers
+              if (rng() < chance) {
+                // If there's a radiant point, meteors emanate from there
+                const startX = showerData.radiant ?
+                  showerData.radiant.x + (rng() - 0.5) * 20 :
+                  10 + rng() * 80;
+                const startY = showerData.radiant ?
+                  showerData.radiant.y + (rng() - 0.5) * 15 :
+                  5 + rng() * 40;
+
+                // Meteor colors based on composition
+                const colorTypes = [
+                  { color: '#FFFFFF', trail: '#87CEEB', prob: 0.5 }, // Iron (white-blue)
+                  { color: '#FFE4B5', trail: '#FFA500', prob: 0.2 }, // Sodium (orange)
+                  { color: '#90EE90', trail: '#00FF00', prob: 0.15 }, // Copper (green)
+                  { color: '#FFB6C1', trail: '#FF69B4', prob: 0.1 }, // Lithium (pink)
+                  { color: '#FF4500', trail: '#FF0000', prob: 0.05 } // Fireball (red)
+                ];
+
+                let cumProb = 0;
+                const roll = rng();
+                let selectedColor = colorTypes[0];
+                for (const ct of colorTypes) {
+                  cumProb += ct.prob;
+                  if (roll < cumProb) {
+                    selectedColor = ct;
+                    break;
+                  }
+                }
+
+                const angle = showerData.radiant ?
+                  Math.atan2(50 - showerData.radiant.y, 50 - showerData.radiant.x) * 180 / Math.PI + (rng() - 0.5) * 30 :
+                  30 + rng() * 60;
+                const duration = 0.5 + rng() * 2; // 0.5-2.5 seconds
+                const delay = rng() * 8; // 0-8 second delay
+                const length = rng() > 0.9 ? 120 : 60 + rng() * 40; // Some extra long ones
+                const isBright = rng() > 0.8;
+
+                meteors.push(
+                  <div
+                    key={`meteor-${i}-${starSeed}-${gameTimeMinutes}`}
+                    className="absolute"
+                    style={{
+                      top: `${startY}%`,
+                      left: `${startX}%`,
+                      width: isBright ? '3px' : '2px',
+                      height: `${length}px`,
+                      background: `linear-gradient(to bottom, ${selectedColor.color}, ${colorWithAlpha(selectedColor.trail, 0.6)}, transparent)`,
+                      transform: `rotate(${angle}deg)`,
+                      transformOrigin: 'top',
+                      animation: `shooting-star-enhanced ${duration}s ease-out ${delay}s`,
+                      boxShadow: `0 0 ${isBright ? 10 : 6}px ${selectedColor.color}, 0 0 ${isBright ? 20 : 12}px ${selectedColor.trail}`,
+                      filter: isBright ? 'brightness(1.5)' : 'none',
+                      opacity: 0
+                    }}
+                  />
+                );
+              }
+            }
+
+            return (
+              <>
+                {meteors}
+                {showerData.name && (
+                  <div
+                    className="absolute top-8 right-8 text-white text-sm pointer-events-none"
+                    style={{
+                      textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7)',
+                      fontFamily: 'serif',
+                      letterSpacing: '1px',
+                      opacity: 0.7
+                    }}
+                  >
+                    <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{showerData.name}</div>
+                    <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+                      {showerData.intensity > 8 ? 'Peak Activity' : 'Active'}
+                    </div>
+                  </div>
+                )}
+                <style jsx>{`
+                  @keyframes shooting-star-enhanced {
+                    0% {
+                      opacity: 0;
+                      transform: rotate(var(--angle, 45deg)) translateY(0) scaleY(0);
+                    }
+                    10% {
+                      opacity: 1;
+                      transform: rotate(var(--angle, 45deg)) translateY(0) scaleY(0.5);
+                    }
+                    90% {
+                      opacity: 1;
+                      transform: rotate(var(--angle, 45deg)) translateY(300px) scaleY(1);
+                    }
+                    100% {
+                      opacity: 0;
+                      transform: rotate(var(--angle, 45deg)) translateY(400px) scaleY(0.5);
+                    }
+                  }
+                `}</style>
+              </>
+            );
+          })()}
+        </div>
       )}
 
       {/* ------------------------------- SUN -------------------------------- */}
@@ -365,7 +576,24 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
             </>
           )}
 
-          {/* Sun glow */}
+          {/* Multi-layered sun glow for more beauty */}
+          {/* Outer corona */}
+          <div
+            aria-hidden
+            className="absolute animate-pulse"
+            style={{
+              width: celestialPosition.sunNearHorizon ? `${200 + (1 - celestialPosition.sunHorizonProgress) * 150}px` : '200px',
+              height: celestialPosition.sunNearHorizon ? `${180 + (1 - celestialPosition.sunHorizonProgress) * 100}px` : '200px',
+              background: `radial-gradient(circle, ${colorWithAlpha(getSunColors.glow, 0.15)} 0%, ${colorWithAlpha(getSunColors.glow, 0.05)} 40%, transparent 70%)`,
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              filter: `blur(30px)`,
+              animationDuration: '8s'
+            }}
+          />
+
+          {/* Middle glow */}
           <div
             aria-hidden
             className="absolute"
@@ -375,15 +603,30 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
               height:
                 celestialPosition.sunNearHorizon ? `${110 + (1 - celestialPosition.sunHorizonProgress) * 70}px` : `${Math.max(110, width * 0.09)}px`,
               background: celestialPosition.sunNearHorizon
-                ? `radial-gradient(ellipse, ${colorWithAlpha(getSunColors.glow, 0.32)} 0%, ${colorWithAlpha(
+                ? `radial-gradient(ellipse, ${colorWithAlpha(getSunColors.glow, 0.4)} 0%, ${colorWithAlpha(
                     getSunColors.core,
-                    0.12
+                    0.2
                   )} 45%, transparent 70%)`
-                : `radial-gradient(circle, ${colorWithAlpha(getSunColors.glow, 0.28)} 0%, transparent 68%)`,
+                : `radial-gradient(circle, ${colorWithAlpha(getSunColors.glow, 0.35)} 0%, transparent 68%)`,
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
               filter: `blur(${20 + (1 - (celestialPosition.sunHorizonProgress || 1)) * 16}px)`
+            }}
+          />
+
+          {/* Inner bright glow */}
+          <div
+            aria-hidden
+            className="absolute"
+            style={{
+              width: celestialPosition.sunNearHorizon ? `${70 + (1 - celestialPosition.sunHorizonProgress) * 40}px` : '70px',
+              height: celestialPosition.sunNearHorizon ? `${65 + (1 - celestialPosition.sunHorizonProgress) * 30}px` : '70px',
+              background: `radial-gradient(circle, ${getSunColors.core} 0%, ${colorWithAlpha(getSunColors.glow, 0.8)} 50%, transparent 100%)`,
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              filter: 'blur(8px)'
             }}
           />
 
@@ -431,16 +674,382 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
         </div>
       )}
 
-      {/* -------------------------------- MOON ------------------------------- */}
-      {celestialPosition.moonVisible && (
+      {/* -------------------------------- RAINBOW ----------------------------- */}
+      {/* Rainbow appears when sun is out after rain */}
+      {celestialPosition.sunVisible &&
+       weather?.precipitation === 'none' &&
+       weather?.previousPrecipitation === 'rain' &&
+       cloudIntensity < 0.5 && (
         <div
-          className="absolute transition-transform duration-[2600ms] ease-in-out"
+          className="absolute pointer-events-none"
           style={{
-            left: `${celestialPosition.moonPosition.x}px`,
-            top: `${celestialPosition.moonPosition.y}px`,
-            transform: 'translate(-50%, -50%)'
+            // Rainbow appears opposite the sun (antisolar point)
+            left: width - celestialPosition.sunPosition.x,
+            top: celestialPosition.sunPosition.y - height * 0.1,
+            transform: 'translate(-50%, -50%)',
+            opacity: 0.6 * (1 - cloudIntensity)
           }}
         >
+          {/* Primary rainbow arc */}
+          <svg
+            width={width * 0.8}
+            height={height * 0.5}
+            viewBox="0 0 800 400"
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <defs>
+              <radialGradient id="rainbow-gradient" cx="50%" cy="100%" r="100%">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="70%" stopColor="transparent" />
+                <stop offset="72%" stopColor="#FF0000" stopOpacity="0.4" />
+                <stop offset="74%" stopColor="#FF7F00" stopOpacity="0.4" />
+                <stop offset="76%" stopColor="#FFFF00" stopOpacity="0.4" />
+                <stop offset="78%" stopColor="#00FF00" stopOpacity="0.4" />
+                <stop offset="80%" stopColor="#0000FF" stopOpacity="0.4" />
+                <stop offset="82%" stopColor="#4B0082" stopOpacity="0.4" />
+                <stop offset="84%" stopColor="#9400D3" stopOpacity="0.4" />
+                <stop offset="86%" stopColor="transparent" />
+                <stop offset="100%" stopColor="transparent" />
+              </radialGradient>
+              {/* Double rainbow (fainter, reversed colors) */}
+              <radialGradient id="double-rainbow-gradient" cx="50%" cy="100%" r="100%">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="86%" stopColor="transparent" />
+                <stop offset="88%" stopColor="#9400D3" stopOpacity="0.15" />
+                <stop offset="89%" stopColor="#4B0082" stopOpacity="0.15" />
+                <stop offset="90%" stopColor="#0000FF" stopOpacity="0.15" />
+                <stop offset="91%" stopColor="#00FF00" stopOpacity="0.15" />
+                <stop offset="92%" stopColor="#FFFF00" stopOpacity="0.15" />
+                <stop offset="93%" stopColor="#FF7F00" stopOpacity="0.15" />
+                <stop offset="94%" stopColor="#FF0000" stopOpacity="0.15" />
+                <stop offset="96%" stopColor="transparent" />
+                <stop offset="100%" stopColor="transparent" />
+              </radialGradient>
+            </defs>
+
+            {/* Primary rainbow */}
+            <ellipse
+              cx="400"
+              cy="400"
+              rx="380"
+              ry="380"
+              fill="url(#rainbow-gradient)"
+              style={{
+                filter: 'blur(2px)'
+              }}
+            />
+
+            {/* Double rainbow */}
+            {((starSeed % 100) > 60) && (
+              <ellipse
+                cx="400"
+                cy="400"
+                rx="420"
+                ry="420"
+                fill="url(#double-rainbow-gradient)"
+                style={{
+                  filter: 'blur(3px)'
+                }}
+              />
+            )}
+          </svg>
+        </div>
+      )}
+
+      {/* ---------------------------- AURORA BOREALIS ------------------------ */}
+      {/* Aurora appears in cold climates at night, or temperate climates in winter */}
+      {timeOfDay === 'Night' &&
+       starVisibility > 0.5 &&
+       cloudIntensity < 0.4 &&
+       (climate === 'COLD' || (climate === 'TEMPERATE' && (gameMonth >= 11 || gameMonth <= 2))) &&
+       ((starSeed % 100) < 30) && ( // 30% chance on clear nights (deterministic)
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ zIndex: 2 }}
+        >
+          {/* Aurora curtains */}
+          <div
+            className="absolute inset-x-0 top-0"
+            style={{
+              height: '60%',
+              background: 'linear-gradient(180deg, transparent 0%, transparent 40%, rgba(0, 255, 150, 0.05) 70%, transparent 100%)',
+              animation: 'aurora-wave 20s ease-in-out infinite'
+            }}
+          />
+
+          {/* Multiple aurora bands */}
+          {[
+            { color: '#00FF96', opacity: 0.15, delay: 0, height: 45 },
+            { color: '#00FFFF', opacity: 0.12, delay: 2, height: 40 },
+            { color: '#9400D3', opacity: 0.08, delay: 4, height: 35 },
+            { color: '#00FF00', opacity: 0.18, delay: 1, height: 50 }
+          ].map((band, i) => (
+            <svg
+              key={`aurora-band-${i}`}
+              className="absolute"
+              width={width}
+              height={height * 0.6}
+              style={{
+                top: 0,
+                left: 0,
+                opacity: band.opacity,
+                animation: `aurora-shimmer ${15 + i * 3}s ease-in-out ${band.delay}s infinite`
+              }}
+            >
+              <defs>
+                <linearGradient id={`aurora-gradient-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="transparent" />
+                  <stop offset="30%" stopColor={band.color} stopOpacity="0.1" />
+                  <stop offset="50%" stopColor={band.color} stopOpacity="0.3" />
+                  <stop offset="70%" stopColor={band.color} stopOpacity="0.1" />
+                  <stop offset="100%" stopColor="transparent" />
+                </linearGradient>
+              </defs>
+
+              {/* Wavy curtain effect */}
+              <path
+                d={`
+                  M 0 ${height * 0.1}
+                  Q ${width * 0.25} ${height * 0.15 + Math.sin(i) * 20}
+                    ${width * 0.5} ${height * 0.1}
+                  T ${width} ${height * 0.1}
+                  L ${width} ${height * (band.height / 100)}
+                  Q ${width * 0.75} ${height * (band.height / 100) + Math.cos(i) * 15}
+                    ${width * 0.5} ${height * (band.height / 100)}
+                  T 0 ${height * (band.height / 100)}
+                  Z
+                `}
+                fill={`url(#aurora-gradient-${i})`}
+                style={{
+                  filter: `blur(${8 + i * 2}px)`
+                }}
+              />
+            </svg>
+          ))}
+
+          {/* Aurora glow on ground */}
+          <div
+            className="absolute bottom-0 inset-x-0"
+            style={{
+              height: '30%',
+              background: 'radial-gradient(ellipse at center top, rgba(0, 255, 150, 0.03) 0%, transparent 50%)',
+              animation: 'aurora-pulse 12s ease-in-out infinite'
+            }}
+          />
+
+          <style jsx>{`
+            @keyframes aurora-wave {
+              0%, 100% { transform: translateY(0) scaleY(1); }
+              50% { transform: translateY(-10px) scaleY(1.1); }
+            }
+            @keyframes aurora-shimmer {
+              0%, 100% {
+                opacity: var(--opacity);
+                transform: translateX(0) scaleX(1);
+              }
+              25% {
+                opacity: calc(var(--opacity) * 1.3);
+                transform: translateX(-20px) scaleX(1.05);
+              }
+              50% {
+                opacity: calc(var(--opacity) * 0.7);
+                transform: translateX(20px) scaleX(0.95);
+              }
+              75% {
+                opacity: calc(var(--opacity) * 1.2);
+                transform: translateX(-10px) scaleX(1.02);
+              }
+            }
+            @keyframes aurora-pulse {
+              0%, 100% { opacity: 0.5; }
+              50% { opacity: 0.8; }
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* -------------------------------- COMETS ------------------------------ */}
+      {/* Historical comets based on actual recorded appearances */}
+      {(() => {
+        // Historical comet data (year, month, duration in days, name, brightness)
+        const historicalComets = [
+          { year: 1066, month: 4, duration: 30, name: "Halley's Comet", brightness: 0.9 },
+          { year: 1301, month: 10, duration: 25, name: "Halley's Comet", brightness: 0.85 },
+          { year: 1378, month: 11, duration: 20, name: "Comet of 1378", brightness: 0.7 },
+          { year: 1456, month: 6, duration: 40, name: "Halley's Comet", brightness: 0.95 },
+          { year: 1472, month: 1, duration: 60, name: "Great Comet of 1472", brightness: 1.0 },
+          { year: 1531, month: 8, duration: 30, name: "Halley's Comet", brightness: 0.8 },
+          { year: 1556, month: 3, duration: 15, name: "Comet of 1556", brightness: 0.6 },
+          { year: 1577, month: 11, duration: 50, name: "Great Comet of 1577", brightness: 0.95 },
+          { year: 1607, month: 10, duration: 25, name: "Halley's Comet", brightness: 0.75 },
+          { year: 1618, month: 11, duration: 45, name: "Great Comet of 1618", brightness: 0.9 },
+          { year: 1664, month: 12, duration: 35, name: "Great Comet of 1664", brightness: 0.85 },
+          { year: 1680, month: 12, duration: 40, name: "Great Comet of 1680", brightness: 0.95 },
+          { year: 1682, month: 9, duration: 30, name: "Halley's Comet", brightness: 0.8 },
+          { year: 1744, month: 3, duration: 60, name: "Comet Klinkenberg", brightness: 1.0 },
+          { year: 1758, month: 12, duration: 25, name: "Halley's Comet", brightness: 0.75 },
+          { year: 1811, month: 9, duration: 90, name: "Great Comet of 1811", brightness: 1.0 },
+          { year: 1835, month: 11, duration: 30, name: "Halley's Comet", brightness: 0.8 },
+          { year: 1858, month: 9, duration: 40, name: "Donati's Comet", brightness: 0.9 },
+          { year: 1882, month: 9, duration: 50, name: "Great September Comet", brightness: 0.95 },
+          { year: 1910, month: 5, duration: 35, name: "Halley's Comet", brightness: 0.85 }
+        ];
+
+        // Check if a comet should be visible
+        const visibleComet = historicalComets.find(comet => {
+          const yearMatch = Math.abs(gameYear - comet.year) < 1;
+          const monthMatch = Math.abs(gameMonth - comet.month) < 2;
+          const dayInRange = gameDay <= comet.duration;
+          return yearMatch && monthMatch && dayInRange;
+        });
+
+        if (!visibleComet || cloudIntensity > 0.6) return null;
+        if (timeOfDay !== 'Night' && timeOfDay !== 'Dusk' && timeOfDay !== 'Dawn') return null;
+
+        // Calculate comet position (moves slowly across sky over duration)
+        const progress = gameDay / visibleComet.duration;
+        const cometX = width * lerp(0.85, 0.15, progress);
+        const cometY = height * (0.2 + Math.sin(progress * Math.PI) * 0.1);
+
+        // Tail always points away from sun
+        const tailAngle = celestialPosition.sunVisible ?
+          Math.atan2(cometY - celestialPosition.sunPosition.y, cometX - celestialPosition.sunPosition.x) :
+          Math.PI * 0.25; // Default angle when sun not visible
+
+        return (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              left: `${cometX}px`,
+              top: `${cometY}px`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 1
+            }}
+          >
+            {/* Comet tail */}
+            <svg
+              width="300"
+              height="150"
+              style={{
+                position: 'absolute',
+                left: '-150px',
+                top: '-75px',
+                transform: `rotate(${tailAngle * 180 / Math.PI}deg)`,
+                transformOrigin: '150px 75px'
+              }}
+            >
+              <defs>
+                <linearGradient id="comet-tail-gradient" x1="0%" y1="50%" x2="100%" y2="50%">
+                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.6 * visibleComet.brightness} />
+                  <stop offset="30%" stopColor="#87CEEB" stopOpacity={0.3 * visibleComet.brightness} />
+                  <stop offset="60%" stopColor="#4682B4" stopOpacity={0.1 * visibleComet.brightness} />
+                  <stop offset="100%" stopColor="transparent" />
+                </linearGradient>
+                <radialGradient id="comet-dust-gradient">
+                  <stop offset="0%" stopColor="#FFE4B5" stopOpacity={0.4 * visibleComet.brightness} />
+                  <stop offset="50%" stopColor="#FFDAA0" stopOpacity={0.2 * visibleComet.brightness} />
+                  <stop offset="100%" stopColor="transparent" />
+                </radialGradient>
+              </defs>
+
+              {/* Ion tail (blue) */}
+              <path
+                d="M 150 75 L 10 65 L 5 75 L 10 85 Z"
+                fill="url(#comet-tail-gradient)"
+                style={{ filter: 'blur(2px)' }}
+              />
+
+              {/* Dust tail (yellowish) */}
+              <path
+                d="M 150 75 L 20 70 L 15 75 L 20 80 Z"
+                fill="url(#comet-dust-gradient)"
+                style={{ filter: 'blur(3px)' }}
+              />
+            </svg>
+
+            {/* Comet coma and nucleus */}
+            <div
+              className="absolute"
+              style={{
+                width: '20px',
+                height: '20px',
+                background: `radial-gradient(circle, #FFFFFF ${50 * visibleComet.brightness}%, #87CEEB ${70 * visibleComet.brightness}%, transparent)`,
+                borderRadius: '50%',
+                boxShadow: `0 0 ${30 * visibleComet.brightness}px #FFFFFF, 0 0 ${60 * visibleComet.brightness}px #87CEEB`,
+                filter: 'blur(1px)'
+              }}
+            />
+
+            {/* Bright nucleus */}
+            <div
+              className="absolute"
+              style={{
+                width: '6px',
+                height: '6px',
+                left: '7px',
+                top: '7px',
+                background: '#FFFFFF',
+                borderRadius: '50%',
+                boxShadow: `0 0 10px #FFFFFF`
+              }}
+            />
+
+            {/* Comet label */}
+            {visibleComet.brightness > 0.8 && (
+              <div
+                className="absolute"
+                style={{
+                  top: '40px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '11px',
+                  fontFamily: 'serif',
+                  textShadow: '0 0 4px rgba(0,0,0,0.8)',
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none'
+                }}
+              >
+                {visibleComet.name}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* -------------------------------- MOON ------------------------------- */}
+      {celestialPosition.moonVisible && (() => {
+        // Calculate moon phase description
+        const getMoonPhaseDescription = () => {
+          const phase = celestialPosition.moonPhase;
+          if (phase < 0.05 || phase > 0.95) return "New Moon";
+          if (phase < 0.2) return "Waxing Crescent";
+          if (phase < 0.3) return "First Quarter";
+          if (phase < 0.45) return "Waxing Gibbous";
+          if (phase < 0.55) return "Full Moon";
+          if (phase < 0.7) return "Waning Gibbous";
+          if (phase < 0.8) return "Last Quarter";
+          return "Waning Crescent";
+        };
+
+        return (
+          <div
+            className="absolute transition-transform duration-[2600ms] ease-in-out"
+            style={{
+              left: `${celestialPosition.moonPosition.x}px`,
+              top: `${celestialPosition.moonPosition.y}px`,
+              transform: 'translate(-50%, -50%)',
+              cursor: 'pointer',
+              pointerEvents: 'auto'
+            }}
+            onMouseEnter={() => setIsMoonHovered(true)}
+            onMouseLeave={() => setIsMoonHovered(false)}
+          >
           {/* Horizon bands for moon */}
           {celestialPosition.moonNearHorizon && (
             <>
@@ -475,7 +1084,26 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
             </>
           )}
 
-          {/* Moon glow */}
+          {/* Enhanced Moon glow layers */}
+          {/* Outer lunar halo (ice crystals effect on cold nights) */}
+          {cloudIntensity < 0.3 && (
+            <div
+              aria-hidden
+              className="absolute animate-pulse"
+              style={{
+                width: '140px',
+                height: '140px',
+                background: `radial-gradient(circle, transparent 30%, ${colorWithAlpha(moonGlowColor, 0.08)} 45%, transparent 55%, ${colorWithAlpha(moonGlowColor, 0.05)} 65%, transparent 70%)`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                filter: 'blur(2px)',
+                animationDuration: '12s'
+              }}
+            />
+          )}
+
+          {/* Main moon glow */}
           <div
             aria-hidden
             className="absolute"
@@ -483,11 +1111,11 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
               width: celestialPosition.moonNearHorizon ? `${52 + (1 - celestialPosition.moonHorizonProgress) * 40}px` : '52px',
               height: celestialPosition.moonNearHorizon ? `${52 + (1 - celestialPosition.moonHorizonProgress) * 22}px` : '52px',
               background: celestialPosition.moonNearHorizon
-                ? `radial-gradient(ellipse, ${colorWithAlpha(moonGlowColor, 0.18)} 0%, ${colorWithAlpha(
+                ? `radial-gradient(ellipse, ${colorWithAlpha(moonGlowColor, 0.25)} 0%, ${colorWithAlpha(
                     moonColor,
-                    0.07
+                    0.1
                   )} 40%, transparent 72%)`
-                : `radial-gradient(circle, ${colorWithAlpha(moonColor, 0.1)} 0%, transparent 60%)`,
+                : `radial-gradient(circle, ${colorWithAlpha(moonColor, 0.15)} 0%, transparent 60%)`,
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
@@ -497,8 +1125,8 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
 
           {/* Moon w/ realistic phase & rotated terminator */}
           <svg
-            width={celestialPosition.moonNearHorizon ? `${32 + (1 - celestialPosition.moonHorizonProgress) * 16}` : '32'}
-            height={celestialPosition.moonNearHorizon ? `${32 + (1 - celestialPosition.moonHorizonProgress) * 10}` : '32'}
+            width={celestialPosition.moonNearHorizon ? `${60 + (1 - celestialPosition.moonHorizonProgress) * 20}` : '50'}
+            height={celestialPosition.moonNearHorizon ? `${60 + (1 - celestialPosition.moonHorizonProgress) * 15}` : '50'}
             viewBox="0 0 30 30"
             style={{
               position: 'relative',
@@ -512,47 +1140,56 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
               <mask id={moonMaskId}>
                 <rect x="0" y="0" width="30" height="30" fill="black" />
                 <circle cx="15" cy="15" r="14" fill="white" />
-                {/* Phase shadow rotated by terminator angle */}
-                <g transform={`rotate(${moonTerminatorAngleDeg}, 15, 15)`}>
-                  {celestialPosition.moonPhase < 0.5 ? (
-                    // Waxing crescent → full
-                    celestialPosition.moonPhase < 0.25 ? (
-                      <ellipse
-                        cx={15 + 15 * (1 - celestialPosition.moonPhase * 4)}
-                        cy="15"
-                        rx={14 * (1 - celestialPosition.moonPhase * 4)}
-                        ry="14"
-                        fill="black"
-                      />
-                    ) : (
-                      <ellipse
-                        cx={15 - 15 * ((celestialPosition.moonPhase - 0.25) * 4)}
-                        cy="15"
-                        rx={14 * ((celestialPosition.moonPhase - 0.25) * 4)}
-                        ry="14"
-                        fill="black"
-                      />
-                    )
-                  ) : celestialPosition.moonPhase > 0.5 ? (
-                    celestialPosition.moonPhase < 0.75 ? (
-                      <ellipse
-                        cx={15 + 15 * ((celestialPosition.moonPhase - 0.5) * 4)}
-                        cy="15"
-                        rx={14 * ((celestialPosition.moonPhase - 0.5) * 4)}
-                        ry="14"
-                        fill="black"
-                      />
-                    ) : (
-                      <ellipse
-                        cx={15 - 15 * (1 - (celestialPosition.moonPhase - 0.75) * 4)}
-                        cy="15"
-                        rx={14 * (1 - (celestialPosition.moonPhase - 0.75) * 4)}
-                        ry="14"
-                        fill="black"
-                      />
-                    )
-                  ) : null}
-                </g>
+                {/* Improved phase shadow rendering */}
+                {(() => {
+                  const phase = celestialPosition.moonPhase;
+
+                  if (phase < 0.02 || phase > 0.98) {
+                    // New moon - fully dark
+                    return <circle cx="15" cy="15" r="14" fill="black" />;
+                  } else if (Math.abs(phase - 0.5) < 0.02) {
+                    // Full moon - no shadow
+                    return null;
+                  } else if (phase < 0.5) {
+                    // Waxing phases (right side lit)
+                    const ellipseWidth = Math.abs(Math.cos(phase * Math.PI * 2)) * 14;
+                    const isGrowing = phase < 0.25;
+
+                    return (
+                      <g>
+                        {/* Dark left half */}
+                        <rect x="0" y="0" width="15" height="30" fill="black" />
+                        {/* Elliptical terminator */}
+                        <ellipse
+                          cx="15"
+                          cy="15"
+                          rx={ellipseWidth}
+                          ry="14"
+                          fill={isGrowing ? "black" : "white"}
+                        />
+                      </g>
+                    );
+                  } else {
+                    // Waning phases (left side lit)
+                    const ellipseWidth = Math.abs(Math.cos(phase * Math.PI * 2)) * 14;
+                    const isShrinking = phase > 0.75;
+
+                    return (
+                      <g>
+                        {/* Dark right half */}
+                        <rect x="15" y="0" width="15" height="30" fill="black" />
+                        {/* Elliptical terminator */}
+                        <ellipse
+                          cx="15"
+                          cy="15"
+                          rx={ellipseWidth}
+                          ry="14"
+                          fill={isShrinking ? "black" : "white"}
+                        />
+                      </g>
+                    );
+                  }
+                })()}
               </mask>
             </defs>
 
@@ -565,56 +1202,183 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
             </radialGradient>
             <circle cx="15" cy="15" r="14" fill="url(#moonShade)" mask={`url(#${moonMaskId})`} />
 
-            {/* Subtle craters */}
+            {/* Enhanced craters and surface features */}
+            {/* Mare (dark seas) */}
+            <ellipse cx="12" cy="10" rx="4" ry="3" fill="#C8C8C8" opacity="0.2" mask={`url(#${moonMaskId})`} />
+            <ellipse cx="18" cy="18" rx="3" ry="2.5" fill="#D0D0D0" opacity="0.15" mask={`url(#${moonMaskId})`} />
+
+            {/* Individual craters with depth */}
             {[
-              { cx: 11, cy: 12, r: 1.5, o: 0.18 },
-              { cx: 18, cy: 16, r: 1.0, o: 0.15 },
-              { cx: 14, cy: 19, r: 0.9, o: 0.14 }
+              { cx: 11, cy: 12, r: 1.8, o: 0.22, inner: true },
+              { cx: 18, cy: 16, r: 1.2, o: 0.18, inner: false },
+              { cx: 14, cy: 19, r: 1.0, o: 0.16, inner: true },
+              { cx: 8, cy: 8, r: 0.8, o: 0.14, inner: false },
+              { cx: 22, cy: 11, r: 0.6, o: 0.12, inner: false },
+              { cx: 16, cy: 8, r: 0.7, o: 0.13, inner: true }
             ].map((c, i) => (
-              <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill="#E6E6E6" opacity={c.o} mask={`url(#${moonMaskId})`} />
+              <g key={i}>
+                <circle cx={c.cx} cy={c.cy} r={c.r} fill="#BDBDBD" opacity={c.o} mask={`url(#${moonMaskId})`} />
+                {c.inner && (
+                  <circle cx={c.cx + 0.2} cy={c.cy + 0.2} r={c.r * 0.4} fill="#A0A0A0" opacity={c.o * 0.7} mask={`url(#${moonMaskId})`} />
+                )}
+              </g>
             ))}
           </svg>
+
+          {/* Moon hover label */}
+          {isMoonHovered && (
+            <div
+              className="absolute"
+              style={{
+                bottom: '-40px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0, 0, 0, 0.85)',
+                color: '#FFF7D6',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap',
+                textShadow: '0 0 4px rgba(255, 247, 214, 0.5)',
+                border: '1px solid rgba(255, 247, 214, 0.3)',
+                zIndex: 1000,
+                pointerEvents: 'none'
+              }}
+            >
+              <div>Moon</div>
+              <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '2px' }}>
+                {getMoonPhaseDescription()}
+              </div>
+              <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '1px' }}>
+                Day {Math.floor(((gameDay % 29.5) + 29.5) % 29.5)} of cycle
+              </div>
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ------------------------------ PLANETS ------------------------------- */}
-      {planetPositions.map((p, i) => (
-        <div
-          key={`planet-${p.name}-${i}`}
-          className="absolute"
-          style={{
-            left: `${p.x}px`,
-            top: `${p.y}px`,
-            transform: 'translate(-50%, -50%)',
-            opacity: clamp((p.opacity ?? 1) * (timeOfDay === 'Dusk' ? 0.85 : 1), 0, 1)
-          }}
-          title={p.name}
-        >
+      {planetPositions.map((p, i) => {
+        const isHovered = planetHoverStates[i] || false;
+        const setIsHovered = (hovered: boolean) => {
+          setPlanetHoverStates(prev => {
+            const newStates = [...prev];
+            newStates[i] = hovered;
+            return newStates;
+          });
+        };
+
+        return (
           <div
-            aria-hidden
+            key={`planet-${p.name}-${i}`}
             className="absolute"
             style={{
-              width: `${p.size * 4}px`,
-              height: `${p.size * 4}px`,
-              background: `radial-gradient(circle, ${colorWithAlpha(p.glow, 0.18)} 0%, transparent 70%)`,
-              left: '50%',
-              top: '50%',
+              left: `${p.x}px`,
+              top: `${p.y}px`,
               transform: 'translate(-50%, -50%)',
-              filter: 'blur(2px)'
+              opacity: clamp((p.opacity ?? 1) * (timeOfDay === 'Dusk' ? 0.85 : 1), 0, 1),
+              cursor: 'pointer',
+              pointerEvents: 'auto'
             }}
-          />
-          <div
-            aria-hidden
-            style={{
-              width: `${p.size}px`,
-              height: `${p.size}px`,
-              borderRadius: '50%',
-              background: p.color,
-              boxShadow: `0 0 ${p.size * 2}px ${colorWithAlpha(p.glow, 0.35)}`
-            }}
-          />
-        </div>
-      ))}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            {/* Outer glow - more prominent */}
+            <div
+              aria-hidden
+              className="absolute animate-pulse"
+              style={{
+                width: `${p.size * 8}px`,
+                height: `${p.size * 8}px`,
+                background: `radial-gradient(circle, ${colorWithAlpha(p.glow, 0.25)} 0%, ${colorWithAlpha(p.glow, 0.1)} 40%, transparent 70%)`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                filter: 'blur(4px)',
+                animationDuration: '4s'
+              }}
+            />
+
+            {/* Inner glow */}
+            <div
+              aria-hidden
+              className="absolute"
+              style={{
+                width: `${p.size * 4}px`,
+                height: `${p.size * 4}px`,
+                background: `radial-gradient(circle, ${colorWithAlpha(p.glow, 0.4)} 0%, transparent 60%)`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                filter: 'blur(2px)'
+              }}
+            />
+
+            {/* Planet body */}
+            <div
+              aria-hidden
+              className="relative"
+              style={{
+                width: `${p.size * 2}px`,
+                height: `${p.size * 2}px`,
+                borderRadius: '50%',
+                background: `radial-gradient(circle at 30% 30%, ${p.color}, ${colorWithAlpha(p.color, 0.8)})`,
+                boxShadow: `0 0 ${p.size * 3}px ${colorWithAlpha(p.glow, 0.6)}, 0 0 ${p.size * 6}px ${colorWithAlpha(p.glow, 0.3)}`,
+                transition: 'transform 0.3s ease'
+              }}
+            >
+              {/* Saturn's rings */}
+              {p.name === 'Saturn' && (
+                <div
+                  className="absolute"
+                  style={{
+                    width: `${p.size * 3.5}px`,
+                    height: `${p.size * 1.2}px`,
+                    border: `2px solid ${colorWithAlpha(p.color, 0.6)}`,
+                    borderRadius: '50%',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%) rotateX(70deg)',
+                    boxShadow: `0 0 ${p.size}px ${colorWithAlpha(p.glow, 0.3)}`
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Hover label */}
+            {isHovered && (
+              <div
+                className="absolute"
+                style={{
+                  bottom: `${-p.size * 4}px`,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(0, 0, 0, 0.8)',
+                  color: p.glow,
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap',
+                  textShadow: `0 0 4px ${p.glow}`,
+                  border: `1px solid ${colorWithAlpha(p.glow, 0.3)}`,
+                  zIndex: 1000,
+                  pointerEvents: 'none'
+                }}
+              >
+                <div>{p.name}</div>
+                {p.description && (
+                  <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px' }}>
+                    {p.description}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* -------------------------------- STARS ------------------------------- */}
       {starVisibility > 0 && (

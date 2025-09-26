@@ -177,15 +177,16 @@ const Yurt3D: React.FC<Yurt3DProps> = React.memo(({
                 opacity="0.4"
             />
             
-            {/* Door - simple and clean */}
-            <rect 
-                x={cx - yurtRadius * 0.12} 
-                y={yurtY + yurtHeight * 0.65} 
-                width={yurtRadius * 0.24} 
-                height={yurtHeight * 0.35}
-                fill={doorColor} 
-                stroke={frameColor} 
-                strokeWidth="0.6" 
+            {/* Door - centered properly */}
+            <rect
+                x={cx - yurtRadius * 0.15}
+                y={yurtY + yurtHeight * 0.6}
+                width={yurtRadius * 0.3}
+                height={yurtHeight * 0.4}
+                fill={doorColor}
+                stroke={frameColor}
+                strokeWidth="0.8"
+                rx="2"
             />
             
             {/* Optional decoration band */}
@@ -205,13 +206,13 @@ const Yurt3D: React.FC<Yurt3DProps> = React.memo(({
             {/* Night lighting - simplified */}
             {nightIntensity > 0 && (
                 <g>
-                    {/* Light from door */}
-                    <rect 
-                        x={cx - yurtRadius * 0.12} 
-                        y={yurtY + yurtHeight * 0.65} 
-                        width={yurtRadius * 0.24} 
-                        height={yurtHeight * 0.35}
-                        fill="rgba(255, 200, 100, 0.6)" 
+                    {/* Light from door - match new door position */}
+                    <rect
+                        x={cx - yurtRadius * 0.15}
+                        y={yurtY + yurtHeight * 0.6}
+                        width={yurtRadius * 0.3}
+                        height={yurtHeight * 0.4}
+                        fill="rgba(255, 200, 100, 0.6)"
                         opacity={nightIntensity * 0.7}
                     />
                     

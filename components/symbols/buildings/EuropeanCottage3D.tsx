@@ -68,11 +68,11 @@ const EuropeanCottage3D: React.FC<EuropeanCottage3DProps> = React.memo(({ x, y, 
       if(hasDiagonalTimber > 0.5) elements.push(<path key="tf-d" d={`M ${x} ${wallY} L ${x+width} ${y+height}`} stroke={woodColor} strokeWidth="2.5" />);
     }
 
-    // Thatched Roof - properly positioned above walls
-    const roofY = wallY + 2;
+    // Thatched Roof - fixed position to sit properly on walls
+    const roofY = wallY - 2; // Changed from wallY + 2 to wallY - 2
     const roofOverhang = 4;
-    elements.push(<path key="roof-main" d={`M ${x-roofOverhang} ${roofY} L ${x+width/2} ${roofY-roofPitch} L ${x+width+roofOverhang} ${roofY} Z`} fill={thatchColor} stroke={outlineColor} strokeWidth="0.3" />);
-    elements.push(<path key="roof-side" d={`M ${x+width+roofOverhang} ${roofY} L ${x+width+roofOverhang+depth} ${roofY-depth*0.5} L ${x+width/2+depth} ${roofY-roofPitch-depth*0.5} L ${x+width/2} ${roofY-roofPitch} Z`} fill={`hsl(40, 45%, 38%)`} stroke={outlineColor} strokeWidth="0.3"/>);
+    elements.push(<path key="roof-main" d={`M ${x-roofOverhang} ${roofY} L ${x+width/2} ${roofY-roofPitch} L ${x+width+roofOverhang} ${roofY} Z`} fill={thatchColor} stroke={outlineColor} strokeWidth="0.5" />);
+    elements.push(<path key="roof-side" d={`M ${x+width+roofOverhang} ${roofY} L ${x+width+roofOverhang+depth} ${roofY-depth*0.5} L ${x+width/2+depth} ${roofY-roofPitch-depth*0.5} L ${x+width/2} ${roofY-roofPitch} Z`} fill={`hsl(40, 45%, 38%)`} stroke={outlineColor} strokeWidth="0.5"/>);
     elements.push(<path key="roof-highlight" d={`M ${x+3} ${roofY-2} L ${x+width/2} ${roofY-roofPitch+2} L ${x+width-3} ${roofY-2}`} fill="none" stroke={thatchHighlight} strokeWidth="1.5" opacity="0.6" strokeLinecap="round"/>);
     
     // Door - adjusted for new wall position

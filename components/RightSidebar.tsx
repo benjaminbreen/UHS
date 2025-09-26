@@ -1,4 +1,15 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+
+// CSS keyframes for progress bar animation
+const progressBarStyles = `
+  @keyframes progressFillIn {
+    from { width: 0%; }
+    to { width: var(--final-width); }
+  }
+  .progress-bar-animated {
+    animation: progressFillIn 1s ease-out forwards;
+  }
+`;
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
@@ -36,7 +47,11 @@ const STUDY_ACTIONS = [
   { id: 'anatomize', icon: '🔬', name: 'Anatomize', description: 'Break down into components', minItems: 1, maxItems: 1 }
 ];
 
-const RightSidebar: React.FC = () => {
+interface RightSidebarProps {
+  isProcessingWorldWeaver?: boolean;
+}
+
+const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = false }) => {
   const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult } = useUI();
   const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
@@ -125,7 +140,7 @@ const RightSidebar: React.FC = () => {
     return history || { discussions: [], sources: [], lastUpdated: Date.now() };
   });
 
-  // Safari performance optimization - remove expensive CSS effects
+  // Enhanced Safari performance optimization
   useEffect(() => {
     if (isSafari()) {
       const style = document.createElement('style');
@@ -137,15 +152,26 @@ const RightSidebar: React.FC = () => {
           drop-shadow: none !important;
           text-shadow: none !important;
           -webkit-filter: none !important;
-          transition: background-color 0.15s, transform 0.1s !important;
+          transition: background-color 0.2s ease, transform 0.15s ease !important;
+          will-change: auto !important;
         }
         .right-sidebar * {
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
         }
-        /* Remove animation from tooltips in Safari */
-        .animate-fadeIn {
+        /* Optimize animations for Safari */
+        .animate-fadeIn, .animate-pulse {
           animation: none !important;
+        }
+        /* Reduce transform complexity */
+        .right-sidebar .transform {
+          -webkit-transform: translateZ(0) !important;
+          transform: translateZ(0) !important;
+        }
+        /* Optimize gradient rendering */
+        .right-sidebar .bg-gradient-to-br,
+        .right-sidebar .bg-gradient-to-r {
+          background: #1e293b !important;
         }
       `;
       document.head.appendChild(style);
@@ -190,12 +216,22 @@ const RightSidebar: React.FC = () => {
     resizeStartWidth.current = sidebarWidth;
   }, [sidebarWidth]);
 
+  // Debounced resize for better performance
+  const debouncedSetWidth = useCallback((width: number) => {
+    setSidebarWidth(width);
+  }, []);
+
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing) return;
     const dx = resizeStartX.current - e.clientX; // dragging from left edge
     const newWidth = resizeStartWidth.current + dx;
-    setSidebarWidth(Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, newWidth)));
-  }, [isResizing]);
+    const clampedWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, newWidth));
+
+    // Use requestAnimationFrame for smoother resizing
+    requestAnimationFrame(() => {
+      debouncedSetWidth(clampedWidth);
+    });
+  }, [isResizing, debouncedSetWidth]);
 
   const handleResizeEnd = useCallback(() => {
     setIsResizing(false);
@@ -274,10 +310,20 @@ const RightSidebar: React.FC = () => {
   }, [setIsCharacterProfileModalOpen]);
 
   /* --------------------------------- profile -------------------------------- */
-  const healthPercent = playerCharacter ? (playerCharacter.health / playerCharacter.maxHealth) * 100 : 100;
-  const fatiguePercent = playerCharacter ? (playerCharacter.fatigue / playerCharacter.maxFatigue) * 100 : 0;
-  const xpPercent = playerCharacter ? (playerCharacter.experience / playerCharacter.maxExperience) * 100 : 0;
-  const repPercent = playerCharacter ? playerCharacter.mapReputation : 50;
+  // Memoize expensive calculations for better performance
+  const { healthPercent, fatiguePercent, xpPercent, repPercent } = useMemo(() => {
+    if (!playerCharacter) return { healthPercent: 100, fatiguePercent: 0, xpPercent: 0, repPercent: 50 };
+    const health = (playerCharacter.health / playerCharacter.maxHealth) * 100;
+    const fatigue = (playerCharacter.fatigue / playerCharacter.maxFatigue) * 100;
+    const xp = (playerCharacter.experience / playerCharacter.maxExperience) * 100;
+
+    return {
+      healthPercent: health,
+      fatiguePercent: fatigue,
+      xpPercent: xp,
+      repPercent: playerCharacter.mapReputation || 50
+    };
+  }, [playerCharacter?.health, playerCharacter?.maxHealth, playerCharacter?.fatigue, playerCharacter?.maxFatigue, playerCharacter?.experience, playerCharacter?.maxExperience, playerCharacter?.mapReputation]);
 
   const statusInfo = useMemo(() => {
     if (!playerCharacter) return { text: 'Feeling okay', hasDisease: false as boolean, severity: '' as string };
@@ -305,28 +351,42 @@ const RightSidebar: React.FC = () => {
   }, [playerCharacter]);
 
   return (
-    <div
-      className={`right-sidebar ${getSafariOptimizedClassName(
-        'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-right-light dark:shadow-sidebar-right backdrop-blur-xl border-l border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200'
-      )}`}
-      style={{ width: `${sidebarWidth}px` }}
-    >
-      {/* Resize handle (grab from the left edge of the sidebar) */}
+    <>
+      <style>{progressBarStyles}</style>
+      <div
+        className={`right-sidebar ${getSafariOptimizedClassName(
+          'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-right-light dark:shadow-sidebar-right backdrop-blur-xl border-l border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200'
+        )}`}
+        style={{
+          width: `${sidebarWidth}px`,
+          opacity: isProcessingWorldWeaver ? 0 : 1,
+          transition: 'opacity 2s ease-out',
+          transitionDelay: isProcessingWorldWeaver ? '3s' : '0s'
+        }}
+      >
+      {/* Enhanced Resize handle with better UX */}
       <div
         onMouseDown={handleResizeStart}
-        className="absolute top-0 left-0 w-1 h-full cursor-ew-resize hover:bg-blue-400/30 transition-colors z-10"
-        style={{ width: '4px' }}
+        className="absolute top-0 left-0 h-full cursor-ew-resize z-10 group transition-all duration-200"
+        style={{ width: '6px', marginLeft: '-3px' }}
         aria-label="Resize right sidebar"
-      />
+      >
+        <div className="w-full h-full bg-transparent group-hover:bg-blue-400/40 transition-colors duration-200 relative">
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-slate-500/40 rounded-full group-hover:bg-blue-400/80 transition-all duration-200 group-hover:h-12" />
+        </div>
+      </div>
 
       <div className="flex flex-col h-full overflow-y-auto scrollbar-thin">
         {/* Player Profile Card */}
-        <div className="flex-shrink-0 p-3">
+        <div className="flex-shrink-0 p-2.5">
           {playerCharacter && playerCharacter.appearance && (
             <div
-              className="p-3 mb-3 transition-all duration-200 border rounded-2xl cursor-pointer
-                         bg-gradient-to-br from-slate-800/90 to-slate-900/95 border-slate-600/50
-                         hover:border-slate-500/70 hover:shadow-xl hover:shadow-black/30 hover:-translate-y-0.5"
+              className="p-3 mb-2 transition-all duration-300 border rounded-2xl cursor-pointer
+                         bg-gradient-to-br from-slate-800/95 via-slate-850/90 to-slate-900/95
+                         border-slate-600/60 backdrop-blur-sm
+                         hover:border-slate-500/80 hover:shadow-2xl hover:shadow-black/40
+                         hover:-translate-y-1 hover:bg-gradient-to-br hover:from-slate-750/95 hover:via-slate-800/90 hover:to-slate-850/95
+                         active:translate-y-0 active:shadow-lg transition-transform"
               onClick={handleProfileClick}
             >
               <div className="flex items-start gap-4 mb-3">
@@ -374,22 +434,22 @@ const RightSidebar: React.FC = () => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="text-xl font-bold leading-tight text-slate-900 dark:text-white">{playerCharacter.name}</h4>
+                  <div className="flex items-start justify-between mb-3 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-lg font-bold leading-tight text-slate-900 dark:text-white break-words">{playerCharacter.name}</h4>
                       <p className="text-sm font-semibold text-amber-600 dark:text-amber-300 capitalize">{playerCharacter.profession}</p>
                       <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                         Age {playerCharacter.age} • {playerCharacter.gender || 'Unknown'}
                       </p>
                     </div>
-                    <div className="flex-shrink-0 text-right">
-                      <p className="text-xl font-bold text-blue-600 dark:text-blue-300">Level {playerCharacter.level}</p>
-                      <div className="flex items-center justify-end gap-4 mt-1">
+                    <div className="flex-shrink-0 text-right pl-2 min-w-0">
+                      <p className="text-lg font-bold text-blue-600 dark:text-blue-300 whitespace-nowrap">Level {playerCharacter.level}</p>
+                      <div className="flex flex-col items-end gap-1 mt-1">
                         <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 flex items-center gap-1" title="Currency">
                           <span>💰</span>
-                          <span>{playerCharacter.currency}</span>
+                          <span>{playerCharacter.currency} coins</span>
                         </p>
-                        <p className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1" title={`Map Reputation: ${repPercent}/100`}>
+                        <p className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1" title={`Reputation: ${repPercent}/100`}>
                           <span>🤝</span>
                           <span>{repPercent}</span>
                         </p>
@@ -397,84 +457,143 @@ const RightSidebar: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Disease badges */}
+                  {/* Disease status and badges */}
                   {playerCharacter.diseaseHealth?.currentDiseases?.length ? (
-                    <div className="mt-2">
-                      {playerCharacter.diseaseHealth.currentDiseases.map((d: any, index: number) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-600/80 text-white text-xs font-bold rounded-full 
-                                     border border-pink-400 shadow-md mr-2 mb-1"
-                          title={`${d.disease.name} - ${d.disease.severity}`}
-                        >
-                          <span className="text-sm">{d.disease.badgeIcon}</span>
-                          <span>{d.disease.name}</span>
-                        </span>
-                      ))}
+                    <div className="mb-2">
+                      {/* Disease badges */}
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {playerCharacter.diseaseHealth.currentDiseases.map((d: any, index: number) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-600/80 text-white text-xs font-bold rounded-full
+                                       border border-pink-400 shadow-md"
+                            title={`${d.disease.name} - ${d.disease.severity}`}
+                          >
+                            <span className="text-sm">{d.disease.badgeIcon}</span>
+                            <span>{d.disease.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                      {/* Status text below portrait area */}
+                      <p
+                        className={`text-xs flex-shrink-0 ${
+                          statusInfo.severity === 'critical' || statusInfo.severity === 'severe'
+                            ? 'text-red-500'
+                            : statusInfo.severity === 'moderate'
+                            ? 'text-orange-500'
+                            : 'text-orange-400'
+                        }`}
+                      >
+                        {statusInfo.text}
+                      </p>
                     </div>
-                  ) : null}
-
-                  {/* Status */}
-                  <p
-                    className={
-                      statusInfo.hasDisease
-                        ? `mt-2 text-xs font-bold ${
-                            statusInfo.severity === 'critical' || statusInfo.severity === 'severe'
-                              ? 'text-red-500'
-                              : statusInfo.severity === 'moderate'
-                              ? 'text-orange-500'
-                              : 'text-orange-400'
-                          }`
-                        : 'mt-2 text-xs italic text-amber-200'
-                    }
-                  >
-                    {statusInfo.text}
-                  </p>
+                  ) : (
+                    /* Status when no disease */
+                    <p className="mb-2 text-xs italic text-amber-200">
+                      {statusInfo.text}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Bars */}
-              <div className="space-y-2 mt-2">
+              {/* Enhanced Progress Bars with Skeumorphic Effects */}
+              <div className="space-y-3 mt-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                     <span>HEALTH</span>
-                    <span>
+                    <span className={`transition-all duration-300 ${
+                      healthPercent < 10 ? 'animate-pulse text-red-400 font-bold text-sm' :
+                      healthPercent < 20 ? 'animate-bounce text-orange-400' : 'text-gray-400'
+                    }`}>
                       {Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 overflow-hidden bg-gray-300 dark:bg-gray-700 rounded-full shadow-inner">
-                    <div
-                      className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 shadow-sm"
-                      style={{ width: `${healthPercent}%` }}
-                    />
+                  <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
+                    {/* Outer inset shadow */}
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_2px_rgba(255,255,255,0.1)]" />
+                    {/* Inner track with padding for inset effect */}
+                    <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
+                    {/* Progress fill - FIXED: simpler positioning */}
+                    <div className="absolute inset-0.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full progress-bar-animated rounded-full relative shadow-lg transition-all duration-500"
+                        style={{
+                          '--final-width': `${healthPercent}%`,
+                          width: `${healthPercent}%`,
+                          background: `linear-gradient(to right, #ef4444 0%, #fb923c 50%, #eab308 100%)`,
+                          backgroundSize: `${healthPercent > 0 ? 100 / (healthPercent / 100) : 100}% 100%`,
+                          backgroundPosition: '0 0'
+                        }}
+                      >
+                        {/* Inner highlight */}
+                        <div className="absolute top-0 left-0 right-0 h-.5 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                     <span>FATIGUE</span>
-                    <span>
+                    <span className={`transition-all duration-300 ${
+                      fatiguePercent >= 90 ? 'animate-bounce text-red-400 font-bold text-sm' :
+                      fatiguePercent >= 80 ? 'text-orange-400' : 'text-gray-400'
+                    }`}>
                       {Math.ceil(playerCharacter.fatigue)} / {Math.ceil(playerCharacter.maxFatigue)}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 overflow-hidden bg-gray-300 dark:bg-gray-700 rounded-full shadow-inner">
-                    <div
-                      className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-amber-400 via-amber-600 to-orange-600 shadow-sm"
-                      style={{ width: `${fatiguePercent}%` }}
-                    />
+                  <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
+                    {/* Outer inset shadow */}
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_2px_rgba(255,255,255,0.1)]" />
+                    {/* Inner track with padding for inset effect */}
+                    <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
+                    {/* Progress fill - FIXED: simpler positioning */}
+                    <div className="absolute inset-0.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full progress-bar-animated rounded-full relative shadow-lg transition-all duration-500"
+                        style={{
+                          '--final-width': `${fatiguePercent}%`,
+                          width: `${fatiguePercent}%`,
+                          animationDelay: '0.2s',
+                          background: `linear-gradient(to right, #fbbf24 0%, #d97706 50%, #ea580c 100%)`,
+                          backgroundSize: `${fatiguePercent > 0 ? 100 / (fatiguePercent / 100) : 100}% 100%`,
+                          backgroundPosition: '0 0'
+                        }}
+                      >
+                        {/* Inner highlight */}
+                        <div className="absolute top-0 left-0 right-0 h-.5 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                     <span>EXPERIENCE</span>
-                    <span>
+                    <span className="text-blue-400">
                       {Math.ceil(playerCharacter.experience)} / {Math.ceil(playerCharacter.maxExperience)}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 overflow-hidden bg-gray-300 dark:bg-gray-700 rounded-full shadow-inner">
-                    <div
-                      className="h-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-sm"
-                      style={{ width: `${xpPercent}%` }}
-                    />
+                  <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
+                    {/* Outer inset shadow */}
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_2px_rgba(255,255,255,0.1)]" />
+                    {/* Inner track with padding for inset effect */}
+                    <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
+                    {/* Progress fill - FIXED: simpler positioning */}
+                    <div className="absolute inset-0.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full progress-bar-animated rounded-full relative shadow-lg transition-all duration-500"
+                        style={{
+                          '--final-width': `${xpPercent}%`,
+                          width: `${xpPercent}%`,
+                          animationDelay: '0.4s',
+                          background: `linear-gradient(to right, #3b82f6 0%, #06b6d4 50%, #a855f7 100%)`,
+                          backgroundSize: `${xpPercent > 0 ? 100 / (xpPercent / 100) : 100}% 100%`,
+                          backgroundPosition: '0 0'
+                        }}
+                      >
+                        {/* Inner highlight */}
+                        <div className="absolute top-0 left-0 right-0 h-.5 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -510,9 +629,9 @@ const RightSidebar: React.FC = () => {
                 <Settings className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-4 gap-2">
               {activeTab === 'study' ? (
-                // Study-specific action buttons
+                // Study-specific action buttons - enhanced
                 STUDY_ACTIONS.map((action, index) => {
                   const isDisabled = selectedStudyItems.length < action.minItems || selectedStudyItems.length > action.maxItems;
                   return (
@@ -522,10 +641,10 @@ const RightSidebar: React.FC = () => {
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
                         disabled={isDisabled || isStudyProcessing}
-                        className={`group relative w-full flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold transition-all duration-200 border rounded-lg
+                        className={`group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold transition-all duration-300 border rounded-xl overflow-hidden
                                    ${isDisabled || isStudyProcessing
                                      ? 'text-gray-500 bg-slate-800/40 border-gray-700/30 cursor-not-allowed'
-                                     : 'text-gray-300 bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-purple-400/50 hover:text-white hover:shadow-lg'
+                                     : 'text-gray-300 bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-purple-600/80 hover:to-purple-700/60 hover:border-purple-400/70 hover:text-white hover:shadow-lg hover:shadow-purple-600/30 hover:scale-105 active:scale-95'
                                    }`}
                         style={{ aspectRatio: '1 / 0.7' }}
                       >
@@ -565,7 +684,7 @@ const RightSidebar: React.FC = () => {
                   );
                 })
               ) : (
-                // Regular action buttons for other tabs
+                // Regular action buttons for other tabs - enhanced
                 actionButtons.map((skillId, index) => {
                   const skill = SKILL_DATA[skillId];
                   if (!skill) return null;
@@ -575,9 +694,9 @@ const RightSidebar: React.FC = () => {
                         onClick={() => handleSkillClick(skillId)}
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
-                        className="group relative w-full flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg
+                        className="group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold text-gray-300 transition-all duration-300 border rounded-xl overflow-hidden
                                    bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50
-                                   hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg"
+                                   hover:bg-gradient-to-br hover:from-blue-600/80 hover:to-blue-700/60 hover:border-blue-400/70 hover:text-white hover:shadow-lg hover:shadow-blue-600/30 hover:scale-105 active:scale-95"
                         style={{ aspectRatio: '1 / 0.7' }}
                       >
                         {/* Hotkey indicator */}
@@ -615,47 +734,59 @@ const RightSidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex p-1.5 mx-2 mt-2 mb-2 bg-slate-800/50 border border-slate-600/50 rounded-xl shrink-0">
+        {/* Enhanced Tab Navigation */}
+        <div className="flex p-1 mx-2 mt-1 mb-2 bg-slate-800/60 border border-slate-600/60 rounded-xl shrink-0 backdrop-blur-sm">
           <button
             onClick={() => handleTabClick('narrator')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
               activeTab === 'narrator'
-                ? 'text-white bg-blue-600 shadow-glow-primary'
-                : 'text-slate-400 hover:bg-slate-700/30'
+                ? 'text-white bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg shadow-blue-600/30 transform scale-105'
+                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            Narrator
+            {activeTab === 'narrator' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-blue-300/30 to-blue-400/20 animate-pulse" />
+            )}
+            <span className="relative z-10">Narrator</span>
           </button>
           <button
             onClick={() => handleTabClick('inventory')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
               activeTab === 'inventory'
-                ? 'text-white bg-blue-600 shadow-glow-primary'
-                : 'text-slate-400 hover:bg-slate-700/30'
+                ? 'text-white bg-gradient-to-r from-emerald-600 to-emerald-700 shadow-lg shadow-emerald-600/30 transform scale-105'
+                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            Inventory
+            {activeTab === 'inventory' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 via-emerald-300/30 to-emerald-400/20 animate-pulse" />
+            )}
+            <span className="relative z-10">Inventory</span>
           </button>
           <button
             onClick={() => handleTabClick('study')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
               activeTab === 'study'
-                ? 'text-white bg-purple-600 shadow-glow-purple'
-                : 'text-slate-400 hover:bg-slate-700/30'
+                ? 'text-white bg-gradient-to-r from-purple-600 to-purple-700 shadow-lg shadow-purple-600/30 transform scale-105'
+                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            Study 🔬
+            {activeTab === 'study' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-purple-300/30 to-purple-400/20 animate-pulse" />
+            )}
+            <span className="relative z-10">Study</span>
           </button>
           <button
             onClick={() => handleTabClick('sources')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
               activeTab === 'sources'
-                ? 'text-white bg-amber-600 shadow-glow-amber'
-                : 'text-slate-400 hover:bg-slate-700/30'
+                ? 'text-white bg-gradient-to-r from-amber-600 to-amber-700 shadow-lg shadow-amber-600/30 transform scale-105'
+                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            Sources 📜
+            {activeTab === 'sources' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 via-amber-300/30 to-amber-400/20 animate-pulse" />
+            )}
+            <span className="relative z-10">Sources</span>
           </button>
         </div>
 
@@ -755,6 +886,7 @@ const RightSidebar: React.FC = () => {
         onSave={handleSaveActionButtons}
       />
     </div>
+    </>
   );
 };
 

@@ -730,8 +730,12 @@ export const useUIState = () => {
                 }]);
                 
                 if (evaluation.possible) {
-                    // Execute the feat
-                    const result = await executePhysicalFeat(featAttempt, evaluation, playerCharacter, mapData);
+                    // Execute the feat - add current position to player character
+                    const playerWithLocation = {
+                        ...playerCharacter,
+                        location: { x: controlledIconX, y: controlledIconY }
+                    };
+                    const result = await executePhysicalFeat(featAttempt, evaluation, playerWithLocation, mapData);
                     
                     // Apply effects
                     if (result.effects) {
@@ -768,7 +772,13 @@ export const useUIState = () => {
                             newCharacter.elevatedState = result.effects.elevatedState || undefined;
                             newCharacter.elevationDescription = result.effects.elevationDescription || undefined;
                         }
-                        
+
+                        if (result.effects.inWater) {
+                            // Mark player as in water for drowning system
+                            newCharacter.inWater = true;
+                            newCharacter.waterEntryTime = result.effects.waterEntryTime || Date.now();
+                        }
+
                         setPlayerCharacter(newCharacter);
                     }
                     

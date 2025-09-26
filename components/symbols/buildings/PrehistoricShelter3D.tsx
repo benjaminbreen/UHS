@@ -104,12 +104,12 @@ const PrehistoricShelter3D: React.FC<PrehistoricShelter3DProps> = React.memo(({
         strokeWidth="0.3"
       />
       
-      {/* 3D depth side */}
+      {/* 3D depth side - fixed ratios */}
       <path
-        d={`M ${buildingX + buildingWidth} ${buildingY + buildingHeight} 
-            L ${buildingX + buildingWidth/2} ${buildingY} 
-            L ${buildingX + buildingWidth/2 + size * 0.08} ${buildingY - size * 0.04} 
-            L ${buildingX + buildingWidth + size * 0.08} ${buildingY + buildingHeight - size * 0.04}
+        d={`M ${buildingX + buildingWidth} ${buildingY + buildingHeight}
+            L ${buildingX + buildingWidth/2} ${buildingY}
+            L ${buildingX + buildingWidth/2 + size * 0.08} ${buildingY - size * 0.08}
+            L ${buildingX + buildingWidth + size * 0.08} ${buildingY + buildingHeight - size * 0.08}
             Z`}
         fill={hideShadow}
         stroke={hideShadow}
@@ -141,13 +141,21 @@ const PrehistoricShelter3D: React.FC<PrehistoricShelter3DProps> = React.memo(({
         fill={poleWood}
       />
       
-      {/* Opening/entrance */}
+      {/* Opening/entrance with 3D depth */}
       <path
-        d={`M ${buildingX + buildingWidth * 0.4} ${buildingY + buildingHeight} 
-            L ${buildingX + buildingWidth/2} ${buildingY + buildingHeight * 0.4} 
-            L ${buildingX + buildingWidth * 0.6} ${buildingY + buildingHeight} 
+        d={`M ${buildingX + buildingWidth * 0.4} ${buildingY + buildingHeight}
+            L ${buildingX + buildingWidth/2} ${buildingY + buildingHeight * 0.4}
+            L ${buildingX + buildingWidth * 0.6} ${buildingY + buildingHeight}
             Z`}
         fill="rgba(0,0,0,0.7)"
+      />
+      {/* Entrance depth shadow */}
+      <path
+        d={`M ${buildingX + buildingWidth * 0.6} ${buildingY + buildingHeight}
+            L ${buildingX + buildingWidth/2 + size * 0.04} ${buildingY + buildingHeight * 0.4 - size * 0.04}
+            L ${buildingX + buildingWidth * 0.6 + size * 0.04} ${buildingY + buildingHeight - size * 0.04}
+            Z`}
+        fill="rgba(0,0,0,0.5)"
       />
       
       {/* Hide texture details - patches and seams */}
@@ -166,19 +174,19 @@ const PrehistoricShelter3D: React.FC<PrehistoricShelter3DProps> = React.memo(({
         opacity="0.4"
       />
       
-      {/* Simple tools leaning against shelter */}
+      {/* Simple tools leaning against shelter - fixed positioning */}
       {rand() > 0.6 && (
         <g>
           <line
-            x1={buildingX - size * 0.02}
+            x1={buildingX + size * 0.02}
             y1={buildingY + buildingHeight}
-            x2={buildingX + size * 0.02}
+            x2={buildingX + size * 0.06}
             y2={buildingY + buildingHeight * 0.7}
             stroke={poleWood}
             strokeWidth="0.8"
           />
           <circle
-            cx={buildingX + size * 0.015}
+            cx={buildingX + size * 0.055}
             cy={buildingY + buildingHeight * 0.72}
             r={size * 0.015}
             fill="#666"

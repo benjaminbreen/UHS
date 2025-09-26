@@ -265,6 +265,7 @@ const AppContent: React.FC = () => {
     const [delayInitialMap, setDelayInitialMap] = React.useState(true);
     const [isGeneratingMap, setIsGeneratingMap] = React.useState(false);
     const [mapVisible, setMapVisible] = React.useState(true); // Easter egg state
+    const [isProcessingWorldWeaver, setIsProcessingWorldWeaver] = React.useState(false); // WorldWeaver loading state
     
     // Use a ref to ensure we only generate once from URL
     const hasGeneratedFromURLRef = React.useRef(false);
@@ -662,7 +663,7 @@ const AppContent: React.FC = () => {
         
         <div className="relative z-10 flex flex-col h-full">
             {/* Desktop Navigation */}
-            {!isMobile && <TopNavBarPolished />}
+            {!isMobile && <TopNavBarPolished onWorldWeaverLoadingChange={setIsProcessingWorldWeaver} />}
             
             {/* Mobile Header */}
             {isMobile && playerCharacter && (
@@ -728,7 +729,7 @@ const AppContent: React.FC = () => {
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
                     )}
                     <div className={`${mobileMenuOpen === 'left' ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content' : 'h-full'} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
-                        <LeftSidebar 
+                        <LeftSidebar
                     onShowFactionsModal={(data) => {
                         setFactionData(data);
                         setShowFactionsModal(true);
@@ -740,11 +741,12 @@ const AppContent: React.FC = () => {
                     }}
                     onHideFactionTooltip={() => setShowFactionTooltip(false)}
                     onToggleMapVisibility={() => setMapVisible(!mapVisible)}
+                    isProcessingWorldWeaver={isProcessingWorldWeaver}
                 />
                     </div>
                 </div>
                 
-                <MapViewport mapVisible={mapVisible} onPlayerDeath={handleDeath} />
+                <MapViewport mapVisible={mapVisible} isProcessingWorldWeaver={isProcessingWorldWeaver} onPlayerDeath={handleDeath} />
                 
                 {/* Right Sidebar with mobile overlay and slide animation */}
                 <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full`}>
@@ -752,7 +754,7 @@ const AppContent: React.FC = () => {
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
                     )}
                     <div className={`${mobileMenuOpen === 'right' ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content' : 'h-full'} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
-                        <RightSidebar />
+                        <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
                     </div>
                 </div>
             </div>
@@ -928,6 +930,9 @@ const AppContent: React.FC = () => {
             }}
           />
         )}
+
+        {/* Tooltip Portal Container - Renders tooltips above all other UI elements */}
+        <div id="tooltip-portal" className="pointer-events-none fixed inset-0 z-[9999]" />
       </div>
     );
 };

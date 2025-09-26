@@ -51,35 +51,7 @@
       },
       "wikipediaArticle": "Nazca_Lines"
     },
-    {
-      "id": "moche-pottery-narratives",
-      "title": "Moche Ceramic Chronicles",
-      "author": "Moche artisans",
-      "year": 400,
-      "era": "ANTIQUITY",
-      "culturalZones": [
-        "SOUTH_AMERICAN"
-      ],
-      "excerpt": "The clay vessels tell stories of warriors, priests, and rulers. Each pot shows scenes of battle, ceremony, and daily life, painted with careful detail to preserve our history.",
-      "longExcerpt": "The clay vessels tell stories of warriors, priests, and rulers. Each pot shows scenes of battle, ceremony, and daily life, painted with careful detail to preserve our history. The Moche civilization of Peru (100-700 CE) created some of the most sophisticated ceramic art in pre-Columbian America, with realistic portraits and narrative scenes that serve as a visual chronicle of their society.",
-      "keywords": [
-        "Moche",
-        "ceramics",
-        "Peru",
-        "warriors",
-        "priests",
-        "art",
-        "narrative"
-      ],
-      "wikisourceTitle": null,
-      "internetArchiveId": "mocheceramics",
-      "citation": {
-        "translator": "Christopher Donnan",
-        "originalPublication": "Moche Valley, Peru, c. 100-700 CE",
-        "modernSource": "UCLA Fowler Museum, 1978"
-      },
-      "wikipediaArticle": "Moche_culture"
-    },
+    
     {
       "id": "tiwanaku-gate-sun",
       "title": "Gate of the Sun Inscriptions",

@@ -18,6 +18,7 @@ import { SeedManager } from '../services/seedService';
 import { npcPersistenceService } from '../services/npcPersistenceService';
 import { crossMapNpcService } from '../services/crossMapNpcService';
 import gameSoundsService from '../services/gameSoundsService';
+import citySoundsService from '../services/citySoundsService';
 import { urbanTileRegistry } from '../services/urbanTileRegistryService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 
@@ -37,8 +38,26 @@ function getArchetypeName(archetype: MapArchetype): string {
         case MapArchetype.PENINSULA: return "Peninsula";
         case MapArchetype.ALL_LAND: return "Mainland";
         case MapArchetype.ATOLL: return "Atoll";
+        case MapArchetype.DESERT: return "Desert";
+        case MapArchetype.OASIS: return "Oasis";
+        case MapArchetype.RIVER_VALLEY: return "River Valley";
         default: return "Unknown Waters";
     }
+}
+
+/**
+ * Convert a liminal key like "LIMINAL_ARABIAN_DESERT" to a readable name like "Arabian Desert"
+ */
+function getLiminalAreaName(liminalKey: string): string {
+    // Remove "LIMINAL_" prefix
+    const withoutPrefix = liminalKey.replace(/^LIMINAL_/, '');
+
+    // Convert underscores to spaces and convert to title case
+    const words = withoutPrefix.split('_').map(word => {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    });
+
+    return words.join(' ');
 }
 
 /**
@@ -763,7 +782,8 @@ export const useMapState = (props: useMapStateProps) => {
                         ...gameState.liminalTravelState,
                         progress: nextProgress
                     });
-                    setLocalArea(getArchetypeName(nextArchetype));
+                    // Keep the liminal area name (e.g., "Arabian Desert")
+                    setLocalArea(getLiminalAreaName(gameState.liminalTravelState.key));
                 }
             } else if (direction === getOppositeDirection(originDirection)) {
                 // Moving backwards through sequence
@@ -782,7 +802,8 @@ export const useMapState = (props: useMapStateProps) => {
                         ...gameState.liminalTravelState,
                         progress: nextProgress
                     });
-                    setLocalArea(getArchetypeName(prevArchetype));
+                    // Keep the liminal area name (e.g., "Arabian Desert")
+                    setLocalArea(getLiminalAreaName(gameState.liminalTravelState.key));
                 }
             } else {
                 // Invalid direction in liminal space
@@ -804,15 +825,16 @@ export const useMapState = (props: useMapStateProps) => {
                 // console.log(`[Map Transition] Entering liminal sequence: ${nextMapResult.key}`);
                 const firstArchetype = nextMapResult.sequence[0];
                 console.log(`[Map Transition] Starting with archetype: ${firstArchetype}`);
-                setGameState.setLiminalTravelState({ 
-                    sequence: nextMapResult.sequence, 
-                    progress: 0, 
-                    destination: nextMapResult.destination, 
-                    originArea: localArea, 
-                    originDirection: direction 
+                setGameState.setLiminalTravelState({
+                    sequence: nextMapResult.sequence,
+                    progress: 0,
+                    destination: nextMapResult.destination,
+                    originArea: localArea,
+                    originDirection: direction,
+                    key: nextMapResult.key  // Store the liminal key
                 });
-                // Set to the first archetype in sequence (should be SHOALS)
-                setLocalArea(getArchetypeName(firstArchetype));
+                // Set to the liminal area name (e.g., "Arabian Desert" instead of "Unknown Waters")
+                setLocalArea(getLiminalAreaName(nextMapResult.key));
             } else if (nextMapResult.type === 'adjacent') {
                 console.log(`[Map Transition] Moving to adjacent area: ${nextMapResult.areaDef.name}`);
                 setGameState.setCurrentZone(nextMapResult.zone);
@@ -1103,13 +1125,43 @@ export const useMapState = (props: useMapStateProps) => {
         // Play music based on archetype with 5-second fade-ins
         if (archetype === 'ESTATES' || archetype === 'PALACE_COMPLEX') {
             gameSoundsService.playEstatesMusic();
-        } else if (archetype === 'GOVERNMENT_FORUM' || archetype === 'GOVERNMENT' || 
-                   archetype === 'TRIBAL_COUNCIL' || archetype === 'COURT_CHAMBER' || 
-                   archetype === 'TOWN_HALL' || archetype === 'ASSEMBLY_HALL' || 
+        } else if (archetype === 'GOVERNMENT_FORUM' || archetype === 'GOVERNMENT' ||
+                   archetype === 'TRIBAL_COUNCIL' || archetype === 'COURT_CHAMBER' ||
+                   archetype === 'TOWN_HALL' || archetype === 'ASSEMBLY_HALL' ||
                    archetype === 'ADMINISTRATIVE_COMPLEX') {
             gameSoundsService.playGovernmentMusic();
         } else if (archetype === 'RESTAURANT_INN') {
             gameSoundsService.playGenericMusic();
+        } else if (archetype === 'WORKSHOP') {
+            // Play Japanese workshop music and workshop-specific ambient sounds
+            citySoundsService.playJapaneseWorkshopMusic();
+
+            // Also start workshop ambient sounds based on workshop type
+            // Default to smithy if no specific workshop type is available
+            const workshopType = (specialMapData as any).workshopType || 'smithy';
+            console.log('[enterSpecialMap] Starting workshop ambient sounds for:', workshopType);
+
+            // Start appropriate workshop ambient sounds at lower volume
+            switch (workshopType) {
+                case 'smithy':
+                    citySoundsService.playSmithy();
+                    break;
+                case 'pottery':
+                    citySoundsService.playPottery();
+                    break;
+                case 'weaving':
+                    citySoundsService.playWeaving();
+                    break;
+                case 'bakery':
+                    citySoundsService.playBakery();
+                    break;
+                case 'carpentry':
+                    citySoundsService.playCarpentry();
+                    break;
+                default:
+                    citySoundsService.playSmithy();
+                    break;
+            }
         }
         // Other archetypes will have no background music
         
@@ -1194,9 +1246,10 @@ export const useMapState = (props: useMapStateProps) => {
         setSpecialMapExitZones([]);
         setSpecialMapReturnData(null);
         
-        // Stop special map music when exiting
-        console.log('[exitSpecialMap] Stopping special map music');
+        // Stop special map music and workshop sounds when exiting
+        console.log('[exitSpecialMap] Stopping special map music and workshop sounds');
         gameSoundsService.stopAllMusic();
+        citySoundsService.stopAllSounds();
     }, [specialMapReturnData, mapDataCache, setPlayerState, onRegenerateMapWithCurrentSettings]);
 
     const onStartNewWorldAtLocation = useCallback((targetZone: string, targetMapArea: string, characterSpec?: any, overrideYear?: number) => {

@@ -5,7 +5,8 @@
 
 import React, { useState } from 'react';
 import gameSoundsService from '../services/gameSoundsService';
-import { Volume2, Music, Bell, Sword, Coins, Package, Anchor, Sparkles, Footprints, Bug, TreePine } from 'lucide-react';
+import citySoundsService from '../services/citySoundsService';
+import { Volume2, Music, Bell, Sword, Coins, Package, Anchor, Sparkles, Footprints, Bug, TreePine, Hammer } from 'lucide-react';
 
 interface SoundTestPanelProps {
   isOpen: boolean;
@@ -230,6 +231,31 @@ const SoundTestPanel: React.FC<SoundTestPanelProps> = ({ isOpen, onClose }) => {
         { name: 'Rain', method: () => gameSoundsService.playRainSound(), description: 'Gentle looping rain sounds' },
         { name: 'Heavy Rain & Thunder', method: () => gameSoundsService.playHeavyRainSound(), description: 'Intense storm with thunder' },
         { name: 'Stop Rain', method: () => gameSoundsService.stopRainSounds(), description: 'Stops all rain effects' },
+      ]
+    },
+    {
+      name: 'Workshop Ambient Sounds',
+      icon: <Hammer className="w-4 h-4" />,
+      sounds: [
+        { name: 'Smithy', method: () => citySoundsService.playSmithyAmbient(), description: 'Anvil strikes, bellows pumping, fire crackling' },
+        { name: 'Pottery Workshop', method: () => citySoundsService.playPotteryAmbient(), description: 'Pottery wheel spinning, clay shaping, kiln firing' },
+        { name: 'Weaving Loom', method: () => citySoundsService.playWeavingAmbient(), description: 'Loom clacking, thread spinning, fabric rustling' },
+        { name: 'Bakery', method: () => citySoundsService.playBakeryAmbient(), description: 'Oven fire, dough kneading, wooden paddles' },
+        { name: 'Carpentry Shop', method: () => citySoundsService.playCarpentryAmbient(), description: 'Sawing, hammering, wood creaking' },
+      ]
+    },
+    {
+      name: 'Cultural Workspace Songs',
+      icon: <Music className="w-4 h-4" />,
+      sounds: [
+        { name: 'Japanese Workshop Song', method: () => citySoundsService.playJapaneseWorkshopMusic(), description: 'Peaceful pentatonic melody with koto and shakuhachi' },
+        { name: 'Arabic Workshop Song', method: () => citySoundsService.playArabicWorkshopMusic(), description: 'Rhythmic Maqam Hijaz with oud and darbuka' },
+        { name: 'Medieval European Song', method: () => citySoundsService.playMedievalWorkshopMusic(), description: 'Dorian mode melody with lute and recorder' },
+        { name: 'Stop Workspace Music', method: () => {
+          citySoundsService.stopJapaneseWorkshopMusic();
+          citySoundsService.stopArabicWorkshopMusic();
+          citySoundsService.stopMedievalWorkshopMusic();
+        }, description: 'Stops all cultural workspace songs' },
       ]
     },
   ];

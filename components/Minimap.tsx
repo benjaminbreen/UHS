@@ -140,8 +140,13 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   }, [displayDimensions, mapData]);
 
   const minimapContent = useMemo(() => {
-     return mapData.tiles.flat().map((tile) => {
-        let color = '#1e3a8a'; // Default deep ocean
+     // Instead of using .flat() which relies on tile.x and tile.y being correct,
+     // iterate through the 2D array directly with indices
+     const tiles: JSX.Element[] = [];
+     for (let y = 0; y < mapData.height; y++) {
+       for (let x = 0; x < mapData.width; x++) {
+         const tile = mapData.tiles[y][x];
+         let color = '#1e3a8a'; // Default deep ocean
         
         // Comprehensive biome color mapping
         switch (tile.biome) {
@@ -226,19 +231,21 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
           
           default: color = '#84cc16'; // Fallback green
         }
-        
+
         const rectSize = TILE_SIZE_PX;
-        return (
+        tiles.push(
           <rect
-            key={`minimap-${tile.x}-${tile.y}`}
-            x={tile.x * rectSize}
-            y={tile.y * rectSize}
+            key={`minimap-${x}-${y}`}
+            x={x * rectSize}
+            y={y * rectSize}
             width={rectSize}
             height={rectSize}
             fill={color}
           />
         );
-      });
+       }
+     }
+     return tiles;
   }, [mapData]);
   
   if (isMinimized) {

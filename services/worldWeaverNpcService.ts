@@ -76,10 +76,17 @@ class WorldWeaverNpcService {
       gender: this.guessGenderFromName(questNPC.name),
       age: this.guessAgeFromRole(questNPC.role),
 
-      // Historical context
-      culturalZone: context.culturalZone as any,
+      // Historical context - use ethnicity if provided, otherwise geographic zone
+      culturalZone: ((questNPC as any).ethnicity || context.culturalZone) as any,
       historicalEra: context.era as any
     };
+
+    // Add ethnicCulturalZone if different from geographic zone
+    const questEthnicity = (questNPC as any).ethnicity;
+    if (questEthnicity && questEthnicity !== context.culturalZone) {
+      (npcEntity as any).ethnicCulturalZone = questEthnicity;
+      console.log(`[WorldWeaverNPC] Set ethnicCulturalZone '${questEthnicity}' for ${questNPC.name} (geographic zone: ${context.culturalZone})`);
+    }
 
     // Generate AI portrait for this quest NPC
     try {
@@ -87,7 +94,7 @@ class WorldWeaverNpcService {
 
       const portraitContext = {
         npc: questNPC,
-        culturalZone: context.culturalZone,
+        culturalZone: questEthnicity || context.culturalZone, // Use ethnicity for portrait generation
         era: context.era,
         location: context.mapData.localArea || 'countryside'
       };

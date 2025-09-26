@@ -231,7 +231,7 @@ const IndustrialBuilding3D: React.FC<IndustrialBuilding3DProps> = React.memo(({
         </g>
       ))}
       
-      {/* Optional chimney - cleaner design */}
+      {/* Optional chimney with improved smoke */}
       {hasChimney && (
         <g>
           <rect
@@ -243,14 +243,64 @@ const IndustrialBuilding3D: React.FC<IndustrialBuilding3DProps> = React.memo(({
             stroke={brickShadow}
             strokeWidth="0.2"
           />
-          {/* Subtle smoke */}
-          {rand5 > 0.5 && (
-            <circle
-              cx={x + width * 0.75 + size * 0.04}
-              cy={buildingY - size * 0.3}
-              r={size * 0.015}
-              fill="rgba(150, 150, 150, 0.6)"
-            />
+          {/* Chimney cap */}
+          <rect
+            x={x + width * 0.75 - size * 0.01}
+            y={buildingY - size * 0.26}
+            width={size * 0.1}
+            height={size * 0.015}
+            fill={metalTrim}
+            stroke={brickShadow}
+            strokeWidth="0.2"
+          />
+          {/* Dynamic smoke plume */}
+          {rand5 > 0.3 && (
+            <g opacity="0.7">
+              {/* Multiple smoke puffs for depth */}
+              <ellipse
+                cx={x + width * 0.75 + size * 0.04}
+                cy={buildingY - size * 0.32}
+                rx={size * 0.02}
+                ry={size * 0.015}
+                fill="rgba(120, 120, 120, 0.5)"
+                transform={`rotate(${rand1 * 20 - 10} ${x + width * 0.75 + size * 0.04} ${buildingY - size * 0.32})`}
+              />
+              <ellipse
+                cx={x + width * 0.75 + size * 0.04 + rand2 * size * 0.02}
+                cy={buildingY - size * 0.36}
+                rx={size * 0.025}
+                ry={size * 0.02}
+                fill="rgba(130, 130, 130, 0.4)"
+                transform={`rotate(${rand2 * 15} ${x + width * 0.75 + size * 0.04} ${buildingY - size * 0.36})`}
+              />
+              <ellipse
+                cx={x + width * 0.75 + size * 0.04 + rand3 * size * 0.03}
+                cy={buildingY - size * 0.4}
+                rx={size * 0.03}
+                ry={size * 0.025}
+                fill="rgba(140, 140, 140, 0.3)"
+                transform={`rotate(${rand3 * -10} ${x + width * 0.75 + size * 0.04} ${buildingY - size * 0.4})`}
+              />
+              {/* Largest puff at top */}
+              <ellipse
+                cx={x + width * 0.75 + size * 0.04 + rand4 * size * 0.04}
+                cy={buildingY - size * 0.45}
+                rx={size * 0.035}
+                ry={size * 0.03}
+                fill="rgba(150, 150, 150, 0.25)"
+                filter="blur(0.5px)"
+              />
+              {/* Wispy smoke trail */}
+              <path
+                d={`M ${x + width * 0.75 + size * 0.04} ${buildingY - size * 0.28}
+                    Q ${x + width * 0.75 + size * 0.05 + rand1 * size * 0.02} ${buildingY - size * 0.35}
+                      ${x + width * 0.75 + size * 0.04 + rand2 * size * 0.04} ${buildingY - size * 0.45}`}
+                stroke="rgba(140, 140, 140, 0.2)"
+                strokeWidth={size * 0.01}
+                fill="none"
+                filter="blur(0.8px)"
+              />
+            </g>
           )}
         </g>
       )}

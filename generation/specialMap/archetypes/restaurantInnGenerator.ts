@@ -13,12 +13,13 @@ import {
   placeBenchWithOrientation,
   placeBedWithOrientation 
 } from '../directionalFurniturePlacement';
-import { 
+import {
   placeRoundTable,
   placeLShapedTable,
   placeBoothSeating,
   placeFourPosterBed,
-  placeSmartTable 
+  placeSmartTable,
+  placeBanquetTable
 } from '../advancedFurnitureSystem';
 import { 
   lightRoom,

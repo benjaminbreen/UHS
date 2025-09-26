@@ -100,7 +100,11 @@ const GAME_MODE_CONFIG = {
   }
 };
 
-const TopNavBarPolished: React.FC = () => {
+interface TopNavBarPolishedProps {
+  onWorldWeaverLoadingChange?: (isLoading: boolean) => void;
+}
+
+const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange }) => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen } = useUI();
   const { currentMode } = useEventSystem();
   const { setControlledIconX, setControlledIconY } = usePlayer();
@@ -271,6 +275,7 @@ const TopNavBarPolished: React.FC = () => {
     
     console.log('[WorldWeaver] Starting generation, setting loading state');
     setIsProcessingWorldWeaver(true);
+    onWorldWeaverLoadingChange?.(true);
     
     // Force a small delay to ensure the loading state renders
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -291,6 +296,7 @@ const TopNavBarPolished: React.FC = () => {
             onStartNewWorldWithCurrentSettings(result.characterSpec);
             setWorldWeaverInput('');
             setIsProcessingWorldWeaver(false);
+            onWorldWeaverLoadingChange?.(false);
             return;
           }
           
@@ -332,6 +338,7 @@ const TopNavBarPolished: React.FC = () => {
       setTimeout(() => setWorldWeaverInput(''), 3000);
     } finally {
       setIsProcessingWorldWeaver(false);
+      onWorldWeaverLoadingChange?.(false);
     }
   };
 

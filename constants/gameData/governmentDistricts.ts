@@ -585,7 +585,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'senao_concelho', name: 'Concelho Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Municipal chamber for early colonization efforts.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 8 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'capitania_house', name: 'Capitania House', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Captaincy administration over sugar, vines, and ports.', districtType: 'colonial_admin', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'capitania_house', name: 'Capitania House', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'Captaincy administration over sugar, vines, and ports.', districtType: 'colonial_admin', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'governors_palace_ai', name: 'Governor’s Palace', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Island governor and customs house complex.', districtType: 'colonial_government', symbolType: 'CityHallSymbol', priority: 9 }
@@ -669,7 +669,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'makurian_palace', name: 'Makurian Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Christian Nubian palace-church compound.', districtType: 'royal_admin', symbolType: 'FeudalHallSymbol', priority: 8 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'anglo_egyptian_governor', name: 'Anglo-Egyptian Governorate', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Colonial district headquarters along the Nile.', districtType: 'colonial_district', symbolType: 'ColonialOfficeSymbol', priority: 9 }
+      { id: 'anglo_egyptian_governor', name: 'Anglo-Egyptian Governorate', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'Colonial district headquarters along the Nile.', districtType: 'colonial_district', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ]
   },
 
@@ -785,7 +785,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'yakut_clan_assembly', name: 'Yakut Clan Assembly', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The council ground of Sakha (Yakut) clan leaders in the Lena River valley.', districtType: 'clan_assembly', symbolType: 'TribalCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'russian_siberian_outpost', name: 'Russian Colonial Outpost', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Remote Russian administrative post governing the indigenous peoples of Eastern Siberia.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'russian_siberian_outpost', name: 'Russian Colonial Outpost', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'Remote Russian administrative post governing the indigenous peoples of Eastern Siberia.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ]
   },
 
@@ -794,7 +794,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'ugric_clan_council', name: 'Ugric Clan Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council house of Ugric-speaking peoples in the West Siberian taiga.', districtType: 'clan_council', symbolType: 'TribalCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'siberian_khanate_court', name: 'Siberian Khanate Court', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'The court of the Khanate of Sibir, ruling from Qashliq over Siberian Tatars and tributaries.', districtType: 'khanate_court', symbolType: 'TribalCouncilSymbol', priority: 10 }
+      { id: 'siberian_khanate_court', name: 'Siberian Khanate Court', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The court of the Khanate of Sibir, ruling from Qashliq over Siberian Tatars and tributaries.', districtType: 'khanate_court', symbolType: 'TribalCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'russian_guberniya_office', name: 'Guberniya Administrative Office', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Russian provincial government office administering Western Siberia.', districtType: 'provincial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
@@ -832,7 +832,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'saka_tribal_council', name: 'Saka Tribal Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council of Saka warrior-nomads on the Kazakh steppes.', districtType: 'tribal_council', symbolType: 'TribalCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'golden_horde_administration', name: 'Golden Horde Administrative Center', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Administrative center of the Golden Horde governing the western steppes.', districtType: 'horde_administration', symbolType: 'TribalCouncilSymbol', priority: 10 },
+      { id: 'golden_horde_administration', name: 'Golden Horde Administrative Center', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Administrative center of the Golden Horde governing the western steppes.', districtType: 'horde_administration', symbolType: 'TribalCouncilSymbol', priority: 10 },
       { id: 'kazakh_zhuz_assembly', name: 'Kazakh Zhuz Assembly', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council of elders from the Great, Middle, or Little Horde of the Kazakhs.', districtType: 'horde_council', symbolType: 'TribalCouncilSymbol', priority: 8 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
@@ -899,16 +899,16 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'askiyas_court', name: 'Askia\'s Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The imperial court of the Askia dynasty of the Songhai Empire in Gao.', districtType: 'imperial_court', symbolType: 'AfricanChiefdomSymbol', priority: 10 },
-      { id: 'sokoto_caliphate_diwan', name: 'Sokoto Caliphate Diwan', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'The administrative council of the Sokoto Caliphate, a major Islamic state governed by Sharia.', districtType: 'caliphate_admin', symbolType: 'CaliphCourtSymbol', priority: 8 }
+      { id: 'sokoto_caliphate_diwan', name: 'Sokoto Caliphate Diwan', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The administrative council of the Sokoto Caliphate, a major Islamic state governed by Sharia.', districtType: 'caliphate_admin', symbolType: 'CaliphCourtSymbol', priority: 8 }
     ],
-    [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'french_cercle_hq', name: 'Cercle Headquarters', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The administrative headquarters of a French colonial "Cercle" in French West Africa.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }],
+    [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'french_cercle_hq', name: 'Cercle Headquarters', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'The administrative headquarters of a French colonial "Cercle" in French West Africa.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }],
     [HistoricalEra.MODERN_ERA]: [{ id: 'palais_presidentiel', name: 'Palais Présidentiel', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The presidential palace of a modern Sahelian republic.', districtType: 'presidential_palace', symbolType: 'AdminCenterSymbol', priority: 10 }],
     [HistoricalEra.FUTURE_ERA]: [{ id: 'ecowas_commission', name: 'ECOWAS Commission', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'A regional headquarters for the Economic Community of West African States.', districtType: 'regional_government', symbolType: 'AdminCenterSymbol', priority: 10 }]
   },
   "Upper Guinea": {
     [HistoricalEra.MEDIEVAL]: [{ id: 'jolof_lamanes_court', name: 'Lamanes\' Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The court of the Lamanes, the rulers of the Jolof Empire.', districtType: 'royal_court', symbolType: 'AfricanChiefdomSymbol', priority: 10 }],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'futa_djallon_almamy_court', name: 'Almamy\'s Court', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The court of the Almamy, the theocratic ruler of the Imamate of Futa Jallon.', districtType: 'theocratic_council', symbolType: 'CaliphCourtSymbol', priority: 10 }],
-    [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'sierra_leone_governors_house', name: 'Governor\'s House, Freetown', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The seat of the British colonial Governor of Sierra Leone.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }]
+    [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'sierra_leone_governors_house', name: 'Governor\'s House, Freetown', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'The seat of the British colonial Governor of Sierra Leone.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }]
   },
   "Lower Guinea and Congo Basin": {
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'kongo_kings_court', name: 'King of Kongo\'s Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The royal court of the Manikongo of the Kingdom of Kongo, influenced by Portuguese contact.', districtType: 'royal_court', symbolType: 'AfricanChiefdomSymbol', priority: 10 }],
@@ -1227,7 +1227,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'moche_huaca_court', name: 'Huaca Court', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Platform and plaza complex coordinating irrigation and craft guilds.', districtType: 'ceremonial_admin', symbolType: 'PyramidGovernmentSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'curaca_court', name: 'Curaca Court', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Regional lord coordinating mit’a labor obligations.', districtType: 'provincial_admin', symbolType: 'PyramidGovernmentSymbol', priority: 9 }
+      { id: 'curaca_court', name: 'Curaca Court', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Regional lord coordinating mita labor obligations.', districtType: 'provincial_admin', symbolType: 'PyramidGovernmentSymbol', priority: 9 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'audiencia_quito', name: 'Real Audiencia (Quito)', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'High court and viceregal chamber in the northern Andes.', districtType: 'royal_audience', symbolType: 'ColonialOfficeSymbol', priority: 10 }
@@ -1542,7 +1542,7 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
       { id: 'mughal_darbar', name: 'Mughal Darbar', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Mughal imperial court.', districtType: 'imperial_darbar', symbolType: 'CaliphCourtSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'raj_secretariat', name: 'British Secretariat', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'British Raj administrative building.', districtType: 'colonial_secretariat', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'raj_secretariat', name: 'British Secretariat', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'British Raj administrative building.', districtType: 'colonial_secretariat', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'parliament_house_sa', name: 'Parliament House', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Democratic parliament building.', districtType: 'national_parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }

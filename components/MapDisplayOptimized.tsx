@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
+import * as ReactDOM from 'react-dom';
 import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
 import { useUnifiedAnimations, ENABLE_UNIFIED_ANIMATIONS } from '../hooks/useUnifiedAnimations';
 import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
@@ -77,6 +78,7 @@ import POIHoverTooltip from './POIHoverTooltip';
 import TileHoverTooltip from './TileHoverTooltip';
 import QuestMarkers from './QuestMarkers';
 import { NpcHelperOverlay } from './NpcHelperModeHandler';
+import { getHelperMode } from '../services/npcHelperService';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle, getSafariGPUStyle, getSafariOptimizedTransform, isSafari } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
@@ -348,6 +350,30 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   
   // Simple boat state - just a trigger for re-render
   const [boatTick, setBoatTick] = useState(0);
+
+  // Helper functions for hostile detection
+  const isNpcHostile = (npc: NpcEntity): boolean => {
+    return npc.isHostile === true ||
+           npc.aiState === 'hostile_fleeing' ||
+           npc.aiState === 'attacking_chasing';
+  };
+
+  const isNpcAlert = (npc: NpcEntity): boolean => {
+    // NPCs on patrol or investigating are alert but not hostile
+    return npc.patrolRoute !== undefined && npc.patrolRoute.length > 0;
+  };
+
+  const isAnimalHostile = (animal: AnimalEntity): boolean => {
+    return animal.aiState === 'attacking' ||
+           animal.aiState === 'chasing' ||
+           animal.aiState === 'stalking';
+  };
+
+  const isAnimalAlert = (animal: AnimalEntity): boolean => {
+    return animal.aiState === 'investigating' ||
+           animal.aiState === 'patrolling' ||
+           animal.aiState === 'tracking';
+  };
   
   // Debounce timers for hover tooltips
   const hoverDebounceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -2292,8 +2318,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            // Offset to the left to fix positioning issue
-                            setHoveredTileCoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredTileCoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2303,6 +2328,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         style={{ cursor: 'pointer' }}
                       >
                         <FarmSymbol tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} climate={climate} season={season} />
+                        {hoveredTile === tile && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="#fbbf24"
+                            strokeWidth="2"
+                            opacity="0.8"
+                            rx="3"
+                            pointerEvents="none"
+                          />
+                        )}
                       </g>
                     );
                   } else if(tile.biome === BiomeType.ESTUARY) {
@@ -2739,8 +2778,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            // Offset to the left to fix positioning issue
-                            setHoveredTileCoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredTileCoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2750,6 +2788,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         style={{ cursor: 'pointer' }}
                       >
                         <UrbanSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} location={mapData.localArea || mapData.region || currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />
+                        {hoveredTile === tile && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="#fbbf24"
+                            strokeWidth="2"
+                            opacity="0.8"
+                            rx="3"
+                            pointerEvents="none"
+                          />
+                        )}
                       </g>
                     );
                   } else if (tile.biome === BiomeType.GOVERNMENT_DISTRICT) {
@@ -2759,8 +2811,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            // Offset to the left to fix positioning issue
-                            setHoveredTileCoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredTileCoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2800,7 +2851,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(marketplaceStructure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2863,7 +2914,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(palaceStructure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2913,7 +2964,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(ruinStructure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2968,7 +3019,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       }
                     }
                     
-                    const HolySiteComponent = getHolySiteSymbol(religion, culturalZone);
+                    const HolySiteComponent = getHolySiteSymbol(religion, culturalZone, tile.holyPlaceType);
                     
                     // Find the structure for this holy site or create a fallback
                     let holySiteStructure = terrainStructures?.find(s => 
@@ -2995,7 +3046,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(holySiteStructure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3193,7 +3244,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3239,7 +3290,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3284,7 +3335,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3351,7 +3402,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3396,7 +3447,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3498,6 +3549,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const culturalZone = mapData.culturalZone || 
                                       mapLocationToCulture(mapData.continent || currentLocation || 'Europe', year);
                   
+                  // Debug logging for pillar tiles
+                  if (tile.biome === BiomeType.PILLAR) {
+                    console.log(`[MultiTile Debug] Passing multiTileData to renderer for tile (${tile.x}, ${tile.y}):`, (tile as any).multiTileData);
+                  }
+
                   return (
                     <SpecialMapSymbolRenderer
                       key={`special-${tile.x}-${tile.y}`}
@@ -3626,23 +3682,31 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             })}
 
             {/* Multi-tile pillars layer - rendered above base tiles */}
-            {isSpecialMap && (mapData as any)?.multiTileObjects && (
-              <g className="multi-tile-pillars-layer">
-                {((mapData as any).multiTileObjects || []).filter((obj: any) => obj.type === 'pillar').map((pillar: any) => (
-                  <MultiTilePillar
-                    key={pillar.id}
-                    x={pillar.baseX}
-                    y={pillar.baseY}
-                    height={pillar.height}
-                    material={pillar.material}
-                    tileWidth={TILE_SIZE_PX}
-                    tileHeight={TILE_SIZE_PX}
-                    offsetX={0}
-                    offsetY={0}
-                  />
-                ))}
-              </g>
-            )}
+            {isSpecialMap && (mapData as any)?.multiTileObjects && (() => {
+              const multiTileObjects = (mapData as any).multiTileObjects || [];
+              const pillars = multiTileObjects.filter((obj: any) => obj.type === 'pillar');
+              console.log(`[MultiTile Debug] Rendering ${multiTileObjects.length} total objects, ${pillars.length} pillars:`, pillars);
+              return (
+                <g className="multi-tile-pillars-layer">
+                  {pillars.map((pillar: any) => {
+                    console.log(`[MultiTile Debug] Rendering pillar:`, pillar);
+                    return (
+                      <MultiTilePillar
+                        key={pillar.id}
+                        x={pillar.baseX}
+                        y={pillar.baseY}
+                        height={pillar.height}
+                        material={pillar.material}
+                        tileWidth={TILE_SIZE_PX}
+                        tileHeight={TILE_SIZE_PX}
+                        offsetX={0}
+                        offsetY={0}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            })()}
 
             {/* Mineral deposits layer - subtle glints on the map */}
             {mapData && shouldRenderAnimations && flatTiles.filter(tile => 
@@ -3712,7 +3776,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                    onMouseEnter={(e) => {
                      if (!isDragging) {
                        setHoveredAnimal(animal);
-              
+                       setHoveredEntityCoords({ x: e.clientX, y: e.clientY });
                      }
                    }}
                    onMouseLeave={() => {
@@ -3746,6 +3810,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   >
                     {animal.emoji}
                   </text>
+                  {(hoveredAnimal?.id === animal.id || selectedAnimalId === animal.id) && (
+                    <rect
+                      x={0}
+                      y={0}
+                      width={TILE_SIZE_PX}
+                      height={TILE_SIZE_PX}
+                      fill="none"
+                      stroke={isAnimalHostile(animal) ? "#ef4444" : isAnimalAlert(animal) ? "#eab308" : "#3b82f6"}
+                      strokeWidth={selectedAnimalId === animal.id ? "3" : "2"}
+                      opacity={selectedAnimalId === animal.id ? "1" : "0.8"}
+                      rx="3"
+                      pointerEvents="none"
+                      className={isAnimalHostile(animal) ? "animate-pulse" : ""}
+                    />
+                  )}
                 </g>
               ))}
               
@@ -3830,8 +3909,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 return distance <= 10;
               }).map(npc => (
-                <g key={npc.id} 
-                   onClick={(e) => { e.stopPropagation(); onNpcClick(npc); }} 
+                <g key={npc.id}
+                   onClick={(e) => { e.stopPropagation(); onNpcClick(npc); }}
+                   onMouseEnter={(e) => {
+                     if (!isDragging) {
+                       setHoveredNPC(npc);
+                       setHoveredEntityCoords({ x: e.clientX, y: e.clientY });
+                     }
+                   }}
+                   onMouseLeave={() => {
+                     setHoveredNPC(null);
+                     setHoveredEntityCoords(null);
+                   }}
                    style={{cursor: 'pointer', pointerEvents: 'auto'}}
                    className={`smooth-movement ${selectedNpcId === npc.id ? 'animate-ff6-idle-bob' : ''}`}
                    transform={`translate(${npc.x * TILE_SIZE_PX}, ${npc.y * TILE_SIZE_PX})`}>
@@ -3956,6 +4045,30 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     playerX={logicalControlledIconX || 0}
                     playerY={logicalControlledIconY || 0}
                   />
+                  {(hoveredNPC?.id === npc.id || selectedNpcId === npc.id) && (() => {
+                    const helperMode = getHelperMode(npc.id);
+                    const isFollowing = helperMode?.mode === 'lead';
+                    const borderColor = isFollowing ? "#10b981" :  // Bright green for following
+                                       isNpcHostile(npc) ? "#ef4444" :
+                                       isNpcAlert(npc) ? "#eab308" :
+                                       "#3b82f6";
+
+                    return (
+                      <rect
+                        x={0}
+                        y={0}
+                        width={TILE_SIZE_PX}
+                        height={TILE_SIZE_PX}
+                        fill="none"
+                        stroke={borderColor}
+                        strokeWidth={selectedNpcId === npc.id || isFollowing ? "3" : "2"}
+                        opacity={selectedNpcId === npc.id || isFollowing ? "1" : "0.8"}
+                        rx="3"
+                        pointerEvents="none"
+                        className={isNpcHostile(npc) ? "animate-pulse" : isFollowing ? "animate-pulse" : ""}
+                      />
+                    );
+                  })()}
                 </g>
               ))}
             </g>
@@ -4317,7 +4430,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               'opacity-0'
             }`} 
                  style={{
-                   background: season === 'winter' ? 'linear-gradient(to bottom, rgba(191,219,254,0.25), transparent)' :
+                   background: season === 'winter' ? 'linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)' :
                               season === 'fall' ? 'linear-gradient(to bottom, rgba(253,186,116,0.2), transparent)' :
                               season === 'spring' ? 'linear-gradient(to bottom, rgba(187,247,208,0.15), transparent)' :
                               'transparent'
@@ -4330,9 +4443,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         )}
       </div>
       
-      {/* POI Hover Tooltip */}
-      {hoveredPOI && hoveredPOICoords && (
-        console.log('POI tooltip at:', hoveredPOICoords),
+      {/* POI Hover Tooltip - only show if no NPC/Animal is hovered */}
+      {hoveredPOI && hoveredPOICoords && !hoveredNPC && !hoveredAnimal && (
         <POIHoverTooltip
           structure={hoveredPOI}
           x={hoveredPOICoords.x}
@@ -4343,9 +4455,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           visible={true}
         />
       )}
-      
-      {/* Tile Hover Tooltip (for farms and urban areas) */}
-      {hoveredTile && hoveredTileCoords && (
+
+      {/* Tile Hover Tooltip (for farms and urban areas) - only show if no NPC/Animal is hovered */}
+      {hoveredTile && hoveredTileCoords && !hoveredNPC && !hoveredAnimal && (
         <TileHoverTooltip
           tile={hoveredTile}
           x={hoveredTileCoords.x}
@@ -4358,24 +4470,82 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       )}
       
       {/* NPC/Animal hover tooltip */}
-      {(hoveredNPC || hoveredAnimal) && hoveredEntityCoords && (
-        <div
-          className="fixed pointer-events-none z-50"
-          style={{
-            left: `${hoveredEntityCoords.x - 200}px`,  // Offset left by 200px from the bad coordinates
-            top: `${hoveredEntityCoords.y - 50}px`,     // Slight upward offset
-            transform: 'translate(-50%, -100%)'
-          }}
-        >
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-amber-500/50 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
+      {(hoveredNPC || hoveredAnimal) && hoveredEntityCoords && (() => {
+        // Don't render tooltips on mobile devices
+        const isMobile = window.innerWidth < 640;
+        if (isMobile) return null;
+
+        // Get portal element
+        const portalElement = document.getElementById('tooltip-portal');
+        if (!portalElement) return null;
+
+        // Calculate position similar to POI tooltip
+        const tooltipWidth = 240;
+        const tooltipHeight = 120;
+        const offset = 20;
+
+        let adjustedX = hoveredEntityCoords.x + offset;
+        let adjustedY = hoveredEntityCoords.y - tooltipHeight - offset;
+
+        // Bounds checking
+        if (adjustedX + tooltipWidth > window.innerWidth - 10) {
+          adjustedX = hoveredEntityCoords.x - tooltipWidth - offset;
+        }
+        if (adjustedX < 10) {
+          adjustedX = 10;
+        }
+        if (adjustedY < 10) {
+          adjustedY = hoveredEntityCoords.y + offset;
+        }
+
+        // Determine border color based on hostile/alert state
+        const isHostile = (hoveredNPC && isNpcHostile(hoveredNPC)) || (hoveredAnimal && isAnimalHostile(hoveredAnimal));
+        const isAlert = (hoveredNPC && isNpcAlert(hoveredNPC)) || (hoveredAnimal && isAnimalAlert(hoveredAnimal));
+
+        let borderColor = 'border-blue-500/50'; // Default blue
+        let titleColor = 'text-blue-400';
+        let warningIcon = '';
+
+        if (isHostile) {
+          borderColor = 'border-red-500/60';
+          titleColor = 'text-red-400';
+          warningIcon = '⚔️ ';
+        } else if (isAlert) {
+          borderColor = 'border-yellow-500/50';
+          titleColor = 'text-yellow-400';
+          warningIcon = '⚠️ ';
+        }
+
+        const tooltipContent = (
+          <div
+            className="fixed pointer-events-none"
+            style={{
+              left: `${adjustedX}px`,
+              top: `${adjustedY}px`,
+              opacity: 1,
+              transition: 'opacity 0.2s ease-in-out'
+            }}
+          >
+            <div className={`bg-slate-900/95 backdrop-blur-sm border ${borderColor} rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px] ${isHostile ? 'animate-pulse' : ''}`}>
           {hoveredNPC && (
             <>
-              <div className="font-bold text-sm mb-1.5 text-amber-600 dark:text-amber-300">{hoveredNPC.name}</div>
+              <div className={`font-bold text-sm mb-1.5 ${titleColor}`}>{warningIcon}{hoveredNPC.name}</div>
               <div className="text-xs space-y-1 text-slate-700 dark:text-slate-200">
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Age:</span>
                   <span>{hoveredNPC.age} years old</span>
                 </div>
+                {logicalControlledIconX !== null && logicalControlledIconY !== null && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Distance:</span>
+                    <span className="text-slate-300">
+                      {Math.round(Math.sqrt(
+                        Math.pow(hoveredNPC.x - logicalControlledIconX, 2) +
+                        Math.pow(hoveredNPC.y - logicalControlledIconY, 2)
+                      ))} tiles
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Gender:</span>
                   <span>{hoveredNPC.gender}</span>
@@ -4388,12 +4558,31 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   <span className="text-slate-500 dark:text-slate-400">Class:</span>
                   <span className="text-purple-300">{hoveredNPC.class}</span>
                 </div>
+                {hoveredNPC.aiState && hoveredNPC.aiState !== 'idle' && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Status:</span>
+                    <span className={`${isNpcHostile(hoveredNPC) ? 'text-red-400' : isNpcAlert(hoveredNPC) ? 'text-yellow-400' : 'text-green-400'} text-xs uppercase`}>
+                      {hoveredNPC.aiState.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                )}
                 {hoveredNPC.stats && (
                   <>
                     <div className="border-t border-slate-700 mt-1 pt-1">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between mb-1">
                         <span className="text-slate-500 dark:text-slate-400">Health:</span>
-                        <span>{hoveredNPC.maxHealth || 'Unknown'}</span>
+                        <span>{hoveredNPC.currentHealth || hoveredNPC.maxHealth || 100}/{hoveredNPC.maxHealth || 100}</span>
+                      </div>
+                      {/* Health bar */}
+                      <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            ((hoveredNPC.currentHealth || hoveredNPC.maxHealth || 100) / (hoveredNPC.maxHealth || 100)) > 0.5 ? 'bg-green-500' :
+                            ((hoveredNPC.currentHealth || hoveredNPC.maxHealth || 100) / (hoveredNPC.maxHealth || 100)) > 0.25 ? 'bg-yellow-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${((hoveredNPC.currentHealth || hoveredNPC.maxHealth || 100) / (hoveredNPC.maxHealth || 100)) * 100}%` }}
+                        />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500 dark:text-slate-400">TEST/CON:</span>
@@ -4408,7 +4597,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           )}
           {hoveredAnimal && (
             <>
-              <div className="font-bold text-sm mb-1.5 text-amber-600 dark:text-amber-300">{hoveredAnimal.speciesName || hoveredAnimal.type}</div>
+              <div className={`font-bold text-sm mb-1.5 ${titleColor}`}>{warningIcon}{hoveredAnimal.speciesName || hoveredAnimal.type}</div>
               <div className="text-xs space-y-1 text-slate-700 dark:text-slate-200">
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Type:</span>
@@ -4418,13 +4607,43 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   <span className="text-slate-500 dark:text-slate-400">Age:</span>
                   <span>{hoveredAnimal.age} years</span>
                 </div>
+                {logicalControlledIconX !== null && logicalControlledIconY !== null && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Distance:</span>
+                    <span className="text-slate-300">
+                      {Math.round(Math.sqrt(
+                        Math.pow(hoveredAnimal.x - logicalControlledIconX, 2) +
+                        Math.pow(hoveredAnimal.y - logicalControlledIconY, 2)
+                      ))} tiles
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Temperament:</span>
                   <span className="text-yellow-300">{hoveredAnimal.temperament || 'Unknown'}</span>
                 </div>
-                <div className="flex justify-between">
+                {hoveredAnimal.aiState && hoveredAnimal.aiState !== 'idle' && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Status:</span>
+                    <span className={`${isAnimalHostile(hoveredAnimal) ? 'text-red-400' : isAnimalAlert(hoveredAnimal) ? 'text-yellow-400' : 'text-green-400'} text-xs uppercase`}>
+                      {hoveredAnimal.aiState}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between mb-1">
                   <span className="text-slate-500 dark:text-slate-400">Health:</span>
-                  <span>{hoveredAnimal.maxHealth || 'Unknown'}</span>
+                  <span>{hoveredAnimal.currentHealth || hoveredAnimal.maxHealth || 16}/{hoveredAnimal.maxHealth || 16}</span>
+                </div>
+                {/* Health bar */}
+                <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      ((hoveredAnimal.currentHealth || hoveredAnimal.maxHealth || 16) / (hoveredAnimal.maxHealth || 16)) > 0.5 ? 'bg-green-500' :
+                      ((hoveredAnimal.currentHealth || hoveredAnimal.maxHealth || 16) / (hoveredAnimal.maxHealth || 16)) > 0.25 ? 'bg-yellow-500' :
+                      'bg-red-500'
+                    }`}
+                    style={{ width: `${((hoveredAnimal.currentHealth || hoveredAnimal.maxHealth || 16) / (hoveredAnimal.maxHealth || 16)) * 100}%` }}
+                  />
                 </div>
                 {hoveredAnimal.stats && (
                   <div className="flex justify-between">
@@ -4445,9 +4664,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </div>
             </>
           )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+
+        return ReactDOM.createPortal(tooltipContent, portalElement);
+      })()}
 
       {/* Ship Tooltip */}
       {showShipTooltip && (

@@ -50,7 +50,7 @@ const hashSeed = (s: string) => {
 
 /* ----------------------- Constants ----------------------- */
 
-const GROUND_Y = 125; // Match FishingHutBanner
+const GROUND_Y = 85; // Further reduced to show more sky
 export const WATER_OFFSET = 15;
 
 // Utility functions
@@ -274,78 +274,89 @@ const FACTORY_SPECS: Record<string, FactorySpec> = {
   }
 };
 
-// Cultural factory specializations by era and region
-const getCulturalFactoryTypes = (culturalZone?: string, year?: number): string[] => {
+// Cultural factory specializations by era and region - historically accurate
+const getCulturalFactoryTypes = (culturalZone?: string, year?: number, climate?: string): string[] => {
   const zone = (culturalZone || 'european').toLowerCase();
   const y = year || 1500;
+  const c = (climate || 'temperate').toLowerCase();
 
-  // Factories only exist from Renaissance-Early Modern onward
-  if (y < 1500) return [];
+  // No industrial factories before 1750 (proto-industrial workshops only)
+  if (y < 1750) return ['pottery', 'brewery', 'glassworks', 'textile'];
+
+  // No steel factories before 1850 (Bessemer process)
+  // No automobile factories before 1890
+  // No chemical factories before 1800
+
+  // Sugar plantations only in tropical/semi-tropical climates
+  const isTropical = c.includes('tropic') || c.includes('semi');
+  const isCold = c.includes('cold') || c.includes('arctic');
 
   if (zone.includes('east') || zone.includes('asia')) {
-    if (y < 1600) return ['pottery', 'textile', 'brewery'];
-    if (y < 1800) return ['pottery', 'textile', 'glassworks', 'shipyard'];
-    if (y < 1900) return ['steel', 'textile', 'shipyard', 'pottery'];
+    if (y < 1850) return ['pottery', 'textile', 'brewery'];
+    if (y < 1900) return ['textile', 'shipyard', 'pottery'];
+    if (y < 1950) return ['textile', 'shipyard', 'pottery', 'steel'];
     return ['steel', 'automobile', 'chemical', 'shipyard'];
   }
 
   if (zone.includes('mena') || zone.includes('middle')) {
-    if (y < 1600) return ['pottery', 'glassworks', 'textile'];
-    if (y < 1800) return ['textile', 'glassworks', 'pottery'];
-    if (y < 1900) return ['textile', 'chemical', 'glassworks'];
+    if (y < 1850) return ['pottery', 'glassworks', 'textile'];
+    if (y < 1920) return ['textile', 'glassworks', 'pottery'];
     return ['chemical', 'steel', 'textile'];
   }
 
   if (zone.includes('african')) {
-    if (y < 1700) return ['pottery', 'brewery'];
-    if (y < 1900) return ['textile', 'pottery', 'brewery'];
+    if (y < 1900) return ['pottery', 'brewery', ...(isTropical ? ['textile'] : [])];
+    if (y < 1950) return ['textile', 'pottery', 'brewery'];
     return ['textile', 'chemical', 'brewery'];
   }
 
   if (zone.includes('american')) {
-    if (y < 1600) return ['pottery'];
-    if (y < 1800) return ['brewery', 'shipyard', 'glassworks'];
-    if (y < 1900) return ['steel', 'textile', 'brewery', 'shipyard'];
+    if (y < 1800) return ['brewery', 'glassworks', ...(isTropical ? ['textile'] : [])];
+    if (y < 1850) return ['brewery', 'shipyard', 'glassworks', 'textile'];
+    if (y < 1900) return ['textile', 'brewery', 'shipyard', ...(y >= 1860 ? ['steel'] : [])];
+    if (y < 1920) return ['steel', 'textile', 'brewery', 'shipyard'];
     return ['automobile', 'steel', 'chemical', 'shipyard'];
   }
 
   // European default
-  if (y < 1600) return ['brewery', 'glassworks', 'textile'];
-  if (y < 1800) return ['textile', 'steel', 'glassworks', 'brewery'];
-  if (y < 1900) return ['steel', 'textile', 'chemical', 'shipyard'];
+  if (y < 1800) return ['brewery', 'glassworks', 'textile', 'pottery'];
+  if (y < 1850) return ['textile', 'glassworks', 'brewery', 'pottery'];
+  if (y < 1900) return ['textile', 'brewery', 'shipyard', ...(y >= 1860 ? ['steel'] : [])];
+  if (y < 1920) return ['steel', 'textile', 'chemical', 'shipyard'];
   return ['automobile', 'steel', 'chemical', 'shipyard'];
 };
 
-const getFactorySpec = (industryName?: string, culturalZone?: string, era?: string): FactorySpec => {
+const getFactorySpec = (industryName?: string, culturalZone?: string, era?: string, climate?: string): FactorySpec => {
   const year = parseInt(era || '1500', 10);
 
-  // No factories before Renaissance-Early Modern
-  if (year < 1500) {
+  // Pre-industrial workshops only before 1750
+  if (year < 1750) {
     return {
       type: 'workshop',
-      chimneys: 0,
-      chimneyHeight: 0,
+      chimneys: 1,
+      chimneyHeight: 15,
       buildingWidth: 80,
       buildingHeight: 25,
       roofStyle: 'peaked',
       smokeColor: '#8B7355',
-      smokeDensity: 0.1,
+      smokeDensity: 0.2,
       primaryColor: '#8B4513',
       secondaryColor: '#D2691E',
-      products: ['tools', 'pottery'],
-      workers: { count: 3, clothing: '#8B7355', tools: ['hammer', 'chisel'] }
+      products: ['tools', 'pottery', 'cloth'],
+      workers: { count: 3, clothing: '#8B7355', tools: ['hammer', 'chisel', 'loom'] },
+      specialFeatures: ['water_wheel']
     };
   }
 
-  const culturalTypes = getCulturalFactoryTypes(culturalZone, year);
+  const culturalTypes = getCulturalFactoryTypes(culturalZone, year, climate);
   const name = (industryName || 'general').toLowerCase();
 
-  // Try to match industry name to spec
-  if (name.includes('steel') || name.includes('iron')) return FACTORY_SPECS.steel;
-  if (name.includes('textile') || name.includes('cotton') || name.includes('wool')) return FACTORY_SPECS.textile;
-  if (name.includes('chemical') || name.includes('refin')) return FACTORY_SPECS.chemical;
-  if (name.includes('auto') || name.includes('car')) return FACTORY_SPECS.automobile;
-  if (name.includes('ship')) return FACTORY_SPECS.shipyard;
+  // Try to match industry name to spec with historical constraints
+  if ((name.includes('steel') || name.includes('iron')) && year >= 1850) return FACTORY_SPECS.steel;
+  if (name.includes('textile') || name.includes('cotton') || name.includes('wool') || name.includes('sugar')) return FACTORY_SPECS.textile;
+  if ((name.includes('chemical') || name.includes('refin')) && year >= 1800) return FACTORY_SPECS.chemical;
+  if ((name.includes('auto') || name.includes('car')) && year >= 1890) return FACTORY_SPECS.automobile;
+  if (name.includes('ship') && year >= 1750) return FACTORY_SPECS.shipyard;
   if (name.includes('brew') || name.includes('beer')) return FACTORY_SPECS.brewery;
   if (name.includes('glass')) return FACTORY_SPECS.glassworks;
   if (name.includes('pottery') || name.includes('ceramic')) return FACTORY_SPECS.pottery;
@@ -383,8 +394,8 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
   const isPreIndustrial = year < 1500;
   const isNight = tod === 'night';
 
-  // Layout bands
-  const FACTORY_GROUND_Y = Math.min(GROUND_Y, Math.max(80, ipx(height * 0.5)));
+  // Layout bands - adjusted to show more sky
+  const FACTORY_GROUND_Y = Math.min(GROUND_Y, Math.max(60, ipx(height * 0.34)));
 
   // RNG domains (stable)
   const baseSeed = seed + hashSeed([width, height, String(climate), String(season), era, culturalZone, industryName].join('|'));
@@ -424,7 +435,7 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [reduced]);
 
-  const spec = useMemo(() => getFactorySpec(industryName, culturalZone, era), [industryName, culturalZone, era]);
+  const spec = useMemo(() => getFactorySpec(industryName, culturalZone, era, String(climate)), [industryName, culturalZone, era, climate]);
   const palette = useMemo(() => getGroundPalette(climate, season), [climate, season]);
 
   // Static layout (stable per seed + props)
@@ -432,6 +443,137 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
     const centerX = width / 2;
     const factoryX = centerX - spec.buildingWidth / 2;
     const factoryY = FACTORY_GROUND_Y - spec.buildingHeight;
+
+    // Era-specific vehicles
+    const vehicles = (() => {
+      if (year < 1850) {
+        // Horse-drawn carts
+        return Array.from({ length: 2 }, (_, i) => ({
+          type: 'horse_cart' as const,
+          x: staticRng.range(50, width - 150),
+          direction: staticRng.pick([-1, 1] as const),
+          speed: 0.3,
+          phase: staticRng.range(0, 100)
+        }));
+      } else if (year < 1920) {
+        // Mix of horses and early trucks
+        return [
+          {
+            type: 'horse_wagon' as const,
+            x: staticRng.range(50, width - 150),
+            direction: 1 as const,
+            speed: 0.4,
+            phase: staticRng.range(0, 100)
+          },
+          ...(year >= 1900 ? [{
+            type: 'early_truck' as const,
+            x: staticRng.range(50, width - 150),
+            direction: -1 as const,
+            speed: 0.6,
+            phase: staticRng.range(0, 100)
+          }] : [])
+        ];
+      } else if (year < 1960) {
+        // Early trucks and cars
+        return Array.from({ length: 2 }, (_, i) => ({
+          type: 'truck' as const,
+          x: staticRng.range(50, width - 150),
+          direction: staticRng.pick([-1, 1] as const),
+          speed: 0.8,
+          phase: staticRng.range(0, 100)
+        }));
+      } else {
+        // Modern vehicles and forklifts
+        return [
+          ...Array.from({ length: 2 }, (_, i) => ({
+            type: 'modern_truck' as const,
+            x: staticRng.range(50, width - 150),
+            direction: staticRng.pick([-1, 1] as const),
+            speed: 1.0,
+            phase: staticRng.range(0, 100)
+          })),
+          {
+            type: 'forklift' as const,
+            x: factoryX + spec.buildingWidth - 30,
+            direction: 1 as const,
+            speed: 0.3,
+            phase: 0
+          }
+        ];
+      }
+    })();
+
+    // Industry-specific animated elements
+    const industryElements = (() => {
+      switch(spec.type) {
+        case 'textile':
+          return {
+            looms: Array.from({ length: 3 }, (_, i) => ({
+              x: factoryX + 20 + i * 50,
+              y: factoryY + 15,
+              phase: staticRng.range(0, Math.PI * 2)
+            })),
+            fabricRolls: Array.from({ length: 2 }, (_, i) => ({
+              x: factoryX + spec.buildingWidth - 40 + i * 15,
+              y: FACTORY_GROUND_Y - 10
+            }))
+          };
+        case 'steel':
+          return {
+            moltenPour: {
+              x: factoryX + 30,
+              y: factoryY + spec.buildingHeight - 10,
+              active: staticRng.next() > 0.3
+            },
+            sparks: Array.from({ length: 8 }, (_, i) => ({
+              baseX: factoryX + 40,
+              baseY: factoryY + spec.buildingHeight - 15,
+              angle: staticRng.range(0, Math.PI),
+              speed: staticRng.range(1, 3)
+            }))
+          };
+        case 'brewery':
+          return {
+            barrels: Array.from({ length: 4 }, (_, i) => ({
+              x: factoryX + spec.buildingWidth + 10 + i * 12,
+              y: FACTORY_GROUND_Y - 8,
+              rolling: i === 0
+            })),
+            grainSacks: Array.from({ length: 3 }, (_, i) => ({
+              x: factoryX - 30 + i * 10,
+              y: FACTORY_GROUND_Y - 5
+            }))
+          };
+        case 'glassworks':
+          return {
+            furnaceGlow: {
+              x: factoryX + spec.buildingWidth / 2,
+              y: factoryY + spec.buildingHeight - 10,
+              intensity: 0.7
+            },
+            coolingRacks: Array.from({ length: 2 }, (_, i) => ({
+              x: factoryX + spec.buildingWidth + 20 + i * 20,
+              y: FACTORY_GROUND_Y - 12,
+              hasGlass: staticRng.next() > 0.4
+            }))
+          };
+        case 'chemical':
+          return {
+            bubblingTanks: Array.from({ length: 2 }, (_, i) => ({
+              x: factoryX - 50 + i * (spec.buildingWidth + 100),
+              y: FACTORY_GROUND_Y - 20,
+              phase: staticRng.range(0, Math.PI * 2)
+            })),
+            pipeSteam: Array.from({ length: 3 }, (_, i) => ({
+              x: factoryX + 30 + i * 40,
+              y: factoryY + 5,
+              interval: staticRng.range(100, 200)
+            }))
+          };
+        default:
+          return {};
+      }
+    })();
 
     // Workers (positions stable, but animation will move them)
     const workers = Array.from({ length: spec.workers.count }, (_, i) => ({
@@ -467,6 +609,95 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
       phase: staticRng.range(0, Math.PI * 2),
     }));
 
+    // Ground debris (memoized to prevent re-render)
+    const groundDebris = Array.from({ length: Math.floor(width / 15) }, (_, i) => ({
+      x: i * 15 + staticRng.range(-5, 5),
+      y: staticRng.range(0, 5),
+      width: staticRng.range(2, 5),
+      height: staticRng.range(1, 3)
+    }));
+
+    // Cobblestone/pavement pattern
+    const cobblestones = Array.from({ length: Math.floor(width / 25) }, (_, i) => ({
+      x: i * 25 + staticRng.range(-3, 3),
+      y: staticRng.range(-2, 2),
+      size: staticRng.range(18, 22)
+    }));
+
+    // Ground stains and oil marks - more for chemical/steel factories
+    const stainCount = (spec.type === 'chemical' || spec.type === 'steel') ? 12 : 8;
+    const groundStains = Array.from({ length: stainCount }, (_, i) => ({
+      x: staticRng.range(50, width - 50),
+      y: staticRng.range(10, 30),
+      rx: staticRng.range(15, 35),
+      ry: staticRng.range(5, 12),
+      color: spec.type === 'chemical' ?
+        staticRng.pick(['#4A5A3A', '#5A6A4A', '#6A5A3A']) :
+        staticRng.pick(['#3A3A3A', '#5A4A3A', '#4A5A4A'])
+    }));
+
+    // Environmental elements - simplified birds
+    const birds = (() => {
+      // Fewer birds near chemical plants
+      const birdCount = spec.type === 'chemical' ? 1 : (spec.type === 'steel' ? 2 : 4);
+      return Array.from({ length: birdCount }, (_, i) => ({
+        x: staticRng.range(100, width - 100),
+        y: staticRng.range(15, FACTORY_GROUND_Y - 35),
+        phase: staticRng.range(0, Math.PI * 2)
+      }));
+    })();
+
+    // Cultural decorations
+    const culturalElements = (() => {
+      const zone = (culturalZone || 'european').toLowerCase();
+      if (zone.includes('japan') || zone.includes('east_asian')) {
+        return {
+          type: 'japanese',
+          flags: [{ x: factoryX + spec.buildingWidth / 2, y: factoryY - 15 }],
+          roofStyle: 'pagoda_industrial',
+          signage: 'kanji'
+        };
+      } else if (zone.includes('soviet') || (zone.includes('russia') && year >= 1917 && year <= 1991)) {
+        return {
+          type: 'soviet',
+          banners: [{ x: factoryX + 10, y: factoryY, text: '★' }],
+          posters: true,
+          signage: 'cyrillic'
+        };
+      } else if (zone.includes('american')) {
+        return {
+          type: 'american',
+          logo: year >= 1920,
+          parkingLot: year >= 1950,
+          flagpole: { x: factoryX - 30, y: FACTORY_GROUND_Y },
+          signage: 'english'
+        };
+      } else if (zone.includes('british') || zone.includes('european')) {
+        return {
+          type: 'victorian',
+          brickPattern: year < 1920,
+          clockTower: year < 1900 && spec.buildingHeight > 35,
+          signage: 'serif'
+        };
+      }
+      return { type: 'generic', signage: 'sans' };
+    })();
+
+    // Static vegetation elements
+    const vegetation = (spec.type === 'brewery' || spec.type === 'pottery' || spec.type === 'textile') ?
+      Array.from({ length: 12 }, (_, i) => ({
+        x: staticRng.range(20, width - 20),
+        y: staticRng.range(5, 15),
+        hasBush: staticRng.next() > 0.4
+      })) : [];
+
+    // Static dead vegetation for polluting industries
+    const deadVegetation = (spec.type === 'chemical' || spec.type === 'steel') ?
+      Array.from({ length: 8 }, (_, i) => ({
+        x: staticRng.range(20, width - 20),
+        y: staticRng.range(5, 15)
+      })) : [];
+
     return {
       centerX,
       factoryX,
@@ -475,8 +706,17 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
       conveyorItems,
       bgBuildings,
       chimneys,
+      groundDebris,
+      cobblestones,
+      groundStains,
+      vehicles,
+      industryElements,
+      birds,
+      culturalElements,
+      vegetation,
+      deadVegetation
     };
-  }, [width, height, spec, staticRng, FACTORY_GROUND_Y]);
+  }, [width, height, spec, staticRng, FACTORY_GROUND_Y, year, culturalZone]);
 
   // Optional FX: show only in the sky band to avoid double-layering in ocean/ground
   const fxWeather = useMemo<WeatherState | undefined>(() => {
@@ -491,7 +731,7 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
     return (
       <g>
         {/* Industrial skyline background buildings */}
-        <g opacity="0.3">
+        <g opacity="0.25">
           {layout.bgBuildings.map((building, i) => (
             <g key={i}>
               <rect
@@ -499,21 +739,48 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
                 y={FACTORY_GROUND_Y - building.height}
                 width={building.width}
                 height={building.height}
+                fill="#5A5A5A"
+              />
+              {/* Roof variation */}
+              <polygon
+                points={`${building.x},${FACTORY_GROUND_Y - building.height} ${building.x + building.width/2},${FACTORY_GROUND_Y - building.height - 5} ${building.x + building.width},${FACTORY_GROUND_Y - building.height}`}
                 fill="#4A4A4A"
               />
-              {/* Background chimney */}
+              {/* Background chimney with smoke */}
               {building.hasChimney && (
-                <rect
-                  x={building.x + building.width / 2 - 2}
-                  y={FACTORY_GROUND_Y - building.height - 10}
-                  width="4"
-                  height="10"
-                  fill="#3A3A3A"
-                />
+                <>
+                  <rect
+                    x={building.x + building.width / 2 - 2}
+                    y={FACTORY_GROUND_Y - building.height - 10}
+                    width="4"
+                    height="10"
+                    fill="#3A3A3A"
+                  />
+                  {/* Distant smoke plume */}
+                  <ellipse
+                    cx={building.x + building.width / 2}
+                    cy={FACTORY_GROUND_Y - building.height - 15}
+                    rx="8"
+                    ry="12"
+                    fill="#6A6A6A"
+                    opacity="0.3"
+                  />
+                </>
               )}
             </g>
           ))}
         </g>
+
+        {/* Power lines for modern era */}
+        {isModern && (
+          <g opacity="0.4">
+            <line x1="0" y1={FACTORY_GROUND_Y - 35} x2={width} y2={FACTORY_GROUND_Y - 33} stroke="#2A2A2A" strokeWidth="0.8" />
+            <line x1="0" y1={FACTORY_GROUND_Y - 32} x2={width} y2={FACTORY_GROUND_Y - 30} stroke="#2A2A2A" strokeWidth="0.8" />
+            {Array.from({ length: 5 }, (_, i) => (
+              <rect key={i} x={i * (width/4) - 1} y={FACTORY_GROUND_Y - 40} width="3" height="15" fill="#3A3A3A" />
+            ))}
+          </g>
+        )}
       </g>
     );
   };
@@ -530,16 +797,33 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
 
       <rect x="0" y={FACTORY_GROUND_Y} width={width} height={height - FACTORY_GROUND_Y} fill="url(#groundGrad)" />
 
-      {/* Industrial debris (static positions) */}
-      {Array.from({ length: Math.floor(width / 15) }, (_, i) => (
+      {/* Linear industrial path */}
+      <g opacity="0.3">
+        {Array.from({ length: Math.floor(width / 40) }, (_, i) => (
+          <rect
+            key={i}
+            x={i * 40}
+            y={FACTORY_GROUND_Y + 8 + (i % 2 === 0 ? 0 : 2)}
+            width="35"
+            height="4"
+            fill="#4A4A4A"
+          />
+        ))}
+        {/* Path edges */}
+        <rect x="0" y={FACTORY_GROUND_Y + 7} width={width} height="1" fill="#3A3A3A" opacity="0.5" />
+        <rect x="0" y={FACTORY_GROUND_Y + 14} width={width} height="1" fill="#3A3A3A" opacity="0.5" />
+      </g>
+
+      {/* Industrial debris (from memoized layout) */}
+      {layout.groundDebris?.map((debris, i) => (
         <rect
           key={i}
-          x={i * 15 + staticRng.range(-5, 5)}
-          y={FACTORY_GROUND_Y + staticRng.range(0, 5)}
-          width={staticRng.range(2, 5)}
-          height={staticRng.range(1, 3)}
+          x={debris.x}
+          y={FACTORY_GROUND_Y + debris.y}
+          width={debris.width}
+          height={debris.height}
           fill="#5A5A5A"
-          opacity="0.3"
+          opacity="0.2"
         />
       ))}
 
@@ -553,6 +837,20 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
           ))}
         </>
       )}
+
+      {/* Ground texture and stains - using memoized positions */}
+      <g opacity="0.1">
+        {layout.groundStains?.map((stain, i) => (
+          <ellipse
+            key={i}
+            cx={stain.x}
+            cy={FACTORY_GROUND_Y + stain.y}
+            rx={stain.rx}
+            ry={stain.ry}
+            fill={stain.color}
+          />
+        ))}
+      </g>
     </g>
   );
 
@@ -635,11 +933,13 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
           <rect x={factoryX} y={factoryY - 3} width={spec.buildingWidth} height="3" fill="#3A3A3A" />
         )}
 
-        {/* Windows */}
+        {/* Windows with era-specific lighting */}
         {Array.from({ length: Math.floor(spec.buildingWidth / 25) }, (_, i) => {
           const wx = factoryX + 10 + i * 25;
           const wy = factoryY + 10;
           const lit = isNight && !isRuined && staticRng.next() > 0.2;
+          // Gas lamp glow for pre-1900, electric light after
+          const lightColor = year < 1900 ? '#FFA500' : '#FFD700';
           return (
             <g key={i}>
               <rect
@@ -647,12 +947,16 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
                 y={wy}
                 width="15"
                 height="18"
-                fill={isRuined ? '#1A1A1A' : (lit ? '#FFD700' : '#87CEEB')}
+                fill={isRuined ? '#1A1A1A' : (lit ? lightColor : '#87CEEB')}
                 opacity={isRuined ? 1 : (lit ? 0.9 : 0.6)}
               />
               {/* Window panes */}
               <line x1={wx + 7.5} y1={wy} x2={wx + 7.5} y2={wy + 18} stroke="#2A2A2A" strokeWidth="0.5" />
               <line x1={wx} y1={wy + 9} x2={wx + 15} y2={wy + 9} stroke="#2A2A2A" strokeWidth="0.5" />
+              {/* Show looms for textile factories */}
+              {spec.type === 'textile' && lit && !isRuined && (
+                <rect x={wx + 4} y={wy + 8} width="7" height="8" fill="#4A4A4A" opacity="0.5" />
+              )}
             </g>
           );
         })}
@@ -772,11 +1076,34 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
           </>
         )}
 
-        {/* Company sign for modern era */}
-        {isModern && (
+        {/* Cultural-specific signage and decorations */}
+        {layout.culturalElements?.type === 'japanese' && (
+          <g>
+            {/* Company flag */}
+            <rect x={layout.centerX - 2} y={factoryY - 40} width="3" height="25" fill="#4A4A4A" />
+            <rect x={layout.centerX + 1} y={factoryY - 38} width="20" height="14" fill="#FFFFFF" stroke="#FF0000" strokeWidth="1" />
+            <circle cx={layout.centerX + 11} cy={factoryY - 31} r="4" fill="#FF0000" />
+          </g>
+        )}
+        {layout.culturalElements?.type === 'soviet' && year >= 1917 && year <= 1991 && (
+          <g>
+            {/* Red banner */}
+            <rect x={factoryX + 10} y={factoryY + 5} width="40" height="25" fill="#CC0000" />
+            <text x={factoryX + 30} y={factoryY + 20} fill="#FFD700" fontSize="14" textAnchor="middle">★</text>
+          </g>
+        )}
+        {layout.culturalElements?.type === 'american' && layout.culturalElements.logo && (
           <rect x={layout.centerX - 30} y={factoryY - 30} width="60" height="12" fill={spec.secondaryColor} stroke="#2A2A2A" strokeWidth="1">
             <title>{industryName}</title>
           </rect>
+        )}
+        {layout.culturalElements?.type === 'victorian' && layout.culturalElements.brickPattern && (
+          <g opacity="0.3">
+            {/* Decorative brickwork pattern */}
+            {Array.from({ length: Math.floor(spec.buildingWidth / 10) }, (_, i) => (
+              <rect key={i} x={factoryX + i * 10} y={factoryY + 2} width="9" height="4" fill="#8B4513" stroke="#654321" strokeWidth="0.5" />
+            ))}
+          </g>
         )}
       </g>
     );
@@ -790,13 +1117,13 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
       <g>
         {layout.chimneys.map((chimney, i) => (
           <g key={i}>
-            {/* Animated smoke puffs */}
-            {Array.from({ length: 6 }, (_, j) => {
-              const age = ((frame * 0.5 + i * 10 + j * 15) % 100) / 100;
-              const x = chimney.x + 4 + Math.sin(age * Math.PI + chimney.phase) * (age * 20);
-              const y = chimney.y - (age * 40);
-              const size = 2 + age * 4;
-              const opacity = (1 - age) * spec.smokeDensity * 0.6;
+            {/* Animated smoke puffs - improved visuals */}
+            {Array.from({ length: 8 }, (_, j) => {
+              const age = ((frame * 0.4 + i * 10 + j * 12) % 120) / 120;
+              const x = chimney.x + 4 + Math.sin(age * Math.PI * 2 + chimney.phase) * (age * 25);
+              const y = chimney.y - (age * 60);
+              const size = 3 + age * 6;
+              const opacity = (1 - age) * spec.smokeDensity * 0.5;
 
               return (
                 <circle
@@ -850,6 +1177,266 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
           </g>
         );
       })}
+    </g>
+  );
+
+  // Render era-specific vehicles
+  const renderVehicles = () => (
+    <g>
+      {layout.vehicles?.map((vehicle, i) => {
+        const x = (vehicle.x + frame * vehicle.speed * vehicle.direction) % (width + 200) - 100;
+
+        if (vehicle.type === 'horse_cart' || vehicle.type === 'horse_wagon') {
+          return (
+            <g key={i} transform={`translate(${x}, ${FACTORY_GROUND_Y})`}>
+              {/* Horse */}
+              <rect x="-15" y="-10" width="8" height="8" fill="#654321" />
+              <rect x="-17" y="-8" width="2" height="8" fill="#4A4A4A" />
+              <rect x="-7" y="-8" width="2" height="8" fill="#4A4A4A" />
+              {/* Cart */}
+              <rect x="0" y="-8" width="20" height="8" fill="#8B4513" />
+              <circle cx="5" cy="2" r="2" fill="#2A2A2A" />
+              <circle cx="15" cy="2" r="2" fill="#2A2A2A" />
+            </g>
+          );
+        } else if (vehicle.type === 'early_truck') {
+          return (
+            <g key={i} transform={`translate(${x}, ${FACTORY_GROUND_Y})`}>
+              <rect x="0" y="-12" width="25" height="12" fill="#3A3A3A" />
+              <rect x="0" y="-14" width="10" height="8" fill="#4A4A4A" />
+              <rect x="2" y="-12" width="6" height="4" fill="#87CEEB" opacity="0.6" />
+              <circle cx="5" cy="2" r="3" fill="#2A2A2A" />
+              <circle cx="20" cy="2" r="3" fill="#2A2A2A" />
+            </g>
+          );
+        } else if (vehicle.type === 'truck' || vehicle.type === 'modern_truck') {
+          return (
+            <g key={i} transform={`translate(${x}, ${FACTORY_GROUND_Y})`}>
+              <rect x="0" y="-14" width="30" height="14" fill="#4169E1" />
+              <rect x="0" y="-16" width="12" height="10" fill="#87CEEB" />
+              <rect x="2" y="-14" width="8" height="6" fill="#B0E0E6" opacity="0.7" />
+              <circle cx="6" cy="2" r="3" fill="#2A2A2A" />
+              <circle cx="24" cy="2" r="3" fill="#2A2A2A" />
+            </g>
+          );
+        } else if (vehicle.type === 'forklift') {
+          const liftHeight = 5 + Math.sin(frame * 0.05) * 3;
+          return (
+            <g key={i} transform={`translate(${x}, ${FACTORY_GROUND_Y})`}>
+              <rect x="0" y="-8" width="12" height="8" fill="#FFD700" />
+              <rect x="-3" y={-8 - liftHeight} width="3" height={liftHeight} fill="#4A4A4A" />
+              <rect x="-5" y={-8 - liftHeight} width="7" height="2" fill="#3A3A3A" />
+              <circle cx="3" cy="1" r="2" fill="#2A2A2A" />
+              <circle cx="9" cy="1" r="2" fill="#2A2A2A" />
+            </g>
+          );
+        }
+        return null;
+      })}
+    </g>
+  );
+
+  // Render industry-specific animations
+  const renderIndustryEffects = () => {
+    const elements = layout.industryElements;
+    if (!elements) return null;
+
+    return (
+      <g>
+        {/* Textile factory effects */}
+        {elements.looms && elements.looms.map((loom, i) => (
+          <g key={`loom-${i}`}>
+            {/* Animated loom shuttle */}
+            <rect
+              x={loom.x + Math.sin(frame * 0.1 + loom.phase) * 8}
+              y={loom.y}
+              width="4"
+              height="2"
+              fill="#8B4513"
+            />
+          </g>
+        ))}
+        {elements.fabricRolls && elements.fabricRolls.map((roll, i) => (
+          <g key={`fabric-${i}`}>
+            <circle cx={roll.x} cy={roll.y} r="4" fill="#F5DEB3" />
+            <circle cx={roll.x} cy={roll.y} r="2" fill="#8B7355" />
+          </g>
+        ))}
+
+        {/* Steel factory effects */}
+        {elements.moltenPour && elements.moltenPour.active && (
+          <g>
+            {/* Molten metal stream */}
+            <rect
+              x={elements.moltenPour.x}
+              y={elements.moltenPour.y}
+              width="3"
+              height={10 + Math.sin(frame * 0.2) * 2}
+              fill="#FF4500"
+              opacity={0.9}
+            />
+            {/* Glow effect */}
+            <ellipse
+              cx={elements.moltenPour.x + 1.5}
+              cy={elements.moltenPour.y + 10}
+              rx="8"
+              ry="4"
+              fill="#FF6347"
+              opacity={0.4 + Math.sin(frame * 0.3) * 0.1}
+            />
+          </g>
+        )}
+        {elements.sparks && elements.sparks.map((spark, i) => {
+          const t = (frame * spark.speed + i * 20) % 100;
+          if (t > 50) return null;
+          const x = spark.baseX + Math.cos(spark.angle) * t * 0.5;
+          const y = spark.baseY - Math.sin(spark.angle) * t * 0.5 + (t * t) * 0.01;
+          return (
+            <circle
+              key={`spark-${i}`}
+              cx={x}
+              cy={y}
+              r="1"
+              fill="#FFD700"
+              opacity={1 - t / 50}
+            />
+          );
+        })}
+
+        {/* Brewery effects */}
+        {elements.barrels && elements.barrels.map((barrel, i) => (
+          <g key={`barrel-${i}`} transform={`translate(${barrel.rolling ? barrel.x + Math.sin(frame * 0.05) * 10 : barrel.x}, ${barrel.y})`}>
+            <ellipse cx="0" cy="0" rx="5" ry="7" fill="#8B4513" />
+            <rect x="-5" y="-3" width="10" height="1" fill="#654321" />
+            <rect x="-5" y="2" width="10" height="1" fill="#654321" />
+          </g>
+        ))}
+        {elements.grainSacks && elements.grainSacks.map((sack, i) => (
+          <rect key={`sack-${i}`} x={sack.x} y={sack.y} width="8" height="5" fill="#D2B48C" />
+        ))}
+
+        {/* Glassworks effects */}
+        {elements.furnaceGlow && (
+          <ellipse
+            cx={elements.furnaceGlow.x}
+            cy={elements.furnaceGlow.y}
+            rx="25"
+            ry="12"
+            fill="#FF6347"
+            opacity={elements.furnaceGlow.intensity * (0.8 + Math.sin(frame * 0.15) * 0.2)}
+          />
+        )}
+        {elements.coolingRacks && elements.coolingRacks.map((rack, i) => (
+          <g key={`rack-${i}`}>
+            <rect x={rack.x} y={rack.y} width="15" height="10" fill="#4A4A4A" stroke="#3A3A3A" />
+            {rack.hasGlass && (
+              <rect x={rack.x + 2} y={rack.y + 2} width="11" height="6" fill="#87CEEB" opacity="0.6" />
+            )}
+          </g>
+        ))}
+
+        {/* Chemical factory effects */}
+        {elements.bubblingTanks && elements.bubblingTanks.map((tank, i) => {
+          const bubbleY = Math.sin(frame * 0.05 + tank.phase) * 3;
+          return (
+            <g key={`tank-${i}`}>
+              <ellipse cx={tank.x} cy={tank.y} rx="12" ry="15" fill="#4A5A3A" stroke="#3A4A2A" />
+              <ellipse cx={tank.x} cy={tank.y - 15} rx="12" ry="3" fill="#5A6A4A" />
+              {/* Bubbles */}
+              <circle cx={tank.x - 3} cy={tank.y + bubbleY} r="2" fill="#6A7A5A" opacity="0.7" />
+              <circle cx={tank.x + 4} cy={tank.y + bubbleY - 2} r="1.5" fill="#6A7A5A" opacity="0.6" />
+            </g>
+          );
+        })}
+        {elements.pipeSteam && elements.pipeSteam.map((pipe, i) => {
+          const active = (frame % pipe.interval) < 50;
+          if (!active) return null;
+          return (
+            <g key={`steam-${i}`}>
+              {Array.from({ length: 3 }, (_, j) => (
+                <circle
+                  key={j}
+                  cx={pipe.x + Math.sin((frame + j * 10) * 0.1) * 5}
+                  cy={pipe.y - j * 8 - (frame % 50) * 0.3}
+                  r={2 + j}
+                  fill="#FFFFFF"
+                  opacity={0.4 - j * 0.1 - (frame % 50) * 0.005}
+                />
+              ))}
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
+
+  // Render environmental details
+  const renderEnvironment = () => (
+    <g>
+      {/* Birds - simple and realistic */}
+      {layout.birds?.map((bird, i) => {
+        const x = (bird.x + frame * 0.2) % (width + 100) - 50;
+        const y = bird.y + Math.sin(frame * 0.02 + bird.phase) * 4;
+        const wingFlap = Math.sin(frame * 0.15 + bird.phase) * 0.3;
+        return (
+          <g key={`bird-${i}`} transform={`translate(${x}, ${y})`}>
+            {/* Simple V-shape flying bird */}
+            <path
+              d={`M0,0 L-2,${-1.2 + wingFlap} M0,0 L2,${-1.2 - wingFlap}`}
+              stroke="#1A1A1A"
+              strokeWidth="0.7"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </g>
+        );
+      })}
+
+      {/* Pollution effects for chemical/steel plants */}
+      {(spec.type === 'chemical' || spec.type === 'steel') && (
+        <g>
+          {/* Static dead/sparse vegetation */}
+          <g opacity="0.3">
+            {layout.deadVegetation?.map((plant, i) => (
+              <rect
+                key={i}
+                x={plant.x}
+                y={FACTORY_GROUND_Y + plant.y}
+                width="2"
+                height="3"
+                fill="#8B7355"
+              />
+            ))}
+          </g>
+          {/* Pollution haze */}
+          <rect x="0" y={FACTORY_GROUND_Y - 30} width={width} height="30" fill="#5A5A5A" opacity="0.1" />
+        </g>
+      )}
+
+      {/* Static healthy vegetation for cleaner industries */}
+      {(spec.type === 'brewery' || spec.type === 'pottery' || spec.type === 'textile') && (
+        <g opacity="0.5">
+          {layout.vegetation?.map((plant, i) => (
+            <g key={i}>
+              <rect
+                x={plant.x}
+                y={FACTORY_GROUND_Y + plant.y}
+                width="2"
+                height="4"
+                fill="#228B22"
+              />
+              {plant.hasBush && (
+                <circle
+                  cx={plant.x + 1}
+                  cy={FACTORY_GROUND_Y + plant.y + 2}
+                  r="2.5"
+                  fill="#32CD32"
+                />
+              )}
+            </g>
+          ))}
+        </g>
+      )}
     </g>
   );
 
@@ -922,7 +1509,10 @@ const FactoryBanner: React.FC<FactoryBannerProps> = ({
         {renderBackground()}
         {renderGround()}
         {renderFactory()}
+        {renderVehicles()}
         {renderWorkers()}
+        {renderIndustryEffects()}
+        {renderEnvironment()}
         {renderSmoke()}
         {renderSpecialEffects()}
 

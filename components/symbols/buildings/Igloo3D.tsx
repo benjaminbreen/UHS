@@ -42,8 +42,8 @@ const Igloo3D: React.FC<Igloo3DProps> = React.memo(({ x, y, width, height, size,
                 </pattern>
             </defs>
             
-            {/* Cast Shadow for 3D effect */}
-            <ellipse cx={cx + 2} cy={y + height - 2} rx={rx * 1.1} ry={rx * 0.3} fill="rgba(0,0,0,0.2)" />
+            {/* Cast Shadow - positioned relative to dome base */}
+            <ellipse cx={cx + 2} cy={cy + ry + 2} rx={rx * 1.1} ry={rx * 0.3} fill="rgba(0,0,0,0.2)" filter="blur(1px)" />
       
             {/* Main Dome Structure */}
             <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#iglooGradient-${uniqueId})`} stroke={outlineColor} strokeWidth="0.3"/>
@@ -68,13 +68,16 @@ const Igloo3D: React.FC<Igloo3DProps> = React.memo(({ x, y, width, height, size,
                 );
             })}
             
-            {/* Vertical block seams */}
+            {/* Vertical block seams - fixed dome curvature */}
             {[...Array(8)].map((_, i) => {
                 const angle = (i * Math.PI * 2) / 8;
-                const startX = cx + Math.cos(angle) * rx * 0.2;
-                const startY = cy + Math.sin(angle) * ry * 0.2;
-                const endX = cx + Math.cos(angle) * rx * 0.95;
-                const endY = cy + Math.sin(angle) * ry * 0.95;
+                // Fix seam lines to follow ellipse curvature properly
+                const innerRadius = 0.3; // Start seams further from center
+                const outerRadius = 0.85; // End before dome edge
+                const startX = cx + Math.cos(angle) * rx * innerRadius;
+                const startY = cy + Math.sin(angle) * ry * innerRadius;
+                const endX = cx + Math.cos(angle) * rx * outerRadius;
+                const endY = cy + Math.sin(angle) * ry * outerRadius;
                 return (
                     <line
                         key={`seam-${i}`}

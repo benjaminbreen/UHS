@@ -420,7 +420,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
     }
         },
         "Arabian Peninsula": {
-            "Hijaz Mountains": { name: "Hijaz Mountains", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Hejaz Interior": { name: "Hejaz Interior", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Empty Quarter": { name: "Empty Quarter", climate: ClimateType.ARID, archetype: MapArchetype.DESERT, economicActivityLevel: 0 },
             "Hadhramaut Valley": { name: "Hadhramaut Valley", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Dhofar Hills": { name: "Dhofar Hills", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },

@@ -8,10 +8,11 @@
  */
 
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { BarChart, Crown, Building, Users, Heart, BookOpen } from 'lucide-react';
+import { BarChart, Crown, Building, Users, Heart, BookOpen, Globe } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
+import { usePlayer } from '../contexts/PlayerContext';
 import {
   AnimalEntity, NpcEntity, isAnimal, isNpc, LensMode, MapArchetype, CulturalZone,
   HistoricalEra, TerrainStructure
@@ -27,6 +28,9 @@ import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../consta
 import { primarySourceService } from '../services/primarySourceService';
 import { ProceduralPortrait } from './portraits';
 import { CityHistoricalModal } from './CityHistoricalModal';
+import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
+import { languageVisualizationService } from '../services/languageVisualizationService';
+import { LanguageFamilyTree } from './LanguageFamilyTree';
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
@@ -37,7 +41,13 @@ type MajorTab = 'map' | 'history' | 'gamelog';
 
 const MIN_SIDEBAR_WIDTH = 280;
 const MAX_SIDEBAR_WIDTH = 500;
-const DEFAULT_SIDEBAR_WIDTH = 380;
+const getDefaultSidebarWidth = () => {
+  if (typeof window === 'undefined') return 380;
+  if (window.innerWidth < 1440) return 320;
+  if (window.innerWidth < 1920) return 380;
+  return 420;
+};
+const DEFAULT_SIDEBAR_WIDTH = getDefaultSidebarWidth();
 
 const SIDEBAR_WIDTH_KEY = 'uhs.sidebarWidth';
 const MAP_TAB_KEY = 'uhs.mapSubTab';
@@ -50,7 +60,7 @@ const MAJOR_TAB_KEY = 'uhs.majorTab';
 const AnalysisListItem: React.FC<{ icon: string, name: string, subtext: string, onClick: () => void }> = ({ icon, name, subtext, onClick }) => (
   <li
     onClick={onClick}
-    className="flex items-center p-2 rounded-md cursor-pointer transition-colors duration-150 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+    className="flex items-center p-2 rounded-md cursor-pointer hover:bg-slate-700/50"
   >
     <span className="text-xl mr-3">{icon}</span>
     <div className="min-w-0">
@@ -68,7 +78,7 @@ const CollapsibleSection: React.FC<{ title: string, count?: number, children: Re
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center text-left font-semibold text-blue-400 dark:text-blue-300 mb-2 p-2 rounded-md hover:bg-slate-200/40 dark:hover:bg-slate-800/40"
+        className="w-full flex justify-between items-center text-left font-semibold text-blue-400 dark:text-blue-300 mb-2 p-2 rounded-md hover:bg-slate-800/40"
       >
         <span className="flex items-center gap-2">
           {title}
@@ -76,7 +86,7 @@ const CollapsibleSection: React.FC<{ title: string, count?: number, children: Re
             <span className="text-xs font-mono bg-slate-700/50 text-slate-300 px-1.5 py-0.5 rounded-md">{count}</span>
           )}
         </span>
-        <span className={`transform transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>▶</span>
+        <span className={isOpen ? 'rotate-90' : ''}>▶</span>
       </button>
       {isOpen && <div className="pl-2 border-l-2 border-slate-700/50">{children}</div>}
     </div>
@@ -94,7 +104,7 @@ const AnimalListItem = React.memo(
     return (
       <div
         onClick={() => onClick(animal)}
-        className={`flex items-center p-3 rounded-lg cursor-pointer transition-all duration-200 text-gray-300 hover:bg-slate-700/60 hover:shadow-sm ${isSelected ? 'bg-blue-800/70 text-white shadow-md ring-1 ring-blue-400/50' : ''}`}
+        className={`flex items-center p-3 rounded-lg cursor-pointer text-gray-300 hover:bg-slate-700/50 ${isSelected ? 'bg-blue-800/50 text-white border border-blue-400/50' : ''}`}
       >
         <div className="text-2xl mr-3 flex-shrink-0">{animal.emoji}</div>
         <div className="flex-1 min-w-0">
@@ -125,15 +135,15 @@ const NpcListItem = React.memo(
       <button
         onClick={() => onClick(npc)}
         className={[
-          "group w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all border",
+          "group w-full flex items-center gap-3 p-2.5 rounded-lg text-left border",
           isSelected
-            ? "bg-blue-800/60 border-blue-400/50 text-white shadow-md ring-1 ring-blue-400/40"
-            : "bg-slate-800/40 hover:bg-slate-700/50 border-slate-700/40 hover:border-slate-600/60 text-gray-200"
+            ? "bg-blue-800/50 border-blue-400/50 text-white"
+            : "bg-slate-800/30 hover:bg-slate-700/40 border-slate-700/40 text-gray-200"
         ].join(" ")}
       >
         {/* Portrait */}
         <div className="relative shrink-0">
-          <div className="w-11 h-11 rounded-md overflow-hidden border border-slate-600/70 shadow-sm bg-slate-700/60">
+          <div className="w-11 h-11 rounded-md overflow-hidden border border-slate-600/70 bg-slate-700/60">
             <ProceduralPortrait character={npc} size={44} />
           </div>
         </div>
@@ -172,11 +182,13 @@ const LeftSidebar: React.FC<{
   onShowFactionTooltip?: (data: any, x: number, y: number) => void;
   onHideFactionTooltip?: () => void;
   onToggleMapVisibility?: () => void;
+  isProcessingWorldWeaver?: boolean;
 }> = ({
   onShowFactionsModal,
   onShowFactionTooltip,
   onHideFactionTooltip,
-  onToggleMapVisibility
+  onToggleMapVisibility,
+  isProcessingWorldWeaver = false
 }) => {
   const {
     activeMapSubTab, setActiveMapSubTab,
@@ -189,16 +201,27 @@ const LeftSidebar: React.FC<{
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
   const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, currentZone, currentRegion } = useGame();
+  const { character: playerCharacter } = usePlayer();
 
   const [activeMajorTab, setActiveMajorTab] = useState<MajorTab>('map');
   const [sourceCount, setSourceCount] = useState<number>(0);
-  const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [npcQuery, setNpcQuery] = useState<string>('');
   const [showCityModal, setShowCityModal] = useState<boolean>(false);
   const [selectedCity, setSelectedCity] = useState<{ name: string; description: string } | null>(null);
+
+  // Language tree modal state
+  const [showLanguageTree, setShowLanguageTree] = useState(false);
+  const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
   const resizeStartX = useRef<number>(0);
-  const resizeStartWidth = useRef<number>(DEFAULT_SIDEBAR_WIDTH);
+  const resizeStartWidth = useRef<number>(getDefaultSidebarWidth());
+
+  // Memoize main container className for performance
+  const sidebarClassName = useMemo(() =>
+    getSafariOptimizedClassName(
+      `relative flex-shrink-0 bg-slate-900/95 dark:bg-slate-950/95 border-r border-slate-700/80 flex flex-col text-slate-200 h-full`
+    ), []);
 
   /* ----- formatters ----- */
   const formattedTime = useMemo(
@@ -387,9 +410,9 @@ const LeftSidebar: React.FC<{
         onClick={() => setActiveLens(lens.id)}
         aria-pressed={active}
         className={[
-          "flex items-center justify-center gap-2 px-2 py-2 rounded-md border text-sm transition-all",
+          "flex items-center justify-center gap-2 px-2 py-2 rounded-md border text-sm",
           active
-            ? "bg-amber-600/25 border-amber-500/60 text-amber-200 shadow-md"
+            ? "bg-amber-600/25 border-amber-500/60 text-amber-200"
             : "bg-slate-800/45 hover:bg-slate-700/60 border-slate-700/60 text-slate-200"
         ].join(" ")}
       >
@@ -399,81 +422,245 @@ const LeftSidebar: React.FC<{
     );
   };
 
+  /* ----- Calculate biome statistics ----- */
+  const biomeStats = useMemo(() => {
+    if (!mapData?.tiles) return { distribution: [], totalTiles: 0, waterPercent: 0, urbanPercent: 0 };
+
+    const biomeCounts = new Map<string, number>();
+    let waterCount = 0;
+    let urbanCount = 0;
+    const totalTiles = mapData.tiles.length * (mapData.tiles[0]?.length || 0);
+
+    mapData.tiles.forEach(row => {
+      row.forEach(tile => {
+        const biome = tile.biomeType || tile.biome || 'UNKNOWN';
+        biomeCounts.set(biome, (biomeCounts.get(biome) || 0) + 1);
+
+        if (biome && typeof biome === 'string') {
+          if (biome.includes('OCEAN') || biome.includes('LAKE') || biome.includes('RIVER')) {
+            waterCount++;
+          }
+          if (biome.includes('CITY') || biome === 'URBAN' || biome === 'MARKETPLACE') {
+            urbanCount++;
+          }
+        }
+      });
+    });
+
+    const distribution = Array.from(biomeCounts.entries())
+      .filter(([biome]) => biome && biome !== 'UNKNOWN')
+      .map(([biome, count]) => ({
+        biome,
+        count,
+        percent: Math.round((count / totalTiles) * 100)
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8); // Top 8 biomes
+
+    return {
+      distribution,
+      totalTiles,
+      waterPercent: Math.round((waterCount / totalTiles) * 100),
+      urbanPercent: Math.round((urbanCount / totalTiles) * 100)
+    };
+  }, [mapData]);
+
+  /* ----- Group POIs by type ----- */
+  const groupedPOIs = useMemo(() => {
+    const groups: Record<string, TerrainStructure[]> = {};
+    pointsOfInterest.forEach(poi => {
+      const type = poi.structureType;
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(poi);
+    });
+    return groups;
+  }, [pointsOfInterest]);
+
   /* ----- tab content ----- */
   const getSubTabContent = (tab: LeftSidebarTab) => {
     if (tab === 'analysis') {
       return (
-        <div className="space-y-4">
-          {/* Map Archetype */}
-          <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg p-3">
-            <div className="text-xs text-blue-200 uppercase tracking-wide mb-1">Map Archetype</div>
-            <div className="text-sm font-semibold text-blue-100">
-              {currentMapArchetype ? formatEnumString(currentMapArchetype) : 'Unknown'}
+        <div className="space-y-3">
+          {/* Quick Stats Card */}
+          <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-700/40">
+            <div className="text-xs text-slate-400 uppercase tracking-widest mb-2 font-bold">
+              {currentMapArchetype ? formatEnumString(currentMapArchetype).replace('_', ' ') : 'STANDARD'} MAP
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-900/40 rounded-md p-2">
+                <div className="text-[10px] text-slate-500 uppercase">Entities</div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold text-blue-300">{npcs?.length || 0}</span>
+                  <span className="text-xs text-slate-400">NPCs</span>
+                </div>
+              </div>
+              <div className="bg-slate-900/40 rounded-md p-2">
+                <div className="text-[10px] text-slate-500 uppercase">Wildlife</div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold text-green-300">{animals?.length || 0}</span>
+                  <span className="text-xs text-slate-400">Animals</span>
+                </div>
+              </div>
+              <div className="bg-slate-900/40 rounded-md p-2">
+                <div className="text-[10px] text-slate-500 uppercase">Water</div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold text-cyan-300">{biomeStats.waterPercent}%</span>
+                  <span className="text-xs text-slate-400">Coverage</span>
+                </div>
+              </div>
+              <div className="bg-slate-900/40 rounded-md p-2">
+                <div className="text-[10px] text-slate-500 uppercase">Urban</div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold text-amber-300">{biomeStats.urbanPercent}%</span>
+                  <span className="text-xs text-slate-400">Developed</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Strategic Lenses — compact 2-row grid */}
-          <CollapsibleSection title="🔍 Strategic Lenses" count={6} startOpen>
-            <div className="text-xs text-slate-400 mb-2">
-              Visualize complex data directly on the map
+          {/* Strategic Lenses - Redesigned */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">STRATEGIC LENSES</span>
+              <span className="text-[10px] text-slate-500">6</span>
             </div>
-
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              {lensDefs.slice(0, 3).map(l => <LensButton key={l.id} lens={l} />)}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {lensDefs.slice(3, 6).map(l => <LensButton key={l.id} lens={l} />)}
-            </div>
-
             {activeLens !== 'none' && (
-              <div className="mt-2">
-                <button
-                  onClick={() => setActiveLens('none' as LensMode)}
-                  className="text-xs px-2 py-1 rounded-md bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-200 transition-colors"
-                >
-                  Clear Active Lens
-                </button>
+              <div className="mb-2 p-2 bg-amber-900/20 border border-amber-500/30 rounded-md">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-amber-300">Active: {lensDefs.find(l => l.id === activeLens)?.name}</span>
+                  <button
+                    onClick={() => setActiveLens('none' as LensMode)}
+                    className="text-xs px-2 py-0.5 rounded bg-red-600/30 hover:bg-red-600/40 text-red-200"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
             )}
-          </CollapsibleSection>
-
-          {/* Map Details */}
-          <div className="space-y-2">
-            <button
-              onClick={() => setIsMapDetailsModalOpen(true)}
-              className="w-full flex items-center justify-center space-x-2 p-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/50 text-emerald-200 rounded-lg transition-all duration-200 font-medium"
-            >
-              <BarChart className="w-5 h-5" />
-              <span>Detailed Terrain Analysis</span>
-            </button>
+            <div className="grid grid-cols-3 gap-1.5">
+              {lensDefs.map(lens => {
+                const active = activeLens === lens.id;
+                return (
+                  <button
+                    key={lens.id}
+                    title={lens.desc}
+                    onClick={() => setActiveLens(lens.id)}
+                    className={`
+                      flex flex-col items-center justify-center p-2 rounded-md border text-xs
+                      transition-colors
+                      ${active
+                        ? 'bg-amber-600/30 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
+                        : 'bg-slate-800/30 hover:bg-slate-700/40 border-slate-700/40 text-slate-300'}
+                    `}
+                  >
+                    <span className="text-lg mb-0.5">{lens.icon}</span>
+                    <span className="font-medium text-[10px]">{lens.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Minerals */}
-          <CollapsibleSection title="Mineral Deposits" count={mineralDeposits.size}>
-            <ul className="space-y-1">
-              {Array.from(mineralDeposits.entries()).map(([name, count]) => (
-                <li key={name} className="flex items-center justify-between p-2 rounded-md">
-                  <span className="text-sm text-slate-200">{name}</span>
-                  <span className="text-xs font-mono bg-slate-700/50 text-slate-300 px-1.5 py-0.5 rounded-md">{count} tiles</span>
-                </li>
+          {/* Terrain Composition */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">TERRAIN COMPOSITION</span>
+              <span className="text-[10px] text-slate-500">{biomeStats.distribution.length}</span>
+            </div>
+            <div className="space-y-1">
+              {biomeStats.distribution.map(({ biome, percent }) => (
+                <div key={biome} className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-300 flex-1 truncate">
+                    {biome.replace(/_/g, ' ').toLowerCase()}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-20 h-1 bg-slate-800/50 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 w-8 text-right">{percent}%</span>
+                  </div>
+                </div>
               ))}
-            </ul>
-          </CollapsibleSection>
+            </div>
+          </div>
 
-          {/* POIs */}
-          <CollapsibleSection title="Points of Interest" count={pointsOfInterest.length}>
-            <ul className="space-y-1">
-              {pointsOfInterest.map(poi => (
-                <AnalysisListItem
-                  key={poi.id}
-                  icon={STRUCTURE_BLUEPRINTS[poi.structureType]?.icon || '📍'}
-                  name={poi.name}
-                  subtext={`(${poi.structureType.replace(/_/g, ' ')})`}
-                  onClick={() => handlePoiClick(poi)}
-                />
-              ))}
-            </ul>
-          </CollapsibleSection>
+          {/* Resources & Minerals - Enhanced */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">RESOURCE DEPOSITS</span>
+              <span className="text-[10px] text-slate-500">{mineralDeposits.size}</span>
+            </div>
+            {mineralDeposits.size > 0 ? (
+              <div className="space-y-2">
+                {Array.from(mineralDeposits.entries()).map(([name, count]) => {
+                  const icon = name.toLowerCase().includes('gold') ? '🟡' :
+                              name.toLowerCase().includes('silver') ? '⚪' :
+                              name.toLowerCase().includes('copper') ? '🟠' :
+                              name.toLowerCase().includes('iron') ? '⚫' : '💎';
+                  return (
+                    <div key={name} className="flex items-center justify-between p-1.5 bg-slate-800/20 rounded">
+                      <span className="flex items-center gap-2">
+                        <span className="text-sm">{icon}</span>
+                        <span className="text-[11px] text-slate-200 font-medium">{name}</span>
+                      </span>
+                      <span className="text-[10px] bg-slate-700/50 text-slate-300 px-1.5 py-0.5 rounded">
+                        {count} {count === 1 ? 'tile' : 'tiles'}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="pt-2 border-t border-slate-700/30">
+                  <div className="text-[10px] text-slate-500">
+                    Total resource tiles: {Array.from(mineralDeposits.values()).reduce((a, b) => a + b, 0)}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-500">No deposits found</p>
+            )}
+          </div>
+
+          {/* Points of Interest - Grouped */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">LANDMARKS</span>
+              <span className="text-[10px] text-slate-500">{pointsOfInterest.length}</span>
+            </div>
+            {Object.entries(groupedPOIs).map(([type, pois]) => (
+              <div key={type} className="mb-3">
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+                  {type.replace(/_/g, ' ')}
+                </div>
+                <div className="space-y-1">
+                  {pois.map(poi => (
+                    <button
+                      key={poi.id}
+                      onClick={() => handlePoiClick(poi)}
+                      className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-slate-700/30 text-left transition-colors"
+                    >
+                      <span className="text-base">{STRUCTURE_BLUEPRINTS[poi.structureType]?.icon || '📍'}</span>
+                      <span className="text-[11px] text-slate-200 truncate">{poi.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {pointsOfInterest.length === 0 && (
+              <p className="text-[10px] text-slate-500">No landmarks found</p>
+            )}
+          </div>
+
+          {/* Terrain Analysis Button */}
+          <button
+            onClick={() => setIsMapDetailsModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/40 text-emerald-200 rounded-lg text-sm font-medium transition-colors"
+          >
+            <BarChart className="w-4 h-4" />
+            <span>Full Terrain Analysis</span>
+          </button>
         </div>
       );
     }
@@ -487,16 +674,40 @@ const LeftSidebar: React.FC<{
       const finalDesc = `${sentence1} ${sentence2}`;
       const dominantPower = factionData?.dominantPower || "Local Tribes";
 
+      // Get faction icon for dominant power
+      const factionIconData = FACTION_ICONS[dominantPower];
+      const FactionIcon = factionIconData?.icon || Crown;
+
+      // Get rising and contested powers
+      const risingPowers = factionData?.allegianceGroups?.filter(group => group.type === 'rising') || [];
+      const contestedPowers = factionData?.allegianceGroups?.filter(group => group.type === 'contested') || [];
+      const rebelliousPowers = factionData?.allegianceGroups?.filter(group => group.type === 'rebel') || [];
+      const secondaryPowers = [...risingPowers, ...contestedPowers, ...rebelliousPowers];
+
+      // Get local languages based on cultural zone and time period
+      const localLanguages = languageVisualizationService.getLanguagesByYear(gameDate.year)
+        .filter(lang => lang.regions?.some(region =>
+          currentRegion.toLowerCase().includes(region.toLowerCase()) ||
+          region.toLowerCase().includes(currentRegion.toLowerCase())
+        ) || (playerCharacter?.culturalZone && lang.family?.toLowerCase().includes(playerCharacter.culturalZone.toLowerCase())))
+        .slice(0, 4); // Limit to 4 most relevant
+
+      // Count map features for summary
+      const ruinCount = pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('ruin')).length;
+      const fortressCount = pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('fortress')).length;
+      const millCount = pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('mill')).length;
+      const mineralCount = Array.from(mineralDeposits.values()).reduce((a, b) => a + b, 0);
+      const peopleCount = npcs?.length || 0;
+
       return (
         <div className="flex flex-col h-full">
           <div className="space-y-5 text-sm text-gray-300 flex-1">
             <div>
-              <h4 className="font-semibold text-amber-300 mb-2 border-b border-gray-600/50 pb-2 flex items-center gap-2">
-                <Crown className="w-5 h-5" />
+              <h4 className="font-semibold text-amber-300 mb-2 border-b border-gray-600/50 pb-2">
                 Dominant Power
               </h4>
               <div
-                className="cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors"
+                className="cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2"
                 onClick={() => onShowFactionsModal?.(factionData)}
                 onMouseEnter={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -504,22 +715,44 @@ const LeftSidebar: React.FC<{
                 }}
                 onMouseLeave={() => onHideFactionTooltip?.()}
               >
-                <p className="text-lg font-bold text-amber-400">{dominantPower}</p>
+                <div className="flex items-center gap-2">
+                  <FactionIcon className="w-4 h-4" style={{ color: factionIconData?.color || '#FCD34D' }} />
+                  <p className="text-base font-semibold text-amber-400">{dominantPower}</p>
+                </div>
               </div>
               {factionData?.dominantPowerDescription && (
-                <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-amber-200/80 leading-relaxed text-xs">
+                <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-gray-300 leading-relaxed text-sm mt-2">
                   {factionData.dominantPowerDescription}
                 </blockquote>
               )}
 
+              {/* Rising/Contested Powers */}
+              {secondaryPowers.length > 0 && (
+                <div className="mt-3">
+                  <h5 className="text-[11px] text-slate-400 uppercase tracking-wider font-medium mb-2">Other Powers</h5>
+                  <div className="space-y-1">
+                    {secondaryPowers.map((power, idx) => {
+                      const powerIconData = FACTION_ICONS[power.name];
+                      const PowerIcon = powerIconData?.icon || Crown;
+                      return (
+                        <div key={idx} className="flex items-center gap-2 text-xs">
+                          <PowerIcon className="w-3 h-3" style={{ color: powerIconData?.color || '#94A3B8' }} />
+                          <span className="text-slate-300">{power.name}</span>
+                          <span className="text-slate-500">({power.type})</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {majorCity && (
                 <>
-                  <h4 className="font-semibold text-cyan-300 mb-3 mt-4 border-b border-gray-600/50 pb-2 flex items-center gap-2">
-                    <Building className="w-5 h-5" />
+                  <h4 className="font-semibold text-cyan-300 mb-3 mt-4 border-b border-gray-600/50 pb-2">
                     Major City
                   </h4>
                   <div
-                    className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4 cursor-pointer transition-all duration-200 hover:bg-cyan-800/30 hover:border-cyan-600/40 hover:shadow-lg hover:shadow-cyan-900/20"
+                    className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4 cursor-pointer hover:bg-cyan-800/30 hover:border-cyan-600/40"
                     onClick={() => {
                       setSelectedCity(majorCity);
                       setShowCityModal(true);
@@ -527,16 +760,134 @@ const LeftSidebar: React.FC<{
                     title="Click to explore historical details"
                   >
                     <p className="text-lg font-bold text-cyan-400 mb-1">{majorCity.name}</p>
-                    <p className="text-xs italic text-gray-400">{majorCity.description}</p>
-                    <p className="text-xs text-cyan-300/60 mt-1 font-medium">Click for historical view →</p>
+                    <p className="text-xs text-gray-300 mb-2">{majorCity.description}</p>
+
+                    {/* City Details */}
+                    <div className="space-y-1 text-xs text-gray-400">
+                      {majorCity.foundingYear && (
+                        <div>Founded: {majorCity.foundingYear < 0 ? `${Math.abs(majorCity.foundingYear)} BCE` : `${majorCity.foundingYear} CE`}</div>
+                      )}
+                      {majorCity.populationPeak && (
+                        <div>Peak Population: {majorCity.populationPeak.toLocaleString()}</div>
+                      )}
+                      {majorCity.urbanDensity && (
+                        <div>Urban Density: {majorCity.urbanDensity}</div>
+                      )}
+                      {majorCity.economicFocus && majorCity.economicFocus.length > 0 && (
+                        <div>Economic Focus: {majorCity.economicFocus.join(', ')}</div>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-cyan-300/60 mt-2 font-medium">Click for historical view →</p>
                   </div>
                 </>
               )}
 
-              <h4 className="font-semibold text-blue-300 mb-3 mt-4 border-b border-gray-600/50 pb-2">Description</h4>
-              <p className="italic text-gray-300 leading-relaxed bg-slate-800/30 p-3 rounded-lg border border-slate-700/30">
+              {/* Local Languages */}
+              {localLanguages.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-semibold text-emerald-300 mb-2 border-b border-gray-600/50 pb-2 flex items-center gap-2">
+                    
+                    Local Languages
+                  </h4>
+                  <div className="space-y-1">
+                    {localLanguages.map((lang, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedLanguageId(lang.id);
+                          setShowLanguageTree(true);
+                        }}
+                        className="block w-full text-left text-xs text-emerald-200 hover:text-emerald-100 hover:bg-emerald-900/20 rounded px-2 py-1 transition-colors"
+                      >
+                        <span className="font-medium">{lang.name}</span>
+                        {lang.nativeName && lang.nativeName !== lang.name && (
+                          <span className="text-emerald-300/60 ml-1">({lang.nativeName})</span>
+                        )}
+                        <div className="text-[10px] text-emerald-400/50">{lang.family}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <h4 className="text-[11px] text-slate-400 uppercase tracking-wider font-medium mb-2 mt-4">Description</h4>
+              <p className="text-xs text-slate-300 leading-relaxed">
                 {finalDesc}
               </p>
+
+              {/* Summary Counts */}
+              <div className="mt-4 pt-3">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
+                  {ruinCount > 0 && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setActiveMajorTab('map');
+                          setActiveMapSubTab('analysis');
+                        }}
+                        className="hover:text-slate-300 hover:underline transition-colors"
+                      >
+                        {ruinCount} ruin{ruinCount !== 1 ? 's' : ''}
+                      </button>
+                      <span className="text-amber-500/50">|</span>
+                    </>
+                  )}
+                  {millCount > 0 && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setActiveMajorTab('map');
+                          setActiveMapSubTab('analysis');
+                        }}
+                        className="hover:text-slate-300 hover:underline transition-colors"
+                      >
+                        {millCount} mill{millCount !== 1 ? 's' : ''}
+                      </button>
+                      <span className="text-cyan-500/50">|</span>
+                    </>
+                  )}
+                  {fortressCount > 0 && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setActiveMajorTab('map');
+                          setActiveMapSubTab('analysis');
+                        }}
+                        className="hover:text-slate-300 hover:underline transition-colors"
+                      >
+                        {fortressCount} fortress{fortressCount !== 1 ? 'es' : ''}
+                      </button>
+                      <span className="text-red-500/50">|</span>
+                    </>
+                  )}
+                  {mineralCount > 0 && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setActiveMajorTab('map');
+                          setActiveMapSubTab('analysis');
+                        }}
+                        className="hover:text-slate-300 hover:underline transition-colors"
+                      >
+                        {mineralCount} mineral deposit{mineralCount !== 1 ? 's' : ''}
+                      </button>
+                      <span className="text-purple-500/50">|</span>
+                    </>
+                  )}
+                  {peopleCount > 0 && (
+                    <button
+                      onClick={() => {
+                        setActiveMajorTab('map');
+                        setActiveMapSubTab('npcs');
+                      }}
+                      className="hover:text-slate-300 hover:underline transition-colors"
+                    >
+                      {peopleCount} people
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -544,16 +895,16 @@ const LeftSidebar: React.FC<{
           {sourceCount > 0 && (
             <button
               onClick={() => setActiveMajorTab('history')}
-              className="mt-4 w-full bg-gradient-to-r from-amber-600/20 to-amber-500/20 hover:from-amber-600/30 hover:to-amber-500/30 border border-amber-500/50 rounded-lg p-3 flex items-center justify-between group transition-all duration-200"
+              className="mt-4 w-full bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/40 rounded-lg p-2.5 flex items-center justify-between group transition-colors"
             >
               <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-medium text-amber-300">
+                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-xs font-medium text-amber-300">
                   {sourceCount} historical source{sourceCount !== 1 ? 's' : ''} available
                 </span>
               </div>
-              <span className="text-xs text-amber-400/80 group-hover:text-amber-300 transition-colors">
-                Click to view →
+              <span className="text-[10px] text-amber-400/70 group-hover:text-amber-300 transition-colors">
+                View →
               </span>
             </button>
           )}
@@ -566,7 +917,7 @@ const LeftSidebar: React.FC<{
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
           <h4 className="text-sm font-semibold text-blue-300 flex justify-between items-center shrink-0">
             <span>Observed Wildlife</span>
-            <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-sm">
+            <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
               {animals?.length || 0}
             </span>
           </h4>
@@ -605,7 +956,7 @@ const LeftSidebar: React.FC<{
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
           <h4 className="text-sm font-semibold text-blue-300 flex justify-between items-center shrink-0">
             <span>Nearby People</span>
-            <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-sm">
+            <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
               {list.length}
             </span>
           </h4>
@@ -653,93 +1004,92 @@ const LeftSidebar: React.FC<{
 
   const renderMapTabContent = () => (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-      <div className="flex bg-slate-800/60 rounded-t-lg border-x border-t border-slate-700/50 shrink-0 shadow-sm">
+      <div className="flex bg-slate-800/60 rounded-t-lg border-x border-t border-slate-700/50 shrink-0">
         {mapSubTabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveMapSubTab(tab.id)}
-            className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2
+            className={`flex-1 py-3 px-2 text-center text-sm font-semibold border-b-2
             ${activeMapSubTab === tab.id ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}
           >
             {tab.label}
           </button>
         ))}
       </div>
-      <div className="flex-1 p-3 bg-slate-900/40 rounded-b-lg border-x border-b border-slate-700/50 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0 shadow-inner">
+      <div className="flex-1 p-3 bg-slate-900/40 rounded-b-lg border-x border-b border-slate-700/50 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
         {getSubTabContent(activeMapSubTab)}
       </div>
     </div>
   );
 
-  const majorTabs: { id: MajorTab, label: string, color: string, glow: string }[] = [
-    { id: 'history', label: 'History', color: 'bg-amber-600', glow: 'shadow-glow-amber' },
-    { id: 'map', label: 'Map', color: 'bg-blue-600', glow: 'shadow-glow-blue' },
-    { id: 'gamelog', label: 'Gamelog', color: 'bg-purple-600', glow: 'shadow-glow-purple' },
+  const majorTabs: { id: MajorTab, label: string, color: string }[] = [
+    { id: 'history', label: 'History', color: 'bg-amber-600' },
+    { id: 'map', label: 'Map', color: 'bg-blue-600' },
+    { id: 'gamelog', label: 'Gamelog', color: 'bg-purple-600' },
   ];
 
   return (
     <>
       <div
-        className={getSafariOptimizedClassName(`relative flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-left-light dark:shadow-sidebar-left backdrop-blur-xl border-r border-slate-300/80 dark:border-slate-700/80 flex flex-col text-slate-700 dark:text-slate-200 transition-all duration-300 h-full`)}
-        style={{ width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px' }}
+        className={sidebarClassName}
+        style={{
+          width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px',
+          opacity: isProcessingWorldWeaver ? 0 : 1,
+          transition: 'opacity 2s ease-out',
+          transitionDelay: isProcessingWorldWeaver ? '2s' : '0s'
+        }}
     >
       {/* Resize handle */}
       {isLeftSidebarExpanded && (
         <div
           onMouseDown={handleResizeStart}
-          className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-400/30 transition-colors z-10"
+          className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-400/30 z-10"
           style={{ width: '4px' }}
         />
       )}
 
-      <div className={`p-3 flex flex-col flex-1 overflow-hidden transition-opacity duration-200 ${isLeftSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`p-3 flex flex-col flex-1 overflow-hidden transition-opacity ${isLeftSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
         <div className="shrink-0">
           {/* Header card */}
-          <div className="p-4 rounded-xl bg-slate-800/70 mb-4 shadow-lg border border-slate-700/50 relative">
-            <button onClick={() => setIsLeftSidebarExpanded(false)} className="absolute top-2 right-2 text-slate-400 hover:text-white text-lg leading-none">&lt;&lt;</button>
-            <div className="grid grid-cols-2 gap-x-2 gap-y-3">
+          <div className="p-4 rounded-xl bg-slate-800/70 mb-4 border border-slate-700/50 relative">
+            <button onClick={() => setIsLeftSidebarExpanded(false)} className="absolute top-2 right-2 text-slate-400 hover:text-white text-lg leading-none" aria-label="Collapse sidebar">&lt;&lt;</button>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-4 items-baseline">
               <div>
-                <p className="text-xs text-slate-400">Date:</p>
-                <p className="text-lg text-amber-300 font-bold">{formattedFullDate}</p>
-                <p className="text-sm text-slate-300">({season})</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Date</p>
+                <p className="text-sm text-amber-300 font-semibold">{formattedFullDate}</p>
+                <p className="text-xs text-slate-300">({season})</p>
               </div>
-              <div 
-                className="cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1 transition-colors"
+              <div
+                className="cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1"
                 onClick={onToggleMapVisibility}
                 title="Click to toggle map visibility"
               >
-                <p className="text-xs text-slate-400">Time:</p>
-                <p className="text-lg text-amber-300 font-bold">{formattedTime}</p>
-                <p className="text-sm text-slate-300">({currentTimeOfDay.toLowerCase()})</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Time</p>
+                <p className="text-sm text-amber-300 font-semibold">{formattedTime}</p>
+                <p className="text-xs text-slate-300">({currentTimeOfDay.toLowerCase()})</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Zone:</p>
-                <p className="text-base text-white font-semibold">{currentZone}</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Zone</p>
+                <p className="text-sm text-white font-semibold">{currentZone}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Climate:</p>
-                <p className="text-base text-blue-300 font-semibold">{formatEnumString(currentMapClimate)}</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Climate</p>
+                <p className="text-sm text-blue-300 font-semibold">{formatEnumString(currentMapClimate)}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Region:</p>
-                <p className="text-base font-bold text-green-400">{currentRegion}</p>
-              </div>
-              <div className="text-amber-200/80 leading-relaxed text-xs">
-                {/* quick society summary (kept from your original logic if computed elsewhere) */}
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Region</p>
+                <p className="text-sm font-semibold text-green-400">{currentRegion}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Map Area:</p>
-                <p className="text-base font-bold text-green-400">{localArea}</p>
-              </div>
-              <div className="text-amber-200/80 leading-relaxed text-xs">
-                {/* primary resource description placeholder */}
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Map Area</p>
+                <p className="text-sm font-semibold text-green-400">{localArea}</p>
               </div>
             </div>
           </div>
 
           {/* Major tabs */}
-          <div className="flex mb-2 bg-slate-800/60 rounded-lg p-1 border border-slate-700/50 shadow-sm">
+          <div className="flex mb-2 bg-slate-800/60 rounded-lg p-1 border border-slate-700/50 gap-1">
             {majorTabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveMajorTab(tab.id)}
-                className={`flex-1 py-2.5 px-2 text-center text-sm font-semibold rounded-md transition-all duration-200 ${activeMajorTab === tab.id ? `${tab.color} text-white shadow-lg ${tab.glow} transform scale-105` : 'text-slate-300 hover:bg-slate-700/60 hover:text-white hover:shadow-sm'}`} >
+                className={`flex-1 py-2.5 px-2 text-center text-sm font-semibold rounded-md transition-colors ${activeMajorTab === tab.id ? `${tab.color} text-white ring-2 ring-white/20` : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`} >
                 {tab.label}
               </button>
             ))}
@@ -750,7 +1100,7 @@ const LeftSidebar: React.FC<{
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {activeMajorTab === 'map' && renderMapTabContent()}
           {activeMajorTab === 'history' && (
-            <div className="flex-1 overflow-hidden bg-slate-900/40 rounded-lg border border-slate-700/50 shadow-inner">
+            <div className="flex-1 overflow-hidden bg-slate-900/40 rounded-lg border border-slate-700/50">
               <HistoryPanel
                 gameDate={gameDate}
                 currentZone={currentZone}
@@ -763,7 +1113,7 @@ const LeftSidebar: React.FC<{
             </div>
           )}
           {activeMajorTab === 'gamelog' && (
-            <div className="flex-1 overflow-hidden bg-slate-900/40 rounded-lg border border-slate-700/50 shadow-inner">
+            <div className="flex-1 overflow-hidden bg-slate-900/40 rounded-lg border border-slate-700/50">
               <GamelogPanel entries={gameLog} />
             </div>
           )}
@@ -779,6 +1129,19 @@ const LeftSidebar: React.FC<{
           cityName={selectedCity.name}
           cityDescription={selectedCity.description}
           nearbyNpcs={npcs}
+        />
+      )}
+
+      {/* Language Family Tree Modal */}
+      {showLanguageTree && selectedLanguageId && (
+        <LanguageFamilyTree
+          isOpen={showLanguageTree}
+          onClose={() => {
+            setShowLanguageTree(false);
+            setSelectedLanguageId(null);
+          }}
+          initialLanguageId={selectedLanguageId}
+          currentYear={gameDate.year}
         />
       )}
     </>

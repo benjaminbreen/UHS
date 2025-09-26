@@ -608,7 +608,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
       season: mapData?.season || 'spring' as const,
       timeOfDay: mapData?.timeOfDay || 'day' as const,
       width: 1000,
-      height: 130,
+      height: 340,
       seed: mapData?.seed || 12345,
       adjacentBiomes: mapData?.adjacentBiomes || ['grassland' as const],
       isRuined: false
@@ -640,7 +640,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
   // Position styles for bottom-center toast with slide-up animation
   const getPositionStyles = () => {
     const baseTransform = isAnimating ? 'translate-y-full' : 'translate-y-0';
-    return `bottom-6 left-1/2 -translate-x-1/2 ${baseTransform}`;
+    return `bottom-2 left-1/2 -translate-x-1/2 ${baseTransform}`;
   };
 
   if (!poiToastData) {
@@ -669,10 +669,10 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
           
           {/* POI Banner - Only on desktop */}
           {!isMobile && (
-            <div className="relative h-[200px] overflow-hidden rounded-t-2xl">
+            <div className="relative h-[240px] overflow-hidden rounded-t-2xl">
               {/* SVG Banner Component - Offset to show quarry structure, not sky */}
               <div className="absolute inset-0">
-                <div className="w-full h-full relative" style={{ top: '-60px' }}>
+                <div className="w-full h-full relative" style={{ top: '-10px' }}>
                   {renderBanner(structure)}
                 </div>
               </div>

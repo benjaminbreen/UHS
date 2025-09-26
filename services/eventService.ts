@@ -613,17 +613,58 @@ export class EventService {
         input,
         output
       });
-      
+
       // Keep only last 10 entries
       if (this.llmHistory.length > 10) {
         this.llmHistory = this.llmHistory.slice(0, 10);
       }
-      
-      // Save to localStorage
-      localStorage.setItem('llmHistory', JSON.stringify(this.llmHistory));
+
+      // Save to localStorage with error handling
+      try {
+        const historyString = JSON.stringify(this.llmHistory);
+
+        // If the history is too large (>1MB), reduce it further
+        if (historyString.length > 1024 * 1024) {
+          // Keep only last 5 entries if we're over 1MB
+          this.llmHistory = this.llmHistory.slice(0, 5);
+        }
+
+        localStorage.setItem('llmHistory', JSON.stringify(this.llmHistory));
+      } catch (e) {
+        // If quota exceeded, clear the history and try again
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          console.warn('[EventService] Clearing LLM history due to quota exceeded');
+          this.llmHistory = [];
+
+          // Also try to clear other large items to free up space
+          try {
+            // Keep only essential data
+            const essentialKeys = ['savedGames', 'userPreferences', 'gameSettings'];
+            const allKeys = Object.keys(localStorage);
+
+            for (const key of allKeys) {
+              if (!essentialKeys.includes(key) && key.startsWith('llm')) {
+                localStorage.removeItem(key);
+              }
+            }
+
+            // Try one more time with empty history
+            localStorage.setItem('llmHistory', '[]');
+          } catch (retryError) {
+            console.error('[EventService] Failed to save even empty history:', retryError);
+          }
+        }
+      }
     }
-    
-    localStorage.setItem('eventApiUsage', JSON.stringify(this.apiUsageStats));
+
+    // Also wrap the API usage save in try-catch
+    try {
+      localStorage.setItem('eventApiUsage', JSON.stringify(this.apiUsageStats));
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+        console.warn('[EventService] Could not save API usage stats due to quota');
+      }
+    }
   }
 
   /**

@@ -78,14 +78,28 @@ export function generateAltitudeAndInitialBiomes(
                 tile.altitude = Math.min(1.0, tile.altitude * (1 + (0.4 * Math.max(0, 1 - distToCenter_alt * 2.5))));
             }
         } else if (archetype === MapArchetype.PENINSULA && determinedHarborSide !== undefined) {
-            let landExtent = 0;
-            const peninsulaAxis = determinedHarborSide % 2;
-            if (peninsulaAxis === 0) {
-                landExtent = (determinedHarborSide === 0) ? (x / MAP_WIDTH_TILES) : ((MAP_WIDTH_TILES - x) / MAP_WIDTH_TILES);
+            // Peninsula altitude: higher along the spine, lower at edges
+            let distanceFromBase = 0;
+            let distanceFromCenterLine = 0;
+
+            if (determinedHarborSide === 0 || determinedHarborSide === 1) {
+                // West or East base - peninsula extends horizontally
+                const isWestBase = determinedHarborSide === 0;
+                distanceFromBase = isWestBase ? (x / MAP_WIDTH_TILES) : ((MAP_WIDTH_TILES - 1 - x) / MAP_WIDTH_TILES);
+                distanceFromCenterLine = Math.abs(y / MAP_HEIGHT_TILES - 0.5) * 2;
             } else {
-                landExtent = (determinedHarborSide === 2) ? (y / MAP_HEIGHT_TILES) : ((MAP_HEIGHT_TILES - y) / MAP_HEIGHT_TILES);
+                // North or South base - peninsula extends vertically
+                const isNorthBase = determinedHarborSide === 2;
+                distanceFromBase = isNorthBase ? (y / MAP_HEIGHT_TILES) : ((MAP_HEIGHT_TILES - 1 - y) / MAP_HEIGHT_TILES);
+                distanceFromCenterLine = Math.abs(x / MAP_WIDTH_TILES - 0.5) * 2;
             }
-            tile.altitude = altNoiseVal * (0.2 + landExtent * 0.8);
+
+            // Create a ridge along the peninsula spine
+            const spineBonus = Math.max(0, 1 - distanceFromCenterLine * 2) * 0.3;
+            // Altitude decreases toward the tip
+            const baseFactor = Math.max(0.3, 1 - distanceFromBase * 0.7);
+
+            tile.altitude = altNoiseVal * baseFactor * (0.5 + spineBonus);
 
         } else if (archetype === MapArchetype.ALL_LAND) {
             if (determinedHarborSide !== undefined) {
@@ -609,10 +623,14 @@ export function applyClimateBiomeChanges(
         if (tile.biome === BiomeType.GRASSLAND && biomeVar < 0.6) {
           tile.biome = BiomeType.STEPPE;
         }
-        // Add alpine meadows below snow line - expanded range for more visibility
-        // In cold climates, alpine meadows appear at mid to high altitudes (0.45 to 0.75)
-        if (tile.altitude > 0.45 && tile.altitude < 0.75 && (tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.STEPPE || tile.biome === BiomeType.HILLS)) {
-          tile.biome = BiomeType.ALPINE_MEADOW;
+        // Add alpine meadows below snow line - more selective placement
+        // In cold climates, alpine meadows appear at high altitudes with noise-based probability
+        if (tile.altitude > 0.58 && tile.altitude < 0.74 && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.HILLS || tile.biome === BiomeType.SCRUB)) {
+          // Use noise for scattered placement (~40% chance)
+          const meadowNoise = biomeVariationNoise.noise(x * 0.05, y * 0.05);
+          if (meadowNoise > 0.3) {
+            tile.biome = BiomeType.ALPINE_MEADOW;
+          }
         }
         // Snow starts higher in cold climates to allow more alpine meadows
         if (tile.altitude >= 0.75 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
@@ -624,15 +642,23 @@ export function applyClimateBiomeChanges(
             tile.biome = BiomeType.PRAIRIE;
           }
         }
-        // Add alpine meadows at high altitudes - expanded range
-        if (tile.altitude > 0.55 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.HILLS || tile.biome === BiomeType.FOREST)) {
-          tile.biome = BiomeType.ALPINE_MEADOW;
+        // Add alpine meadows at high altitudes - more selective placement
+        if (tile.altitude > 0.65 && tile.altitude < 0.78 && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.HILLS || tile.biome === BiomeType.SCRUB)) {
+          // Use noise for scattered placement (~35% chance in temperate)
+          const meadowNoise = biomeVariationNoise.noise(x * 0.04, y * 0.04);
+          if (meadowNoise > 0.35) {
+            tile.biome = BiomeType.ALPINE_MEADOW;
+          }
         }
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else if (climate === ClimateType.MEDITERRANEAN) {
-        // Add alpine meadows in Mediterranean high elevations
-        if (tile.altitude > 0.65 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE * 1.05 && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.HILLS || tile.biome === BiomeType.FOREST)) {
-          tile.biome = BiomeType.ALPINE_MEADOW;
+        // Add alpine meadows in Mediterranean high elevations - selective placement
+        if (tile.altitude > 0.70 && tile.altitude < 0.82 && (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.HILLS)) {
+          // Mediterranean has fewer alpine meadows (~30% chance)
+          const meadowNoise = biomeVariationNoise.noise(x * 0.06, y * 0.06);
+          if (meadowNoise > 0.45) {
+            tile.biome = BiomeType.ALPINE_MEADOW;
+          }
         }
         // Mediterranean has snow only on the highest peaks
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE * 1.1 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
@@ -646,8 +672,12 @@ export function applyClimateBiomeChanges(
       const currentBiomeAfterSnowCheck: BiomeType = tile.biome;
       if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
         // Add alpine meadows in semitropical high elevations (not tropical - too hot)
-        if (climate === ClimateType.SEMITROPICAL && tile.altitude > 0.6 && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE && (currentBiomeAfterSnowCheck === BiomeType.GRASSLAND || currentBiomeAfterSnowCheck === BiomeType.SCRUB || currentBiomeAfterSnowCheck === BiomeType.HILLS || currentBiomeAfterSnowCheck === BiomeType.FOREST)) {
-          tile.biome = BiomeType.ALPINE_MEADOW;
+        if (climate === ClimateType.SEMITROPICAL && tile.altitude > 0.68 && tile.altitude < 0.78 && (currentBiomeAfterSnowCheck === BiomeType.GRASSLAND || currentBiomeAfterSnowCheck === BiomeType.HILLS)) {
+          // Semitropical has very few alpine meadows (~25% chance)
+          const meadowNoise = biomeVariationNoise.noise(x * 0.07, y * 0.07);
+          if (meadowNoise > 0.5) {
+            tile.biome = BiomeType.ALPINE_MEADOW;
+          }
         }
         // Add SAVANNA for tropical grasslands
         if (currentBiomeAfterSnowCheck === BiomeType.GRASSLAND && tile.altitude < ALTITUDE_LEVELS.HILLS_MAX) {
@@ -675,14 +705,44 @@ export function applyClimateBiomeChanges(
         if (tile.biome === BiomeType.GRASSLAND && biomeVar < 0.5) {
             tile.biome = BiomeType.SAVANNA;
         }
-        // Add badlands at moderate elevations for terrain variety
-        if (tile.altitude > 0.3 && tile.altitude < 0.6 && (tile.biome === BiomeType.DESERT || tile.biome === BiomeType.SCRUB)) {
-            if (biomeVar < 0.3) {
+        // Add badlands - eroded terrain at transitions between desert and higher elevations
+        // Badlands form in clusters using larger-scale noise for realistic banding patterns
+        if (tile.altitude > 0.25 && tile.altitude < 0.65) {
+            // Use larger-scale noise for clustered badlands formations
+            const badlandsNoise = biomeVariationNoise.noise(x * 0.02, y * 0.02);
+            const erosionNoise = biomeVariationNoise.noise(x * 0.08, y * 0.08);
+
+            // Higher chance near hills/mountain transitions (altitude 0.35-0.55)
+            let badlandsChance = 0;
+            if (tile.altitude > 0.35 && tile.altitude < 0.55) {
+                badlandsChance = 0.45; // Peak chance in mid-elevations
+            } else {
+                badlandsChance = 0.35; // Lower chance at extremes
+            }
+
+            // Convert appropriate biomes to badlands based on clustered noise
+            if ((tile.biome === BiomeType.DESERT || tile.biome === BiomeType.SCRUB ||
+                 tile.biome === BiomeType.STEPPE || tile.biome === BiomeType.SAVANNA) &&
+                badlandsNoise > (1 - badlandsChance) && erosionNoise > -0.2) {
                 tile.biome = BiomeType.BADLANDS;
             }
         }
         if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) {
             tile.biome = BiomeType.SCRUB;
+        }
+
+        // Add oases - rare water sources in deserts
+        if (tile.biome === BiomeType.DESERT && tile.altitude < 0.4) {
+            // Use large-scale noise for very rare, clustered oases
+            const oasisNoise = biomeVariationNoise.noise(x * 0.015, y * 0.015);
+            const groundwaterNoise = biomeVariationNoise.noise(x * 0.08, y * 0.08);
+
+            // Very rare occurrence (~0.5% of desert tiles)
+            if (oasisNoise > 0.85 && groundwaterNoise > 0.3) {
+                tile.biome = BiomeType.OASIS;
+                // Oases are slightly depressed areas where water collects
+                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.05, tile.altitude * 0.85);
+            }
         }
         if (!nonDesertBiomes.has(currentBiomeAfterJungleCheck)) {
             let desertificationFactor = 0.7;
@@ -791,13 +851,115 @@ export function generateRiverbanks(tiles: Tile[][], featurePlacementNoise: Value
           const tile = tiles[checkY][checkX];
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          const eligibleBiomes = [BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.STEPPE, BiomeType.TUNDRA];
+          const eligibleBiomes = [BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.STEPPE, BiomeType.TUNDRA, BiomeType.DESERT, BiomeType.SAVANNA];
           if (tile.isLand && eligibleBiomes.includes(tile.biome) && distance <= RIVERBANK_GENERATION_RADIUS && tile.biome !== BiomeType.ESTUARY && tile.biome !== BiomeType.FRESHWATER_LAKE && tile.biome !== BiomeType.CLIFF) {
             const probability = 1 - (distance / RIVERBANK_GENERATION_RADIUS);
-            if (featurePlacementNoise.random() < probability * 0.9) {
+
+            // Rivers create river valleys - lower altitude near rivers
+            if (distance <= 2) {
+              tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude * (0.85 - distance * 0.05));
+            }
+
+            // Rivers make surrounding land more fertile
+            if (distance === 1) {
+              // Immediate riverbank - very high chance
+              if (featurePlacementNoise.random() < 0.95) {
+                tile.biome = BiomeType.RIVERBANK;
+              }
+            } else if (distance <= 2 && tile.biome === BiomeType.DESERT) {
+              // Desert near rivers becomes scrub/grassland (river valley effect)
+              if (featurePlacementNoise.random() < 0.7) {
+                tile.biome = BiomeType.SCRUB;
+              }
+            } else if (featurePlacementNoise.random() < probability * 0.6) {
+              // Further tiles have lower chance
               tile.biome = BiomeType.RIVERBANK;
-              if (tile.altitude > ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX) {
-                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude * 0.9);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Add river deltas and floodplains where appropriate
+  for (const riverTile of riverTiles) {
+    const x = riverTile.x;
+    const y = riverTile.y;
+
+    // Check if this river tile is near ocean (potential delta)
+    let nearOcean = false;
+    let nearMajorRiver = false;
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+          const neighbor = tiles[ny][nx];
+          if (neighbor.biome === BiomeType.SHALLOW_OCEAN || neighbor.biome === BiomeType.DEEP_OCEAN) {
+            nearOcean = true;
+          }
+          if (neighbor.biome === BiomeType.MAJOR_RIVER) {
+            nearMajorRiver = true;
+          }
+        }
+      }
+    }
+
+    // Create river deltas where rivers meet ocean
+    if (nearOcean) {
+      const deltaRadius = nearMajorRiver ? 4 : 3;
+      for (let dy = -deltaRadius; dy <= deltaRadius; dy++) {
+        for (let dx = -deltaRadius; dx <= deltaRadius; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES && distance <= deltaRadius) {
+            const tile = tiles[ny][nx];
+            if (tile.isLand && !tile.isCoast && tile.biome !== BiomeType.RIVER && tile.biome !== BiomeType.MAJOR_RIVER) {
+              const deltaNoise = featurePlacementNoise.noise(nx * 0.08, ny * 0.08);
+
+              // Delta areas become wetlands/estuaries with very low altitude
+              if (distance <= 2 && deltaNoise > -0.3) {
+                tile.biome = BiomeType.ESTUARY;
+                tile.altitude = Math.max(ALTITUDE_LEVELS.SEA + 0.01, ALTITUDE_LEVELS.BEACH * 0.7);
+              } else if (distance <= deltaRadius && deltaNoise > 0.1) {
+                tile.biome = BiomeType.WETLANDS;
+                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH * 0.8, tile.altitude * 0.8);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Create floodplains in flat areas near major rivers
+    if (nearMajorRiver || tiles[y][x].biome === BiomeType.MAJOR_RIVER) {
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES && distance <= 3) {
+            const tile = tiles[ny][nx];
+
+            // Only create floodplains in flat areas (low altitude)
+            if (tile.isLand && tile.altitude < 0.25 && tile.biome !== BiomeType.RIVER &&
+                tile.biome !== BiomeType.MAJOR_RIVER && tile.biome !== BiomeType.ESTUARY) {
+
+              const floodplainNoise = featurePlacementNoise.noise(nx * 0.06, ny * 0.06);
+
+              // Flat areas near major rivers become wetlands/floodplains
+              if (distance <= 1.5 && floodplainNoise > -0.2 && tile.biome !== BiomeType.WETLANDS) {
+                if (featurePlacementNoise.random() < 0.5) {
+                  tile.biome = BiomeType.WETLANDS;
+                  tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.01, tile.altitude * 0.9);
+                }
+              } else if (distance <= 3 && floodplainNoise > 0.3 && tile.altitude < 0.2) {
+                // Occasional wetland patches further out in very flat areas
+                if (featurePlacementNoise.random() < 0.3) {
+                  tile.biome = BiomeType.WETLANDS;
+                  tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude * 0.95);
+                }
               }
             }
           }
@@ -894,17 +1056,47 @@ export function updateCoastlinesAndShallowOceans(
                 // Near river - use riverbank
                 tile.biome = BiomeType.RIVERBANK;
                 tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH, Math.min(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude));
-            } else if (tile.altitude > ALTITUDE_LEVELS.HILLS_START && featurePlacementNoise.random() < 0.3) {
-                // 30% chance to make coastal hills/mountains into cliffs
-                tile.biome = BiomeType.CLIFF;
-                // Keep altitude high for cliffs
             } else {
-                // Ocean coast - use beach
-                tile.biome = BiomeType.BEACH;
-                if (tile.altitude > ALTITUDE_LEVELS.BEACH + 0.02) {
-                    tile.altitude = ALTITUDE_LEVELS.BEACH + featurePlacementNoise.random() * 0.01;
-                } else if (tile.altitude < ALTITUDE_LEVELS.SEA) {
-                     tile.altitude = ALTITUDE_LEVELS.SEA + featurePlacementNoise.random() * 0.01;
+                // Ocean coasts - diverse coastal types based on altitude and local conditions
+                const coastalNoise = featurePlacementNoise.noise(x * 0.03, y * 0.03);
+
+                if (tile.altitude > 0.5) {
+                    // High altitude coasts become cliffs (like Big Sur, White Cliffs of Dover)
+                    tile.biome = BiomeType.CLIFF;
+                    // Keep altitude high for dramatic cliffs
+                } else if (tile.altitude > 0.35 && coastalNoise > -0.2) {
+                    // Mid-altitude coasts often become rocky cliffs
+                    tile.biome = BiomeType.CLIFF;
+                } else if (tile.altitude > 0.4 && coastalNoise > 0.3) {
+                    // High mountains meeting ocean become dramatic cliffs
+                    tile.biome = BiomeType.CLIFF;
+                    tile.altitude = Math.max(0.45, tile.altitude); // Keep cliffs dramatic
+                } else if (tile.altitude < 0.15 && coastalNoise < -0.3) {
+                    // Low-lying wet areas become coastal wetlands
+                    tile.biome = BiomeType.WETLANDS;
+                    tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH - 0.01, tile.altitude * 0.9);
+                } else if (tile.altitude < 0.12 && coastalNoise > 0.2 && featurePlacementNoise.random() < 0.15) {
+                    // Shallow waters occasionally have reefs
+                    tile.biome = BiomeType.REEF;
+                    tile.isLand = false; // Reefs are underwater
+                    tile.altitude = ALTITUDE_LEVELS.SEA - 0.01; // Just below sea level
+                } else if (tile.altitude > 0.25 && coastalNoise > 0) {
+                    // Rocky coasts at moderate elevations
+                    if (featurePlacementNoise.random() < 0.4) {
+                        tile.biome = BiomeType.CLIFF;
+                    } else {
+                        // Pebble/rocky beach
+                        tile.biome = BiomeType.BEACH;
+                        tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH, tile.altitude * 0.7);
+                    }
+                } else {
+                    // Default sandy beach for low-lying coasts
+                    tile.biome = BiomeType.BEACH;
+                    if (tile.altitude > ALTITUDE_LEVELS.BEACH + 0.02) {
+                        tile.altitude = ALTITUDE_LEVELS.BEACH + featurePlacementNoise.random() * 0.01;
+                    } else if (tile.altitude < ALTITUDE_LEVELS.SEA) {
+                        tile.altitude = ALTITUDE_LEVELS.SEA + featurePlacementNoise.random() * 0.01;
+                    }
                 }
             }
         }
@@ -1071,6 +1263,48 @@ export function generateVolcanicComplex(tiles: Tile[][], temperatureNoise: Value
 }
 
 export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateType, archetype: MapArchetype, temperatureNoise: ValueNoise, humidityNoise: ValueNoise, featurePlacementNoise: ValueNoise) {
+    // First pass: Apply rain shadow effect
+    // Mountains block moisture from the west (prevailing winds)
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+        for (let x = 1; x < MAP_WIDTH_TILES; x++) {
+            const tile = tiles[y][x];
+            if (!tile.isLand) continue;
+
+            // Check for mountain to the west (within 3 tiles)
+            let mountainShadow = false;
+            let maxMountainHeight = 0;
+            for (let dx = 1; dx <= 3; dx++) {
+                if (x - dx >= 0) {
+                    const westTile = tiles[y][x - dx];
+                    if (westTile.biome === BiomeType.MOUNTAIN || westTile.biome === BiomeType.HIGH_PEAK ||
+                        westTile.biome === BiomeType.SNOW || westTile.altitude > 0.7) {
+                        mountainShadow = true;
+                        maxMountainHeight = Math.max(maxMountainHeight, westTile.altitude);
+                        break;
+                    }
+                }
+            }
+
+            // Apply rain shadow - make eastern side of mountains drier
+            if (mountainShadow && tile.altitude < maxMountainHeight * 0.8) {
+                if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST) {
+                    if (featurePlacementNoise.random() < 0.6) {
+                        tile.biome = BiomeType.GRASSLAND;
+                    }
+                } else if (tile.biome === BiomeType.GRASSLAND) {
+                    if (featurePlacementNoise.random() < 0.4) {
+                        tile.biome = BiomeType.SCRUB;
+                    }
+                } else if (tile.biome === BiomeType.SCRUB && climate === ClimateType.ARID) {
+                    if (featurePlacementNoise.random() < 0.3) {
+                        tile.biome = BiomeType.DESERT;
+                    }
+                }
+            }
+        }
+    }
+
+    // Second pass: Normal climate-based biome generation
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
             const tile = tiles[y][x];

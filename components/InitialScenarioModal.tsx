@@ -15,6 +15,8 @@ import { shareableStateService } from '../services/shareableStateService';
 import { findZoneForMapArea } from '../services/zoneDetectionService';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { dialectContinuumService } from '../services/dialectContinuumService';
+import { FACTION_DATA } from '../constants/index';
+import { FACTION_ICONS } from '../constants/gameData/factionIcons';
 
 // Lazy load heavy chart components
 const PopulationChart = lazy(() => import('./charts/PopulationChart'));
@@ -353,6 +355,42 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const culturalZone = useMemo(() => mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone, [currentZone, dateInfo.year]);
     const era = useMemo(() => dateInfo.era as HistoricalEra, [dateInfo.era]);
 
+    // Get faction data for the current region (using same structure as LeftSidebar)
+    const factionData = useMemo(() => {
+        if (!currentZone || !currentRegion || !gameDate) return null;
+        try {
+            const dateInfo = parseDateString(gameDate.year.toString());
+            const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
+            const result = FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
+            console.log('InitialScenarioModal faction debug:', {
+                currentZone,
+                currentRegion,
+                culturalZoneEnum,
+                era: dateInfo.era,
+                factionData: result,
+                dominantPower: result?.dominantPower
+            });
+            return result;
+        } catch (error) {
+            console.error('Error getting faction data in InitialScenarioModal:', error);
+            return null;
+        }
+    }, [currentZone, currentRegion, gameDate]);
+
+    // Get dominant faction icon
+    const { dominantFactionIcon: DominantFactionIcon } = useMemo(() => {
+        const dominantPower = factionData?.dominantPower;
+        const factionIconData = dominantPower ? FACTION_ICONS[dominantPower] : null;
+        console.log('Faction icon debug:', {
+            dominantPower,
+            factionIconData,
+            hasIcon: !!factionIconData?.icon
+        });
+        return {
+            dominantFactionIcon: factionIconData?.icon || Scroll
+        };
+    }, [factionData]);
+
     // Get the current seed from SeedManager (memoized)
     const gameSeed = useMemo(() => {
         const seedManager = SeedManager.getInstance();
@@ -452,7 +490,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         <div className={`p-2 md:p-3 bg-gradient-to-br rounded-lg shrink-0 ${
                         gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-500 to-amber-600' : 'from-amber-500 to-amber-600'
                     }`}>
-                            <Scroll className="w-5 h-5 md:w-7 md:h-7 text-white" />
+                            <DominantFactionIcon className="w-5 h-5 md:w-7 md:h-7 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 break-words">

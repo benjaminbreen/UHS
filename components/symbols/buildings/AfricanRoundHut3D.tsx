@@ -23,8 +23,8 @@ const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, 
     // Keep compatibility with existing rand() calls
     const rand = rng.random;
     
-    // Adjusted for proper hut proportions like 🛖 emoji
-    const scaleFactor = 1.05;
+    // Adjusted for consistent scale with other buildings
+    const scaleFactor = 1.2; // Increased from 1.05 for consistency
     const cx = x + width / 2;
     const wallRadius = width * 0.4 * scaleFactor; // Smaller, round base
     const wallHeight = height * 0.35 * scaleFactor; // Lower walls
@@ -155,20 +155,20 @@ const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, 
             <path d={`M ${cx - wallRadius} ${wallY + wallHeight} a ${wallRadius} ${wallRadius * 0.25} 0 0 0 ${wallRadius * 2} 0`} 
                 fill={wallShadowColor} stroke={outlineColor} strokeWidth="1.2"/>
             
-            {/* Simple arched doorway */}
-            <path d={`M ${cx - wallRadius * 0.2} ${wallY + wallHeight} 
-                v -${wallHeight * 0.65} 
-                a ${wallRadius * 0.2} ${wallRadius * 0.15} 0 0 1 ${wallRadius * 0.4} 0 
-                v ${wallHeight * 0.65} Z`} 
-                fill={doorColor} 
-                stroke={outlineColor} 
-                strokeWidth="0.8" />
-            
+            {/* Standardized arched doorway - proportional size */}
+            <path d={`M ${cx - width * 0.1} ${wallY + wallHeight}
+                v -${height * 0.3}
+                a ${width * 0.1} ${height * 0.1} 0 0 1 ${width * 0.2} 0
+                v ${height * 0.3} Z`}
+                fill={doorColor}
+                stroke={outlineColor}
+                strokeWidth="0.5" />
+
             {/* Interior shadow */}
-            <path d={`M ${cx - wallRadius * 0.2} ${wallY + wallHeight} 
-                v -${wallHeight * 0.6} 
-                a ${wallRadius * 0.2} ${wallRadius * 0.15} 0 0 1 ${wallRadius * 0.4} 0 
-                v ${wallHeight * 0.6} Z`} 
+            <path d={`M ${cx - width * 0.1} ${wallY + wallHeight}
+                v -${height * 0.28}
+                a ${width * 0.1} ${height * 0.1} 0 0 1 ${width * 0.2} 0
+                v ${height * 0.28} Z`}
                 fill="rgba(0,0,0,0.7)" />
             
             {/* Enhanced door frame with lintel */}

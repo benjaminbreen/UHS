@@ -69,7 +69,7 @@ const FactionTooltip: React.FC<FactionTooltipProps> = ({
             Other local powers include{' '}
             <span className="text-slate-100">
               {allegianceGroups.slice(0, 3).map(g => typeof g === 'string' ? g : g.name).join(', ')}
-              {allegianceGroups.length > 3 && `, and ${allegianceGroups.length - 3} others`}
+              {allegianceGroups.length > 4 && `, and ${allegianceGroups.length - 4} others`}
             </span>.
           </p>
         )}

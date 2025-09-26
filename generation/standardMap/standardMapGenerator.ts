@@ -150,6 +150,7 @@ export function proceduralGenerateMap(
   const lakeShapeNoise = new ValueNoise(seed + 16); // For irregular lake shapes
   const lakeRandomnessNoise = new ValueNoise(seed + 17); // For other lake variations
   const animalNoise = new ValueNoise(seed + 18); // For animal spawning
+  const peninsulaShapeNoise = new ValueNoise(seed + 21); // For peninsula shape generation
   const npcNoise = new ValueNoise(seed + 19); // For NPC spawning
   const vegetationNoise = new ValueNoise(seed + 20); // For vegetation spawning
 
@@ -264,17 +265,57 @@ export function proceduralGenerateMap(
             }
             break;
         case MapArchetype.PENINSULA:
-            let landExtent = 0;
-            const peninsulaAxis = determinedHarborSide !== undefined ? (determinedHarborSide % 2) : 0; 
-            
-            if (peninsulaAxis === 0) { 
-                landExtent = (determinedHarborSide === 0 || determinedHarborSide === undefined) ? (x / MAP_WIDTH_TILES) : ((MAP_WIDTH_TILES - x) / MAP_WIDTH_TILES);
-            } else { 
-                landExtent = (determinedHarborSide === 2) ? (y / MAP_HEIGHT_TILES) : ((MAP_HEIGHT_TILES - y) / MAP_HEIGHT_TILES);
+            // Peninsula: Land connected to one edge, surrounded by water on three sides
+            // Create a peninsula shape that narrows from base to tip
+            const peninsulaBase = determinedHarborSide !== undefined ? determinedHarborSide : 0;
+
+            // Base width: 40-60% of edge, narrows to 10-30% at tip
+            const baseWidth = 0.4 + peninsulaShapeNoise.random() * 0.2; // 40-60% of edge
+            const tipWidth = 0.1 + peninsulaShapeNoise.random() * 0.2; // 10-30% of edge
+
+            let distanceFromBase = 0;
+            let distanceFromCenterLine = 0;
+            let maxWidth = baseWidth;
+
+            if (peninsulaBase === 0 || peninsulaBase === 1) {
+                // West or East base - peninsula extends horizontally
+                const isWestBase = peninsulaBase === 0;
+                distanceFromBase = isWestBase ? (x / MAP_WIDTH_TILES) : ((MAP_WIDTH_TILES - 1 - x) / MAP_WIDTH_TILES);
+                distanceFromCenterLine = Math.abs(y / MAP_HEIGHT_TILES - 0.5) * 2; // 0 at center, 1 at edges
+
+                // Width narrows from base to tip
+                maxWidth = baseWidth + (tipWidth - baseWidth) * distanceFromBase;
+            } else {
+                // North or South base - peninsula extends vertically
+                const isNorthBase = peninsulaBase === 2;
+                distanceFromBase = isNorthBase ? (y / MAP_HEIGHT_TILES) : ((MAP_HEIGHT_TILES - 1 - y) / MAP_HEIGHT_TILES);
+                distanceFromCenterLine = Math.abs(x / MAP_WIDTH_TILES - 0.5) * 2; // 0 at center, 1 at edges
+
+                // Width narrows from base to tip
+                maxWidth = baseWidth + (tipWidth - baseWidth) * distanceFromBase;
             }
-            falloff = Math.pow(Math.max(0, 1 - landExtent / PENINSULA_LAND_RATIO), 0.5);
-            falloff = 1 - falloff; 
-            landThreshold = LAND_THRESHOLD_BASE - 0.1;
+
+            // Add irregular coastline using noise
+            const coastlineNoise = peninsulaShapeNoise.octaveNoise(
+                x * 0.1, y * 0.1, 2, 0.5, 2.0
+            ) * 0.15; // ±15% variation
+
+            const effectiveWidth = maxWidth + coastlineNoise;
+
+            // Check if point is within peninsula bounds
+            if (distanceFromCenterLine < effectiveWidth) {
+                // Inside peninsula bounds - higher chance of land
+                // Add some internal variation for realism
+                const internalVariation = peninsulaShapeNoise.noise(x * 0.05, y * 0.05) * 0.2;
+                falloff = 0.7 + internalVariation; // 50-90% chance of land
+                landThreshold = LAND_THRESHOLD_BASE - 0.2;
+            } else {
+                // Outside peninsula bounds - mostly water
+                // But allow some small islands near the peninsula
+                const distanceOutside = distanceFromCenterLine - effectiveWidth;
+                falloff = Math.max(0, 0.2 - distanceOutside * 0.5);
+                landThreshold = LAND_THRESHOLD_BASE + 0.1;
+            }
             break;
         case MapArchetype.BAY:
             const bayCenterX_bay = MAP_WIDTH_TILES / 2;
@@ -669,6 +710,62 @@ export function proceduralGenerateMap(
         }
     }
     // console.log("[Gen] Carving BAY opening channel - END");
+  }
+
+  if (archetype === MapArchetype.PENINSULA) {
+    // console.log("[Gen] Carving PENINSULA water edges - START");
+    // Ensure water on three sides of the peninsula
+    const peninsulaBase = determinedHarborSide !== undefined ? determinedHarborSide : 0;
+
+    // Carve water along the three non-base edges
+    const waterDepth = 3; // How many tiles deep to ensure water
+    const carveBiome = BiomeType.SHALLOW_OCEAN;
+    const carveAltitude = ALTITUDE_LEVELS.SEA * 0.15;
+
+    // Add some irregular water carving for more realistic coastlines
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        let shouldCarve = false;
+
+        if (peninsulaBase === 0) {
+          // West base - carve east edge and parts of north/south
+          if (x >= MAP_WIDTH_TILES - waterDepth) shouldCarve = true;
+          if ((y < waterDepth || y >= MAP_HEIGHT_TILES - waterDepth) && x > MAP_WIDTH_TILES * 0.3) {
+            // Carve water on north/south edges, but not too close to base
+            const taperFactor = x / MAP_WIDTH_TILES; // More water carving as we move away from base
+            if (peninsulaShapeNoise.random() < taperFactor * 0.7) shouldCarve = true;
+          }
+        } else if (peninsulaBase === 1) {
+          // East base - carve west edge and parts of north/south
+          if (x < waterDepth) shouldCarve = true;
+          if ((y < waterDepth || y >= MAP_HEIGHT_TILES - waterDepth) && x < MAP_WIDTH_TILES * 0.7) {
+            const taperFactor = (MAP_WIDTH_TILES - 1 - x) / MAP_WIDTH_TILES;
+            if (peninsulaShapeNoise.random() < taperFactor * 0.7) shouldCarve = true;
+          }
+        } else if (peninsulaBase === 2) {
+          // North base - carve south edge and parts of east/west
+          if (y >= MAP_HEIGHT_TILES - waterDepth) shouldCarve = true;
+          if ((x < waterDepth || x >= MAP_WIDTH_TILES - waterDepth) && y > MAP_HEIGHT_TILES * 0.3) {
+            const taperFactor = y / MAP_HEIGHT_TILES;
+            if (peninsulaShapeNoise.random() < taperFactor * 0.7) shouldCarve = true;
+          }
+        } else {
+          // South base - carve north edge and parts of east/west
+          if (y < waterDepth) shouldCarve = true;
+          if ((x < waterDepth || x >= MAP_WIDTH_TILES - waterDepth) && y < MAP_HEIGHT_TILES * 0.7) {
+            const taperFactor = (MAP_HEIGHT_TILES - 1 - y) / MAP_HEIGHT_TILES;
+            if (peninsulaShapeNoise.random() < taperFactor * 0.7) shouldCarve = true;
+          }
+        }
+
+        if (shouldCarve && tiles[y][x]) {
+          tiles[y][x].isLand = false;
+          tiles[y][x].biome = carveBiome;
+          tiles[y][x].altitude = carveAltitude;
+        }
+      }
+    }
+    // console.log("[Gen] Carving PENINSULA water edges - END");
   }
 
 

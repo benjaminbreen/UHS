@@ -40,8 +40,8 @@ class RNG {
 
 // ------------------------- Pixel grid & helpers ---------------------------
 // Logical pixel grid — draw using integer rects; scale up to device pixels.
-const LOGICAL_W = 500; // Match other banner widths for consistent sizing
-const LOGICAL_H = 130; // Match other banner heights for consistent appearance
+const LOGICAL_W = 1000; // Match other banner widths for consistent sizing (FortressBanner uses full width)
+const LOGICAL_H = 260; // Increased height to fill container when offset by -60px in POIToastModal
 
 const usePixelGrid = (targetW: number, targetH: number) => {
   const px = Math.max(1, Math.floor(Math.min(targetW / LOGICAL_W, targetH / LOGICAL_H)));
@@ -108,7 +108,7 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
   season,
   timeOfDay,
   width = 1000,
-  height = 130,
+  height = 260,
   seed = 1337,
   adjacentBiomes = [],
 }) => {
@@ -118,9 +118,9 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
   const variant = useMemo(() => pickVariant(era, culturalZone), [era, culturalZone]);
   const rng = useMemo(() => new RNG(seed), [seed]);
 
-  // world positions
-  const HORIZON_Y = 50; // sky/land cutoff - adjusted for smaller height
-  const GROUND_Y = 70; // ground line for camp - adjusted proportionally
+  // world positions - adjusted for taller 260px banner
+  const HORIZON_Y = 130; // sky/land cutoff - moved down to center of banner
+  const GROUND_Y = 190; // ground line for camp - positioned in lower portion
 
   // anim clock
   const [tick, setTick] = useState(0);
@@ -325,9 +325,9 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
       {/* Forest silhouette band - pine trees closer to ground */}
       {hasForest && (
         <g opacity={0.88}>
-          {Array.from({length:25}).map((_,i)=>{
+          {Array.from({length:48}).map((_,i)=>{
             const x = i*21 + (i%3)*4;
-            const th = 24 + (i%5)*4;
+            const th = 28 + (i%5)*4;
             const yBase = GROUND_Y - 5; // Trees closer to ground level
             return (
               <g key={i}>
@@ -364,7 +364,7 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
       {/* Grass / undergrowth strips */}
       {!likelySnow && (
         <g opacity={0.5}>
-          {Array.from({length:16}).map((_,i)=>(
+          {Array.from({length:32}).map((_,i)=>(
             <PR key={i} x={i*32 + (i%2?6:0)} y={GROUND_Y-6} w={22} h={2} fill={C.grass} />
           ))}
         </g>
@@ -372,20 +372,20 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
 
       {/* Central track */}
       <g opacity={likelySnow?0.22:0.6}>
-        {Array.from({length:14}).map((_,i)=> (
+        {Array.from({length:28}).map((_,i)=> (
           <PR key={i} x={24 + i*34} y={GROUND_Y+8 + (i%2?1:0)} w={24} h={3} fill={shade(C.soil,-22)} />
         ))}
       </g>
 
       {/* Random stumps & chips */}
-      {Array.from({length:10}).map((_,i)=> (
+      {Array.from({length:20}).map((_,i)=> (
         <g key={i}>
-          <PR x={24 + i*46} y={GROUND_Y-4} w={4} h={4} fill="#7b4f2a" />
-          <PR x={24 + i*46} y={GROUND_Y-1} w={4} h={1} fill={shade(C.soil,-30)} />
-          <PR x={25 + i*46} y={GROUND_Y-5} w={2} h={1} fill="#4b2a14" />
+          <PR x={24 + i*48} y={GROUND_Y-4} w={4} h={4} fill="#7b4f2a" />
+          <PR x={24 + i*48} y={GROUND_Y-1} w={4} h={1} fill={shade(C.soil,-30)} />
+          <PR x={25 + i*48} y={GROUND_Y-5} w={2} h={1} fill="#4b2a14" />
           {/* sawdust flecks */}
-          <PR x={22 + i*46} y={GROUND_Y} w={1} h={1} fill="#caa56a" opacity={0.7} />
-          <PR x={30 + i*46} y={GROUND_Y+1} w={1} h={1} fill="#caa56a" opacity={0.6} />
+          <PR x={22 + i*48} y={GROUND_Y} w={1} h={1} fill="#caa56a" opacity={0.7} />
+          <PR x={30 + i*48} y={GROUND_Y+1} w={1} h={1} fill="#caa56a" opacity={0.6} />
         </g>
       ))}
 
@@ -402,7 +402,7 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
 
   // ------------------------ structures (per variant) -----------------------
   const renderCampCore = () => {
-    const cx = Math.floor(LOGICAL_W/2);
+    const cx = Math.floor(LOGICAL_W/2); // Now properly centers at 500px with 1000px width
 
     // Helpers for repeated log pile
     const LogPile = ({x, y, rows=3}:{x:number;y:number;rows?:number}) => (
@@ -422,104 +422,104 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
         return (
           <g>
             {/* Timber shed with thatch */}
-            <PR x={cx-34} y={GROUND_Y-26} w={68} h={26} fill="#7b4f2a" />
-            <polygon points={`${cx-38},${GROUND_Y-26} ${cx},${GROUND_Y-40} ${cx+38},${GROUND_Y-26}`} fill="#d6b46a" stroke="#a88c4f" strokeWidth={1} />
+            <PR x={cx-50} y={GROUND_Y-32} w={100} h={32} fill="#7b4f2a" />
+            <polygon points={`${cx-56},${GROUND_Y-32} ${cx},${GROUND_Y-48} ${cx+56},${GROUND_Y-32}`} fill="#d6b46a" stroke="#a88c4f" strokeWidth={1} />
             {/* Dark doorway & window */}
-            <PR x={cx-6} y={GROUND_Y-12} w={12} h={12} fill="#2c1b12" />
-            <PR x={cx+16} y={GROUND_Y-20} w={8} h={6} fill="#1a1a1a" />
+            <PR x={cx-8} y={GROUND_Y-16} w={16} h={16} fill="#2c1b12" />
+            <PR x={cx+24} y={GROUND_Y-24} w={10} h={8} fill="#1a1a1a" />
             {/* Saw pit with two‑man saw */}
-            <PR x={cx-64} y={GROUND_Y-2} w={36} h={3} fill={shade(C.soil,-35)} />
-            <PR x={cx-58} y={GROUND_Y-6} w={24} h={2} fill="#caa56a" />
+            <PR x={cx-110} y={GROUND_Y-2} w={48} h={3} fill={shade(C.soil,-35)} />
+            <PR x={cx-102} y={GROUND_Y-6} w={32} h={2} fill="#caa56a" />
             {/* Log pile */}
-            <LogPile x={cx+42} y={GROUND_Y-6} rows={3} />
+            <LogPile x={cx+60} y={GROUND_Y-8} rows={3} />
           </g>
         );
       case 'industrial_american':
         return (
           <g>
             {/* Sawmill */}
-            <PR x={cx-48} y={GROUND_Y-22} w={96} h={22} fill="#8b7356" />
+            <PR x={cx-70} y={GROUND_Y-28} w={140} h={28} fill="#8b7356" />
             {/* Roof cap */}
-            <PR x={cx-48} y={GROUND_Y-24} w={96} h={2} fill="#6e5f4a" />
+            <PR x={cx-70} y={GROUND_Y-30} w={140} h={2} fill="#6e5f4a" />
             {/* Chimney */}
-            <PR x={cx+28} y={GROUND_Y-32} w={4} h={10} fill="#444a51" />
+            <PR x={cx+42} y={GROUND_Y-40} w={5} h={12} fill="#444a51" />
             {/* Smoke drift */}
             {[0,1,2].map(i => (
-              <PR key={i} x={cx+28+i} y={GROUND_Y-34 - ((smokePhase.current + i*5)%14)} w={2} h={2} fill={`#${['aa','bb','cc'][i]}${['aa','bb','cc'][i]}${['aa','bb','cc'][i]}`} opacity={0.6 - i*0.15} />
+              <PR key={i} x={cx+42+i} y={GROUND_Y-42 - ((smokePhase.current + i*5)%14)} w={2} h={2} fill={`#${['aa','bb','cc'][i]}${['aa','bb','cc'][i]}${['aa','bb','cc'][i]}`} opacity={0.6 - i*0.15} />
             ))}
             {/* Saw blade hint */}
-            <PR x={cx-3} y={GROUND_Y-9} w={6} h={6} fill="#c7cdd2" />
-            <PR x={cx-3 + ((tick%4)<2?0:1)} y={GROUND_Y-10} w={2} h={2} fill="#8a929b" />
+            <PR x={cx-4} y={GROUND_Y-11} w={8} h={8} fill="#c7cdd2" />
+            <PR x={cx-4 + ((tick%4)<2?0:1)} y={GROUND_Y-12} w={3} h={3} fill="#8a929b" />
             {/* Log deck */}
-            <LogPile x={cx+58} y={GROUND_Y-5} rows={2} />
+            <LogPile x={cx+80} y={GROUND_Y-6} rows={2} />
           </g>
         );
       case 'east_asian':
         return (
           <g>
             {/* Warehouse with curved eaves */}
-            <PR x={cx-36} y={GROUND_Y-20} w={72} h={20} fill="#7b4f2a" />
-            <path d={`M ${cx-42} ${GROUND_Y-20} Q ${cx} ${GROUND_Y-30} ${cx+42} ${GROUND_Y-20}`} fill="#b43a3a" />
+            <PR x={cx-52} y={GROUND_Y-26} w={104} h={26} fill="#7b4f2a" />
+            <path d={`M ${cx-60} ${GROUND_Y-26} Q ${cx} ${GROUND_Y-38} ${cx+60} ${GROUND_Y-26}`} fill="#b43a3a" />
             {/* Hanging lanterns at night */}
             {timeOfDay!=='Day' && (
               <g filter={`url(#glow-${seed})`}>
-                <PR x={cx-14} y={GROUND_Y-21} w={4} h={4} fill="#ff6b4b" />
-                <PR x={cx+10} y={GROUND_Y-21} w={4} h={4} fill="#ff6b4b" />
+                <PR x={cx-20} y={GROUND_Y-27} w={5} h={5} fill="#ff6b4b" />
+                <PR x={cx+15} y={GROUND_Y-27} w={5} h={5} fill="#ff6b4b" />
               </g>
             )}
-            <LogPile x={cx+44} y={GROUND_Y-6} rows={2} />
+            <LogPile x={cx+64} y={GROUND_Y-8} rows={2} />
           </g>
         );
       case 'nordic':
         return (
           <g>
             {/* Longhouse */}
-            <PR x={cx-44} y={GROUND_Y-20} w={88} h={20} fill="#6f4426" />
-            <polygon points={`${cx-48},${GROUND_Y-20} ${cx},${GROUND_Y-30} ${cx+48},${GROUND_Y-20}`} fill="#5a371c" />
-            {likelySnow && <PR x={cx-49} y={GROUND_Y-31} w={98} h={2} fill={C.snow} opacity={0.9} />}
+            <PR x={cx-64} y={GROUND_Y-26} w={128} h={26} fill="#6f4426" />
+            <polygon points={`${cx-70},${GROUND_Y-26} ${cx},${GROUND_Y-38} ${cx+70},${GROUND_Y-26}`} fill="#5a371c" />
+            {likelySnow && <PR x={cx-71} y={GROUND_Y-39} w={142} h={2} fill={C.snow} opacity={0.9} />}
             {/* Log slides */}
-            <PR x={cx-74} y={GROUND_Y-2} w={28} h={1} fill="#7b4f2a" />
-            <PR x={cx+50} y={GROUND_Y-3} w={28} h={1} fill="#7b4f2a" />
-            <LogPile x={cx+64} y={GROUND_Y-6} rows={2} />
+            <PR x={cx-120} y={GROUND_Y-2} w={40} h={1} fill="#7b4f2a" />
+            <PR x={cx+80} y={GROUND_Y-3} w={40} h={1} fill="#7b4f2a" />
+            <LogPile x={cx+90} y={GROUND_Y-8} rows={2} />
           </g>
         );
       case 'siberian':
         return (
           <g>
-            <PR x={cx-30} y={GROUND_Y-16} w={60} h={16} fill="#8b7356" />
-            <polygon points={`${cx-34},${GROUND_Y-16} ${cx},${GROUND_Y-24} ${cx+34},${GROUND_Y-16}`} fill="#5a4b3b" />
-            {likelySnow && <PR x={cx-34} y={GROUND_Y-25} w={68} h={3} fill={C.snow} opacity={0.95} />}
+            <PR x={cx-44} y={GROUND_Y-20} w={88} h={20} fill="#8b7356" />
+            <polygon points={`${cx-50},${GROUND_Y-20} ${cx},${GROUND_Y-30} ${cx+50},${GROUND_Y-20}`} fill="#5a4b3b" />
+            {likelySnow && <PR x={cx-50} y={GROUND_Y-31} w={100} h={3} fill={C.snow} opacity={0.95} />}
             {/* small campfire */}
             {timeOfDay!=='Day' && (
               <g filter={`url(#glow-${seed})`}>
-                <PR x={cx-58} y={GROUND_Y-4} w={3} h={2} fill="#ffb74d" />
-                <PR x={cx-58} y={GROUND_Y-5 - ((firePhase.current%3)===0?1:0)} w={2} h={2} fill="#ff6b2b" />
+                <PR x={cx-90} y={GROUND_Y-4} w={4} h={3} fill="#ffb74d" />
+                <PR x={cx-90} y={GROUND_Y-5 - ((firePhase.current%3)===0?1:0)} w={3} h={3} fill="#ff6b2b" />
               </g>
             )}
-            <LogPile x={cx+46} y={GROUND_Y-6} rows={2} />
+            <LogPile x={cx+66} y={GROUND_Y-8} rows={2} />
           </g>
         );
       case 'tropical':
         return (
           <g>
-            <PR x={cx-34} y={GROUND_Y-16} w={68} h={16} fill="#9b7a58" />
-            <polygon points={`${cx-38},${GROUND_Y-16} ${cx},${GROUND_Y-24} ${cx+38},${GROUND_Y-16}`} fill="#2a7b3a" />
+            <PR x={cx-50} y={GROUND_Y-20} w={100} h={20} fill="#9b7a58" />
+            <polygon points={`${cx-56},${GROUND_Y-20} ${cx},${GROUND_Y-30} ${cx+56},${GROUND_Y-20}`} fill="#2a7b3a" />
             {/* palms */}
-            <PR x={cx-82} y={GROUND_Y-16} w={2} h={14} fill="#6b3f1c" />
-            <PR x={cx-86} y={GROUND_Y-18} w={10} h={3} fill="#2a8b3e" />
-            <PR x={cx+78} y={GROUND_Y-16} w={2} h={14} fill="#6b3f1c" />
-            <PR x={cx+72} y={GROUND_Y-18} w={10} h={3} fill="#2a8b3e" />
-            <LogPile x={cx+46} y={GROUND_Y-6} rows={2} />
+            <PR x={cx-130} y={GROUND_Y-20} w={3} h={18} fill="#6b3f1c" />
+            <PR x={cx-135} y={GROUND_Y-22} w={14} h={4} fill="#2a8b3e" />
+            <PR x={cx+125} y={GROUND_Y-20} w={3} h={18} fill="#6b3f1c" />
+            <PR x={cx+118} y={GROUND_Y-22} w={14} h={4} fill="#2a8b3e" />
+            <LogPile x={cx+66} y={GROUND_Y-8} rows={2} />
           </g>
         );
       case 'modern':
         return (
           <g>
-            <PR x={cx-54} y={GROUND_Y-18} w={108} h={18} fill="#b7bcc4" />
-            <PR x={cx-54} y={GROUND_Y-20} w={108} h={2} fill="#8a909b" />
+            <PR x={cx-78} y={GROUND_Y-23} w={156} h={23} fill="#b7bcc4" />
+            <PR x={cx-78} y={GROUND_Y-25} w={156} h={2} fill="#8a909b" />
             {/* dock apron */}
-            <PR x={cx+50} y={GROUND_Y-5} w={20} h={4} fill="#8a909b" />
-            <LogPile x={cx+68} y={GROUND_Y-8} rows={2} />
+            <PR x={cx+72} y={GROUND_Y-6} w={28} h={5} fill="#8a909b" />
+            <LogPile x={cx+100} y={GROUND_Y-10} rows={2} />
           </g>
         );
     }
@@ -697,7 +697,7 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
       </g>
 
       {/* Subtle vignette */}
-      <rect x={0} y={0} width={LOGICAL_W} height={LOGICAL_H} fill={`url(#vig-${seed})`} />
+      <rect x={0} y={0} width={LOGICAL_W} height={LOGICAL_H} fill={`url(#vig-${seed})`} opacity={0.5} />
 
       {/* Night tint overlay */}
       {timeOfDay!=='Day' && (

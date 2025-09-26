@@ -635,36 +635,8 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
     mountainNear: readCssVar('--sky-mountain-near', '#374151'),
   }), [timeOfDay, weather?.cloudCover, weather?.precipitation]);
 
-  // Night-time overlay to ensure color consistency with TimeAwareBackground
-  const nightOverlay = useMemo(() => {
-    // Map TimeOfDay to the same color schemes used by TimeAwareBackground
-    if (timeOfDay === 'Night') {
-      // Deep night colors matching MIDNIGHT palette
-      return {
-        topColor: '#000814',     // Very deep blue (matching TimeAwareBackground MIDNIGHT)
-        midColor: '#001d3d',     // Deep blue
-        bottomColor: '#003566',  // Slightly lighter deep blue
-        opacity: 0.85           // Strong overlay to unify colors
-      };
-    } else if (timeOfDay === 'Dusk') {
-      // Dusk colors matching TimeAwareBackground
-      return {
-        topColor: '#1F2937',     // Dark blue-gray (matching TimeAwareBackground DUSK)
-        midColor: '#2E3A5F',     // Twilight blue
-        bottomColor: '#4B5C8A',  // Lighter twilight
-        opacity: 0.6            // Moderate overlay for twilight transition
-      };
-    } else if (timeOfDay === 'Dawn') {
-      // Dawn colors with darker top matching TimeAwareBackground
-      return {
-        topColor: '#2B3E5C',     // Darker blue at top (matching TimeAwareBackground DAWN)
-        midColor: '#4a5568',     // Pre-dawn gray-blue
-        bottomColor: '#5b4d6d',  // Purple-gray dawn
-        opacity: 0.5            // Lighter overlay for dawn
-      };
-    }
-    return null;
-  }, [timeOfDay]);
+  // No longer applying nightOverlay - TimeAwareBackground handles all time/weather coloring
+  // This prevents double-darkening and ensures consistent colors
 
   // Use new modular horizons for better quality
   const useNewHorizons = true; // Feature flag to switch between old and new
@@ -700,35 +672,6 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
             height={height}
             sky={sky}
           />
-          {/* Night/twilight overlay for color consistency */}
-          {nightOverlay && (
-            <svg 
-              width={width} 
-              height={height} 
-              style={{ 
-                position: 'absolute', 
-                bottom: 0, 
-                left: 0,
-                pointerEvents: 'none'
-              }}
-            >
-              <defs>
-                <linearGradient id="night-overlay-gradient-ocean" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={nightOverlay.topColor} />
-                  <stop offset="50%" stopColor={nightOverlay.midColor} />
-                  <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                </linearGradient>
-              </defs>
-              <rect 
-                x="0" 
-                y="0" 
-                width={width} 
-                height={height} 
-                fill="url(#night-overlay-gradient-ocean)"
-                opacity={nightOverlay.opacity}
-              />
-            </svg>
-          )}
           {weatherOverlay && (
             <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
               {weatherOverlay}
@@ -747,35 +690,6 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
             height={height}
             sky={sky}
           />
-          {/* Night/twilight overlay for color consistency */}
-          {nightOverlay && (
-            <svg 
-              width={width} 
-              height={height} 
-              style={{ 
-                position: 'absolute', 
-                bottom: 0, 
-                left: 0,
-                pointerEvents: 'none'
-              }}
-            >
-              <defs>
-                <linearGradient id="night-overlay-gradient-shoals" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={nightOverlay.topColor} />
-                  <stop offset="50%" stopColor={nightOverlay.midColor} />
-                  <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                </linearGradient>
-              </defs>
-              <rect 
-                x="0" 
-                y="0" 
-                width={width} 
-                height={height} 
-                fill="url(#night-overlay-gradient-shoals)"
-                opacity={nightOverlay.opacity}
-              />
-            </svg>
-          )}
           {weatherOverlay && (
             <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
               {weatherOverlay}
@@ -800,36 +714,7 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
               isUrban={hasCities}
               sky={sky}
             />
-            {/* Night/twilight overlay for color consistency */}
-            {nightOverlay && (
-              <svg 
-                width={width} 
-                height={height} 
-                style={{ 
-                  position: 'absolute', 
-                  bottom: 0, 
-                  left: 0,
-                  pointerEvents: 'none'
-                }}
-              >
-                <defs>
-                  <linearGradient id="night-overlay-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={nightOverlay.topColor} />
-                    <stop offset="50%" stopColor={nightOverlay.midColor} />
-                    <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                  </linearGradient>
-                </defs>
-                <rect 
-                  x="0" 
-                  y="0" 
-                  width={width} 
-                  height={height} 
-                  fill="url(#night-overlay-gradient)"
-                  opacity={nightOverlay.opacity}
-                />
-              </svg>
-            )}
-            {weatherOverlay && (
+              {weatherOverlay && (
               <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
                 {weatherOverlay}
               </svg>
@@ -851,35 +736,6 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
               hasVolcano={hasVolcano}
               sky={sky}
             />
-            {/* Night/twilight overlay for color consistency */}
-            {nightOverlay && (
-              <svg 
-                width={width} 
-                height={height} 
-                style={{ 
-                  position: 'absolute', 
-                  bottom: 0, 
-                  left: 0,
-                  pointerEvents: 'none'
-                }}
-              >
-                <defs>
-                  <linearGradient id="night-overlay-gradient-tropical" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={nightOverlay.topColor} />
-                    <stop offset="50%" stopColor={nightOverlay.midColor} />
-                    <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                  </linearGradient>
-                </defs>
-                <rect 
-                  x="0" 
-                  y="0" 
-                  width={width} 
-                  height={height} 
-                  fill="url(#night-overlay-gradient-tropical)"
-                  opacity={nightOverlay.opacity}
-                />
-              </svg>
-            )}
             {weatherOverlay && (
               <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
                 {weatherOverlay}
@@ -901,36 +757,7 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
               isUrban={hasCities}
               sky={sky}
             />
-            {/* Night/twilight overlay for color consistency */}
-            {nightOverlay && (
-              <svg 
-                width={width} 
-                height={height} 
-                style={{ 
-                  position: 'absolute', 
-                  bottom: 0, 
-                  left: 0,
-                  pointerEvents: 'none'
-                }}
-              >
-                <defs>
-                  <linearGradient id="night-overlay-gradient-arid" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={nightOverlay.topColor} />
-                    <stop offset="50%" stopColor={nightOverlay.midColor} />
-                    <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                  </linearGradient>
-                </defs>
-                <rect 
-                  x="0" 
-                  y="0" 
-                  width={width} 
-                  height={height} 
-                  fill="url(#night-overlay-gradient-arid)"
-                  opacity={nightOverlay.opacity}
-                />
-              </svg>
-            )}
-            {weatherOverlay && (
+              {weatherOverlay && (
               <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
                 {weatherOverlay}
               </svg>
@@ -951,36 +778,7 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
               isUrban={hasCities}
               sky={sky}
             />
-            {/* Night/twilight overlay for color consistency */}
-            {nightOverlay && (
-              <svg 
-                width={width} 
-                height={height} 
-                style={{ 
-                  position: 'absolute', 
-                  bottom: 0, 
-                  left: 0,
-                  pointerEvents: 'none'
-                }}
-              >
-                <defs>
-                  <linearGradient id="night-overlay-gradient-cold" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={nightOverlay.topColor} />
-                    <stop offset="50%" stopColor={nightOverlay.midColor} />
-                    <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                  </linearGradient>
-                </defs>
-                <rect 
-                  x="0" 
-                  y="0" 
-                  width={width} 
-                  height={height} 
-                  fill="url(#night-overlay-gradient-cold)"
-                  opacity={nightOverlay.opacity}
-                />
-              </svg>
-            )}
-            {weatherOverlay && (
+              {weatherOverlay && (
               <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
                 {weatherOverlay}
               </svg>
@@ -1001,36 +799,7 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
               isUrban={hasCities}
               sky={sky}
             />
-            {/* Night/twilight overlay for color consistency */}
-            {nightOverlay && (
-              <svg 
-                width={width} 
-                height={height} 
-                style={{ 
-                  position: 'absolute', 
-                  bottom: 0, 
-                  left: 0,
-                  pointerEvents: 'none'
-                }}
-              >
-                <defs>
-                  <linearGradient id="night-overlay-gradient-med" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={nightOverlay.topColor} />
-                    <stop offset="50%" stopColor={nightOverlay.midColor} />
-                    <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                  </linearGradient>
-                </defs>
-                <rect 
-                  x="0" 
-                  y="0" 
-                  width={width} 
-                  height={height} 
-                  fill="url(#night-overlay-gradient-med)"
-                  opacity={nightOverlay.opacity}
-                />
-              </svg>
-            )}
-            {weatherOverlay && (
+              {weatherOverlay && (
               <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
                 {weatherOverlay}
               </svg>
@@ -1051,36 +820,7 @@ const HorizonLayer: React.FC<HorizonLayerProps> = ({
               isUrban={hasCities}
               sky={sky}
             />
-            {/* Night/twilight overlay for color consistency */}
-            {nightOverlay && (
-              <svg 
-                width={width} 
-                height={height} 
-                style={{ 
-                  position: 'absolute', 
-                  bottom: 0, 
-                  left: 0,
-                  pointerEvents: 'none'
-                }}
-              >
-                <defs>
-                  <linearGradient id="night-overlay-gradient-semi" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={nightOverlay.topColor} />
-                    <stop offset="50%" stopColor={nightOverlay.midColor} />
-                    <stop offset="100%" stopColor={nightOverlay.bottomColor} />
-                  </linearGradient>
-                </defs>
-                <rect 
-                  x="0" 
-                  y="0" 
-                  width={width} 
-                  height={height} 
-                  fill="url(#night-overlay-gradient-semi)"
-                  opacity={nightOverlay.opacity}
-                />
-              </svg>
-            )}
-            {weatherOverlay && (
+              {weatherOverlay && (
               <svg width={width} height={height} style={{ position: 'absolute', bottom: 0, left: 0 }}>
                 {weatherOverlay}
               </svg>

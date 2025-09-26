@@ -23,6 +23,7 @@ export interface CharacterSpecification {
   socialClass?: 'peasant' | 'commoner' | 'merchant' | 'noble';
   traits?: string[];
   disease?: string; // Disease ID like BUBONIC_PLAGUE
+  ethnicity?: 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN'; // Character's ethnic/cultural background
   customBackstory?: string; // LLM-generated backstory specific to the scenario
   customItems?: Array<{ // LLM-generated items specific to the profession/scenario
     name: string;
@@ -78,6 +79,7 @@ export interface WorldWeaverQuest {
     profession: string;
     personality: string;
     location: { x: number; y: number };
+    ethnicity?: 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
   };
   // Legacy support for old format
   specialNPCs?: QuestNPC[];
@@ -134,14 +136,29 @@ TIME PERIOD GUIDELINES:
 Always try to interpret the prompt creatively to find a valid historical setting.
 
 CHARACTER EXTRACTION RULES:
-- Look for character details like age, gender, name, profession, health status, social class, diseases
+- Look for character details like age, gender, name, profession, health status, social class, diseases, ethnicity
+- IMPORTANT: If a specific person's name is mentioned (especially famous historical figures), PRESERVE IT in the name field
+- ETHNICITY: Determine ethnicity from name patterns and historical context. Use these values:
+  - EUROPEAN: Western/Central/Northern European names (Hans, Margaret, Giovanni, etc.)
+  - EAST_ASIAN: Chinese, Japanese, Korean, Mongolian names (Li Wei, Akiko, Kim, etc.)
+  - MENA: Middle Eastern, North African, Turkish, Persian names (Hassan, Fatima, Omar, etc.)
+  - SOUTH_ASIAN: Indian, Pakistani, Bangladeshi, Sri Lankan names (Raj, Priya, Ahmed, etc.)
+  - SUB_SAHARAN_AFRICAN: African names south of Sahara (Kwame, Amara, Jomo, etc.)
+  - SOUTH_AMERICAN: Indigenous South American names (Atahualpa, Chuya, etc.)
+  - NORTH_AMERICAN_PRE_COLUMBIAN: Native American names (Sequoya, Pocahontas, etc.)
+  - OCEANIA: Pacific Islander, Aboriginal Australian names (Kailani, Wiremu, etc.)
 - Examples:
   - "35 year old female spy" → age: 35, gender: "female", profession: "spy"
-  - "unhealthy peasant named Hans" → health: "unhealthy", socialClass: "peasant", name: "Hans"
+  - "unhealthy peasant named Hans" → health: "unhealthy", socialClass: "peasant", name: "Hans", ethnicity: "EUROPEAN"
   - "young merchant" → profession: "merchant", traits: ["young"]
   - "sickly noble woman" → health: "sickly", socialClass: "noble", gender: "female"
   - "peasant with the plague" → socialClass: "peasant", disease: "BUBONIC_PLAGUE"
   - "soldier suffering from typhus" → profession: "soldier", disease: "TYPHUS"
+  - "Margaret Mead in 1950" → name: "Margaret Mead", profession: "Anthropologist", gender: "female", ethnicity: "EUROPEAN"
+  - "Napoleon Bonaparte" → name: "Napoleon Bonaparte", profession: "Emperor", socialClass: "noble", ethnicity: "EUROPEAN"
+  - "Ibn Battuta" → name: "Ibn Battuta", profession: "Explorer", ethnicity: "MENA"
+  - "Li Wei the merchant" → name: "Li Wei", profession: "Merchant", ethnicity: "EAST_ASIAN"
+  - "Marie Curie" → name: "Marie Curie", profession: "Scientist", gender: "female"
 - If NO character is specified, leave characterSpec as null
 
 DISEASE EXTRACTION:
@@ -158,6 +175,21 @@ Disease matching examples:
 - "leprosy", "Hansen's disease" → disease: "LEPROSY"
 - "malaria", "ague", "fever" → disease: "MALARIA"
 - "dysentery", "bloody flux" → disease: "DYSENTERY"
+
+HISTORICAL FIGURES:
+When a specific historical person is named in the prompt, you MUST:
+1. Preserve their exact name in characterSpec.name
+2. Set appropriate profession based on what they're known for
+3. Set appropriate gender if known
+4. Set appropriate ethnicity based on their origins
+5. Examples:
+   - "Margaret Mead" → name: "Margaret Mead", profession: "Anthropologist", gender: "female", ethnicity: "EUROPEAN"
+   - "Christopher Columbus" → name: "Christopher Columbus", profession: "Explorer", gender: "male", ethnicity: "EUROPEAN"
+   - "Cleopatra" → name: "Cleopatra", profession: "Pharaoh", gender: "female", socialClass: "noble", ethnicity: "MENA"
+   - "Mozart" → name: "Wolfgang Amadeus Mozart", profession: "Composer", gender: "male", ethnicity: "EUROPEAN"
+   - "Joan of Arc" → name: "Joan of Arc", profession: "Knight", gender: "female", ethnicity: "EUROPEAN"
+   - "Zheng He" → name: "Zheng He", profession: "Admiral", gender: "male", ethnicity: "EAST_ASIAN"
+   - "Ibn Battuta" → name: "Ibn Battuta", profession: "Explorer", gender: "male", ethnicity: "MENA"
 
 SETTING EXTRACTION:
 Examples of how to interpret prompts for settings:
@@ -326,7 +358,7 @@ class WorldWeaverService {
       
       // console.log('[WorldWeaverService] Sending to LLM...');
       const result = await ai.models.generateContent({ 
-        model: 'gemini-2.5-flash-lite', 
+        model: 'gemini-2.5-flash-preview-09-2025', 
         contents: fullPrompt,
         generationConfig: {
           temperature: 0.7,
@@ -616,7 +648,7 @@ IMPORTANT: Use ONLY the locations listed above with their EXACT coordinates.`;
         console.log('[WorldWeaverService] No map data provided, generating abstract quest');
       }
 
-      const prompt = `Create a simple, historically accurate quest for ${location} in ${year}.
+      const prompt = `Create a simple, historically accurate SCENARIO for ${location} in ${year}.
 
 CONTEXT:
 - Year: ${year}
@@ -625,40 +657,65 @@ CONTEXT:
 - Game Mode: ${gameMode?.name || 'Survival'}
 - Original Request: "${userPrompt}"${locationPrompt}
 
+CRITICAL TONE AND LANGUAGE REQUIREMENTS:
+THIS IS A HYPER-REALISTIC HISTORY SIMULATOR, NOT A FANTASY RPG!
+- NEVER use fantasy RPG terminology like "quest", "lore", "mystic", "arcane," or fan fic type names like "Elara Vance"
+- Use realistic, historically appropriate language
+- Instead of "quest", think: task, mission, assignment, job, request, problem, situation
+- Make objectives sound like real activities, not game objectives
+- Examples:
+  - WRONG: "Seek the mystic sage"
+  - RIGHT: "Consult with the local physician"
+
+HISTORICAL ACCURACY REQUIREMENTS:
+- DO NOT create generic tasks that lazily borrow fantasy tropes
+- The scenario MUST reflect the actual historical situation of ${location} in ${year}
+- Consider: What was REALLY happening in ${location} during ${year}? Wars? Trade? Discovery? Politics?
+- The NPC's profession should be authentic to that specific time and place
+- BE CREATIVE! Each scenario should feel like it could ONLY happen in this exact setting
+
 REQUIREMENTS:
-1. 1-3 stages maximum (not 4-6!)
-2. 1 special NPC only (not 2-3!)
+1. 1-3 stages maximum. Be succinct.
+2. 1 special NPC only
 3. Use ONLY these objective types: talk_to_npc, visit_location, collect_item, deliver_item
 4. Each stage must be completable with existing game mechanics
-5. No branching paths or complex narratives
-6. If map locations are provided, use their exact coordinates
-7. Quest must be specific to ${location} in ${year}
+5. If map locations are provided, use their exact coordinates
+6. Scenario MUST be historically specific to ${location} in ${year}
+7. Use REALISTIC language appropriate for a history simulation
 
-QUEST STRUCTURE (simplified):
+EXAMPLES OF REALISTIC HISTORICAL SCENARIOS (adapt to YOUR context):
+- 18th century French sailor: "The Smuggler's Route" - evade customs officials with contraband goods
+- Medieval Cairo merchant: "The Spice Monopoly" - negotiate exclusive trade agreements with suppliers
+- Ancient Chinese farmer: "The Irrigation Dispute" - resolve water rights conflict with neighboring farms
+- Renaissance Italian soldier: "The Coded Message" - intercept enemy military correspondence
+- 1950s American scientist: "The Grant Proposal" - secure funding from the research foundation
+
+SCENARIO STRUCTURE:
 {
-  "title": "Brief, specific title",
-  "description": "1-2 sentences max",
-  "historicalContext": "1 sentence of real history",
+  "title": "[Create realistic title using period-appropriate language]",
+  "description": "[1-2 sentences describing a real historical situation, NOT fantasy language]",
+  "historicalContext": "[Real historical fact about ${location} in ${year}]",
   "stages": [
     {
       "id": "stage1",
-      "objective": "Talk to Master Weaver about the missing apprentice",
+      "objective": "[Realistic action using historically accurate terminology]",
       "completionTrigger": "talk_to_npc",
       "targetLocation": {"x": 45, "y": 23}
     }
   ],
   "specialNPC": {
-    "name": "Hendrik van Groenendaal",
-    "profession": "Master Weaver",
-    "personality": "Worried but trying to stay calm",
-    "location": {"x": 45, "y": 23}
+    "name": "[Culturally appropriate name for ${location}]",
+    "profession": "[Actual job that existed in ${location} during ${year}]",
+    "personality": "[Realistic personality, not fantasy archetypes]",
+    "location": {"x": 45, "y": 23},
+    "ethnicity": "[EUROPEAN|EAST_ASIAN|MENA|SOUTH_ASIAN|SUB_SAHARAN_AFRICAN|SOUTH_AMERICAN|NORTH_AMERICAN_PRE_COLUMBIAN|OCEANIA - based on character's name/origin]"
   }
 }
 
-Return JSON only. Keep it simple and actionable.`;
+Return JSON only. USE REALISTIC HISTORICAL LANGUAGE, NOT FANTASY RPG TERMINOLOGY!`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-flash-preview-09-2025',
         contents: prompt,
         generationConfig: {
           temperature: 0.6,  // Reduced for more consistent coordinate usage
@@ -766,29 +823,49 @@ Return JSON only. Keep it simple and actionable.`;
    * Enhance character with custom backstory and items based on the scenario
    */
   async enhanceCharacterDetails(
-    characterSpec: CharacterSpecification, 
-    year: number, 
+    characterSpec: CharacterSpecification,
+    year: number,
     location: string,
     userPrompt: string
   ): Promise<CharacterSpecification> {
     console.log('[WorldWeaverService] Enhancing character details for:', characterSpec);
-    
+
     if (!characterSpec.profession) {
       return characterSpec; // Can't enhance without a profession
     }
 
+    // Check if this is a specific historical figure
+    const isHistoricalFigure = characterSpec.name && (
+      userPrompt.toLowerCase().includes(characterSpec.name.toLowerCase()) ||
+      // Common historical figures
+      ['Margaret Mead', 'Beethoven', 'Mozart', 'Napoleon', 'Cleopatra', 'Joan of Arc',
+       'Christopher Columbus', 'Marie Curie', 'Albert Einstein', 'Charles Darwin',
+       'Leonardo da Vinci', 'Galileo', 'Shakespeare', 'Julius Caesar'].some(name =>
+        characterSpec.name?.toLowerCase().includes(name.toLowerCase())
+      )
+    );
+
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
+
+      const historicalFigureInstructions = isHistoricalFigure ? `
+IMPORTANT: This is the ACTUAL historical figure ${characterSpec.name}!
+- You MUST create a backstory about the REAL ${characterSpec.name}
+- Reference their ACTUAL life, work, and historical significance
+- Do NOT create a fictional character with this name
+- Example: If this is Margaret Mead, mention her actual anthropological work, Columbia University, Samoa research, etc.
+` : '';
+
       const prompt = `
-You are creating a historically accurate character for an educational history simulation game.
+You are creating a historically accurate character for an educational history simulation game. This may be a real historical figure, or a fictional but realistic one.
 
 CONTEXT:
 - Year: ${year}
 - Location: ${location}
-- Character: ${characterSpec.age || 30} year old ${characterSpec.gender || 'person'} who is a ${characterSpec.profession}
+- Character: ${characterSpec.name || `${characterSpec.age || 30} year old ${characterSpec.gender || 'person'}`} who is a ${characterSpec.profession}
 - Social Class: ${characterSpec.socialClass || 'commoner'}
 - Original Scenario: "${userPrompt}"
+${historicalFigureInstructions}
 
 TASK 1 - BACKSTORY:
 Write a compelling 2-3 sentence backstory that:
@@ -800,7 +877,7 @@ Write a compelling 2-3 sentence backstory that:
 - For civilians in wartime, mention how the conflict affects them
 
 TASK 2 - STARTING ITEMS:
-Generate 4-6 items this person would realistically have based on their profession and the scenario.
+Generate 2-3 items this person would realistically have based on their profession and the scenario.
 Items should be:
 - Historically accurate to ${year}
 - Specific to their profession (${characterSpec.profession})
@@ -830,7 +907,7 @@ Return JSON only:
 }`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-flash-preview-09-2025',
         contents: prompt,
         generationConfig: {
           temperature: 0.8,

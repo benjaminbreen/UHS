@@ -349,9 +349,15 @@ function isBlockingTerrain(biome: BiomeType): boolean {
     BiomeType.BOOKSHELF,
     BiomeType.CABINET,
     BiomeType.CHEST,
-    BiomeType.BARREL
+    BiomeType.BARREL,
+    // Workshop equipment
+    BiomeType.ANVIL,
+    BiomeType.OVEN_BRICK,
+    BiomeType.SPINNING_WHEEL,
+    BiomeType.LOOM,
+    BiomeType.WORKBENCH
   ];
-  
+
   return blockingBiomes.includes(biome);
 }
 
@@ -1323,6 +1329,9 @@ function generateLegacyNpcs(
     case SpecialMapArchetype.UNIVERSITY:
       npcTemplates = getAcademicNpcs(config.culturalZone, config.era);
       break;
+    case SpecialMapArchetype.WORKSHOP:
+      npcTemplates = getWorkshopNpcs(config.culturalZone, config.era, config);
+      break;
     default:
       npcTemplates = getDefaultNpcs(config.culturalZone, config.era);
   }
@@ -1521,6 +1530,77 @@ function getAcademicNpcs(culturalZone: string, era: string): { profession: strin
     { profession: 'NOBLE', count: 1 },
     { profession: 'PHILOSOPHER', count: 1 }
   ];
+}
+
+/**
+ * Get workshop NPCs based on business type
+ */
+function getWorkshopNpcs(culturalZone: string, era: string, config: SpecialMapConfig): { profession: string, count: number }[] {
+  // Extract business type from config (passed from CityModal)
+  const businessType = (config as any).businessType || 'workshop';
+  const businessLower = businessType.toLowerCase();
+
+  // Determine appropriate craftsman based on business type
+  // Using generic terms that are more likely to exist in PROFESSIONS data
+  let mainCraftsman = 'Craftsman'; // Default (note: using capitalized for better matching)
+  let apprentices = 'Apprentice';
+
+  // Try to find specific craftsmen in the actual professions data
+  // These are more generic terms that cultures are likely to have
+  if (businessLower.includes('smith') || businessLower.includes('forge') || businessLower.includes('metal')) {
+    mainCraftsman = 'Blacksmith';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('potter') || businessLower.includes('ceramic') || businessLower.includes('clay')) {
+    mainCraftsman = 'Potter';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('weav') || businessLower.includes('textile') || businessLower.includes('cloth')) {
+    mainCraftsman = 'Weaver';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('baker') || businessLower.includes('bread') || businessLower.includes('pastry')) {
+    mainCraftsman = 'Baker';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('carpenter') || businessLower.includes('wood') || businessLower.includes('furniture')) {
+    mainCraftsman = 'Carpenter';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('jewel') || businessLower.includes('gem')) {
+    mainCraftsman = 'Jeweler';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('leather') || businessLower.includes('tanner')) {
+    mainCraftsman = 'Leatherworker';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('tailor') || businessLower.includes('seamstress')) {
+    mainCraftsman = 'Tailor';
+    apprentices = 'Apprentice';
+  } else if (businessLower.includes('merchant') || businessLower.includes('trader')) {
+    mainCraftsman = 'Merchant';
+    apprentices = 'Clerk';
+  }
+
+  // Check if owner was provided (from CityModal)
+  const owner = (config as any).owner;
+  const ownerName = owner?.name || (config as any).ownerName;
+  const ownerWealth = (config as any).wealthLevel || (config as any).ownerWealth || 'modest';
+
+  // Determine shop size based on wealth level
+  if (ownerWealth === 'wealthy') {
+    // Wealthy shop - master craftsman + 2 apprentices/workers
+    return [
+      { profession: mainCraftsman, count: 1 },
+      { profession: apprentices, count: 1 },
+      { profession: 'Worker', count: 1 }
+    ];
+  } else if (ownerWealth === 'comfortable') {
+    // Comfortable shop - craftsman + apprentice
+    return [
+      { profession: mainCraftsman, count: 1 },
+      { profession: apprentices, count: 1 }
+    ];
+  } else {
+    // Modest/poor shop - just the craftsman
+    return [
+      { profession: mainCraftsman, count: 1 }
+    ];
+  }
 }
 
 /**
