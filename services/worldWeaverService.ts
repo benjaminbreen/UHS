@@ -24,7 +24,8 @@ export interface CharacterSpecification {
   traits?: string[];
   disease?: string; // Disease ID like BUBONIC_PLAGUE
   ethnicity?: 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN'; // Character's ethnic/cultural background
-  customBackstory?: string; // LLM-generated backstory specific to the scenario
+  customBackstory?: string; // LLM-generated backstory specific to the scenario (deprecated)
+  characterDescription?: string; // Brief 1-2 sentence character description for InitialScenarioModal
   customItems?: Array<{ // LLM-generated items specific to the profession/scenario
     name: string;
     description: string;
@@ -694,7 +695,7 @@ SCENARIO STRUCTURE:
 {
   "title": "[Create realistic title using period-appropriate language]",
   "description": "[1-2 sentences describing a real historical situation, NOT fantasy language]",
-  "historicalContext": "[Real historical fact about ${location} in ${year}]",
+  "historicalContext": "[2-3 evocative sentences about the setting and atmosphere of ${location} in ${year}. Paint a vivid picture of the time and place, mentioning key historical events, technologies, or social conditions that define this era.]",
   "stages": [
     {
       "id": "stage1",
@@ -867,14 +868,13 @@ CONTEXT:
 - Original Scenario: "${userPrompt}"
 ${historicalFigureInstructions}
 
-TASK 1 - BACKSTORY:
-Write a compelling 2-3 sentence backstory that:
-- Is SPECIFIC to being a ${characterSpec.profession} in ${location} in ${year}
-- References actual historical context (wars, events, social conditions)
-- Explains how they got into this situation
-- Hints at their personality and recent experiences
-- For military personnel, mention their unit/service and recent combat
-- For civilians in wartime, mention how the conflict affects them
+TASK 1 - CHARACTER DESCRIPTION:
+Write a concise 1-2 sentence character description that:
+- Captures their personality and current situation
+- Mentions a key personal detail or motivation
+- Is written in an evocative, literary style suitable for display
+- Should feel like a character introduction, not a full backstory
+- Example: "A weary but determined merchant who fled the wars in the north, now seeking to rebuild their fortune through risky ventures in untamed territories."
 
 TASK 2 - STARTING ITEMS:
 Generate 2-3 items this person would realistically have based on their profession and the scenario.
@@ -892,7 +892,7 @@ EXAMPLES:
 
 Return JSON only:
 {
-  "backstory": "Your 2-3 sentence backstory here",
+  "characterDescription": "Your 1-2 sentence character description here",
   "items": [
     {
       "name": "Item name",
@@ -926,8 +926,12 @@ Return JSON only:
       const enhanced = JSON.parse(result);
       
       // Add the enhanced details to the character spec
+      if (enhanced.characterDescription) {
+        characterSpec.characterDescription = enhanced.characterDescription;
+      }
+      // Keep backward compatibility with old field name
       if (enhanced.backstory) {
-        characterSpec.customBackstory = enhanced.backstory;
+        characterSpec.characterDescription = enhanced.backstory;
       }
       
       if (enhanced.items && Array.isArray(enhanced.items)) {

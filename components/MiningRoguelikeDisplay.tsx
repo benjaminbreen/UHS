@@ -317,7 +317,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
                     // Default to rock
                     let tileType: MineTileType = 'rock';
-                    let oreType = mineData.oreType;
+                    let oreType = mineData?.oreType || 'Iron';
                     let durability = 1;
                     let oreAmount = 0;
 
@@ -346,7 +346,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                     } else if (isOre) {
                         // Use regional ore generation
                         const oreRoll = Math.random();
-                        const regional = getRegionalOre(mineData.culturalZone || 'EUROPEAN', y, oreRoll);
+                        const regional = getRegionalOre(mineData?.culturalZone || 'EUROPEAN', y, oreRoll);
 
                         tileType = regional.tileType;
                         oreType = regional.oreType;
@@ -880,7 +880,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
             setMineMap(updateVisibility(currentX, currentY, newMap));
         }
-    }, [player.x, player.y, player.pickaxeLevel, player.fatigue, mineMap, mineData.oreType, onInventoryAdd, onFatigueChange, updateVisibility]);
+    }, [player.x, player.y, player.pickaxeLevel, player.fatigue, mineMap, mineData?.oreType, onInventoryAdd, onFatigueChange, updateVisibility]);
 
     // Handle player movement
     const handleMove = useCallback((dx: number, dy: number) => {
@@ -1526,7 +1526,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
             <div className="bg-gradient-to-b from-amber-900 to-amber-950 p-3 border-b-2 border-yellow-600">
                 <div className="flex justify-between items-center">
                     <div className="flex gap-6">
-                        <span className="text-yellow-300 text-lg">⛏️ {mineData.name}</span>
+                        <span className="text-yellow-300 text-lg">⛏️ {mineData?.name || 'Unknown Mine'}</span>
                         <span className="text-orange-400">Depth: {player.depth}m</span>
                         <span className="text-yellow-400">Light: {player.torchLight}</span>
                     </div>
@@ -1550,7 +1550,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                                 </div>
                                 <div className="w-full bg-gray-700 rounded-full h-2">
                                     <div className="bg-gradient-to-r from-orange-600 to-red-600 h-2 rounded-full transition-all duration-300"
-                                         style={{width: `${Math.min(100, (player.depth/mineData.depth)*100)}%`}} />
+                                         style={{width: `${Math.min(100, (player.depth/(mineData?.depth || 100))*100)}%`}} />
                                 </div>
                             </div>
 

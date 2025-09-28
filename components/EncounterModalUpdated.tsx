@@ -862,11 +862,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     }, 500);
                 }
 
-                // Check for gift-giving patterns
-                if (lowerResponse.includes('have something for you') ||
-                    lowerResponse.includes('give you') ||
-                    lowerResponse.includes('take this') ||
-                    lowerResponse.includes('here\'s a')) {
+                // Check for gift-giving patterns (note to self, fix or cut this, its badly implemented)
+                if (lowerResponse.includes('have a gift for you') ||
+                    lowerResponse.includes('give you this') ||
+                    lowerResponse.includes('take this gift') ||
+                    lowerResponse.includes('here\'s a gift')) {
 
                     // Generate a simple gift (would be better to extract from context)
                     const gift = {

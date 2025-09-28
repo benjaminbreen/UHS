@@ -72,7 +72,7 @@ interface MapViewportProps {
 const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
-        activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
+        activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage, setToastMessage,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
         activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, activeFishingHutModal, setActiveFishingHutModal, inRuinRoguelike, setInRuinRoguelike, inMiningRoguelike, setInMiningRoguelike, miningRoguelikeData, setMiningRoguelikeData, useLlmForDescriptions, handleEncounter, setInfoModalTarget, showToast,
         setActiveMiningModal, setActivePoi, debugSettings,
@@ -465,7 +465,20 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     useEffect(() => {
         setShowBottomPanel(!isMobile);
     }, [isMobile]);
-    
+
+    // Listen for WorldWeaver notifications
+    useEffect(() => {
+        const handleWorldWeaverToast = (event: CustomEvent) => {
+            const { message } = event.detail;
+            // Use a simple toast message for WorldWeaver notifications
+            setToastMessage(message);
+            setTimeout(() => setToastMessage(null), 4000);
+        };
+
+        window.addEventListener('showGameToast', handleWorldWeaverToast as EventListener);
+        return () => window.removeEventListener('showGameToast', handleWorldWeaverToast as EventListener);
+    }, []);
+
     // Listen for guard events
     useEffect(() => {
         const handleGuardDetecting = (data: any) => {
@@ -1079,16 +1092,17 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
             }
             
             return (
-                <MapDisplayOptimized 
-                    mapData={mapData!} 
-                    animals={visibleAnimals} 
-                    npcs={visibleNpcs} 
+                <MapDisplayOptimized
+                    mapData={mapData!}
+                    currentMapSeed={currentMapSeed}
+                    animals={visibleAnimals}
+                    npcs={visibleNpcs}
                     deployedVessels={deployedVessels || []}
-                    onDevHover={handleDevHover} 
-                    onDevCommandClick={handleDevCommandClick} 
-                    onStructureClick={setStructureModalTarget} 
-                    onPoiClick={setActivePoi} 
-                    onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })} 
+                    onDevHover={handleDevHover}
+                    onDevCommandClick={handleDevCommandClick}
+                    onStructureClick={setStructureModalTarget}
+                    onPoiClick={setActivePoi}
+                    onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })}
                     onVesselClick={handleVesselClick}
                     onPlayerMove={onPlayerMove}
                     activeLens={activeLens} 
@@ -1317,12 +1331,12 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
               />
             ) : (
               <TimeAwareBackground
-                gameTimeHours={isProcessingWorldWeaver ? 0 : gameTimeHours}
-                gameTimeMinutes={isProcessingWorldWeaver ? 0 : gameTimeMinutes}
+                gameTimeHours={gameTimeHours}
+                gameTimeMinutes={gameTimeMinutes}
                 viewMode={viewMode}
-                season={isProcessingWorldWeaver ? 'winter' : season}
-                climate={isProcessingWorldWeaver ? 'tundra' : mapData?.climate}
-                weather={isProcessingWorldWeaver ? 'clear' : currentWeather}
+                season={season}
+                climate={mapData?.climate}
+                weather={currentWeather}
               />
             )}
             

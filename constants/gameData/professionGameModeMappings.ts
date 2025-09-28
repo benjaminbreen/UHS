@@ -468,16 +468,10 @@ export const PROFESSION_MODE_MAPPINGS: Record<string, GameModeWeight[]> = {
   'Fenian': [{mode: 'survival', weight: 50}, {mode: 'leadership', weight: 30}, {mode: 'diplomacy', weight: 20}],
   'IRA Member': [{mode: 'survival', weight: 50}, {mode: 'leadership', weight: 30}, {mode: 'diplomacy', weight: 20}],
   'Guerrilla Fighter': [{mode: 'survival', weight: 60}, {mode: 'exploration', weight: 25}, {mode: 'leadership', weight: 15}],
-  'ISIS Fighter': [{mode: 'survival', weight: 70}, {mode: 'leadership', weight: 30}],
-  'Black Flag Fighter': [{mode: 'survival', weight: 60}, {mode: 'leadership', weight: 40}],
   'Luddite': [{mode: 'survival', weight: 40}, {mode: 'livelihood', weight: 40}, {mode: 'leadership', weight: 20}],
   'Chartist': [{mode: 'leadership', weight: 40}, {mode: 'legal', weight: 30}, {mode: 'diplomacy', weight: 30}],
   'Red Brigade': [{mode: 'survival', weight: 50}, {mode: 'leadership', weight: 30}, {mode: 'diplomacy', weight: 20}],
   'Black Panther': [{mode: 'leadership', weight: 40}, {mode: 'survival', weight: 30}, {mode: 'legal', weight: 30}],
-  'BLM Activist': [{mode: 'leadership', weight: 35}, {mode: 'legal', weight: 35}, {mode: 'diplomacy', weight: 30}],
-  'Antifa Member': [{mode: 'survival', weight: 40}, {mode: 'leadership', weight: 30}, {mode: 'diplomacy', weight: 30}],
-  'Climate Activist': [{mode: 'leadership', weight: 35}, {mode: 'diplomacy', weight: 35}, {mode: 'exploration', weight: 30}],
-  'Proud Boy': [{mode: 'survival', weight: 50}, {mode: 'leadership', weight: 50}],
 
   // ===== CULTURAL SPECIFIC =====
   'Griot': [{mode: 'scholarship', weight: 40}, {mode: 'diplomacy', weight: 35}, {mode: 'livelihood', weight: 25}],

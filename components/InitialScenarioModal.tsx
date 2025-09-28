@@ -40,6 +40,12 @@ interface InitialScenarioModalProps {
     localArea: string;
     gameMode: GameMode | null;
     urlConfig?: URLGameConfig | null;
+    worldWeaverData?: {
+        settingDescription?: string;
+        characterDescription?: string;
+        quest?: any;
+    } | null;
+    isProcessingWorldWeaver?: boolean;
 }
 
 // Mode-specific descriptions combining game mode, era, and culture
@@ -322,11 +328,13 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     onClose,
     playerCharacter,
     gameDate,
-    currentZone, 
+    currentZone,
     currentRegion,
     localArea,
     gameMode,
-    urlConfig
+    urlConfig,
+    worldWeaverData,
+    isProcessingWorldWeaver
 }) => {
     // Animation states for stylish fade-in
     const [isVisible, setIsVisible] = useState(false);
@@ -524,7 +532,14 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                     </h3>
                                 </div>
                                 <p className="text-slate-300 leading-relaxed text-sm md:text-base">
-                                    {historicalContext}
+                                    {isProcessingWorldWeaver ? (
+                                        <span className="flex items-center gap-2 text-green-400">
+                                            <span className="inline-block w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
+                                            WorldWeaver is creating your custom scenario...
+                                        </span>
+                                    ) : (
+                                        worldWeaverData?.settingDescription || historicalContext
+                                    )}
                                 </p>
                             </div>
 
@@ -638,23 +653,41 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Brief Character Description */}
-                                        <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
-                                            <p className="text-slate-300 text-xs md:text-sm italic">
-                                                {extractPersonalityTrait(playerCharacter)}
-                                            </p>
-                                        </div>
-
-                                        {/* Prized Possession */}
-                                        <div className="mt-1 p-2 bg-slate-700/30 rounded border border-slate-600/30">
-                                            <div className="flex items-center gap-1 mb-1">
-                                                <Trophy className="w-3 h-3 text-amber-400" />
-                                                <span className="text-amber-400 text-xs font-medium">PRIZED POSSESSION:</span>
+                                        {/* Character Description - WorldWeaver or Standard */}
+                                        {isProcessingWorldWeaver ? (
+                                            <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
+                                                <p className="text-green-400 text-xs md:text-sm flex items-center gap-2">
+                                                    <span className="inline-block w-3 h-3 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
+                                                    Creating character background...
+                                                </p>
                                             </div>
-                                            <p className="text-slate-300 text-xs md:text-sm">
-                                                {getPrizedPossession(playerCharacter)}
-                                            </p>
-                                        </div>
+                                        ) : worldWeaverData?.characterDescription ? (
+                                            <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
+                                                <p className="text-slate-300 text-xs md:text-sm italic">
+                                                    {worldWeaverData.characterDescription}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {/* Brief Character Description */}
+                                                <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
+                                                    <p className="text-slate-300 text-xs md:text-sm italic">
+                                                        {extractPersonalityTrait(playerCharacter)}
+                                                    </p>
+                                                </div>
+
+                                                {/* Prized Possession */}
+                                                <div className="mt-1 p-2 bg-slate-700/30 rounded border border-slate-600/30">
+                                                    <div className="flex items-center gap-1 mb-1">
+                                                        <Trophy className="w-3 h-3 text-amber-400" />
+                                                        <span className="text-amber-400 text-xs font-medium">PRIZED POSSESSION:</span>
+                                                    </div>
+                                                    <p className="text-slate-300 text-xs md:text-sm">
+                                                        {getPrizedPossession(playerCharacter)}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
 
 
                                         {/* Expandable Character Details */}

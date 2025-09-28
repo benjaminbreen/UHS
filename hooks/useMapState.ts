@@ -1254,7 +1254,17 @@ export const useMapState = (props: useMapStateProps) => {
 
     const onStartNewWorldAtLocation = useCallback((targetZone: string, targetMapArea: string, characterSpec?: any, overrideYear?: number) => {
         console.log('[onStartNewWorldAtLocation] Called with zone:', targetZone, 'area:', targetMapArea, 'characterSpec:', characterSpec, 'overrideYear:', overrideYear);
-        
+
+        // Clear any existing map data to prevent overlay issues
+        if (mapData) {
+            console.log('[onStartNewWorldAtLocation] Clearing existing map data before generating new map');
+            setMapData(null);
+            setAnimals([]);
+            setNpcs([]);
+            setDeployedVessels([]);
+            setMapDataCache(new Map());
+        }
+
         // Find the specific area definition
         const zoneData = GEOGRAPHICAL_DATA[targetZone];
         console.log('[onStartNewWorldAtLocation] Zone data found:', !!zoneData);

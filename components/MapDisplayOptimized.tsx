@@ -224,6 +224,7 @@ const easeInOutCubic = (t: number): number => {
 
 interface MapDisplayOptimizedProps {
   mapData: MapData | null;
+  currentMapSeed?: string | null;
   animals: AnimalEntity[];
   npcs: NpcEntity[];
   deployedVessels: DeployedVessel[];
@@ -276,8 +277,9 @@ interface MapDisplayOptimizedProps {
   onContainerClick?: (x: number, y: number, tile: Tile) => void;
 }
 
-export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({ 
-  mapData, 
+export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
+  mapData,
+  currentMapSeed,
   animals,
   npcs,
   deployedVessels,
@@ -1937,6 +1939,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       >
         {/* OPTIMIZED CANVAS - Using MapCanvasPerformance instead of expensive inline rendering */}
         <MapCanvasPerformance
+          key={currentMapSeed || 'default'}
           ref={canvasRef}
           mapData={mapData}
           canvasSize={canvasSize}

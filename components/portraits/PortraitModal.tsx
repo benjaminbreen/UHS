@@ -168,6 +168,7 @@ const PortraitModal: React.FC<PortraitModalProps> = ({ character, onClose }) => 
                             <DetailRow label="Hair Length" value={appearance.hairLength} />
                             <DetailRow label="Hair Texture" value={appearance.hairTexture} />
                             {appearance.facialHair && <DetailRow label="Facial Hair" value={appearance.facialHairStyle} />}
+                            <DetailRow label="Ear Size Debug" value={`Visible ears at Y: ${Math.floor((appearance.faceShape === 'long' ? 28 : 24) * 0.35)}-${Math.floor((appearance.faceShape === 'long' ? 28 : 24) * 0.55)}`} />
                         </div>
                     </div>
                 </div>

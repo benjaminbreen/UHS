@@ -58,8 +58,14 @@ const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
     setIsProcessing(true);
 
     try {
-      // 1. Add quest to quest system
-      const questId = worldWeaverQuestService.addWorldWeaverQuest(quest);
+      // 1. Add quest to quest system with map context for enhanced integration
+      const questId = await worldWeaverQuestService.addWorldWeaverQuest(
+        quest,
+        mapData,
+        currentLocation,
+        playerCharacter?.culturalZone || 'EUROPEAN',
+        playerCharacter?.historicalEra || 'RENAISSANCE_EARLY_MODERN'
+      );
       console.log('[WorldWeaverModal] Added quest to system:', questId);
 
       // 2. Spawn quest NPCs if we have valid context
@@ -141,84 +147,6 @@ const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
                 {location}
               </div>
             </div>
-          </div>
-
-          {/* Game Mode */}
-          {gameMode && (
-            <div className="bg-gradient-to-r from-purple-900/20 to-indigo-900/20 rounded-lg p-4 border border-purple-500/30">
-              <div className="flex items-center gap-2 text-sm text-purple-400 mb-2">
-                <Target className="w-4 h-4" />
-                Game Mode
-              </div>
-              <div className="text-lg font-semibold text-white mb-2">
-                {gameMode.name}
-              </div>
-              <p className="text-sm text-gray-300">
-                {gameMode.description}
-              </p>
-            </div>
-          )}
-
-          {/* Character */}
-          {characterSpec && (
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-              <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                <User className="w-4 h-4" />
-                Your Character
-              </div>
-              <div className="space-y-1 text-sm">
-                {characterSpec.name && (
-                  <div>
-                    <span className="text-gray-400">Name:</span>{' '}
-                    <span className="text-white font-medium">{characterSpec.name}</span>
-                  </div>
-                )}
-                {characterSpec.age && (
-                  <div>
-                    <span className="text-gray-400">Age:</span>{' '}
-                    <span className="text-white font-medium">{characterSpec.age}</span>
-                  </div>
-                )}
-                {characterSpec.gender && (
-                  <div>
-                    <span className="text-gray-400">Gender:</span>{' '}
-                    <span className="text-white font-medium">{characterSpec.gender}</span>
-                  </div>
-                )}
-                {characterSpec.profession && (
-                  <div>
-                    <span className="text-gray-400">Profession:</span>{' '}
-                    <span className="text-white font-medium">{characterSpec.profession}</span>
-                  </div>
-                )}
-                {characterSpec.socialClass && (
-                  <div>
-                    <span className="text-gray-400">Social Class:</span>{' '}
-                    <span className="text-white font-medium">{characterSpec.socialClass}</span>
-                  </div>
-                )}
-                {characterSpec.health && (
-                  <div>
-                    <span className="text-gray-400">Health:</span>{' '}
-                    <span className="text-white font-medium">{characterSpec.health}</span>
-                  </div>
-                )}
-                {characterSpec.traits && characterSpec.traits.length > 0 && (
-                  <div>
-                    <span className="text-gray-400">Traits:</span>{' '}
-                    <span className="text-white font-medium">{characterSpec.traits.join(', ')}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Explanation */}
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <h3 className="text-sm font-semibold text-gray-400 mb-2">Historical Context</h3>
-            <p className="text-sm text-gray-200">
-              {explanation}
-            </p>
           </div>
 
           {/* Reasoning */}

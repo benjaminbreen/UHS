@@ -1331,13 +1331,13 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                                             {/* Waist (narrower) */}
                                             <rect x={20 - bodyWidth * 0.4} y={16 + torsoHeight * 0.4} width={bodyWidth * 0.8} height={torsoHeight * 0.2} fill={shadeColor(baseColor, -20)} />
                                             {/* Hips (wider) */}
-                                            <rect x={20 - hipWidth/2} y={16 + torsoHeight * 0.6} width={hipWidth} height={torsoHeight * 0.4 - 2} fill={shadeColor(baseColor, -20)} />
+                                            <rect x={20 - hipWidth/2} y={16 + torsoHeight * 0.6} width={hipWidth} height={Math.max(0, torsoHeight * 0.4 - 2)} fill={shadeColor(baseColor, -20)} />
 
                                             {/* Light layer */}
-                                            <rect x={20 - shoulderWidth/2 + 0.5} y={15} width={shoulderWidth - 1} height={0.8} fill={baseColor} />
+                                            <rect x={20 - shoulderWidth/2 + 0.5} y={15} width={Math.max(0, shoulderWidth - 1)} height={0.8} fill={baseColor} />
                                             <rect x={20 - bodyWidth/2} y={15.8} width={bodyWidth} height={torsoHeight * 0.4} fill={baseColor} />
                                             <rect x={20 - bodyWidth * 0.4} y={15.8 + torsoHeight * 0.4} width={bodyWidth * 0.8} height={torsoHeight * 0.2} fill={baseColor} />
-                                            <rect x={20 - hipWidth/2} y={15.8 + torsoHeight * 0.6} width={hipWidth} height={torsoHeight * 0.4 - 1.5} fill={baseColor} />
+                                            <rect x={20 - hipWidth/2} y={15.8 + torsoHeight * 0.6} width={hipWidth} height={Math.max(0, torsoHeight * 0.4 - 1.5)} fill={baseColor} />
                                         </>
                                     ) : (
                                         <>

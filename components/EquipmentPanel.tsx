@@ -1,9 +1,10 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PlayerCharacter, Item, EquipmentSlot, Rarity } from '../types';
 import { getProceduralItemStats } from '../services/combatService';
 import ItemStatsPanel from './ItemStatsPanel';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
+import LazyItemIcon from './LazyItemIcon';
 import AccessoryMaintenanceService from '../services/accessoryMaintenanceService';
 import {
   Crown,
@@ -108,10 +109,11 @@ const rarityClass: Record<Rarity, string> = {
   Unique: 'bg-amber-500 text-amber-100 ring-amber-300/50',
 };
 
-const scoreOf = (it: Item) => {
-  const s = getProceduralItemStats(it);
-  return (s.attack || 0) + (s.defense || 0);
-};
+// Moved inside component to access itemStatsCache
+// const scoreOf = (it: Item) => {
+//   const s = getProceduralItemStats(it);
+//   return (s.attack || 0) + (s.defense || 0);
+// };
 
 /* --------------------------- UI bits ----------------------------- */
 
@@ -348,7 +350,7 @@ const EquipmentSlotDisplay: React.FC<{
           })()}
         >
           <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center drop-shadow">
-            <GenerativeItemIcon item={item} size={56} />
+            <LazyItemIcon item={item} size={56} immediate={true} />
           </div>
           <p className="text-[14px] sm:text-[15px] font-bold leading-tight text-blue-200 w-full text-center mt-1.5 px-0.5 break-words hyphens-auto shadow-sm" style={{wordBreak: 'break-word', textShadow: '0 1px 2px rgba(0,0,0,0.8)'}}>
             {extractQuality(item.name).name}
@@ -413,6 +415,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null); // NEW
 
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [slotFilter, setSlotFilter] = useState<'all' | EquipmentSlot | 'hand' | 'ring'>('all');
   const [sortBy, setSortBy] = useState<'rarity' | 'name' | 'value'>('rarity');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -434,13 +437,13 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     }
     setTooltip({ item, action });
 
-    const newStats = getProceduralItemStats(item);
+    const newStats = getItemStats(item);
     if (action === 'unequip') {
       setComparisonStats({ attack: -newStats.attack, defense: -newStats.defense });
     } else {
       const targetSlot = (newStats as any).equipmentSlot as EquipmentSlot | undefined;
       const current = targetSlot ? getEquipmentItem(targetSlot) : undefined;
-      const currentStats = current ? getProceduralItemStats(current) : { attack: 0, defense: 0 };
+      const currentStats = current ? getItemStats(current) : { attack: 0, defense: 0 };
       setComparisonStats({
         attack: newStats.attack - currentStats.attack,
         defense: newStats.defense,
@@ -457,11 +460,50 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     [character.inventory]
   );
 
+  // Debounce search query to avoid excessive re-renders
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Use ref for stats cache to avoid stale closures
+  const itemStatsCacheRef = useRef(new Map<string, any>());
+
+  // Helper to get stats with lazy calculation
+  const getItemStats = useCallback((item: Item) => {
+    const cache = itemStatsCacheRef.current;
+    if (cache.has(item.id)) {
+      return cache.get(item.id);
+    }
+    const stats = getProceduralItemStats(item);
+    cache.set(item.id, stats);
+    return stats;
+  }, []);
+
+  // Pre-calculate stats for equipped items only
+  useEffect(() => {
+    const cache = itemStatsCacheRef.current;
+    // Only calculate for currently equipped items
+    Object.values(character.equippedItems).forEach(item => {
+      if (item && !cache.has(item.id)) {
+        cache.set(item.id, getProceduralItemStats(item));
+      }
+    });
+  }, [character.equippedItems]);
+
+  // Score function using cached stats
+  const scoreOf = useCallback((it: Item) => {
+    const s = getItemStats(it);
+    return (s.attack || 0) + (s.defense || 0);
+  }, [getItemStats]);
+
   const filteredInventory = useMemo(() => {
     let items = equippableInventory;
 
-    if (query.trim()) {
-      const q = query.toLowerCase();
+    if (debouncedQuery.trim()) {
+      const q = debouncedQuery.toLowerCase();
       items = items.filter(
         (i) =>
           i.name.toLowerCase().includes(q) ||
@@ -487,7 +529,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
     items = [...items].sort(sortBy === 'name' ? byName : sortBy === 'value' ? byValue : byRarity);
     return items;
-  }, [equippableInventory, query, slotFilter, sortBy]);
+  }, [equippableInventory, debouncedQuery, slotFilter, sortBy]);
 
   /* ---------------------- NEW: Optimize button ---------------------- */
   const optimizeLoadout = () => {
@@ -760,7 +802,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     >
                       <div className="flex items-start gap-3 min-w-0 py-0.5">
                         <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 mt-0.5 bg-slate-800/40 rounded-md border border-slate-700/40">
-                          <GenerativeItemIcon item={item} size={48} />
+                          <LazyItemIcon item={item} size={48} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xl font-bold text-blue-100 leading-tight mb-1.5 break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{extractQuality(item.name).name}</p>
@@ -787,7 +829,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 /* List View */
                 <div className="space-y-2">
                   {filteredInventory.map((item) => {
-                    const stats = getProceduralItemStats(item);
+                    const stats = getItemStats(item);
                     const handleDragStart = (e: React.DragEvent) => {
                       e.dataTransfer.effectAllowed = 'move';
                       e.dataTransfer.setData('item', JSON.stringify(item));
@@ -811,7 +853,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-14 h-14 flex items-center justify-center flex-shrink-0 bg-slate-800/40 rounded-md border border-slate-700/40">
-                            <GenerativeItemIcon item={item} size={56} />
+                            <LazyItemIcon item={item} size={56} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-2">

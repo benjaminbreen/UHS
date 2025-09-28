@@ -236,9 +236,9 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
                         "Hudson Bay": { name: "Hudson Bay", climate: ClimateType.POLAR, archetype: MapArchetype.OPEN_OCEAN },
             "Bering Strait": { name: "Bering Strait", climate: ClimateType.COLD, archetype: MapArchetype.STRAITS },
             "Yukon River Valley": { name: "Yukon River Valley", climate: ClimateType.COLD, archetype: MapArchetype.RIVER_PORT, riverDirection: 'east-west', economicActivityLevel: 1 },
-            "Labrador Coast": { name: "Labrador Coast", climate: ClimateType.COLD, archetype: MapArchetype.BAY },
-            "Mackenzie Delta": { name: "Mackenzie Delta", climate: ClimateType.COLD, archetype: MapArchetype.DELTA, deltaOutlet: 'north', economicActivityLevel: 1 },
-            "Aleutian Islands": { name: "Aleutian Islands", climate: ClimateType.COLD, archetype: MapArchetype.ISLAND },
+            "Labrador Coast": { name: "Labrador Coast", climate: ClimateType.POLAR, archetype: MapArchetype.BAY },
+            "Mackenzie Delta": { name: "Mackenzie Delta", climate: ClimateType.POLAR, archetype: MapArchetype.DELTA, deltaOutlet: 'north', economicActivityLevel: 1 },
+            "Aleutian Islands": { name: "Aleutian Islands", climate: ClimateType.POLAR, archetype: MapArchetype.ISLAND },
             "Newfoundland Grand Banks": { name: "Newfoundland Grand Banks", climate: ClimateType.COLD, archetype: MapArchetype.SHOALS },
             "Lake Superior Basin": { name: "Lake Superior Basin", climate: ClimateType.COLD, archetype: MapArchetype.FRESHWATER_LAKE }
         },
@@ -636,7 +636,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Western Siberia": { name: "Western Siberia", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Central Siberia": { name: "Central Siberia", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, economicActivityLevel: 1, hasLakes: false },
             "Eastern Siberia": { name: "Eastern Siberia", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, hasLakes: false },
-            "Arctic Siberia": { name: "Arctic Siberia", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, economicActivityLevel: 0 },
+            "Arctic Siberia": { name: "Arctic Siberia", climate: ClimateType.POLAR, archetype: MapArchetype.ALL_LAND, economicActivityLevel: 0 },
             "Kamchatka Peninsula": { name: "Kamchatka Peninsula", climate: ClimateType.COLD, archetype: MapArchetype.PENINSULA },
             "Sakhalin Island": { name: "Sakhalin Island", climate: ClimateType.COLD, archetype: MapArchetype.ISLAND }
         },

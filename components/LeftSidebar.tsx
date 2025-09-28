@@ -759,26 +759,64 @@ const LeftSidebar: React.FC<{
                     }}
                     title="Click to explore historical details"
                   >
-                    <p className="text-lg font-bold text-cyan-400 mb-1">{majorCity.name}</p>
-                    <p className="text-xs text-gray-300 mb-2">{majorCity.description}</p>
-
-                    {/* City Details */}
-                    <div className="space-y-1 text-xs text-gray-400">
+                    {/* City header with founding year */}
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-lg font-bold text-cyan-400">{majorCity.name}</p>
                       {majorCity.foundingYear && (
-                        <div>Founded: {majorCity.foundingYear < 0 ? `${Math.abs(majorCity.foundingYear)} BCE` : `${majorCity.foundingYear} CE`}</div>
-                      )}
-                      {majorCity.populationPeak && (
-                        <div>Peak Population: {majorCity.populationPeak.toLocaleString()}</div>
-                      )}
-                      {majorCity.urbanDensity && (
-                        <div>Urban Density: {majorCity.urbanDensity}</div>
-                      )}
-                      {majorCity.economicFocus && majorCity.economicFocus.length > 0 && (
-                        <div>Economic Focus: {majorCity.economicFocus.join(', ')}</div>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          est. {majorCity.foundingYear < 0 ? `${Math.abs(majorCity.foundingYear)} BCE` : `${majorCity.foundingYear}`}
+                        </span>
                       )}
                     </div>
 
-                    <p className="text-xs text-cyan-300/60 mt-2 font-medium">Click for historical view →</p>
+                    <p className="text-xs text-gray-300 mb-2">{majorCity.description}</p>
+
+                    {/* Economic sectors with minimal colored outlines */}
+                    {majorCity.economicFocus && majorCity.economicFocus.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {majorCity.economicFocus.map((sector: string) => {
+                          const sectorColors: Record<string, string> = {
+                            'agriculture': 'border-green-600/40',
+                            'farming': 'border-green-600/40',
+                            'whaling': 'border-blue-600/40',
+                            'fishing': 'border-blue-600/40',
+                            'tourism': 'border-purple-600/40',
+                            'shipping': 'border-cyan-600/40',
+                            'trade': 'border-amber-600/40',
+                            'mining': 'border-stone-500/40',
+                            'manufacturing': 'border-gray-500/40',
+                            'textiles': 'border-pink-600/40',
+                            'finance': 'border-yellow-600/40',
+                            'banking': 'border-yellow-600/40',
+                            'military': 'border-red-600/40',
+                            'education': 'border-indigo-600/40',
+                            'arts': 'border-violet-600/40',
+                            'religion': 'border-sky-600/40',
+                            'government': 'border-slate-500/40',
+                            'technology': 'border-teal-600/40',
+                            'crafts': 'border-orange-600/40',
+                            'wine': 'border-rose-600/40',
+                            'oil': 'border-zinc-500/40',
+                            'livestock': 'border-amber-600/40',
+                            'timber': 'border-emerald-600/40',
+                            'shipbuilding': 'border-blue-600/40'
+                          };
+                          const borderColor = sectorColors[sector.toLowerCase()] || 'border-slate-500/40';
+
+                          return (
+                            <span
+                              key={sector}
+                              className={`inline-block px-1.5 py-0.5 rounded text-[10px] text-gray-400 border ${borderColor} bg-transparent`}
+                              title={sector}
+                            >
+                              {sector.toLowerCase()}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-cyan-300/50 mt-2">Click for details →</p>
                   </div>
                 </>
               )}
@@ -1034,7 +1072,7 @@ const LeftSidebar: React.FC<{
           width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px',
           opacity: isProcessingWorldWeaver ? 0 : 1,
           transition: 'opacity 2s ease-out',
-          transitionDelay: isProcessingWorldWeaver ? '2s' : '0s'
+          transitionDelay: isProcessingWorldWeaver ? '2s' : '0.5s' // Fade in 0.5s after processing ends
         }}
     >
       {/* Resize handle */}

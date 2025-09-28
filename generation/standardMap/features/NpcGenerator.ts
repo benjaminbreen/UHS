@@ -519,6 +519,13 @@ function createNpc(
         // Detect ethnicity from name for proper portrait generation
         const detectedEthnicity = detectEthnicityFromName(name);
 
+        // Override appearance with detected ethnicity if different from geographic zone
+        if (detectedEthnicity && detectedEthnicity !== context.culturalZone) {
+            const ethnicAppearance = generateCulturalAppearance(detectedEthnicity, noise);
+            baseProfile.appearance = { ...baseProfile.appearance, ...ethnicAppearance };
+            // console.log(`[NPC] ${name}: Geographic ${context.culturalZone} → Ethnic ${detectedEthnicity}`);
+        }
+
         const npc: NpcEntity = {
             ...baseProfile,
             id, x, y, name, class: socialClass, role,
@@ -898,7 +905,7 @@ export function generateNpcsForStandardMap(
                         const worker = createNpc(position.x, position.y, context, noise, stats, factory, 'Factory Worker');
                         if (worker) {
                             // Set factory-specific attributes
-                            worker.fatigue = 0.3 + Math.random() * 0.4; // Start with some fatigue
+                            worker.fatigue = Math.random() * 0.2; // Start relatively fresh (0-20% fatigue)
                             worker.morale = 0.3 + Math.random() * 0.4; // Variable morale
                             
                             npcs.push(worker);

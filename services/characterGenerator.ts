@@ -7,7 +7,7 @@ import { CHARACTER_NAMES as NAME_LISTS } from '../constants/characterData/names'
 import { parseDateString } from '../utils/dateUtils';
 import { createItemInstance, addItemToInventory, assembleStartingPackage } from '../utils/inventoryUtils';
 import { ValueNoise } from '../utils/noise';
-import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateClothingPalette } from '../generation/common/npcUtils';
+import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateClothingPalette, generateCulturalAppearance } from '../generation/common/npcUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { hexToColorName } from '../utils/colorUtils';
 import { CharacterSpecification } from './worldWeaverService';
@@ -897,10 +897,11 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         Math.floor(maxHealth * (0.6 + Math.random() * 0.2)) : // 60-80% for unhealthy
         Math.floor(maxHealth * (0.8 + Math.random() * 0.2)); // 80-100% for average/healthy
     
-    const timeOfDay = 12; // Default to noon
-    let baseFatigue = 30 + Math.random() * 40; // 30-70% tired during day
+    // Characters always start relatively well-rested (max 20% fatigue)
+    const baseFatigue = Math.random() * 20; // 0-20% fatigue
     const constitutionBonus = baseProfile.stats.constitution - 10;
-    const startingFatigue = Math.max(10, Math.min(100, baseFatigue - constitutionBonus * 3));
+    // Constitution can further reduce fatigue, but never below 0
+    const startingFatigue = Math.max(0, Math.min(20, baseFatigue - constitutionBonus));
     
     const staticPortraitSeed = Math.floor(Math.random() * 1000000);
     
@@ -1192,6 +1193,16 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
     const baseProfile = generateBaseProfile(noise, generationContext);
     const { socialClass, role, nameKey } = determineSocialRole(baseProfile, generationContext);
     const name = generateNpcName(baseProfile.gender, culturalZone, context.region, dateInfo.year, noise, nameKey);
+
+    // Detect ethnicity from name for historically accurate appearance
+    const detectedEthnicity = detectEthnicityFromName(name);
+    const appearanceEthnicity = detectedEthnicity || culturalZone; // Fallback to geographic zone
+
+    // Regenerate appearance with correct ethnicity if ethnicity differs from geographic zone
+    if (detectedEthnicity && detectedEthnicity !== culturalZone) {
+        const ethnicAppearance = generateCulturalAppearance(appearanceEthnicity, noise);
+        baseProfile.appearance = { ...baseProfile.appearance, ...ethnicAppearance };
+    }
     
     // Create a minimal character first for companion generation
     const tempCharacter: Partial<PlayerCharacter> = {
@@ -1303,47 +1314,77 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         }
     }
 
+    // Generate glasses based on era, profession, age, and cultural zone (historically accurate)
+    let glassesBaseProbability = 0;
+
+    // Cultural zones with historical access to glasses
+    const hasGlassesAccess =
+        culturalZone === 'EUROPEAN' ||
+        culturalZone === 'MENA' || // Islamic world had early eyeglass development
+        (culturalZone === 'EAST_ASIAN' && dateInfo.era !== 'RENAISSANCE_EARLY_MODERN') || // China had glasses later
+        (culturalZone === 'NORTH_AMERICAN_COLONIAL' && dateInfo.era !== 'RENAISSANCE_EARLY_MODERN'); // Colonial imports
+
+    if (hasGlassesAccess) {
+        if (dateInfo.era === 'RENAISSANCE_EARLY_MODERN') {
+            glassesBaseProbability = culturalZone === 'EUROPEAN' ? 0.05 :
+                                   culturalZone === 'MENA' ? 0.02 : 0; // Europe first, MENA second
+        } else if (dateInfo.era === 'INDUSTRIAL_ERA') {
+            glassesBaseProbability = culturalZone === 'EUROPEAN' ? 0.15 :
+                                   culturalZone === 'NORTH_AMERICAN_COLONIAL' ? 0.20 :
+                                   culturalZone === 'EAST_ASIAN' ? 0.10 :
+                                   culturalZone === 'MENA' ? 0.2 : 0;
+        } else if (dateInfo.era === 'MODERN_ERA') {
+            glassesBaseProbability = 0.25; // Widely available by modern era
+        }
+    }
+
+    const shouldHaveGlasses = glassesBaseProbability > 0 && (
+        noise.random() < glassesBaseProbability || // Base cultural probability
+        (role.toLowerCase().includes('scholar') && noise.random() < 0.6) || // 60% for scholars
+        (role.toLowerCase().includes('scribe') && noise.random() < 0.5) || // 50% for scribes
+        (role.toLowerCase().includes('merchant') && culturalZone === 'EUROPEAN' && noise.random() < 0.25) || // 25% for European merchants
+        (baseProfile.age > 50 && noise.random() < 0.3) // 30% for older people
+    );
+
+    const glassesStyles = ['round', 'square', 'oval', 'half_rim'] as const;
+    const selectedGlassesStyle = shouldHaveGlasses ?
+        glassesStyles[Math.floor(noise.random() * glassesStyles.length)] : undefined;
+
     // Build the final appearance object, prioritizing equipped items for the description
     const finalAppearance: Appearance = {
         ...baseProfile.appearance,
         palette: palette,
-        garment: equippedItems.torso 
-            ? { name: equippedItems.torso.name, material: equippedItems.torso.material || 'cloth' } 
+        garment: equippedItems.torso
+            ? { name: equippedItems.torso.name, material: equippedItems.torso.material || 'cloth' }
             : baseProfile.appearance.garment,
-        headgear: equippedItems.head 
-            ? { name: equippedItems.head.name, material: equippedItems.head.material || 'cloth' } 
+        headgear: equippedItems.head
+            ? { name: equippedItems.head.name, material: equippedItems.head.material || 'cloth' }
             : professionHeadgear,
-        footwear: equippedItems.feet 
-            ? { name: equippedItems.feet.name, material: equippedItems.feet.material || 'leather' } 
+        footwear: equippedItems.feet
+            ? { name: equippedItems.feet.name, material: equippedItems.feet.material || 'leather' }
             : baseProfile.appearance.footwear,
-        belt: equippedItems.belt 
-            ? { name: equippedItems.belt.name, material: equippedItems.belt.material || 'leather' } 
+        belt: equippedItems.belt
+            ? { name: equippedItems.belt.name, material: equippedItems.belt.material || 'leather' }
             : baseProfile.appearance.belt,
-        accessory: equippedItems.accessory 
-            ? { name: equippedItems.accessory.name, material: equippedItems.accessory.material || 'metal' } 
+        accessory: equippedItems.accessory
+            ? { name: equippedItems.accessory.name, material: equippedItems.accessory.material || 'metal' }
             : baseProfile.appearance.accessory,
-        markings: markings.length > 0 ? markings : undefined
+        markings: markings.length > 0 ? markings : undefined,
+        hasGlasses: shouldHaveGlasses,
+        glassesStyle: selectedGlassesStyle
     };
     
     const maxHealth = 80 + baseProfile.stats.constitution * 2 + baseProfile.stats.strength;
     const startingHealth = Math.floor(maxHealth * (0.8 + Math.random() * 0.2)); // 80-100% of max health
     
-    // Randomize fatigue based on time of day and character stats
-    const timeOfDay = generationContext.date ? new Date(generationContext.date).getHours() : 12;
-    let baseFatigue: number;
-    
-    // More tired at night, less tired during day
-    if (timeOfDay >= 22 || timeOfDay <= 5) {
-        baseFatigue = 70 + Math.random() * 30; // 70-100% tired at night
-    } else if (timeOfDay >= 6 && timeOfDay <= 9) {
-        baseFatigue = 20 + Math.random() * 30; // 20-50% tired in morning
-    } else {
-        baseFatigue = 30 + Math.random() * 40; // 30-70% tired during day
-    }
-    
-    // Constitution affects fatigue resistance 
+    // Characters always start relatively well-rested (max 20% fatigue)
+    // Regardless of time of day, newly spawned characters are fresh
+    const baseFatigue = Math.random() * 20; // 0-20% fatigue
+
+    // Constitution affects fatigue resistance
     const constitutionBonus = baseProfile.stats.constitution - 10;
-    const startingFatigue = Math.max(10, Math.min(100, baseFatigue - constitutionBonus * 3));
+    // Constitution can further reduce fatigue, but never below 0 or above 20
+    const startingFatigue = Math.max(0, Math.min(20, baseFatigue - constitutionBonus));
     
     const staticPortraitSeed = Math.floor(Math.random() * 1000000);
     
@@ -1379,8 +1420,7 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
     );
 
     // Add attributes to character before generating backstory
-    // Detect ethnicity from name for portrait generation
-    const detectedEthnicity = detectEthnicityFromName(name);
+    // Ethnicity already detected and applied above
     if (detectedEthnicity) {
         console.log(`[Character Generator] Detected ethnicity '${detectedEthnicity}' from name '${name}' (geographic zone: ${culturalZone})`);
         // Store as ethnicCulturalZone to distinguish from geographic culturalZone

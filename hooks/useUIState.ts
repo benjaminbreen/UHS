@@ -1321,7 +1321,7 @@ export const useUIState = () => {
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
-        isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, panelNotificationItem,
+        isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, panelNotificationItem,
         floatingTextMessages, containerPrompt,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,

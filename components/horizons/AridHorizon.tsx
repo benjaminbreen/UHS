@@ -354,7 +354,11 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
   }, [rng, width, biome]);
 
   /* -------- ids & weather flags -------- */
-  const uid = useMemo(() => `arid-${Math.random().toString(36).slice(2, 9)}`, []);
+  const uid = useMemo(() => {
+    // Use stable ID based on component instance, not Math.random()
+    const stableId = `arid-${baseSeed.toString(36)}-${width}-${height}`;
+    return stableId;
+  }, [baseSeed, width, height]);
   const ids = {
     topfade: `${uid}-topfade`,
     topmask: `${uid}-topmask`,

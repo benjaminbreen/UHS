@@ -671,7 +671,7 @@ export function generateBaseProfile(noise: ValueNoise, context: { era: Historica
     }
 }
 
-function generateCulturalAppearance(culturalZone: CulturalZone, noise: ValueNoise) {
+export function generateCulturalAppearance(culturalZone: CulturalZone, noise: ValueNoise) {
     const appearances: Record<string, {skinTones: string[], hairColors: string[], eyeColors: string[]}> = {
         'EAST_ASIAN': { skinTones: ['#fdbcb4', '#f4d1ae', '#e8c5a0', '#deb887', '#f0dcc4'], hairColors: ['#000000', '#1a0a05', '#2c1810', '#0f0f0f'], eyeColors: ['#2c1810', '#000000', '#1a1a1a', '#342c24'] },
         'EUROPEAN': { skinTones: ['#fde2d1', '#f4d1ae', '#e8c5a0', '#deb887', '#d2b48c', '#f5e6d3'], hairColors: ['#8b4513', '#654321', '#d4af37', '#dc7633', '#000000', '#696969', '#2c1810', '#f4d03f', '#b22222', '#daa520'], eyeColors: ['#4169e1', '#006400', '#8b4513', '#2c1810', '#654321', '#708090', '#87ceeb', '#228b22'] },

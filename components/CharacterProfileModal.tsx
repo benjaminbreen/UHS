@@ -12,7 +12,7 @@ import {
   Rarity,
 } from '../types';
 import { useUI } from '../contexts/UIContext';
-import { ProceduralPortrait, AnimatedPortrait } from './portraits';
+import LazyPortrait from './portraits/LazyPortrait';
 import BeliefsPanel from './BeliefsPanel';
 import EquipmentPanel from './EquipmentPanel';
 import {
@@ -366,6 +366,9 @@ const CharacterProfileModal: React.FC<Props> = ({
   date,
   location,
 }) => {
+  // Early return MUST come before any hooks
+  if (!isOpen || !character) return null;
+
   const { setIsPortraitModalOpen, setPortraitModalCharacter } = useUI();
 
   const [active, setActive] = useState<
@@ -420,8 +423,10 @@ const CharacterProfileModal: React.FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    if (isOpen) setTamedAnimals(loadTamedAnimals());
-  }, [isOpen]);
+    if (isOpen && active === 'profile') {
+      setTamedAnimals(loadTamedAnimals());
+    }
+  }, [isOpen, active]);
 
   const refreshAnimals = useCallback(() => setTamedAnimals(loadTamedAnimals()), []);
 
@@ -502,12 +507,24 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (active === 'history' && !lifeEventsGenerated && character) {
-      // Generate events in background
-      setTimeout(() => {
-        const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
-        setExpandedLifeEvents(events);
-        setLifeEventsGenerated(true);
-      }, 100);
+      // Debounced generation with longer delay to avoid blocking UI
+      const timeoutId = setTimeout(() => {
+        // Use requestIdleCallback if available for better performance
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(() => {
+            const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
+            setExpandedLifeEvents(events);
+            setLifeEventsGenerated(true);
+          }, { timeout: 2000 });
+        } else {
+          // Fallback to setTimeout with longer delay
+          const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
+          setExpandedLifeEvents(events);
+          setLifeEventsGenerated(true);
+        }
+      }, 500); // Increased delay from 100ms to 500ms
+
+      return () => clearTimeout(timeoutId);
     }
   }, [active, lifeEventsGenerated, character, date, tamedAnimals, culturalZone, era]);
 
@@ -586,7 +603,15 @@ const CharacterProfileModal: React.FC<Props> = ({
     }
   }, [filtered, selectedItem]);
 
-  if (!isOpen || !character) return null;
+  // Remove heavy memoization - LazyPortrait handles optimization internally
+
+  // Memoized item description to prevent expensive recalculation
+  const memoizedItemDescription = useMemo(() => {
+    if (!selectedItem) return '';
+    return isGenericDescription(selectedItem.description, selectedItem.name)
+      ? generateProceduralItemDescription(selectedItem)
+      : selectedItem.description;
+  }, [selectedItem?.description, selectedItem?.name, selectedItem?.id]);
 
   /* ----------------------------- Fixed Heights ---------------------------- */
   return (
@@ -602,7 +627,13 @@ const CharacterProfileModal: React.FC<Props> = ({
             <div className="flex items-center justify-between px-5 py-4 bg-slate-900/65 border-b-2 border-slate-700">
               <div className="flex items-center gap-4">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-600 shadow-lg bg-slate-800">
-                  <AnimatedPortrait character={character} size={44} trackChanges />
+                  <LazyPortrait
+                    character={character}
+                    size={44}
+                    type="animated"
+                    trackChanges
+                    immediate={true} // Header portrait should load immediately
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xl md:text-3xl font-bold text-white truncate">{character.name}</h2>
@@ -655,7 +686,13 @@ const CharacterProfileModal: React.FC<Props> = ({
             <div className="p-4 rounded-lg bg-gradient-to-br from-slate-700/50 to-slate-800/40 border border-slate-600/50">
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-500 bg-slate-900 shadow-lg grid place-items-center">
-                  <ProceduralPortrait character={character} size={80} useEquippedItems />
+                  <LazyPortrait
+                    character={character}
+                    size={80}
+                    type="procedural"
+                    useEquippedItems
+                    immediate={false} // Can lazy-load this one
+                  />
                 </div>
                 <div className="min-w-0">
                   <div className="text-white font-bold text-lg truncate">{character.name}</div>
@@ -757,7 +794,13 @@ const CharacterProfileModal: React.FC<Props> = ({
                     >
                       <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-700 bg-slate-900/70 shadow-xl">
                         <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-black/30 pointer-events-none" />
-                        <AnimatedPortrait character={character} size={300} trackChanges />
+                        <LazyPortrait
+                          character={character}
+                          size={300}
+                          type="animated"
+                          trackChanges
+                          immediate={false} // Definitely lazy-load this large one
+                        />
                       </div>
                       <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition text-xs">
                         View
@@ -1241,9 +1284,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                         </div>
                         <h5 className="text-lg font-bold text-white text-center mb-1">{formatItemName(selectedItem.name)}</h5>
                         <p className="text-sm text-slate-400 italic text-center mb-3">
-                          {isGenericDescription(selectedItem.description, selectedItem.name)
-                            ? generateProceduralItemDescription(selectedItem)
-                            : selectedItem.description}
+                          {memoizedItemDescription}
                         </p>
                         <div className="text-xs space-y-1 mb-4 p-2 rounded bg-slate-900/30">
                           <DetailRow label="Category" value={selectedItem.category} />

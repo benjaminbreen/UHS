@@ -236,14 +236,14 @@ const RiverSymbol: React.FC<RiverSymbolProps> = React.memo(({
         <rect
           x={x}
           y={y}
-          width={(size - riverWidth) / 2 - 2}
+          width={Math.max(0, (size - riverWidth) / 2 - 2)}
           height={size}
           fill="rgba(0, 0, 0, 0.05)"
         />
         <rect
           x={x + size - (size - riverWidth) / 2 + 2}
           y={y}
-          width={(size - riverWidth) / 2 - 2}
+          width={Math.max(0, (size - riverWidth) / 2 - 2)}
           height={size}
           fill="rgba(0, 0, 0, 0.05)"
         />

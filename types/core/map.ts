@@ -83,6 +83,12 @@ export interface CityInfo {
   languages: string[];
   founded: string;
   history: string;
+  // Additional fields from cities.ts data
+  foundingYear?: number;
+  populationPeak?: number;
+  urbanDensity?: 'small' | 'moderate' | 'large' | 'massive';
+  economicFocus?: string[];
+  declineYear?: number;
 }
 
 /**

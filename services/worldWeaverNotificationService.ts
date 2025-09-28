@@ -10,7 +10,7 @@ class WorldWeaverNotificationService {
    */
   showQuestToast(message: string, type: 'success' | 'info' | 'warning' = 'info'): void {
     // Dispatch a custom event that can be caught by existing notification systems
-    window.dispatchEvent(new CustomEvent('worldWeaverNotification', {
+    window.dispatchEvent(new CustomEvent('showGameToast', {
       detail: {
         message,
         type,
@@ -55,10 +55,7 @@ class WorldWeaverNotificationService {
    */
   initialize(): void {
     // Listen for WorldWeaver quest events
-    window.addEventListener('worldWeaverQuestAdded', (event: any) => {
-      const { quest } = event.detail;
-      this.showQuestIntegrationSuccess(quest.title);
-    });
+    // Note: worldWeaverQuestAdded is already handled by WorldWeaverModal calling showQuestIntegrationSuccess directly
 
     window.addEventListener('worldWeaverNPCSpawned', (event: any) => {
       const { npcName, location } = event.detail;

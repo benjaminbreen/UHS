@@ -187,8 +187,9 @@ class WorldWeaverQuestService {
       return stageContent;
     }).join('\n---\n\n');
 
-    // Format NPCs
-    const npcText = weaverQuest.specialNPCs.map(npc => {
+    // Format NPCs - handle both singular and plural formats
+    const npcs = weaverQuest.specialNPCs || (weaverQuest.specialNPC ? [weaverQuest.specialNPC] : []);
+    const npcText = npcs.map(npc => {
       return `**${npc.name}** - ${npc.profession || npc.role}\n${npc.personality}\n`;
     }).join('\n');
 

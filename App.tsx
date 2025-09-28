@@ -28,6 +28,7 @@ import { themeService } from './services/themeService';
 import InitialScenarioModal from './components/InitialScenarioModal';
 import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
+import TransitionOverlay from './components/TransitionOverlay';
 import QuestNotificationToast from './components/QuestNotification';
 import ContainerPrompt from './components/ContainerPrompt';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
@@ -254,7 +255,7 @@ const AppContent: React.FC = () => {
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime } = useGame();
     const mapContext = useMap();
-    const { localArea, mapData, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, isSpecialMap, isEnteringSpecialMap } = mapContext;
+    const { localArea, mapData, currentMapSeed, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, isSpecialMap, isEnteringSpecialMap } = mapContext;
     
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
@@ -266,6 +267,12 @@ const AppContent: React.FC = () => {
     const [isGeneratingMap, setIsGeneratingMap] = React.useState(false);
     const [mapVisible, setMapVisible] = React.useState(true); // Easter egg state
     const [isProcessingWorldWeaver, setIsProcessingWorldWeaver] = React.useState(false); // WorldWeaver loading state
+    const [worldWeaverData, setWorldWeaverData] = React.useState<{
+        settingDescription?: string;
+        characterDescription?: string;
+        quest?: any;
+    } | null>(null);
+    const [showTransitionOverlay, setShowTransitionOverlay] = React.useState(false); // Full-screen overlay state
     
     // Use a ref to ensure we only generate once from URL
     const hasGeneratedFromURLRef = React.useRef(false);
@@ -276,12 +283,32 @@ const AppContent: React.FC = () => {
     }, [urlConfig]);
     
     // Add a delay before generating any map to prevent double generation
+    // Increased delay to give WorldWeaver a chance to set its flag
     React.useEffect(() => {
         const timer = setTimeout(() => {
             setDelayInitialMap(false);
-        }, 100); // Small delay to let React settle
+        }, 500); // Longer delay to allow WorldWeaver to initialize if it's going to be used
         return () => clearTimeout(timer);
     }, []);
+
+    // Manage transition overlay timing for WorldWeaver
+    React.useEffect(() => {
+        let overlayTimer: NodeJS.Timeout;
+
+        if (isProcessingWorldWeaver) {
+            // Delay overlay appearance to coordinate with sidebar fadeout
+            overlayTimer = setTimeout(() => {
+                setShowTransitionOverlay(true);
+            }, 3500);
+        } else {
+            // Immediately start hiding overlay when processing ends
+            setShowTransitionOverlay(false);
+        }
+
+        return () => {
+            if (overlayTimer) clearTimeout(overlayTimer);
+        };
+    }, [isProcessingWorldWeaver]);
     
     // Generate initial world - handles both URL config and default random generation
     React.useEffect(() => {
@@ -289,27 +316,35 @@ const AppContent: React.FC = () => {
         if (hasInitializedFromURL) {
             return;
         }
-        
+
         // Wait for delay to prevent double generation
         if (delayInitialMap) {
             return;
         }
-        
+
         // Don't generate if already generating or loading
         if (isGeneratingMap || isLoading) {
             return;
         }
-        
+
+        // Don't generate if WorldWeaver is processing - it will handle map generation
+        if (isProcessingWorldWeaver) {
+            console.log('[App] WorldWeaver is processing, skipping default map generation');
+            return;
+        }
+
         // Don't generate if we're entering or in a special map
         if (isSpecialMap || isEnteringSpecialMap) {
             return;
         }
-        
-        // Don't generate if we already have a map
-        if (mapData) {
+
+        // Don't generate if we already have a map AND it's not a placeholder
+        // Check if mapData exists and has actual tiles (not just empty/placeholder)
+        if (mapData && mapData.tiles && mapData.tiles.length > 0) {
+            console.log('[App] Map already exists with tiles, skipping generation');
             return;
         }
-        
+
         // Additional guard using ref to prevent double generation
         if (hasGeneratedFromURLRef.current) {
             console.log('[App] Already generated from URL, skipping duplicate generation');
@@ -441,7 +476,7 @@ const AppContent: React.FC = () => {
         
         // Reset generating flag after a delay
         setTimeout(() => setIsGeneratingMap(false), 5000);
-    }, [hasInitializedFromURL, delayInitialMap, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, currentZone, isGeneratingMap, isLoading, mapData, isSpecialMap, isEnteringSpecialMap]);
+    }, [hasInitializedFromURL, delayInitialMap, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, currentZone, isGeneratingMap, isLoading, mapData, isSpecialMap, isEnteringSpecialMap, isProcessingWorldWeaver]);
     
     // Initialize event system
     const { 
@@ -579,15 +614,11 @@ const AppContent: React.FC = () => {
         }
     }, [playerCharacter?.name, resetForNewGame, setGameMode]); // Only reset when character name changes (new character)
     
-    // Show InitialScenarioModal for non-WorldWeaver games (only once per character)
+    // Show InitialScenarioModal for all games (only once per character)
     React.useEffect(() => {
         if (!hasShownInitialScenario && playerCharacter && gameDate && currentZone && localArea) {
-            // Check if this is NOT a WorldWeaver game (no custom events from LLM)
-            const customEvents = eventService.getCustomEventArchetypes();
-            const isWorldWeaver = customEvents && customEvents.length > 0;
-
-            // Only show if it's not WorldWeaver and no other modals are open
-            if (!isWorldWeaver && !showEventModal && !currentEvent) {
+            // Show for all games if no other modals are open
+            if (!showEventModal && !currentEvent) {
                 setShowInitialScenarioModal(true);
                 // Mark as shown immediately to prevent re-triggering
                 setHasShownInitialScenario(true);
@@ -663,7 +694,10 @@ const AppContent: React.FC = () => {
         
         <div className="relative z-10 flex flex-col h-full">
             {/* Desktop Navigation */}
-            {!isMobile && <TopNavBarPolished onWorldWeaverLoadingChange={setIsProcessingWorldWeaver} />}
+            {!isMobile && <TopNavBarPolished
+                onWorldWeaverLoadingChange={setIsProcessingWorldWeaver}
+                onWorldWeaverDataReceived={setWorldWeaverData}
+            />}
             
             {/* Mobile Header */}
             {isMobile && playerCharacter && (
@@ -746,7 +780,12 @@ const AppContent: React.FC = () => {
                     </div>
                 </div>
                 
-                <MapViewport mapVisible={mapVisible} isProcessingWorldWeaver={isProcessingWorldWeaver} onPlayerDeath={handleDeath} />
+                <MapViewport
+                    key={currentMapSeed || 'default'}
+                    mapVisible={mapVisible}
+                    isProcessingWorldWeaver={isProcessingWorldWeaver}
+                    onPlayerDeath={handleDeath}
+                />
                 
                 {/* Right Sidebar with mobile overlay and slide animation */}
                 <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full`}>
@@ -760,6 +799,10 @@ const AppContent: React.FC = () => {
             </div>
         </div>
         <ModalHub />
+        <TransitionOverlay
+          isVisible={showTransitionOverlay}
+          isProcessing={isProcessingWorldWeaver}
+        />
         <DebugOverlay />
         {isTestModeEnabled && debugSettings.showFPS && !debugSettings.logPerformanceMetrics && (
           <FPSCounter position="top-right" />
@@ -848,21 +891,26 @@ const AppContent: React.FC = () => {
           />
         )}
         
-        {/* Initial Scenario Modal for non-WorldWeaver games */}
+        {/* Initial Scenario Modal for all games */}
         {showInitialScenarioModal && playerCharacter && gameDate && currentZone && (
           <InitialScenarioModal
             isOpen={showInitialScenarioModal}
             onClose={() => {
               setShowInitialScenarioModal(false);
-              // Don't need to set hasShownInitialScenario here as it's already set when showing
+              // Clear WorldWeaver data after use
+              if (worldWeaverData) {
+                setWorldWeaverData(null);
+              }
             }}
             playerCharacter={playerCharacter}
             gameDate={gameDate}
             currentZone={currentZone}
+            worldWeaverData={worldWeaverData}
             currentRegion={currentRegion || currentZone} // Use actual region, fallback to zone
             localArea={localArea || 'Unknown Region'} // Use actual localArea from map
             gameMode={currentMode}
             urlConfig={urlConfig}
+            isProcessingWorldWeaver={isProcessingWorldWeaver}
           />
         )}
 

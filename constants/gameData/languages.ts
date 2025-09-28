@@ -56,6 +56,13 @@ export const LANGUAGE_FAMILIES = {
   QUECHUAN: 'Quechuan',
   PAMA_NYUNGAN: 'Pama-Nyungan',
   AUSTRALIAN_NON_PAMA_NYUNGAN: 'Australian (Non-Pama-Nyungan)',
+  SALISHAN: 'Salishan',
+  CHINOOKAN: 'Chinookan',
+  PENUTIAN: 'Penutian',
+  SALINAN: 'Salinan',
+  CHUMASHAN: 'Chumashan',
+  CADDOAN: 'Caddoan',
+  MUSKOGEAN: 'Muskogean',
   ISOLATE: 'Language Isolate',
   PIDGIN: 'Pidgin',
 };
@@ -79,6 +86,22 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'Never written down, this prehistoric language spoken on the Eurasian steppes around 4000 BCE is the reconstructed ancestor of most European and many Asian languages.',
   },
 
+  PROTO_INDO_IRANIAN: {
+    id: 'PROTO_INDO_IRANIAN',
+    name: 'Proto-Indo-Iranian',
+    nativeName: '*Proto-Árya',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Latin (reconstructed)'],
+    period: [-2500, -1500],
+    regions: ['Central Asia', 'Sintashta', 'BMAC', 'Andronovo'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    isReconstructed: true,
+    predecessors: ['PROTO_INDO_EUROPEAN'],
+    successors: ['VEDIC_SANSKRIT', 'OLD_PERSIAN', 'AVESTAN'],
+    description: 'Reconstructed common ancestor of Indo-Aryan and Iranian languages',
+    llmPrompt: 'Reconstruct Proto-Indo-Iranian with features common to Sanskrit and Old Persian. Use retroflex consonants and maintain three-way aspiration distinction. Focus on religious, pastoral, and warfare terminology. Word order SOV.',
+    historicalContext: 'The last common ancestor of Sanskrit and Persian, spoken by the ancestors of Indo-Aryans and Iranians around 2500 BCE before their split.',
+  },
   PROTO_SINO_TIBETAN: {
     id: 'PROTO_SINO_TIBETAN',
     name: 'Proto-Sino-Tibetan',
@@ -258,7 +281,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     period: [-3200, 700],
     regions: ['Egypt', 'Nubia', 'Nile Valley'],
     culturalZones: ['MENA' as CulturalZone],
-    successors: ['COPTIC'],
+    successors: ['DEMOTIC', 'COPTIC'],
     greetings: {
       hello: 'ii.wy em hotep',
       goodbye: 'senebty',
@@ -626,6 +649,19 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'The ancestor of most Australian Aboriginal languages, spoken for 5000+ years across 90% of Australia, representing humanity\'s longest continuous cultural tradition.',
   },
 
+  PROTO_AUSTRONESIAN: {
+    id: 'PROTO_AUSTRONESIAN',
+    name: 'Proto-Austronesian',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    isReconstructed: true,
+    period: [-3500, -1500],
+    regions: ['Taiwan', 'Southeast Asia', 'Pacific Islands'],
+    culturalZones: ['OCEANIAN' as CulturalZone, 'SOUTH_ASIAN' as CulturalZone],
+    successors: ['PROTO_POLYNESIAN', 'OLD_MALAY', 'OLD_TAGALOG', 'OLD_JAVANESE'],
+    description: 'Reconstructed ancestor of all Austronesian languages from Madagascar to Hawaii.',
+    llmPrompt: 'Reconstruct Proto-Austronesian with focus on maritime vocabulary. Use reduplication for plurals and intensification. Verb-initial word order. Include terms for outrigger canoes, navigation, fishing, and tropical agriculture.',
+    historicalContext: 'The ancestor of the world\'s most widespread language family, spoken by seafaring peoples who spread from Taiwan across the Pacific and Indian Oceans.',
+  },
   PROTO_POLYNESIAN: {
     id: 'PROTO_POLYNESIAN',
     name: 'Proto-Polynesian',
@@ -634,7 +670,8 @@ export const LANGUAGES: Record<string, LanguageData> = {
     period: [-1500, 500],
     regions: ['Polynesia', 'Pacific Islands'],
     culturalZones: ['OCEANIAN' as CulturalZone],
-    successors: ['HAWAIIAN', 'MAORI', 'TAHITIAN', 'SAMOAN'],
+    predecessors: ['PROTO_AUSTRONESIAN'],
+    successors: ['HAWAIIAN', 'MAORI', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN'],
     description: 'Reconstructed ancestral language of Polynesian peoples.',
     llmPrompt: 'This is a reconstructed language. Generate plausible speech based on common features of its descendants (Hawaiian, Samoan, Māori). The phonology must be simple, with a small consonant inventory and a strict Consonant-Vowel (CV) syllable structure. Syntax should be Verb-Subject-Object (VSO). Use particles before verbs to indicate tense, aspect, and mood.',
     historicalContext: 'The language of the greatest navigators in human history, Proto-Polynesian speakers colonized the vast Pacific Ocean from Hawaii to New Zealand around 1500 BCE.',
@@ -897,7 +934,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     period: [100, 1700],
     regions: ['Egypt', 'Nubia', 'Nile Valley'],
     culturalZones: ['MENA' as CulturalZone],
-    predecessors: ['ANCIENT_EGYPTIAN', 'DEMOTIC'],
+    predecessors: ['DEMOTIC'],
     description: 'Last stage of Egyptian language, used by Christian Egyptians',
     greetings: {
       hello: 'nofri',
@@ -1057,6 +1094,301 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'Russian evolved from Old East Slavic and became the lingua franca of the Soviet Union, expanding across Eurasia as a major international language.',
   },
 
+  // Central European Languages
+  CZECH: {
+    id: 'CZECH',
+    name: 'Czech',
+    nativeName: 'Čeština',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [800, 2025],
+    regions: ['Bohemia', 'Moravia', 'Silesia', 'Central Europe'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_SLAVONIC'],
+    greetings: {
+      hello: 'Dobrý den',
+      goodbye: 'Na shledanou',
+      yes: 'Ano',
+      no: 'Ne',
+      thanks: 'Děkuji',
+    },
+    llmPrompt: 'Emulate Czech language. Complex case system with seven cases. Rich consonant clusters. Distinguish long and short vowels. Word order is flexible but typically SVO. Use formal register for strangers, informal for friends.',
+    historicalContext: 'Czech emerged from West Slavic dialects and became a major literary language during the medieval Kingdom of Bohemia. It experienced a national revival in the 19th century.',
+  },
+
+  POLISH: {
+    id: 'POLISH',
+    name: 'Polish',
+    nativeName: 'Polski',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [800, 2025],
+    regions: ['Poland', 'Lithuania', 'Ukraine', 'Belarus'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_SLAVONIC'],
+    greetings: {
+      hello: 'Dzień dobry',
+      goodbye: 'Do widzenia',
+      yes: 'Tak',
+      no: 'Nie',
+      thanks: 'Dziękuję',
+    },
+    llmPrompt: 'Emulate Polish language. Seven cases with complex consonant clusters including sz, cz, rz, dz. Nasal vowels ą and ę. Stress on penultimate syllable. Use formal Pan/Pani forms for politeness.',
+    historicalContext: 'Polish developed as the language of the Polish-Lithuanian Commonwealth, one of Europe\'s largest states. It preserved many archaic Slavic features lost in other languages.',
+  },
+
+  HUNGARIAN: {
+    id: 'HUNGARIAN',
+    name: 'Hungarian',
+    nativeName: 'Magyar',
+    family: LANGUAGE_FAMILIES.URALIC,
+    script: 'Latin',
+    period: [896, 2025],
+    regions: ['Hungary', 'Transylvania', 'Slovakia', 'Vojvodina'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    greetings: {
+      hello: 'Jó napot',
+      goodbye: 'Viszlát',
+      yes: 'Igen',
+      no: 'Nem',
+      thanks: 'Köszönöm',
+    },
+    llmPrompt: 'Emulate Hungarian language. Agglutinative with extensive suffixation. 18-35 grammatical cases depending on analysis. Vowel harmony between front and back vowels. No grammatical gender. SOV word order.',
+    historicalContext: 'Hungarian arrived in the Carpathian Basin with the Magyar conquest in 896 CE. Despite being surrounded by Indo-European languages, it maintained its unique Uralic character.',
+  },
+
+  SLOVAK: {
+    id: 'SLOVAK',
+    name: 'Slovak',
+    nativeName: 'Slovenčina',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1000, 2025],
+    regions: ['Slovakia', 'Northern Hungary', 'Moravia'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_SLAVONIC'],
+    greetings: {
+      hello: 'Dobrý deň',
+      goodbye: 'Dovidenia',
+      yes: 'Áno',
+      no: 'Nie',
+      thanks: 'Ďakujem',
+    },
+    llmPrompt: 'Emulate Slovak language. Similar to Czech but with rhythmic law (no long syllables after long syllables). Six cases. Soft consonants marked with háček. More influenced by Hungarian than Czech.',
+    historicalContext: 'Slovak developed under Hungarian rule for nearly 1000 years, standardized in the 19th century by Ľudovít Štúr as distinct from Czech.',
+  },
+
+  // Scandinavian Languages
+  SWEDISH: {
+    id: 'SWEDISH',
+    name: 'Swedish',
+    nativeName: 'Svenska',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1225, 2025],
+    regions: ['Sweden', 'Finland', 'Estonia', 'Baltic'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_NORSE'],
+    greetings: {
+      hello: 'Hej',
+      goodbye: 'Hej då',
+      yes: 'Ja',
+      no: 'Nej',
+      thanks: 'Tack',
+    },
+    llmPrompt: 'Emulate Swedish language. Two grammatical genders (en/ett). Pitch accent distinguishes word meanings. V2 word order (verb second in main clauses). Use du for informal, ni for formal address.',
+    historicalContext: 'Swedish evolved from Old Norse and became the administrative language of the Swedish Empire, spreading across the Baltic region.',
+  },
+
+  DANISH: {
+    id: 'DANISH',
+    name: 'Danish',
+    nativeName: 'Dansk',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1100, 2025],
+    regions: ['Denmark', 'Southern Sweden', 'Schleswig', 'Norway', 'Iceland', 'Faroe Islands'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_NORSE'],
+    greetings: {
+      hello: 'Hej',
+      goodbye: 'Farvel',
+      yes: 'Ja',
+      no: 'Nej',
+      thanks: 'Tak',
+    },
+    llmPrompt: 'Emulate Danish language. Distinctive stød (glottal stop). Two genders (common/neuter). Extensive vowel reduction. V2 word order. Numbers use vigesimal system (base 20).',
+    historicalContext: 'Danish was the prestige language of Scandinavia during the Kalmar Union and influenced Norwegian significantly during the Danish-Norwegian union.',
+  },
+
+  NORWEGIAN: {
+    id: 'NORWEGIAN',
+    name: 'Norwegian',
+    nativeName: 'Norsk',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1350, 2025],
+    regions: ['Norway', 'Svalbard', 'Jan Mayen'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_NORSE'],
+    greetings: {
+      hello: 'Hei',
+      goodbye: 'Ha det',
+      yes: 'Ja',
+      no: 'Nei',
+      thanks: 'Takk',
+    },
+    llmPrompt: 'Emulate Norwegian (Bokmål). Two grammatical genders in Bokmål, three in Nynorsk. Pitch accent. V2 word order. More conservative than Danish, closer to Swedish in pronunciation.',
+    historicalContext: 'Norwegian developed from Old Norse but was heavily influenced by Danish during 400 years of union. Two written standards reflect this complex history.',
+  },
+
+  ICELANDIC: {
+    id: 'ICELANDIC',
+    name: 'Icelandic',
+    nativeName: 'Íslenska',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [870, 2025],
+    regions: ['Iceland', 'Greenland settlements'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_NORSE'],
+    greetings: {
+      hello: 'Halló',
+      goodbye: 'Bless',
+      yes: 'Já',
+      no: 'Nei',
+      thanks: 'Takk',
+    },
+    llmPrompt: 'Emulate Icelandic. Highly conservative, preserving Old Norse grammar. Four cases, three genders. Complex inflection. Create new words from native roots rather than borrowing. Use patronymic naming.',
+    historicalContext: 'Icelandic has changed so little since medieval times that modern speakers can read 13th-century sagas. Deliberate purism created native terms for modern concepts.',
+  },
+
+  SAMI: {
+    id: 'SAMI',
+    name: 'Sami (Northern)',
+    nativeName: 'Davvisámegiella',
+    family: LANGUAGE_FAMILIES.URALIC,
+    script: 'Latin',
+    period: [-1000, 2025],
+    regions: ['Lapland', 'Northern Scandinavia', 'Kola Peninsula'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    greetings: {
+      hello: 'Bures',
+      goodbye: 'Mana dearvan',
+      yes: 'Juo',
+      no: 'Ii',
+      thanks: 'Giitu',
+    },
+    llmPrompt: 'Emulate Northern Sami. Complex case system with 7 cases. Consonant gradation. Three numbers (singular, dual, plural). No gender. SOV word order. Include reindeer herding vocabulary.',
+    historicalContext: 'The Sami languages are indigenous to northern Europe, spoken by reindeer herders and fishers. They predate the arrival of Germanic and Finnic languages in Scandinavia.',
+  },
+
+  // Eastern European Languages
+  UKRAINIAN: {
+    id: 'UKRAINIAN',
+    name: 'Ukrainian',
+    nativeName: 'Українська',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Cyrillic',
+    period: [1000, 2025],
+    regions: ['Ukraine', 'Eastern Poland', 'Belarus', 'Russia', 'Moldova'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_SLAVONIC'],
+    greetings: {
+      hello: 'Добрий день',
+      goodbye: 'До побачення',
+      yes: 'Так',
+      no: 'Ні',
+      thanks: 'Дякую',
+    },
+    llmPrompt: 'Emulate Ukrainian language. Seven cases including vocative. Distinguish from Russian: use і instead of и, є instead of е initially, no hard sign. More Polish influence in western dialects.',
+    historicalContext: 'Ukrainian developed from Old East Slavic alongside Russian and Belarusian but maintained distinct features, especially the vocative case and certain phonological traits.',
+  },
+
+  BELARUSIAN: {
+    id: 'BELARUSIAN',
+    name: 'Belarusian',
+    nativeName: 'Беларуская',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Cyrillic',
+    period: [1200, 2025],
+    regions: ['Belarus', 'Eastern Poland', 'Lithuania', 'Latvia'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_SLAVONIC'],
+    greetings: {
+      hello: 'Добры дзень',
+      goodbye: 'Да пабачэння',
+      yes: 'Так',
+      no: 'Не',
+      thanks: 'Дзякуй',
+    },
+    llmPrompt: 'Emulate Belarusian. Six cases. Distinguishing features: дз and ц sounds, ў (short u), strong akanje (unstressed o becomes a). Mix of East Slavic and Polish influences.',
+    historicalContext: 'Belarusian developed in the Grand Duchy of Lithuania where it was an official language. It preserves features lost in Russian and Ukrainian.',
+  },
+
+  OLD_CHURCH_SLAVONIC: {
+    id: 'OLD_CHURCH_SLAVONIC',
+    name: 'Old Church Slavonic',
+    nativeName: 'Словѣньскъ',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Glagolitic/Cyrillic',
+    period: [860, 1200],
+    regions: ['Balkans', 'Eastern Europe', 'Russia'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    successors: ['RUSSIAN', 'UKRAINIAN', 'BELARUSIAN', 'BULGARIAN', 'SERBIAN'],
+    greetings: {
+      hello: 'Миръ тебѣ',
+      goodbye: 'Съ Богомь',
+      yes: 'Ей',
+      no: 'Ни',
+      thanks: 'Благодарѫ',
+    },
+    llmPrompt: 'Emulate Old Church Slavonic. Complex grammar with seven cases, three numbers (including dual), complex verb system. Use archaic vocabulary and religious terminology. Include nasalized vowels ѫ and ѧ.',
+    historicalContext: 'The first Slavic literary language, created by Saints Cyril and Methodius for translating religious texts. It became the liturgical language of Orthodox Slavs.',
+  },
+
+  TATAR: {
+    id: 'TATAR',
+    name: 'Tatar',
+    nativeName: 'Татар',
+    family: LANGUAGE_FAMILIES.TURKIC,
+    script: 'Cyrillic/Arabic',
+    period: [1240, 2025],
+    regions: ['Tatarstan', 'Crimea', 'Siberia', 'Central Asia'],
+    culturalZones: ['EUROPEAN' as CulturalZone, 'EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_TURKIC'],
+    greetings: {
+      hello: 'Сәлам',
+      goodbye: 'Сау булыгыз',
+      yes: 'Әйе',
+      no: 'Юк',
+      thanks: 'Рәхмәт',
+    },
+    llmPrompt: 'Emulate Tatar language. Agglutinative with vowel harmony. Six cases. No gender. SOV word order. Include Arabic and Persian loanwords for Islamic concepts, Russian loans for modern terms.',
+    historicalContext: 'Tatar was the language of the Golden Horde and later khanates. Kazan Tatar became a major literary language, while Crimean Tatar developed separately.',
+  },
+
+  VENETIAN: {
+    id: 'VENETIAN',
+    name: 'Venetian',
+    nativeName: 'Vèneto',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1200, 2025],
+    regions: ['Venice', 'Veneto', 'Istria', 'Dalmatia', 'Greek Islands'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['LATIN'],
+    greetings: {
+      hello: 'Ciao',
+      goodbye: 'Ciao',
+      yes: 'Sì',
+      no: 'No',
+      thanks: 'Grassie',
+    },
+    llmPrompt: 'Emulate Venetian dialect. Drop final vowels except -a. Use x for z sound. Distinctive vocabulary different from standard Italian. Include maritime and trade terminology.',
+    historicalContext: 'Venetian was the language of the Venetian Republic and its maritime empire, serving as a lingua franca in the Eastern Mediterranean trade networks.',
+  },
+
   MIDDLE_MONGOLIAN: {
     id: 'MIDDLE_MONGOLIAN',
     name: 'Middle Mongolian',
@@ -1138,6 +1470,360 @@ export const LANGUAGES: Record<string, LanguageData> = {
     },
     llmPrompt: 'Emulate Ojibwe grammar. This is a polysynthetic language; build complex verbs. The most critical grammatical feature is the distinction between animate and inanimate nouns, which affects verb choice and pluralization. Word order is relatively free but SVO is common. The tone can be rich with metaphor and storytelling.',
     historicalContext: 'One of the most widely spoken indigenous languages in North America, Ojibwe extends from Ontario to Montana and preserves sophisticated ecological knowledge.',
+  },
+
+  // Additional Native American Languages
+  SALISHAN: {
+    id: 'SALISHAN',
+    name: 'Salishan (Coast Salish)',
+    nativeName: 'Lushootseed',
+    family: LANGUAGE_FAMILIES.SALISHAN,
+    period: [-2000, 2025],
+    regions: ['Pacific Northwest', 'Puget Sound', 'British Columbia Coast'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'ʔəsx̌aʔ',
+      goodbye: 'huy',
+      yes: 'ʔaʔ',
+      no: 'x̌ik̓ʷ',
+      thanks: 'haʔɬ dadatu',
+    },
+    llmPrompt: 'Emulate Coast Salish/Lushootseed. Highly polysynthetic with complex consonant clusters including ejectives and uvular sounds. VSO word order. Rich in maritime and forest vocabulary.',
+    historicalContext: 'The Salishan languages dominated the Pacific Northwest coast, with sophisticated maritime cultures including the potlatch ceremony.',
+  },
+
+  CHINOOKAN: {
+    id: 'CHINOOKAN',
+    name: 'Chinookan',
+    nativeName: 'Chinuk Wawa',
+    family: LANGUAGE_FAMILIES.CHINOOKAN,
+    period: [-2000, 1950],
+    regions: ['Columbia River', 'Lower Columbia', 'Pacific Coast'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Klahowya',
+      goodbye: 'Klahowya',
+      yes: 'Nawitka',
+      no: 'Wake',
+      thanks: 'Mahsie',
+    },
+    llmPrompt: 'Emulate Chinookan language. Complex sound system with three-way distinction in stops. Extensive use of prefixes and suffixes. Focus on river and salmon-related vocabulary.',
+    historicalContext: 'Chinookan peoples controlled trade along the Columbia River. Their trade jargon became the regional lingua franca.',
+  },
+
+  // California Languages
+  MIWOK: {
+    id: 'MIWOK',
+    name: 'Miwok',
+    nativeName: 'Miwuk',
+    family: LANGUAGE_FAMILIES.PENUTIAN,
+    period: [-3000, 2025],
+    regions: ['Central California', 'Sierra Nevada', 'Central Valley'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Hukwin',
+      goodbye: 'Kolo',
+      yes: 'Oo',
+      no: 'Kawin',
+      thanks: 'Sookooya',
+    },
+    llmPrompt: 'Emulate Miwok language. SOV word order. Complex aspect system. Distinguish between witnessed and non-witnessed events. Rich vocabulary for acorns, basketry, and local ecology.',
+    historicalContext: 'Miwok peoples inhabited the California Central Valley and Sierra Nevada foothills, developing sophisticated acorn processing and basketry techniques.',
+  },
+
+  YOKUTS: {
+    id: 'YOKUTS',
+    name: 'Yokuts',
+    nativeName: 'Yokoch',
+    family: LANGUAGE_FAMILIES.PENUTIAN,
+    period: [-3000, 2025],
+    regions: ['San Joaquin Valley', 'Central Valley', 'Tulare Basin'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Huk',
+      goodbye: 'Illik',
+      yes: 'Hoo',
+      no: 'Ohom',
+      thanks: 'Yowtasat',
+    },
+    llmPrompt: 'Emulate Yokuts language. Agglutinative with complex suffixation. Three-way number distinction (singular, dual, plural). Evidential markers required.',
+    historicalContext: 'The Yokuts were one of the largest Native groups in California, with dozens of tribes across the Central Valley.',
+  },
+
+  OHLONE: {
+    id: 'OHLONE',
+    name: 'Ohlone (Costanoan)',
+    nativeName: 'Rumsien',
+    family: LANGUAGE_FAMILIES.PENUTIAN,
+    period: [-3500, 1900],
+    regions: ['San Francisco Bay', 'Monterey Bay', 'Central Coast'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Ka warep',
+      goodbye: 'Innikma',
+      yes: 'Hee',
+      no: 'Ekwe',
+      thanks: 'Hoomontwis',
+    },
+    llmPrompt: 'Emulate Ohlone/Rumsien. Complex consonant system. Extensive use of suffixes. Focus on coastal and tule marsh vocabulary.',
+    historicalContext: 'The Ohlone peoples inhabited the San Francisco and Monterey Bay areas, living in seasonal villages and managing the land through controlled burning.',
+  },
+
+  SALINAN: {
+    id: 'SALINAN',
+    name: 'Salinan',
+    nativeName: 'Salinan',
+    family: LANGUAGE_FAMILIES.SALINAN,
+    period: [-3000, 1900],
+    regions: ['Salinas Valley', 'Central Coast Ranges'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Koro',
+      goodbye: 'Kima',
+      yes: 'Ho',
+      no: 'Xek',
+      thanks: 'Tukne',
+    },
+    llmPrompt: 'Emulate Salinan language. Two main dialects (Antoniaño and Miguelino). Complex aspiration patterns. Verb-final word order.',
+    historicalContext: 'The Salinan people lived in the rugged coastal mountains of central California, maintaining trade relationships with coastal and valley peoples.',
+  },
+
+  CHUMASH: {
+    id: 'CHUMASH',
+    name: 'Chumash',
+    nativeName: 'Samala',
+    family: LANGUAGE_FAMILIES.CHUMASHAN,
+    period: [-3500, 1900],
+    regions: ['Santa Barbara', 'Channel Islands', 'Ventura Coast'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Haku',
+      goodbye: 'Kiywol',
+      yes: 'Ha',
+      no: 'Sik',
+      thanks: 'Kiyaqsup',
+    },
+    llmPrompt: 'Emulate Chumash language. Six-way consonant distinction. Complex sibilant system. Maritime vocabulary for plank canoes (tomol) and ocean navigation.',
+    historicalContext: 'The Chumash were sophisticated maritime people who built plank canoes and navigated to the Channel Islands, developing complex astronomical knowledge.',
+  },
+
+  TONGVA: {
+    id: 'TONGVA',
+    name: 'Tongva (Gabrielino)',
+    nativeName: 'Tongva',
+    family: LANGUAGE_FAMILIES.UTO_AZTECAN,
+    period: [-3500, 1900],
+    regions: ['Los Angeles Basin', 'San Gabriel Valley', 'Catalina Island'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Miyii',
+      goodbye: 'Aweeshkore',
+      yes: 'Haan',
+      no: 'Kwa',
+      thanks: 'Weywey',
+    },
+    llmPrompt: 'Emulate Tongva language. Related to other Uto-Aztecan languages. SOV word order. Distinguish inclusive and exclusive "we".',
+    historicalContext: 'The Tongva inhabited the Los Angeles Basin and southern Channel Islands, with their territory later becoming the site of Los Angeles.',
+  },
+
+  // Plains Languages
+  CHEYENNE: {
+    id: 'CHEYENNE',
+    name: 'Cheyenne',
+    nativeName: 'Tsėhésenėstsestȯtse',
+    family: LANGUAGE_FAMILIES.ALGONQUIAN,
+    period: [1700, 2025],
+    regions: ['Great Plains', 'Montana', 'Oklahoma'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_ALGONQUIAN'],
+    greetings: {
+      hello: 'Haaaʼééé',
+      goodbye: 'Nėstaevȧhosėstséme',
+      yes: 'Héehe',
+      no: 'Hováʼȧhane',
+      thanks: 'Néáʼėše',
+    },
+    llmPrompt: 'Emulate Cheyenne. Complex pitch accent system. Animate/inanimate noun distinction. Polysynthetic with extensive verb morphology. Plains warrior and buffalo hunting vocabulary.',
+    historicalContext: 'The Cheyenne migrated from the Great Lakes to the Plains, becoming renowned buffalo hunters and warriors alongside allies like the Arapaho.',
+  },
+
+  CROW: {
+    id: 'CROW',
+    name: 'Crow',
+    nativeName: 'Apsáalooke',
+    family: LANGUAGE_FAMILIES.SIOUAN,
+    period: [1600, 2025],
+    regions: ['Montana', 'Wyoming', 'Northern Plains'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_SIOUAN'],
+    greetings: {
+      hello: 'Sho\'daache',
+      goodbye: 'Deaxkaashe',
+      yes: 'Ee',
+      no: 'Kaa',
+      thanks: 'Ahó',
+    },
+    llmPrompt: 'Emulate Crow language. Complex phonology with ejective consonants. SOV word order. Active-stative alignment. Rich vocabulary for horses and Plains life.',
+    historicalContext: 'The Crow split from the Hidatsa and migrated to Montana, becoming skilled horse breeders and maintaining complex relationships with neighboring tribes.',
+  },
+
+  PAWNEE: {
+    id: 'PAWNEE',
+    name: 'Pawnee',
+    nativeName: 'Pāri',
+    family: LANGUAGE_FAMILIES.CADDOAN,
+    period: [1000, 2025],
+    regions: ['Nebraska', 'Kansas', 'Central Plains'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Rawa',
+      goodbye: 'Nawah',
+      yes: 'Awa',
+      no: 'Kakas',
+      thanks: 'Iri',
+    },
+    llmPrompt: 'Emulate Pawnee language. Complex verb morphology with incorporated nouns. Evidential system. Celestial and agricultural terminology reflecting earth lodge culture.',
+    historicalContext: 'The Pawnee were sophisticated astronomers and agriculturalists on the Central Plains, known for their earth lodges and detailed star knowledge.',
+  },
+
+  // Eastern Woodlands Languages
+  LENAPE: {
+    id: 'LENAPE',
+    name: 'Lenape (Delaware)',
+    nativeName: 'Lënapei',
+    family: LANGUAGE_FAMILIES.ALGONQUIAN,
+    period: [-1000, 1900],
+    regions: ['Delaware Valley', 'New Jersey', 'Eastern Pennsylvania', 'Manhattan'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_ALGONQUIAN'],
+    greetings: {
+      hello: 'Hè',
+      goodbye: 'Làpìch knewël',
+      yes: 'Ehe',
+      no: 'Ku',
+      thanks: 'Wanìshi',
+    },
+    llmPrompt: 'Emulate Lenape/Delaware. Animate/inanimate distinction crucial. Complex verbal morphology. Three dialect groups (Munsee, Unami, Unalachtigo).',
+    historicalContext: 'The Lenape were the original inhabitants of the Mid-Atlantic region including Manhattan. They were considered the "grandfathers" by other Algonquian tribes.',
+  },
+
+  CHEROKEE: {
+    id: 'CHEROKEE',
+    name: 'Cherokee',
+    nativeName: 'ᏣᎳᎩ',
+    family: LANGUAGE_FAMILIES.IROQUOIAN,
+    period: [-1000, 2025],
+    regions: ['Southern Appalachians', 'Georgia', 'Carolinas', 'Tennessee', 'Oklahoma'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_IROQUOIAN'],
+    greetings: {
+      hello: 'Osiyo',
+      goodbye: 'Donadagohvi',
+      yes: 'V',
+      no: 'Tla',
+      thanks: 'Wado',
+    },
+    llmPrompt: 'Emulate Cherokee. Polysynthetic with complex tone system (high/low). Uses unique syllabary created by Sequoyah. Distinguish inclusive/exclusive pronouns.',
+    historicalContext: 'The Cherokee developed a written syllabary in the 1820s under Sequoyah, achieving widespread literacy before forced removal on the Trail of Tears.',
+  },
+
+  CREEK: {
+    id: 'CREEK',
+    name: 'Creek (Muscogee)',
+    nativeName: 'Mvskoke',
+    family: LANGUAGE_FAMILIES.MUSKOGEAN,
+    period: [-1000, 2025],
+    regions: ['Alabama', 'Georgia', 'Florida', 'Oklahoma'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Hesci',
+      goodbye: 'Mvto',
+      yes: 'Henka',
+      no: 'Monkos',
+      thanks: 'Mvto',
+    },
+    llmPrompt: 'Emulate Creek/Muscogee. Tonal language with pitch accent. SOV word order. Complex verbal morphology with aspectual distinctions.',
+    historicalContext: 'The Creek Confederacy was a powerful alliance of southeastern tribes, later forced to relocate to Oklahoma during the Trail of Tears.',
+  },
+
+  CHOCTAW: {
+    id: 'CHOCTAW',
+    name: 'Choctaw',
+    nativeName: 'Chahta',
+    family: LANGUAGE_FAMILIES.MUSKOGEAN,
+    period: [-1000, 2025],
+    regions: ['Mississippi', 'Alabama', 'Louisiana', 'Oklahoma'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Halito',
+      goodbye: 'Chi pisa la chike',
+      yes: 'A',
+      no: 'Keyu',
+      thanks: 'Yakoke',
+    },
+    llmPrompt: 'Emulate Choctaw language. No tones but pitch accent. Complex verbal system with switch-reference. OSV basic word order.',
+    historicalContext: 'The Choctaw were one of the "Five Civilized Tribes," developing a written constitution and serving as code talkers in both World Wars.',
+  },
+
+  // Northern/Canadian Languages
+  BLACKFOOT: {
+    id: 'BLACKFOOT',
+    name: 'Blackfoot',
+    nativeName: 'Siksiká',
+    family: LANGUAGE_FAMILIES.ALGONQUIAN,
+    period: [-1000, 2025],
+    regions: ['Montana', 'Alberta', 'Saskatchewan'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_ALGONQUIAN'],
+    greetings: {
+      hello: 'Oki',
+      goodbye: 'Kitakitamatsinoon',
+      yes: 'Aa',
+      no: 'Saa',
+      thanks: 'Nitsiniiyi\'taki',
+    },
+    llmPrompt: 'Emulate Blackfoot. Complex pitch accent system. Animate/inanimate gender. Polysynthetic with noun incorporation. Plains buffalo culture vocabulary.',
+    historicalContext: 'The Blackfoot Confederacy controlled vast territories on the northern Plains, developing sophisticated buffalo hunting techniques and warrior societies.',
+  },
+
+  CREE: {
+    id: 'CREE',
+    name: 'Cree',
+    nativeName: 'Nēhiyawēwin',
+    family: LANGUAGE_FAMILIES.ALGONQUIAN,
+    period: [-2000, 2025],
+    regions: ['Canada', 'Montana', 'North Dakota', 'Subarctic', 'Plains'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_ALGONQUIAN'],
+    greetings: {
+      hello: 'Tânisi',
+      goodbye: 'Ekosi',
+      yes: 'Ehe',
+      no: 'Namôya',
+      thanks: 'Kinanâskomitin',
+    },
+    llmPrompt: 'Emulate Cree. Most widely spoken indigenous language in Canada. Animate/inanimate distinction. Complex verbal morphology with obviation. Syllabic writing system.',
+    historicalContext: 'Cree is the most geographically widespread indigenous language in Canada, with dialects from the Rockies to Labrador, adapted to diverse environments.',
+  },
+
+  MIKMAQ: {
+    id: 'MIKMAQ',
+    name: 'Mi\'kmaq',
+    nativeName: 'Mi\'kmawi\'simk',
+    family: LANGUAGE_FAMILIES.ALGONQUIAN,
+    period: [-3000, 2025],
+    regions: ['Maritime Provinces', 'Newfoundland', 'Maine', 'Atlantic Coast'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_ALGONQUIAN'],
+    greetings: {
+      hello: 'Kwe\'',
+      goodbye: 'Nmu\'ltes',
+      yes: 'E\'e',
+      no: 'Moqwe\'',
+      thanks: 'Wela\'lin',
+    },
+    llmPrompt: 'Emulate Mi\'kmaq. Verb-initial language. Animate/inanimate distinction. Rich morphology. Maritime and forest vocabulary of the Atlantic region.',
+    historicalContext: 'The Mi\'kmaq were among the first indigenous peoples to encounter Europeans, developing complex diplomatic relationships and maintaining their culture despite colonization.',
   },
 
   // === EARLY MODERN LANGUAGES (1500-1800) ===
@@ -1829,7 +2515,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     family: LANGUAGE_FAMILIES.SINO_TIBETAN,
     script: 'Chinese characters',
     period: [800, 2025],
-    regions: ['Fujian', 'Taiwan', 'Southeast Asia'],
+    regions: ['Fujian', 'Taiwan'],
     culturalZones: ['EAST_ASIAN' as CulturalZone],
     predecessors: ['MIDDLE_CHINESE'],
     greetings: {
@@ -2320,7 +3006,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     nativeName: 'ʻŌlelo Hawaiʻi',
     family: LANGUAGE_FAMILIES.AUSTRONESIAN,
     script: 'Latin',
-    period: [300, 2024],
+    period: [500, 2024],
     regions: ['Hawaii', 'Hawaiian Islands'],
     culturalZones: ['OCEANIAN' as CulturalZone],
     predecessors: ['PROTO_POLYNESIAN'],
@@ -2352,6 +3038,82 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Kia ora',
     },
     llmPrompt: 'Emulate Māori grammar. The syntax is typically Verb-Subject-Object (VSO), but can be flexible. Like other Polynesian languages, it relies heavily on particles before nouns and verbs to convey grammatical information (tense, possession, etc.). The tone should be suitable for a culture with strong oral traditions, formal oratory (whaikōrero), and a focus on genealogy (whakapapa).',
+  },
+  SAMOAN: {
+    id: 'SAMOAN',
+    name: 'Samoan',
+    nativeName: 'Gagana Samoa',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Latin',
+    period: [500, 2024],
+    regions: ['Samoa', 'American Samoa', 'Samoa Archipelago'],
+    culturalZones: ['OCEANIAN' as CulturalZone],
+    predecessors: ['PROTO_POLYNESIAN'],
+    greetings: {
+      hello: 'Talofa',
+      goodbye: 'Tofa',
+      yes: 'Ioe',
+      no: 'Leai',
+      thanks: 'Faʻafetai',
+    },
+    llmPrompt: 'Emulate Samoan grammar with VSO word order. Use particles for tense/aspect marking. Include respectful language distinctions (formal vs informal registers). The tone should reflect fa\'asamoa (Samoan way) with emphasis on respect, family, and community.',
+  },
+  TAHITIAN: {
+    id: 'TAHITIAN',
+    name: 'Tahitian',
+    nativeName: 'Reo Tahiti',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Latin',
+    period: [500, 2024],
+    regions: ['Tahiti', 'Society Islands', 'French Polynesia'],
+    culturalZones: ['OCEANIAN' as CulturalZone],
+    predecessors: ['PROTO_POLYNESIAN'],
+    greetings: {
+      hello: 'Ia ora na',
+      goodbye: 'Nānā',
+      yes: 'E',
+      no: 'Aita',
+      thanks: 'Māuruuru',
+    },
+    llmPrompt: 'Emulate Tahitian grammar with VSO word order. Use particles extensively for grammatical relations. The phonology is very simple (8 consonants, 5 vowels). Tone should be suitable for a maritime culture with strong dance and music traditions.',
+  },
+  TONGAN: {
+    id: 'TONGAN',
+    name: 'Tongan',
+    nativeName: 'Lea faka-Tonga',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Latin',
+    period: [500, 2024],
+    regions: ['Tonga', 'Tonga Ridge', 'Tongatapu'],
+    culturalZones: ['OCEANIAN' as CulturalZone],
+    predecessors: ['PROTO_POLYNESIAN'],
+    greetings: {
+      hello: 'Mālō e lelei',
+      goodbye: 'ʻAlu ā',
+      yes: 'ʻIo',
+      no: 'ʻIkai',
+      thanks: 'Mālō',
+    },
+    llmPrompt: 'Emulate Tongan grammar with VSO word order. Include complex honorific system reflecting social hierarchy. Use definiteness markers and dual/plural distinctions. Tone should be formal and respectful, appropriate for the last Polynesian kingdom.',
+  },
+  FIJIAN: {
+    id: 'FIJIAN',
+    name: 'Fijian',
+    nativeName: 'Vosa Vakaviti',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Latin',
+    period: [500, 2024],
+    regions: ['Fiji', 'Viti Levu', 'Vanua Levu'],
+    culturalZones: ['OCEANIAN' as CulturalZone],
+    predecessors: ['PROTO_POLYNESIAN'],
+    greetings: {
+      hello: 'Bula',
+      goodbye: 'Moce',
+      yes: 'Io',
+      no: 'Sega',
+      thanks: 'Vinaka',
+    },
+    llmPrompt: 'Emulate Fijian grammar with VOS word order (unlike other Polynesian languages). Use prenasalized stops in pronunciation. Include respect language and ceremonial speech patterns. Tone should reflect Fijian hospitality and communal values.',
   },
 
   // More Southeast Asian Languages
@@ -2423,6 +3185,24 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Mahsie',
     },
     llmPrompt: 'This is a pidgin. Grammar must be very simple with a small vocabulary. Word order is typically SVO or VSO. Use a limited set of words derived from Chinookan, Nuu-chah-nulth, French, and English sources. The tone should be direct and transactional, suitable for the context of fur trading and inter-tribal communication.',
+  },
+  MELANESIAN_PIDGIN: {
+    id: 'MELANESIAN_PIDGIN',
+    name: 'Melanesian Pidgin',
+    nativeName: 'Tok Pisin / Bislama / Pijin',
+    family: LANGUAGE_FAMILIES.PIDGIN,
+    period: [1800, 2024],
+    regions: ['Papua New Guinea', 'Solomon Islands', 'Vanuatu', 'New Caledonia'],
+    culturalZones: ['OCEANIAN' as CulturalZone],
+    description: 'English-based pidgin of Melanesia, now creolized',
+    greetings: {
+      hello: 'Gude',
+      goodbye: 'Lukim yu',
+      yes: 'Yes',
+      no: 'Nogat',
+      thanks: 'Tenkyu',
+    },
+    llmPrompt: 'Use simplified English-based pidgin with Melanesian substrate. SVO word order. Use "blong" for possession, "long" for prepositions, "pela" as adjective marker. Keep tenses simple using markers like "bin" (past) and "bai" (future). Focus on practical communication.',
   },
 
   // === NEW LANGUAGES FOR BETTER REGIONAL COVERAGE ===
@@ -3144,6 +3924,89 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { pattern: /Etxe|Iturri|Zugasti|Aguirre|Azkuna/i, language: 'BASQUE', weight: 90 },
     ],
   },
+
+  // Central Europe - Bohemia, Hungary, Poland, Austria
+  {
+    patterns: ['central europe', 'danube bend', 'bohemian plateau', 'carpathian foothills', 'vienna basin', 'moravian gate', 'tatra mountains'],
+    languages: [
+      { id: 'LATIN', period: [500, 1500], weight: 20 }, // Church and administration
+      { id: 'GERMAN', period: [800, 2025], weight: 35 }, // Holy Roman Empire influence
+      { id: 'CZECH', period: [800, 2025], weight: 25 },
+      { id: 'POLISH', period: [800, 2025], weight: 20 },
+      { id: 'HUNGARIAN', period: [896, 2025], weight: 25 },
+      { id: 'SLOVAK', period: [1000, 2025], weight: 15 },
+      { id: 'YIDDISH', period: [1000, 1945], weight: 10 }, // Jewish communities
+    ],
+    namePatterns: [
+      { pattern: /Novák|Dvořák|Svoboda|Černý|Procházka/i, language: 'CZECH', weight: 90 },
+      { pattern: /Kowalski|Nowak|Wiśniewski|Wójcik|Kamiński/i, language: 'POLISH', weight: 90 },
+      { pattern: /Nagy|Kovács|Tóth|Szabó|Horváth/i, language: 'HUNGARIAN', weight: 90 },
+      { pattern: /Horváth|Kováč|Varga|Tóth|Nagy/i, language: 'SLOVAK', weight: 85 },
+      { pattern: /Habsburg|von|zu|Graf|Herzog/i, language: 'GERMAN', weight: 85 },
+    ],
+  },
+
+  // Scandinavia - Nordic Countries
+  {
+    patterns: ['scandinavia', 'stockholm archipelago', 'norwegian fjords', 'jutland peninsula', 'lapland', 'gotland', 'øresund strait'],
+    languages: [
+      { id: 'OLD_NORSE', period: [700, 1350], weight: 60 },
+      { id: 'SWEDISH', period: [1225, 2025], weight: 35 },
+      { id: 'DANISH', period: [1100, 2025], weight: 30 },
+      { id: 'NORWEGIAN', period: [1350, 2025], weight: 30 },
+      { id: 'ICELANDIC', period: [870, 2025], weight: 10 },
+      { id: 'SAMI', period: [-1000, 2025], weight: 15 }, // Lapland
+      { id: 'GERMAN', period: [1300, 1600], weight: 10 }, // Hanseatic League
+    ],
+    namePatterns: [
+      { pattern: /sson$|sdotter$|Svensson|Andersson|Johansson/i, language: 'SWEDISH', weight: 90 },
+      { pattern: /sen$|Nielsen|Hansen|Pedersen|Andersen/i, language: 'DANISH', weight: 90 },
+      { pattern: /sen$|Olsen|Hansen|Larsen|Andersen/i, language: 'NORWEGIAN', weight: 90 },
+      { pattern: /sson$|dóttir$|Jónsson|Sigurðsson/i, language: 'ICELANDIC', weight: 95 },
+      { pattern: /Aslak|Niillas|Ante|Beaska/i, language: 'SAMI', weight: 85 },
+    ],
+  },
+
+  // Greece and Aegean
+  {
+    patterns: ['greece', 'aegean', 'athens basin', 'peloponnesian', 'crete', 'delos', 'mount olympus', 'thessalian plain'],
+    languages: [
+      { id: 'ANCIENT_GREEK', period: [-800, 600], weight: 70 },
+      { id: 'BYZANTINE_GREEK', period: [330, 1453], weight: 60 },
+      { id: 'MODERN_GREEK', period: [1453, 2025], weight: 80 },
+      { id: 'LATIN', period: [-146, 330], weight: 20 }, // Roman period
+      { id: 'OTTOMAN_TURKISH', period: [1453, 1821], weight: 15 }, // Ottoman rule
+      { id: 'VENETIAN', period: [1200, 1700], weight: 10 }, // Venetian islands
+    ],
+    namePatterns: [
+      { pattern: /opoulos$|ides$|akis$|oglou$/i, language: 'MODERN_GREEK', weight: 90 },
+      { pattern: /Papadopoulos|Dimitriou|Georgiou|Nikolaou/i, language: 'MODERN_GREEK', weight: 90 },
+      { pattern: /Constantine|Alexios|Theodora|Justinian/i, language: 'BYZANTINE_GREEK', weight: 85 },
+      { pattern: /Pericles|Socrates|Plato|Aristotle/i, language: 'ANCIENT_GREEK', weight: 95 },
+    ],
+  },
+
+  // Eastern Europe - Russia, Ukraine, Belarus
+  {
+    patterns: ['eastern europe', 'moscow basin', 'dnieper river', 'volga bend', 'carpathian ridge', 'steppe borderlands', 'novgorod woods'],
+    languages: [
+      { id: 'OLD_CHURCH_SLAVONIC', period: [860, 1200], weight: 20 },
+      { id: 'RUSSIAN', period: [1100, 2025], weight: 60 },
+      { id: 'UKRAINIAN', period: [1000, 2025], weight: 30 },
+      { id: 'BELARUSIAN', period: [1200, 2025], weight: 15 },
+      { id: 'POLISH', period: [1000, 2025], weight: 10 }, // Polish-Lithuanian influence
+      { id: 'TATAR', period: [1240, 1700], weight: 10 }, // Golden Horde
+      { id: 'YIDDISH', period: [1000, 1945], weight: 15 }, // Pale of Settlement
+    ],
+    namePatterns: [
+      { pattern: /ov$|ova$|ev$|eva$|sky$|skaya$/i, language: 'RUSSIAN', weight: 90 },
+      { pattern: /enko$|uk$|chuk$|ko$/i, language: 'UKRAINIAN', weight: 85 },
+      { pattern: /vich$|ovich$|evich$/i, language: 'BELARUSIAN', weight: 80 },
+      { pattern: /Ivan|Pyotr|Mikhail|Dmitri|Boris/i, language: 'RUSSIAN', weight: 85 },
+      { pattern: /Taras|Bohdan|Oksana|Yaroslav/i, language: 'UKRAINIAN', weight: 85 },
+    ],
+  },
+
   // Iberian Peninsula (general regions)
   {
     patterns: ['iberia', 'ebro valley', 'toledo plateau', 'andalusian plain', 'lisbon coast', 'strait of gibraltar'],
@@ -3311,6 +4174,154 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
     namePatterns: [
       { pattern: /Begay|Yazzie|Benally|Tsosie/i, language: 'NAVAJO', weight: 95 },
       { pattern: /Martinez|Garcia|Lopez|Sanchez/i, language: 'EARLY_SPANISH', weight: 90 },
+    ],
+  },
+
+  // Pacific Coast (Pacific Northwest)
+  {
+    patterns: ['pacific coast', 'columbia river', 'puget sound', 'olympic peninsula', 'redwood coast', 'shasta', 'cascade range'],
+    languages: [
+      { id: 'CHINOOK_JARGON', period: [1600, 1920], weight: 30 }, // Trade language
+      { id: 'SALISHAN', period: [-2000, 2025], weight: 35 },
+      { id: 'CHINOOKAN', period: [-2000, 1950], weight: 25 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1810, 2025], weight: 40 },
+      { id: 'RUSSIAN', period: [1741, 1867], weight: 10 }, // Russian America
+    ],
+    namePatterns: [
+      { pattern: /Seattle|Sealth|Kamiakin|Leschi/i, language: 'SALISHAN', weight: 85 },
+      { pattern: /Comcomly|Casanov|Concomly/i, language: 'CHINOOKAN', weight: 85 },
+    ],
+  },
+
+  // Northern California
+  {
+    patterns: ['northern california', 'san francisco bay', 'marin', 'sacramento valley', 'sierra nevada foothills', 'napa valley'],
+    languages: [
+      { id: 'MIWOK', period: [-3000, 2025], weight: 25 },
+      { id: 'YOKUTS', period: [-3000, 2025], weight: 20 },
+      { id: 'EARLY_SPANISH', period: [1769, 1846], weight: 35 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1846, 2025], weight: 50 },
+      { id: 'CLASSICAL_CHINESE', period: [1850, 1950], weight: 15 }, // Gold Rush immigration
+    ],
+    namePatterns: [
+      { pattern: /Ishi|Kauana|Wokoma/i, language: 'MIWOK', weight: 85 },
+      { pattern: /Vallejo|Arguello|Peralta|Castro/i, language: 'EARLY_SPANISH', weight: 90 },
+    ],
+  },
+
+  // Central California Coast
+  {
+    patterns: ['central california', 'monterey bay', 'santa cruz', 'salinas valley', 'big sur', 'san luis obispo'],
+    languages: [
+      { id: 'OHLONE', period: [-3500, 1900], weight: 20 },
+      { id: 'SALINAN', period: [-3000, 1900], weight: 15 },
+      { id: 'EARLY_SPANISH', period: [1769, 1846], weight: 40 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1846, 2025], weight: 45 },
+    ],
+    namePatterns: [
+      { pattern: /Ascension|Onesimo|Venancio/i, language: 'OHLONE', weight: 80 },
+      { pattern: /Alvarado|Soberanes|Malarin/i, language: 'EARLY_SPANISH', weight: 90 },
+    ],
+  },
+
+  // Southern California
+  {
+    patterns: ['southern california', 'santa barbara', 'los angeles', 'channel islands', 'san diego', 'mojave desert', 'central valley'],
+    languages: [
+      { id: 'CHUMASH', period: [-3500, 1900], weight: 15 },
+      { id: 'TONGVA', period: [-3500, 1900], weight: 15 },
+      { id: 'EARLY_SPANISH', period: [1769, 1846], weight: 35 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1846, 2025], weight: 50 },
+      { id: 'MODERN_SPANISH', period: [1900, 2025], weight: 20 },
+    ],
+    namePatterns: [
+      { pattern: /Toypurina|Nicolás José/i, language: 'TONGVA', weight: 85 },
+      { pattern: /Pico|Sepulveda|Dominguez|Lugo/i, language: 'EARLY_SPANISH', weight: 90 },
+    ],
+  },
+
+  // Great Plains
+  {
+    patterns: ['great plains', 'black hills', 'platte river', 'flint hills', 'badlands', 'tallgrass prairie', 'missouri breaks', 'llano estacado'],
+    languages: [
+      { id: 'LAKOTA', period: [1700, 2025], weight: 35 },
+      { id: 'CHEYENNE', period: [1700, 2025], weight: 25 },
+      { id: 'CROW', period: [1600, 2025], weight: 15 },
+      { id: 'PAWNEE', period: [1000, 2025], weight: 15 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1803, 2025], weight: 40 },
+    ],
+    namePatterns: [
+      { pattern: /Sitting Bull|Crazy Horse|Red Cloud|Black Elk/i, language: 'LAKOTA', weight: 95 },
+      { pattern: /White Bull|Dull Knife|Little Wolf/i, language: 'CHEYENNE', weight: 90 },
+      { pattern: /Plenty Coups|White Man Runs Him/i, language: 'CROW', weight: 85 },
+    ],
+  },
+
+  // Northeastern Seaboard
+  {
+    patterns: ['northeastern seaboard', 'hudson river', 'great lakes shoreline', 'adirondacks', 'delaware valley', 'long island', 'cape cod'],
+    languages: [
+      { id: 'MOHAWK', period: [-1000, 2025], weight: 20 },
+      { id: 'LENAPE', period: [-1000, 1900], weight: 15 },
+      { id: 'DUTCH', period: [1614, 1664], weight: 10 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1620, 2025], weight: 70 },
+      { id: 'GERMAN', period: [1683, 2025], weight: 15 },
+    ],
+    namePatterns: [
+      { pattern: /Hendrick|Theyanoguin|Kateri/i, language: 'MOHAWK', weight: 85 },
+      { pattern: /Tamanend|Teedyuscung/i, language: 'LENAPE', weight: 85 },
+      { pattern: /Van Rensselaer|Stuyvesant|Van Cortlandt/i, language: 'DUTCH', weight: 90 },
+    ],
+  },
+
+  // Southeast
+  {
+    patterns: ['southeast', 'lower south', 'appalachian', 'carolina piedmont', 'gulf coast florida', 'bayou country', 'ozark'],
+    languages: [
+      { id: 'CHEROKEE', period: [-1000, 2025], weight: 20 },
+      { id: 'CREEK', period: [-1000, 2025], weight: 15 },
+      { id: 'CHOCTAW', period: [-1000, 2025], weight: 15 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1607, 2025], weight: 60 },
+      { id: 'OLD_FRENCH', period: [1700, 1803], weight: 10 },
+      { id: 'EARLY_SPANISH', period: [1513, 1821], weight: 10 },
+    ],
+    namePatterns: [
+      { pattern: /Sequoyah|Dragging Canoe|Nancy Ward/i, language: 'CHEROKEE', weight: 90 },
+      { pattern: /McGillivray|Menawa|McIntosh/i, language: 'CREEK', weight: 85 },
+      { pattern: /Pushmataha|Mushulatubbee/i, language: 'CHOCTAW', weight: 85 },
+    ],
+  },
+
+  // Northern Rockies
+  {
+    patterns: ['northern rockies', 'alberta plains', 'british columbia coast', 'peace river', 'fraser valley', 'vancouver island'],
+    languages: [
+      { id: 'BLACKFOOT', period: [-1000, 2025], weight: 25 },
+      { id: 'CREE', period: [-2000, 2025], weight: 30 },
+      { id: 'SALISHAN', period: [-2000, 2025], weight: 20 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1778, 2025], weight: 40 },
+      { id: 'OLD_FRENCH', period: [1731, 1900], weight: 15 },
+    ],
+    namePatterns: [
+      { pattern: /Crowfoot|Red Crow|Poundmaker/i, language: 'BLACKFOOT', weight: 90 },
+      { pattern: /Big Bear|Mistahimaskwa/i, language: 'CREE', weight: 90 },
+    ],
+  },
+
+  // Canada (Eastern)
+  {
+    patterns: ['ontario great lakes', 'st. lawrence valley', 'maritimes', 'hudson bay lowlands', 'newfoundland', 'nova scotia', 'new brunswick'],
+    languages: [
+      { id: 'OJIBWE', period: [-1000, 2025], weight: 20 },
+      { id: 'MOHAWK', period: [-1000, 2025], weight: 15 },
+      { id: 'OLD_FRENCH', period: [1534, 2025], weight: 40 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1610, 2025], weight: 50 },
+      { id: 'MIKMAQ', period: [-3000, 2025], weight: 10 },
+    ],
+    namePatterns: [
+      { pattern: /Tecumseh|Pontiac|Shingwaukonse/i, language: 'OJIBWE', weight: 90 },
+      { pattern: /Cartier|Champlain|Montcalm|Frontenac/i, language: 'OLD_FRENCH', weight: 90 },
+      { pattern: /Membertou|Glooscap/i, language: 'MIKMAQ', weight: 85 },
     ],
   },
 

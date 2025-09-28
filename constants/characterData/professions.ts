@@ -480,44 +480,14 @@ const SHARED_FUTURE_PROFESSIONS = {
             keywords: 'smuggling criminal',
             emoji: '⛓️'
         },
-        'Antifa Member': {
-            statRequirements: { minStamina: 3, minPersuasion: 3 },
-            socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.5 },
-            keywords: 'anti-fascist activist',
-            emoji: '🏴'
-        },
-        'ISIS Fighter': {
-            statRequirements: { minConstitution: 3, minCraftiness: 2 },
-            socialRequirements: { maxPrivilege: 0.3, minReligiosity: 0.7 },
-            genderBias: 'Male',
-            keywords: 'extremist militant',
-            emoji: '⚔️'
-        },
+  
         'Climate Activist': {
             statRequirements: { minPersuasion: 3, minStamina: 2 },
             socialRequirements: { maxPrivilege: 0.5, minAmbition: 0.5 },
             keywords: 'environmental protest',
             emoji: '🌍'
         },
-        'BLM Activist': {
-            statRequirements: { minPersuasion: 3, minStamina: 3 },
-            socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.5 },
-            keywords: 'racial justice',
-            emoji: '✊'
-        },
-        'Proud Boy': {
-            statRequirements: { minStrength: 3, minCraftiness: 2 },
-            socialRequirements: { maxPrivilege: 0.5 },
-            genderBias: 'Male',
-            keywords: 'far-right militant',
-            emoji: '🚩'
-        },
-        'Anonymous Hacker': {
-            statRequirements: { minIntelligence: 5, minCraftiness: 4 },
-            socialRequirements: { maxPrivilege: 0.5, minWanderlust: 0.5 },
-            keywords: 'hacktivist collective',
-            emoji: '🎭'
-        },
+      
         'Fentanyl Dealer': {
             statRequirements: { minCraftiness: 3, minPersuasion: 2 },
             socialRequirements: { maxPrivilege: 0.2 },

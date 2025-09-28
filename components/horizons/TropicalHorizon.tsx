@@ -86,6 +86,7 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
   const isNight = tod.includes("night");
   const isDawn = tod.includes("dawn");
   const isDusk = tod.includes("dusk") || tod.includes("even");
+  const isTwilight = isDawn || isDusk;
 
   // Helper to blend hex colors
   const blendHex = (a: string, b: string, t: number) => {
@@ -171,6 +172,16 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
 
     return base;
   }, [bottomPanelColor, sky, isNight]);
+
+  // Generate stable bird positions
+  const birds = useMemo(() => {
+    const birdCount = isTwilight ? 4 : 2;
+    return Array.from({ length: birdCount }, (_, i) => ({
+      x: p(width * (0.15 + rng(100 + i * 137) * 0.7)),
+      y: p(height * (0.1 + rng(200 + i * 239) * 0.3)),
+      size: 2 + (i % 2),
+    }));
+  }, [width, height, isTwilight, rng]);
 
   // ---------- layout ----------
   const bandH = height * 0.09;

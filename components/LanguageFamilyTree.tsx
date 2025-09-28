@@ -259,6 +259,55 @@ export function LanguageFamilyTree({
     const linkGen = d3.linkHorizontal<any, any>().x((d: any) => d.y).y((d: any) => d.x);
     const links = nodesLayout.links();
 
+    // Create a map of node positions for secondary links
+    const nodePositions = new Map<string, {x: number, y: number}>();
+    nodesLayout.descendants().forEach((d: any) => {
+      nodePositions.set(d.data.id, {x: d.x, y: d.y});
+    });
+
+    // Draw secondary links (non-primary predecessor relationships) - fainter and dashed
+    const secondaryLinksG = gRoot.append('g').attr('class', 'secondary-links');
+    const secondaryLinks: any[] = [];
+
+    // Find all non-primary predecessor relationships
+    nodesLayout.descendants().forEach((node: any) => {
+      const langData = node.data;
+      if (langData.predecessors && langData.predecessors.length > 0) {
+        // Check each predecessor to see if it's NOT the primary parent
+        langData.predecessors.forEach((predId: string) => {
+          const predPos = nodePositions.get(predId);
+          const nodePos = nodePositions.get(langData.id);
+
+          // Only draw if this is NOT the primary parent (primary links are already drawn)
+          const isPrimary = links.some((link: any) =>
+            link.source.data.id === predId && link.target.data.id === langData.id
+          );
+
+          if (!isPrimary && predPos && nodePos) {
+            secondaryLinks.push({
+              source: predPos,
+              target: nodePos,
+              targetFamily: langData.family
+            });
+          }
+        });
+      }
+    });
+
+    // Draw the secondary links with dashed lines
+    secondaryLinksG
+      .selectAll('path')
+      .data(secondaryLinks)
+      .enter()
+      .append('path')
+      .attr('d', (d: any) => linkGen({source: d.source, target: d.target}) as any)
+      .attr('fill', 'none')
+      .attr('stroke', (d: any) => getFamilyColor(d.targetFamily))
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '3,3')
+      .attr('opacity', 0.3);
+
+    // Draw primary links (existing code)
     const linksG = gRoot.append('g').attr('class', 'links');
     linksG
       .selectAll('path')
@@ -343,9 +392,18 @@ export function LanguageFamilyTree({
       .attr('dx', (d: any) => (d.data.isRoot || String(d.data.id).startsWith('family_') ? 0 : d.children ? -12 : 12))
       .attr('dy', (d: any) => (d.data.isRoot || String(d.data.id).startsWith('family_') ? -20 : 3))
       .attr('text-anchor', (d: any) => (d.data.isRoot || String(d.data.id).startsWith('family_') ? 'middle' : d.children ? 'end' : 'start'))
-      .attr('font-size', (d: any) => (d.data.isRoot ? 20 : String(d.data.id).startsWith('family_') ? 16 : 13))
-      .attr('font-weight', (d: any) => (d.data.isRoot || String(d.data.id).startsWith('family_') ? 700 : 500))
-      .attr('fill', (d: any) => (d.data.isExtinct ? '#6b7280' : d.data.isRoot || String(d.data.id).startsWith('family_') ? '#0f172a' : '#1f2937'))
+      .attr('font-size', (d: any) => (d.data.isRoot ? 20 : String(d.data.id).startsWith('family_') ? 16 : 9))
+      .attr('font-weight', (d: any) => {
+        if (d.data.isRoot || String(d.data.id).startsWith('family_')) return 700;
+        if (selectedNode && d.data.id === selectedNode.id) return 700;
+        return 500;
+      })
+      .attr('fill', (d: any) => {
+        if (selectedNode && d.data.id === selectedNode.id) return '#f59e0b'; // Amber-500
+        if (d.data.isExtinct) return '#6b7280';
+        if (d.data.isRoot || String(d.data.id).startsWith('family_')) return '#0f172a';
+        return '#1f2937';
+      })
       .style('paint-order', 'stroke')
       .style('stroke', '#ffffff')
       .style('stroke-width', 3)
@@ -491,7 +549,7 @@ if (initialLanguageId) {
       styleEl.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, viewMode, FAMILY_COLORS, getFamilyColor, initialLanguageId]);
+  }, [isOpen, viewMode, FAMILY_COLORS, getFamilyColor, initialLanguageId, selectedNode]);
 
   // Keep a ref to center function
   const centerOnNodeRef = useRef<(id: string, opts?: { duration?: number; scale?: number }) => void>(() => {});

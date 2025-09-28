@@ -39,15 +39,30 @@ export const generateCityInfo = (
       else if (culturalZone === 'MENA' || culturalZone === 'SOUTH_ASIAN') { languages.push('Arabic or Persian'); }
       const history = `Founded around the year ${cityData.foundingYear}, ${cityData.name} has a long and storied past, evolving from a local settlement to a key center in the region under various powers.`;
 
+      // Calculate population based on era and urbanDensity
+      let population = cityData.populationPeak || 15000;
+      // Adjust population based on current year vs founding year
+      if (cityData.declineYear && currentYear > cityData.declineYear) {
+        population = Math.floor(population * 0.3); // Declined cities have 30% of peak
+      } else if (currentYear < cityData.foundingYear + 100) {
+        population = Math.floor(population * 0.5); // Young cities have 50% of peak
+      }
+
       return {
         name: cityData.name,
-        population: 15000, // placeholder
+        population: population,
         allegiance: allegiance,
         description: cityData.description,
         isHistorical: cityData.isHistorical,
         languages: languages,
         founded: `circa ${cityData.foundingYear}`,
-        history: history
+        history: history,
+        // Pass through all the rich data from cities.ts
+        foundingYear: cityData.foundingYear,
+        populationPeak: cityData.populationPeak,
+        urbanDensity: cityData.urbanDensity,
+        economicFocus: cityData.economicFocus,
+        declineYear: cityData.declineYear
       };
     }
   }
@@ -65,15 +80,37 @@ export const generateCityInfo = (
 
           const history = `An ancient settlement in the ${mapAreaName}, it has served as a local hub for generations under the influence of various powers, including the ${dominantPower}.`;
 
+          // Generate reasonable defaults for procedural cities
+          const population = 2500 + Math.floor(Math.random() * 10000);
+          const urbanDensity = population > 10000 ? 'moderate' : 'small';
+
+          // Generate economic focus based on cultural zone and era
+          const economicFocus: string[] = [];
+          if (culturalZone === 'EUROPEAN') {
+              economicFocus.push('trade', 'agriculture');
+              if (currentYear > 1500) economicFocus.push('manufacturing');
+          } else if (culturalZone === 'EAST_ASIAN') {
+              economicFocus.push('trade', 'crafts', 'agriculture');
+          } else if (culturalZone === 'MENA') {
+              economicFocus.push('trade', 'textiles');
+          } else {
+              economicFocus.push('agriculture', 'livestock');
+          }
+
           return {
               name: cityData.name,
-              population: 2500 + Math.floor(Math.random() * 10000), // Smaller population for procedural cities
+              population: population,
               allegiance: dominantPower,
               description: cityData.description,
               isHistorical: false, // Mark as procedurally generated
               languages,
               founded: 'ancient times',
-              history
+              history,
+              // Add rich data even for procedural cities
+              foundingYear: currentYear - 500 - Math.floor(Math.random() * 1000), // Random ancient founding
+              populationPeak: population,
+              urbanDensity: urbanDensity as 'small' | 'moderate',
+              economicFocus: economicFocus
           };
       }
   }

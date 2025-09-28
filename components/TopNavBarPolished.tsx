@@ -102,9 +102,14 @@ const GAME_MODE_CONFIG = {
 
 interface TopNavBarPolishedProps {
   onWorldWeaverLoadingChange?: (isLoading: boolean) => void;
+  onWorldWeaverDataReceived?: (data: {
+    settingDescription?: string;
+    characterDescription?: string;
+    quest?: any;
+  }) => void;
 }
 
-const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange }) => {
+const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived }) => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen } = useUI();
   const { currentMode } = useEventSystem();
   const { setControlledIconX, setControlledIconY } = usePlayer();
@@ -323,7 +328,16 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
           customEventsCount: result.customEvents?.length || 0,
           quest: result.quest // Pass the quest!
         };
-        
+
+        // Pass WorldWeaver data to parent for InitialScenarioModal
+        if (onWorldWeaverDataReceived) {
+          onWorldWeaverDataReceived({
+            settingDescription: result.quest?.historicalContext || result.explanation,
+            characterDescription: result.characterSpec?.characterDescription,
+            quest: result.quest
+          });
+        }
+
         // Only set pendingScenarioData, let the useEffect handle opening the modal
         setPendingScenarioData(scenarioData);
         

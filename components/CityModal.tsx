@@ -1120,7 +1120,6 @@ const CityModal: React.FC<CityModalProps> = ({
                 <button
                     onClick={() => {
                         // Clear tile data and force regeneration
-                        const { urbanTileRegistry } = require('../services/urbanTileRegistryService');
                         urbanTileRegistry.clearTile(tile.x, tile.y);
                         console.log(`Cleared business data for tile (${tile.x}, ${tile.y}). Refreshing...`);
 

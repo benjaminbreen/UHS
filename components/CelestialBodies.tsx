@@ -264,7 +264,9 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
     }
 
     // Saturn (pale gold with rings hint)
-    if (((gameMonth + 5) % 12) > 4 && ((gameMonth + 5) % 12) < 11) {
+    // Visible most of the year except late winter/early spring (realistic: ~10 months visibility)
+    // Invisible only February-April when too close to sun
+    if (gameMonth < 2 || gameMonth > 4) {
       const p = place(0.38, -0.06);
       planets.push({
         name: 'Saturn',

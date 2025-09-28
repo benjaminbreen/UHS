@@ -168,7 +168,7 @@ export function renderStubble(opts: StubbleOpts) {
 
   const jawRx = headW * 0.44;
   const jawRy = headH * 0.52;
-  const moustacheY = headY + Math.round(headH * 0.57);
+  const moustacheY = headY + Math.round(headH * 0.68); // Lower position - at mouth/philtrum level, not on nose
   const moustacheHalfW = Math.round(headW * 0.22);
 
   // falloff helpers
@@ -182,7 +182,7 @@ export function renderStubble(opts: StubbleOpts) {
   };
 
   const moustacheMask = (x: number, y: number) =>
-    y >= moustacheY && y <= moustacheY + 2 && Math.abs(x - cx) <= moustacheHalfW;
+    y >= moustacheY && y <= moustacheY + 1 && Math.abs(x - cx) <= moustacheHalfW; // Reduced height to 2 pixels
 
   // iterate only a tight bbox
   const minX = Math.round(headX + headW * 0.08);

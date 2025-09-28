@@ -27,6 +27,9 @@ import PrimarySourcesModal from './PrimarySourcesModal';
 import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 import TestSuitePanel from './TestSuitePanel';
 import FactoryBannerTest from './FactoryBannerTest';
+import CityTimeline from './CityTimeline';
+import TradeNetworkGlobe from './TradeNetworkGlobe';
+import CityMapGlobe from './CityMapGlobe';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -34,6 +37,8 @@ interface SettingsPanelProps {
   currentSeed: number;
   onSeedChange: (seed: number) => void;
   showDevTooltip: boolean;
+  currentGameYear?: number;
+  playerLocation?: string;
   onToggleDevTooltip: () => void;
   useLlmForDescriptions: boolean;
   onToggleLlmForDescriptions: () => void;
@@ -98,6 +103,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   currentYear,
   onLoadGame,
   currentGameState,
+  playerLocation,
 }) => {
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
@@ -108,6 +114,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // User-facing modals
   const [showSavedGamesModal, setShowSavedGamesModal] = useState(false);
   const [showPrimarySourcesModal, setShowPrimarySourcesModal] = useState(false);
+  const [showCityTimeline, setShowCityTimeline] = useState(false);
+  const [showTradeNetworkGlobe, setShowTradeNetworkGlobe] = useState(false);
+  const [showCityMap, setShowCityMap] = useState(false);
 
   // Developer testing panels
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
@@ -413,17 +422,55 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <BookOpen className="w-4 h-4" />
               Educational Resources
             </h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <button
-                onClick={() => setShowPrimarySourcesModal(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
-              >
-                <ScrollText className="w-4 h-4" />
-                <span>Primary Sources Library</span>
-              </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Browse 167 authentic historical documents across all regions and time periods.
-              </p>
+            <div className="space-y-3">
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <button
+                  onClick={() => setShowPrimarySourcesModal(true)}
+                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
+                >
+                  <ScrollText className="w-4 h-4" />
+                  <span>Primary Sources Library</span>
+                </button>
+              </div>
+
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <button
+                  onClick={() => setShowCityMap(true)}
+                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-md hover:from-emerald-700 hover:to-cyan-700 flex items-center justify-center gap-2"
+                >
+                  <MapIcon className="w-4 h-4" />
+                  <span>Interactive City Map</span>
+                </button>
+                <p className="mt-2 text-xs text-slate-400">
+                  Browse 167 authentic historical documents across all regions and time periods.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <button
+                  onClick={() => setShowCityTimeline(true)}
+                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
+                >
+                  <MapIcon className="w-4 h-4" />
+                  <span>Chronicle of Civilizations</span>
+                </button>
+                <p className="mt-2 text-xs text-slate-400">
+                  Interactive timeline showing the rise and fall of cities through 4000+ years of history.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <button
+                  onClick={() => setShowTradeNetworkGlobe(true)}
+                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-md hover:from-cyan-700 hover:to-blue-700 flex items-center justify-center gap-2"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span>Silk Roads of the World</span>
+                </button>
+                <p className="mt-2 text-xs text-slate-400">
+                  3D globe visualization of trade networks and city connections throughout history.
+                </p>
+              </div>
             </div>
           </section>
 
@@ -1020,6 +1067,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             onFatigueChange={(fatigue) => console.log("Fatigue changed to:", fatigue)}
           />
         </div>
+      )}
+
+      {/* City Timeline Visualization Modal */}
+      {showCityTimeline && (
+        <CityTimeline
+          isOpen={showCityTimeline}
+          onClose={() => setShowCityTimeline(false)}
+          initialYear={currentYear}
+        />
+      )}
+
+      {/* Trade Network Globe Visualization Modal */}
+      {showTradeNetworkGlobe && (
+        <TradeNetworkGlobe
+          isOpen={showTradeNetworkGlobe}
+          onClose={() => setShowTradeNetworkGlobe(false)}
+          initialYear={currentYear}
+        />
+      )}
+
+      {/* City Map Visualization Modal */}
+      {showCityMap && (
+        <CityMapGlobe
+          isOpen={showCityMap}
+          onClose={() => setShowCityMap(false)}
+          currentGameYear={currentYear}
+          playerLocation={playerLocation}
+        />
       )}
     </>
   );

@@ -98,6 +98,12 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
   const isDusk = timeOfDay === 'Dusk';
   const isMid = timeOfDay === 'Midday';
 
+  // Get current month/season from weather
+  const month = weather?.month ?? 6; // default to June
+  const season = month >= 3 && month <= 5 ? 'spring' :
+                month >= 6 && month <= 8 ? 'summer' :
+                month >= 9 && month <= 11 ? 'autumn' : 'winter';
+
   const getSky = () => {
     if (sky) {
       return {
@@ -143,7 +149,8 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
 
   /* -------- palette -------- */
   const P = useMemo(() => {
-    const base = {
+    // Base colors with seasonal variations
+    let base = {
       vf: '#6e5e92',    // very-far violet coast
       far: '#7f6aaa',   // far ridges
       mid1: '#a48e77',  // olive hills
@@ -171,6 +178,42 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
       auroraG: '#6FFFBF',
       auroraV: '#7F7FFF',
     };
+
+    // Apply seasonal color variations
+    if (season === 'spring') {
+      base.olive = blendHex('#586b2f', '#6d8a3f', 0.35); // brighter green
+      base.cypress = blendHex('#2f4f3a', '#3a5c45', 0.25); // fresher green
+      base.mid1 = blendHex('#a48e77', '#9eb580', 0.25); // greener hills
+    } else if (season === 'summer') {
+      base.olive = blendHex('#586b2f', '#7a8b4f', 0.20); // sun-bleached
+      base.mid1 = blendHex('#a48e77', '#c4a875', 0.30); // golden dry
+      base.near = blendHex('#8b735a', '#a08566', 0.25); // dustier
+    } else if (season === 'autumn') {
+      base.olive = blendHex('#586b2f', '#8b7a3f', 0.35); // browning
+      base.cypress = blendHex('#2f4f3a', '#4a5938', 0.20); // duller
+      base.mid1 = blendHex('#a48e77', '#b89668', 0.30); // golden brown
+      base.roof = blendHex('#c15b2d', '#d66432', 0.25); // warmer tiles
+    } else if (season === 'winter') {
+      base.olive = blendHex('#586b2f', '#4a5928', 0.30); // darker, dormant
+      base.cypress = blendHex('#2f4f3a', '#264032', 0.25); // deeper green
+      base.mid1 = blendHex('#a48e77', '#918579', 0.30); // cooler, grayer
+      base.villa = blendHex('#fff6e5', '#f5efdf', 0.40); // cooler white
+    }
+
+    // Apply sunset/sunrise color gradients
+    if (isDawn) {
+      base.vf = blendHex(base.vf, '#d4a5c8', 0.30); // pink-purple dawn
+      base.far = blendHex(base.far, '#e8c4db', 0.25);
+      base.villa = blendHex(base.villa, '#ffe8d5', 0.35); // warm morning glow
+      base.roof = blendHex(base.roof, '#e67545', 0.20); // coral tiles
+    } else if (isDusk) {
+      base.vf = blendHex(base.vf, '#c47db8', 0.35); // deep purple dusk
+      base.far = blendHex(base.far, '#d69ac8', 0.30);
+      base.mid1 = blendHex(base.mid1, '#d4a876', 0.25); // golden hour
+      base.villa = blendHex(base.villa, '#ffd6b5', 0.40); // sunset glow
+      base.roof = blendHex(base.roof, '#e85634', 0.30); // burnt orange
+      base.water = blendHex(base.water, '#5a6892', 0.25); // twilight water
+    }
 
     const tintFar  = (c: string) => blendHex(c, skyTop, skyInfluence * 1.2);
     const tintMid  = (c: string) => blendHex(c, skyMid, skyInfluence * 0.95);
@@ -218,7 +261,7 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
       out.far = blendHex(out.far, '#B69FD9', 0.15);
     }
     return out;
-  }, [timeOfDay, skyInfluence, skyTop, skyMid, skyBottom, waterBase, hazeDark, hazeLight]);
+  }, [timeOfDay, skyInfluence, skyTop, skyMid, skyBottom, waterBase, hazeDark, hazeLight, season, isDawn, isDusk]);
 
   /* -------- layout -------- */
   const compact = height < 110;
@@ -317,6 +360,7 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
   const isSnow = precip === 'snow' && intensity > 0;
   const isFoggy = weather?.special === 'fog' || weather?.special === 'mist';
   const isHot = weather?.condition === 'hot' || weather?.special === 'heatwave';
+  const isCold = weather?.condition === 'cold' || weather?.condition === 'freezing' || season === 'winter';
   const fx = weather?.fx;
 
   // Particle hints
@@ -513,6 +557,15 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
             0%, 100% { opacity: .85; }
             60% { opacity: .55; }
           }
+          @keyframes med-shimmer {
+            0% { transform: translateX(-5px) scaleY(1); opacity: 0.2; }
+            50% { transform: translateX(5px) scaleY(1.1); opacity: 0.45; }
+            100% { transform: translateX(-5px) scaleY(1); opacity: 0.2; }
+          }
+          @keyframes med-waterwave {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-2px); }
+          }
         `}</style>
       </defs>
 
@@ -549,17 +602,42 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
             `}
             fill={P.mid1}
           />
-          {/* three faint terrace ledges */}
-          {[0.24, 0.52, 0.78].map((phase, t) => (
-            <path
-              key={t}
-              d={`M 0 ${p(yMid - 2 + t * 5)} Q ${p(width * (0.30 + phase * 0.10))} ${p(yMid - 4 + t * 5)}, ${p(width * (0.60 + phase * 0.10))} ${p(yMid - 2 + t * 5)} T ${width} ${p(yMid - 2 + t * 5)}`}
-              stroke={P.mid2}
-              strokeWidth={1}
-              opacity={0.28}
-              fill="none"
-            />
-          ))}
+          {/* three terrace ledges with vineyard rows */}
+          {[0.24, 0.52, 0.78].map((phase, t) => {
+            const ledgeY = p(yMid - 2 + t * 5);
+            return (
+              <g key={t}>
+                <path
+                  d={`M 0 ${ledgeY} Q ${p(width * (0.30 + phase * 0.10))} ${p(ledgeY - 2)}, ${p(width * (0.60 + phase * 0.10))} ${ledgeY} T ${width} ${ledgeY}`}
+                  stroke={P.mid2}
+                  strokeWidth={1}
+                  opacity={0.28}
+                  fill="none"
+                />
+                {/* Vineyard rows on terraces */}
+                {season !== 'winter' && Array.from({ length: 4 + (t * 2) }).map((_, v) => {
+                  const vx = p(width * (0.15 + v * 0.15 + phase * 0.05));
+                  if (vx > width - 20) return null;
+                  return (
+                    <g key={`vine-${t}-${v}`} opacity={0.25}>
+                      {/* Vineyard stakes */}
+                      <rect x={vx} y={ledgeY - 3} width="1" height="4" fill={P.nearAcc} />
+                      <rect x={vx + 8} y={ledgeY - 3} width="1" height="4" fill={P.nearAcc} />
+                      {/* Vine foliage */}
+                      <ellipse
+                        cx={vx + 4}
+                        cy={ledgeY - 2}
+                        rx="5"
+                        ry="2"
+                        fill={season === 'autumn' ? blendHex(P.olive, '#a67c52', 0.4) : P.olive}
+                        opacity={0.45}
+                      />
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
 
           {/* olive crowns (ovals) */}
           {oliveXs.map((x, i) => {
@@ -629,6 +707,26 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
                    L ${v.x + v.w / 2 + 2} ${v.y - v.h} Z`}
                 fill={P.roof}
               />
+              {/* chimney */}
+              {isCold && (
+                <>
+                  <rect x={v.x + v.w * 0.25 - 2} y={v.y - v.h - 8} width="4" height="6" fill={P.nearAcc} />
+                  {/* smoke plume */}
+                  <g opacity={0.35}>
+                    {Array.from({ length: 5 }).map((_, s) => (
+                      <ellipse
+                        key={`smoke-${k}-${s}`}
+                        cx={v.x + v.w * 0.25 + Math.sin(s * 0.7) * (s + 1)}
+                        cy={v.y - v.h - 8 - s * 4}
+                        rx={2 + s * 0.8}
+                        ry={2 + s * 0.5}
+                        fill={blendHex('#888888', skyMid, 0.4)}
+                        opacity={0.6 - s * 0.12}
+                      />
+                    ))}
+                  </g>
+                </>
+              )}
               {/* windows (night/dusk) */}
               {(isNight || isDusk) && v.glow && (
                 <g filter={`url(#${ids.glow})`} style={{ animation: `med-window ${4 + (k % 3)}s ease-in-out infinite` }}>
@@ -662,13 +760,47 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
             fill={P.water}
             opacity="0.78"
           />
-          <path
-            d={`M ${p(width * 0.34)} ${p((yMid + yNear) / 2)} Q ${p(width * 0.50)} ${p((yMid + yNear) / 2 - 2)}, ${p(width * 0.66)} ${p((yMid + yNear) / 2)}`}
-            stroke={P.waterHi}
-            strokeWidth="1"
-            opacity="0.4"
-            fill="none"
-          />
+          {/* Water shimmer/reflection bands */}
+          <g style={{ animation: `med-waterwave 4s ease-in-out infinite` }}>
+            <path
+              d={`M ${p(width * 0.34)} ${p((yMid + yNear) / 2)} Q ${p(width * 0.50)} ${p((yMid + yNear) / 2 - 2)}, ${p(width * 0.66)} ${p((yMid + yNear) / 2)}`}
+              stroke={P.waterHi}
+              strokeWidth="1"
+              opacity="0.4"
+              fill="none"
+            />
+            {/* Additional shimmer lines */}
+            {[0.38, 0.50, 0.62].map((xPos, idx) => (
+              <rect
+                key={`shimmer-${idx}`}
+                x={p(width * xPos) - 10}
+                y={p((yMid + yNear) / 2 + idx * 3)}
+                width="20"
+                height="1"
+                fill={P.waterHi}
+                style={{
+                  animation: `med-shimmer ${3 + idx * 0.5}s ease-in-out ${idx * 0.3}s infinite`,
+                  transformOrigin: `${p(width * xPos)}px ${p((yMid + yNear) / 2)}px`
+                }}
+              />
+            ))}
+          </g>
+          {/* Reflected cypresses in water */}
+          {cypressXs.slice(2, 5).map((x, i) => (
+            <g key={`ref-cy-${i}`} opacity={0.15}>
+              <path
+                d={`M ${p(x)} ${p(yNear - 2)}
+                   L ${p(x - 4)} ${p(yNear + 8)}
+                   L ${p(x + 4)} ${p(yNear + 8)} Z`}
+                fill={P.cypress}
+                style={{
+                  transform: `scaleY(-0.6)`,
+                  transformOrigin: `${p(x)}px ${p(yNear)}px`,
+                  animation: `med-waterwave ${4 + i * 0.5}s ease-in-out ${i * 0.2}s infinite`
+                }}
+              />
+            </g>
+          ))}
         </g>
       ) : hasWater && (
         <>
@@ -682,14 +814,42 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
               `}
               fill={P.water}
             />
-            {/* shoreline highlight */}
-            <path
-              d={`M 0 ${p(yNear - 4)} Q ${p(width * 0.12)} ${p(yNear - 5)}, ${p(width * 0.20)} ${p(yNear - 4)}`}
-              stroke={P.waterHi}
-              strokeWidth="1.5"
-              opacity="0.5"
-              fill="none"
-            />
+            {/* shoreline highlight with shimmer */}
+            <g style={{ animation: `med-waterwave 3.5s ease-in-out infinite` }}>
+              <path
+                d={`M 0 ${p(yNear - 4)} Q ${p(width * 0.12)} ${p(yNear - 5)}, ${p(width * 0.20)} ${p(yNear - 4)}`}
+                stroke={P.waterHi}
+                strokeWidth="1.5"
+                opacity="0.5"
+                fill="none"
+              />
+              {/* Shimmer spots */}
+              <rect
+                x={p(width * 0.08) - 8}
+                y={p(yNear)}
+                width="16"
+                height="1"
+                fill={P.waterHi}
+                style={{ animation: `med-shimmer 4s ease-in-out infinite` }}
+              />
+            </g>
+            {/* Reflected cypress on left */}
+            {cypressXs[0] && cypressXs[0] < width * 0.2 && (
+              <g opacity={0.12}>
+                <rect
+                  x={p(cypressXs[0]) - 2}
+                  y={p(yNear + 2)}
+                  width="4"
+                  height="8"
+                  fill={P.cypress}
+                  style={{
+                    transform: `scaleY(-0.5)`,
+                    transformOrigin: `${p(cypressXs[0])}px ${p(yNear)}px`,
+                    animation: `med-waterwave 4.5s ease-in-out infinite`
+                  }}
+                />
+              </g>
+            )}
           </g>
 
           {/* Right */}
@@ -702,13 +862,42 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
               `}
               fill={P.water}
             />
-            <path
-              d={`M ${width} ${p(yNear - 3)} Q ${p(width * 0.90)} ${p(yNear - 4)}, ${p(width * 0.80)} ${p(yNear - 3)}`}
-              stroke={P.waterHi}
-              strokeWidth="1.5"
-              opacity="0.5"
-              fill="none"
-            />
+            {/* shoreline highlight with shimmer */}
+            <g style={{ animation: `med-waterwave 3.8s ease-in-out 0.5s infinite` }}>
+              <path
+                d={`M ${width} ${p(yNear - 3)} Q ${p(width * 0.90)} ${p(yNear - 4)}, ${p(width * 0.80)} ${p(yNear - 3)}`}
+                stroke={P.waterHi}
+                strokeWidth="1.5"
+                opacity="0.5"
+                fill="none"
+              />
+              {/* Shimmer spots */}
+              <rect
+                x={p(width * 0.88) - 8}
+                y={p(yNear + 1)}
+                width="16"
+                height="1"
+                fill={P.waterHi}
+                style={{ animation: `med-shimmer 4.2s ease-in-out 0.8s infinite` }}
+              />
+            </g>
+            {/* Reflected cypress on right */}
+            {cypressXs[cypressXs.length - 1] && cypressXs[cypressXs.length - 1] > width * 0.8 && (
+              <g opacity={0.12}>
+                <rect
+                  x={p(cypressXs[cypressXs.length - 1]) - 2}
+                  y={p(yNear + 2)}
+                  width="4"
+                  height="8"
+                  fill={P.cypress}
+                  style={{
+                    transform: `scaleY(-0.5)`,
+                    transformOrigin: `${p(cypressXs[cypressXs.length - 1])}px ${p(yNear)}px`,
+                    animation: `med-waterwave 4.3s ease-in-out 0.3s infinite`
+                  }}
+                />
+              </g>
+            )}
           </g>
         </>
       )}

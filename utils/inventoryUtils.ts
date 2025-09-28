@@ -12,7 +12,8 @@ import { generateContextualAccessory, GENERIC_ACCESSORIES } from '../services/ac
 import { getAccessoriesForCharacter, selectRandomAccessory } from '../constants/characterData/accessories';
 import { generateCulturalAccessory, generateAccessorySet } from '../services/culturalAccessoryService';
 
-let itemIdCounter = 1000; // Start high to avoid collision with other potential item sources
+// Use UUID for better performance and uniqueness instead of counter
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * NEW: Generates a temporary, procedural ItemDefinition for items not in the main database.
@@ -243,7 +244,7 @@ export function createItemInstance(baseId: string): Item | null {
     // Create the item instance
     const item: Item = {
         ...definition,
-        id: `item-${itemIdCounter++}-${Date.now()}`,
+        id: uuidv4(),
         quantity: 1,
     };
     
@@ -263,15 +264,77 @@ export function createItemInstance(baseId: string): Item | null {
 }
 
 /**
- * Adds an item to an inventory array, handling stacking for stackable items.
+ * Stacking rules for realistic inventory management
+ */
+interface StackingRules {
+    material?: boolean;      // Stack only if same material
+    quality?: boolean;       // Stack only if same quality
+    condition?: number;      // Stack only if condition within range (e.g., ±10%)
+    age?: number;           // Stack only if age similar (for perishables)
+    culture?: boolean;      // Stack only if same cultural variant
+}
+
+const ITEM_STACKING_RULES: Record<ItemCategory, StackingRules> = {
+    'Food': { condition: 20, age: 2 },  // Food must be similar freshness
+    'Material': { material: true, quality: true },  // Materials need same type/quality
+    'Weapon': {},  // Weapons don't stack
+    'Apparel': {},  // Clothing doesn't stack
+    'Tool': { condition: 30 },  // Tools stack if similar wear
+    'Document': {},  // Documents don't stack
+    'Special': {},  // Special items don't stack
+    'Consumable': { condition: 10 },  // Consumables stack if similar condition
+    'Vessel': {},  // Vessels don't stack
+    'Container': {}  // Containers don't stack
+};
+
+/**
+ * Check if two items can stack based on realistic rules
+ */
+function canItemsStack(item1: Item, item2: Item): boolean {
+    // Basic checks
+    if (!item1.stackable || !item2.stackable) return false;
+    if (item1.baseId !== item2.baseId) return false;
+
+    // Get stacking rules for this category
+    const rules = ITEM_STACKING_RULES[item1.category];
+    if (!rules) return false;
+
+    // Check material match
+    if (rules.material && item1.material !== item2.material) return false;
+
+    // Check quality match
+    if (rules.quality && item1.quality !== item2.quality) return false;
+
+    // Check condition similarity
+    if (rules.condition) {
+        const condition1 = item1.condition || 100;
+        const condition2 = item2.condition || 100;
+        if (Math.abs(condition1 - condition2) > rules.condition) return false;
+    }
+
+    // Check age similarity (for perishables)
+    if (rules.age && item1.age !== undefined && item2.age !== undefined) {
+        if (Math.abs(item1.age - item2.age) > rules.age) return false;
+    }
+
+    // Check cultural variant
+    if (rules.culture && item1.culturalVariant !== item2.culturalVariant) return false;
+
+    return true;
+}
+
+/**
+ * Adds an item to an inventory array, handling realistic stacking.
  * @param inventory The current inventory array.
  * @param itemToAdd The item instance to add.
  * @returns A new inventory array with the item added or stacked.
  */
 export function addItemToInventory(inventory: Item[], itemToAdd: Item): Item[] {
     const newInventory = [...inventory];
+
     if (itemToAdd.stackable) {
-        const existingItemIndex = newInventory.findIndex(i => i.baseId === itemToAdd.baseId);
+        // Find compatible stack using realistic rules
+        const existingItemIndex = newInventory.findIndex(i => canItemsStack(i, itemToAdd));
         if (existingItemIndex > -1) {
             newInventory[existingItemIndex] = {
                 ...newInventory[existingItemIndex],
@@ -280,7 +343,8 @@ export function addItemToInventory(inventory: Item[], itemToAdd: Item): Item[] {
             return newInventory;
         }
     }
-    // If not stackable or not found, add as a new item
+
+    // If not stackable or no compatible stack found, add as new item
     newInventory.push(itemToAdd);
     return newInventory;
 }
@@ -571,21 +635,21 @@ export function assembleStartingPackage(
             .filter(item => item !== null) as Item[];
     }
     
-    // Create equipped items with colors if options provided
+    // Create equipped items
     const equippedItems: PlayerCharacter['equippedItems'] = {};
-    
-    // First, add all defined equipment
+
+    // Add all defined equipment from the package
     for (const slot in pkg.equipment) {
         const baseId = pkg.equipment[slot as keyof typeof pkg.equipment];
         if (baseId) {
             let item: Item | null;
-            
+
             // Handle procedural weapon generation
             if (baseId === '*CONTEXTUAL*' && colorOptions) {
                 item = generateContextualWeapon(profession, {
                     culture: colorOptions.culture,
                     era: colorOptions.era,
-                    socialClass: colorOptions.privilege && colorOptions.privilege > 0.7 ? 'noble' : 
+                    socialClass: colorOptions.privilege && colorOptions.privilege > 0.7 ? 'noble' :
                                 colorOptions.privilege && colorOptions.privilege > 0.4 ? 'common' : 'common',
                     privilege: colorOptions.privilege
                 });
@@ -598,53 +662,12 @@ export function assembleStartingPackage(
             if(item) equippedItems[slot as keyof typeof equippedItems] = item;
         }
     }
-    
-    // Define generic headgear that should be replaced with contextual alternatives
-    const GENERIC_HEADGEAR = ['STRAW_HAT', 'CLOTH_CAP', 'LEATHER_CAP', 'FELT_CAP', 'CLOTH_HOOD'];
-    
-    // Replace generic headgear OR add if missing
-    const shouldReplaceHeadgear = !equippedItems.head || 
-                                  (equippedItems.head && GENERIC_HEADGEAR.includes(equippedItems.head.baseId));
-    
-    if (shouldReplaceHeadgear && colorOptions) {
-        const headgearId = generateContextualHeadgear(profession, {
-            era: colorOptions.era,
-            culture: colorOptions.culture,
-            privilege: colorOptions.privilege
-        });
-        
-        if (headgearId) {
-            const headgearItem = createColoredItemInstance(headgearId, colorOptions.culture!, colorOptions.privilege, colorOptions.era);
-            if (headgearItem) {
-                equippedItems.head = headgearItem;
-            }
-        }
-    }
-    
-    // Replace generic torso items OR add if missing
-    const shouldReplaceTorso = !equippedItems.torso || 
-                               (equippedItems.torso && GENERIC_TORSO_ITEMS.includes(equippedItems.torso.baseId));
-    
-    if (shouldReplaceTorso && colorOptions) {
-        const torsoId = generateContextualTorso(profession, {
-            era: colorOptions.era,
-            culture: colorOptions.culture,
-            privilege: colorOptions.privilege
-        });
-        
-        if (torsoId) {
-            const torsoItem = createItemInstance(torsoId);
-            if (torsoItem) {
-                equippedItems.torso = torsoItem;
-            }
-        }
-    }
-    
-    // Replace generic necklace OR add if missing
-    const shouldReplaceAmulet = !equippedItems.necklace || 
-                                (equippedItems.necklace && GENERIC_ACCESSORIES.includes(equippedItems.necklace.baseId));
-    
-    if (shouldReplaceAmulet && colorOptions) {
+
+    // ONLY add contextual items if they're COMPLETELY MISSING
+    // Don't replace items that are already defined
+
+    // Only add accessories based on cultural probability (keep this as it adds flavor)
+    if (!equippedItems.necklace && colorOptions) {
         const necklaceChance = calculateAmuletChance(colorOptions.era, colorOptions.culture, profession);
         
         if (Math.random() < necklaceChance) {
@@ -665,12 +688,9 @@ export function assembleStartingPackage(
             }
         }
     }
-    
-    // Replace generic ring OR add if missing (ring1 slot)
-    const shouldReplaceRing = !equippedItems.ring1 || 
-                             (equippedItems.ring1 && GENERIC_ACCESSORIES.includes(equippedItems.ring1.baseId));
-    
-    if (shouldReplaceRing && colorOptions) {
+
+    // Add ring for wealthy characters only if missing
+    if (!equippedItems.ring1 && colorOptions) {
         const ringChance = 0.3 + (colorOptions.privilege || 0.5) * 0.4; // 30-70% chance based on privilege
         
         if (Math.random() < ringChance) {
@@ -773,4 +793,112 @@ export function assembleStartingPackage(
     }
     
     return { inventory, equippedItems };
+}
+
+/**
+ * Generate contextual armor based on era and culture
+ * NOTE: This is now primarily used by generateContextualStartingPackage
+ * for professions not in the main STARTING_PACKAGES list
+ */
+export function generateContextualArmor(
+    era?: HistoricalEra,
+    culture?: CulturalZone,
+    privilege?: number
+): string | null {
+    // Default to leather vest for unknown contexts
+    if (!era || !culture) return 'LEATHER_VEST';
+
+    const isWealthy = privilege && privilege > 0.7;
+    const isPoor = privilege && privilege < 0.3;
+
+    // Ancient/Classical era armor
+    if (era === HistoricalEra.PREHISTORY || era === HistoricalEra.ANTIQUITY) {
+        if (culture === 'EUROPEAN' || culture === 'MENA') {
+            return isWealthy ? 'BRONZE_ARMOR' : isPoor ? 'HIDE_ARMOR' : 'SCALE_ARMOR';
+        }
+        if (culture === 'EAST_ASIAN' || culture === 'SOUTH_ASIAN') {
+            return isWealthy ? 'LACQUERED_ARMOR' : 'PADDED_ARMOR';
+        }
+        // Tribal/Indigenous cultures
+        return 'HIDE_ARMOR';
+    }
+
+    // Medieval era armor
+    if (era === HistoricalEra.MEDIEVAL) {
+        if (culture === 'EUROPEAN') {
+            return isWealthy ? 'MAIL_SHIRT' : isPoor ? 'PADDED_ARMOR' : 'STUDDED_LEATHER';
+        }
+        if (culture === 'EAST_ASIAN') {
+            return isWealthy ? 'LACQUERED_ARMOR' : 'LAMELLAR_ARMOR';
+        }
+        if (culture === 'MENA') {
+            return isWealthy ? 'MAIL_SHIRT' : 'SCALE_ARMOR';
+        }
+        return 'PADDED_ARMOR';
+    }
+
+    // Renaissance/Early Modern
+    if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+        if (culture === 'EUROPEAN' || culture === 'NORTH_AMERICAN_COLONIAL') {
+            return isWealthy ? 'PLATE_ARMOR' : 'MAIL_SHIRT';
+        }
+        if (culture === 'EAST_ASIAN') {
+            return isWealthy ? 'LACQUERED_ARMOR' : 'LAMELLAR_ARMOR';
+        }
+        return 'STUDDED_LEATHER';
+    }
+
+    // Industrial era and beyond - lighter armor
+    if (era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA) {
+        return isPoor ? 'LEATHER_VEST' : 'STUDDED_LEATHER';
+    }
+
+    return 'LEATHER_VEST';
+}
+
+/**
+ * Generate contextual military cloak based on era and culture
+ * NOTE: This is now primarily used by generateContextualStartingPackage
+ * for professions not in the main STARTING_PACKAGES list
+ */
+export function generateContextualMilitaryCloak(
+    era?: HistoricalEra,
+    culture?: CulturalZone,
+    privilege?: number
+): string | null {
+    // Default to basic military cloak
+    if (!era || !culture) return 'MILITARY_CLOAK';
+
+    const isOfficer = privilege && privilege > 0.7;
+
+    // Culture-specific cloaks
+    if (culture === 'EUROPEAN' || culture === 'NORTH_AMERICAN_COLONIAL') {
+        if (era === HistoricalEra.ANTIQUITY) {
+            return 'ROMAN_CLOAK'; // Works for any classical European
+        }
+        if (era === HistoricalEra.MEDIEVAL) {
+            return isOfficer ? 'KNIGHT_SURCOAT' : 'MILITARY_CLOAK';
+        }
+        return isOfficer ? 'OFFICER_CAPE' : 'CAMPAIGN_CLOAK';
+    }
+
+    if (culture === 'EAST_ASIAN') {
+        if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+            return 'SAMURAI_SURCOAT';
+        }
+        return 'MILITARY_CLOAK';
+    }
+
+    if (culture === 'MENA' || culture === 'SUB_SAHARAN_AFRICAN') {
+        return 'DESERT_MILITARY_CLOAK';
+    }
+
+    // Northern/cold cultures
+    if (culture === 'OCEANIA' ||
+        (culture === 'NORTH_AMERICAN_PRE_COLUMBIAN' && era === HistoricalEra.PREHISTORY)) {
+        return 'FUR_MILITARY_CLOAK';
+    }
+
+    // Default fallback based on officer status
+    return isOfficer ? 'OFFICER_CAPE' : 'MILITARY_CLOAK';
 }

@@ -361,7 +361,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           width: `${sidebarWidth}px`,
           opacity: isProcessingWorldWeaver ? 0 : 1,
           transition: 'opacity 2s ease-out',
-          transitionDelay: isProcessingWorldWeaver ? '3s' : '0s'
+          transitionDelay: isProcessingWorldWeaver ? '3s' : '0.5s' // Fade in 0.5s after processing ends
         }}
       >
       {/* Enhanced Resize handle with better UX */}
@@ -443,11 +443,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                       </p>
                     </div>
                     <div className="flex-shrink-0 text-right pl-2 min-w-0">
-                      <p className="text-lg font-bold text-blue-600 dark:text-blue-300 whitespace-nowrap">Level {playerCharacter.level}</p>
+                      <p className="text-sm font-bold text-blue-600 dark:text-blue-300 whitespace-nowrap">Level {playerCharacter.level}</p>
                       <div className="flex flex-col items-end gap-1 mt-1">
                         <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 flex items-center gap-1" title="Currency">
                           <span>💰</span>
-                          <span>{playerCharacter.currency} coins</span>
+                          <span>{playerCharacter.currency}</span>
                         </p>
                         <p className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1" title={`Reputation: ${repPercent}/100`}>
                           <span>🤝</span>
@@ -510,9 +510,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                   <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_2px_rgba(255,255,255,0.1)]" />
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.7),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
                     {/* Inner track with padding for inset effect */}
-                    <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
+                    <div className="absolute inset-0.5 bg-slate-800/80 rounded-full" />
                     {/* Progress fill - FIXED: simpler positioning */}
                     <div className="absolute inset-0.5 rounded-full overflow-hidden">
                       <div
@@ -526,7 +526,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         }}
                       >
                         {/* Inner highlight */}
-                        <div className="absolute top-0 left-0 right-0 h-.5 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
                       </div>
                     </div>
                   </div>
@@ -543,7 +543,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                   <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_2px_rgba(255,255,255,0.1)]" />
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.7),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
                     {/* Inner track with padding for inset effect */}
                     <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
                     {/* Progress fill - FIXED: simpler positioning */}
@@ -560,7 +560,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         }}
                       >
                         {/* Inner highlight */}
-                        <div className="absolute top-0 left-0 right-0 h-.5 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
+                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/90 to-transparent rounded-full" />
                       </div>
                     </div>
                   </div>
@@ -574,7 +574,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                   <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_2px_rgba(255,255,255,0.1)]" />
+                   <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.7),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
                     {/* Inner track with padding for inset effect */}
                     <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
                     {/* Progress fill - FIXED: simpler positioning */}
