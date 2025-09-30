@@ -294,10 +294,10 @@ const SHARED_MODERN_PROFESSIONS = {
             keywords: 'organized crime mafia',
             emoji: '🚬'
         },
-        'Drug Dealer': {
+        'Numbers Runner': {
             statRequirements: { minCraftiness: 3, minPersuasion: 3 },
             socialRequirements: { maxPrivilege: 0.3 },
-            keywords: 'narcotics illegal trade',
+            keywords: ' illegal ',
             emoji: '💊'
         },
         'Pickpocket': {
@@ -306,18 +306,13 @@ const SHARED_MODERN_PROFESSIONS = {
             keywords: 'street crime theft',
             emoji: '👤'
         },
-        'Black Panther': {
+        'Militant': {
             statRequirements: { minStrength: 3, minPersuasion: 4 },
             socialRequirements: { maxPrivilege: 0.3, minAmbition: 0.6 },
             keywords: 'revolutionary militant',
             emoji: '✊'
         },
-        'IRA Member': {
-            statRequirements: { minCraftiness: 3, minConstitution: 3 },
-            socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.6 },
-            keywords: 'irish republican army',
-            emoji: '☘️'
-        },
+      
         'Red Brigade': {
             statRequirements: { minIntelligence: 3, minCraftiness: 3 },
             socialRequirements: { maxPrivilege: 0.3, minAmbition: 0.6 },
@@ -831,14 +826,35 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minStrength: 7, minDexterity: 5, minConstitution: 6 },
                     socialRequirements: { minPrivilege: 0.6 },
                     genderBias: 'Male',
-                    keywords: 'chivalry',
+                    keywords: 'military',
+                    emoji: '⚔️'
+                },
+                 'Man-at-Arms': {
+                    statRequirements: { minStrength: 7, minDexterity: 3, minConstitution: 3 },
+                    socialRequirements: { minPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'military',
+                    emoji: '⚔️'
+                },
+                  'Crossbowman': {
+                    statRequirements: { minStrength: 5, minDexterity: 7, minConstitution: 3 },
+                    socialRequirements: { minPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'military',
                     emoji: '⚔️'
                 },
                 'Squire': {
                     statRequirements: { minStrength: 5, minDexterity: 5 },
                     socialRequirements: { minPrivilege: 0.4 },
                     genderBias: 'Male',
-                    keywords: 'training',
+                    keywords: 'military',
+                    emoji: '🛡️'
+                },
+                'Sergeant': {
+                    statRequirements: { minStrength: 5, minDexterity: 5 },
+                    socialRequirements: { minPrivilege: 0.5 },
+                    genderBias: 'Male',
+                    keywords: 'military',
                     emoji: '🛡️'
                 },
                 'Lady': {
@@ -854,6 +870,22 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'service',
                     emoji: '👦'
+                }
+            },
+            MILITARY: {
+                'Viking Raider': {
+                    statRequirements: { minStrength: 7, minDexterity: 6, minConstitution: 7 },
+                    socialRequirements: { minAmbition: 0.6, minWanderlust: 0.7 },
+                    genderBias: 'Male',
+                    keywords: 'military',
+                    emoji: '⚔️'
+                },
+                'Byzantine Archer': {
+                    statRequirements: { minDexterity: 7, minPerception: 6, minConstitution: 5 },
+                    socialRequirements: { minPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'crossbow military',
+                    emoji: '🏹'
                 }
             },
             CLERGY: {
@@ -1816,6 +1848,21 @@ export const PROFESSIONS: ProfessionData = {
                     keywords: 'service',
                     emoji: '🏹',
                     nameKey: 'JAPANESE'
+                },
+                'Ninja': {
+                    statRequirements: { minDexterity: 8, minPerception: 7, minCraftiness: 6 },
+                    socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.5 },
+                    genderBias: 'Male',
+                    keywords: 'stealth espionage shuriken',
+                    emoji: '🥷',
+                    nameKey: 'JAPANESE'
+                },
+                'Mongol Archer': {
+                    statRequirements: { minDexterity: 8, minPerception: 7, minConstitution: 6 },
+                    socialRequirements: { minAmbition: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'composite bow mounted',
+                    emoji: '🏹'
                 }
             },
             CLERGY: {
@@ -1992,8 +2039,16 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🎴',
                     nameKey: 'CHINESE'
                 },
+                 'Eunuch': {
+                    statRequirements: { minIntelligence: 5, minPersuasion: 7 },
+                    socialRequirements: { minPrivilege: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'administration',
+                    emoji: '🎴',
+                    nameKey: 'CHINESE'
+                },
                 'Courier': {
-                    statRequirements: { minStamina: 6, minDexterity: 5 },
+                    statRequirements: { minStamina: 5, minDexterity: 5 },
                     socialRequirements: { maxPrivilege: 0.5 },
                     keywords: 'messages',
                     emoji: '🏮'
@@ -2290,14 +2345,14 @@ export const PROFESSIONS: ProfessionData = {
                 }
             },
             KSHATRIYA: {
-                'Warrior': {
+                'Kshatriya Warrior': {
                     statRequirements: { minStrength: 6, minDexterity: 5 },
                     socialRequirements: { minPrivilege: 0.5 },
                     genderBias: 'Male',
                     keywords: 'dharma',
                     emoji: '⚔️'
                 },
-                'Chariot Driver': {
+                'Kshatriya Chariot Driver': {
                     statRequirements: { minDexterity: 7, minStrength: 5 },
                     socialRequirements: { minPrivilege: 0.4 },
                     genderBias: 'Male',
@@ -2352,6 +2407,28 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'woodwork',
                     emoji: '🪚'
+                }
+            },
+            DALITS: {
+                'Fisherwoman': {
+                    statRequirements: { minStrength: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.2 },
+                    genderBias: 'Female',
+                    keywords: 'fishing nets coastal',
+                    emoji: '🎣'
+                },
+                'Salt Worker': {
+                    statRequirements: { minConstitution: 6, minStrength: 5 },
+                    socialRequirements: { maxPrivilege: 0.2 },
+                    keywords: 'salt pans evaporation',
+                    emoji: '🧂'
+                },
+                'Toddy Tapper': {
+                    statRequirements: { minDexterity: 6, minStrength: 5 },
+                    socialRequirements: { maxPrivilege: 0.2 },
+                    genderBias: 'Male',
+                    keywords: 'palm wine climbing',
+                    emoji: '🥥'
                 }
             }
         },
@@ -2491,6 +2568,33 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'leadership',
                     emoji: '👨‍💼'
+                },
+                'Village Scribe': {
+                    statRequirements: { minIntelligence: 6, minDexterity: 5 },
+                    socialRequirements: { minPrivilege: 0.3, maxPrivilege: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'writing documents records',
+                    emoji: '✍️'
+                },
+                'Brick Layer': {
+                    statRequirements: { minStrength: 6, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'construction buildings',
+                    emoji: '🧱'
+                },
+                'Basket Weaver': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'baskets weaving',
+                    emoji: '🧺'
+                },
+                'Oil Presser': {
+                    statRequirements: { minStrength: 6, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'oil pressing seeds',
+                    emoji: '🫒'
                 }
             }
         },
@@ -2543,6 +2647,15 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '💰'
                 }
             },
+            MILITARY: {
+                'Sikh Warrior': {
+                    statRequirements: { minStrength: 7, minConstitution: 6, minDexterity: 6 },
+                    socialRequirements: { minAmbition: 0.5, minReligiosity: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'chakram sword turban',
+                    emoji: '⚔️'
+                }
+            },
             ARTISAN: {
                 'Textile Weaver': {
                     statRequirements: { minDexterity: 6 },
@@ -2560,6 +2673,61 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { maxPrivilege: 0.5 },
                     keywords: 'carpets',
                     emoji: '🧶'
+                },
+                'Jeweler': {
+                    statRequirements: { minDexterity: 8, minCraftiness: 7 },
+                    socialRequirements: { minPrivilege: 0.3, maxPrivilege: 0.7 },
+                    genderBias: 'Male',
+                    keywords: 'precious gems gold',
+                    emoji: '💍'
+                },
+                'Tailor': {
+                    statRequirements: { minDexterity: 7, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'sewing clothing',
+                    emoji: '🪡'
+                }
+            },
+            COMMONER: {
+                'Well Keeper': {
+                    statRequirements: { minStrength: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'water well maintenance',
+                    emoji: '🪣'
+                },
+                'Barber': {
+                    statRequirements: { minDexterity: 6 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'grooming shaving',
+                    emoji: '✂️'
+                },
+                'Village Potter': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'ceramics pottery',
+                    emoji: '🏺'
+                },
+                'Milk Seller': {
+                    statRequirements: { minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'dairy milk selling',
+                    emoji: '🥛'
+                },
+                'Vegetable Seller': {
+                    statRequirements: { minPersuasion: 4 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'market vegetables',
+                    emoji: '🥬'
+                },
+                'Flour Miller': {
+                    statRequirements: { minStrength: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'grinding flour mill',
+                    emoji: '🌾'
                 }
             }
         },
@@ -2634,6 +2802,26 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { maxPrivilege: 0.3 },
                     keywords: 'selling',
                     emoji: '🛒'
+                },
+                'Jute Mill Worker': {
+                    statRequirements: { minStrength: 5, minConstitution: 6 },
+                    socialRequirements: { maxPrivilege: 0.2 },
+                    keywords: 'jute factory labor',
+                    emoji: '🏭'
+                },
+                'Railway Porter': {
+                    statRequirements: { minStrength: 6, minConstitution: 6 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'railway station luggage',
+                    emoji: '🚂'
+                },
+                'Dhobi': {
+                    statRequirements: { minStrength: 5, minConstitution: 6 },
+                    socialRequirements: { maxPrivilege: 0.2 },
+                    genderBias: 'Male',
+                    keywords: 'laundry washing clothes',
+                    emoji: '🧺'
                 }
             }
         },
@@ -2704,6 +2892,15 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { minPrivilege: 0.4 },
                     keywords: 'tribute',
                     emoji: '📋'
+                }
+            },
+            MILITARY: {
+                'Persian Archer': {
+                    statRequirements: { minDexterity: 7, minPerception: 7, minConstitution: 6 },
+                    socialRequirements: { minPrivilege: 0.3, minAmbition: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'composite bow immortal',
+                    emoji: '🏹'
                 }
             },
             RELIGIOUS: {
@@ -3107,6 +3304,63 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { minReligiosity: 0.5 },
                     keywords: 'healing spirits',
                     emoji: '🌿'
+                },
+                'Corn Grower': {
+                    statRequirements: { minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    keywords: 'corn maize cultivation',
+                    emoji: '🌽'
+                },
+                'Three Sisters Farmer': {
+                    statRequirements: { minConstitution: 5, minIntelligence: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    keywords: 'corn beans squash',
+                    emoji: '🌾'
+                },
+                'Hide Worker': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    keywords: 'leather tanning hides',
+                    emoji: '🦌'
+                },
+                'Flintknapper': {
+                    statRequirements: { minDexterity: 7, minCraftiness: 6 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    keywords: 'stone tools flint',
+                    emoji: '🪨'
+                },
+                'Deer Hunter': {
+                    statRequirements: { minDexterity: 6, minPerception: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'deer hunting forest',
+                    emoji: '🦌'
+                },
+                'Fish Smoker': {
+                    statRequirements: { minConstitution: 5, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'fish preservation smoking',
+                    emoji: '🐟'
+                },
+                'Berry Gatherer': {
+                    statRequirements: { minPerception: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Female',
+                    keywords: 'berries foraging',
+                    emoji: '🫐'
+                },
+                'Root Digger': {
+                    statRequirements: { minStrength: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Female',
+                    keywords: 'roots tubers gathering',
+                    emoji: '🥔'
+                },
+                'Wild Rice Harvester': {
+                    statRequirements: { minDexterity: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'wild rice harvesting',
+                    emoji: '🌾'
                 }
             }
         },
@@ -3246,6 +3500,60 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { maxPrivilege: 0.4 },
                     keywords: 'fishing',
                     emoji: '🎣'
+                },
+                'Clan Mother': {
+                    statRequirements: { minWisdom: 7, minPersuasion: 6 },
+                    socialRequirements: { minPrivilege: 0.6 },
+                    genderBias: 'Female',
+                    keywords: 'leadership matriarch clan',
+                    emoji: '👵'
+                },
+                'Canoe Maker': {
+                    statRequirements: { minCraftiness: 7, minStrength: 5 },
+                    socialRequirements: { maxPrivilege: 0.5 },
+                    genderBias: 'Male',
+                    keywords: 'canoe woodwork',
+                    emoji: '🛶'
+                },
+                'Pemmican Maker': {
+                    statRequirements: { minCraftiness: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Female',
+                    keywords: 'pemmican preservation food',
+                    emoji: '🥩'
+                },
+                'Maple Syrup Maker': {
+                    statRequirements: { minPerception: 5, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    keywords: 'maple syrup tapping',
+                    emoji: '🍁'
+                },
+                'Fur Trader': {
+                    statRequirements: { minPersuasion: 5, minConstitution: 5 },
+                    socialRequirements: { minWanderlust: 0.5, maxPrivilege: 0.5 },
+                    genderBias: 'Male',
+                    keywords: 'fur trading commerce',
+                    emoji: '🦫'
+                },
+                'Scout': {
+                    statRequirements: { minPerception: 7, minDexterity: 6, minConstitution: 6 },
+                    socialRequirements: { minWanderlust: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'scouting tracking',
+                    emoji: '👁️'
+                },
+                'Corn Grinder': {
+                    statRequirements: { minStrength: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Female',
+                    keywords: 'corn grinding food',
+                    emoji: '🌽'
+                },
+                'Turquoise Worker': {
+                    statRequirements: { minDexterity: 7, minCraftiness: 6 },
+                    socialRequirements: { maxPrivilege: 0.5 },
+                    keywords: 'turquoise jewelry stone',
+                    emoji: '💎'
                 }
             },
             Plains: {
@@ -3282,6 +3590,13 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'healing ceremony',
                     emoji: '🦅'
+                },
+                'Apache Scout': {
+                    statRequirements: { minDexterity: 7, minPerception: 8, minConstitution: 7 },
+                    socialRequirements: { minWanderlust: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'tracking bow stealth',
+                    emoji: '🏹'
                 }
             },
             SOUTHWEST: {
@@ -3647,6 +3962,18 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { minReligiosity: 0.6 },
                     keywords: 'traditional healing',
                     emoji: '🌿'
+                },
+                'Net Weaver': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    keywords: 'fishing nets weaving',
+                    emoji: '🕸️'
+                },
+                'Shell Fisher': {
+                    statRequirements: { minStrength: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'shellfish diving',
+                    emoji: '🐚'
                 }
             }
         },
@@ -3727,6 +4054,13 @@ export const PROFESSIONS: ProfessionData = {
                     keywords: 'battle',
                     emoji: '🛡️'
                 },
+                'Maori Warrior': {
+                    statRequirements: { minStrength: 7, minDexterity: 6, minConstitution: 6 },
+                    socialRequirements: { minAmbition: 0.5, minPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'mere taiaha haka',
+                    emoji: '⚔️'
+                },
                 'Tattoo Artist': {
                     statRequirements: { minDexterity: 8, minCraftiness: 7 },
                     socialRequirements: { minReligiosity: 0.6 },
@@ -3783,6 +4117,53 @@ export const PROFESSIONS: ProfessionData = {
                     keywords: 'healing chant song medicine',
                     emoji: '🎵'
                 },
+                'Kava Grower': {
+                    statRequirements: { minConstitution: 5, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    keywords: 'kava cultivation ceremony',
+                    emoji: '🌿'
+                },
+                'Tapa Cloth Maker': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 6 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    genderBias: 'Female',
+                    keywords: 'tapa bark cloth beating',
+                    emoji: '👘'
+                },
+                'Coconut Gatherer': {
+                    statRequirements: { minStrength: 5, minDexterity: 6 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'coconut climbing harvesting',
+                    emoji: '🥥'
+                },
+                'Fish Trap Maker': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 6 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'fishing traps weaving',
+                    emoji: '🐟'
+                },
+                'Village Fisher': {
+                    statRequirements: { minDexterity: 5, minPerception: 5 },
+                    socialRequirements: { maxPrivilege: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'fishing nets reef',
+                    emoji: '🎣'
+                },
+                'Mat Weaver': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Female',
+                    keywords: 'mat weaving pandanus',
+                    emoji: '🧺'
+                },
+                'Pig Keeper': {
+                    statRequirements: { minStrength: 5, minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'pigs livestock husbandry',
+                    emoji: '🐷'
+                },
                 'Bush Medicine Woman': {
                     statRequirements: { minPerception: 7, minCraftiness: 5 },
                     socialRequirements: { minPrivilege: 0.3 },
@@ -3831,6 +4212,19 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'hunting',
                     emoji: '🐋'
+                },
+                'Copra Worker': {
+                    statRequirements: { minStrength: 6, minConstitution: 6 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'coconut drying copra',
+                    emoji: '🥥'
+                },
+                'Mission Worker': {
+                    statRequirements: { minConstitution: 5 },
+                    socialRequirements: { minReligiosity: 0.5, maxPrivilege: 0.4 },
+                    keywords: 'church labor convert',
+                    emoji: '⛪'
                 }
             }
         },
@@ -4142,6 +4536,15 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '⚓'
                 }
             },
+            MILITARY: {
+                'Zulu Warrior': {
+                    statRequirements: { minStrength: 8, minDexterity: 7, minConstitution: 8 },
+                    socialRequirements: { minAmbition: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'iklwa assegai shield',
+                    emoji: '⚔️'
+                }
+            },
             CRAFTSPEOPLE: {
                 'Slave Trader': {
                     statRequirements: { minPersuasion: 5, minCraftiness: 6 },
@@ -4343,6 +4746,15 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🍃'
                 }
             },
+            MILITARY: {
+                'Amazon Warrior': {
+                    statRequirements: { minStrength: 6, minDexterity: 7, minConstitution: 6 },
+                    socialRequirements: { minAmbition: 0.5 },
+                    genderBias: 'Female',
+                    keywords: 'blowgun ranged warrior',
+                    emoji: '🏹'
+                }
+            },
             COMMONERS: {
                 'Maize Farmer': {
                     statRequirements: { minStamina: 5, minConstitution: 5 },
@@ -4411,6 +4823,15 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minDexterity: 7, minCraftiness: 7 },
                     keywords: 'bronze silver',
                     emoji: '🔨'
+                }
+            },
+            MILITARY: {
+                'Inca Slinger': {
+                    statRequirements: { minDexterity: 7, minPerception: 6, minConstitution: 6 },
+                    socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'sling lead bullet ranged',
+                    emoji: '🪃'
                 }
             },
             COMMONERS: {
@@ -4545,6 +4966,13 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minIntelligence: 6, minDexterity: 6 },
                     keywords: 'communications',
                     emoji: '📡'
+                },
+                'Gaucho': {
+                    statRequirements: { minDexterity: 7, minStrength: 6, minPerception: 6 },
+                    socialRequirements: { minWanderlust: 0.5 },
+                    genderBias: 'Male',
+                    keywords: 'pampas bolas horseman',
+                    emoji: '🤠'
                 }
             },
             LOWER_CLASS: {

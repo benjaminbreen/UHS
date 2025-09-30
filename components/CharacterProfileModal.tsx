@@ -4,7 +4,7 @@
  * lucide-react icons everywhere, larger inventory preview, and small UX polish.
  */
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   PlayerCharacter,
   EquipmentSlot,
@@ -389,9 +389,27 @@ const CharacterProfileModal: React.FC<Props> = ({
   const [highlightedEventYear, setHighlightedEventYear] = useState<number | null>(null);
   const timelineRef = React.useRef<HTMLDivElement>(null);
 
+  // Performance tracking with refs to avoid re-renders
+  const modalStartTimeRef = useRef<number>(0);
+  const renderCountRef = useRef<number>(0);
+
+  // Track when modal opens
+  if (isOpen && modalStartTimeRef.current === 0) {
+    modalStartTimeRef.current = performance.now();
+    renderCountRef.current = 0;
+    console.log(`[CharacterProfileModal] Opening modal for ${character.name}`);
+  }
+
+  // Count renders
+  renderCountRef.current++;
+  if (renderCountRef.current > 2) {
+    console.warn(`[CharacterProfileModal] Excessive re-renders: ${renderCountRef.current} times`);
+  }
+
   // Safari performance optimization - remove expensive CSS effects
   useEffect(() => {
     if (isSafari()) {
+      console.log('[CharacterProfileModal] Applying Safari-specific optimizations');
       const style = document.createElement('style');
       style.id = 'safari-character-modal-optimization';
       style.textContent = `
@@ -412,6 +430,17 @@ const CharacterProfileModal: React.FC<Props> = ({
           .ff-panel *, .modal-overlay * {
             animation-duration: 0.2s !important;
           }
+        }
+        /* Disable expensive shadow effects */
+        .ff-panel .shadow-xl,
+        .ff-panel .shadow-lg,
+        .ff-panel .shadow-glow-blue {
+          box-shadow: none !important;
+        }
+        /* Reduce gradient complexity */
+        .ff-panel .bg-gradient-to-br,
+        .ff-panel .bg-gradient-to-r {
+          background-image: none !important;
         }
       `;
       document.head.appendChild(style);
@@ -437,7 +466,14 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   // Memoized event handlers to prevent re-creation on every render
   const handleTabChange = useCallback((tab: typeof active) => {
+    console.log(`[CharacterProfileModal] Switching to tab: ${tab}`);
+    const startTime = performance.now();
     setActive(tab);
+    // Log completion after state update
+    requestAnimationFrame(() => {
+      const elapsed = performance.now() - startTime;
+      console.log(`[CharacterProfileModal] Tab switch to ${tab} completed in ${elapsed.toFixed(2)}ms`);
+    });
   }, []);
 
   const handleInventoryFilterChange = useCallback((filter: typeof inventoryFilter) => {
@@ -481,6 +517,17 @@ const CharacterProfileModal: React.FC<Props> = ({
     if (!isOpen) {
       setActive('overview');
       setSelectedItem(null);
+      // Reset performance tracking
+      modalStartTimeRef.current = 0;
+      renderCountRef.current = 0;
+    } else {
+      // Log modal render completion
+      requestAnimationFrame(() => {
+        if (modalStartTimeRef.current > 0) {
+          const elapsed = performance.now() - modalStartTimeRef.current;
+          console.log(`[CharacterProfileModal] Modal fully rendered in ${elapsed.toFixed(2)}ms after ${renderCountRef.current} renders`);
+        }
+      });
     }
   }, [isOpen]);
 
@@ -507,6 +554,9 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (active === 'history' && !lifeEventsGenerated && character) {
+      console.log('[CharacterProfileModal] Starting life events generation...');
+      const generationStart = performance.now();
+
       // Debounced generation with longer delay to avoid blocking UI
       const timeoutId = setTimeout(() => {
         // Use requestIdleCallback if available for better performance
@@ -515,12 +565,16 @@ const CharacterProfileModal: React.FC<Props> = ({
             const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
             setExpandedLifeEvents(events);
             setLifeEventsGenerated(true);
+            const elapsed = performance.now() - generationStart;
+            console.log(`[CharacterProfileModal] Life events generated in ${elapsed.toFixed(2)}ms (${events.length} events)`);
           }, { timeout: 2000 });
         } else {
           // Fallback to setTimeout with longer delay
           const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
           setExpandedLifeEvents(events);
           setLifeEventsGenerated(true);
+          const elapsed = performance.now() - generationStart;
+          console.log(`[CharacterProfileModal] Life events generated in ${elapsed.toFixed(2)}ms (${events.length} events)`);
         }
       }, 500); // Increased delay from 100ms to 500ms
 
@@ -576,21 +630,42 @@ const CharacterProfileModal: React.FC<Props> = ({
     return res;
   }, [character?.diseaseHealth?.pastDiseases, character?.age, character?.birthYear]);
 
-  const allItems = useMemo(() => character.inventory || [], [character.inventory]);
+  // Use JSON.stringify for deep comparison to prevent unnecessary recalcs
+  const inventoryKey = useMemo(() => {
+    const items = character.inventory || [];
+    // Create a stable key based on item IDs and count
+    return `${items.length}-${items.map(i => i.id).join(',')}`;
+  }, [character.inventory]);
+
+  const allItems = useMemo(() => {
+    console.log(`[CharacterProfileModal] Recalculating allItems, inventory size: ${character.inventory?.length || 0}`);
+    return character.inventory || [];
+  }, [inventoryKey]);
+
   const filtered = useMemo(() => {
-    if (inventoryFilter === 'All') return allItems;
-    return allItems.filter(i => {
-      switch (inventoryFilter) {
-        case 'Weapons':
-          return i.category === 'Weapon';
-        case 'Clothing':
-          return i.category === 'Apparel';
-        case 'Consumables':
-          return i.category === 'Consumable' || i.sustenance > 0 || i.fatigueEffect || i.xpEffect;
-        case 'Other':
-          return !['Weapon', 'Apparel', 'Consumable'].includes(i.category) && !i.sustenance && !i.fatigueEffect && !i.xpEffect;
-      }
-    });
+    const filterStart = performance.now();
+    let result;
+    if (inventoryFilter === 'All') {
+      result = allItems;
+    } else {
+      result = allItems.filter(i => {
+        switch (inventoryFilter) {
+          case 'Weapons':
+            return i.category === 'Weapon';
+          case 'Clothing':
+            return i.category === 'Apparel';
+          case 'Consumables':
+            return i.category === 'Consumable' || i.sustenance > 0 || i.fatigueEffect || i.xpEffect;
+          case 'Other':
+            return !['Weapon', 'Apparel', 'Consumable'].includes(i.category) && !i.sustenance && !i.fatigueEffect && !i.xpEffect;
+        }
+      });
+    }
+    const elapsed = performance.now() - filterStart;
+    if (elapsed > 10) {
+      console.warn(`[CharacterProfileModal] Slow inventory filter: ${elapsed.toFixed(2)}ms for ${result.length} items`);
+    }
+    return result;
   }, [allItems, inventoryFilter]);
 
   useEffect(() => {
@@ -653,13 +728,21 @@ const CharacterProfileModal: React.FC<Props> = ({
                     </span>
                     {/* Character Attributes - moved to badge row */}
                     {character.attributes && character.attributes.length > 0 && (
-                      <button
+                      <div
                         onClick={handleToggleAttributeModal}
-                        className="flex-shrink-0 ml-auto rounded-lg hover:bg-slate-700/30 px-1 py-0.5 transition-all"
+                        className="flex-shrink-0 ml-auto rounded-lg hover:bg-slate-700/30 px-1 py-0.5 transition-all cursor-pointer"
                         title="View all attributes"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleToggleAttributeModal();
+                          }
+                        }}
                       >
                         <AttributeBadgeList badges={character.attributes} maxDisplay={2} size="small" />
-                      </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -787,25 +870,27 @@ const CharacterProfileModal: React.FC<Props> = ({
                 <div className="p-5 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
                   {/* Portrait + Vitals */}
                   <div className="space-y-5">
-                    <div
-                      className="relative group cursor-pointer"
-                      title="Click to view full portrait"
-                      onClick={handleOpenPortrait}
-                    >
-                      <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-700 bg-slate-900/70 shadow-xl">
-                        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-black/30 pointer-events-none" />
-                        <LazyPortrait
-                          character={character}
-                          size={300}
-                          type="animated"
-                          trackChanges
-                          immediate={false} // Definitely lazy-load this large one
-                        />
+                    {active === 'overview' && (
+                      <div
+                        className="relative group cursor-pointer"
+                        title="Click to view full portrait"
+                        onClick={handleOpenPortrait}
+                      >
+                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-700 bg-slate-900/70 shadow-xl">
+                          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-black/30 pointer-events-none" />
+                          <LazyPortrait
+                            character={character}
+                            size={300}
+                            type="animated"
+                            trackChanges
+                            immediate={false} // Definitely lazy-load this large one
+                          />
+                        </div>
+                        <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition text-xs">
+                          View
+                        </div>
                       </div>
-                      <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition text-xs">
-                        View
-                      </div>
-                    </div>
+                    )}
 
                     <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Vitals</h4>

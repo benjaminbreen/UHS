@@ -4,7 +4,7 @@
 import { Tile, ClimateType, NpcEntity, HistoricalEra, MapData, TerrainStructure, BiomeType, Appearance, Item, EquipmentSlot, ClothingPiece, Point, SocietalProfile, WealthLevel, Gender } from '../../../types';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, CulturalZone, STRUCTURE_BLUEPRINTS, PROFESSIONS, ProfessionDefinition, FACTION_DATA, GEOGRAPHICAL_DATA, STARTING_PACKAGES, SOCIETAL_PROFILES } from '../../../constants/index';
 import { ValueNoise } from '../../../utils/noise';
-import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateCompleteOutfit } from '../../common/npcUtils';
+import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateCompleteOutfit, generateCulturalAppearance } from '../../common/npcUtils';
 import { parseDateString } from '../../../utils/dateUtils';
 import { generateNpcDescriptions } from '../../../services/npcDescriptionService';
 import { mapLocationToCulture } from '../../../utils/mapUtils';

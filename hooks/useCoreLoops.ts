@@ -1333,21 +1333,9 @@ const useCoreLoops = (
 
  // Movement loop — simplified and consistent
 useEffect(() => {
-  const BASE_MOVE_ANIM_MS = 250; // Base movement interval
-  // Reduce animation frequency on Safari for better performance
-  const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  let frameSkipCounter = 0;
+  const BASE_MOVE_ANIM_MS = 250; // Base movement interval (locked at 250ms for smooth feel)
 
   const moveLoop = (currentTime: number) => {
-    // Skip frames on Safari to reduce load (run at 30fps instead of 60fps)
-    if (isSafari) {
-      frameSkipCounter++;
-      if (frameSkipCounter % 2 !== 0) {
-        moveLoopId.current = requestAnimationFrame(moveLoop);
-        return;
-      }
-    }
-
     moveLoopId.current = requestAnimationFrame(moveLoop);
 
     // Calculate disease-based movement penalty
@@ -1568,8 +1556,8 @@ useEffect(() => {
           return newMinutes;
         });
 
-        // Log map entry for every 5th movement to avoid spam
-        if (moveCount % 5 === 0) {
+        // Log map entry for every 20th movement to avoid spam (was 5th, too frequent)
+        if (moveCount % 20 === 0) {
           addGameLogEntry(LogService.createMapEntryLog(
             `${newLogicalX > controlledIconX ? 'east' : newLogicalX < controlledIconX ? 'west' : newLogicalY > controlledIconY ? 'south' : 'north'}`,
             localArea || 'Unknown location',
@@ -1735,13 +1723,16 @@ useEffect(() => {
         gameSounds.playEmbarkSound(); // Embark sound (improved with higher pitched footsteps)
         showToast('Embarked!');
       } else if (targetTile.isLand || targetTile.hasBridge) {
+        // Batch position updates to reduce re-renders
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
-        
+
         // Check if crossing a bridge and add narration
         if (targetTile.hasBridge) {
-          // Play sand footstep sound for bridges (wooden creaking effect)
-          gameSounds.playFootstepSound('sand');
+          // Play sand footstep sound for bridges (wooden creaking effect) - throttled
+          if (moveCount % 3 === 0) {
+            gameSounds.playFootstepSound('sand');
+          }
 
           // Add bridge crossing narration (only once per bridge to avoid spam)
           if (setNarrationHistory) {
@@ -1755,8 +1746,8 @@ useEffect(() => {
             }
           }
         }
-        // Play footstep sound for special maps based on floor type
-        else if (isSpecialMap) {
+        // Play footstep sound for special maps based on floor type - THROTTLED (every 3rd move)
+        else if (isSpecialMap && moveCount % 3 === 0) {
           const floorType = targetTile.biome;
           switch(floorType) {
             case BiomeType.FLOOR_STONE:
@@ -1790,8 +1781,8 @@ useEffect(() => {
               gameSounds.playStepSound();
               break;
           }
-        } else {
-          // Standard map footstep sounds based on biome
+        } else if (moveCount % 3 === 0) {
+          // Standard map footstep sounds based on biome - THROTTLED
           const footstepMaterial = getFootstepMaterial(targetTile.biome);
           gameSounds.playFootstepSound(footstepMaterial);
         }
@@ -1808,8 +1799,8 @@ useEffect(() => {
       }
     }
 
-    // disease proximity - only check every 20 moves OR once per minute to prevent stutter
-    const shouldCheckDisease = moveCount % 20 === 0 || (gameTimeMinutes % 1 === 0 && moveCount === lastDiseaseCheckMove.current + 1);
+    // disease proximity - only check every 50 moves to prevent stutter (was 20, too frequent)
+    const shouldCheckDisease = moveCount % 50 === 0;
     if (playerCharacter && playerCharacter.health && shouldCheckDisease) {
       lastDiseaseCheckMove.current = moveCount;
       const diseaseService = DiseaseService.getInstance();

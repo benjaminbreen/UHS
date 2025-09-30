@@ -21,163 +21,163 @@ export const STARTING_PACKAGES: Record<string, {
     // == SUB-SAHARAN AFRICAN PROFESSIONS
     // =======================================================================
     // Everyday professions (majority of population)
-    'Millet Farmer': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', legs: 'WORKER_TROUSERS', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['MILLET', 'GOURD_FLASK'], companions: [] },
-    'Yam Cultivator': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', legs: 'WORKER_TROUSERS', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['YAM', 'DIGGING_STICK'], companions: [] },
-    'Village Potter': { equipment: { torso: 'LEATHER_APRON', head: 'HEAD_WRAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS', belt: 'LEATHER_BAG' }, inventory: ['CLAY_LUMP', 'WOODEN_BOWL'], companions: [] }, // 80% female
-    'Mat Weaver': { equipment: { torso: 'SIMPLE_TUNIC', head: 'HEAD_WRAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS' }, inventory: ['REED_BUNDLE', 'KNIFE'], companions: [] }, // 95% female
-    'Compound Builder': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', main_hand: '*CONTEXTUAL*' }, inventory: ['MUD_BRICK', 'ROPE'], companions: [] }, // 100% male
-    'Water Carrier': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS' }, inventory: ['GOURD_FLASK', 'CLAY_POT'], companions: [] }, // 70% female
-    'Firewood Gatherer': { equipment: { torso: 'SIMPLE_TUNIC', head: 'HEAD_WRAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS', cloak: 'WOOL_CLOAK' }, inventory: ['STICK', 'ROPE'], companions: [] }, // 90% female
-    'Market Woman': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP', legs: 'SKIRT', feet: 'SANDALS', belt: 'PURSE' }, inventory: ['BASKET', 'VEGETABLES', 'FRUIT'], companions: [] }, // 100% female
+    'Millet Farmer': { equipment: { torso: 'WRAPPER', head: 'STRAW_HAT', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['MILLET', 'GOURD_FLASK'], companions: [] },
+    'Yam Cultivator': { equipment: { torso: 'WRAPPER', head: 'STRAW_HAT', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['YAM', 'DIGGING_STICK'], companions: [] },
+    'Village Potter': { equipment: { torso: 'WRAPPER', head: 'HEAD_WRAP', feet: 'SANDALS', belt: 'LEATHER_BAG' }, inventory: ['CLAY_LUMP', 'WOODEN_BOWL', 'LEATHER_APRON'], companions: [] }, // 80% female (apron worn over wrapper)
+    'Mat Weaver': { equipment: { torso: 'WRAPPER', head: 'HEAD_WRAP', feet: 'SANDALS' }, inventory: ['REED_BUNDLE', 'KNIFE'], companions: [] }, // 95% female
+    'Compound Builder': { equipment: { torso: 'DASHIKI', head: 'CLOTH_CAP', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['MUD_BRICK', 'ROPE', 'LEATHER_APRON'], companions: [] }, // 100% male
+    'Water Carrier': { equipment: { torso: 'WRAPPER', head: 'HEAD_WRAP', feet: 'SANDALS' }, inventory: ['GOURD_FLASK', 'CLAY_POT'], companions: [] }, // 70% female
+    'Firewood Gatherer': { equipment: { torso: 'WRAPPER', head: 'HEAD_WRAP', feet: 'SANDALS' }, inventory: ['STICK', 'ROPE'], companions: [] }, // 90% female
+    'Market Woman': { equipment: { torso: 'WRAPPER', head: 'HEAD_WRAP', feet: 'SANDALS', belt: 'PURSE' }, inventory: ['BASKET', 'VEGETABLES', 'FRUIT'], companions: [] }, // 100% female
     
     // Special/elite professions
-    'Griot': { equipment: { head: 'KUFI_CAP', torso: 'SIMPLE_ROBE', feet: 'LEATHER_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['KOLA_NUT', 'DRUM'], companions: [] },
-    'Ironsmith': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['IRON_ORE', 'HAMMER', 'BELLOWS'], companions: [] },
-    'Gold Trader': { equipment: { torso: 'FINE_CLOTHES', head: 'TURBAN', legs: 'SILK_HOSE', feet: 'LEATHER_BOOTS', belt: 'PURSE', cloak: 'NOBLE_CLOAK' }, inventory: ['GOLD_DUST', 'SCALE', 'SALT'], companions: ['CAMEL'] },
-    'Mask Carver': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['WOOD', 'KNIFE', 'OCHRE_LUMP'], companions: [] },
-    'Kola Merchant': { equipment: { torso: 'SIMPLE_ROBE', head: 'KUFI_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_SANDALS', belt: 'PURSE', cloak: 'WOOL_CLOAK' }, inventory: ['KOLA_NUT', 'KOLA_NUT', 'GOURD_FLASK'], companions: ['DONKEY'] },
-    'Palm Wine Tapper': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*' }, inventory: ['GOURD_FLASK', 'ROPE', 'KNIFE'], companions: [] },
-    'Dhow Captain': { equipment: { torso: 'SIMPLE_TUNIC', head: 'TURBAN', legs: 'SAILOR_PANTS', feet: 'LEATHER_BOOTS', cloak: 'WOOL_CLOAK' }, inventory: ['ROPE', 'COMPASS', 'DATES'], companions: [] },
-    'Ivory Trader': { equipment: { torso: 'FINE_CLOTHES', head: 'MERCHANT_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', belt: 'PURSE', cloak: 'NOBLE_CLOAK' }, inventory: ['IVORY', 'SCALE', 'COIN'], companions: [] },
-    'Tribal Hunter': { equipment: { torso: 'SIMPLE_TUNIC', head: 'LEATHER_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', cloak: 'FUR_CLOAK', main_hand: 'SIMPLE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'BOLAS', 'MEAT', 'ROPE'], companions: ['DOG'] }, // 95% male
-    'Slinger': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'SANDALS', main_hand: 'SLING', off_hand: 'SLING_STONE' }, inventory: ['SLING_STONE', 'SLING_STONE', 'SLING_STONE', 'LEATHER_POUCH'], companions: [] }, // 90% male
+    'Griot': { equipment: { head: 'KUFI_CAP', torso: 'BOUBOU', feet: 'DECORATED_SANDALS', main_hand: '*CONTEXTUAL*', cloak: 'WOOL_CLOAK' }, inventory: ['KOLA_NUT', 'DRUM'], companions: [] },
+    'Ironsmith': { equipment: { torso: 'DASHIKI', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['IRON_ORE', 'HAMMER', 'BELLOWS', 'LEATHER_APRON'], companions: [] },
+    'Gold Trader': { equipment: { torso: 'GRAND_BOUBOU', head: 'TURBAN', feet: 'LEATHER_BOOTS', belt: 'PURSE', cloak: 'SILK_CLOAK' }, inventory: ['GOLD_DUST', 'SCALE', 'SALT'], companions: ['CAMEL'] },
+    'Mask Carver': { equipment: { torso: 'DASHIKI', head: 'KUFI_CAP', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['WOOD', 'KNIFE', 'OCHRE_LUMP', 'LEATHER_APRON'], companions: [] },
+    'Kola Merchant': { equipment: { torso: 'BOUBOU', head: 'KUFI_CAP', feet: 'LEATHER_SANDALS', belt: 'PURSE', cloak: 'DESERT_CLOAK' }, inventory: ['KOLA_NUT', 'KOLA_NUT', 'GOURD_FLASK'], companions: ['DONKEY'] },
+    'Palm Wine Tapper': { equipment: { torso: 'WRAPPER', head: 'STRAW_HAT', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['GOURD_FLASK', 'ROPE', 'KNIFE'], companions: [] },
+    'Dhow Captain': { equipment: { torso: 'BOUBOU', head: 'TURBAN', legs: 'SAILOR_PANTS', feet: 'LEATHER_BOOTS', cloak: 'WOOL_CLOAK' }, inventory: ['ROPE', 'COMPASS', 'DATES'], companions: [] },
+    'Ivory Trader': { equipment: { torso: 'AGBADA', head: 'KUFI_CAP', feet: 'LEATHER_BOOTS', belt: 'PURSE', cloak: 'NOBLE_CLOAK' }, inventory: ['IVORY', 'SCALE', 'COIN'], companions: [] },
+    'Tribal Hunter': { equipment: { torso: 'WRAPPER', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', cloak: 'FUR_CLOAK', main_hand: 'SIMPLE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'BOLAS', 'MEAT', 'ROPE'], companions: ['DOG'] }, // 95% male
+    'Slinger': { equipment: { torso: 'WRAPPER', feet: 'SANDALS', main_hand: 'SLING', off_hand: 'SLING_STONE' }, inventory: ['SLING_STONE', 'SLING_STONE', 'SLING_STONE', 'LEATHER_POUCH'], companions: [] }, // 90% male
     
     // =======================================================================
     // == EAST ASIAN PROFESSIONS - JAPAN
     // =======================================================================
     // Everyday professions (vast majority)
-    'Rice Farmer': { equipment: { head: 'STRAW_HAT', torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'RICE', 'WOODEN_BOWL'], companions: [] }, // 70% male
-    'Village Carpenter': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['HAMMER', 'NAILS', 'WOOD'], companions: [] }, // 100% male
-    'Miso Maker': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'STRAW_SANDALS', belt: 'CLOTH_SASH' }, inventory: ['MISO', 'SALT', 'WOODEN_BOWL'], companions: [] }, // 80% female
-    'Tatami Weaver': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['REED_BUNDLE', 'ROPE', 'KNIFE'], companions: [] }, // 85% male
-    'Fisherman': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', legs: 'WORKER_TROUSERS', feet: 'SANDALS', cloak: 'WOOL_CLOAK', main_hand: '*CONTEXTUAL*' }, inventory: ['FISH_MEAT', 'ROPE', 'NET', 'STRAW_MAT', 'FLINT_AND_STEEL', 'WATERSKIN'], companions: [] }, // 95% male
-    'Tofu Maker': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'STRAW_SANDALS' }, inventory: ['TOFU', 'SALT', 'WOODEN_BOWL'], companions: [] }, // 60% female
-    'Charcoal Burner': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', cloak: 'WOOL_CLOAK', main_hand: '*CONTEXTUAL*' }, inventory: ['COAL', 'STICK', 'FLINT_STONE', 'LEAN_TO', 'TRAVEL_BLANKET'], companions: [] }, // 100% male
-    'Silk Reeler': { equipment: { torso: 'SIMPLE_TUNIC', head: 'HEAD_WRAP', legs: 'SKIRT', feet: 'STRAW_SANDALS', belt: 'CLOTH_SASH' }, inventory: ['SILK_CLOTH', 'SPINDLE'], companions: [] }, // 95% female
-    'Wet Nurse': { equipment: { torso: 'SIMPLE_ROBE', head: 'HEAD_WRAP', legs: 'SKIRT', feet: 'SANDALS' }, inventory: ['MILK_BOTTLE', 'CLOTH', 'RICE'], companions: [] }, // 100% female
+    'Rice Farmer': { equipment: { head: 'STRAW_HAT', torso: 'KOSODE', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'RICE', 'WOODEN_BOWL'], companions: [] }, // 70% male
+    'Village Carpenter': { equipment: { torso: 'KOSODE', head: 'CLOTH_CAP', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['HAMMER', 'NAILS', 'WOOD', 'LEATHER_APRON'], companions: [] }, // 100% male
+    'Miso Maker': { equipment: { torso: 'KOSODE', head: 'CLOTH_CAP', feet: 'STRAW_SANDALS', belt: 'CLOTH_SASH' }, inventory: ['MISO', 'SALT', 'WOODEN_BOWL', 'LEATHER_APRON'], companions: [] }, // 80% female
+    'Tatami Weaver': { equipment: { torso: 'KOSODE', head: 'CLOTH_CAP', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['REED_BUNDLE', 'ROPE', 'KNIFE'], companions: [] }, // 85% male
+    'Fisherman': { equipment: { torso: 'KOSODE', head: 'STRAW_HAT', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['FISH_MEAT', 'ROPE', 'NET', 'STRAW_MAT', 'FLINT_AND_STEEL', 'WATERSKIN'], companions: [] }, // 95% male
+    'Tofu Maker': { equipment: { torso: 'KOSODE', head: 'CLOTH_CAP', feet: 'STRAW_SANDALS' }, inventory: ['TOFU', 'SALT', 'WOODEN_BOWL', 'LEATHER_APRON'], companions: [] }, // 60% female
+    'Charcoal Burner': { equipment: { torso: 'KOSODE', head: 'CLOTH_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['COAL', 'STICK', 'FLINT_STONE', 'LEAN_TO', 'TRAVEL_BLANKET', 'LEATHER_APRON'], companions: [] }, // 100% male
+    'Silk Reeler': { equipment: { torso: 'KOSODE', head: 'HEAD_WRAP', feet: 'STRAW_SANDALS', belt: 'CLOTH_SASH' }, inventory: ['SILK_CLOTH', 'SPINDLE'], companions: [] }, // 95% female
+    'Wet Nurse': { equipment: { torso: 'KOSODE', head: 'HEAD_WRAP', feet: 'SANDALS' }, inventory: ['MILK_BOTTLE', 'CLOTH', 'RICE'], companions: [] }, // 100% female
     
     // Special professions
     'Samurai': { equipment: { head: 'LEATHER_CAP', torso: 'LACQUERED_ARMOR', cloak: 'SAMURAI_SURCOAT', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE_BALL', 'SAKE', 'WHETSTONE'], companions: ['HORSE'] }, // 100% male
-    'Ronin': { equipment: { torso: 'WOOL_TUNIC', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE_BALL', 'SAKE'], companions: [] }, // 100% male
-    'Tea Master': { equipment: { torso: 'SILK_ROBE' }, inventory: ['TEA', 'WOODEN_BOWL', 'INCENSE'], companions: [] },
-    'Sake Brewer': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['SAKE', 'RICE', 'BUCKET'], companions: [] },
-    'Geisha': { equipment: { torso: 'SILK_ROBE', head: 'SILK_CAP' }, inventory: ['FAN', 'INCENSE', 'SAKE'], companions: [] }, // 100% female
-    'Ninja': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['ROPE', 'SMOKE_BOMB', 'KNIFE'], companions: [] }, // 100% male
-    'Sword Polisher': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['WHETSTONE', 'OIL', 'CLOTH'], companions: [] },
+    'Ronin': { equipment: { torso: 'KOSODE', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE_BALL', 'SAKE'], companions: [] }, // 100% male
+    'Tea Master': { equipment: { torso: 'KIMONO' }, inventory: ['TEA', 'WOODEN_BOWL', 'INCENSE'], companions: [] },
+    'Sake Brewer': { equipment: { torso: 'KOSODE', main_hand: '*CONTEXTUAL*' }, inventory: ['SAKE', 'RICE', 'BUCKET', 'LEATHER_APRON'], companions: [] },
+    'Geisha': { equipment: { torso: 'KIMONO', feet: 'DECORATED_SANDALS' }, inventory: ['FAN', 'INCENSE', 'SAKE'], companions: [] }, // 100% female
+    'Ninja': { equipment: { torso: 'KOSODE', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', cloak: 'WOOL_CLOAK' }, inventory: ['ROPE', 'SMOKE_BOMB', 'KNIFE'], companions: [] }, // 100% male (dark clothing)
+    'Sword Polisher': { equipment: { torso: 'KOSODE', main_hand: '*CONTEXTUAL*' }, inventory: ['WHETSTONE', 'OIL', 'CLOTH', 'LEATHER_APRON'], companions: [] },
     
     // =======================================================================
     // == EAST ASIAN PROFESSIONS - CHINA
     // =======================================================================
     // Everyday professions
-    'Paddy Worker': { equipment: { head: 'STRAW_HAT', torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'VEGETABLES'], companions: [] }, // 60% male
-    'Noodle Maker': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS', belt: 'CLOTH_SASH' }, inventory: ['FLOUR', 'SALT', 'WOODEN_BOWL'], companions: [] }, // 70% male
-    'Bamboo Cutter': { equipment: { torso: 'SIMPLE_TUNIC', main_hand: '*CONTEXTUAL*' }, inventory: ['BAMBOO', 'KNIFE', 'ROPE'], companions: [] }, // 100% male
-    'Tea Picker': { equipment: { head: 'STRAW_HAT', torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS', feet: 'SANDALS', cloak: 'WOOL_CLOAK' }, inventory: ['TEA', 'BASKET'], companions: [] }, // 80% female
-    'Night Soil Collector': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BUCKET', 'ROPE'], companions: [] }, // 100% male
-    'Matchmaker': { equipment: { torso: 'SILK_ROBE', head: 'SILK_CAP', legs: 'SILK_HOSE', feet: 'SILK_SLIPPERS', belt: 'SILK_SASH', cloak: 'SILK_CLOAK' }, inventory: ['SCROLL', 'INCENSE', 'COIN'], companions: [] }, // 90% female
-    'Paper Maker': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['PAPER', 'BAMBOO', 'WATER'], companions: [] }, // 85% male
-    
+    'Paddy Worker': { equipment: { head: 'STRAW_HAT', torso: 'CHANGSHAN', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'VEGETABLES'], companions: [] }, // 60% male
+    'Noodle Maker': { equipment: { torso: 'CHANGSHAN', head: 'CLOTH_CAP', feet: 'SANDALS', belt: 'CLOTH_SASH' }, inventory: ['FLOUR', 'SALT', 'WOODEN_BOWL', 'LEATHER_APRON'], companions: [] }, // 70% male
+    'Bamboo Cutter': { equipment: { torso: 'CHANGSHAN', head: 'STRAW_HAT', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['BAMBOO', 'KNIFE', 'ROPE'], companions: [] }, // 100% male
+    'Tea Picker': { equipment: { head: 'STRAW_HAT', torso: 'QIPAO', feet: 'SANDALS' }, inventory: ['TEA', 'BASKET'], companions: [] }, // 80% female
+    'Night Soil Collector': { equipment: { torso: 'CHANGSHAN', head: 'CLOTH_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BUCKET', 'ROPE'], companions: [] }, // 100% male
+    'Matchmaker': { equipment: { torso: 'QIPAO', head: 'SILK_CAP', feet: 'SILK_SLIPPERS', belt: 'SILK_SASH', cloak: 'SILK_CLOAK' }, inventory: ['SCROLL', 'INCENSE', 'COIN'], companions: [] }, // 90% female
+    'Paper Maker': { equipment: { torso: 'CHANGSHAN', head: 'CLOTH_CAP', feet: 'SANDALS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['PAPER', 'BAMBOO', 'WATER', 'LEATHER_APRON'], companions: [] }, // 85% male
+
     // Special professions
-    'Silk Merchant': { equipment: { torso: 'SILK_ROBE', head: 'SILK_CAP', legs: 'SILK_HOSE', feet: 'SILK_SLIPPERS', belt: 'PURSE', cloak: 'SILK_CLOAK' }, inventory: ['SILK_CLOTH', 'SCALE', 'COIN'], companions: [] },
-    'Porcelain Maker': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS', belt: 'LEATHER_BAG' }, inventory: ['CLAY_LUMP', 'GLAZE', 'KILN_TOOLS'], companions: [] },
-    'Scholar-Official': { equipment: { torso: 'SILK_ROBE', head: 'SCHOLAR_CAP', legs: 'SILK_HOSE', feet: 'SILK_SLIPPERS', belt: 'SILK_SASH', cloak: 'SILK_CLOAK' }, inventory: ['BOOK', 'QUILL', 'INK_POT'], companions: [] },
-    'Eunuch': { equipment: { torso: 'SILK_ROBE' }, inventory: ['SCROLL', 'SEAL', 'COIN'], companions: [] }, // 100% male (castrated)
-    'Acupuncturist': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['NEEDLES', 'HERB_BUNDLE', 'SCROLL'], companions: [] },
-    'Calligrapher': { equipment: { torso: 'SILK_ROBE' }, inventory: ['QUILL', 'INK_POT', 'PAPER'], companions: [] },
+    'Silk Merchant': { equipment: { torso: 'CHANGSHAN', head: 'SILK_CAP', feet: 'SILK_SLIPPERS', belt: 'PURSE', cloak: 'SILK_CLOAK' }, inventory: ['SILK_CLOTH', 'SCALE', 'COIN'], companions: [] },
+    'Porcelain Maker': { equipment: { torso: 'CHANGSHAN', head: 'CLOTH_CAP', feet: 'SANDALS', belt: 'LEATHER_BAG' }, inventory: ['CLAY_LUMP', 'GLAZE', 'KILN_TOOLS', 'LEATHER_APRON'], companions: [] },
+    'Scholar-Official': { equipment: { torso: 'CHANGSHAN', head: 'SCHOLAR_CAP', feet: 'SILK_SLIPPERS', belt: 'SILK_SASH', cloak: 'SILK_CLOAK' }, inventory: ['BOOK', 'QUILL', 'INK_POT'], companions: [] },
+    'Eunuch': { equipment: { torso: 'CHANGSHAN', head: 'SILK_CAP', feet: 'SILK_SLIPPERS', cloak: 'SILK_CLOAK' }, inventory: ['SCROLL', 'SEAL', 'COIN'], companions: [] }, // 100% male (castrated)
+    'Acupuncturist': { equipment: { torso: 'CHANGSHAN' }, inventory: ['NEEDLES', 'HERB_BUNDLE', 'SCROLL'], companions: [] },
+    'Calligrapher': { equipment: { torso: 'CHANGSHAN', head: 'SCHOLAR_CAP' }, inventory: ['QUILL', 'INK_POT', 'PAPER'], companions: [] },
     
     // =======================================================================
     // == FALLBACK & GENERIC ROLES (Using procedural weapon selection)
     // =======================================================================
-    'Wanderer': { equipment: { head: 'STRAW_HAT', legs: 'WORKER_TROUSERS', torso: 'WOOL_TUNIC',  feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'GOURD_FLASK', 'MAP', 'BEDROLL', 'TRAVEL_BLANKET', 'FLINT_AND_STEEL', 'WATERSKIN'],  companions: ['DOG'] },
-    'Artisan': { equipment: { torso: 'LEATHER_APRON', legs: 'WORKER_TROUSERS',  feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['HAMMER', 'KNIFE', 'ROPE'] },
-    'Commoner': { equipment: { torso: 'SIMPLE_TUNIC',  legs: 'WORKER_HOSE', feet: 'SANDALS' }, inventory: ['BREAD', 'WOODEN_BOWL'] },
-    'Laborer': { equipment: { torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'ROPE'] },
-    'Peasant': { equipment: { torso: 'PEASANT_TUNIC', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD_CRUST', 'VEGETABLES'] },
-    'Warrior': { equipment: { torso: 'LEATHER_VEST', cloak: 'MILITARY_CLOAK', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['MEAT', 'WHETSTONE'],  companions: ['DOG'] },
+    'Wanderer': { equipment: { head: 'STRAW_HAT', torso: 'WOOL_TUNIC',  feet: 'LEATHER_BOOTS', cloak: 'WOOL_CLOAK', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'GOURD_FLASK', 'MAP', 'BEDROLL', 'TRAVEL_BLANKET', 'FLINT_AND_STEEL', 'WATERSKIN'],  companions: ['DOG'] },
+    'Artisan': { equipment: { head: 'CLOTH_CAP', torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['HAMMER', 'KNIFE', 'ROPE', 'LEATHER_APRON'] },
+    'Commoner': { equipment: { torso: 'SIMPLE_TUNIC', cloak: 'WOOL_CLOAK', feet: 'SANDALS' }, inventory: ['BREAD', 'WOODEN_BOWL'] },
+    'Laborer': { equipment: { head: 'CLOTH_CAP', torso: 'SIMPLE_TUNIC', feet: 'LEATHER_BOOTS', belt: 'ROPE', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'ROPE'] },
+    'Peasant': { equipment: { head: 'STRAW_HAT', torso: 'PEASANT_TUNIC', feet: 'SANDALS', belt: 'ROPE', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD_CRUST', 'VEGETABLES'] },
+    'Warrior': { equipment: { head: 'LEATHER_CAP', torso: 'LEATHER_VEST', cloak: 'MILITARY_CLOAK', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['MEAT', 'WHETSTONE'],  companions: ['DOG'] },
     'Caretaker': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'BREAD', 'BANDAGE'] },
     'Mother': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BREAD', 'SIMPLE_RING', 'FRUIT'] },
 
     // =======================================================================
     // == HERDERS & ANIMAL-RELATED (Using procedural weapon selection)
     // =======================================================================
-    'Shepherd': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC', necklace: 'IRON_TORC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'BREAD', 'FLUTE', 'LEAN_TO', 'TRAVEL_BLANKET', 'FLINT_AND_STEEL'], companions: ['SHEEP', 'DOG'] },
-    'Farmer': { equipment: { head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*', torso: 'LEATHER_APRON' }, inventory: ['BARLEY', 'WHEAT', 'GRAIN_FLAIL'], companions: ['COW'] },
-    'Goat Herder': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'CHEESE', 'STRAW_MAT', 'TRAVEL_BLANKET'], companions: ['GOAT', 'GOAT', 'GOAT'] },
-    'Cattle Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['ROPE', 'BREAD'], companions: ['COW', 'COW'] },
-    'Camel Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'DESERT_CLOAK', head: 'KEFFIYEH' }, inventory: ['DATES', 'GOURD_FLASK', 'HIDE_TENT', 'BEDROLL'], companions: ['CAMEL', 'CAMEL'] },
-    'Duck Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['DUCK', 'DUCK', 'DUCK'] },
-    'Llama Herder': { equipment: { head: 'CHULLO_HAT', torso: 'PONCHO', main_hand: '*CONTEXTUAL*' }, inventory: ['POTATO', 'ROPE'], companions: ['LLAMA', 'LLAMA'] },
-    'Ranchero': { equipment: { head: 'WIDE_BRIM_HAT', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['SALT_PORK', 'GOURD_FLASK'], companions: ['COW', 'HORSE'] },
-    'Horse Trainer': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['ROPE', 'FRUIT'], companions: ['HORSE', 'HORSE'] },
+    'Shepherd': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', cloak: 'WOOL_CLOAK', feet: 'SANDALS', belt: 'LEATHER_BAG', necklace: 'IRON_TORC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'BREAD', 'FLUTE', 'LEAN_TO', 'TRAVEL_BLANKET', 'FLINT_AND_STEEL'], companions: ['SHEEP', 'DOG'] },
+    'Farmer': { equipment: { head: 'STRAW_HAT', cloak: 'WOOL_CLOAK', main_hand: '*CONTEXTUAL*', torso: 'SIMPLE_TUNIC', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG' }, inventory: ['BARLEY', 'WHEAT', 'GRAIN_FLAIL', 'LEATHER_APRON'], companions: ['COW'] },
+    'Goat Herder': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', cloak: 'FUR_CLOAK', feet: 'SANDALS', belt: 'LEATHER_BAG' }, inventory: ['SLING_STONE', 'SLING_STONE', 'CHEESE', 'STRAW_MAT', 'TRAVEL_BLANKET'], companions: ['GOAT', 'GOAT', 'GOAT'] },
+    'Cattle Herder': { equipment: { main_hand: '*CONTEXTUAL*', cloak: 'WOOL_CLOAK', feet: 'SANDALS', belt: 'LEATHER_BAG' }, inventory: ['ROPE', 'BREAD'], companions: ['COW', 'COW'] },
+    'Camel Herder': { equipment: { main_hand: '*CONTEXTUAL*', cloak: 'DESERT_CLOAK', head: 'KEFFIYEH', feet: 'SANDALS', belt: 'LEATHER_BAG' }, inventory: ['DATES', 'GOURD_FLASK', 'HIDE_TENT', 'BEDROLL'], companions: ['CAMEL', 'CAMEL'] },
+    'Duck Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC', feet: 'SANDALS' }, inventory: ['BREAD'], companions: ['DUCK', 'DUCK', 'DUCK'] },
+    'Llama Herder': { equipment: { head: 'CHULLO_HAT', cloak: 'ALPACA_CLOAK', main_hand: '*CONTEXTUAL*', feet: 'SANDALS' }, inventory: ['POTATO', 'ROPE'], companions: ['LLAMA', 'LLAMA'] },
+    'Ranchero': { equipment: { head: 'WIDE_BRIM_HAT', torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['SALT_PORK', 'GOURD_FLASK'], companions: ['COW', 'HORSE'] },
+    'Horse Trainer': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['ROPE', 'FRUIT', 'LEATHER_APRON'], companions: ['HORSE', 'HORSE'] },
     
     // =======================================================================
     // == EUROPEAN
     // =======================================================================
 
     // --- PREHISTORY (Using procedural weapon selection) ---
-    'Hunter': { equipment: { torso: 'DEER_HIDE', feet: 'HIDE_BOOTS', main_hand: 'HUNTING_BOW', off_hand: 'ARROW', necklace: 'BRONZE_TORC' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'FLINT_STONE', 'MEAT', 'VINE'], companions: ['DOG'] },
-    'Gatherer': { equipment: { torso: 'DEER_HIDE', head: 'CLOTH_HOOD', legs: 'SIMPLE_HOSE', feet: 'HIDE_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['WILD_BERRIES', 'MUSHROOM', 'ROOT', 'LEATHER_BAG'] },
-    'Shaman': { equipment: { head: 'WOLF_PELT', torso: 'DEER_HIDE', legs: 'HIDE_LOINCLOTH', feet: 'HIDE_BOOTS', cloak: 'FUR_CLOAK', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'SMOOTH_STONE', 'BONES', 'OWL_FEATHER'] },
-    'Toolmaker': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['FLINT_STONE', 'STICK', 'VINE', 'HAMMER'] },
-    'Healer': { equipment: { torso: 'DEER_HIDE', head: 'CLOTH_HOOD', legs: 'SIMPLE_HOSE', feet: 'HIDE_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['MEDICINAL_HERBS', 'HERB_BUNDLE', 'SMOOTH_STONE'] },
-    'Cave Painter': { equipment: { torso: 'DEER_HIDE', main_hand: '*CONTEXTUAL*' }, inventory: ['OCHRE_LUMP', 'COAL', 'CLAY_LUMP'] },
-    'Fire Keeper': { equipment: { torso: 'DEER_HIDE', main_hand: '*CONTEXTUAL*' }, inventory: ['STICK', 'DRY_LEAVES', 'FLINT_STONE'] },
-    'Skin Dresser': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['DEER_HIDE', 'FLINT_STONE', 'KNIFE'] },
+    'Hunter': { equipment: { torso: 'DEER_HIDE', cloak: 'FUR_CLOAK', feet: 'HIDE_BOOTS', belt: 'LEATHER_BAG', main_hand: 'HUNTING_BOW', off_hand: 'ARROW', necklace: 'BRONZE_TORC' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'FLINT_STONE', 'MEAT', 'VINE'], companions: ['DOG'] },
+    'Gatherer': { equipment: { torso: 'DEER_HIDE', head: 'CLOTH_HOOD', cloak: 'FUR_CLOAK', legs: 'SIMPLE_HOSE', feet: 'HIDE_BOOTS', belt: 'LEATHER_BAG', necklace: 'SHELL_NECKLACE', main_hand: '*CONTEXTUAL*' }, inventory: ['WILD_BERRIES', 'MUSHROOM', 'ROOT'] },
+    'Shaman': { equipment: { head: 'WOLF_PELT', cloak: 'FUR_CLOAK', torso: 'DEER_HIDE', legs: 'HIDE_LOINCLOTH', feet: 'HIDE_BOOTS', cloak: 'FUR_CLOAK', belt: 'LEATHER_BAG', necklace: 'BONE_NECKLACE', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'SMOOTH_STONE', 'BONES', 'OWL_FEATHER'] },
+    'Toolmaker': { equipment: { torso: 'DEER_HIDE', head: 'LEATHER_CAP', feet: 'HIDE_BOOTS', belt: 'LEATHER_BAG', necklace: 'BONE_NECKLACE', main_hand: '*CONTEXTUAL*' }, inventory: ['FLINT_STONE', 'STICK', 'VINE', 'HAMMER', 'LEATHER_APRON'] },
+    'Healer': { equipment: { torso: 'DEER_HIDE', head: 'CLOTH_HOOD', legs: 'SIMPLE_HOSE', feet: 'HIDE_BOOTS', cloak: 'FUR_CLOAK', belt: 'LEATHER_BAG', necklace: 'SHELL_NECKLACE', main_hand: '*CONTEXTUAL*' }, inventory: ['MEDICINAL_HERBS', 'HERB_BUNDLE', 'SMOOTH_STONE'] },
+    'Cave Painter': { equipment: { torso: 'DEER_HIDE', head: 'FEATHER_CROWN', cloak: 'FUR_CLOAK', feet: 'HIDE_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['OCHRE_LUMP', 'COAL', 'CLAY_LUMP'] },
+    'Fire Keeper': { equipment: { torso: 'DEER_HIDE', cloak: 'FUR_CLOAK', feet: 'HIDE_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['STICK', 'DRY_LEAVES', 'FLINT_STONE'] },
+    'Skin Dresser': { equipment: { torso: 'DEER_HIDE', feet: 'HIDE_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['DEER_HIDE', 'FLINT_STONE', 'KNIFE', 'LEATHER_APRON'] },
     'Fisher': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', legs: 'WORKER_TROUSERS', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['FISH_MEAT', 'VINE', 'EARTHWORM'] },
-    'Bone Carver': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['BONES', 'FLINT_STONE', 'KNIFE'] },
+    'Bone Carver': { equipment: { torso: 'DEER_HIDE', feet: 'HIDE_BOOTS', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['BONES', 'FLINT_STONE', 'KNIFE', 'LEATHER_APRON'] },
 
     // --- HEALING PROFESSIONS (All Zones/Eras) ---
     // Sub-Saharan African Healers
-    'Mganga': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'SANDALS', belt: 'LEATHER_BAG', cloak: 'WOOL_CLOAK' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'HEALING_SALVE', 'HERB_BUNDLE'], companions: [] },
-    'Snake Doctor': { equipment: { torso: 'SIMPLE_TUNIC', head: 'LEATHER_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', cloak: 'WOOL_CLOAK' }, inventory: ['ANTIDOTE_VIAL', 'TOURNIQUET', 'KNIFE', 'HEALING_SALVE', 'BANDAGE'], companions: [] },
-    'Birth Attendant': { equipment: { torso: 'SIMPLE_ROBE', head: 'HEAD_WRAP', legs: 'SKIRT', feet: 'SANDALS', belt: 'CLOTH_SASH' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'CLOTH', 'HONEY_JAR'], companions: [] },
-    'Bone Setter': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG' }, inventory: ['SPLINT_WOOD', 'BANDAGE', 'HEALING_SALVE', 'ROPE', 'PAIN_POWDER'], companions: [] },
+    'Mganga': { equipment: { torso: 'BOUBOU', head: 'KUFI_CAP', feet: 'SANDALS', belt: 'LEATHER_BAG', cloak: 'WOOL_CLOAK', necklace: 'AMULET' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'HEALING_SALVE', 'HERB_BUNDLE'], companions: [] },
+    'Snake Doctor': { equipment: { torso: 'WRAPPER', cloak: 'FUR_CLOAK', head: 'FEATHER_CROWN', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG', cloak: 'WOOL_CLOAK', necklace: 'BRONZE_TORC' }, inventory: ['ANTIDOTE_VIAL', 'TOURNIQUET', 'KNIFE', 'HEALING_SALVE', 'BANDAGE'], companions: [] },
+    'Birth Attendant': { equipment: { torso: 'WRAPPER', head: 'HEAD_WRAP', feet: 'SANDALS', belt: 'CLOTH_SASH' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'CLOTH', 'HONEY_JAR'], companions: [] },
+    'Bone Setter': { equipment: { torso: 'DASHIKI', head: 'CLOTH_CAP', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG' }, inventory: ['SPLINT_WOOD', 'BANDAGE', 'HEALING_SALVE', 'ROPE', 'PAIN_POWDER', 'LEATHER_APRON'], companions: [] },
 
     // MENA Healers
-    'Tabib': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN', legs: 'SILK_HOSE', feet: 'BABOUCHE', belt: 'SILK_SASH', cloak: 'WOOL_CLOAK' }, inventory: ['HEALERS_KIT', 'SURGICAL_TOOLS', 'MEDICINAL_HERBS', 'ALCOHOL_FLASK', 'MEDICAL_JOURNAL'], companions: [] },
-    'Jarrah': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['BONE_SAW', 'CAUTERY_IRON', 'BANDAGE', 'PAIN_POWDER', 'ALCOHOL_FLASK'], companions: [] },
-    'Attar': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MORTAR_PESTLE', 'FRANKINCENSE', 'MYRRH_RESIN', 'HEALING_SALVE', 'TINCTURE_BOTTLE'], companions: [] },
-    'Kahhal': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['SURGICAL_TOOLS', 'ALCOHOL_FLASK', 'STERILE_GAUZE', 'HEALING_SALVE'], companions: [] },
+    'Tabib': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN',  feet: 'BABOUCHE', belt: 'SILK_SASH', cloak: 'WOOL_CLOAK', necklace: 'SILVER_TORC' }, inventory: ['HEALERS_KIT', 'SURGICAL_TOOLS', 'MEDICINAL_HERBS', 'ALCOHOL_FLASK', 'MEDICAL_JOURNAL'], companions: [] },
+    'Jarrah': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN', belt: 'LEATHER_BAG' }, inventory: ['BONE_SAW', 'CAUTERY_IRON', 'BANDAGE', 'PAIN_POWDER', 'ALCOHOL_FLASK', 'LEATHER_APRON'], companions: [] },
+    'Attar': { equipment: { torso: 'SIMPLE_ROBE', head: 'KUFI_CAP', belt: 'LEATHER_BAG' }, inventory: ['MORTAR_PESTLE', 'FRANKINCENSE', 'MYRRH_RESIN', 'HEALING_SALVE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Kahhal': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN', belt: 'LEATHER_BAG' }, inventory: ['SURGICAL_TOOLS', 'ALCOHOL_FLASK', 'STERILE_GAUZE', 'HEALING_SALVE'], companions: [] },
 
     // East Asian Healers
-    'Kampo Practitioner': { equipment: { torso: 'SILK_ROBE' }, inventory: ['HEALERS_KIT', 'GINSENG_ROOT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'PULSE_CHART'], companions: [] },
-    'Moxibustion Specialist': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MOXIBUSTION_STICKS', 'ACUPUNCTURE_NEEDLES', 'HEALING_SALVE', 'PULSE_CHART'], companions: [] },
-    'Pulse Diagnostician': { equipment: { torso: 'SILK_ROBE' }, inventory: ['PULSE_CHART', 'MEDICAL_JOURNAL', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE'], companions: [] },
-    'Bone Reader': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BONES', 'INCENSE', 'MEDICINAL_HERBS', 'HEALING_SALVE'], companions: [] },
+    'Kampo Practitioner': { equipment: { torso: 'KIMONO', head: 'CLOTH_CAP', belt: 'CLOTH_SASH' }, inventory: ['HEALERS_KIT', 'GINSENG_ROOT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'PULSE_CHART'], companions: [] },
+    'Moxibustion Specialist': { equipment: { torso: 'KOSODE', head: 'CLOTH_CAP', belt: 'CLOTH_SASH' }, inventory: ['MOXIBUSTION_STICKS', 'ACUPUNCTURE_NEEDLES', 'HEALING_SALVE', 'PULSE_CHART'], companions: [] },
+    'Pulse Diagnostician': { equipment: { torso: 'KIMONO', head: 'SCHOLAR_CAP', belt: 'SILK_SASH' }, inventory: ['PULSE_CHART', 'MEDICAL_JOURNAL', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE'], companions: [] },
+    'Bone Reader': { equipment: { torso: 'KOSODE', head: 'CLOTH_CAP', belt: 'CLOTH_SASH' }, inventory: ['BONES', 'INCENSE', 'MEDICINAL_HERBS', 'HEALING_SALVE'], companions: [] },
 
     // South Asian Healers
-    'Vaidya': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_CAP', legs: 'DHOTI', feet: 'JUTTI', belt: 'CLOTH_SASH', cloak: 'WOOL_CLOAK' }, inventory: ['HEALERS_KIT', 'TURMERIC_ROOT', 'NEEM_LEAVES', 'MORTAR_PESTLE', 'MEDICAL_JOURNAL'], companions: [] },
-    'Hakim': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'PULSE_CHART', 'TINCTURE_BOTTLE', 'MEDICAL_JOURNAL'], companions: [] },
-    'Dai': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'TURMERIC_ROOT', 'HONEY_JAR'], companions: [] },
-    'Jadi Booti Wala': { equipment: { torso: 'SIMPLE_TUNIC', belt: 'LEATHER_BAG' }, inventory: ['MEDICINAL_HERBS', 'NEEM_LEAVES', 'TURMERIC_ROOT', 'MORTAR_PESTLE', 'HERB_BUNDLE'], companions: [] },
-    'Nadi Vaidya': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['PULSE_CHART', 'MEDICAL_JOURNAL', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE'], companions: [] },
+    'Vaidya': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN', legs: 'DHOTI', feet: 'JUTTI', belt: 'CLOTH_SASH', cloak: 'WOOL_CLOAK', necklace: 'RUDRAKSHA_BEADS' }, inventory: ['HEALERS_KIT', 'TURMERIC_ROOT', 'NEEM_LEAVES', 'MORTAR_PESTLE', 'MEDICAL_JOURNAL'], companions: [] },
+    'Hakim': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN', belt: 'LEATHER_BAG', cloak: 'WOOL_CLOAK' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'PULSE_CHART', 'TINCTURE_BOTTLE', 'MEDICAL_JOURNAL'], companions: [] },
+    'Dai': { equipment: { torso: 'SARI', head: 'HEAD_WRAP', belt: 'CLOTH_SASH' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'TURMERIC_ROOT', 'HONEY_JAR'], companions: [] },
+    'Jadi Booti Wala': { equipment: { torso: 'SIMPLE_TUNIC', head: 'TURBAN', legs: 'DHOTI', belt: 'LEATHER_BAG' }, inventory: ['MEDICINAL_HERBS', 'NEEM_LEAVES', 'TURMERIC_ROOT', 'MORTAR_PESTLE', 'HERB_BUNDLE'], companions: [] },
+    'Nadi Vaidya': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN', belt: 'CLOTH_SASH' }, inventory: ['PULSE_CHART', 'MEDICAL_JOURNAL', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE'], companions: [] },
 
     // Oceania Healers
     'Tohunga': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'PRAYER_BEADS', 'HEALING_SALVE', 'HERB_BUNDLE'], companions: [] },
     'Taulasea': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['MEDICINAL_HERBS', 'EUCALYPTUS_OIL', 'HEALING_SALVE', 'MORTAR_PESTLE'], companions: [] },
     'Clever Woman': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'HEALING_SALVE', 'HERB_BUNDLE', 'HONEY_JAR'], companions: [] },
     'Bone Singer': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['SPLINT_WOOD', 'BANDAGE', 'HEALING_SALVE', 'MEDICINAL_HERBS'], companions: [] },
-    'Bush Medicine Woman': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MEDICINAL_HERBS', 'EUCALYPTUS_OIL', 'ALOE_VERA', 'MORTAR_PESTLE', 'HEALING_SALVE'], companions: [] },
+    'Bush Medicine Woman': { equipment: { torso: 'SIMPLE_ROBE', head: 'FEATHER_CROWN', }, inventory: ['MEDICINAL_HERBS', 'EUCALYPTUS_OIL', 'ALOE_VERA', 'MORTAR_PESTLE', 'HEALING_SALVE'], companions: [] },
 
     // Pre-Columbian/American Healers
-    'Medicine Man': { equipment: { torso: 'FUR_CLOAK', head: 'EAGLE_FEATHER' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'INCENSE', 'PRAYER_BEADS', 'HEALING_SALVE'], companions: [] },
-    'Medicine Woman': { equipment: { torso: 'DEER_HIDE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'WILLOW_BARK', 'MORTAR_PESTLE', 'HEALING_SALVE'], companions: [] },
-    'Paqo': { equipment: { torso: 'PONCHO' }, inventory: ['COCA_LEAVES', 'MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS'], companions: [] },
-    'Ticitl': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'HEALING_SALVE', 'MEDICAL_JOURNAL'], companions: [] },
-    'Curandero': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS', 'INCENSE', 'TINCTURE_BOTTLE'], companions: [] },
-    'Curandera': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS', 'INCENSE', 'TINCTURE_BOTTLE'], companions: [] },
-    'Herbatero': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['MEDICINAL_HERBS', 'MORTAR_PESTLE', 'TINCTURE_BOTTLE', 'HEALING_SALVE'], companions: [] },
-    'Sobador': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['HEALING_SALVE', 'BANDAGE', 'SPLINT_WOOD', 'PAIN_POWDER'], companions: [] },
+    'Medicine Man': { equipment: { cloak: 'FEATHER_CLOAK', head: 'EAGLE_FEATHER', belt: 'LEATHER_BAG', necklace: 'MEDICINE_BUNDLE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'INCENSE', 'PRAYER_BEADS', 'HEALING_SALVE'], companions: [] },
+    'Medicine Woman': { equipment: { torso: 'DEER_HIDE', cloak: 'FUR_CLOAK', head: 'HEAD_WRAP', belt: 'LEATHER_BAG', necklace: 'SHELL_NECKLACE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'WILLOW_BARK', 'MORTAR_PESTLE', 'HEALING_SALVE'], companions: [] },
+    'Paqo': { equipment: { cloak: 'ALPACA_CLOAK', head: 'CHULLO_HAT', belt: 'CLOTH_SASH' }, inventory: ['COCA_LEAVES', 'MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS'], companions: [] },
+    'Ticitl': { equipment: { torso: 'SIMPLE_ROBE', cloak: 'FEATHER_CLOAK', head: 'FEATHER_BAND', belt: 'LEATHER_BAG' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'HEALING_SALVE', 'MEDICAL_JOURNAL'], companions: [] },
+    'Curandero': { equipment: { torso: 'SIMPLE_TUNIC',  head: 'FEATHER_CROWN', belt: 'LEATHER_BAG' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS', 'INCENSE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Curandera': { equipment: { torso: 'SIMPLE_ROBE', head: 'HEAD_WRAP', belt: 'CLOTH_SASH' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS', 'INCENSE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Herbatero': { equipment: { torso: 'SIMPLE_TUNIC', head: 'STRAW_HAT', belt: 'LEATHER_BAG' }, inventory: ['MEDICINAL_HERBS', 'MORTAR_PESTLE', 'TINCTURE_BOTTLE', 'HEALING_SALVE'], companions: [] },
+    'Sobador': { equipment: { torso: 'SIMPLE_TUNIC', belt: 'CLOTH_SASH' }, inventory: ['HEALING_SALVE', 'BANDAGE', 'SPLINT_WOOD', 'PAIN_POWDER', 'LEATHER_APRON'], companions: [] },
 
     // European Healers
-    'Herbalist': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'WILLOW_BARK', 'MORTAR_PESTLE', 'TINCTURE_BOTTLE'], companions: [] },
-    'Apothecary': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['MORTAR_PESTLE', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE', 'HEALING_SALVE', 'SCALE'], companions: [] },
-    'Barber-Surgeon': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['SURGICAL_TOOLS', 'BLEEDING_BOWL', 'LEECH', 'BANDAGE', 'ALCOHOL_FLASK'], companions: [] },
-    'Plague Doctor': { equipment: { torso: 'LEATHER_APRON', head: 'PLAGUE_MASK' }, inventory: ['HEALERS_KIT', 'INCENSE', 'MEDICINAL_HERBS', 'VINEGAR', 'MERCURY_VIAL'], companions: [] },
-    'Midwife': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'HONEY_JAR', 'MEDICINAL_HERBS'], companions: [] },
-    'Wise Woman': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'WILLOW_BARK', 'MORTAR_PESTLE', 'HERB_BUNDLE'], companions: [] },
-    'Leech Collector': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['LEECH', 'LEECH', 'LEECH', 'BUCKET', 'BANDAGE'], companions: [] },
-    'Hospital Orderly': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['BANDAGE', 'SOAP_BAR', 'BUCKET', 'STERILE_GAUZE'], companions: [] },
+    'Herbalist': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD', cloak: 'WOOL_CLOAK', belt: 'LEATHER_BAG' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'WILLOW_BARK', 'MORTAR_PESTLE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Apothecary': { equipment: { torso: 'SIMPLE_ROBE', head: 'MERCHANT_CAP', belt: 'LEATHER_BAG' }, inventory: ['MORTAR_PESTLE', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE', 'HEALING_SALVE', 'SCALE', 'LEATHER_APRON'], companions: [] },
+    'Barber-Surgeon': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP', belt: 'LEATHER_BAG' }, inventory: ['SURGICAL_TOOLS', 'BLEEDING_BOWL', 'LEECH', 'BANDAGE', 'ALCOHOL_FLASK', 'LEATHER_APRON'], companions: [] },
+    'Plague Doctor': { equipment: { torso: 'SIMPLE_ROBE', head: 'PLAGUE_MASK', cloak: 'WOOL_CLOAK', belt: 'LEATHER_BAG' }, inventory: ['HEALERS_KIT', 'INCENSE', 'MEDICINAL_HERBS', 'VINEGAR', 'MERCURY_VIAL', 'LEATHER_APRON'], companions: [] },
+    'Midwife': { equipment: { torso: 'SIMPLE_ROBE', head: 'HEAD_WRAP', belt: 'CLOTH_SASH' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'HONEY_JAR', 'MEDICINAL_HERBS'], companions: [] },
+    'Wise Woman': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD', cloak: 'WOOL_CLOAK', belt: 'LEATHER_BAG' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'WILLOW_BARK', 'MORTAR_PESTLE', 'HERB_BUNDLE'], companions: [] },
+    'Leech Collector': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP', feet: 'LEATHER_BOOTS', belt: 'LEATHER_BAG' }, inventory: ['LEECH', 'LEECH', 'LEECH', 'BUCKET', 'BANDAGE'], companions: [] },
+    'Hospital Orderly': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP', belt: 'CLOTH_SASH' }, inventory: ['BANDAGE', 'SOAP_BAR', 'BUCKET', 'STERILE_GAUZE'], companions: [] },
 
     // Modern Era Healers
     'Doctor': { equipment: { torso: 'WHITE_COAT' }, inventory: ['STETHOSCOPE', 'THERMOMETER', 'SYRINGE', 'MEDICAL_JOURNAL', 'BANDAGE'], companions: [] },
@@ -188,16 +188,13 @@ export const STARTING_PACKAGES: Record<string, {
 
     // --- ANTIQUITY (Using procedural weapon selection) ---
     'Merchant': { equipment: { torso: 'CITIZEN_TOGA', belt: 'PURSE', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['SCALE', 'COIN', 'AMPHORA', 'OLIVES'] }, // Requires AMPHORA
-    'Physician': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'BANDAGE', 'SURGICAL_TOOLS', 'URINE_FLASK'] },
-    'Scribe': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['SCROLL', 'QUILL', 'INK_POT', 'PARCHMENT_ROLL'] },
-    'Lawyer': { equipment: { torso: 'CITIZEN_TOGA', main_hand: '*CONTEXTUAL*' }, inventory: ['BOOK', 'SCROLL', 'QUILL', 'COIN'] },
-    'Teacher': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['BOOK', 'SCROLL', 'STICK'] },
-    'Architect': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['PARCHMENT_ROLL', 'SCALE', 'STONE_CHISEL'] },
-    'Legionary': { equipment: { torso: 'LEATHER_APRON', feet: 'MILITARY_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'SALT'] },
-    'Auxiliary': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['SMOOTH_STONE', 'BREAD'] },
-    'Centurion': { equipment: { head: 'BATTLE_HELMET', torso: 'LEATHER_APRON', feet: 'MILITARY_SANDALS', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['BREAD', 'WHETSTONE'] },
-    'Sailor': { equipment: { torso: 'WOOL_TUNIC', legs: 'SAILOR_PANTS'}, inventory: ['ROPE', 'SMOKED_FISH', 'GOURD_FLASK'] },
-    'Engineer': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP' }, inventory: ['HAMMER', 'ROPE', 'PARCHMENT_ROLL'] },
+    'Physician': { equipment: { torso: 'SIMPLE_ROBE', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'BANDAGE', 'SURGICAL_TOOLS', 'URINE_FLASK'] },
+    'Scribe': { equipment: { torso: 'SIMPLE_ROBE', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['SCROLL', 'QUILL', 'INK_POT', 'PARCHMENT_ROLL'] },
+    'Lawyer': { equipment: { torso: 'CITIZEN_TOGA', belt: 'PURSE', main_hand: '*CONTEXTUAL*' }, inventory: ['BOOK', 'SCROLL', 'QUILL', 'COIN'] },
+    'Teacher': { equipment: { torso: 'SIMPLE_ROBE', belt: 'CLOTH_SASH', main_hand: '*CONTEXTUAL*' }, inventory: ['BOOK', 'SCROLL', 'STICK'] },
+    'Architect': { equipment: { torso: 'SIMPLE_ROBE', belt: 'LEATHER_BAG', main_hand: '*CONTEXTUAL*' }, inventory: ['PARCHMENT_ROLL', 'SCALE', 'STONE_CHISEL'] },
+    'Sailor': { equipment: { torso: 'WOOL_TUNIC', legs: 'SAILOR_PANTS', feet: 'SANDALS', cloak: 'WOOL_CLOAK', belt: 'ROPE' }, inventory: ['ROPE', 'SMOKED_FISH', 'GOURD_FLASK'] },
+    'Engineer': { equipment: { torso: 'SIMPLE_TUNIC', head: 'LEATHER_CAP', belt: 'LEATHER_BAG' }, inventory: ['HAMMER', 'ROPE', 'PARCHMENT_ROLL', 'LEATHER_APRON'] },
     'Weaver': { equipment: { torso: 'PEPLOS', head: 'HEAD_WRAP', main_hand: 'SPINDLE' }, inventory: ['COTTON', 'WOOL_CARDERS'] },
     'Carpenter': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['HAMMER', 'NAILS', 'STICK'] },
     'Stonemason': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['STONE_CHISEL', 'STONE_BLOCK'] },
@@ -208,7 +205,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Slave': { equipment: { torso: 'SLAVE_TUNIC', main_hand: '*CONTEXTUAL*' }, inventory: [] },
     'Vintner': { equipment: { torso: 'LEATHER_APRON', head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*' }, inventory: ['GRAPES', 'WOODEN_BOWL', 'GLASS_BOTTLE'] },
     'Miller': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['WHEAT', 'FLOUR'] },
-    'Tavern Keeper': { equipment: { torso: 'LEATHER_APRON', head: 'MERCHANT_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['WOODEN_BOWL', 'BREAD', 'KEY'] },
+    'Tavern Keeper': { equipment: { torso: 'LEATHER_APRON', cloak: 'FUR_CLOAK', head: 'MERCHANT_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['WOODEN_BOWL', 'BREAD', 'KEY'] },
     'Gladiator': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*', necklace: 'IRON_TORC' }, inventory: ['BANDAGE'] },
     'Street Vendor': { equipment: { torso: 'WOOL_TUNIC', head: 'CLOTH_CAP' }, inventory: ['BREAD', 'FRUIT', 'PURSE'] },
     'Bathhouse Attendant': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_CAP' }, inventory: ['SOAP', 'RAG'] },
@@ -217,15 +214,14 @@ export const STARTING_PACKAGES: Record<string, {
     'Oracle': { equipment: { torso: 'SILK_ROBE', head: 'LAUREL_CROWN', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'BLESSED_ARTIFACT'] },
 
     // --- MEDIEVAL (Using procedural weapon selection) ---
-    'Knight': { equipment: { torso: 'LEATHER_APRON', head: 'COIF', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', belt: 'PURSE' }, inventory: ['SALT_PORK', 'WHETSTONE'], companions: ['HORSE'] },
-    'Squire': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['WHETSTONE', 'FRUIT', 'BANDAGE'] },
-    'Lady': { equipment: { head: 'VEIL', torso: 'MERCHANT_GOWN', main_hand: '*CONTEXTUAL*' }, inventory: ['SIMPLE_RING', 'BOOK', 'SILK_CLOTH'] },
-    'Page': { equipment: { torso: 'CRAFTSMAN_TUNIC', head: 'CLOTH_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['SWORD', 'FRUIT'] },
-    'Nun': { equipment: { head: 'WIMPLE', torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'RELIGIOUS_TEXT', 'PRAYER_BEADS'] },
-    'Pilgrim': { equipment: { torso: 'WOOL_CLOAK', head: 'PILGRIM_HAT', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'GOURD_FLASK', 'PRAYER_BEADS'] },
-    'Friar': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'RELIGIOUS_TEXT'] },
-    'Pardoner': { equipment: { torso: 'SIMPLE_ROBE', head: 'FELT_BERET', belt: 'PURSE', main_hand: '*CONTEXTUAL*' }, inventory: ['SCROLL', 'COIN', 'BLESSED_ARTIFACT'] },
-    'Hermit': { equipment: { torso: 'ROUGH_TUNIC', head: 'CLOTH_HOOD', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'WOODEN_BOWL'] },
+    
+    'Lady': { equipment: { head: 'VEIL', torso: 'MERCHANT_GOWN', cloak: 'NOBLE_CLOAK', belt: 'PURSE', main_hand: '*CONTEXTUAL*' }, inventory: ['SIMPLE_RING', 'BOOK', 'SILK_CLOTH'] },
+    'Page': { equipment: { torso: 'CRAFTSMAN_TUNIC', head: 'CLOTH_CAP', feet: 'LEATHER_BOOTS', belt: 'CLOTH_SASH', main_hand: '*CONTEXTUAL*' }, inventory: ['SWORD', 'FRUIT'] },
+    'Nun': { equipment: { head: 'WIMPLE', torso: 'SIMPLE_ROBE', cloak: 'WOOL_CLOAK', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'RELIGIOUS_TEXT', 'PRAYER_BEADS'] },
+    'Pilgrim': { equipment: { torso: 'SIMPLE_TUNIC', head: 'PILGRIM_HAT', cloak: 'WOOL_CLOAK', belt: 'PURSE', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'GOURD_FLASK', 'PRAYER_BEADS'] },
+    'Friar': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD', feet: 'SANDALS', cloak: 'WOOL_CLOAK', belt: 'ROPE', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'RELIGIOUS_TEXT'] },
+    'Pardoner': { equipment: { torso: 'SIMPLE_ROBE', head: 'FELT_BERET', cloak: 'WOOL_CLOAK', belt: 'PURSE', main_hand: '*CONTEXTUAL*' }, inventory: ['SCROLL', 'COIN', 'BLESSED_ARTIFACT'] },
+    'Hermit': { equipment: { torso: 'ROUGH_TUNIC', head: 'CLOTH_HOOD', cloak: 'WOOL_CLOAK', belt: 'ROPE', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'WOODEN_BOWL'] },
     'Smelter Worker': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', feet: 'WORK_BOOTS' }, inventory: ['IRON_ORE', 'COAL', 'TONGS'] },
     'Cobbler': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['LEATHER_BOOTS', 'SANDALS', 'KNIFE', 'NAILS'] },
     'Goldsmith': { equipment: { torso: 'LEATHER_APRON', head: 'MERCHANT_CAP' }, inventory: ['GOLD_ORE', 'HAMMER', 'SIMPLE_RING'] },
@@ -348,19 +344,17 @@ export const STARTING_PACKAGES: Record<string, {
     'Cavalry': { equipment: { torso: 'SCALE_ARMOR', cloak: 'OFFICER_CAPE', head: 'LEATHER_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE'], companions: ['HORSE'] },
     'Border Guard': { equipment: { torso: 'PADDED_ARMOR', cloak: 'MILITARY_CLOAK', head: 'LEATHER_CAP', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE'] },
     'Navy Sailor': { equipment: { torso: 'WOOL_TUNIC', head: 'BAMBOO_HAT' }, inventory: ['ROPE', 'SMOKED_FISH'] },
-    'Silk Farmer': { equipment: { head: 'BAMBOO_HAT' }, inventory: ['SILK_CLOTH', 'LEAF_BUNDLE'] },
-    'Tea Grower': { equipment: { head: 'BAMBOO_HAT' }, inventory: ['DRY_LEAVES', 'WOODEN_BOWL'] },
-    'Vegetable Farmer': { equipment: { head: 'BAMBOO_HAT' }, inventory: ['VEGETABLES', 'WOODEN_BOWL'] },
+    'Silk Farmer': { equipment: { head: 'BAMBOO_HAT', torso: 'SIMPLE_ROBE', }, inventory: ['SILK_CLOTH', 'LEAF_BUNDLE'] },
+    'Tea Grower': { equipment: { head: 'BAMBOO_HAT', torso: 'LOINCLOTH', }, inventory: ['DRY_LEAVES', 'WOODEN_BOWL'] },
+    'Vegetable Farmer': { equipment: { head: 'BAMBOO_HAT', legs: 'LOINCLOTH', }, inventory: ['VEGETABLES', 'WOODEN_BOWL'] },
     'Bronze Caster': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP', main_hand: 'HAMMER' }, inventory: ['COPPER_ORE', 'TIN_ORE', 'BELLOWS'] },
     'Porcelain Potter': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['CLAY_LUMP', 'KAOLIN'] },
     'Lacquerware Maker': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['WOODEN_BOWL', 'PINE_RESIN'] },
-    'Silk Weaver': { equipment: { head: 'HEAD_WRAP', main_hand: 'SPINDLE' }, inventory: ['SILK_CLOTH', 'DYE'] },
-    'Bamboo Worker': { equipment: { head: 'BAMBOO_HAT', main_hand: 'KNIFE' }, inventory: ['BAMBOO', 'ROPE'] },
-    'Salt Merchant': { equipment: { head: 'MERCHANT_CAP', belt: 'PURSE', main_hand: 'KNIFE' }, inventory: ['ROCK_SALT', 'SCALE'], companions: ['OX'] },
+    'Silk Weaver': { equipment: { head: 'HEAD_WRAP', torso: 'SIMPLE_ROBE', main_hand: 'SPINDLE' }, inventory: ['SILK_CLOTH', 'DYE'] },
+    'Bamboo Worker': { equipment: { head: 'BAMBOO_HAT', torso: 'SIMPLE_ROBE', main_hand: 'KNIFE' }, inventory: ['BAMBOO', 'ROPE'] },
+    'Salt Merchant': { equipment: { head: 'MERCHANT_CAP', torso: 'SIMPLE_ROBE', belt: 'PURSE', main_hand: 'KNIFE' }, inventory: ['ROCK_SALT', 'SCALE'], companions: ['OX'] },
 
     // --- MEDIEVAL (Japanese Context) ---
-    'Ashigaru': { equipment: { head: 'LEATHER_CAP', torso: 'PADDED_ARMOR', cloak: 'MILITARY_CLOAK', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE'] },
-    'Retainer': { equipment: { torso: 'COTTON_SHIRT', head: 'KABUTO', main_hand: 'KATANA' }, inventory: ['RICE', 'ROPE'] },
     'Zen Master': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD' }, inventory: ['BOOK', 'PRAYER_BEADS'] },
     'Temple Servant': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_CAP', main_hand: 'BROOM' }, inventory: ['BUCKET', 'INCENSE'] },
     'Lacquerware Artisan': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['WOODEN_BOWL', 'PINE_RESIN', 'OCHRE_LUMP'] },
@@ -405,9 +399,9 @@ export const STARTING_PACKAGES: Record<string, {
     'Kshatriya Chariot Driver': { equipment: { torso: 'JERKIN', head: 'TURBAN', main_hand: 'SWORD', necklace: 'SILVER_TORC' }, inventory: [], companions: ['HORSE', 'HORSE'] },
     'Vaishya Merchant': { equipment: { torso: 'WOOL_TUNIC', head: 'MERCHANT_CAP', belt: 'PURSE' }, inventory: ['SCALE', 'COIN', 'SPICE_POUCH'] },
     'Vaishya Banker': { equipment: { torso: 'WOOL_TUNIC', head: 'TURBAN', belt: 'PURSE' }, inventory: ['COIN', 'COIN', 'BOOK'] },
-    'Shudra Farmer': { equipment: { head: 'STRAW_HAT', main_hand: 'HARVEST_SICKLE' }, inventory: ['WHEAT', 'LENTILS'] },
-    'Shudra Weaver': { equipment: { head: 'HEAD_WRAP', main_hand: 'SPINDLE' }, inventory: ['COTTON'] },
-    'Shudra Potter': { equipment: { head: 'HEAD_WRAP' }, inventory: ['CLAY_LUMP', 'WOODEN_BOWL'] },
+    'Shudra Farmer': { equipment: { head: 'STRAW_HAT', torso: 'DHOTI', main_hand: 'HARVEST_SICKLE' }, inventory: ['WHEAT', 'LENTILS'] },
+    'Shudra Weaver': { equipment: { head: 'HEAD_WRAP', torso: 'DHOTI', main_hand: 'SPINDLE' }, inventory: ['COTTON'] },
+    'Shudra Potter': { equipment: { head: 'HEAD_WRAP', torso: 'DHOTI', }, inventory: ['CLAY_LUMP', 'WOODEN_BOWL'] },
     'Shudra Blacksmith': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', main_hand: 'HAMMER' }, inventory: ['IRON_ORE', 'COAL'] },
     'Shudra Carpenter': { equipment: { head: 'CLOTH_CAP', main_hand: 'AXE' }, inventory: ['HAMMER', 'NAILS'] }, // 100% male
     'Fisherwoman': { equipment: { torso: 'SIMPLE_TUNIC', head: 'HEAD_WRAP' }, inventory: ['FISHING_NET', 'BASKET'] }, // 20% male
@@ -423,34 +417,34 @@ export const STARTING_PACKAGES: Record<string, {
     'Textile Dyer': { equipment: { torso: 'LEATHER_APRON', head: 'HEAD_WRAP' }, inventory: ['INDIGO', 'BUCKET'] },
     'Incense Maker': { equipment: { head: 'CLOTH_CAP' }, inventory: ['PINE_RESIN', 'HERB_BUNDLE', 'STICK'] },
     'Spice Grower': { equipment: { head: 'STRAW_HAT', main_hand: 'HARVEST_SICKLE' }, inventory: ['SPICE_POUCH', 'PEAS'] },
-    'Cotton Farmer': { equipment: { head: 'STRAW_HAT', main_hand: 'HARVEST_SICKLE' }, inventory: ['COTTON'] },
+    'Cotton Farmer': { equipment: { head: 'STRAW_HAT', cloak: 'WOOL_CLOAK', main_hand: 'HARVEST_SICKLE' }, inventory: ['COTTON'] },
     'Cowherd': { equipment: { main_hand: 'STICK' }, inventory: [], companions: ['COW', 'COW'] },
-    'Village Headman': { equipment: { torso: 'KURTA', main_hand: 'SWORD' }, inventory: ['COIN', 'STICK'] }, // 100% male
+    'Village Headman': { equipment: { head: 'TURBAN', torso: 'KURTA', cloak: 'FUR_CLOAK', main_hand: 'SWORD' }, inventory: ['COIN', 'STICK'] }, // 100% male
     'Midwife': { equipment: { torso: 'SARI' }, inventory: ['HERB_BUNDLE', 'CLOTH', 'BUCKET'] }, // 0% male
-    'Village Scribe': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['QUILL', 'INK_POT', 'PAPER'] }, // 95% male
+    'Village Scribe': { equipment: { head: 'TURBAN', torso: 'SIMPLE_TUNIC' }, inventory: ['QUILL', 'INK_POT', 'PAPER'] }, // 95% male
     'Brick Layer': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['CLAY_LUMP', 'BUCKET'] }, // 100% male
-    'Basket Weaver': { equipment: { }, inventory: ['BAMBOO', 'VINE'] }, // 30% male
-    'Oil Presser': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['SESAME_SEEDS', 'BUCKET'] }, // 85% male
+    'Basket Weaver': { equipment: {head: 'TURBAN', legs: 'LOINCLOTH'  }, inventory: ['BAMBOO', 'VINE'] }, // 30% male
+    'Oil Presser': { equipment: { torso: 'LEATHER_APRON', legs: 'LOINCLOTH'  }, inventory: ['SESAME_SEEDS', 'BUCKET'] }, // 85% male
 
     // --- RENAISSANCE / EARLY MODERN (Mughal/Colonial Context) ---
     'Court Musician': { equipment: { torso: 'SILK_ROBE', head: 'TURBAN' }, inventory: ['FLUTE', 'SIMPLE_RING'] },
     'Court Painter': { equipment: { torso: 'SILK_ROBE', head: 'SCHOLAR_HAT' }, inventory: ['PIGMENT', 'QUILL', 'PAPER'] },
     'Sepoy': { equipment: { head: 'TURBAN', torso: 'WOOL_TUNIC', main_hand: 'SWORD' }, inventory: ['BREAD'] },
-    'Interpreter': { equipment: { torso: 'WOOL_TUNIC', head: 'SCHOLAR_HAT' }, inventory: ['BOOK'] },
-    'Metalworker': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', main_hand: 'HAMMER' }, inventory: ['IRON_INGOT', 'COPPER_INGOT'] }, // 95% male
-    'Well Keeper': { equipment: { torso: 'SIMPLE_TUNIC', head: 'TURBAN' }, inventory: ['GOURD_FLASK', 'BUCKET'] }, // 70% male
-    'Barber': { equipment: { head: 'TURBAN', main_hand: 'KNIFE' }, inventory: ['SOAP', 'RAG'] }, // 100% male
+    'Interpreter': { equipment: { torso: 'DHOTI', head: 'SCHOLAR_HAT' }, inventory: ['BOOK'] },
+    'Metalworker': { equipment: { torso: 'DHOTI', head: 'LEATHER_CAP', main_hand: 'HAMMER' }, inventory: ['IRON_INGOT', 'COPPER_INGOT'] }, // 95% male
+    'Well Keeper': { equipment: { torso: 'DHOTI', head: 'TURBAN' }, inventory: ['GOURD_FLASK', 'BUCKET'] }, // 70% male
+    'Barber': { equipment: { head: 'TURBAN', torso: 'DHOTI', main_hand: 'KNIFE' }, inventory: ['SOAP', 'RAG'] }, // 100% male
     'Village Potter': { equipment: { torso: 'LEATHER_APRON', head: 'HEAD_WRAP' }, inventory: ['CLAY_LUMP', 'WOODEN_BOWL'] }, // 80% male
-    'Milk Seller': { equipment: { torso: 'SIMPLE_TUNIC', head: 'TURBAN' }, inventory: ['WOODEN_BOWL', 'BUCKET'] }, // 60% male
-    'Tailor': { equipment: { head: 'KUFI_CAP', main_hand: 'KNIFE' }, inventory: ['COTTON', 'SILK_CLOTH', 'NEEDLE'] }, // 90% male
+    'Milk Seller': { equipment: { torso: 'SIMPLE_TUNIC', legs: 'LOINCLOTH',  head: 'TURBAN' }, inventory: ['WOODEN_BOWL', 'BUCKET'] }, // 60% male
+    'Tailor': { equipment: { head: 'KUFI_CAP', legs: 'LOINCLOTH', main_hand: 'KNIFE' }, inventory: ['COTTON', 'SILK_CLOTH', 'NEEDLE'] }, // 90% male
     'Jeweler': { equipment: { torso: 'LEATHER_APRON', head: 'MERCHANT_CAP', main_hand: 'HAMMER' }, inventory: ['GOLD_ORE', 'SCALE'] }, // 100% male
-    'Vegetable Seller': { equipment: { head: 'STRAW_HAT' }, inventory: ['VEGETABLES', 'BASKET'] }, // 40% male
+    'Vegetable Seller': { equipment: { head: 'STRAW_HAT', torso: 'DHOTI' }, inventory: ['VEGETABLES', 'BASKET'] }, // 40% male
     'Flour Miller': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['WHEAT', 'WOODEN_BOWL'] }, // 90% male
 
     // --- INDUSTRIAL ERA ---
     'Civil Engineer': { equipment: { torso: 'FORMAL_SHIRT', head: 'PITH_HELMET' }, inventory: ['PAPER', 'SCALE', 'PEN'] }, // 95% male
     'Mill Worker': { equipment: { torso: 'FACTORY_SHIRT', head: 'CLOTH_CAP' }, inventory: ['BREAD', 'COTTON'] }, // 60% male
-    'Tea Plantation Worker': { equipment: { head: 'STRAW_HAT', torso: 'WORK_SHIRT' }, inventory: ['TEA_LEAVES', 'BASKET'] }, // 40% male
+    'Tea Picker': { equipment: { head: 'STRAW_HAT', torso: 'WORK_SHIRT' }, inventory: ['TEA_LEAVES', 'BASKET'] }, // 40% male
     'Jute Mill Worker': { equipment: { torso: 'FACTORY_SHIRT', head: 'CLOTH_CAP' }, inventory: ['ROPE', 'BREAD'] }, // 50% male
     'Railway Porter': { equipment: { head: 'TURBAN', torso: 'WORK_SHIRT' }, inventory: ['ROPE', 'BREAD'] }, // 90% male
     'Dhobi': { equipment: { torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS' }, inventory: ['SOAP', 'BUCKET'] }, // 85% male
@@ -465,30 +459,30 @@ export const STARTING_PACKAGES: Record<string, {
 
     // --- ANTIQUITY ---
     'Chief': { equipment: { head: 'FEATHER_CROWN', torso: 'LEOPARD_SKIN', necklace: 'GOLD_TORC' }, inventory: ['STICK'] }, // Requires Leopard Skin
-    'Rain Maker': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'BONES', 'BLESSED_ARTIFACT'] },
-    'War Leader': { equipment: { head: 'FEATHER_HEADDRESS', main_hand: 'STICK' }, inventory: ['OCHRE_LUMP'] },
+    'Rain Maker': { equipment: { head: 'FEATHER_CROWN', cloak: 'FEATHER_CLOAK', torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'BONES', 'BLESSED_ARTIFACT'] },
+    'War Leader': { equipment: { head: 'FEATHER_CROWN',  cloak: 'FEATHER_CLOAK', main_hand: 'STICK' }, inventory: ['OCHRE_LUMP'] },
     'Iron Smelter': { equipment: { torso: 'LEATHER_APRON', main_hand: 'HAMMER' }, inventory: ['BOG_IRON', 'BELLOWS'] },
     'Ivory Carver': { equipment: { torso: 'LEATHER_APRON', main_hand: 'KNIFE' }, inventory: ['IVORY_TUSK', 'SMOOTH_STONE'] },
     'Salt Trader': { equipment: { belt: 'PURSE' }, inventory: ['ROCK_SALT', 'SCALE'], companions: ['DONKEY'] }, // Requires Donkey
     'Cattle Herder': { equipment: { main_hand: 'STICK' }, inventory: ['ROPE'], companions: ['COW', 'COW', 'COW'] },
-    'Village Elder': { equipment: { torso: 'SIMPLE_ROBE', main_hand: 'STICK' }, inventory: ['PRAYER_BEADS'] },
+    'Village Elder': { equipment: { head: 'CROWN', torso: 'SIMPLE_ROBE', cloak: 'FEATHER_CLOAK', main_hand: 'STICK' }, inventory: ['PRAYER_BEADS'] },
 
     // --- MEDIEVAL ---
     'King': { equipment: { head: 'CROWN', torso: 'AGBADA', main_hand: 'SWORD' }, inventory: ['GOLD_BAR'] },
     'Queen Mother': { equipment: { head: 'GELE', torso: 'BOUBOU' }, inventory: ['GOLD_RING'] },
     'Griot': { equipment: { torso: 'DASHIKI' }, inventory: ['DRUM', 'FLUTE'] },
     'Islamic Scholar': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN' }, inventory: ['RELIGIOUS_TEXT', 'BOOK'] },
-    'Gold Trader': { equipment: { torso: 'BOUBOU', belt: 'PURSE' }, inventory: ['GOLD_ORE', 'SCALE'], companions: ['CAMEL'] },
+    'Gold Trader': { equipment: { torso: 'BOUBOU', cloak: 'WOOL_CLOAK', belt: 'PURSE' }, inventory: ['GOLD_ORE', 'SCALE'], companions: ['CAMEL'] },
     'Blacksmith': { equipment: { torso: 'LEATHER_APRON', main_hand: 'HAMMER' }, inventory: ['IRON_ORE', 'BELLOWS', 'TONGS'] },
-    'Caravan Guide': { equipment: { torso: 'DESERT_CLOAK', head: 'KEFFIYEH', main_hand: 'SWORD' }, inventory: ['MAP', 'GOURD_FLASK', 'TENT', 'BEDROLL', 'TINDERBOX', 'WATERSKIN', 'TRAVEL_POT'], companions: ['CAMEL'] },
-    'Millet Farmer': { equipment: { main_hand: 'HARVEST_SICKLE' }, inventory: ['MILLET', 'WOODEN_BOWL'] },
-    'Diviner': { equipment: { torso: 'SIMPLE_ROBE', main_hand: 'IVORY_TUSK' }, inventory: ['BONES', 'SHELL', 'PRAYER_BEADS'] },
+    'Caravan Guide': { equipment: { cloak: 'DESERT_CLOAK', head: 'KEFFIYEH', main_hand: 'SWORD' }, inventory: ['MAP', 'GOURD_FLASK', 'TENT', 'BEDROLL', 'TINDERBOX', 'WATERSKIN', 'TRAVEL_POT'], companions: ['CAMEL'] },
+    'Millet Farmer': { equipment: { main_hand: 'HARVEST_SICKLE', cloak: 'WOOL_CLOAK', }, inventory: ['MILLET', 'WOODEN_BOWL'] },
+    'Diviner': { equipment: { torso: 'SIMPLE_ROBE', cloak: 'FEATHER_CLOAK', main_hand: 'IVORY_TUSK' }, inventory: ['BONES', 'SHELL', 'PRAYER_BEADS'] },
 
     // --- RENAISSANCE / EARLY MODERN ---
     'Sultan': { equipment: { head: 'TURBAN', torso: 'KAFTAN' }, inventory: ['SCIMITAR', 'COIN'] },
     'Oba': { equipment: { head: 'CORAL_CROWN', torso: 'AGBADA' }, inventory: ['CORAL_BEADS'] },
     'Portuguese Factor': { equipment: { head: 'TRICORN_HAT', torso: 'FROCK_COAT' }, inventory: ['COIN', 'SCROLL'] },
-    'Slave Trader': { equipment: { torso: 'LEATHER_APRON', head: 'TRICORN_HAT', belt: 'PURSE' }, inventory: ['HANDCUFFS', 'ROPE', 'COIN'] },
+    'Slave Trader': { equipment: { torso: 'LEATHER_APRON', cloak: 'FEATHER_CLOAK', head: 'TRICORN_HAT', belt: 'PURSE' }, inventory: ['HANDCUFFS', 'ROPE', 'COIN'] },
     'Brass Caster': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', main_hand: 'HAMMER' }, inventory: ['COPPER_ORE', 'TIN_ORE', 'BELLOWS'] },
     'Musket Bearer': { equipment: { head: 'LEATHER_CAP', main_hand: 'STICK' }, inventory: ['LEAD_BAR', 'SULFUR'] }, // STICK as placeholder for Musket
     'Cowrie Counter': { equipment: { head: 'CLOTH_CAP', belt: 'PURSE' }, inventory: ['SHELL', 'SHELL', 'SHELL', 'SCALE'] },
@@ -500,22 +494,22 @@ export const STARTING_PACKAGES: Record<string, {
     'Paramount Chief': { equipment: { head: 'FEZ', torso: 'AGBADA' }, inventory: ['STICK', 'SIMPLE_RING'] },
     'Missionary': { equipment: { torso: 'SIMPLE_ROBE', head: 'PITH_HELMET' }, inventory: ['RELIGIOUS_TEXT', 'BANDAGE'] },
     'Court Interpreter': { equipment: { torso: 'FORMAL_SHIRT', head: 'FEZ' }, inventory: ['BOOK', 'NOTEBOOK'] },
-    'Cash Crop Farmer': { equipment: { head: 'STRAW_HAT', main_hand: 'HARVEST_SICKLE' }, inventory: ['COFFEE_BEANS', 'COCOA_BEANS'] },
-    'Mine Worker': { equipment: { head: 'LEATHER_CAP', main_hand: 'PICKAXE' }, inventory: ['BREAD', 'FLASHLIGHT'] },
-    'Hut Tax Payer': { equipment: { head: 'CLOTH_CAP', main_hand: 'STICK' }, inventory: ['CORN'] },
+    'Cash Crop Farmer': { equipment: { head: 'STRAW_HAT', cloak: 'WOOL_CLOAK', main_hand: 'HARVEST_SICKLE' }, inventory: ['COFFEE_BEANS', 'COCOA_BEANS'] },
+    'Mine Worker': { equipment: { head: 'LEATHER_CAP', cloak: 'WOOL_CLOAK', main_hand: 'PICKAXE' }, inventory: ['BREAD', 'FLASHLIGHT'] },
+    'Hut Tax Payer': { equipment: { head: 'CLOTH_CAP', cloak: 'WOOL_CLOAK',  main_hand: 'STICK' }, inventory: ['CORN'] },
 
     // =======================================================================
     // == OCEANIA
     // =======================================================================
     // --- PREHISTORY ---
-    'Navigator': { equipment: { head: 'BAMBOO_HAT' }, inventory: ['STICK_CHART', 'FISHING_NET', 'COCONUT'] }, // 85% male
-    'Canoe Builder': { equipment: { head: 'HEAD_WRAP', main_hand: 'AXE' }, inventory: ['VINE', 'PINE_RESIN'] }, // 95% male
-    'Taro Farmer': { equipment: { head: 'STRAW_HAT', main_hand: 'DIGGING_STICK' }, inventory: ['TARO', 'WOODEN_BOWL'] }, // 60% male
-    'Net Weaver': { equipment: { head: 'HEAD_WRAP' }, inventory: ['FISHING_NET', 'VINE'] }, // 30% male
-    'Shell Fisher': { equipment: { head: 'STRAW_HAT' }, inventory: ['SHELL', 'SHELL', 'BASKET'] }, // 40% male
+    'Navigator': { equipment: { head: 'FEATHER_CROWN', cloak: 'FEATHER_CLOAK',}, inventory: ['STICK_CHART', 'FISHING_NET', 'COCONUT'] }, // 85% male
+    'Canoe Builder': { equipment: { head: 'FEATHER_CROWN', necklace: 'SHELL_NECKLACE', main_hand: 'AXE' }, inventory: ['VINE', 'PINE_RESIN'] }, // 95% male
+    'Taro Farmer': { equipment: { head: 'STRAW_HAT', necklace: 'SHELL_NECKLACE', main_hand: 'DIGGING_STICK' }, inventory: ['TARO', 'WOODEN_BOWL'] }, // 60% male
+    'Net Weaver': { equipment: { head: 'HEAD_WRAP', necklace: 'SHELL_NECKLACE', }, inventory: ['FISHING_NET', 'VINE'] }, // 30% male
+    'Shell Fisher': { equipment: { head: 'STRAW_HAT', necklace: 'SHELL_NECKLACE', }, inventory: ['SHELL', 'SHELL', 'BASKET'] }, // 40% male
 
     // --- ANTIQUITY / MEDIEVAL ---
-    'Master Navigator': { equipment: { necklace: 'SHELL_NECKLACE' }, inventory: ['STICK_CHART', 'SMOKED_FISH', 'COCONUT'] }, // 90% male
+    'Master Navigator': { equipment: { head: 'FEATHER_CROWN', necklace: 'SHELL_NECKLACE', cloak: 'FEATHER_CLOAK' }, inventory: ['STICK_CHART', 'SMOKED_FISH', 'COCONUT'] }, // 90% male
     'Tattoo Artist': { equipment: {}, inventory: ['OCHRE_LUMP', 'SHARP_BONE', 'KNIFE'] }, // 70% male
     'Breadfruit Cultivator': { equipment: { main_hand: 'STICK' }, inventory: ['BREADFRUIT'] }, // 65% male
     'Kava Grower': { equipment: { }, inventory: ['KAVA_ROOT', 'WOODEN_BOWL'] }, // 80% male
@@ -529,8 +523,8 @@ export const STARTING_PACKAGES: Record<string, {
     // --- RENAISSANCE / EARLY MODERN ---
     'Sandalwood Cutter': { equipment: { head: 'STRAW_HAT', main_hand: 'AXE' }, inventory: ['SANDALWOOD_LOG', 'ROPE'] }, // 95% male
     'Beche-de-mer Diver': { equipment: { head: 'HEAD_WRAP' }, inventory: ['KNIFE', 'LEATHER_BAG'] }, // 90% male
-    'Ship Provisioner': { equipment: { head: 'MERCHANT_CAP' }, inventory: ['SALT_PORK', 'BREAD', 'FRUIT'] }, // 70% male
-    'Whaler': { equipment: { head: 'KNIT_CAP', main_hand: 'HARPOON' }, inventory: ['ROPE', 'KNIFE'] }, // 98% male
+    'Ship Provisioner': { equipment: { head: 'MERCHANT_CAP', torso: 'SIMPLE_TUNIC', }, inventory: ['SALT_PORK', 'BREAD', 'FRUIT'] }, // 70% male
+    'Whaler': { equipment: { head: 'KNIT_CAP', torso: 'SIMPLE_TUNIC', main_hand: 'HARPOON' }, inventory: ['ROPE', 'KNIFE'] }, // 98% male
     'Pearl Diver': { equipment: { head: 'HEAD_WRAP' }, inventory: ['PEARL', 'KNIFE', 'BASKET'] }, // 50% male
     'Copra Worker': { equipment: { head: 'STRAW_HAT', main_hand: 'KNIFE' }, inventory: ['COCONUT', 'BUCKET'] }, // 60% male
     'Mission Worker': { equipment: { torso: 'SIMPLE_TUNIC', head: 'CLOTH_CAP' }, inventory: ['RELIGIOUS_TEXT', 'BREAD'] }, // 40% male
@@ -554,9 +548,9 @@ export const STARTING_PACKAGES: Record<string, {
     'Wild Rice Harvester': { equipment: { head: 'HEAD_WRAP', main_hand: 'RICE_KNOCKER' }, inventory: ['WILD_RICE', 'BIRCH_BARK_CONTAINER'] }, // 30% male
     
     // --- ANTIQUITY/MEDIEVAL ---
-    'Clan Mother': { equipment: { head: 'FEATHER_BAND', torso: 'DEER_HIDE' }, inventory: ['CORN', 'PRAYER_BEADS'] }, // 0% male
-    'War Chief': { equipment: { head: 'FEATHER_HEADDRESS', main_hand: 'TOMAHAWK', necklace: 'BRONZE_TORC' }, inventory: ['OCHRE_LUMP'] }, // 100% male
-    'Medicine Person': { equipment: { head: 'FEATHER_HEADDRESS', torso: 'DEER_HIDE', necklace: 'MEDICINE_BUNDLE' }, inventory: ['SAGE_BUNDLE', 'SWEETGRASS', 'CEDAR_BARK', 'TOBACCO'] }, // 60% male
+    'Clan Mother': { equipment: { head: 'FEATHER_BAND', cloak: 'FUR_CLOAK', torso: 'DEER_HIDE' }, inventory: ['CORN', 'PRAYER_BEADS'] }, // 0% male
+    'War Chief': { equipment: { head: 'FEATHER_CROWN', cloak: 'FEATHER_CLOAK', main_hand: 'TOMAHAWK', necklace: 'BRONZE_TORC' }, inventory: ['OCHRE_LUMP'] }, // 100% male
+    'Medicine Person': { equipment: { head: 'FEATHER_CROWN', cloak: 'FEATHER_CLOAK', torso: 'DEER_HIDE', necklace: 'MEDICINE_BUNDLE' }, inventory: ['SAGE_BUNDLE', 'SWEETGRASS', 'CEDAR_BARK', 'TOBACCO'] }, // 60% male
     'Canoe Maker': { equipment: { head: 'LEATHER_CAP', main_hand: 'AXE' }, inventory: ['PINE_RESIN', 'BARK'] }, // 90% male
     'Wampum Maker': { equipment: { head: 'HEAD_WRAP', main_hand: 'STONE_DRILL' }, inventory: ['QUAHOG_SHELL', 'WHELK_SHELL', 'SINEW'] }, // 50% male
     'Pemmican Maker': { equipment: { head: 'HEAD_WRAP' }, inventory: ['DRIED_MEAT', 'WILD_BERRIES', 'RENDERED_FAT', 'RAWHIDE_POUCH'] }, // 20% male
@@ -570,27 +564,27 @@ export const STARTING_PACKAGES: Record<string, {
     // == NORTH_AMERICAN_COLONIAL
     // =======================================================================
     // --- RENAISSANCE/EARLY MODERN (Colonial Era) ---
-    'Colonial Farmer': { equipment: { head: 'STRAW_HAT', main_hand: 'HARVEST_SICKLE' }, inventory: ['WHEAT', 'CORN', 'IRON_PLOW'] }, // 80% male
+    'Colonial Farmer': { equipment: { head: 'STRAW_HAT', cloak: 'WOOL_CLOAK', torso: 'WORK_SHIRT', main_hand: 'HARVEST_SICKLE' }, inventory: ['WHEAT', 'CORN', 'IRON_PLOW'] }, // 80% male
     'Blacksmith': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP', main_hand: 'HAMMER' }, inventory: ['IRON_INGOT', 'TONGS', 'BELLOWS', 'HORSESHOE'] }, // 100% male
-    'Innkeeper': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['BREAD', 'ALE', 'KEY'] }, // 70% male
+    'Innkeeper': { equipment: { torso: 'LEATHER_APRON', cloak: 'WOOL_CLOAK', head: 'CLOTH_CAP' }, inventory: ['BREAD', 'ALE', 'KEY'] }, // 70% male
     'Miller': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['WHEAT', 'RYE_FLOUR', 'GRAIN_QUERN', 'SCALE'] }, // 95% male
     'Tanner': { equipment: { torso: 'LEATHER_APRON', head: 'LEATHER_CAP' }, inventory: ['DEER_HIDE', 'OAK_BARK', 'LIME', 'TANNING_KNIFE'] }, // 90% male
     'Cooper': { equipment: { head: 'CLOTH_CAP', main_hand: 'HAMMER' }, inventory: ['OAK_STAVES', 'IRON_HOOP', 'ADZE', 'PITCH'] }, // 100% male
     'Schoolteacher': { equipment: { torso: 'WOOL_TUNIC', head: 'SCHOLAR_HAT' }, inventory: ['BOOK', 'SLATE_BOARD', 'QUILL', 'INK_POT'] }, // 30% male
     'Midwife': { equipment: { torso: 'SIMPLE_DRESS', head: 'BONNET' }, inventory: ['REFRESHING_HERB', 'LINEN_CLOTH', 'BIRTHING_STOOL', 'SCISSORS'] }, // 0% male
-    'Frontier Settler': { equipment: { head: 'COONSKIN_CAP', main_hand: 'AXE' }, inventory: ['WHEAT_SEEDS', 'ROPE', 'FLINTLOCK_RIFLE', 'POWDER_HORN'] }, // 60% male
+    'Frontier Settler': { equipment: { head: 'COONSKIN_CAP', cloak: 'FUR_CLOAK', main_hand: 'AXE' }, inventory: ['WHEAT_SEEDS', 'ROPE', 'FLINTLOCK_RIFLE', 'POWDER_HORN'] }, // 60% male
     'Cobbler': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['LEATHER', 'AWL', 'SHOE_LAST', 'WAX_THREAD'] }, // 95% male
     'Chandler': { equipment: { torso: 'LEATHER_APRON', head: 'CLOTH_CAP' }, inventory: ['CANDLES', 'TALLOW', 'WICK_STRING', 'MOLD'] }, // 60% male
     'Wheelwright': { equipment: { head: 'LEATHER_CAP', main_hand: 'HAMMER' }, inventory: ['OAK_PLANK', 'IRON_RIM', 'SPOKE_SHAVE', 'HUB'] }, // 100% male
     
     // --- INDUSTRIAL ERA ---
     'Railroad Worker': { equipment: { torso: 'WORK_SHIRT', head: 'FLAT_CAP', main_hand: 'HAMMER' }, inventory: ['SPIKE', 'BREAD'] }, // 95% male
-    'Gold Miner': { equipment: { head: 'LEATHER_CAP', main_hand: 'PICKAXE' }, inventory: ['PAN', 'GOLD_ORE'] }, // 98% male
-    'Cowboy': { equipment: { head: 'COWBOY_HAT', main_hand: 'LASSO' }, inventory: ['ROPE', 'JERKY'], companions: ['HORSE'] }, // 95% male
-    'Saloon Keeper': { equipment: { torso: 'VEST', head: 'BOWLER_HAT' }, inventory: ['WHISKEY', 'COIN', 'KEY'] }, // 80% male
+    'Gold Miner': { equipment: { head: 'LEATHER_CAP', torso: 'FLANNEL_SHIRT', main_hand: 'PICKAXE' }, inventory: ['PAN', 'GOLD_ORE'] }, // 98% male
+    'Cowboy': { equipment: { head: 'COWBOY_HAT', torso: 'FLANNEL_SHIRT', cloak: 'WOOL_CLOAK', main_hand: 'LASSO' }, inventory: ['ROPE', 'JERKY'], companions: ['HORSE'] }, // 95% male
+    'Saloon Keeper': { equipment: { torso: 'THREE_PIECE_SUIT', head: 'BOWLER_HAT' }, inventory: ['WHISKEY', 'COIN', 'KEY'] }, // 80% male
     'Telegraph Operator': { equipment: { torso: 'FORMAL_SHIRT', head: 'VISOR' }, inventory: ['PAPER', 'PEN'] }, // 70% male
     'Seamstress': { equipment: { head: 'BONNET' }, inventory: ['NEEDLE', 'COTTON', 'SCISSORS'] }, // 5% male
-    'General Store Owner': { equipment: { torso: 'LEATHER_APRON', head: 'MERCHANT_CAP' }, inventory: ['SCALE', 'COIN', 'KEY'] }, // 75% male
+    'General Store Owner': { equipment: { torso: 'THREE_PIECE_SUIT', head: 'MERCHANT_CAP' }, inventory: ['SCALE', 'COIN', 'KEY'] }, // 75% male
     'Laundress': { equipment: { torso: 'SIMPLE_DRESS', head: 'HEAD_WRAP' }, inventory: ['SOAP', 'BUCKET', 'WASHBOARD'] }, // 5% male
     'Logger': { equipment: { torso: 'FLANNEL_SHIRT', head: 'KNIT_CAP', main_hand: 'AXE' }, inventory: ['ROPE', 'BREAD'] }, // 99% male
     
@@ -625,7 +619,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Plumber': { equipment: { torso: 'WORK_SHIRT', head: 'BASEBALL_CAP', main_hand: 'HAMMER' }, inventory: ['LEAD_BAR', 'TONGS'] },
     'Miner': { equipment: { head: 'LEATHER_CAP', torso: 'WORK_SHIRT', feet: 'WORK_BOOTS', main_hand: 'STEEL_PICKAXE' }, inventory: ['FLASHLIGHT', 'BREAD', 'COAL'] },
     'Tech CEO': { equipment: { torso: 'DESIGNER_COAT', head: 'GLASSES' }, inventory: ['SMARTPHONE', 'SIMPLE_RING', 'KEY'] },
-    'Investment Banker': { equipment: { torso: 'SUIT', head: 'GLASSES' }, inventory: ['GOLD_BAR', 'SMARTPHONE', 'COIN'] },
+    'Investment Banker': { equipment: { torso: 'THREE_PIECE_SUIT', head: 'GLASSES' }, inventory: ['GOLD_BAR', 'SMARTPHONE', 'COIN'] },
     'Software Developer': { equipment: { torso: 'T_SHIRT', head: 'BEANIE' }, inventory: ['SMARTPHONE', 'SCROLL_OF_KNOWLEDGE', 'COFFEE_BEANS'] },
     'Marketing Manager': { equipment: { torso: 'BLAZER', head: 'GLASSES' }, inventory: ['SMARTPHONE', 'PAPER', 'PEN'] },
     'Physical Therapist': { equipment: { torso: 'POLO_SHIRT', head: 'VISOR' }, inventory: ['BANDAGE', 'MEDICINAL_HERBS'] },
@@ -638,26 +632,26 @@ export const STARTING_PACKAGES: Record<string, {
     'Customer Service Rep': { equipment: { torso: 'BLOUSE', head: 'HEADSET' }, inventory: ['HEADSET', 'PAPER'] },
     'Personal Trainer': { equipment: { torso: 'TANK_TOP', head: 'SWEATBAND' }, inventory: ['FRUIT', 'BOTTLE_OF_WATER'] },
     'Hair Stylist': { equipment: { torso: 'BLOUSE', head: 'GLASSES' }, inventory: ['SCISSORS', 'COMB'] },
-    'Hotel Clerk': { equipment: { torso: 'FORMAL_SHIRT', head: 'GLASSES' }, inventory: ['KEY', 'BOOK'] },
+    'Hotel Clerk': { equipment: { torso: 'SUIT', head: 'GLASSES' }, inventory: ['KEY', 'BOOK'] },
     'Grocery Clerk': { equipment: { torso: 'LEATHER_APRON', head: 'VISOR' }, inventory: ['FRUIT', 'BREAD'] },
-    'Call Center Worker': { equipment: { torso: 'T_SHIRT', head: 'HEADSET' }, inventory: ['HEADSET', 'PAPER'] },
+    'Call Center Worker': { equipment: { torso: 'SUIT', head: 'HEADSET' }, inventory: ['HEADSET', 'PAPER'] },
     'Content Creator': { equipment: { torso: 'T_SHIRT', head: 'SNAPBACK' }, inventory: ['SMARTPHONE','SYRINGE', 'COFFEE_BEANS'] },
 
     // =======================================================================
     // == MEDIEVAL EUROPEAN RANGED SPECIALISTS
     // =======================================================================
-    'Crossbow Mercenary': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'CROSSBOW_BOLT' }, inventory: ['CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'COIN'], companions: [] }, // 100% male
-    'English Longbowman': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'ARROW', 'BREAD'], companions: [] }, // 100% male
-    'Castle Archer': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'SIMPLE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'BREAD'], companions: [] }, // 95% male
+    'Crossbow Mercenary': { equipment: { torso: 'LEATHER_APRON', cloak: 'WOOL_CLOAK', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'CROSSBOW_BOLT' }, inventory: ['CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'COIN'], companions: [] }, // 100% male
+    'English Longbowman': { equipment: { torso: 'WOOL_TUNIC', cloak: 'WOOL_CLOAK', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'ARROW', 'BREAD'], companions: [] }, // 100% male
+    'Castle Archer': { equipment: { torso: 'LEATHER_APRON', cloak: 'WOOL_CLOAK', feet: 'LEATHER_BOOTS', main_hand: 'SIMPLE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'BREAD'], companions: [] }, // 95% male
 
     // =======================================================================
     // == OUTLAW & BANDIT PROFESSIONS - MEDIEVAL/RENAISSANCE
     // =======================================================================
     'Bandit': { equipment: { torso: 'LEATHER_JERKIN', feet: 'LEATHER_BOOTS', main_hand: 'SWORD', off_hand: 'THROWING_KNIFE' }, inventory: ['THROWING_KNIFE', 'BREAD', 'COIN', 'ROPE'], companions: [] }, // 95% male
-    'Brigand': { equipment: { torso: 'LEATHER_JERKIN', feet: 'LEATHER_BOOTS', main_hand: 'CLUB', off_hand: 'KNIFE' }, inventory: ['ROPE', 'BREAD', 'COIN'], companions: [] }, // 95% male
-    'Cutpurse': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'KNIFE' }, inventory: ['COIN', 'COIN', 'ROPE'], companions: [] },
-    'Desperado': { equipment: { head: 'COWBOY_HAT', torso: 'LEATHER_VEST', feet: 'COWBOY_BOOTS', main_hand: 'PISTOL', belt: 'GUNBELT' }, inventory: ['BULLETS', 'BULLETS', 'COIN', 'WHISKEY'], companions: ['HORSE'] }, // 100% male
-    'Highwayman': { equipment: { head: 'TRICORN_HAT', torso: 'COAT', feet: 'RIDING_BOOTS', main_hand: 'FLINTLOCK', off_hand: 'SWORD' }, inventory: ['GUNPOWDER', 'COIN', 'ROPE', 'MASK'], companions: ['HORSE'] }, // 100% male
+    'Brigand': { equipment: { torso: 'LEATHER_JERKIN', cloak: 'WOOL_CLOAK', feet: 'LEATHER_BOOTS', main_hand: 'CLUB', off_hand: 'KNIFE' }, inventory: ['ROPE', 'BREAD', 'COIN'], companions: [] }, // 95% male
+    'Cutpurse': { equipment: { torso: 'SIMPLE_TUNIC', cloak: 'WOOL_CLOAK', feet: 'LEATHER_BOOTS', main_hand: 'KNIFE' }, inventory: ['COIN', 'COIN', 'ROPE'], companions: [] },
+    'Desperado': { equipment: { head: 'COWBOY_HAT', cloak: 'WOOL_CLOAK', torso: 'LEATHER_VEST', feet: 'COWBOY_BOOTS', main_hand: 'PISTOL', belt: 'GUNBELT' }, inventory: ['BULLETS', 'BULLETS', 'COIN', 'WHISKEY'], companions: ['HORSE'] }, // 100% male
+    'Highwayman': { equipment: { head: 'TRICORN_HAT', cloak: 'WOOL_CLOAK', torso: 'COAT', feet: 'RIDING_BOOTS', main_hand: 'FLINTLOCK', off_hand: 'SWORD' }, inventory: ['GUNPOWDER', 'COIN', 'ROPE', 'MASK'], companions: ['HORSE'] }, // 100% male
 
     // =======================================================================
     // == INDUSTRIAL ERA OUTLAWS & REVOLUTIONARIES
@@ -667,13 +661,13 @@ export const STARTING_PACKAGES: Record<string, {
     'Resurrectionist': { equipment: { head: 'HOMBURG', torso: 'COAT', feet: 'WORK_BOOTS', main_hand: 'SHOVEL' }, inventory: ['ROPE', 'SACK', 'LANTERN'], companions: [] },
     'Chartist': { equipment: { torso: 'WORKER_SHIRT', feet: 'WORK_BOOTS' }, inventory: ['PAMPHLET', 'QUILL', 'INK_POT'], companions: [] },
     'Luddite': { equipment: { torso: 'WORKER_SHIRT', feet: 'WORK_BOOTS', main_hand: 'HAMMER' }, inventory: ['CLOTH_MASK', 'ROPE'], companions: [] },
-    'Fenian': { equipment: { torso: 'COAT', feet: 'LEATHER_BOOTS', main_hand: 'PISTOL' }, inventory: ['BULLETS', 'PAMPHLET', 'COIN'], companions: [] },
+    'Fenian': { equipment: { torso: 'THREE_PIECE_SUIT', feet: 'LEATHER_BOOTS', main_hand: 'PISTOL' }, inventory: ['BULLETS', 'PAMPHLET', 'COIN'], companions: [] },
     'Anarchist': { equipment: { torso: 'COAT', feet: 'LEATHER_BOOTS' }, inventory: ['BOMB', 'PAMPHLET', 'MASK'], companions: [] },
 
     // East Asian Industrial Era
     'Ronin': { equipment: { torso: 'KIMONO', feet: 'SANDALS', main_hand: 'KATANA' }, inventory: ['RICE_BALL', 'SAKE', 'COIN'], companions: [] },
     'Yakuza': { equipment: { torso: 'KIMONO', feet: 'SANDALS', main_hand: 'TANTO' }, inventory: ['SHURIKEN', 'SHURIKEN', 'SAKE', 'COIN', 'DICE'], companions: [] },
-    'Opium Smuggler': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'SANDALS' }, inventory: ['OPIUM', 'COIN', 'PIPE'], companions: ['DONKEY'] },
+    'Opium Smuggler': { equipment: { torso: 'SIMPLE_TUNIC', cloak: 'FLAX_CLOAK', feet: 'SANDALS' }, inventory: ['OPIUM', 'COIN', 'PIPE'], companions: ['DONKEY'] },
     'Triad Member': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'SANDALS', main_hand: 'KNIFE' }, inventory: ['COIN', 'INCENSE', 'DICE'], companions: [] },
     'Boxer Rebel': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'CLOTH_SHOES', main_hand: 'STICK' }, inventory: ['TALISMAN', 'RICE', 'BANDANA'], companions: [] },
     'Taiping Soldier': { equipment: { torso: 'UNIFORM', feet: 'CLOTH_SHOES', main_hand: 'SWORD' }, inventory: ['BIBLE', 'RICE', 'BANDAGE'], companions: [] },
@@ -682,10 +676,10 @@ export const STARTING_PACKAGES: Record<string, {
     // =======================================================================
     // == MODERN ERA (1950-2000) CRIMINALS & REVOLUTIONARIES
     // =======================================================================
-    'Mobster': { equipment: { head: 'FEDORA', torso: 'SUIT', feet: 'DRESS_SHOES', main_hand: 'TOMMY_GUN' }, inventory: ['BULLETS', 'CIGARETTES', 'COIN', 'BRASS_KNUCKLES'], companions: ['CAR'] },
+    'Mobster': { equipment: { head: 'FEDORA', torso: 'THREE_PIECE_SUIT', cloak: 'WOOL_CLOAK', feet: 'DRESS_SHOES', main_hand: 'TOMMY_GUN' }, inventory: ['BULLETS', 'CIGARETTES', 'COIN', 'BRASS_KNUCKLES'], companions: ['CAR'] },
     'Drug Dealer': { equipment: { head: 'FEDORA', torso: 'TRACK_SUIT', feet: 'SNEAKERS' }, inventory: ['DRUGS', 'BURNER_PHONE', 'CASH', 'KNIFE'], companions: [] },
     'Pickpocket': { equipment: { head: 'FEDORA', torso: 'JACKET', feet: 'SNEAKERS' }, inventory: ['WALLET', 'WATCH', 'KNIFE'], companions: [] },
-    'Black Panther': { equipment: { torso: 'LEATHER_JACKET', head: 'BERET', feet: 'BOOTS', main_hand: 'SHOTGUN' }, inventory: ['SHELLS', 'PAMPHLET', 'AFRO_PICK'], companions: [] },
+    'Militant': { equipment: { torso: 'LEATHER_JACKET', head: 'BERET', feet: 'BOOTS', main_hand: 'SHOTGUN' }, inventory: ['SHELLS', 'PAMPHLET', 'AFRO_PICK'], companions: [] },
     'Revolutionary': { equipment: { head: 'COMBAT_HELMET', torso: 'JACKET', feet: 'BOOTS', main_hand: 'ARMALITE' }, inventory: ['BULLETS', 'BALACLAVA', 'COIN'], companions: [] },
     'Red Brigade': { equipment: { head: 'COMBAT_HELMET', torso: 'JACKET', feet: 'BOOTS', main_hand: 'PISTOL' }, inventory: ['BULLETS', 'MANIFESTO', 'MASK'], companions: [] },
     'Guerrilla Fighter': { equipment: { head: 'COMBAT_HELMET', torso: 'CAMO_JACKET', feet: 'COMBAT_BOOTS', main_hand: 'AK47' }, inventory: ['BULLETS', 'RATIONS', 'COMPASS'], companions: [] },
@@ -695,7 +689,7 @@ export const STARTING_PACKAGES: Record<string, {
     // == FUTURE ERA (2000-2025) CRIMINALS & ACTIVISTS
     // =======================================================================
     'Cybercriminal': { equipment: { torso: 'HOODIE', head: 'BEANIE', feet: 'SNEAKERS' }, inventory: ['LAPTOP', 'USB_DRIVE', 'BITCOIN_WALLET', 'ENERGY_DRINK'], companions: [] },
-    'Crypto Scammer': { equipment: { torso: 'DESIGNER_SHIRT', head: 'SUNGLASSES', feet: 'DESIGNER_SHOES' }, inventory: ['SMARTPHONE', 'FAKE_CRYPTO', 'CASH'], companions: [] },
+    'Crypto Scammer': { equipment: { torso: 'DESIGNER_SHIRT', head: 'SUNGLASSES', feet: 'BOOTS' }, inventory: ['SMARTPHONE', 'FAKE_CRYPTO', 'CASH'], companions: [] },
     'Cartel Member': { equipment: { torso: 'DESIGNER_SHIRT', head: 'COWBOY_HAT', feet: 'BOOTS', main_hand: 'GOLD_PLATED_GUN' }, inventory: ['BULLETS', 'BURNER_PHONE', 'CASH', 'COCAINE'], companions: ['SUV'] },
     'Human Trafficker': { equipment: { torso: 'SUIT', head: 'SUNGLASSES', feet: 'DRESS_SHOES' }, inventory: ['FAKE_PASSPORTS', 'BURNER_PHONE', 'CASH', 'ZIP_TIES'], companions: ['VAN'] },
     'Climate Activist': { equipment: { torso: 'T_SHIRT', head: 'BEANIE', feet: 'SNEAKERS' }, inventory: ['SIGN', 'SUPERGLUE', 'SMARTPHONE', 'WATER_BOTTLE'], companions: [] },
@@ -720,7 +714,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Viking Raider': { equipment: { head: 'HORNED_HELMET', torso: 'CHAINMAIL', feet: 'LEATHER_BOOTS', main_hand: 'BATTLEAXE', off_hand: 'SHIELD' }, inventory: ['THROWING_AXE', 'THROWING_AXE', 'MEAD', 'ROPE'], companions: [] },
     'Apache Scout': { equipment: { torso: 'BUCKSKIN_SHIRT', feet: 'MOCCASINS', main_hand: 'SHORTBOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'TOMAHAWK', 'PEMMICAN', 'HIDE_TENT', 'SLEEPING_FUR', 'FIRE_DRILL', 'WATERSKIN'], companions: ['HORSE'] },
     'Mongol Archer': { equipment: { head: 'FUR_HAT', torso: 'LEATHER_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'KUMISS', 'DRIED_MEAT'], companions: ['HORSE'] },
-    'Maori Warrior': { equipment: { torso: 'FLAX_CLOAK', feet: 'BAREFOOT', main_hand: 'MERE' }, inventory: ['THROWING_STICK', 'JADE_PENDANT', 'SWEET_POTATO'], companions: [] },
+    'Maori Warrior': { equipment: { cloak: 'FLAX_CLOAK', feet: 'BAREFOOT', main_hand: 'MERE' }, inventory: ['THROWING_STICK', 'JADE_PENDANT', 'SWEET_POTATO'], companions: [] },
     'Byzantine Archer': { equipment: { head: 'HELMET', torso: 'SCALE_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'CROSSBOW_BOLT' }, inventory: ['CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'GREEK_FIRE', 'BREAD'], companions: [] },
     'Zulu Warrior': { equipment: { head: 'LEOPARD_HEADBAND', torso: 'HIDE_TUNIC', feet: 'BAREFOOT', main_hand: 'IKLWA', off_hand: 'COW_HIDE_SHIELD' }, inventory: ['ASSEGAI', 'ASSEGAI', 'BILTONG', 'GOURD_FLASK'], companions: [] },
     'Persian Archer': { equipment: { head: 'CONICAL_HELMET', torso: 'LAMELLAR_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'SCIMITAR', 'DATES'], companions: [] },
@@ -730,20 +724,22 @@ export const STARTING_PACKAGES: Record<string, {
     // == COMPREHENSIVE MILITARY PROFESSIONS
     // =======================================================================
     // Ancient/Classical
-    'Legionary': { equipment: { torso: 'SCALE_ARMOR', cloak: 'ROMAN_CLOAK', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', off_hand: 'WOODEN_SHIELD' }, inventory: ['BREAD', 'WATERSKIN', 'DICE'], companions: [] },
-    'Centurion': { equipment: { torso: 'SCALE_ARMOR', cloak: 'OFFICER_CAPE', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', off_hand: 'WOODEN_SHIELD' }, inventory: ['WINE', 'WATERSKIN', 'WHETSTONE'], companions: [] },
+    'Legionary': { equipment: { torso: 'SCALE_ARMOR', cloak: 'ROMAN_CLOAK', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', off_hand: 'WOODEN_SHIELD' }, inventory: ['BREAD', 'WATERSKIN', 'DICE'], companions: [] },
+    'Centurion': { equipment: { torso: 'SCALE_ARMOR', cloak: 'OFFICER_CAPE', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', off_hand: 'WOODEN_SHIELD' }, inventory: ['WINE', 'WATERSKIN', 'WHETSTONE'], companions: [] },
     'Hoplite': { equipment: { torso: 'BRONZE_ARMOR', cloak: 'MILITARY_CLOAK', head: 'LEATHER_CAP', feet: 'SANDALS', main_hand: '*CONTEXTUAL*', off_hand: 'WOODEN_SHIELD' }, inventory: ['OLIVES', 'BREAD', 'WINE'], companions: [] },
     'Auxiliary': { equipment: { torso: 'LEATHER_VEST', cloak: 'MILITARY_CLOAK', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'ROPE'], companions: [] },
 
     // Medieval
-    'Knight': { equipment: { torso: 'MAIL_SHIRT', cloak: 'KNIGHT_SURCOAT', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', off_hand: 'WOODEN_SHIELD' }, inventory: ['BREAD', 'WINE', 'WHETSTONE'], companions: ['HORSE'] },
-    'Man-at-Arms': { equipment: { torso: 'MAIL_SHIRT', cloak: 'MILITARY_CLOAK', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'ALE', 'ROPE'], companions: [] },
-    'Crossbowman': { equipment: { torso: 'PADDED_ARMOR', cloak: 'MILITARY_CLOAK', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'BOLT' }, inventory: ['BOLT', 'BOLT', 'BREAD', 'KNIFE'], companions: [] },
-    'Sergeant': { equipment: { torso: 'STUDDED_LEATHER', cloak: 'MILITARY_CLOAK', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'CHEESE', 'ROPE'], companions: [] },
+    'Knight': { equipment: { torso: 'MAIL_SHIRT', cloak: 'KNIGHT_SURCOAT', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', off_hand: 'WOODEN_SHIELD' }, inventory: ['BREAD', 'WINE', 'WHETSTONE'], companions: ['HORSE'] },
+    'Man-at-Arms': { equipment: { torso: 'MAIL_SHIRT', cloak: 'MILITARY_CLOAK', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'ALE', 'ROPE'], companions: [] },
+    'Crossbowman': { equipment: { torso: 'PADDED_ARMOR', cloak: 'MILITARY_CLOAK', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'BOLT' }, inventory: ['BOLT', 'BOLT', 'BREAD', 'KNIFE'], companions: [] },
+    'Sergeant': { equipment: { torso: 'STUDDED_LEATHER', cloak: 'MILITARY_CLOAK', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'CHEESE', 'ROPE'], companions: [] },
+    'Squire': { equipment: { torso: 'STUDDED_LEATHER', cloak: 'MILITARY_CLOAK', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'CHEESE', 'ROPE'], companions: [] },
 
     // Asian Military
-    'Samurai': { equipment: { torso: 'LACQUERED_ARMOR', cloak: 'SAMURAI_SURCOAT', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE_BALL', 'SAKE', 'WHETSTONE'], companions: ['HORSE'] },
-    'Ashigaru Spearman': { equipment: { torso: 'PADDED_ARMOR', cloak: 'MILITARY_CLOAK', head: 'LEATHER_CAP', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'WATER'], companions: [] },
+    'Samurai': { equipment: { torso: 'LACQUERED_ARMOR', cloak: 'SAMURAI_SURCOAT', head: 'HELMET', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE_BALL', 'SAKE', 'WHETSTONE'], companions: ['HORSE'] },
+    'Ashigaru': { equipment: { torso: 'PADDED_ARMOR', cloak: 'MILITARY_CLOAK', head: 'LEATHER_CAP', feet: 'STRAW_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'WATER'], companions: [] },
+    'Retainer': { equipment: { torso: 'PADDED_ARMOR', cloak: 'MILITARY_CLOAK', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'WATER'], companions: [] },
     'Mongol Warrior': { equipment: { torso: 'LAMELLAR_ARMOR', cloak: 'FUR_MILITARY_CLOAK', head: 'FUR_HAT', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['DRIED_MEAT', 'KUMISS'], companions: ['HORSE'] },
     'Chinese Guardsman': { equipment: { torso: 'SCALE_ARMOR', cloak: 'MILITARY_CLOAK', head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['RICE', 'TEA'], companions: [] },
 

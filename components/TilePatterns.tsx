@@ -10,7 +10,8 @@ const PATTERN_SIZE = 128; // Optimized for performance while maintaining quality
 const WATER_PATTERN_SIZE = 256;
 
 // Enhanced cache with size limit for memory optimization
-const MAX_CACHE_SIZE = 50;
+// Safari needs lower memory usage due to stricter limits
+const MAX_CACHE_SIZE = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ? 15 : 50;
 
 // Cache for generated patterns
 const patternCache = new Map<string, CanvasPattern>();

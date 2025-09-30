@@ -11,12 +11,15 @@ import { generateId } from '../utils/idGenerator';
 import { questStorageCleanupService } from './questStorageCleanupService';
 import { worldWeaverQuestIntegrator } from './worldWeaverQuestIntegrator';
 import { MapData } from '../types';
+import { dispatchJournalEntryAdded } from '../utils/journalEventDispatcher';
 
 export interface WorldWeaverQuestEntry {
   questId: string;
   originalQuest: WorldWeaverQuest;
   spawnedNPCs: string[]; // IDs of NPCs spawned for this quest
   progressData?: { [stageId: string]: any }; // Progress tracking for each stage
+  currentStageIndex: number; // Track which stage player is on
+  completedStages: string[]; // Track completed stage IDs
 }
 
 class WorldWeaverQuestService {
@@ -38,13 +41,21 @@ class WorldWeaverQuestService {
     era?: string
   ): Promise<string> {
     console.log(`[WorldWeaverQuest] Adding quest: "${weaverQuest.title}"`);
+    console.log(`[WorldWeaverQuest] Context check:`, {
+      hasMapData: !!mapData,
+      hasPlayerLocation: !!playerLocation,
+      hasCulturalZone: !!culturalZone,
+      hasEra: !!era
+    });
 
     // If map data is provided, use the enhanced integrator
     if (mapData && playerLocation && culturalZone && era) {
+      console.log('[WorldWeaverQuest] Using ENHANCED integration path');
       return this.addEnhancedWorldWeaverQuest(weaverQuest, mapData, playerLocation, culturalZone, era);
     }
 
     // Otherwise, fall back to the legacy method
+    console.warn('[WorldWeaverQuest] Missing context - using LEGACY integration path');
     return this.addLegacyWorldWeaverQuest(weaverQuest);
   }
 
@@ -69,7 +80,9 @@ class WorldWeaverQuestService {
       const weaverEntry: WorldWeaverQuestEntry = {
         questId,
         originalQuest: weaverQuest,
-        spawnedNPCs: [] // Will be populated by the integrator
+        spawnedNPCs: [], // Will be populated by the integrator
+        currentStageIndex: 0,
+        completedStages: []
       };
 
       this.activeWorldWeaverQuests.set(questId, weaverEntry);
@@ -106,7 +119,9 @@ class WorldWeaverQuestService {
       const weaverEntry: WorldWeaverQuestEntry = {
         questId: questEntry.id,
         originalQuest: weaverQuest,
-        spawnedNPCs: []
+        spawnedNPCs: [],
+        currentStageIndex: 0,
+        completedStages: []
       };
 
       this.activeWorldWeaverQuests.set(questEntry.id, weaverEntry);
@@ -127,15 +142,77 @@ class WorldWeaverQuestService {
   private createMinimalQuest(weaverQuest: WorldWeaverQuest): Quest {
     const questId = generateId();
 
-    // Create a single narrative objective that directs players to journal
-    const narrativeObjective: QuestObjective = {
-      id: `${questId}_narrative`,
-      type: 'gather_information',
-      description: `Check your journal for detailed quest information about "${weaverQuest.title}"`,
-      completed: false
-    };
+    // Normalize specialNPC to specialNPCs array if needed
+    if (weaverQuest.specialNPC && !weaverQuest.specialNPCs) {
+      weaverQuest.specialNPCs = [{
+        id: generateId(),
+        name: weaverQuest.specialNPC.name,
+        role: weaverQuest.specialNPC.profession,
+        profession: weaverQuest.specialNPC.profession,
+        personality: weaverQuest.specialNPC.personality,
+        appearance: '',
+        location: [weaverQuest.specialNPC.location.x, weaverQuest.specialNPC.location.y],
+        stages: {}
+      }];
+      console.log('[WorldWeaverQuest] Normalized specialNPC to specialNPCs array');
+    }
 
-    // Create basic rewards from first stage
+    // Create objectives from quest stages
+    const objectives: QuestObjective[] = weaverQuest.stages.map((stage, index) => {
+      const objectiveId = `${questId}_stage_${index}`;
+
+      // Map completion trigger to objective type
+      let objectiveType: QuestObjective['type'] = 'visit_location';
+      if (stage.completionTrigger === 'talk_to_npc') {
+        objectiveType = 'talk_to_npc';
+      } else if (stage.completionTrigger === 'obtain_item' || stage.completionTrigger === 'collect_resource') {
+        objectiveType = 'collect_item';
+      } else if (stage.completionTrigger === 'reach_location') {
+        objectiveType = 'reach_destination';
+      } else if (stage.completionTrigger === 'make_observations' || stage.completionTrigger === 'journal_reflection') {
+        objectiveType = 'gather_information';
+      }
+
+      const objective: QuestObjective = {
+        id: objectiveId,
+        type: objectiveType,
+        description: stage.objective,
+        completed: false
+      };
+
+      // Add target information if available
+      if (stage.targetId && stage.completionTrigger === 'talk_to_npc') {
+        objective.targetNPC = stage.targetId;
+      }
+
+      if (stage.targetId && (stage.completionTrigger === 'obtain_item' || stage.completionTrigger === 'collect_resource')) {
+        objective.targetItem = stage.targetId;
+        objective.targetAmount = stage.targetAmount || 1;
+      }
+
+      // Add target location if available
+      if (stage.targetLocation) {
+        objective.targetLocation = {
+          x: stage.targetLocation.x,
+          y: stage.targetLocation.y,
+          radius: 5 // Default interaction radius
+        };
+      }
+
+      return objective;
+    });
+
+    // If no objectives were created, add a fallback
+    if (objectives.length === 0) {
+      objectives.push({
+        id: `${questId}_fallback`,
+        type: 'gather_information',
+        description: `Check your journal for quest details about "${weaverQuest.title}"`,
+        completed: false
+      });
+    }
+
+    // Create basic rewards
     const rewards: QuestReward[] = [
       {
         type: 'reputation',
@@ -150,7 +227,7 @@ class WorldWeaverQuestService {
       title: weaverQuest.title,
       description: weaverQuest.description,
       category: 'social', // WorldWeaver quests are typically social/narrative focused
-      objectives: [narrativeObjective],
+      objectives,
       currentObjectiveIndex: 0,
       rewards,
       startTime: Date.now(),
@@ -160,6 +237,7 @@ class WorldWeaverQuestService {
       difficulty: 'medium'
     };
 
+    console.log(`[WorldWeaverQuest] Created legacy quest with ${objectives.length} objectives`);
     return quest;
   }
 
@@ -226,6 +304,9 @@ ${stageText}
     existingEntries.unshift(journalEntry); // Add to beginning
     localStorage.setItem('journalEntries', JSON.stringify(existingEntries));
 
+    // Dispatch journal entry event for quest system
+    dispatchJournalEntryAdded(journalEntry);
+
     console.log('[WorldWeaverQuest] Added journal entry for quest:', weaverQuest.title);
   }
 
@@ -259,6 +340,62 @@ ${stageText}
   isWorldWeaverQuest(questId: string): boolean {
     return this.activeWorldWeaverQuests.has(questId) ||
            localStorage.getItem(`ww_quest_${questId}`) !== null;
+  }
+
+  /**
+   * Get quest entry with progression data
+   */
+  getQuestEntry(questId: string): WorldWeaverQuestEntry | null {
+    const entry = this.activeWorldWeaverQuests.get(questId);
+    if (entry) return entry;
+
+    // Try loading from localStorage
+    try {
+      const stored = localStorage.getItem(`ww_quest_${questId}`);
+      if (stored) {
+        const parsedEntry: WorldWeaverQuestEntry = JSON.parse(stored);
+        this.activeWorldWeaverQuests.set(questId, parsedEntry);
+        return parsedEntry;
+      }
+    } catch (error) {
+      console.error('[WorldWeaverQuest] Error loading quest entry:', error);
+    }
+
+    return null;
+  }
+
+  /**
+   * Advance to next stage
+   */
+  advanceToNextStage(questId: string): boolean {
+    const entry = this.getQuestEntry(questId);
+    if (!entry) {
+      console.warn('[WorldWeaverQuest] Cannot advance - quest entry not found:', questId);
+      return false;
+    }
+
+    const currentStage = entry.originalQuest.stages[entry.currentStageIndex];
+    if (currentStage) {
+      entry.completedStages.push(currentStage.id);
+      console.log(`[WorldWeaverQuest] Completed stage: ${currentStage.id} - "${currentStage.objective}"`);
+    }
+
+    entry.currentStageIndex++;
+
+    // Save updated entry
+    this.activeWorldWeaverQuests.set(questId, entry);
+    localStorage.setItem(`ww_quest_${questId}`, JSON.stringify(entry));
+
+    const hasNextStage = entry.currentStageIndex < entry.originalQuest.stages.length;
+
+    if (hasNextStage) {
+      const nextStage = entry.originalQuest.stages[entry.currentStageIndex];
+      console.log(`[WorldWeaverQuest] Advanced ${questId} to stage ${entry.currentStageIndex + 1}/${entry.originalQuest.stages.length}: "${nextStage.objective}"`);
+    } else {
+      console.log(`[WorldWeaverQuest] Quest ${questId} completed - all stages done`);
+    }
+
+    return hasNextStage;
   }
 
   /**

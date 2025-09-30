@@ -7,6 +7,7 @@ import { generateStudyAnalysis } from '../services/llmService';
 import { useGame } from '../contexts/GameContext';
 import { useMap } from '../contexts/MapContext';
 import { formatDateWithSeason } from '../utils/dateUtils';
+import { dispatchJournalEntryAdded } from '../utils/journalEventDispatcher';
 
 // Use the same JournalEntry interface as JournalViewport
 interface JournalEntry {
@@ -70,6 +71,9 @@ export function useStudyActions() {
                 itemEmoji: item.emoji,
                 studentInput
             };
+
+            // Dispatch journal entry event for quest system
+            dispatchJournalEntryAdded(entry);
 
             return { success: true, entry };
 

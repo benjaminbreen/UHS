@@ -125,20 +125,42 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
     return Math.floor(Math.sqrt(Math.pow(to.x - from.x, 2) + Math.pow(to.y - from.y, 2)));
   };
 
-  const renderObjective = (objective: QuestObjective, isCurrentObjective: boolean) => {
+  const renderObjective = (objective: QuestObjective, isCurrentObjective: boolean, questId: string) => {
     // Enhanced objective description with actual entity names
-    const enhancedDescription = objective.targetNpcName 
+    const enhancedDescription = objective.targetNpcName
       ? objective.description.replace(/NPC|npc|person/, objective.targetNpcName)
       : objective.description;
-      
+
+    // Get progress for observation and resource objectives
+    let progressDisplay = null;
+    if (objective.type === 'make_observations' && !objective.completed) {
+      const progressKey = `observations_${questId}_${objective.id}`;
+      const currentCount = parseInt(localStorage.getItem(progressKey) || '0');
+      const targetCount = objective.targetAmount || objective.total || 3;
+      progressDisplay = (
+        <div className="mt-1 text-xs text-blue-400">
+          📝 {currentCount} / {targetCount} observations
+        </div>
+      );
+    } else if (objective.type === 'collect_resource' && !objective.completed) {
+      const progressKey = `resources_${questId}_${objective.id}`;
+      const currentAmount = parseInt(localStorage.getItem(progressKey) || '0');
+      const targetAmount = objective.targetAmount || objective.total || 5;
+      progressDisplay = (
+        <div className="mt-1 text-xs text-green-400">
+          📦 {currentAmount} / {targetAmount} collected
+        </div>
+      );
+    }
+
     return (
-      <div 
+      <div
         key={objective.id}
         className={`flex items-start gap-2 p-2 rounded ${
-          objective.completed 
-            ? 'opacity-50' 
-            : isCurrentObjective 
-              ? 'bg-blue-900/20 border border-blue-500/30' 
+          objective.completed
+            ? 'opacity-50'
+            : isCurrentObjective
+              ? 'bg-blue-900/20 border border-blue-500/30'
               : ''
         }`}
       >
@@ -155,6 +177,7 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
           }`}>
             {enhancedDescription}
           </p>
+          {progressDisplay}
           {objective.targetLocation && !objective.completed && (
             <button
               onClick={() => onNavigateToQuest?.(
@@ -329,8 +352,8 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
 
             <div className="space-y-1 mb-3">
               <h4 className="text-xs font-semibold text-gray-400 mb-2">Objectives:</h4>
-              {quest.objectives.map((obj, index) => 
-                renderObjective(obj, index === quest.currentObjectiveIndex)
+              {quest.objectives.map((obj, index) =>
+                renderObjective(obj, index === quest.currentObjectiveIndex, quest.id)
               )}
             </div>
 

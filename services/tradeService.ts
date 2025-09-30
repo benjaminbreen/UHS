@@ -4,7 +4,7 @@
  */
 
 import { NpcEntity, Item, TerrainStructure, MapData, HistoricalEra } from '../types';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 import { parseDateString } from '../utils/dateUtils';
 
 export interface TradeGood {
@@ -250,7 +250,7 @@ export class TradeService {
     const numGoods = 3 + Math.floor(Math.random() * 4);
     for (let i = 0; i < numGoods && i < availableGoods.length; i++) {
       const itemId = availableGoods[Math.floor(Math.random() * availableGoods.length)];
-      const item = ITEM_DEFINITIONS[itemId];
+      const item = getItemDefinition(itemId);
       
       if (item) {
         goods.push({
@@ -285,7 +285,7 @@ export class TradeService {
     
     const seasonal = farmProduce[season] || farmProduce['summer'];
     seasonal.forEach(itemId => {
-      const item = ITEM_DEFINITIONS[itemId] || { 
+      const item = getItemDefinition(itemId) || { 
         id: itemId, 
         name: itemId.replace(/_/g, ' ').toLowerCase(),
         value: 5

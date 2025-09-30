@@ -3,7 +3,8 @@
  */
 import { ItemDefinition, CulturalZone, ClimateType } from '../../types';
 
-export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
+// Internal object for easier initialization
+const ITEM_DEFINITIONS_DATA: Record<string, ItemDefinition> = {
     // --- Tools ---
     AXE: { baseId: 'AXE', name: 'Axe', description: 'A sturdy axe for chopping wood or other materials.', emoji: '🪓', rarity: 'Common', value: 10, weight: 2.0, wearable: false, stackable: false, attack: 4, sustenance: 0, wieldable: true, throwable: false, craftingValue: 5, category: 'Tool', material: 'Iron', equipmentSlot: 'main_hand' },
     PICKAXE: { baseId: 'PICKAXE', name: 'Pickaxe', description: 'A heavy pickaxe for breaking rocks and mining ore.', emoji: '⛏️', rarity: 'Common', value: 12, weight: 3.0, wearable: false, stackable: false, attack: 3, sustenance: 0, wieldable: true, throwable: false, craftingValue: 6, category: 'Tool', material: 'Iron', equipmentSlot: 'main_hand' },
@@ -454,6 +455,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
     PETASOS: { baseId: 'PETASOS', name: 'Petasos', description: 'A wide-brimmed sun hat of Greek origin, often worn for travel.', emoji: '👒', rarity: 'Common', value: 7, weight: 0.4, wearable: true, equipmentSlot: 'head', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 3, category: 'Apparel', material: 'Felt' },
     PITH_HELMET: { baseId: 'PITH_HELMET', name: 'Pith Helmet', description: 'A lightweight helmet made of cork or pith, designed to shade the head from the sun.', emoji: '🪖', rarity: 'Uncommon', value: 20, weight: 0.6, wearable: true, equipmentSlot: 'head', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 8, category: 'Apparel', material: 'Cork' },
    COMBAT_HELMET: { baseId: 'PITH_HELMET', name: 'Pith Helmet', description: 'A modern metal combat helmet.', emoji: '🪖', rarity: 'Uncommon', value: 20, weight: 0.6, wearable: true, equipmentSlot: 'head', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 8, category: 'Apparel', material: 'Metal' },
+   HELMET: { baseId: 'HELMET', name: 'Helmet', description: 'The helmet of a soldier.', emoji: '🪖', rarity: 'Common', value: 20, weight: 0.6, wearable: true, equipmentSlot: 'head', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 8, category: 'Apparel', material: 'Metal' },
     TOP_HAT: { baseId: 'TOP_HAT', name: 'Top Hat', description: 'A tall, flat-crowned, broad-brimmed hat, traditionally associated with formal wear.', emoji: '🎩', rarity: 'Uncommon', value: 25, weight: 0.7, wearable: true, equipmentSlot: 'head', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 9, category: 'Apparel', material: 'Silk' },
     TRICORN_HAT: { baseId: 'TRICORN_HAT', name: 'Tricorn Hat', description: 'A hat with the brim turned up on three sides.', emoji: '🎩', rarity: 'Uncommon', value: 22, weight: 0.6, wearable: true, equipmentSlot: 'head', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 8, category: 'Apparel', material: 'Felt' },
     SUN_HAT: { baseId: 'SUN_HAT', name: 'Sun Hat', description: 'A hat with a wide brim, offering excellent sun protection.', emoji: '👒', rarity: 'Common', value: 10, weight: 0.5, wearable: true, equipmentSlot: 'head', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 4, category: 'Apparel', material: 'Felt' },
@@ -618,6 +620,8 @@ BALL_GOWN: { baseId: 'BALL_GOWN', name: 'Ball Gown', description: 'A voluminous 
 BARK_CLOTH_WRAP: { baseId: 'BARK_CLOTH_WRAP', name: 'Bark Cloth Wrap', description: 'A primitive garment made from the beaten and softened inner bark of trees. Might be edible if you get desperate.', emoji: '👘', rarity: 'Common', value: 1, weight: 1.2, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 1, wieldable: false, throwable: true, craftingValue: 1, category: 'Apparel', material: 'Bark' },
 WORK_WRAP: { baseId: 'WORK_WRAP', name: 'Work Wrap', description: 'A garment made from the beaten and softened inner bark of trees. Might be edible if you get desperate.', emoji: '👘', rarity: 'Common', value: 1, weight: 1.2, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 1, wieldable: false, throwable: true, craftingValue: 1, category: 'Apparel', material: 'Bark' },
 BOUBOU: { baseId: 'BOUBOU', name: 'Boubou Robe', description: 'A wide, loose-fitting, and often brightly colored flowing robe worn in West Africa.', emoji: '👘', rarity: 'Uncommon', value: 16, weight: 1.1, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 7, category: 'Apparel', material: 'Cotton' },
+KIMONO: { baseId: 'KIMONO', name: 'Kimono', description: 'A draped and often beautifully patterned garment worn in traditional Japanese contexts.', emoji: '👘', rarity: 'Uncommon', value: 16, weight: 1.1, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 7, category: 'Apparel', material: 'Cotton' },
+KOSODE: { baseId: 'KOSODE', name: 'Kosode Robe', description: 'A unisex garment worn widely throughout medieval and early modern Japan.', emoji: '👘', rarity: 'Common', value: 6, weight: 1, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 7, category: 'Apparel', material: 'Cotton' },
 BOURGEOIS_DRESS: { baseId: 'BOURGEOIS_DRESS', name: 'Bourgeois Dress', description: 'A well-made silk dress befitting a member of the merchant class.', emoji: '👗', rarity: 'Uncommon', value: 30, weight: 1.3, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 11, category: 'Apparel', material: 'Silk' },
 BROCADE_GOWN: { baseId: 'BROCADE_GOWN', name: 'Brocade Gown', description: 'A luxurious gown made from heavy, ornate brocade fabric.', emoji: '👗', rarity: 'Rare', value: 75, weight: 2.8, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 1, sustenance: 0, wieldable: false, throwable: true, craftingValue: 20, category: 'Apparel', material: 'Brocade' },
 CALICO_DRESS: { baseId: 'CALICO_DRESS', name: 'Calico Dress', description: 'A simple dress made from inexpensive printed cotton fabric.', emoji: '👗', rarity: 'Common', value: 4, weight: 0.6, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 2, category: 'Apparel', material: 'Cotton' },
@@ -636,6 +640,7 @@ DAY_DRESS: { baseId: 'DAY_DRESS', name: 'Day Dress', description: 'A fashionable
 DECORATED_DRESS: { baseId: 'DECORATED_DRESS', name: 'Decorated Dress', description: 'A dress adorned with painted patterns or embroidery.', emoji: '👗', rarity: 'Uncommon', value: 20, weight: 0.8, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 8, category: 'Apparel', material: 'Tapa' },
 DECORATED_ROBE: { baseId: 'DECORATED_ROBE', name: 'Decorated Robe', description: 'A ceremonial robe made from hide painted with symbolic designs.', emoji: '👘', rarity: 'Uncommon', value: 22, weight: 2.2, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 1, wieldable: false, throwable: true, craftingValue: 9, category: 'Apparel', material: 'Hide' },
 DESIGNER_DRESS: { baseId: 'DESIGNER_DRESS', name: 'Designer Dress', description: 'A dress from a luxury fashion brand, a symbol of modern wealth.', emoji: '👗', rarity: 'Rare', value: 250, weight: 1.0, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 40, category: 'Apparel', material: 'Chiffon' },
+DESIGNER_Shirt: { baseId: 'DESIGNER_SHIRT', name: 'Designer Shirt', description: 'A gaudy, shiny, expensive shirt from a luxury fashion brand. A bit much.', emoji: '👗', rarity: 'Rare', value: 250, weight: 1.0, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 40, category: 'Apparel', material: 'Silk' },
 EMPEROR_ROBE: { baseId: 'EMPEROR_ROBE', name: 'Emperor\'s Robe', description: 'A divine robe of Tyrian purple silk, the ultimate symbol of imperial power.', emoji: '👑', rarity: 'Epic', value: 1000, weight: 2.5, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 1, sustenance: 0, wieldable: false, throwable: true, craftingValue: 100, category: 'Apparel', material: 'Silk' },
 EMPRESS_ROBE: { baseId: 'EMPRESS_ROBE', name: 'Empress\'s Robe', description: 'A jeweled robe of purple silk befitting the ruler of an empire.', emoji: '👑', rarity: 'Epic', value: 950, weight: 2.2, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 95, category: 'Apparel', material: 'Silk' },
 FACTORY_DRESS: { baseId: 'FACTORY_DRESS', name: 'Factory Dress', description: 'A plain and durable dress of rough cotton, made for a female factory worker.', emoji: '👗', rarity: 'Common', value: 2, weight: 0.8, wearable: true, equipmentSlot: 'torso', stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: true, craftingValue: 1, category: 'Apparel', material: 'Cotton' },
@@ -1264,6 +1269,54 @@ HEADSET: { baseId: 'HEADSET', name: 'Headset', description: 'Audio communication
     CAMP_STOOL: { baseId: 'CAMP_STOOL', name: 'Folding Camp Stool', description: 'A lightweight wooden stool that folds for easy transport.', emoji: '🪑', rarity: 'Uncommon', value: 10, weight: 1.0, wearable: false, stackable: false, attack: 2, sustenance: 0, wieldable: true, throwable: true, craftingValue: 4, category: 'Tool', material: 'Wood' },
     MOSQUITO_NET: { baseId: 'MOSQUITO_NET', name: 'Mosquito Net', description: 'A fine mesh net to protect against insects while sleeping.', emoji: '🕸️', rarity: 'Uncommon', value: 12, weight: 0.3, wearable: false, stackable: false, attack: 0, sustenance: 0, wieldable: false, throwable: false, craftingValue: 4, category: 'Tool', material: 'Cotton' },
 };
+
+/**
+ * High-performance Map structure for O(1) item lookups
+ * Replaces the object for better performance with 1000+ items
+ */
+export const ITEM_DEFINITIONS_MAP: Map<string, ItemDefinition> = new Map(
+    Object.entries(ITEM_DEFINITIONS_DATA)
+);
+
+/**
+ * Legacy export for backward compatibility
+ * @deprecated Use ITEM_DEFINITIONS_MAP.get(key) for better performance
+ */
+export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = ITEM_DEFINITIONS_DATA;
+
+/**
+ * Helper function to get item definition with O(1) performance
+ */
+export function getItemDefinition(baseId: string): ItemDefinition | undefined {
+    return ITEM_DEFINITIONS_MAP.get(baseId);
+}
+
+/**
+ * Check if item exists
+ */
+export function hasItemDefinition(baseId: string): boolean {
+    return ITEM_DEFINITIONS_MAP.has(baseId);
+}
+
+/**
+ * Get all item IDs (useful for iteration)
+ */
+export function getAllItemIds(): string[] {
+    return Array.from(ITEM_DEFINITIONS_MAP.keys());
+}
+
+/**
+ * Get items by category with filtering
+ */
+export function getItemsByCategory(category: string): ItemDefinition[] {
+    const items: ItemDefinition[] = [];
+    for (const item of ITEM_DEFINITIONS_MAP.values()) {
+        if (item.category === category) {
+            items.push(item);
+        }
+    }
+    return items;
+}
 
 export interface CropDefinition {
     name: string;

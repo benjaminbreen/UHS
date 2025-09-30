@@ -9,6 +9,7 @@ import {
 import { generateCharacter, generateCharacterWithSpec } from '../services/characterGenerator';
 import { enhanceCharacterProfile } from '../services/llmService';
 import { addItemToInventory, createItemInstance } from '../utils/inventoryUtils';
+import { dispatchItemAcquired } from '../utils/itemEventDispatcher';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants/index';
 import { generateInteriorMap } from '../generation/interiorMap';
 import { getProceduralItemStats } from '../services/combatService';
@@ -72,6 +73,8 @@ export const usePlayerState = (props: usePlayerStateProps) => {
             let newInventory = [...prev.inventory];
             for (const item of itemsToAdd) {
                 newInventory = addItemToInventory(newInventory, item);
+                // Dispatch event for quest system
+                dispatchItemAcquired(item.baseId, item.quantity || 1);
             }
             return { ...prev, inventory: newInventory };
         });
@@ -313,7 +316,8 @@ export const usePlayerState = (props: usePlayerStateProps) => {
                 } 
             } 
         } 
-        const fallbackX = Math.floor(MAP_WIDTH_TILES / 2); const fallbackY = Math.floor(MAP_HEIGHT_TILES / 2); 
+        const fallbackX = Math.max(5, Math.min(MAP_WIDTH_TILES - 6, Math.floor(MAP_WIDTH_TILES / 2)));
+        const fallbackY = Math.max(5, Math.min(MAP_HEIGHT_TILES - 6, Math.floor(MAP_HEIGHT_TILES / 2))); 
         if(mode === 'ship' && tiles[fallbackY]?.[fallbackX] && !tiles[fallbackY][fallbackX].isLand) return {x: fallbackX, y: fallbackY, mode}; 
         if(mode === 'onFoot' && tiles[fallbackY]?.[fallbackX] && tiles[fallbackY][fallbackX].isLand) return {x: fallbackX, y: fallbackY, mode}; 
         if(mode === 'ship') { 

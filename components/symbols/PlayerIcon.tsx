@@ -125,7 +125,13 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
   const bodyHeight = isBroad ? 4.4 : 5.2;
 
   return (
-    <g transform={`translate(${x}, ${y})`}>
+    <g
+      transform={`translate(${x}, ${y})`}
+      style={{
+        transition: 'transform 0.0s ease-out',
+        willChange: 'transform'
+      }}
+    >
       <defs>
         <filter id={`playerGlow-${character.id}`} x="-50%" y="-50%" width="200%" height="200%">
           {!isSafari ? (

@@ -19,7 +19,7 @@ import {
 } from '../types';
 import { CulturalMarketGood } from './culturalMarketplaceService';
 import { dynamicPricingEngine, NPCMarketBehavior, PricingFactors } from './dynamicPricingEngine';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 
 export interface NPCTransaction {
   npcId: string;
@@ -348,11 +348,11 @@ export class NPCMarketParticipationService {
     }
     
     // Calculate selling price
-    const basePrice = ITEM_DEFINITIONS[item.itemId]?.value || 10;
+    const basePrice = getItemDefinition(item.itemId)?.value || 10;
     const qualityMultiplier = this.getQualityMultiplier(item.quality);
     const sellingPrice = Math.round(basePrice * qualityMultiplier * baseDemand);
     
-    const itemName = ITEM_DEFINITIONS[item.itemId]?.name || item.itemId.replace(/_/g, ' ');
+    const itemName = getItemDefinition(item.itemId)?.name || item.itemId.replace(/_/g, ' ');
     
     return {
       npcId: npc.id,
@@ -405,7 +405,7 @@ export class NPCMarketParticipationService {
       return updatedMarketplace;
     } else {
       // Add new item to marketplace
-      const basePrice = ITEM_DEFINITIONS[transaction.itemId]?.value || 10;
+      const basePrice = getItemDefinition(transaction.itemId)?.value || 10;
       const newItem: CulturalMarketGood = {
         itemId: transaction.itemId,
         name: transaction.itemName,
@@ -414,7 +414,7 @@ export class NPCMarketParticipationService {
         quantity: transaction.quantity,
         quality: 'standard' as any,
         origin: 'local' as any,
-        category: ITEM_DEFINITIONS[transaction.itemId]?.category as any || 'manufactured' as any
+        category: getItemDefinition(transaction.itemId)?.category as any || 'manufactured' as any
       };
       
       return [...marketplace, newItem];

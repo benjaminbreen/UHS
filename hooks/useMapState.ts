@@ -1144,22 +1144,22 @@ export const useMapState = (props: useMapStateProps) => {
             // Start appropriate workshop ambient sounds at lower volume
             switch (workshopType) {
                 case 'smithy':
-                    citySoundsService.playSmithy();
+                    try { citySoundsService.playSmithyAmbient(); } catch(e) { console.warn('Smithy sound unavailable'); }
                     break;
                 case 'pottery':
-                    citySoundsService.playPottery();
+                    try { citySoundsService.playPotteryAmbient(); } catch(e) { console.warn('Pottery sound unavailable'); }
                     break;
                 case 'weaving':
-                    citySoundsService.playWeaving();
+                    try { citySoundsService.playWeavingAmbient(); } catch(e) { console.warn('Weaving sound unavailable'); }
                     break;
                 case 'bakery':
-                    citySoundsService.playBakery();
+                    try { citySoundsService.playBakeryAmbient(); } catch(e) { console.warn('Bakery sound unavailable'); }
                     break;
                 case 'carpentry':
-                    citySoundsService.playCarpentry();
+                    try { citySoundsService.playCarpentryAmbient(); } catch(e) { console.warn('Carpentry sound unavailable'); }
                     break;
                 default:
-                    citySoundsService.playSmithy();
+                    try { citySoundsService.playSmithyAmbient(); } catch(e) { console.warn('Default smithy sound unavailable'); }
                     break;
             }
         }
@@ -1309,14 +1309,17 @@ export const useMapState = (props: useMapStateProps) => {
         
         // Check if we should use existing seed or generate new one
         const currentSeed = seedManager.getSeed();
+        const currentArea = localArea;
         console.log('[onStartNewWorldAtLocation] Current seed manager seed:', currentSeed);
-        
-        // Only reset if we have the default seed (not from URL)
-        if (currentSeed === 'ABCD1234' || !currentSeed) {
-            console.log('[onStartNewWorldAtLocation] No URL seed found, generating new seed');
+        console.log('[onStartNewWorldAtLocation] Current area:', currentArea, '→ Target area:', targetMapArea);
+
+        // Always generate fresh seed when map area changes (prevents WorldWeaver overlay bug)
+        // Only preserve seed if we're regenerating the SAME area (from URL restore)
+        if (!currentArea || currentArea !== targetMapArea) {
+            console.log('[onStartNewWorldAtLocation] Map area changing - generating fresh seed');
             seedManager.reset();
         } else {
-            console.log('[onStartNewWorldAtLocation] Using existing seed from URL:', currentSeed);
+            console.log('[onStartNewWorldAtLocation] Same area - preserving existing seed:', currentSeed);
         }
         
         const seedStr = seedManager.getSeed();
@@ -1329,7 +1332,9 @@ export const useMapState = (props: useMapStateProps) => {
         const newSeed = Math.abs(hash) % 1000000;
         console.log('[onStartNewWorldAtLocation] Final numeric seed for map generation:', newSeed);
         setInitialGameSeed(newSeed);
+        console.log('[onStartNewWorldAtLocation] Clearing map data cache to force fresh render');
         setMapDataCache(new Map());
+        console.log('[onStartNewWorldAtLocation] Resetting world coords to (0, 0)');
         setCurrentWorldCoords({ x: 0, y: 0 });
         
         // Set the location

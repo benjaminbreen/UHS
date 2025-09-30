@@ -497,7 +497,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       name: "Paris",
       isHistorical: true,
       foundingYear: 361,
-      populationPeak: 14000000,
+      populationPeak: 140000,
       description: "The political and cultural heart of France, a center of arts, philosophy, and revolution.",
       allegianceHistory: {
         361: "Franks",

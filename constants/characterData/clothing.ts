@@ -5533,28 +5533,112 @@ export const getClothingData = (
 /**
  * Helper functions for material adaptation
  */
+/**
+ * Material quality tiers for systematic upgrades/downgrades
+ */
+const MATERIAL_QUALITY_TIERS = {
+    // Textile materials (poor → standard → good → excellent)
+    textiles: {
+        poor: ['Hemp', 'Rough Wool', 'Burlap', 'Rough Linen'],
+        standard: ['Cotton', 'Wool', 'Linen'],
+        good: ['Fine Wool', 'Fine Linen', 'Smooth Cotton'],
+        excellent: ['Silk', 'Velvet', 'Fine Silk', 'Embroidered Silk']
+    },
+    // Metal materials
+    metals: {
+        poor: ['Bone', 'Copper'],
+        standard: ['Bronze', 'Iron'],
+        good: ['Steel', 'Brass'],
+        excellent: ['Silver', 'Gold']
+    },
+    // Leather materials
+    leather: {
+        poor: ['Raw Hide', 'Rough Leather'],
+        standard: ['Leather', 'Treated Hide'],
+        good: ['Fine Leather', 'Soft Leather'],
+        excellent: ['Silk-lined Leather', 'Embossed Leather']
+    }
+};
+
+function getMaterialCategory(material: string): string {
+    const materialLower = material.toLowerCase();
+
+    // Check each category for material match
+    for (const [category, tiers] of Object.entries(MATERIAL_QUALITY_TIERS)) {
+        for (const tierMaterials of Object.values(tiers)) {
+            if (tierMaterials.some(m => materialLower.includes(m.toLowerCase()))) {
+                return category;
+            }
+        }
+    }
+
+    // Default categorization based on keywords
+    if (materialLower.includes('silk') || materialLower.includes('cotton') ||
+        materialLower.includes('wool') || materialLower.includes('linen')) {
+        return 'textiles';
+    }
+    if (materialLower.includes('gold') || materialLower.includes('silver') ||
+        materialLower.includes('bronze') || materialLower.includes('iron')) {
+        return 'metals';
+    }
+    if (materialLower.includes('leather') || materialLower.includes('hide')) {
+        return 'leather';
+    }
+
+    return 'textiles'; // Default fallback
+}
+
+function getMaterialQualityTier(material: string): string {
+    const category = getMaterialCategory(material);
+    const tiers = MATERIAL_QUALITY_TIERS[category];
+
+    const materialLower = material.toLowerCase();
+    for (const [tier, materials] of Object.entries(tiers)) {
+        if (materials.some(m => materialLower.includes(m.toLowerCase()))) {
+            return tier;
+        }
+    }
+
+    return 'standard'; // Default tier
+}
+
+function adjustMaterialQuality(material: string, targetQuality: 'poor' | 'standard' | 'good' | 'excellent'): string {
+    const category = getMaterialCategory(material);
+    const tiers = MATERIAL_QUALITY_TIERS[category];
+    const targetMaterials = tiers[targetQuality];
+
+    if (targetMaterials && targetMaterials.length > 0) {
+        // Pick a random material from the target quality tier
+        return targetMaterials[Math.floor(Math.random() * targetMaterials.length)];
+    }
+
+    return material; // Fallback to original material
+}
+
 function downgradeMaterial(material: string): string {
-    const downgrades: Record<string, string> = {
-        'Silk': 'Cotton',
-        'Fine Wool': 'Rough Wool',
-        'Velvet': 'Wool',
-        'Gold': 'Bronze',
-        'Silver': 'Iron',
-        'Fine Linen': 'Rough Linen'
-    };
-    return downgrades[material] || material;
+    const currentTier = getMaterialQualityTier(material);
+    const tierOrder = ['poor', 'standard', 'good', 'excellent'];
+    const currentIndex = tierOrder.indexOf(currentTier);
+
+    if (currentIndex > 0) {
+        const lowerTier = tierOrder[currentIndex - 1] as 'poor' | 'standard' | 'good' | 'excellent';
+        return adjustMaterialQuality(material, lowerTier);
+    }
+
+    return material; // Already at lowest tier
 }
 
 function upgradeMaterial(material: string): string {
-    const upgrades: Record<string, string> = {
-        'Cotton': 'Silk',
-        'Rough Wool': 'Fine Wool',
-        'Wool': 'Velvet',
-        'Bronze': 'Silver',
-        'Iron': 'Silver',
-        'Rough Linen': 'Fine Linen'
-    };
-    return upgrades[material] || material;
+    const currentTier = getMaterialQualityTier(material);
+    const tierOrder = ['poor', 'standard', 'good', 'excellent'];
+    const currentIndex = tierOrder.indexOf(currentTier);
+
+    if (currentIndex < tierOrder.length - 1) {
+        const higherTier = tierOrder[currentIndex + 1] as 'poor' | 'standard' | 'good' | 'excellent';
+        return adjustMaterialQuality(material, higherTier);
+    }
+
+    return material; // Already at highest tier
 }
 
 function getEraBasePalette(era: HistoricalEra): ClothingPalette {

@@ -5,13 +5,13 @@
 import { InteriorEntity, InteriorMapData, Item, HistoricalEra } from '../types';
 import { generateLlmContents } from './llmService';
 import { CONTAINER_LOOT_TABLES, LocationKey, BuildingKey, ContainerKey } from '../constants/gameData/itemLists';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 import { parseDateString } from '../utils/dateUtils';
 
 let itemIdCounter = 0;
 
 function createItemInstance(baseId: string): Item | null {
-    const definition = ITEM_DEFINITIONS[baseId];
+    const definition = getItemDefinition(baseId);
     if (!definition) {
         console.warn(`No item definition found for baseId: ${baseId}`);
         return null;

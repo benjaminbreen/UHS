@@ -1683,7 +1683,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                                         const tile = (mapY >= 0 && mapY < MAP_HEIGHT && mapX >= 0 && mapX < MAP_WIDTH && mineMap[mapY] && mineMap[mapY][mapX]) ? mineMap[mapY][mapX] : null;
                                         const isPlayer = mapX === player.x && mapY === player.y;
 
-                                    const color = isPlayer ? '#FFD700' :  // Gold for player - more visible
+                                    let color = isPlayer ? '#FFD700' :  // Gold for player - more visible
                                                  tile?.oreHint ? '#FFA500' :  // Orange for ore hints
                                                  tile?.hazard ? '#FF4444' :   // Red for hazards
                                                  tile ? getDepthColor(mapY, tile.type) : '#000000';

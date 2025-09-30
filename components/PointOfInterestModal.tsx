@@ -9,7 +9,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { useMap } from '../contexts/MapContext';
 import { generatePoiDescription } from '../services/poiDescriptionGenerator';
 import POISymbol from './POISymbol';
-import { ProceduralPortrait } from './portraits';
+import { LazyPortrait } from './portraits';
 import HolySiteInteractions from './HolySiteInteractions';
 import { getReligiousEconomy, generateHolySiteTreasury, calculateHolySiteWealth } from '../constants/gameData/religiousEconomy';
 import { getClergyRoles } from '../constants/characterData/religionClergyRoles';
@@ -203,7 +203,7 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
                                             {anchoredNpcs.map(npc => (
                                                 <div key={npc.id} className="flex items-center gap-3">
                                                     <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
-                                                        <ProceduralPortrait character={npc} size={48} />
+                                                        <LazyPortrait character={npc} size={48} type="procedural" staticMode={true} />
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-white">{npc.name}</p>
@@ -254,7 +254,7 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
                                                 .map(([itemId, quantity]) => (
                                                 <div key={itemId} className="flex justify-between items-center py-1">
                                                     <span className="text-xs text-slate-400">
-                                                        {ITEM_DEFINITIONS[itemId]?.name || itemId.replace(/_/g, ' ')}:
+                                                        {getItemDefinition(itemId)?.name || itemId.replace(/_/g, ' ')}:
                                                     </span>
                                                     <span className="text-sm font-semibold text-white">
                                                         {quantity.toLocaleString()}

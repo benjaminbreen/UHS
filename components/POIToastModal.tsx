@@ -10,7 +10,7 @@ import { useUI } from '../contexts/UIContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
-import { ITEM_DEFINITIONS } from '../constants';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants';
 import QuarryBanner from './QuarryBanner';
 import MineColonyBanner from './MineColonyBanner';
 import FortressBanner from './FortressBanner';
@@ -336,7 +336,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
 
     try {
       await onBuyItem(itemBaseId, price);
-      showToast?.(`Purchased ${ITEM_DEFINITIONS[itemBaseId]?.name || itemBaseId} for ${price} coins`);
+      showToast?.(`Purchased ${getItemDefinition(itemBaseId)?.name || itemBaseId} for ${price} coins`);
     } catch (error) {
       console.error('Purchase failed:', error);
       showToast?.('Purchase failed - insufficient funds');
@@ -1260,7 +1260,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
 
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {getAvailableItems().map((itemBaseId) => {
-                        const itemDef = ITEM_DEFINITIONS[itemBaseId];
+                        const itemDef = getItemDefinition(itemBaseId);
                         const price = getItemPrice(itemBaseId);
                         const canAfford = getPlayerGold() >= price;
                         
@@ -1325,8 +1325,8 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
 
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {getPlayerItems().map((item, index) => {
-                        const sellPrice = Math.floor((ITEM_DEFINITIONS[item.baseId || item.id]?.value || 1) * 0.7); // 70% of base value
-                        const itemDef = ITEM_DEFINITIONS[item.baseId || item.id];
+                        const sellPrice = Math.floor((getItemDefinition(item.baseId || item.id)?.value || 1) * 0.7); // 70% of base value
+                        const itemDef = getItemDefinition(item.baseId || item.id);
                         
                         if (!itemDef) return null;
                         

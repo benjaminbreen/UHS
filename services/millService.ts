@@ -3,7 +3,7 @@
  */
 
 import { TerrainStructure, NpcEntity, Item, HistoricalEra } from '../types';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 
 // Mill types based on historical era and region
 export interface MillType {
@@ -296,7 +296,7 @@ function generateWorkerInventory(profession: string, millType: MillType): Item[]
   const outputs = Object.values(millType.outputs);
   if (outputs.length > 0) {
     const randomOutput = outputs[Math.floor(Math.random() * outputs.length)];
-    const itemDef = ITEM_DEFINITIONS[randomOutput.itemId];
+    const itemDef = getItemDefinition(randomOutput.itemId);
     if (itemDef) {
       inventory.push({
         ...itemDef,
@@ -424,11 +424,11 @@ export function processItemsAtMill(request: ProcessingRequest, playerCurrency: n
 // Get mill description for UI
 export function getMillDescription(millType: MillType): string {
   const inputs = millType.inputs.map(id => 
-    ITEM_DEFINITIONS[id]?.name || id
+    getItemDefinition(id)?.name || id
   ).join(', ');
   
   const outputs = Object.entries(millType.outputs).map(([inputId, output]) => 
-    `${ITEM_DEFINITIONS[inputId]?.name || inputId} → ${ITEM_DEFINITIONS[output.itemId]?.name || output.itemId} (${Math.round(output.ratio * 100)}% yield)`
+    `${getItemDefinition(inputId)?.name || inputId} → ${getItemDefinition(output.itemId)?.name || output.itemId} (${Math.round(output.ratio * 100)}% yield)`
   ).join('\n');
   
   return `${millType.description}\n\nProcesses: ${inputs}\n\nProduces:\n${outputs}\n\nCost: ${millType.processingCost} coins per item\nCapacity: ${millType.capacity} items`;

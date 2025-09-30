@@ -902,33 +902,30 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             setTimeout(async () => {
                 try {
                     const summary = await summarizeConversation(history);
-                    if (!currentTarget.memory) {
-                        currentTarget.memory = {
-                            conversationSummaries: [],
-                            opinionOfPlayer: 50
-                        };
-                    }
-                    if (!currentTarget.memory.conversationSummaries) {
-                        currentTarget.memory.conversationSummaries = [];
-                    }
-                    // Create a new array to avoid frozen array issues
-                    const updatedSummaries = [...(currentTarget.memory.conversationSummaries || []), summary.summary];
-                    // Keep only last 5 conversations
-                    currentTarget.memory.conversationSummaries = updatedSummaries.slice(-5);
 
-                    // Update opinion based on sentiment
-                    if (summary.sentiment === 'positive') {
-                        currentTarget.memory.opinionOfPlayer = Math.min(100, (currentTarget.memory.opinionOfPlayer || 50) + 10);
-                    } else if (summary.sentiment === 'negative') {
-                        currentTarget.memory.opinionOfPlayer = Math.max(0, (currentTarget.memory.opinionOfPlayer || 50) - 10);
-                    }
-                    
+                    // Create a mutable copy of the NPC to avoid frozen object errors
+                    const updatedNpc = {
+                        ...currentTarget,
+                        memory: {
+                            ...(currentTarget.memory || {}),
+                            conversationSummaries: [
+                                ...(currentTarget.memory?.conversationSummaries || []),
+                                summary.summary
+                            ].slice(-5), // Keep only last 5 conversations
+                            opinionOfPlayer: summary.sentiment === 'positive'
+                                ? Math.min(100, (currentTarget.memory?.opinionOfPlayer || 50) + 10)
+                                : summary.sentiment === 'negative'
+                                ? Math.max(0, (currentTarget.memory?.opinionOfPlayer || 50) - 10)
+                                : (currentTarget.memory?.opinionOfPlayer || 50)
+                        }
+                    };
+
                     // Save NPC to session storage
-                    npcPersistenceService.saveNpcToSession(currentTarget);
-                    
+                    npcPersistenceService.saveNpcToSession(updatedNpc);
+
                     // Update the NPC in parent component
                     if (onUpdateNpc) {
-                        onUpdateNpc(currentTarget);
+                        onUpdateNpc(updatedNpc);
                     }
                 } catch (error) {
                     console.error('Failed to save conversation summary:', error);

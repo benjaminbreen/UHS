@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
 import { themeService } from '../services/themeService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2 } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
@@ -30,6 +30,8 @@ import FactoryBannerTest from './FactoryBannerTest';
 import CityTimeline from './CityTimeline';
 import TradeNetworkGlobe from './TradeNetworkGlobe';
 import CityMapGlobe from './CityMapGlobe';
+import HexWorldMap from './HexWorldMap';
+import HexWorldGlobe3D from './HexWorldGlobe3D';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -117,6 +119,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showCityTimeline, setShowCityTimeline] = useState(false);
   const [showTradeNetworkGlobe, setShowTradeNetworkGlobe] = useState(false);
   const [showCityMap, setShowCityMap] = useState(false);
+  const [showHexWorldMap, setShowHexWorldMap] = useState(false);
+  const [showHexWorldGlobe3D, setShowHexWorldGlobe3D] = useState(false);
 
   // Developer testing panels
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
@@ -443,6 +447,32 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </button>
                 <p className="mt-2 text-xs text-slate-400">
                   Browse 167 authentic historical documents across all regions and time periods.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <button
+                  onClick={() => setShowHexWorldMap(true)}
+                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-teal-600 to-green-600 rounded-md hover:from-teal-700 hover:to-green-700 flex items-center justify-center gap-2"
+                >
+                  <Hexagon className="w-4 h-4" />
+                  <span>Hexagonal World Map</span>
+                </button>
+                <p className="mt-2 text-xs text-slate-400">
+                  Explore world geography with a hexagonal grid showing all game regions and territories.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <button
+                  onClick={() => setShowHexWorldGlobe3D(true)}
+                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center gap-2"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span>3D World Geography Globe</span>
+                </button>
+                <p className="mt-2 text-xs text-slate-400">
+                  Interactive 3D globe with regions positioned by real-world coordinates. Drag to rotate, scroll to zoom.
                 </p>
               </div>
 
@@ -1094,6 +1124,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           onClose={() => setShowCityMap(false)}
           currentGameYear={currentYear}
           playerLocation={playerLocation}
+        />
+      )}
+
+      {/* Hex World Map Modal */}
+      {showHexWorldMap && (
+        <HexWorldMap
+          isOpen={showHexWorldMap}
+          onClose={() => setShowHexWorldMap(false)}
+        />
+      )}
+
+      {/* Hex World Globe 3D Modal */}
+      {showHexWorldGlobe3D && (
+        <HexWorldGlobe3D
+          isOpen={showHexWorldGlobe3D}
+          onClose={() => setShowHexWorldGlobe3D(false)}
         />
       )}
     </>

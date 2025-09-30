@@ -252,7 +252,19 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   
   // Show modal when map finishes loading with pending scenario data
   useEffect(() => {
+    console.log('[TopNavBar] Modal opening check:', {
+      isLoading,
+      hasPendingData: !!pendingScenarioData,
+      modalOpen: worldWeaverModalData.isOpen,
+      pendingDataPreview: pendingScenarioData ? {
+        hasQuest: !!pendingScenarioData.quest,
+        hasUserPrompt: !!pendingScenarioData.userPrompt,
+        userPrompt: pendingScenarioData.userPrompt
+      } : null
+    });
+
     if (!isLoading && pendingScenarioData && !worldWeaverModalData.isOpen) {
+      console.log('[TopNavBar] ✅ Opening WorldWeaver modal with data:', pendingScenarioData);
       setWorldWeaverModalData({
         isOpen: true,
         ...pendingScenarioData
@@ -326,7 +338,8 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
           gameMode: result.gameMode,
           specialNPCs: result.specialNPCs,
           customEventsCount: result.customEvents?.length || 0,
-          quest: result.quest // Pass the quest!
+          quest: result.quest, // Will be undefined initially
+          userPrompt: result.userPrompt || worldWeaverInput // Pass original prompt for deferred quest generation
         };
 
         // Pass WorldWeaver data to parent for InitialScenarioModal
@@ -1126,6 +1139,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
         specialNPCs={worldWeaverModalData.specialNPCs}
         customEventsCount={worldWeaverModalData.customEventsCount}
         quest={worldWeaverModalData.quest}
+        userPrompt={worldWeaverModalData.userPrompt}
       />
       
       <QuestsPanel

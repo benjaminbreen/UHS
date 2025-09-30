@@ -26,7 +26,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
 import { primarySourceService } from '../services/primarySourceService';
-import { ProceduralPortrait } from './portraits';
+import { LazyPortrait } from './portraits';
 import { CityHistoricalModal } from './CityHistoricalModal';
 import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
 import { languageVisualizationService } from '../services/languageVisualizationService';
@@ -144,7 +144,7 @@ const NpcListItem = React.memo(
         {/* Portrait */}
         <div className="relative shrink-0">
           <div className="w-11 h-11 rounded-md overflow-hidden border border-slate-600/70 bg-slate-700/60">
-            <ProceduralPortrait character={npc} size={44} />
+            <LazyPortrait character={npc} size={44} type="procedural" staticMode={true} />
           </div>
         </div>
 

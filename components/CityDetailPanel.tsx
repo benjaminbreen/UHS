@@ -109,7 +109,8 @@ const CityDetailPanel: React.FC<CityDetailPanelProps> = ({
   foundingYear,
   declineYear,
   region,
-  onClose
+  onClose,
+  isEmbedded
 }) => {
   const [wikiData, setWikiData] = useState<WikipediaData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,49 +122,51 @@ const CityDetailPanel: React.FC<CityDetailPanelProps> = ({
     const fetchWikipediaData = async () => {
       setLoading(true);
       try {
-        // Get summary first
+        // Use CORS-friendly summary endpoint
         const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cityName)}`;
-        const summaryResponse = await fetch(summaryUrl);
+        const summaryResponse = await fetch(summaryUrl, {
+          headers: {
+            'Api-User-Agent': 'UniversalHistorySimulator/1.0 (https://github.com/anthropics/claude-code)'
+          }
+        });
 
         if (summaryResponse.ok) {
           const summaryData = await summaryResponse.json();
 
-          // Now get full mobile HTML (easier to parse)
-          const mobileUrl = `https://en.wikipedia.org/api/rest_v1/page/mobile-sections/${encodeURIComponent(cityName)}`;
-          const mobileResponse = await fetch(mobileUrl);
-
-          if (mobileResponse.ok) {
-            const mobileData = await mobileResponse.json();
-
-            // Extract first 10 sections of text
-            const sections = mobileData.sections || [];
-            const fullText = sections
-              .slice(0, 10)
-              .map((section: any) => section.text || '')
-              .join('\n\n')
-              // Clean HTML tags
-              .replace(/<[^>]*>/g, '')
-              .replace(/\[\d+\]/g, '') // Remove citation numbers
-              .replace(/\s+/g, ' ')
-              .trim();
-
-            setWikiData({
-              extract: summaryData.extract || 'No description available.',
-              fullText: fullText || summaryData.extract,
-              thumbnail: summaryData.thumbnail,
-              coordinates: summaryData.coordinates,
-              description: summaryData.description
+          // Try to get fuller text content from the page content API
+          let fullText = summaryData.extract || '';
+          try {
+            const contentUrl = `https://en.wikipedia.org/api/rest_v1/page/html/${encodeURIComponent(cityName)}`;
+            const contentResponse = await fetch(contentUrl, {
+              headers: {
+                'Api-User-Agent': 'UniversalHistorySimulator/1.0 (https://github.com/anthropics/claude-code)'
+              }
             });
-          } else {
-            // Fallback to just summary
-            setWikiData({
-              extract: summaryData.extract || 'No description available.',
-              fullText: summaryData.extract,
-              thumbnail: summaryData.thumbnail,
-              coordinates: summaryData.coordinates,
-              description: summaryData.description
-            });
+
+            if (contentResponse.ok) {
+              const htmlText = await contentResponse.text();
+              // Extract text from HTML, focusing on paragraph content
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(htmlText, 'text/html');
+              const paragraphs = Array.from(doc.querySelectorAll('p')).slice(0, 8); // Get first 8 paragraphs
+
+              fullText = paragraphs
+                .map(p => p.textContent?.trim())
+                .filter(text => text && text.length > 50) // Filter out short paragraphs
+                .slice(0, 6) // Take only 6 substantial paragraphs
+                .join('\n\n');
+            }
+          } catch (contentError) {
+            console.log('Could not fetch extended content, using summary');
           }
+
+          setWikiData({
+            extract: summaryData.extract || 'No description available.',
+            fullText: fullText || summaryData.extract || '',
+            thumbnail: summaryData.thumbnail,
+            coordinates: summaryData.coordinates,
+            description: summaryData.description
+          });
         } else {
           setWikiData({
             extract: `${cityName} is a historical city located in ${mapArea}. Founded around ${Math.abs(foundingYear)} ${foundingYear < 0 ? 'BCE' : 'CE'}, it has been an important center of civilization.`,
@@ -201,6 +204,126 @@ const CityDetailPanel: React.FC<CityDetailPanelProps> = ({
   };
 
   const regionGradient = regionColors[region] || 'from-gray-500 to-gray-600';
+
+  if (isEmbedded) {
+    return (
+      <div className="h-full bg-slate-900/95 flex flex-col">
+        {/* Header - larger for embedded */}
+        <div className="relative h-40 overflow-hidden border-b border-slate-600">
+          {wikiData?.thumbnail && !imageError ? (
+            <img
+              src={wikiData.thumbnail.source}
+              alt={cityName}
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${regionGradient} flex items-center justify-center`}>
+              <div className="text-center text-white">
+                <Landmark className="w-8 h-8 mx-auto mb-2 opacity-80" />
+                <h3 className="text-lg font-semibold">{cityName}</h3>
+                <p className="text-sm opacity-70">{region}</p>
+              </div>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
+          <div className="absolute bottom-4 left-6 text-white">
+            <h1 className="text-3xl font-bold mb-2 tracking-tight">{cityName}</h1>
+            <p className="text-lg opacity-90 flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              {region}
+            </p>
+          </div>
+        </div>
+
+        {/* Content - scrollable */}
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+          {/* Quick Facts */}
+          <div className="bg-slate-800/50 rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
+              <Info className="w-5 h-5" />
+              Quick Facts
+            </h3>
+            <div className="grid grid-cols-2 gap-5 text-base">
+              <div>
+                <span className="text-slate-400 block">Founded:</span>
+                <span className="text-white font-medium">{foundingYear > 0 ? foundingYear : Math.abs(foundingYear)} {foundingYear > 0 ? 'CE' : 'BCE'}</span>
+              </div>
+              {declineYear && (
+                <div>
+                  <span className="text-slate-400 block">Declined:</span>
+                  <span className="text-white font-medium">{declineYear} CE</span>
+                </div>
+              )}
+              <div>
+                <span className="text-slate-400 block">Region:</span>
+                <span className="text-white font-medium">{region}</span>
+              </div>
+              {wikiData?.population && (
+                <div>
+                  <span className="text-slate-400 block">Population:</span>
+                  <span className="text-white font-medium">{wikiData.population}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Wikipedia Content */}
+          {wikiData && (
+            <div className="bg-slate-800/30 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-slate-200 mb-5 flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Overview
+              </h3>
+              <div className="text-base text-slate-300 leading-7 space-y-4">
+                {wikiData.fullText ? (
+                  wikiData.fullText.split('\n\n').map((paragraph, idx) => (
+                    paragraph.trim() && (
+                      <p key={idx} className="text-slate-300 leading-7">
+                        {paragraph}
+                      </p>
+                    )
+                  ))
+                ) : wikiData.extract ? (
+                  <p className="text-slate-300 leading-7">{wikiData.extract}</p>
+                ) : (
+                  <p className="text-slate-400 italic">No detailed information available.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Historical Events */}
+          {(HISTORICAL_EVENTS[cityName] || []).length > 0 && (
+            <div className="bg-slate-800/30 rounded-lg p-3">
+              <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Key Events
+              </h3>
+              <div className="space-y-2">
+                {HISTORICAL_EVENTS[cityName]?.slice(0, 5).map((event, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs">
+                    <span className="text-amber-400 font-mono min-w-[3rem]">
+                      {event.year > 0 ? event.year : `${Math.abs(event.year)} BC`}
+                    </span>
+                    <span className="text-slate-300">{event.event}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto"></div>
+              <p className="text-xs text-slate-400 mt-2">Loading information...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">

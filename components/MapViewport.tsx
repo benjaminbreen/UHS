@@ -1485,18 +1485,38 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                      </div>
                    )}
                    
-                   {/* Vignette effect overlay - subtle darkening at edges */}
-                   <div 
+                   {/* Vignette effect overlay - atmospheric darkening at edges with time-aware colors */}
+                   <div
                      className="absolute inset-0 pointer-events-none"
                      style={{
                        background: `
-                         radial-gradient(ellipse at center, 
-                           transparent 0%, 
-                           transparent 45%, 
-                           rgba(0, 0, 0, 0.03) 65%, 
-                           rgba(0, 0, 0, 0.06) 80%, 
-                           rgba(0, 0, 0, 0.08) 92%,
-                           rgba(0, 0, 0, 0.12) 100%)
+                         radial-gradient(ellipse at center,
+                           transparent 0%,
+                           transparent 40%,
+                           ${
+                             currentTimeOfDay === 'Dawn' ? 'rgba(255, 180, 120, 0.04)' :
+                             currentTimeOfDay === 'Dusk' ? 'rgba(255, 140, 100, 0.05)' :
+                             currentTimeOfDay === 'Night' ? 'rgba(20, 40, 80, 0.08)' :
+                             'rgba(0, 0, 0, 0.05)'
+                           } 60%,
+                           ${
+                             currentTimeOfDay === 'Dawn' ? 'rgba(200, 120, 80, 0.08)' :
+                             currentTimeOfDay === 'Dusk' ? 'rgba(180, 80, 60, 0.10)' :
+                             currentTimeOfDay === 'Night' ? 'rgba(10, 25, 60, 0.15)' :
+                             'rgba(0, 0, 0, 0.10)'
+                           } 78%,
+                           ${
+                             currentTimeOfDay === 'Dawn' ? 'rgba(150, 80, 60, 0.12)' :
+                             currentTimeOfDay === 'Dusk' ? 'rgba(120, 50, 40, 0.15)' :
+                             currentTimeOfDay === 'Night' ? 'rgba(5, 15, 40, 0.22)' :
+                             'rgba(0, 0, 0, 0.15)'
+                           } 90%,
+                           ${
+                             currentTimeOfDay === 'Dawn' ? 'rgba(100, 50, 40, 0.18)' :
+                             currentTimeOfDay === 'Dusk' ? 'rgba(80, 30, 25, 0.22)' :
+                             currentTimeOfDay === 'Night' ? 'rgba(0, 10, 30, 0.30)' :
+                             'rgba(0, 0, 0, 0.22)'
+                           } 100%)
                        `,
                        borderRadius: isMobile ? '14px' : '28px',
                        zIndex: 999

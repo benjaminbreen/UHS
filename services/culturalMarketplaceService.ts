@@ -18,7 +18,7 @@ import {
   ClimateType,
   ItemDefinition 
 } from '../types';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { ANIMAL_DATA } from '../constants/gameData/animals';
 import { VEGETATION_SPECIES_DATA } from '../constants/gameData/vegetationData';
@@ -515,14 +515,14 @@ export class CulturalMarketplaceService {
     
     // Add primary goods (abundant, cheap)
     biomeData.primaryGoods.forEach(itemId => {
-      if (ITEM_DEFINITIONS[itemId]) {
+      if (getItemDefinition(itemId)) {
         goods.push(this.createMarketGood(itemId, culturalZone, era, origin, 'standard', 0.8));
       }
     });
     
     // Add secondary goods (less abundant, normal price)
     biomeData.secondaryGoods.forEach(itemId => {
-      if (ITEM_DEFINITIONS[itemId]) {
+      if (getItemDefinition(itemId)) {
         goods.push(this.createMarketGood(itemId, culturalZone, era, origin, 'standard', 1.0));
       }
     });
@@ -541,7 +541,7 @@ export class CulturalMarketplaceService {
     
     // Only generate a few distant goods (20% chance each)
     distantItems.forEach(itemId => {
-      if (ITEM_DEFINITIONS[itemId] && Math.random() < 0.2) {
+      if (getItemDefinition(itemId) && Math.random() < 0.2) {
         goods.push(this.createMarketGood(itemId, culturalZone, era, 'distant', 'fine', 1.8));
       }
     });
@@ -560,7 +560,7 @@ export class CulturalMarketplaceService {
     
     // Only generate one exotic good (10% chance each)
     exoticItems.forEach(itemId => {
-      if (ITEM_DEFINITIONS[itemId] && Math.random() < 0.1) {
+      if (getItemDefinition(itemId) && Math.random() < 0.1) {
         goods.push(this.createMarketGood(itemId, culturalZone, era, 'exotic', 'exceptional', 3.0));
       }
     });
@@ -576,14 +576,14 @@ export class CulturalMarketplaceService {
     
     // Add craft specialties (higher quality, regional origin)
     specialties.craftSpecialties.forEach(itemId => {
-      if (ITEM_DEFINITIONS[itemId]) {
+      if (getItemDefinition(itemId)) {
         goods.push(this.createMarketGood(itemId, culturalZone, era, 'regional', 'fine', 1.3));
       }
     });
     
     // Add luxury specialties (exceptional quality, expensive)
     specialties.luxurySpecialties.forEach(itemId => {
-      if (ITEM_DEFINITIONS[itemId]) {
+      if (getItemDefinition(itemId)) {
         goods.push(this.createMarketGood(itemId, culturalZone, era, 'regional', 'exceptional', 2.0));
       }
     });
@@ -599,7 +599,7 @@ export class CulturalMarketplaceService {
     
     production.forEach((itemIds, npcId) => {
       itemIds.forEach(itemId => {
-        if (ITEM_DEFINITIONS[itemId]) {
+        if (getItemDefinition(itemId)) {
           goods.push(this.createMarketGood(itemId, culturalZone, era, 'local', 'standard', 1.1));
         }
       });
@@ -623,7 +623,7 @@ export class CulturalMarketplaceService {
       
       // Add some luxury goods from neighbors as expensive imports
       neighborSpecialties.luxurySpecialties.slice(0, 2).forEach(itemId => {
-        if (ITEM_DEFINITIONS[itemId]) {
+        if (getItemDefinition(itemId)) {
           goods.push(this.createMarketGood(itemId, culturalZone, era, 'distant', 'fine', 2.5));
         }
       });
@@ -644,14 +644,14 @@ export class CulturalMarketplaceService {
       
       // Add items produced by religious sites
       religiousEconomy.produces.forEach(item => {
-        if (ITEM_DEFINITIONS[item.toUpperCase()]) {
+        if (getItemDefinition(item.toUpperCase())) {
           goods.push(this.createMarketGood(item.toUpperCase(), culturalZone, era, 'local', 'fine', 1.2, 'religious'));
         }
       });
       
       // Add some treasury items as rare luxury goods
       religiousEconomy.treasuryItems.slice(0, 2).forEach(item => {
-        if (ITEM_DEFINITIONS[item.toUpperCase()]) {
+        if (getItemDefinition(item.toUpperCase())) {
           goods.push(this.createMarketGood(item.toUpperCase(), culturalZone, era, 'local', 'exceptional', 3.0, 'religious'));
         }
       });
@@ -690,7 +690,7 @@ export class CulturalMarketplaceService {
     priceModifier: number,
     category?: string
   ): CulturalMarketGood {
-    const definition = ITEM_DEFINITIONS[itemId];
+    const definition = getItemDefinition(itemId);
     const basePrice = definition.value || 10;
     const currentPrice = Math.round(basePrice * priceModifier);
     

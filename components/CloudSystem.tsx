@@ -44,6 +44,11 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
   const animationFrameRef = useRef<number>();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Safari detection for performance optimizations
+  const isSafari = useMemo(() => {
+    return typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  }, []);
+
   // Safe access to fx; component remains compatible if fx is undefined
   const fx = weather?.fx;
   const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -89,27 +94,30 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
     let cloudCount = 0;
     let mix: Cloud['type'][] = [];
 
+    // Safari: Reduce cloud count by 50% for performance
+    const cloudReduction = isSafari ? 0.5 : 1.0;
+
     if (precip === 'rain' || precip === 'drizzle') {
-      cloudCount = 8 + Math.floor(intensity * 6) + (maybeStorm ? 3 : 0);
+      cloudCount = Math.floor((8 + Math.floor(intensity * 6) + (maybeStorm ? 3 : 0)) * cloudReduction);
       mix = maybeStorm ? ['stratus', 'cumulonimbus', 'cumulonimbus'] : ['stratus', 'cumulus', 'stratus'];
     } else if (precip === 'snow') {
-      cloudCount = 10 + Math.floor(intensity * 4);
+      cloudCount = Math.floor((10 + Math.floor(intensity * 4)) * cloudReduction);
       mix = ['stratus', 'stratus', 'cumulus'];
     } else if (weather.special === 'fog' || weather.special === 'mist') {
-      cloudCount = 10;
+      cloudCount = Math.floor(10 * cloudReduction);
       mix = ['stratus'];
     } else {
       if (cover < 0.15) {
-        cloudCount = Math.floor(Math.random() * 2);
+        cloudCount = Math.floor(Math.floor(Math.random() * 2) * cloudReduction);
         mix = ['cirrus'];
       } else if (cover < 0.4) {
-        cloudCount = Math.floor(2 + cover * 9);
+        cloudCount = Math.floor((2 + cover * 9) * cloudReduction);
         mix = ['cumulus', 'cirrus', 'cumulus'];
       } else if (cover < 0.7) {
-        cloudCount = Math.floor(6 + cover * 12);
+        cloudCount = Math.floor((6 + cover * 12) * cloudReduction);
         mix = ['cumulus', 'stratus', 'cumulus'];
       } else {
-        cloudCount = Math.floor(10 + cover * 10) + (maybeStorm ? 2 : 0);
+        cloudCount = Math.floor((10 + cover * 10 + (maybeStorm ? 2 : 0)) * cloudReduction);
         mix = maybeStorm ? ['stratus', 'cumulonimbus', 'stratus'] : ['stratus', 'stratus', 'cumulus'];
       }
     }
@@ -143,7 +151,8 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
     windSpeed,
     width,
     height,
-    fx?.lightningProbability
+    fx?.lightningProbability,
+    isSafari
   ]);
 
   // Seed or swap field only when it really changes
@@ -153,8 +162,24 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
     }
   }, [generateClouds]);
 
-  // Animation loop: ALWAYS RUN; outer wrapper gets translate3d only
+  // Animation loop: DISABLE on Safari for performance
   useEffect(() => {
+    // Skip animation entirely on Safari
+    if (isSafari) {
+      // Just position clouds once without animation
+      if (containerRef.current) {
+        const nodes = containerRef.current.querySelectorAll<HTMLDivElement>('[data-cloud-index]');
+        nodes.forEach((el) => {
+          const idx = Number(el.dataset.cloudIndex);
+          const c = cloudsRef.current[idx];
+          if (!c) return;
+          el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0)`;
+        });
+      }
+      return;
+    }
+
+    // Regular animation for non-Safari browsers
     const animate = () => {
       if (!containerRef.current) {
         animationFrameRef.current = requestAnimationFrame(animate);
@@ -180,17 +205,23 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
 
     animationFrameRef.current = requestAnimationFrame(animate);
     return () => animationFrameRef.current && cancelAnimationFrame(animationFrameRef.current);
-  }, [width, height]);
+  }, [width, height, isSafari]);
 
   // Drawing helpers
   const renderCloudSVG = (cloud: Cloud) => {
     const { base, shadow, highlight, blurBoost } = cloudColors;
-    const blur =
-      cloud.type === 'cirrus' ? 3.2 * blurBoost :
-      cloud.type === 'stratus' ? 2.2 * blurBoost :
-      cloud.type === 'cumulonimbus' ? 0.9 * blurBoost :
-      1.2 * blurBoost;
-    const filterStyle = `blur(${blur}px) drop-shadow(0 2px 2px rgba(0,0,0,0.05))`;
+
+    // Safari: No blur filters for performance
+    const filterStyle = isSafari
+      ? 'none'
+      : (() => {
+          const blur =
+            cloud.type === 'cirrus' ? 3.2 * blurBoost :
+            cloud.type === 'stratus' ? 2.2 * blurBoost :
+            cloud.type === 'cumulonimbus' ? 0.9 * blurBoost :
+            1.2 * blurBoost;
+          return `blur(${blur}px) drop-shadow(0 2px 2px rgba(0,0,0,0.05))`;
+        })();
 
     const thunder = (fx?.lightningProbability ?? 0) > 0.35 && cloud.type === 'cumulonimbus';
     const showVirga =

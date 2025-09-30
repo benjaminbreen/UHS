@@ -17,7 +17,7 @@ import {
 import { FaDoorOpen, FaTimes, FaPray, FaScroll, FaCoins, FaUser } from 'react-icons/fa';
 import { HolySiteInteractions } from './HolySiteInteractions';
 import { holySiteEconomyService } from '../services/holySiteEconomyService';
-import { ProceduralPortrait } from './ProceduralPortrait';
+import { LazyPortrait } from './portraits';
 import { getReligionForStructure } from '../constants/gameData/religions';
 import { getHistoricalEra } from '../constants/gameData/historicalContext';
 
@@ -305,7 +305,7 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
                     {npcs.slice(0, 6).map((npc) => (
                       <div key={npc.id} className="flex items-center gap-3 p-2 bg-purple-900/20 rounded-lg">
                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-600">
-                          <ProceduralPortrait character={npc} size={40} />
+                          <LazyPortrait character={npc} size={40} type="procedural" staticMode={true} />
                         </div>
                         <div>
                           <p className="font-semibold text-purple-100 text-sm">{npc.name}</p>

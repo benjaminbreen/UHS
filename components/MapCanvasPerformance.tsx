@@ -452,13 +452,11 @@ class MapCanvasRenderer {
           this.ctx!.save();
 
           if (isSafari) {
-            // Safari fallback: Multiple thin strokes to simulate glow
+            // Safari: Skip glow effect entirely for performance
+            // Just a simple thin stroke if needed
             this.ctx!.strokeStyle = color;
-            this.ctx!.lineWidth = 2;
-            this.ctx!.globalAlpha = 0.6;
-            this.ctx!.stroke(organicPath);
-            this.ctx!.lineWidth = 1;
-            this.ctx!.globalAlpha = 0.8;
+            this.ctx!.lineWidth = 0.5;
+            this.ctx!.globalAlpha = 0.3;
             this.ctx!.stroke(organicPath);
             this.ctx!.globalAlpha = 1;
           } else {
@@ -467,7 +465,7 @@ class MapCanvasRenderer {
             this.ctx!.shadowBlur = 4;
             this.ctx!.shadowOffsetX = 0;
             this.ctx!.shadowOffsetY = 0;
-            
+
           }
 
           this.ctx!.fillStyle = color;
@@ -475,12 +473,15 @@ class MapCanvasRenderer {
           this.ctx!.restore();
         }
 
-        // Base fill + subtle drop shadow
+        // Base fill - NO shadows on Safari for performance
         this.ctx!.save();
-        this.ctx!.shadowColor = 'rgba(0,0,0,0.15)';
-        this.ctx!.shadowBlur = isSafari ? 1.5 : 2.5;
-        this.ctx!.shadowOffsetX = isSafari ? 0.8 : 1.2;
-        this.ctx!.shadowOffsetY = isSafari ? 0.8 : 1.2;
+        if (!isSafari) {
+          // Only apply shadows on non-Safari browsers
+          this.ctx!.shadowColor = 'rgba(0,0,0,0.15)';
+          this.ctx!.shadowBlur = 2.5;
+          this.ctx!.shadowOffsetX = 1.2;
+          this.ctx!.shadowOffsetY = 1.2;
+        }
         this.ctx!.fillStyle = color;
         this.ctx!.fill(organicPath);
         this.ctx!.restore();

@@ -42,7 +42,8 @@ export interface QuestStage {
   description: string;
   objective: string;
   locationHint?: string;
-  completionTrigger: 'talk_to_npc' | 'reach_location' | 'obtain_item' | 'survive_days' | 'defeat_enemy';
+  completionTrigger: 'talk_to_npc' | 'reach_location' | 'obtain_item' | 'survive_days' | 'defeat_enemy' | 'make_observations' | 'journal_reflection' | 'collect_resource';
+  targetAmount?: number; // For observation counts, resource quantities
   targetId?: string;
   targetLocation?: [number, number];
   dialogue?: string[];
@@ -75,15 +76,19 @@ export interface WorldWeaverQuest {
   description: string;
   historicalContext: string;
   stages: QuestStage[];
-  specialNPC: {
+
+  // Singular format (LLM generates this)
+  specialNPC?: {
     name: string;
     profession: string;
     personality: string;
     location: { x: number; y: number };
     ethnicity?: 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
   };
-  // Legacy support for old format
+
+  // Plural format (required for handlers - normalized from singular)
   specialNPCs?: QuestNPC[];
+
   branches?: {
     [stageId: string]: {
       choice: string;
@@ -106,7 +111,8 @@ export interface WorldWeaverResult {
   gameMode?: GameMode;
   customEvents?: EventArchetype[];
   specialNPCs?: SpecialNPC[];
-  quest?: WorldWeaverQuest; // NEW: The elaborate quest
+  quest?: WorldWeaverQuest; // The quest (generated AFTER map creation)
+  userPrompt?: string; // Store the original user prompt for deferred quest generation
 }
 
 // Generate the exact list of valid map areas from the game data
@@ -155,7 +161,6 @@ CHARACTER EXTRACTION RULES:
   - "sickly noble woman" → health: "sickly", socialClass: "noble", gender: "female"
   - "peasant with the plague" → socialClass: "peasant", disease: "BUBONIC_PLAGUE"
   - "soldier suffering from typhus" → profession: "soldier", disease: "TYPHUS"
-  - "Margaret Mead in 1950" → name: "Margaret Mead", profession: "Anthropologist", gender: "female", ethnicity: "EUROPEAN"
   - "Napoleon Bonaparte" → name: "Napoleon Bonaparte", profession: "Emperor", socialClass: "noble", ethnicity: "EUROPEAN"
   - "Ibn Battuta" → name: "Ibn Battuta", profession: "Explorer", ethnicity: "MENA"
   - "Li Wei the merchant" → name: "Li Wei", profession: "Merchant", ethnicity: "EAST_ASIAN"
@@ -488,23 +493,18 @@ class WorldWeaverService {
       // Set the game mode in the event service
       eventService.setGameMode(gameMode);
       
-      // Generate a map-aware quest based on the scenario
-      // Note: mapData and playerLocation should be provided by the caller
-      const quest = await this.generateQuest(
-        userPrompt,
-        baseResult.year!,
-        baseResult.mapArea!,
-        baseResult.characterSpec,
-        gameMode
-        // mapData and playerLocation will be added by the calling component
-      );
-      
+      // DO NOT generate quest here - it must be generated AFTER map creation
+      // Quest will be generated in WorldWeaverModal.handleBeginJourney() with real map data
+      // This prevents the LLM from hallucinating invalid coordinates
+
       return {
         ...baseResult,
         gameMode,
-        quest,
+        quest: undefined, // Quest will be generated later with map data
         customEvents: [], // Empty for now - quest replaces this
-        specialNPCs: [] // Empty for now - quest NPCs replace this
+        specialNPCs: [], // Empty for now - quest NPCs replace this
+        // Store the user prompt so we can generate the quest later
+        userPrompt
       };
     } catch (error) {
       console.error('[WorldWeaverService] Error generating scenario:', error);
@@ -649,71 +649,68 @@ IMPORTANT: Use ONLY the locations listed above with their EXACT coordinates.`;
         console.log('[WorldWeaverService] No map data provided, generating abstract quest');
       }
 
-      const prompt = `Create a simple, historically accurate SCENARIO for ${location} in ${year}.
+      const prompt = `You are creating an authentic historical scenario for ${location} in ${year}. This is an IMMERSIVE HISTORY SIMULATION, not a fantasy RPG or bureaucratic task list.
 
 CONTEXT:
 - Year: ${year}
 - Location: ${location}
-- Player Character: ${characterSpec ? `${characterSpec.profession || 'commoner'}, ${characterSpec.socialClass || 'commoner'} class` : 'ordinary person'}
+- Character: ${characterSpec ? `${characterSpec.profession || 'commoner'}` : 'ordinary person'}
 - Game Mode: ${gameMode?.name || 'Survival'}
-- Original Request: "${userPrompt}"${locationPrompt}
+- User Request: "${userPrompt}"${locationPrompt}
 
-CRITICAL TONE AND LANGUAGE REQUIREMENTS:
-THIS IS A HYPER-REALISTIC HISTORY SIMULATOR, NOT A FANTASY RPG!
-- NEVER use fantasy RPG terminology like "quest", "lore", "mystic", "arcane," or fan fic type names like "Elara Vance"
-- Use realistic, historically appropriate language
-- Instead of "quest", think: task, mission, assignment, job, request, problem, situation
-- Make objectives sound like real activities, not game objectives
-- Examples:
-  - WRONG: "Seek the mystic sage"
-  - RIGHT: "Consult with the local physician"
+CRITICAL RULES - HISTORICAL IMMERSION:
+1. NO fantasy/RPG language: "quest", "mystic", "arcane", "legendary artifact"
+2. NO bureaucratic tasks: "documentation", "assessment", "testimony collection", "paperwork"
+3. USE realistic verbs: investigate, witness, discover, negotiate, hunt, craft, survive, explore
+4. BE SPECIFIC to ${location} in ${year} - could this scenario happen anywhere else? If yes, try again.
+5. CREATE tension: mysteries to solve, moral dilemmas, time pressure, danger
 
-HISTORICAL ACCURACY REQUIREMENTS:
-- DO NOT create generic tasks that lazily borrow fantasy tropes
-- The scenario MUST reflect the actual historical situation of ${location} in ${year}
-- Consider: What was REALLY happening in ${location} during ${year}? Wars? Trade? Discovery? Politics?
-- The NPC's profession should be authentic to that specific time and place
-- BE CREATIVE! Each scenario should feel like it could ONLY happen in this exact setting
+TONE EXAMPLES:
+✓ GOOD: "A merchant's ship vanished three nights ago. Find witnesses at the docks."
+✓ GOOD: "The irrigation channel runs dry. Investigate upstream before harvest fails."
+✓ GOOD: "Two families claim ownership of the same olive grove. Gather evidence to settle the dispute."
+✗ BAD: "Collect oral testimony about water management" (too abstract/bureaucratic)
+✗ BAD: "Document the political situation" (boring, unclear objective)
+✗ BAD: "Retrieve the ancient amulet from the cave" (fantasy trope)
 
-REQUIREMENTS:
-1. 1-3 stages maximum. Be succinct.
-2. 1 special NPC only
-3. Use ONLY these objective types: talk_to_npc, visit_location, collect_item, deliver_item
-4. Each stage must be completable with existing game mechanics
-5. If map locations are provided, use their exact coordinates
-6. Scenario MUST be historically specific to ${location} in ${year}
-7. Use REALISTIC language appropriate for a history simulation
+OBJECTIVE TYPES (choose 1-2, different types preferred):
+- talk_to_npc: Converse with someone who has crucial information
+- reach_location: Travel to a significant place (ruins, hidden site, danger zone)
+- obtain_item: Find a specific object (not generic "collect 5 items")
+- make_observations: Notice and record details about a place, event, or phenomenon
+- journal_reflection: Write thoughts about a moral dilemma or significant event
+- collect_resource: Gather specific materials (medicinal herbs, building supplies, food)
 
-EXAMPLES OF REALISTIC HISTORICAL SCENARIOS (adapt to YOUR context):
-- 18th century French sailor: "The Smuggler's Route" - evade customs officials with contraband goods
-- Medieval Cairo merchant: "The Spice Monopoly" - negotiate exclusive trade agreements with suppliers
-- Ancient Chinese farmer: "The Irrigation Dispute" - resolve water rights conflict with neighboring farms
-- Renaissance Italian soldier: "The Coded Message" - intercept enemy military correspondence
-- 1950s American scientist: "The Grant Proposal" - secure funding from the research foundation
-
-SCENARIO STRUCTURE:
+STRUCTURE YOUR RESPONSE:
 {
-  "title": "[Create realistic title using period-appropriate language]",
-  "description": "[1-2 sentences describing a real historical situation, NOT fantasy language]",
-  "historicalContext": "[2-3 evocative sentences about the setting and atmosphere of ${location} in ${year}. Paint a vivid picture of the time and place, mentioning key historical events, technologies, or social conditions that define this era.]",
+  "title": "[Evocative title hinting at mystery/conflict - NOT generic task name]",
+  "description": "[2 sentences: What happened? What's at stake? Create urgency.]",
+  "historicalContext": "[2-3 sentences painting vivid picture of ${location} in ${year}. What was life really like? What major events shaped this time/place? Make it feel REAL.]",
   "stages": [
     {
       "id": "stage1",
-      "objective": "[Realistic action using historically accurate terminology]",
-      "completionTrigger": "talk_to_npc",
-      "targetLocation": {"x": 45, "y": 23}
+      "objective": "[Specific action with clear verb - investigate WHO, witness WHAT, discover WHERE]",
+      "completionTrigger": "[choose from list above]",
+      "targetLocation": {"x": 45, "y": 23},
+      "targetAmount": 3
     }
   ],
   "specialNPC": {
     "name": "[Culturally appropriate name for ${location}]",
-    "profession": "[Actual job that existed in ${location} during ${year}]",
-    "personality": "[Realistic personality, not fantasy archetypes]",
+    "profession": "[Real profession from ${year}]",
+    "personality": "[3-5 words, realistic not fantasy archetypes]",
     "location": {"x": 45, "y": 23},
-    "ethnicity": "[EUROPEAN|EAST_ASIAN|MENA|SOUTH_ASIAN|SUB_SAHARAN_AFRICAN|SOUTH_AMERICAN|NORTH_AMERICAN_PRE_COLUMBIAN|OCEANIA - based on character's name/origin]"
+    "ethnicity": "[EUROPEAN|EAST_ASIAN|MENA|SOUTH_ASIAN|SUB_SAHARAN_AFRICAN|SOUTH_AMERICAN|NORTH_AMERICAN_PRE_COLUMBIAN|OCEANIA]"
   }
 }
 
-Return JSON only. USE REALISTIC HISTORICAL LANGUAGE, NOT FANTASY RPG TERMINOLOGY!`;
+EXAMPLES OF WELL-DESIGNED SCENARIOS (different contexts than yours):
+1. Medieval Cairo merchant: "Three spice shipments poisoned. Interview warehouse workers before authorities arrive."
+2. 1890s American farmer: "Drought threatens harvest. Locate the old surveyor who knows hidden springs."
+3. Ancient Athens citizen: "Your neighbor accuses you of olive theft. Find witnesses to clear your name before the trial."
+4. Edo Japan craftsman: "Master's workshop key stolen. Observe apprentices and determine the thief before morning inspection."
+
+CREATE YOUR SCENARIO NOW (1-2 stages maximum):`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-preview-09-2025',
@@ -734,10 +731,42 @@ Return JSON only. USE REALISTIC HISTORICAL LANGUAGE, NOT FANTASY RPG TERMINOLOGY
       result = result.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
       const quest = JSON.parse(result) as WorldWeaverQuest;
 
+      // Normalize specialNPC to specialNPCs array
+      if (quest.specialNPC && !quest.specialNPCs) {
+        quest.specialNPCs = [{
+          id: `npc_${Date.now()}`,
+          name: quest.specialNPC.name,
+          role: quest.specialNPC.profession,
+          profession: quest.specialNPC.profession,
+          personality: quest.specialNPC.personality,
+          appearance: '',
+          location: [quest.specialNPC.location.x, quest.specialNPC.location.y],
+          stages: {}
+        }];
+        console.log('[WorldWeaverService] Normalized specialNPC to specialNPCs array');
+      }
+
       // PHASE 2: Validate and fix coordinates if map data was provided
       if (availableLocations.length > 0) {
         const validatedQuest = this.validateAndFixQuestCoordinates(quest, availableLocations);
+
+        // Also run completability check
+        if (mapData) {
+          const isValid = this.validateQuestCompletability(validatedQuest, mapData);
+          if (!isValid) {
+            console.warn('[WorldWeaver] Quest failed validation, but returning anyway (can be improved in future)');
+          }
+        }
+
         return validatedQuest;
+      }
+
+      // Run completability check even without coordinate validation
+      if (mapData) {
+        const isValid = this.validateQuestCompletability(quest, mapData);
+        if (!isValid) {
+          console.warn('[WorldWeaver] Quest failed validation, but returning anyway (can be improved in future)');
+        }
       }
 
       console.log(`[WorldWeaverService] Generated quest "${quest.title}" with ${quest.stages.length} stages`);
@@ -747,36 +776,96 @@ Return JSON only. USE REALISTIC HISTORICAL LANGUAGE, NOT FANTASY RPG TERMINOLOGY
       
     } catch (error) {
       console.error('[WorldWeaverService] Failed to generate quest:', error);
-      // Return a simple fallback quest
+
+      // Return simple fallback quest that's guaranteed to work
       return {
-        title: 'Survive the Times',
-        description: `Life in ${location} during ${year} is challenging. Find a way to survive and thrive.`,
-        historicalContext: `${location} in ${year} was a time of change and uncertainty.`,
+        title: `Investigate ${location}`,
+        description: `Explore the area and speak with locals to understand the current situation in ${location}.`,
+        historicalContext: `${location} in ${year} was a place of both opportunity and challenge. The local residents hold valuable knowledge about surviving and thriving in these times.`,
         stages: [
           {
             id: 'stage1',
-            description: 'Find someone who knows the local situation',
-            objective: 'Talk to a local resident',
-            completionTrigger: 'talk_to_npc',
-            dialogue: ['These are difficult times...', 'You should be careful around here.']
-          },
-          {
-            id: 'stage2',
-            description: 'Secure basic necessities',
-            objective: 'Obtain food and shelter',
-            completionTrigger: 'obtain_item',
-            targetId: 'food'
+            description: 'Find someone knowledgeable about local events',
+            objective: 'Speak with a local resident',
+            completionTrigger: 'talk_to_npc' as const,
+            targetLocation: playerLocation ? [playerLocation.x, playerLocation.y] : undefined,
+            dialogue: ['Welcome to our community.', 'These are interesting times indeed.']
           }
         ],
         specialNPC: {
           name: 'Local Resident',
-          profession: 'Survivor',
-          personality: 'Cautious but helpful',
+          profession: 'Resident',
+          personality: 'Knowledgeable and cautious',
           location: playerLocation || { x: 50, y: 50 }
         },
-        specialNPCs: [] // Legacy support
+        specialNPCs: [{
+          id: 'fallback_npc',
+          name: 'Local Resident',
+          role: 'Resident',
+          profession: 'Resident',
+          personality: 'Knowledgeable and cautious',
+          appearance: 'A local resident familiar with the area',
+          location: playerLocation ? [playerLocation.x, playerLocation.y] : [50, 50],
+          stages: {}
+        }]
       };
     }
+  }
+
+  /**
+   * Validate quest can actually be completed with current game state
+   */
+  private validateQuestCompletability(quest: WorldWeaverQuest, mapData?: MapData): boolean {
+    console.log('[WorldWeaver] Validating quest completability...');
+
+    let warnings = 0;
+
+    // Check each stage
+    quest.stages.forEach((stage, idx) => {
+      // Check if stage location is valid
+      if (stage.targetLocation && mapData) {
+        const x = typeof stage.targetLocation === 'object' && 'x' in stage.targetLocation
+          ? stage.targetLocation.x
+          : stage.targetLocation[0];
+        const y = typeof stage.targetLocation === 'object' && 'y' in stage.targetLocation
+          ? stage.targetLocation.y
+          : stage.targetLocation[1];
+
+        const tile = mapData.tiles[y]?.[x];
+
+        if (!tile) {
+          console.warn(`[WorldWeaver] Stage ${idx + 1} location (${x}, ${y}) is invalid`);
+          warnings++;
+        } else if (!tile.isLand && stage.completionTrigger === 'talk_to_npc') {
+          console.warn(`[WorldWeaver] Stage ${idx + 1} NPC spawns in water`);
+          warnings++;
+        }
+      }
+
+      // Check if objective type is supported
+      const validTriggers = ['talk_to_npc', 'reach_location', 'obtain_item', 'survive_days',
+                            'defeat_enemy', 'make_observations', 'journal_reflection', 'collect_resource'];
+      if (!validTriggers.includes(stage.completionTrigger)) {
+        console.warn(`[WorldWeaver] Stage ${idx + 1} uses unsupported trigger: ${stage.completionTrigger}`);
+        warnings++;
+      }
+    });
+
+    // Check if NPC location is valid
+    if (quest.specialNPC?.location && mapData) {
+      const { x, y } = quest.specialNPC.location;
+      const tile = mapData.tiles[y]?.[x];
+
+      if (!tile || !tile.isLand) {
+        console.warn(`[WorldWeaver] Special NPC location (${x}, ${y}) is invalid or in water`);
+        warnings++;
+      }
+    }
+
+    const isValid = warnings === 0;
+    console.log(`[WorldWeaver] Validation complete: ${isValid ? 'PASS' : `FAIL (${warnings} warnings)`}`);
+
+    return isValid;
   }
 
   /**

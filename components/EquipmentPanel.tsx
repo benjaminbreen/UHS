@@ -37,21 +37,96 @@ const QUALITY_MODIFIERS = [
   'Standard', 'Common', 'Crude', 'Poor', 'Damaged', 'Broken',
   'Exceptional', 'Refined', 'Polished', 'Pristine', 'Flawless',
   'Well-made', 'Sturdy', 'Reliable', 'Simple', 'Basic', 'Rough',
-  'Worn', 'Used', 'Battered', 'Makeshift', 'Improvised'
+  'Worn', 'Used', 'Battered', 'Makeshift', 'Improvised', 'Elegant'
 ];
 
-// Extract quality modifier from item name and return cleaned name
-const extractQuality = (itemName: string): { name: string; quality: string | null } => {
+// Color words that appear in item names
+const COLOR_WORDS = [
+  'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Black', 'White', 'Gray', 'Grey',
+  'Brown', 'Tan', 'Beige', 'Crimson', 'Scarlet', 'Navy', 'Teal', 'Turquoise', 'Indigo', 'Violet',
+  'Magenta', 'Cyan', 'Maroon', 'Olive', 'Gold', 'Silver', 'Bronze', 'Copper', 'Ivory', 'Pearl',
+  'Ruby', 'Emerald', 'Sapphire', 'Amber', 'Jade', 'Onyx', 'Rose', 'Coral', 'Ochre', 'Lavender'
+];
+
+const MATERIAL_WORDS = [
+  // Textiles
+  'Hemp', 'Wool', 'Burlap', 'Linen', 'Cotton', 'Silk', 'Velvet', 'Satin',
+  'Fine Wool', 'Fine Linen', 'Smooth Cotton', 'Fine Silk', 'Embroidered Silk',
+  'Rough Wool', 'Rough Linen',
+  // Metals
+  'Bone', 'Copper', 'Bronze', 'Iron', 'Steel', 'Brass', 'Silver', 'Gold',
+  // Leather/Hide
+  'Hide', 'Leather', 'Raw Hide', 'Rough Leather', 'Treated Hide',
+  'Fine Leather', 'Soft Leather', 'Silk-lined Leather', 'Embossed Leather'
+];
+
+// Extract quality and color from item name, handling based on slot type
+const extractQuality = (itemName: string, equipmentSlot?: EquipmentSlot): { name: string; quality: string | null } => {
+  // Safety checks
+  if (!itemName || typeof itemName !== 'string') {
+    return { name: 'Unknown Item', quality: null };
+  }
+
+  let cleanedName = itemName.trim();
+  let foundQuality: string | null = null;
+
+  // First, extract quality modifiers
   for (const modifier of QUALITY_MODIFIERS) {
     const regex = new RegExp(`^${modifier}\\s+`, 'i');
-    if (regex.test(itemName)) {
-      return {
-        name: itemName.replace(regex, ''),
-        quality: modifier
-      };
+    if (regex.test(cleanedName)) {
+      cleanedName = cleanedName.replace(regex, '').trim();
+      foundQuality = modifier;
+      break;
     }
   }
-  return { name: itemName, quality: null };
+
+  // Determine if we should strip colors/materials based on equipment slot
+  const shouldKeepColor = equipmentSlot &&
+    (equipmentSlot === 'torso' || equipmentSlot === 'cloak' || equipmentSlot === 'legs' ||
+     equipmentSlot === 'head' || equipmentSlot === 'feet');
+
+  // If it's an accessory (ring, necklace) or non-clothing item, strip color and material words
+  if (!shouldKeepColor) {
+    // Strip color words
+    for (const color of COLOR_WORDS) {
+      // Remove color words that appear at the start or with materials (e.g., "Red Velvet")
+      const colorPatterns = [
+        new RegExp(`^${color}\\s+`, 'i'),  // Color at start
+        new RegExp(`\\s+${color}\\s+`, 'i'), // Color in middle
+        new RegExp(`^${color}\\s+\\w+\\s+`, 'i') // Color + material (e.g., "Red Velvet")
+      ];
+
+      for (const pattern of colorPatterns) {
+        if (pattern.test(cleanedName)) {
+          cleanedName = cleanedName.replace(pattern, ' ').trim();
+          break;
+        }
+      }
+    }
+
+    // Strip material words
+    for (const material of MATERIAL_WORDS) {
+      // Remove material words that appear at the start or in combination
+      const materialPatterns = [
+        new RegExp(`^${material}\\s+`, 'i'),  // Material at start (e.g., "Satin Ring")
+        new RegExp(`\\s+${material}\\s+`, 'i'), // Material in middle
+        // Handle compound materials like "Fine Silk" by checking for the full phrase first
+        new RegExp(`^${material.replace(/\s+/g, '\\s+')}\\s+`, 'i')
+      ];
+
+      for (const pattern of materialPatterns) {
+        if (pattern.test(cleanedName)) {
+          cleanedName = cleanedName.replace(pattern, ' ').trim();
+          break;
+        }
+      }
+    }
+  }
+
+  // Clean up any double spaces or leading/trailing spaces
+  cleanedName = cleanedName.replace(/\s+/g, ' ').trim();
+
+  return { name: cleanedName, quality: foundQuality };
 };
 
 // Map quality to color classes
@@ -242,7 +317,8 @@ const EquipmentSlotDisplay: React.FC<{
   onMouseMove?: (e: React.MouseEvent) => void;
   onEquipItemToSlot?: (item: Item, slot: EquipmentSlot) => void;
   onAnchor?: (rect: DOMRect | null) => void; // NEW: let parent anchor tooltip to this cell
-}> = ({ slot, item, onUnequip, onHover, onMouseMove, onEquipItemToSlot, onAnchor }) => {
+  getExtractedQuality: (itemName: string, equipmentSlot?: EquipmentSlot) => { name: string; quality: string | null };
+}> = ({ slot, item, onUnequip, onHover, onMouseMove, onEquipItemToSlot, onAnchor, getExtractedQuality }) => {
   const [dragOver, setDragOver] = useState<'ok' | 'bad' | null>(null);
 
   const canDropHere = useCallback((dropped: Item) => {
@@ -353,7 +429,7 @@ const EquipmentSlotDisplay: React.FC<{
             <LazyItemIcon item={item} size={56} immediate={true} />
           </div>
           <p className="text-[14px] sm:text-[15px] font-bold leading-tight text-blue-200 w-full text-center mt-1.5 px-0.5 break-words hyphens-auto shadow-sm" style={{wordBreak: 'break-word', textShadow: '0 1px 2px rgba(0,0,0,0.8)'}}>
-            {extractQuality(item.name).name}
+            {item.name ? getExtractedQuality(item.name, slot).name : 'Unknown'}
           </p>
           {/* Show special indicator for permanent items */}
           {(item as any).isPermanent && (
@@ -409,6 +485,10 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   onEquipItem,
   onUnequipItem,
 }) => {
+  // Track component mount for performance logging
+  const mountTimeRef = useRef(performance.now());
+  const renderCountRef = useRef(0);
+
   const [tooltip, setTooltip] = useState<{ item: Item; action: 'equip' | 'unequip' } | null>(null);
   const [comparisonStats, setComparisonStats] = useState<{ attack: number; defense: number } | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -421,6 +501,18 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const equipped = character.equippedItems;
+
+  // Log on first render only
+  if (renderCountRef.current === 0) {
+    console.log(`[EquipmentPanel] Initial mount - Inventory size: ${character.inventory.length}, Equipped slots: ${Object.keys(equipped).length}`);
+    renderCountRef.current++;
+  }
+
+  // Log mount time after first render
+  useEffect(() => {
+    const elapsed = performance.now() - mountTimeRef.current;
+    console.log(`[EquipmentPanel] Component mounted and rendered in ${elapsed.toFixed(2)}ms`);
+  }, []);
 
   const getEquipmentItem = useCallback(
     (slot: EquipmentSlot): Item | undefined => equipped[slot],
@@ -471,6 +563,9 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   // Use ref for stats cache to avoid stale closures
   const itemStatsCacheRef = useRef(new Map<string, any>());
 
+  // Add cache for extractQuality results to avoid repeated expensive regex operations
+  const extractQualityCacheRef = useRef(new Map<string, { name: string; quality: string | null }>());
+
   // Helper to get stats with lazy calculation
   const getItemStats = useCallback((item: Item) => {
     const cache = itemStatsCacheRef.current;
@@ -480,6 +575,47 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     const stats = getProceduralItemStats(item);
     cache.set(item.id, stats);
     return stats;
+  }, []);
+
+  // Memoized extractQuality function to avoid repeated regex operations
+  const getExtractedQuality = useCallback((itemName: string, equipmentSlot?: EquipmentSlot) => {
+    const startTime = performance.now();
+
+    // Safety check: handle invalid item names
+    if (!itemName || typeof itemName !== 'string') {
+      console.warn('[EquipmentPanel] Invalid item name:', itemName);
+      return { name: 'Unknown Item', quality: null };
+    }
+
+    const cacheKey = `${itemName}|${equipmentSlot || 'none'}`;
+    const cache = extractQualityCacheRef.current;
+
+    if (cache.has(cacheKey)) {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > 5) {
+        console.log(`[EquipmentPanel] Cache hit for "${itemName}" took ${elapsed.toFixed(2)}ms`);
+      }
+      return cache.get(cacheKey)!;
+    }
+
+    const result = extractQuality(itemName, equipmentSlot);
+    cache.set(cacheKey, result);
+
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 10) {
+      console.warn(`[EquipmentPanel] Slow extractQuality for "${itemName}": ${elapsed.toFixed(2)}ms`);
+    }
+
+    // Limit cache size to prevent memory bloat
+    if (cache.size > 500) {
+      console.log(`[EquipmentPanel] Cache size exceeded 500, clearing to 250 entries`);
+      const entries = Array.from(cache.entries());
+      cache.clear();
+      // Keep most recent 250 entries
+      entries.slice(-250).forEach(([k, v]) => cache.set(k, v));
+    }
+
+    return result;
   }, []);
 
   // Pre-calculate stats for equipped items only
@@ -500,7 +636,10 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   }, [getItemStats]);
 
   const filteredInventory = useMemo(() => {
+    const filterStartTime = performance.now();
     let items = equippableInventory;
+
+    console.log(`[EquipmentPanel] Starting inventory filter with ${items.length} equippable items`);
 
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase();
@@ -510,6 +649,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
           (i.description || '').toLowerCase().includes(q) ||
           (i.material || '').toLowerCase().includes(q)
       );
+      console.log(`[EquipmentPanel] After query filter: ${items.length} items`);
     }
 
     if (slotFilter !== 'all') {
@@ -520,6 +660,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
         if (slotFilter === 'accessory') return s === 'accessory';
         return s === slotFilter;
       });
+      console.log(`[EquipmentPanel] After slot filter: ${items.length} items`);
     }
 
     const rarityRank: Record<Rarity, number> = { Junk: 0, Common: 1, Uncommon: 2, Rare: 3, 'Ultra-rare': 4, Unique: 5 };
@@ -528,6 +669,10 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     const byRarity = (a: Item, b: Item) => (rarityRank[b.rarity] ?? 0) - (rarityRank[a.rarity] ?? 0);
 
     items = [...items].sort(sortBy === 'name' ? byName : sortBy === 'value' ? byValue : byRarity);
+
+    const filterElapsed = performance.now() - filterStartTime;
+    console.log(`[EquipmentPanel] Inventory filtering completed in ${filterElapsed.toFixed(2)}ms, final count: ${items.length}`);
+
     return items;
   }, [equippableInventory, debouncedQuery, slotFilter, sortBy]);
 
@@ -646,6 +791,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               onMouseMove={handleMouseMove}
               onEquipItemToSlot={onEquipItem}
               onAnchor={setAnchorRect}
+              getExtractedQuality={getExtractedQuality}
             />
           ))}
           {SLOT_ORDER.slice(3, 6).map((s) => (
@@ -658,6 +804,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               onMouseMove={handleMouseMove}
               onEquipItemToSlot={onEquipItem}
               onAnchor={setAnchorRect}
+              getExtractedQuality={getExtractedQuality}
             />
           ))}
           {SLOT_ORDER.slice(6, 9).map((s) => (
@@ -670,6 +817,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               onMouseMove={handleMouseMove}
               onEquipItemToSlot={onEquipItem}
               onAnchor={setAnchorRect}
+              getExtractedQuality={getExtractedQuality}
             />
           ))}
           {SLOT_ORDER.slice(9, 11).map((s) => (
@@ -682,6 +830,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               onMouseMove={handleMouseMove}
               onEquipItemToSlot={onEquipItem}
               onAnchor={setAnchorRect}
+              getExtractedQuality={getExtractedQuality}
             />
           ))}
           <div className="rounded-xl border-2 border-dashed border-slate-700/70 bg-slate-900/10 flex items-center justify-center text-[11px] text-slate-500">
@@ -805,7 +954,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                           <LazyItemIcon item={item} size={48} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xl font-bold text-blue-100 leading-tight mb-1.5 break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{extractQuality(item.name).name}</p>
+                          <p className="text-xl font-bold text-blue-100 leading-tight mb-1.5 break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{item.name ? getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot).name : 'Unknown Item'}</p>
                           <div className="flex items-center gap-2 text-[13px] text-slate-400 font-medium">
                             {item.equipmentSlot && (
                               <span className="capitalize">{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
@@ -816,9 +965,13 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                       </div>
                       <div className="flex-shrink-0 mt-1">
                         <div className="flex flex-col gap-1 items-end">
-                          {extractQuality(item.name).quality && (
-                            <QualityTag quality={extractQuality(item.name).quality} />
-                          )}
+                          {(() => {
+                            if (!item.name) return null;
+                            const extractedQuality = getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot);
+                            return extractedQuality.quality && (
+                              <QualityTag quality={extractedQuality.quality} />
+                            );
+                          })()}
                           <RarityTag rarity={item.rarity} />
                         </div>
                       </div>
@@ -857,11 +1010,15 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-2">
-                              <p className="text-xl font-bold text-blue-100 leading-tight break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{extractQuality(item.name).name}</p>
+                              <p className="text-xl font-bold text-blue-100 leading-tight break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{item.name ? getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot).name : 'Unknown Item'}</p>
                               <div className="flex gap-1.5 flex-shrink-0">
-                                {extractQuality(item.name).quality && (
-                                  <QualityTag quality={extractQuality(item.name).quality} />
-                                )}
+                                {(() => {
+                                  if (!item.name) return null;
+                                  const extractedQuality = getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot);
+                                  return extractedQuality.quality && (
+                                    <QualityTag quality={extractedQuality.quality} />
+                                  );
+                                })()}
                                 <RarityTag rarity={item.rarity} />
                               </div>
                             </div>

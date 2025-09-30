@@ -1,11 +1,17 @@
 /**
  * utils/inventoryUtils.ts - Utility functions for player inventory management.
  */
-import { Item, ItemDefinition, EquipmentSlot, PlayerCharacter, AnimalEntity, CulturalZone, HistoricalEra } from '../types';
+import { Item, ItemDefinition, EquipmentSlot, PlayerCharacter, AnimalEntity, CulturalZone, HistoricalEra, ItemCategory } from '../types';
 import { ITEM_DEFINITIONS, STARTING_PACKAGES, ANIMAL_DATA } from '../constants/index';
+import { getItemDefinition } from '../constants/gameData/itemDefinitions';
+import { isItemAvailableInEra, isItemCulturallyAppropriate, getEraAppropriateSubstitute } from '../constants/gameData/historicalAvailability';
+import { applyRegionalMaterial } from '../constants/gameData/regionalMaterials';
+import { getEquipmentSlot, getMaterialFromName, getCategoryFromName, getEmojiFromName } from '../constants/gameData/itemClassifications';
+import { calculateAmuletChance, getQualityFromPrivilege, getWealthFromPrivilege, getCulturalAccessoryChance } from '../constants/gameData/culturalClassifications';
+import { getPetChanceMultiplier, canHaveEccentricPets, getBaseCatChance, ECCENTRIC_PETS } from '../constants/gameData/professionClassifications';
 import { generateProceduralItemDescription } from '../services/itemDescriptionGenerator';
 import { createTamedAnimal, addToParty } from '../services/animalTamingService';
-import { createColoredItemInstance, applyColorsToAllItems, generateContextualWeapon } from '../services/itemGenerationService';
+import { generateItem, createColoredItemInstance, applyColorsToAllItems, generateContextualWeapon } from '../services/itemGenerationService';
 import { generateContextualHeadgear, generateContextualStartingPackage } from '../services/headgearGenerationService';
 import { generateContextualTorso, GENERIC_TORSO_ITEMS } from '../services/torsoGenerationService';
 import { generateContextualAccessory, GENERIC_ACCESSORIES } from '../services/accessoryGenerationService';
@@ -16,14 +22,14 @@ import { generateCulturalAccessory, generateAccessorySet } from '../services/cul
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * NEW: Generates a temporary, procedural ItemDefinition for items not in the main database.
- * This is a critical failsafe for dynamically generated clothing and resources.
+ * Simplified procedural ItemDefinition generator using classification system
+ * Replaces complex regex and hardcoded arrays with clean data-driven approach
  */
 export function generateProceduralItemDefinition(baseId: string): ItemDefinition {
     const name = baseId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const lowerId = baseId.toLowerCase();
 
-    // Handle Logs
+    // Handle special log items
     if (lowerId.endsWith('_log')) {
         const woodType = name.replace(' Log', '');
         return {
@@ -36,7 +42,7 @@ export function generateProceduralItemDefinition(baseId: string): ItemDefinition
             wearable: false,
             stackable: true,
             category: 'Material',
-            attack: 2, // Can be used as a club
+            attack: 2,
             sustenance: 0,
             wieldable: true,
             throwable: false,
@@ -46,162 +52,57 @@ export function generateProceduralItemDefinition(baseId: string): ItemDefinition
         };
     }
 
-    // Determine category and material first
-    let category: Item['category'] = 'Material'; // Default to material
-    let equipmentSlot: EquipmentSlot | undefined = undefined;
-    let material = 'Unknown';
-    let emoji = '📦';
-    let craftingValue = 1;
-    let value = 2;
+    // Use classification system for clean, maintainable logic
+    const category = getCategoryFromName(name) as Item['category'];
+    const material = getMaterialFromName(name);
+    const equipmentSlot = getEquipmentSlot(name) as EquipmentSlot | undefined;
+    const emoji = getEmojiFromName(name);
 
-    // Handle meat products first
-    if (lowerId.includes('meat') || lowerId.includes('mutton') || lowerId.includes('beef') || lowerId.includes('pork') || lowerId.includes('venison') || lowerId.includes('chicken')) {
-        category = 'Food';
-        material = 'Organic';
-        emoji = '🥩';
-        craftingValue = 0;
-        value = 5;
-    }
-    // Handle animal products
-    else if (lowerId.includes('hide') && !lowerId.includes('shirt') && !lowerId.includes('tunic')) {
-        category = 'Material';
-        material = 'Hide';
-        emoji = '🦴';
-        craftingValue = 4;
-        value = 8;
-    }
-    else if (lowerId.includes('pelt') && !lowerId.includes('shirt') && !lowerId.includes('tunic')) {
-        category = 'Material';
-        material = 'Fur';
-        emoji = '🦫';
-        craftingValue = 5;
-        value = 12;
-    }
-    else if (lowerId.includes('wool') && !lowerId.includes('shirt') && !lowerId.includes('tunic')) {
-        category = 'Material';
-        material = 'Wool';
-        emoji = '🧶';
-        craftingValue = 3;
-        value = 6;
-    }
-    // Handle other materials
-    else if (lowerId.includes('bone')) {
-        category = 'Material';
-        material = 'Bone';
-        emoji = '🦴';
-        craftingValue = 2;
-        value = 3;
-    }
-    else if (lowerId.includes('stone')) {
-        category = 'Material';
-        material = 'Stone';
-        emoji = '🪨';
-        craftingValue = 2;
-        value = 1;
-    }
-    else if (lowerId.includes('iron') || lowerId.includes('metal')) {
-        category = 'Material';
-        material = 'Iron';
-        emoji = '⚙️';
-        craftingValue = 6;
-        value = 15;
-    }
-    // Handle vessels and boats
-    else if (lowerId.includes('kayak') || lowerId.includes('canoe') || lowerId.includes('boat') || lowerId.includes('raft') || lowerId.includes('vessel') || lowerId.includes('sailboat') || lowerId.includes('rowboat') || lowerId.includes('log_raft')) {
-        category = 'Vessel';
-        material = 'Wood';
-        emoji = lowerId.includes('kayak') ? '🛶' : 
-               lowerId.includes('sailboat') ? '⛵' : 
-               lowerId.includes('raft') ? '🪵' : 
-               lowerId.includes('rowboat') ? '🚣' : '🚤';
-        craftingValue = 0;
-        value = 50;
-        equipmentSlot = undefined; // Vessels are not wearable
-    }
-    // Handle tools
-    else if (lowerId.includes('axe') || lowerId.includes('hammer') || lowerId.includes('chisel') || lowerId.includes('saw') || lowerId.includes('drill') || lowerId.includes('shovel') || lowerId.includes('pickaxe') || lowerId.includes('hoe') || lowerId.includes('rake')) {
-        category = 'Tool';
-        material = lowerId.includes('stone') ? 'Stone' : lowerId.includes('iron') || lowerId.includes('metal') ? 'Iron' : 'Wood';
-        emoji = lowerId.includes('axe') ? '🪓' :
-               lowerId.includes('hammer') ? '🔨' :
-               lowerId.includes('shovel') ? '🪝' :
-               lowerId.includes('pickaxe') ? '⛏️' : '🔧';
-        craftingValue = 3;
-        value = 15;
-        equipmentSlot = 'main_hand';
-    }
-    // Handle weapons
-    else if (lowerId.includes('sword') || lowerId.includes('spear') || lowerId.includes('club') || lowerId.includes('knife') || lowerId.includes('bow') || lowerId.includes('arrow') || lowerId.includes('dagger') || lowerId.includes('mace')) {
-        category = 'Weapon';
-        material = lowerId.includes('stone') ? 'Stone' : lowerId.includes('iron') || lowerId.includes('metal') ? 'Iron' : 'Wood';
-        emoji = lowerId.includes('sword') ? '⚔️' :
-               lowerId.includes('spear') ? '🔱' :
-               lowerId.includes('bow') ? '🏹' :
-               lowerId.includes('knife') || lowerId.includes('dagger') ? '🔪' : '🏏';
-        craftingValue = 2;
-        value = 20;
-        equipmentSlot = lowerId.includes('arrow') ? 'off_hand' : 'main_hand';
-    }
-    // Handle clothing items
-    else if (name.match(/\b(hide|pelt|jerkin|robe|tunic|cloak|plate|chain|wrap|shirt|dress|apron|doublet|kirtle|bodice|surcoat|houppelande|stola|peplos|palla|chiton|hanfu|agbada|dashiki|boubou|kaftan|sherwani|kurta|blouse|qipao|suit|jacket|vest|mantle|shawl|kimono|cap|helmet|hood|turban|hat|wimple|coif|diadem|crown|headdress|veil|circlet|boots|shoes|sandals|clogs|slippers|moccasins|hose|trousers|breeches|pants|skirt|leggings|belt|cord|sash|girdle|comb|necklace|pendant|necklace|chain|hairpin|ornament|brooch|pin|ring)\b/i)) {
-        category = 'Apparel';
-        material = 'Cloth';
-        emoji = '👕';
-        craftingValue = 2;
-        value = 5;
+    // Set values based on category
+    const categoryDefaults: Record<string, {
+        value: number;
+        weight: number;
+        craftingValue: number;
+        attack?: number;
+        sustenance?: number;
+        wieldable?: boolean;
+        throwable?: boolean;
+    }> = {
+        'Food': { value: 5, weight: 0.5, craftingValue: 0, sustenance: 20 },
+        'Material': { value: 3, weight: 1.0, craftingValue: 3 },
+        'Tool': { value: 15, weight: 2.0, craftingValue: 3, attack: 2, wieldable: true },
+        'Weapon': { value: 20, weight: 1.5, craftingValue: 2, attack: 4, wieldable: true, throwable: true },
+        'Apparel': { value: 5, weight: 1.0, craftingValue: 2 },
+        'Vessel': { value: 50, weight: 20.0, craftingValue: 0 },
+        'Special': { value: 1, weight: 1.0, craftingValue: 1 }
+    };
 
-        const torsoWords = ['hide', 'pelt', 'jerkin', 'robe', 'tunic', 'cloak', 'plate', 'chain', 'wrap', 'shirt', 'dress', 'apron', 'doublet', 'kirtle', 'bodice', 'surcoat', 'houppelande', 'stola', 'peplos', 'palla', 'chiton', 'hanfu', 'agbada', 'dashiki', 'boubou', 'kaftan', 'sherwani', 'kurta', 'blouse', 'qipao', 'suit', 'jacket', 'vest', 'mantle', 'shawl', 'kimono', 'jerkin', 'surcoat'];
-        const headWords = ['cap', 'helmet', 'hood', 'turban', 'hat', 'wimple', 'coif', 'diadem', 'crown', 'headdress', 'veil', 'circlet'];
-        const feetWords = ['boots', 'shoes', 'sandals', 'clogs', 'slippers', 'moccasins'];
-        const legsWords = ['hose', 'trousers', 'breeches', 'pants', 'skirt', 'leggings'];
-        const beltWords = ['belt', 'cord', 'sash', 'girdle'];
-        const necklaceWords = ['comb', 'necklace', 'pendant', 'necklace', 'chain', 'hairpin', 'ornament', 'brooch', 'pin'];
-        const ringWords = ['ring'];
-
-        if (torsoWords.some(word => lowerId.includes(word))) equipmentSlot = 'torso';
-        else if (headWords.some(word => lowerId.includes(word))) equipmentSlot = 'head';
-        else if (feetWords.some(word => lowerId.includes(word))) equipmentSlot = 'feet';
-        else if (legsWords.some(word => lowerId.includes(word))) equipmentSlot = 'legs';
-        else if (beltWords.some(word => lowerId.includes(word))) equipmentSlot = 'belt';
-        else if (necklaceWords.some(word => lowerId.includes(word))) equipmentSlot = 'necklace';
-        else if (ringWords.some(word => lowerId.includes(word))) equipmentSlot = 'ring1';
-        
-        // Override material for clothing based on keywords
-        if (lowerId.includes('leather') || lowerId.includes('hide') || lowerId.includes('pelt')) material = 'Leather';
-        if (lowerId.includes('wool')) material = 'Wool';
-        if (lowerId.includes('silk')) material = 'Silk';
-    }
-    // Default fallback for unrecognized items
-    else {
-        category = 'Special'; // Changed from 'Apparel' to 'Special'
-        material = 'Unknown';
-        emoji = '❓';
-        craftingValue = 1;
-        value = 1;
-        equipmentSlot = undefined;
-    }
+    const defaults = categoryDefaults[category] || categoryDefaults['Special'];
 
     const definition: ItemDefinition = {
-        baseId, name, category, 
-        wearable: category === 'Apparel', 
-        equipmentSlot, 
-        material, 
+        baseId,
+        name,
+        category,
+        wearable: category === 'Apparel',
+        equipmentSlot,
+        material,
         defense: category === 'Apparel' ? 0 : undefined,
         description: category === 'Food' ? `Fresh ${name.toLowerCase()}.` :
                      category === 'Material' ? `Raw material: ${name}.` :
-                     `A piece of clothing: ${name}.`,
+                     category === 'Apparel' ? `A piece of clothing: ${name}.` :
+                     `${name}.`,
         emoji,
         rarity: 'Common',
-        value,
-        weight: category === 'Food' ? 0.5 : 1,
-        stackable: category !== 'Apparel',
-        attack: 0,
-        sustenance: category === 'Food' ? 20 : 0,
-        wieldable: false,
-        throwable: false,
-        craftingValue,
+        value: defaults.value,
+        weight: defaults.weight,
+        stackable: category !== 'Apparel' && category !== 'Tool' && category !== 'Weapon',
+        attack: defaults.attack || 0,
+        sustenance: defaults.sustenance || 0,
+        wieldable: defaults.wieldable || false,
+        throwable: defaults.throwable || false,
+        craftingValue: defaults.craftingValue,
     };
-    
+
     definition.description = generateProceduralItemDescription(definition as Item);
     return definition;
 }
@@ -212,54 +113,77 @@ export function generateProceduralItemDefinition(baseId: string): ItemDefinition
  * @param baseId The base ID of the item to create (e.g., 'STICK', 'FISH_MEAT').
  * @returns An Item object with a unique instance ID, or null if the definition doesn't exist.
  */
-export function createItemInstance(baseId: string): Item | null {
-    // Check if the baseId contains a color prefix
-    const colorWords = ['NAVY', 'BLUE', 'ROYAL', 'RED', 'CRIMSON', 'GREEN', 'FOREST', 'YELLOW', 'GOLD', 
-                       'PURPLE', 'ORANGE', 'BROWN', 'BLACK', 'WHITE', 'SILVER', 'GRAY', 'GREY',
-                       'TEAL', 'TURQUOISE', 'CORAL', 'TAN', 'IVORY', 'AMBER', 'BRONZE', 'COPPER',
-                       'DARK_BROWN', 'CHOCOLATE', 'INDIGO', 'WHEAT'];
-    
+// Color extraction moved to constant for better performance
+const COLOR_PREFIXES = new Set([
+    'NAVY', 'BLUE', 'ROYAL', 'RED', 'CRIMSON', 'GREEN', 'FOREST', 'YELLOW', 'GOLD',
+    'PURPLE', 'ORANGE', 'BROWN', 'BLACK', 'WHITE', 'SILVER', 'GRAY', 'GREY',
+    'TEAL', 'TURQUOISE', 'CORAL', 'TAN', 'IVORY', 'AMBER', 'BRONZE', 'COPPER',
+    'DARK_BROWN', 'CHOCOLATE', 'INDIGO', 'WHEAT'
+]);
+
+const MATERIAL_COLORS = new Set([
+    'leather', 'hide', 'fur', 'straw', 'iron', 'steel', 'bronze', 'copper',
+    'brass', 'gold', 'silver', 'wood', 'oak', 'pine', 'bamboo'
+]);
+
+export function createItemInstance(
+    baseId: string,
+    era?: HistoricalEra,
+    culture?: CulturalZone
+): Item | null {
     let colorPrefix = '';
     let cleanBaseId = baseId;
-    
-    // Extract color from baseId if present
-    for (const color of colorWords) {
+
+    // Extract color prefix more efficiently
+    for (const color of COLOR_PREFIXES) {
         if (baseId.startsWith(color + '_')) {
-            // Handle multi-word colors like DARK_BROWN
-            colorPrefix = color.split('_').map(word => 
+            colorPrefix = color.split('_').map(word =>
                 word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
             ).join(' ');
             cleanBaseId = baseId.substring(color.length + 1);
             break;
         }
     }
-    
-    let definition = ITEM_DEFINITIONS[cleanBaseId] || ITEM_DEFINITIONS[baseId];
-    if (!definition) {
-        console.log(`[ItemCreation] Creating procedural item for: ${baseId}`);
-        definition = generateProceduralItemDefinition(cleanBaseId);
-        console.log(`[ItemCreation] Generated: ${definition.name} (${definition.material})`);
+
+    // Check historical availability if era provided
+    if (era && !isItemAvailableInEra(cleanBaseId, era)) {
+        // Try to find an appropriate substitute
+        cleanBaseId = getEraAppropriateSubstitute(cleanBaseId, 'GENERAL', era);
     }
-    
-    // Create the item instance
-    const item: Item = {
+
+    // Check cultural appropriateness if culture provided
+    if (culture && !isItemCulturallyAppropriate(cleanBaseId, culture)) {
+        // Item not culturally appropriate, return null or substitute
+        return null;
+    }
+
+    let definition = getItemDefinition(cleanBaseId) || getItemDefinition(baseId);
+    if (!definition) {
+        definition = generateProceduralItemDefinition(cleanBaseId);
+    }
+
+    // Create the item instance with UUID
+    let item: Item = {
         ...definition,
         id: uuidv4(),
         quantity: 1,
+        condition: 100,  // Start at perfect condition
+        age: 0  // New item
     };
-    
-    // Add color to the name if we found one, but only for non-material items
+
+    // Apply regional material variations if culture provided
+    if (culture) {
+        item = applyRegionalMaterial(item, culture);
+    }
+
+    // Add color to name only for appropriate items
     if (colorPrefix) {
-        const materialColors = ['leather', 'hide', 'fur', 'straw', 'iron', 'steel', 'bronze', 'copper', 
-                               'brass', 'gold', 'silver', 'wood', 'oak', 'pine', 'bamboo'];
         const material = (item.material || '').toLowerCase();
-        const hasMaterialColor = materialColors.some(mat => material.includes(mat));
-        
-        if (!hasMaterialColor) {
+        if (!MATERIAL_COLORS.has(material)) {
             item.name = `${colorPrefix} ${item.name}`;
         }
     }
-    
+
     return item;
 }
 
@@ -274,7 +198,7 @@ interface StackingRules {
     culture?: boolean;      // Stack only if same cultural variant
 }
 
-const ITEM_STACKING_RULES: Record<ItemCategory, StackingRules> = {
+const ITEM_STACKING_RULES: Record<string, StackingRules> = {
     'Food': { condition: 20, age: 2 },  // Food must be similar freshness
     'Material': { material: true, quality: true },  // Materials need same type/quality
     'Weapon': {},  // Weapons don't stack
@@ -396,30 +320,7 @@ function createStartingCompanion(animalBaseId: string, playerCharacter: PlayerCh
     addToParty(tamedAnimal);
 }
 
-/**
- * Calculate the chance of having an necklace based on era, culture, and profession
- */
-function calculateAmuletChance(era?: HistoricalEra, culture?: CulturalZone, profession?: string): number {
-    let baseChance = 0.35; // 35% base chance
-    
-    // Era modifiers
-    if (era === HistoricalEra.MEDIEVAL) baseChance += 0.20; // +20% for medieval (religious)
-    if (era === HistoricalEra.ANTIQUITY) baseChance += 0.15; // +15% for ancient (necklace culture)
-    if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) baseChance += 0.10; // +10% for renaissance
-    
-    // Culture modifiers  
-    if (culture === 'MENA' || culture === 'EUROPEAN') baseChance += 0.10; // Religious cultures
-    if (culture === 'SOUTH_ASIAN' || culture === 'EAST_ASIAN') baseChance += 0.10; // Religious jewelry tradition
-    
-    // Profession modifiers
-    const profLower = profession?.toLowerCase() || '';
-    if (profLower.includes('priest') || profLower.includes('monk') || profLower.includes('nun')) baseChance = 0.90;
-    if (profLower.includes('merchant') || profLower.includes('noble') || profLower.includes('scholar')) baseChance += 0.15;
-    if (profLower.includes('child') || profLower.includes('orphan')) baseChance += 0.20; // Children more likely
-    if (profLower.includes('pilgrim')) baseChance = 0.95; // Pilgrims almost always have religious items
-    
-    return Math.min(baseChance, 0.95); // Cap at 95%
-}
+// Note: calculateAmuletChance is now imported from culturalClassifications.ts
 
 /**
  * Add a quality adjective to necklace/jewelry names based on privilege level
@@ -456,141 +357,124 @@ function addQualityAdjective(itemName: string, privilege: number): string {
 }
 
 /**
- * Select a culturally appropriate necklace based on era, culture, and privilege
+ * Weight and encumbrance calculation for realistic inventory management
  */
-function selectCulturalAmulet(era: HistoricalEra, culture: CulturalZone, privilege: number): string | null {
-    // Map era/culture to appropriate necklace items
-    const necklaceMap: Record<string, string[]> = {
-        // Medieval combinations
-        'MEDIEVAL_EUROPEAN': ['WOODEN_CROSS', 'PRAYER_BEADS', 'SAINTS_MEDAL', 'PILGRIM_BADGE', 'ROPE_NECKLACE'],
-        'MEDIEVAL_MENA': ['HAMSA_PENDANT', 'PRAYER_BEADS', 'EVIL_EYE_AMULET', 'CORAL_BEADS'],
-        'MEDIEVAL_EAST_ASIAN': ['JADE_PENDANT', 'PRAYER_BEADS', 'BONE_NECKLACE'],
-        'MEDIEVAL_SOUTH_ASIAN': ['PRAYER_BEADS', 'SHELL_NECKLACE', 'CORAL_BEADS'],
-        'MEDIEVAL_SUB_SAHARAN_AFRICAN': ['BONE_NECKLACE', 'SHELL_NECKLACE', 'ROPE_NECKLACE'],
-        'MEDIEVAL_NORTH_AMERICAN_PRE_COLUMBIAN': ['BONE_NECKLACE', 'SHELL_NECKLACE', 'JADE_PENDANT'],
-        'MEDIEVAL_SOUTH_AMERICAN': ['BONE_NECKLACE', 'SHELL_NECKLACE', 'JADE_PENDANT'],
-        'MEDIEVAL_OCEANIA': ['SHELL_NECKLACE', 'BONE_NECKLACE', 'WHALE_TOOTH_NECKLACE'],
-        
-        // Antiquity combinations
-        'ANTIQUITY_EUROPEAN': ['BULLA', 'TORC_NECKLACE', 'AMBER_PENDANT', 'CORAL_BEADS'],
-        'ANTIQUITY_MENA': ['EVIL_EYE_AMULET', 'SCARAB_PENDANT', 'ANKH_PENDANT', 'HAMSA_PENDANT'],
-        'ANTIQUITY_EAST_ASIAN': ['JADE_PENDANT', 'BONE_NECKLACE'],
-        'ANTIQUITY_SOUTH_ASIAN': ['SHELL_NECKLACE', 'CORAL_BEADS'],
-        
-        // Renaissance/Early Modern
-        'RENAISSANCE_EARLY_MODERN_EUROPEAN': ['SILVER_CROSS', 'RELIQUARY_PENDANT', 'POMANDER', 'CORAL_BEADS', 'PEARL_NECKLACE'],
-        'RENAISSANCE_EARLY_MODERN_MENA': ['HAMSA_PENDANT', 'EVIL_EYE_AMULET', 'PRAYER_BEADS'],
-        
-        // Industrial Era
-        'INDUSTRIAL_ERA_EUROPEAN': ['PHOTO_LOCKET', 'POCKET_WATCH_CHAIN', 'MOURNING_JEWELRY', 'SILVER_CROSS'],
-        'INDUSTRIAL_ERA_MENA': ['HAMSA_PENDANT', 'PRAYER_BEADS', 'EVIL_EYE_AMULET'],
-        'INDUSTRIAL_ERA_EAST_ASIAN': ['JADE_PENDANT', 'PRAYER_BEADS'],
-        
-        // Modern Era
-        'MODERN_ERA_EUROPEAN': ['DOG_TAGS', 'MEDICAL_ALERT_PENDANT', 'SILVER_CHAIN', 'PHOTO_LOCKET'],
-        'MODERN_ERA_NORTH_AMERICAN_PRE_COLUMBIAN': ['DOG_TAGS', 'SILVER_CHAIN', 'MEDICAL_ALERT_PENDANT'],
-        'MODERN_ERA_MENA': ['HAMSA_PENDANT', 'EVIL_EYE_AMULET', 'PRAYER_BEADS'],
-        
-        // Default fallbacks
-        'DEFAULT_POOR': ['ROPE_NECKLACE', 'SHELL_NECKLACE', 'BONE_NECKLACE', 'WOODEN_CROSS'],
-        'DEFAULT_COMMON': ['PRAYER_BEADS', 'SHELL_NECKLACE', 'BRONZE_PIN', 'ROPE_NECKLACE'],
-        'DEFAULT_WEALTHY': ['SILVER_CHAIN', 'GOLD_CHAIN', 'PEARL_NECKLACE', 'CORAL_BEADS']
+export function calculateEncumbrance(
+    inventory: Item[],
+    strength: number = 10
+): {
+    totalWeight: number;
+    maxCapacity: number;
+    encumbrance: number;
+    movementPenalty: number;
+    categories: Record<string, number>;
+} {
+    // Calculate total weight and weight by category
+    let totalWeight = 0;
+    const categories: Record<string, number> = {};
+
+    for (const item of inventory) {
+        const itemWeight = (item.weight || 0) * (item.quantity || 1);
+        totalWeight += itemWeight;
+
+        const category = item.category || 'Other';
+        categories[category] = (categories[category] || 0) + itemWeight;
+    }
+
+    // Calculate max capacity based on strength (15 lbs per strength point)
+    const maxCapacity = strength * 15;
+    const encumbrance = totalWeight / maxCapacity;
+
+    // Movement penalty starts at 50% capacity, increases exponentially
+    let movementPenalty = 0;
+    if (encumbrance > 0.5) {
+        movementPenalty = Math.min(0.75, Math.pow(encumbrance - 0.5, 2));
+    }
+
+    return {
+        totalWeight,
+        maxCapacity,
+        encumbrance,
+        movementPenalty,
+        categories
     };
-    
-    // Build key from era and culture
-    const key = `${era}_${culture}`;
-    let options = necklaceMap[key];
-    
-    // If no specific match, use defaults based on wealth
-    if (!options) {
-        if (privilege > 0.7) {
-            options = necklaceMap['DEFAULT_WEALTHY'];
-        } else if (privilege > 0.3) {
-            options = necklaceMap['DEFAULT_COMMON'];
-        } else {
-            options = necklaceMap['DEFAULT_POOR'];
-        }
-    }
-    
-    // Filter by wealth level - remove expensive items for poor characters
-    if (privilege < 0.3 && options) {
-        const expensiveItems = ['GOLD_CHAIN', 'PEARL_NECKLACE', 'SILVER_CHAIN', 'RELIQUARY_PENDANT', 'WHALE_TOOTH_NECKLACE'];
-        options = options.filter(item => !expensiveItems.includes(item));
-    }
-    
-    // Add wealthy-only options
-    if (privilege > 0.7 && options) {
-        const wealthyUpgrades: Record<string, string> = {
-            'ROPE_NECKLACE': 'SILVER_CHAIN',
-            'WOODEN_CROSS': 'SILVER_CROSS',
-            'SHELL_NECKLACE': 'PEARL_NECKLACE',
-            'BONE_NECKLACE': 'AMBER_PENDANT'
-        };
-        
-        options = options.map(item => wealthyUpgrades[item] || item);
-    }
-    
-    if (!options || options.length === 0) return null;
-    
-    // Random selection from appropriate options
-    return options[Math.floor(Math.random() * options.length)];
 }
 
 /**
- * Adds random pets based on era, profession, and chance
+ * Item degradation calculation based on usage and environment
+ */
+export function degradeItem(
+    item: Item,
+    usageIntensity: number = 1.0,  // 0.5 = light use, 1.0 = normal, 2.0 = heavy
+    environmentHarshness: number = 1.0  // 0.5 = protected, 1.0 = normal, 2.0 = harsh
+): Item {
+    if (!item.condition) item.condition = 100;
+
+    // Different categories degrade at different rates
+    const degradationRates: Record<string, number> = {
+        'Weapon': 0.5,
+        'Tool': 0.3,
+        'Apparel': 0.2,
+        'Food': 2.0,  // Food degrades quickly
+        'Material': 0.1,
+        'Document': 0.4,  // Paper degrades moderately
+        'Special': 0.05,
+        'Consumable': 1.0,
+        'Vessel': 0.15,
+        'Container': 0.2
+    };
+
+    const baseRate = degradationRates[item.category] || 0.2;
+    const degradation = baseRate * usageIntensity * environmentHarshness;
+
+    // Apply degradation
+    const newCondition = Math.max(0, item.condition - degradation);
+
+    // Item breaks if condition reaches 0
+    if (newCondition <= 0) {
+        return {
+            ...item,
+            condition: 0,
+            name: `Broken ${item.name}`,
+            value: Math.floor(item.value * 0.1),  // 10% value when broken
+            attack: item.attack ? Math.floor(item.attack * 0.25) : undefined,
+            defense: item.defense ? Math.floor(item.defense * 0.25) : undefined
+        };
+    }
+
+    return {
+        ...item,
+        condition: newCondition
+    };
+}
+
+/**
+ * Simplified pet assignment using profession classification system
  */
 function addRandomPets(playerCharacter: PlayerCharacter): void {
     const currentYear = playerCharacter.year || 1500;
-    const profession = playerCharacter.profession?.toLowerCase() || '';
-    
-    console.log(`[RandomPets] Processing ${playerCharacter.name} (${profession})`);
-    
-    // Only certain professions get random pets
-    const petFriendlyProfessions = [
-        'shepherd', 'farmer', 'hunter', 'nomad', 'vaquero', 'cowboy', 'fur trapper',
-        'innkeeper', 'merchant', 'wanderer', 'peasant', 'serf', 'commoner',
-        'goat herder', 'cattle herder', 'camel herder', 'duck herder', 'llama herder', 'ranchero', 'horse trainer'
-    ];
-    
-    // Urban/craft professions are less likely to have random pets
-    const urbanProfessions = [
-        'silk weaver', 'weaver', 'baker', 'blacksmith', 'scribe', 'merchant',
-        'banker', 'painter', 'alchemist', 'court scribe', 'calligrapher',
-        'factory worker', 'shopkeeper', 'docker', 'coal miner', 'journalist'
-    ];
-    
-    let petChanceMultiplier = 1.0;
-    
-    if (petFriendlyProfessions.some(p => profession.includes(p))) {
-        petChanceMultiplier = 2.0; // Double chance for rural/outdoor professions
-        console.log(`[RandomPets] ${profession} is pet-friendly, multiplier = 2.0`);
-    } else if (urbanProfessions.some(p => profession.includes(p))) {
-        petChanceMultiplier = 0.02; // Almost no chance for urban crafters (2%)
-        console.log(`[RandomPets] ${profession} is urban crafter, multiplier = 0.02`);
-    } else {
-        console.log(`[RandomPets] ${profession} is neutral, multiplier = 1.0`);
-    }
-    
+    const profession = playerCharacter.profession || '';
+
+    // Use classification system instead of hardcoded arrays
+    const petChanceMultiplier = getPetChanceMultiplier(profession);
+
     // Random pet dog (base 10% chance, modified by profession)
     const dogChance = 0.10 * petChanceMultiplier;
     if (Math.random() < dogChance) {
         createStartingCompanion('DOG', playerCharacter);
     }
-    
-    // Random pet cat (base chance varies by era, modified by profession)
-    const baseCatChance = currentYear >= 1800 ? 0.08 : 0.03;
+
+    // Random pet cat (era-appropriate base chance, modified by profession)
+    const baseCatChance = getBaseCatChance(currentYear);
     const catChance = baseCatChance * petChanceMultiplier;
     if (Math.random() < catChance) {
         createStartingCompanion('CAT', playerCharacter);
     }
-    
-    // Eccentric pets (very rare - only for certain professions)
-    if (profession.includes('jester') || profession.includes('alchemist') || profession.includes('shaman')) {
-        if (Math.random() < 0.05) { // 5% for eccentric professions
-            const eccentricPets = ['SQUIRREL', 'CHICKEN'];
-            const randomPet = eccentricPets[Math.floor(Math.random() * eccentricPets.length)];
-            createStartingCompanion(randomPet, playerCharacter);
-        }
+
+    // Eccentric pets for unusual professions
+    if (canHaveEccentricPets(profession) && Math.random() < 0.05) {
+        const randomPet = ECCENTRIC_PETS[Math.floor(Math.random() * ECCENTRIC_PETS.length)];
+        createStartingCompanion(randomPet, playerCharacter);
     }
 }
 
@@ -623,17 +507,14 @@ export function assembleStartingPackage(
         localStorage.removeItem('tamedAnimals');
     }
 
-    // Create inventory items with colors if options provided
-    let inventory: Item[];
-    if (colorOptions?.culture) {
-        inventory = pkg.inventory
-            .map(baseId => createColoredItemInstance(baseId, colorOptions.culture!, colorOptions.privilege, colorOptions.era))
-            .filter(item => item !== null) as Item[];
-    } else {
-        inventory = pkg.inventory
-            .map(baseId => createItemInstance(baseId))
-            .filter(item => item !== null) as Item[];
-    }
+    // Create inventory items with unified generation system
+    const inventory: Item[] = pkg.inventory
+        .map(baseId => generateItem(baseId, {
+            culture: colorOptions?.culture,
+            era: colorOptions?.era,
+            privilege: colorOptions?.privilege
+        }))
+        .filter(item => item !== null) as Item[];
     
     // Create equipped items
     const equippedItems: PlayerCharacter['equippedItems'] = {};
@@ -654,10 +535,12 @@ export function assembleStartingPackage(
                     privilege: colorOptions.privilege
                 });
             }
-            else if (colorOptions?.culture) {
-                item = createColoredItemInstance(baseId, colorOptions.culture, colorOptions.privilege, colorOptions.era);
-            } else {
-                item = createItemInstance(baseId);
+            else {
+                item = generateItem(baseId, {
+                    culture: colorOptions?.culture,
+                    era: colorOptions?.era,
+                    privilege: colorOptions?.privilege
+                });
             }
             if(item) equippedItems[slot as keyof typeof equippedItems] = item;
         }
@@ -666,10 +549,10 @@ export function assembleStartingPackage(
     // ONLY add contextual items if they're COMPLETELY MISSING
     // Don't replace items that are already defined
 
-    // Only add accessories based on cultural probability (keep this as it adds flavor)
+    // Simplified accessory generation using new classification systems
     if (!equippedItems.necklace && colorOptions) {
         const necklaceChance = calculateAmuletChance(colorOptions.era, colorOptions.culture, profession);
-        
+
         if (Math.random() < necklaceChance) {
             const necklaceId = generateContextualAccessory(profession, {
                 era: colorOptions.era,
@@ -677,11 +560,15 @@ export function assembleStartingPackage(
                 privilege: colorOptions.privilege,
                 slot: 'necklace'
             });
-            
+
             if (necklaceId) {
-                const necklaceItem = createItemInstance(necklaceId);
+                const necklaceItem = generateItem(necklaceId, {
+                    culture: colorOptions.culture,
+                    era: colorOptions.era,
+                    privilege: colorOptions.privilege
+                });
                 if (necklaceItem) {
-                    // Add quality adjective instead of color/material prefix
+                    necklaceItem.quality = getQualityFromPrivilege(colorOptions.privilege || 0.5);
                     necklaceItem.name = addQualityAdjective(necklaceItem.name, colorOptions.privilege || 0.5);
                     equippedItems.necklace = necklaceItem;
                 }
@@ -689,10 +576,10 @@ export function assembleStartingPackage(
         }
     }
 
-    // Add ring for wealthy characters only if missing
+    // Add ring for wealthy characters
     if (!equippedItems.ring1 && colorOptions) {
-        const ringChance = 0.3 + (colorOptions.privilege || 0.5) * 0.4; // 30-70% chance based on privilege
-        
+        const ringChance = 0.3 + (colorOptions.privilege || 0.5) * 0.4;
+
         if (Math.random() < ringChance) {
             const ringId = generateContextualAccessory(profession, {
                 era: colorOptions.era,
@@ -700,51 +587,30 @@ export function assembleStartingPackage(
                 privilege: colorOptions.privilege,
                 slot: 'ring'
             });
-            
+
             if (ringId) {
-                const ringItem = createItemInstance(ringId);
+                const ringItem = generateItem(ringId, {
+                    culture: colorOptions.culture,
+                    era: colorOptions.era,
+                    privilege: colorOptions.privilege
+                });
                 if (ringItem) {
+                    ringItem.quality = getQualityFromPrivilege(colorOptions.privilege || 0.5);
                     ringItem.name = addQualityAdjective(ringItem.name, colorOptions.privilege || 0.5);
                     equippedItems.ring1 = ringItem;
                 }
             }
         }
     }
-    
-    // Add cultural accessory (earrings, nose rings, bindis, etc.) - Phase 2 Enhanced
+
+    // Add cultural accessory using simplified cultural system
     if (!equippedItems.accessory && colorOptions && playerCharacter) {
-        // Use culture-specific accessory chance
-        let baseChance = 0.30; // Default 30%
-        
-        // Cultures with near-universal tattoo/marking traditions
-        if (colorOptions.culture === 'OCEANIA') {
-            baseChance = 1.0; // Everyone in Polynesian/Maori culture has tattoos
-        } else if (colorOptions.culture === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
-            baseChance = 0.85; // Very common tattoos and face paint
-        } else if (colorOptions.culture === 'SUB_SAHARAN_AFRICAN') {
-            baseChance = 0.80; // Scarification, tattoos, and ornaments very common
-        } else if (colorOptions.culture === 'SOUTH_AMERICAN') {
-            baseChance = 0.75; // Body modifications common in many cultures
-        } else if (colorOptions.culture === 'SOUTH_ASIAN') {
-            baseChance = 0.70; // Bindis, nose rings, henna very common especially for women
-        } else if (colorOptions.culture === 'MENA') {
-            baseChance = 0.60; // Kohl, henna, tattoos common
-        } else if (colorOptions.culture === 'EAST_ASIAN') {
-            baseChance = 0.45; // Hair ornaments, some cultural markings
-        } else if (colorOptions.culture === 'EUROPEAN') {
-            baseChance = 0.35; // Lower base rate, more jewelry than markings
-        }
-        
-        // Privilege can still modify the base chance slightly
-        const accessoryChance = Math.min(1.0, baseChance + (colorOptions.privilege || 0.5) * 0.1)
-        
+        const culturalChance = getCulturalAccessoryChance(colorOptions.culture);
+        const accessoryChance = Math.min(1.0, culturalChance + (colorOptions.privilege || 0.5) * 0.1);
+
         if (Math.random() < accessoryChance) {
-            // Determine wealth level
-            const wealthLevel = colorOptions.privilege && colorOptions.privilege > 0.7 ? 'wealthy' :
-                               colorOptions.privilege && colorOptions.privilege > 0.5 ? 'comfortable' :
-                               colorOptions.privilege && colorOptions.privilege > 0.3 ? 'modest' : 'poor';
-            
-            // Generate culturally appropriate accessory with procedural naming
+            const wealthLevel = getWealthFromPrivilege(colorOptions.privilege || 0.5);
+
             const accessoryItem = generateCulturalAccessory({
                 culture: colorOptions.culture || 'EUROPEAN',
                 era: colorOptions.era,
@@ -752,29 +618,25 @@ export function assembleStartingPackage(
                 gender: playerCharacter.gender || 'male',
                 profession: profession
             });
-            
+
             if (accessoryItem) {
                 equippedItems.accessory = accessoryItem;
-                
-                // For wealthy/noble characters, potentially add multiple accessories to inventory
-                if (wealthLevel === 'wealthy' || wealthLevel === 'comfortable') {
-                    const extraChance = wealthLevel === 'wealthy' ? 0.5 : 0.3;
-                    if (Math.random() < extraChance) {
-                        const extraAccessories = generateAccessorySet({
-                            culture: colorOptions.culture || 'EUROPEAN',
-                            era: colorOptions.era,
-                            wealth: wealthLevel,
-                            gender: playerCharacter.gender || 'male',
-                            profession: profession
-                        }, wealthLevel === 'wealthy' ? 2 : 1);
-                        
-                        // Add extra accessories to inventory
-                        extraAccessories.forEach(extra => {
-                            if (extra && extra.baseId !== accessoryItem.baseId) {
-                                inventory.push(extra);
-                            }
-                        });
-                    }
+
+                // Wealthy characters may get extra accessories
+                if ((wealthLevel === 'wealthy' || wealthLevel === 'comfortable') && Math.random() < 0.4) {
+                    const extraAccessories = generateAccessorySet({
+                        culture: colorOptions.culture || 'EUROPEAN',
+                        era: colorOptions.era,
+                        wealth: wealthLevel,
+                        gender: playerCharacter.gender || 'male',
+                        profession: profession
+                    }, wealthLevel === 'wealthy' ? 2 : 1);
+
+                    extraAccessories.forEach(extra => {
+                        if (extra && extra.baseId !== accessoryItem.baseId) {
+                            inventory.push(extra);
+                        }
+                    });
                 }
             }
         }

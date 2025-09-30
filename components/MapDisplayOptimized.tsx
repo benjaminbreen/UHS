@@ -1578,6 +1578,50 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     }
   }, [isDragging]);
 
+  // Attach global mouseup and mousemove listeners when dragging to prevent losing events
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!mapData) return;
+      if (!isFreePanMode) setIsFreePanMode(true);
+
+      const deltaX = e.clientX - lastMousePos.x;
+      const deltaY = e.clientY - lastMousePos.y;
+
+      currentPanX.current += deltaX;
+      currentPanY.current += deltaY;
+
+      // Direct transform manipulation for smooth performance
+      const newTransform = `translate3d(${currentPanX.current}px, ${currentPanY.current}px, 0) scale(${zoomLevel})`;
+
+      if (svgRef.current) {
+        svgRef.current.style.transform = newTransform;
+      }
+      if (canvasRef.current) {
+        canvasRef.current.style.transform = newTransform;
+      }
+
+      setLastMousePos({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleGlobalMouseUp = () => {
+      setIsDragging(false);
+      setPanX(currentPanX.current);
+      setPanY(currentPanY.current);
+      targetPanX.current = currentPanX.current;
+      targetPanY.current = currentPanY.current;
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, isFreePanMode, lastMousePos, mapData, zoomLevel]);
+
   const handleMouseLeave = useCallback(() => {
     setIsDragging(false);
     throttledOnDevHover(null);
@@ -4185,7 +4229,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           />
                         </g>
                       ) : (
-                        <g 
+                        <g
                           onClick={(e) => {
                             console.log('[MapDisplay] Ship icon clicked');
                             const rect = (e.currentTarget.parentNode as SVGSVGElement).getBoundingClientRect();
@@ -4196,6 +4240,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           }}
                           style={{ cursor: 'pointer', pointerEvents: 'all' }}
                         >
+                          {/* Shadow halo under basic ship */}
+                          <ellipse
+                            cx={displayPixelIconX}
+                            cy={displayPixelIconY + TILE_SIZE_PX * 0.35}
+                            rx={TILE_SIZE_PX * 0.5}
+                            ry={TILE_SIZE_PX * 0.18}
+                            fill="rgba(0, 0, 0, 0.3)"
+                            opacity="0.6"
+                          />
                           <ShipIcon
                             x={displayPixelIconX}
                             y={displayPixelIconY}
@@ -4216,6 +4269,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         }}
                         style={{ cursor: 'pointer', pointerEvents: 'all' }}
                       >
+                        {/* Shadow halo under player */}
+                        <ellipse
+                          cx={displayPixelIconX}
+                          cy={displayPixelIconY + TILE_SIZE_PX * 0.35}
+                          rx={TILE_SIZE_PX * 0.35}
+                          ry={TILE_SIZE_PX * 0.12}
+                          fill="rgba(0, 0, 0, 0.25)"
+                          opacity="0.8"
+                        />
                         <PlayerIcon
                           x={displayPixelIconX}
                           y={displayPixelIconY}

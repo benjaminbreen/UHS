@@ -7,9 +7,10 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { CITIES_DATA } from '../constants/gameData/cities';
 import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
+import { FACTION_ICONS } from '../constants/gameData/factionIcons';
 import CityDetailPanel from './CityDetailPanel';
 import {
-  X, ZoomIn, ZoomOut, Calendar, Play, Pause, Home, Globe, Hexagon, Info
+  X, ZoomIn, ZoomOut, Calendar, Play, Pause, Home, Globe, Hexagon, Info, Flag, ChevronUp, ChevronDown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface CityMapProps {
@@ -30,6 +31,9 @@ interface CityNode {
   region: string;
   isActive: boolean;
   importance: number;
+  allegiance?: string;
+  allegianceHistory?: { [year: number]: string };
+  economicFocus?: string[];
 }
 
 // Individual city coordinates for accurate mapping [latitude, longitude]
@@ -572,61 +576,270 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
 
 // Map region names to approximate coordinates [longitude, latitude] (fallback)
 const REGION_COORDINATES: Record<string, [number, number]> = {
-  // Europe
+  // Europe - Western
   'London': [-0.1276, 51.5074],
+  'Thames Estuary': [-0.1276, 51.5074],
   'Paris Basin': [2.3522, 48.8566],
-  'Rome': [12.4964, 41.9028],
-  'Rhine Valley': [7.5886, 50.1109],
-  'Iberian Peninsula': [-3.7038, 40.4168],
-  'Scandinavia': [18.0686, 59.3293],
-  'Eastern Europe': [21.0122, 52.2297],
-  'Greece': [23.7275, 37.9838],
+  'Loire Valley': [-0.5, 47.5],
   'Marseille Coast': [5.3698, 43.2965],
+  'Rome': [12.4964, 41.9028],
+  'Roman Campagna': [12.4964, 41.9028],
+  'Rhine Valley': [7.5886, 50.1109],
+  'Rhine–Meuse Delta': [4.4, 51.9],
+  'Iberian Peninsula': [-3.7038, 40.4168],
+  'Andalusian Plain': [-5.98, 37.39],
+  'Lisbon Coast': [-9.14, 38.72],
+  'Toledo Plateau': [-4.03, 39.86],
+  'Catalonian Hills': [2.17, 41.38],
+  'Galicia': [-8.55, 42.88],
+  'Edinburgh': [-3.19, 55.95],
+  'British Isles': [-3.44, 53.41],
+  'Irish Sea': [-5.93, 53.35],
+  'Leinster Plain': [-6.26, 53.35],
+  'Canterbury Plains': [1.08, 51.28],
+  'Oxfordshire': [-1.26, 51.75],
+
+  // Europe - Northern
+  'Scandinavia': [18.0686, 59.3293],
+  'Stockholm Archipelago': [18.07, 59.33],
+  'Norwegian Fjords': [5.32, 60.39],
+  'Hamburg Coast': [9.99, 53.55],
+  'Brandenburg Plain': [13.41, 52.52],
+  'Flanders Fields': [3.13, 50.82],
+  'Scheldt Basin': [4.35, 51.22],
+  'Zuiderzee Coast': [5.38, 52.63],
+  'Iceland': [-21.94, 64.15],
+  'Øresund Strait': [12.68, 55.68],
+
+  // Europe - Central/Eastern
+  'Central Europe': [19.04, 47.5],
+  'Eastern Europe': [21.0122, 52.2297],
+  'Vienna Basin': [16.37, 48.21],
+  'Bohemian Plateau': [14.44, 50.08],
+  'Carpathian Foothills': [22.0, 48.0],
+  'Danube Bend': [19.04, 47.79],
+  'Vistula River': [21.01, 52.23],
+  'Moscow Basin': [37.62, 55.75],
+  'Novgorod Woods': [31.28, 58.52],
+  'Volga Bend': [44.5, 48.71],
+  'Dnieper River Valley': [30.52, 50.45],
+  'Transylvania': [23.6, 46.77],
+  'Ural and Arctic Europe': [60.0, 67.0],
+
+  // Europe - Mediterranean
   'Venice': [12.3155, 45.4408],
+  'Venetian Lagoon': [12.34, 45.44],
+  'Po Valley': [11.0, 45.0],
+  'Apennine Foothills': [11.26, 43.77],
+  'Florence Hills': [11.26, 43.77],
+  'Bay of Naples': [14.26, 40.85],
+  'Ligurian Coast': [8.95, 44.41],
+  'Greece': [23.7275, 37.9838],
+  'Athens Basin': [23.73, 37.98],
+  'Peloponnesian Hills': [22.0, 37.5],
+  'Thessalian Plain': [22.0, 39.5],
+  'Thracian Plain': [26.0, 41.5],
+  'Bosporus Straits': [29.0, 41.0],
+  'Dalmatian Coast': [16.44, 43.51],
+  'Crete': [25.13, 35.31],
+  'Cyprus': [33.43, 35.13],
+  'Rhodes': [28.23, 36.43],
 
   // North America
+  'Valley of Mexico': [-99.13, 19.43],
+  'Yucatan Peninsula': [-89.0, 20.0],
+  'Yucatán Peninsula': [-89.0, 20.0],
+  'Mayan Lowlands': [-90.0, 17.0],
+  'Oaxaca Highlands': [-96.73, 17.07],
+  'Central America': [-85.0, 12.0],
   'Eastern Seaboard': [-74.0060, 40.7128],
+  'Boston Harbor': [-71.06, 42.36],
+  'Cape Cod': [-70.2, 41.7],
+  'Long Island': [-73.13, 40.79],
+  'Hudson River Valley': [-73.95, 41.7],
+  'Champlain Valley': [-73.45, 44.5],
+  'Delaware River Valley': [-75.16, 39.95],
+  'Chesapeake Bay': [-76.0, 37.5],
   'Great Lakes': [-87.6298, 41.8781],
+  'Great Lakes Shoreline': [-83.05, 42.33],
+  'Cahokia Mounds': [-90.06, 38.66],
   'Mississippi River': [-90.0715, 29.9511],
+  'Lower Mississippi Delta': [-90.08, 29.95],
+  'Platte River Basin': [-100.0, 41.0],
   'Southwest': [-112.0740, 33.4484],
+  'Colorado Plateau': [-111.0, 37.0],
+  'Texas Hill Country': [-99.0, 30.0],
+  'Gulf Coast Texas': [-95.37, 29.76],
   'California Coast': [-118.2437, 34.0522],
+  'Los Angeles Basin': [-118.24, 34.05],
+  'San Diego Bay': [-117.16, 32.72],
+  'San Francisco Bay': [-122.42, 37.77],
+  'Monterey Bay': [-121.89, 36.62],
+  'Pacific Coast Ranges': [-122.0, 40.0],
   'Pacific Northwest': [-122.3321, 47.6062],
+  'Puget Sound': [-122.33, 47.61],
+  'St. Lawrence River': [-71.21, 46.81],
   'Hudson Bay': [-86.0, 60.0],
+
+  // Caribbean
+  'The Caribbean': [-69.0, 15.0],
+  'Cuba': [-79.0, 22.0],
+  'Jamaica': [-77.3, 18.1],
+  'Hispaniola': [-71.0, 19.0],
+  'Greater Antilles': [-70.0, 18.0],
+  'Mosquito Coast': [-83.0, 14.0],
+  'Caribbean Coast': [-74.7813, 10.9685],
 
   // South America
   'Amazon Basin': [-60.0217, -3.1190],
+  'Amazon Delta': [-50.0, -0.5],
+  'Manaus Region': [-60.02, -3.12],
+  'Orinoco Delta': [-61.0, 9.0],
+  'Guyana Highlands': [-61.0, 5.0],
   'Andes Mountains': [-71.5430, -33.4489],
+  'Cajamarca Highlands': [-77.04, -12.05],
+  'Cuzco Valley': [-71.97, -13.52],
+  'Lake Titicaca Basin': [-69.0, -16.0],
+  'Quito Plateau': [-78.47, -0.18],
+  'Potosí Region': [-65.75, -19.58],
   'Pampas': [-58.3816, -34.6037],
-  'Caribbean Coast': [-74.7813, 10.9685],
+  'Pampas Grasslands': [-58.38, -34.6],
+  'Rio de Janeiro Bay': [-43.2, -22.91],
+  'São Paulo Plateau': [-46.64, -23.55],
+  'Chilean Coast': [-70.64, -33.45],
+  'Altiplano': [-68.0, -16.5],
+  'Tierra del Fuego': [-68.3, -54.8],
 
   // Africa
   'North Africa': [3.0588, 36.7538],
-  'West Africa': [-1.5247, 12.3714],
-  'East Africa': [36.8219, -1.2921],
-  'Southern Africa': [28.0473, -26.2041],
-  'Sahara Desert': [10.0, 20.0],
   'Nile Delta': [31.2357, 30.0444],
+  'Nile Valley': [32.0, 25.0],
+  'Alexandria Coast': [29.92, 31.2],
+  'Thebes Valley': [32.65, 25.7],
+  'Nubian Corridor': [32.0, 22.0],
+  'Sahara Desert': [10.0, 20.0],
+  'Central Sahara': [10.0, 20.0],
+  'Tunisian Sahel': [10.64, 35.83],
+  'Fez Plateau': [-5.0, 34.03],
+  'Rif Coast': [-3.0, 35.2],
+  'West Africa': [-1.5247, 12.3714],
+  'Timbuktu Basin': [-3.01, 16.78],
+  'Niger Bend': [0.0, 16.0],
+  'Cape Coast': [-1.24, 5.11],
+  'Gold Coast Savanna': [-1.0, 7.0],
+  'Ivory Coast': [-5.0, 6.8],
+  'Lagos Coastal Belt': [3.4, 6.45],
+  'Ashanti Forest': [-1.62, 6.69],
+  'Ibo Plateau': [7.5, 6.5],
+  'Sahelian Scrublands': [-2.0, 14.0],
+  'East Africa': [36.8219, -1.2921],
+  'Congo River Bend': [18.0, -1.0],
+  'Lake Victoria Basin': [33.0, -1.0],
+  'Serengeti Plain': [34.8, -2.33],
+  'Swahili Coast': [39.67, -4.06],
+  'Zambezi Floodplain': [28.0, -15.0],
+  'Limpopo Valley': [29.0, -23.0],
+  'Kalahari Basin': [23.0, -22.0],
+  'Highlands of Madagascar': [47.5, -19.0],
+  'Southern Africa': [28.0473, -26.2041],
 
   // Middle East
   'Mesopotamia': [44.3661, 33.3152],
+  'Babylon Region': [44.42, 32.54],
+  'Diyala Valley': [44.8, 34.0],
+  'Tigris–Euphrates Confluence': [47.45, 31.0],
+  'Jerusalem Hills': [35.22, 31.78],
+  'Bekaa Valley': [35.9, 33.85],
+  'Cilician Plain': [35.32, 36.8],
+  'Anatolia': [32.86, 39.92],  // Central Turkey
+  'Anatolian Plateau': [32.86, 39.92],  // Central Turkey
+  'Western Anatolia': [28.0, 39.0],  // Western Turkey
+  'Eastern Anatolia': [41.0, 39.5],  // Eastern Turkey
+  'Cappadocia': [34.8, 38.6],  // Central Anatolia
   'Levant': [35.2137, 31.7683],
   'Arabian Peninsula': [46.6753, 24.7136],
+  'Hejaz Mountains': [40.5, 24.0],
+  'Hejaz Interior': [40.5, 23.0],
+  'Empty Quarter': [50.0, 20.0],
   'Persian Gulf': [50.5577, 26.0667],
+  'Fars Province': [52.53, 29.61],
+  'Isfahan Basin': [51.67, 32.65],
+  'Shiraz Valley': [52.53, 29.61],
 
-  // Asia
-  'North China Plain': [116.4074, 39.9042],
-  'Yangtze River': [121.4737, 31.2304],
+  // Central/South Asia
+  'Delhi Region': [77.21, 28.61],
+  'Punjab Plains': [74.34, 31.55],
+  'Kashmir Valley': [75.0, 34.0],
+  'Harappa Basin': [72.87, 30.63],
+  'Sindh River Delta': [67.0, 24.86],
+  'Gangetic Plain': [80.95, 26.85],
+  'Varanasi Basin': [82.97, 25.32],
   'Ganges River': [78.9629, 20.5937],
+  'Coromandel Coast': [80.27, 13.08],
+  'Malabar Coast': [75.8, 11.25],
+  'Western Ghats': [77.0, 11.0],
   'Deccan Plateau': [78.4867, 17.3850],
-  'Southeast Asia': [106.8650, 10.8231],
-  'Japan': [139.6503, 35.6762],
+  'Karnataka Plateau': [76.0, 14.0],
+  'Kandy Plateau': [80.64, 7.29],
+  'Sundarbans Delta': [89.0, 22.0],
+  'Tibetan Plateau': [91.13, 29.65],
+  'Kazakh Steppes': [71.4, 51.17],
+  'Ferghana Valley': [71.78, 40.38],
+  'Samarkand Region': [66.98, 39.66],
+  'Transoxiana': [64.0, 40.0],
+  'Mongolian Steppes': [103.85, 46.86],
+  'Gobi Desert': [105.0, 42.0],
+  'Altai Mountains': [88.0, 49.0],
   'Central Asia': [71.4389, 51.1694],
+
+  // East Asia
+  'North China Plain': [116.4074, 39.9042],
+  'Beijing Basin': [116.41, 39.9],
+  'Yellow River Valley': [112.45, 34.68],
+  'Yangtze River': [121.4737, 31.2304],
+  'Yangtze Delta': [121.47, 31.23],
+  'Yangtze Gorges': [110.0, 30.0],
+  'Pearl River Delta': [113.26, 23.13],
+  'Manchurian Plain': [125.0, 45.0],
+  'Korean Peninsula': [127.0, 37.5],
+  'Han River Valley': [126.98, 37.57],
+  'Gyeongju Basin': [129.22, 35.84],
+  'Japan': [139.6503, 35.6762],
+  'Edo Plain': [139.69, 35.68],
+  'Kyoto Basin': [135.77, 35.01],
+  'Nara Uplands': [135.8, 34.69],
+  'Inland Sea Coast': [133.0, 34.0],
+  'Kyushu Island': [130.0, 33.0],
+  'Hokkaido': [142.0, 43.0],
+  'Western Siberia': [73.0, 58.0],
   'Siberia': [105.0, 60.0],
+
+  // Southeast Asia
+  'Southeast Asia': [106.8650, 10.8231],
+  'Chao Phraya Basin': [100.5, 13.75],
+  'Irrawaddy Valley': [95.0, 20.0],
+  'Mekong River Basin': [105.0, 12.0],
+  'Red River Delta': [105.85, 21.03],
+  'Tonle Sap Basin': [104.0, 13.0],
+  'Strait of Malacca': [100.0, 2.5],
+  'Sumatra Highlands': [101.0, 0.0],
+  'Java Sea': [110.0, -6.0],
+  'East Java Coast': [112.75, -7.25],
+  'West Java Coast': [106.85, -6.21],
+  'Luzon Highlands': [121.0, 16.0],
 
   // Oceania
   'Australia': [133.7751, -25.2744],
+  'Sydney Basin': [151.21, -33.87],
+  'Murray River Valley': [143.0, -35.0],
   'New Zealand': [174.7633, -36.8485],
+  'New Guinea Highlands': [143.0, -6.0],
+  'Sepik River Basin': [142.0, -4.0],
   'Indonesia': [106.8456, -6.2088],
+  'Fiji Islands': [178.0, -18.0],
+  'Society Islands': [-149.4, -17.65],
+  'Big Island Highlands': [-155.5, 19.5],
+  'Azores': [-25.67, 37.74],
 
   // Default fallback
   'default': [0, 0]
@@ -659,10 +872,34 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
     return [0, 0, 0] as [number, number, number];
   }, [playerLocation]);
 
-  const [rotation, setRotation] = useState<[number, number, number]>(initialRotation);
+  const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]); // Start with full globe view
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(0.3); // Start zoomed out
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationPhase, setAnimationPhase] = useState<'idle' | 'zooming' | 'rotating' | 'completed'>('idle');
+  const [showCityPanel, setShowCityPanel] = useState(false);
+  const [hasCompletedInitialAnimation, setHasCompletedInitialAnimation] = useState(false);
+
+  // Get current allegiance for a city based on year
+  const getAllegiance = useCallback((allegianceHistory: { [year: number]: string } | undefined, currentYear: number) => {
+    if (!allegianceHistory) return null;
+
+    const years = Object.keys(allegianceHistory)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    // Find the most recent allegiance that started before or at the current year
+    let currentAllegiance = null;
+    for (const year of years) {
+      if (year <= currentYear) {
+        currentAllegiance = allegianceHistory[year];
+      } else {
+        break;
+      }
+    }
+    return currentAllegiance;
+  }, []);
 
   // Process cities data
   const cityNodes = useMemo(() => {
@@ -675,10 +912,11 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
         const cityCoords = CITY_COORDINATES[city.name];
 
         // If no exact match, try fallback to region coordinates
-        const regionCoords = REGION_COORDINATES[mapArea] || REGION_COORDINATES['default'];
+        const regionCoords = REGION_COORDINATES[mapArea];
 
         if (cityCoords) {
           // Use exact coordinates (lat, lng format)
+          const allegiance = getAllegiance(city.allegianceHistory, currentYear);
           nodes.push({
             id: `${mapArea}-${city.name}`,
             name: city.name,
@@ -690,14 +928,18 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
             region: mapArea,
             isActive: currentYear >= city.foundingYear &&
                      (!city.declineYear || currentYear <= city.declineYear),
-            importance: Math.log((city.populationPeak || 10000) / 1000)
+            importance: Math.log((city.populationPeak || 10000) / 1000),
+            allegiance,
+            allegianceHistory: city.allegianceHistory,
+            economicFocus: city.economicFocus
           });
-        } else if (regionCoords) {
-          // Use region coordinates with small random offset
+        } else if (regionCoords && regionCoords[0] !== 0 && regionCoords[1] !== 0) {
+          // Use region coordinates with small random offset, but skip default [0,0]
           const offset = 2;
           const lon = regionCoords[0] + (Math.random() - 0.5) * offset;
           const lat = regionCoords[1] + (Math.random() - 0.5) * offset;
 
+          const allegiance = getAllegiance(city.allegianceHistory, currentYear);
           nodes.push({
             id: `${mapArea}-${city.name}`,
             name: city.name,
@@ -709,41 +951,318 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
             region: mapArea,
             isActive: currentYear >= city.foundingYear &&
                      (!city.declineYear || currentYear <= city.declineYear),
-            importance: Math.log((city.populationPeak || 10000) / 1000)
+            importance: Math.log((city.populationPeak || 10000) / 1000),
+            allegiance,
+            allegianceHistory: city.allegianceHistory,
+            economicFocus: city.economicFocus
           });
         }
+        // Skip cities that would end up at [0,0] coordinates
       });
     });
 
     return nodes;
-  }, [currentYear]);
+  }, [currentYear, getAllegiance]);
 
   // Filter active cities
   const activeCities = useMemo(() => {
     return cityNodes.filter(city => city.isActive);
   }, [cityNodes]);
 
-  // Auto-select closest city to player on mount
-  useEffect(() => {
-    if (playerLocation && activeCities.length > 0 && !selectedCity) {
-      const playerCity = activeCities.find(city => city.region === playerLocation);
-      if (playerCity) {
-        setSelectedCity(playerCity);
-      } else {
-        // Find closest city if no exact match
-        const closestCity = activeCities.reduce((closest, city) => {
-          // Simple priority: prefer same zone, then any active city
-          if (!closest) return city;
-          if (city.zone === playerLocation) return city;
-          return closest;
-        }, null as CityNode | null);
-
-        if (closestCity) {
-          setSelectedCity(closestCity);
+  // Get unique factions currently visible
+  const currentFactions = useMemo(() => {
+    const factions = new Map<string, { color: string; count: number }>();
+    activeCities.forEach(city => {
+      if (city.allegiance && FACTION_ICONS[city.allegiance]) {
+        const faction = FACTION_ICONS[city.allegiance];
+        if (factions.has(city.allegiance)) {
+          const existing = factions.get(city.allegiance)!;
+          existing.count++;
+        } else {
+          factions.set(city.allegiance, { color: faction.color, count: 1 });
         }
       }
+    });
+    return Array.from(factions.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 10); // Show top 10 factions
+  }, [activeCities]);
+
+  // Directional navigation: find nearest city in each direction
+  const findNearestCityInDirection = useCallback((direction: 'north' | 'south' | 'east' | 'west') => {
+    if (!selectedCity) return null;
+
+    const currentCoords = selectedCity.coordinates; // [lng, lat]
+    const candidates = activeCities.filter(city => city.id !== selectedCity.id);
+
+    let bestCity: CityNode | null = null;
+    let bestDistance = Infinity;
+
+    candidates.forEach(city => {
+      const cityCoords = city.coordinates; // [lng, lat]
+      const latDiff = cityCoords[1] - currentCoords[1]; // latitude difference
+      const lngDiff = cityCoords[0] - currentCoords[0]; // longitude difference
+
+      let isValidDirection = false;
+
+      switch (direction) {
+        case 'north':
+          isValidDirection = latDiff > 0 && Math.abs(latDiff) > Math.abs(lngDiff);
+          break;
+        case 'south':
+          isValidDirection = latDiff < 0 && Math.abs(latDiff) > Math.abs(lngDiff);
+          break;
+        case 'east':
+          isValidDirection = lngDiff > 0 && Math.abs(lngDiff) > Math.abs(latDiff);
+          break;
+        case 'west':
+          isValidDirection = lngDiff < 0 && Math.abs(lngDiff) > Math.abs(latDiff);
+          break;
+      }
+
+      if (isValidDirection) {
+        const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestCity = city;
+        }
+      }
+    });
+
+    return bestCity;
+  }, [selectedCity, activeCities]);
+
+  // Navigate to city in direction
+  const navigateToDirection = useCallback((direction: 'north' | 'south' | 'east' | 'west') => {
+    const targetCity = findNearestCityInDirection(direction);
+    if (targetCity) {
+      // Animate rotation to new city
+      const targetRotation: [number, number, number] = [
+        -targetCity.coordinates[0],
+        -targetCity.coordinates[1],
+        0
+      ];
+
+      setIsAnimating(true);
+      let progress = 0;
+      const duration = 1000;
+
+      const animateRotation = () => {
+        progress += 50;
+        const t = Math.min(progress / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+
+        const currentRot = rotation;
+        const newRotation: [number, number, number] = [
+          currentRot[0] + (targetRotation[0] - currentRot[0]) * eased,
+          currentRot[1] + (targetRotation[1] - currentRot[1]) * eased,
+          0
+        ];
+        setRotation(newRotation);
+
+        if (t < 1) {
+          setTimeout(animateRotation, 50);
+        } else {
+          setSelectedCity(targetCity);
+          setIsAnimating(false);
+        }
+      };
+
+      animateRotation();
     }
-  }, [playerLocation, activeCities, selectedCity]);
+  }, [findNearestCityInDirection, rotation]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (!showCityPanel || isAnimating) return;
+
+      switch (event.key) {
+        case 'ArrowUp':
+          event.preventDefault();
+          navigateToDirection('north');
+          break;
+        case 'ArrowDown':
+          event.preventDefault();
+          navigateToDirection('south');
+          break;
+        case 'ArrowLeft':
+          event.preventDefault();
+          navigateToDirection('west');
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          navigateToDirection('east');
+          break;
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyPress);
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }
+  }, [isOpen, showCityPanel, isAnimating, navigateToDirection]);
+
+  // Opening animation sequence: full globe -> zoom to nearest city -> show panel
+  useEffect(() => {
+    console.log('Opening animation check:', {
+      isOpen,
+      isAnimating,
+      activeCitiesCount: activeCities.length,
+      hasCompletedInitialAnimation,
+      playerLocation
+    });
+    if (!isOpen || isAnimating || activeCities.length === 0 || hasCompletedInitialAnimation) return;
+
+    console.log('Active cities:', activeCities.map(c => ({ name: c.name, coords: c.coordinates })).slice(0, 5));
+
+    const nearestCity = (() => {
+      if (playerLocation) {
+        // Get player coordinates from REGION_COORDINATES
+        let playerCoords = REGION_COORDINATES[playerLocation];
+        console.log('Player location:', playerLocation, 'Coords:', playerCoords);
+
+        // If exact match not found, try to find a partial match
+        if (!playerCoords) {
+          const regionKeys = Object.keys(REGION_COORDINATES);
+          const partialMatch = regionKeys.find(key =>
+            key.toLowerCase().includes(playerLocation.toLowerCase()) ||
+            playerLocation.toLowerCase().includes(key.toLowerCase())
+          );
+          if (partialMatch) {
+            playerCoords = REGION_COORDINATES[partialMatch];
+            console.log('Found partial match:', partialMatch, 'Coords:', playerCoords);
+          }
+        }
+
+        if (!playerCoords || (playerCoords[0] === 0 && playerCoords[1] === 0)) {
+          console.log('No valid coordinates found for', playerLocation, '- finding closest region name match');
+          // Instead of using first city, use a default Mediterranean location
+          playerCoords = [28.0, 39.0]; // Near Turkey/Anatolia as a better default
+        }
+
+        // Convert to [lng, lat] format for comparison
+        const playerLng = playerCoords[0];
+        const playerLat = playerCoords[1];
+
+        // Find the actual nearest city by distance
+        let nearestCity: CityNode | null = null;
+        let minDistance = Infinity;
+
+        activeCities.forEach(city => {
+          // Calculate distance using simple Euclidean distance (good enough for finding nearest)
+          const cityLng = city.coordinates[0];
+          const cityLat = city.coordinates[1];
+          const distance = Math.sqrt(
+            Math.pow(cityLng - playerLng, 2) +
+            Math.pow(cityLat - playerLat, 2)
+          );
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestCity = city;
+          }
+        });
+
+        console.log('Selected nearest city:', nearestCity?.name, 'at distance:', minDistance);
+        console.log('Top 5 nearest cities:', activeCities
+          .map(c => ({
+            name: c.name,
+            distance: Math.sqrt(
+              Math.pow(c.coordinates[0] - playerLng, 2) +
+              Math.pow(c.coordinates[1] - playerLat, 2)
+            )
+          }))
+          .sort((a, b) => a.distance - b.distance)
+          .slice(0, 5)
+        );
+
+        return nearestCity || activeCities[0]; // Still need a fallback
+      }
+      // If no player location, pick a city near the center of the old world
+      const defaultCoords = [28.0, 39.0]; // Mediterranean center
+      return activeCities.reduce((closest, city) => {
+        const dist = Math.sqrt(
+          Math.pow(city.coordinates[0] - defaultCoords[0], 2) +
+          Math.pow(city.coordinates[1] - defaultCoords[1], 2)
+        );
+        const closestDist = Math.sqrt(
+          Math.pow(closest.coordinates[0] - defaultCoords[0], 2) +
+          Math.pow(closest.coordinates[1] - defaultCoords[1], 2)
+        );
+        return dist < closestDist ? city : closest;
+      }, activeCities[0])
+    })();
+
+    if (!nearestCity) return;
+
+    setIsAnimating(true);
+    setAnimationPhase('zooming');
+
+    // Phase 1: Zoom in while showing full globe (2 seconds)
+    const zoomAnimation = () => {
+      let progress = 0;
+      const zoomDuration = 2000;
+      const startScale = 0.3;
+      const endScale = 1.0;
+
+      const zoomInterval = setInterval(() => {
+        progress += 50;
+        const t = Math.min(progress / zoomDuration, 1);
+        const eased = 1 - Math.pow(1 - t, 3); // Ease out cubic
+
+        const newScale = startScale + (endScale - startScale) * eased;
+        setScale(newScale);
+
+        if (t >= 1) {
+          clearInterval(zoomInterval);
+          setAnimationPhase('rotating');
+
+          // Phase 2: Rotate to center on nearest city (1.5 seconds)
+          setTimeout(() => {
+            const targetRotation: [number, number, number] = [
+              -nearestCity.coordinates[0], // longitude
+              -nearestCity.coordinates[1], // latitude
+              0
+            ];
+
+            let rotProgress = 0;
+            const rotateDuration = 1500;
+
+            const rotateInterval = setInterval(() => {
+              rotProgress += 50;
+              const rt = Math.min(rotProgress / rotateDuration, 1);
+              const rEased = 1 - Math.pow(1 - rt, 3);
+
+              const currentRot = rotation;
+              const newRotation: [number, number, number] = [
+                currentRot[0] + (targetRotation[0] - currentRot[0]) * rEased,
+                currentRot[1] + (targetRotation[1] - currentRot[1]) * rEased,
+                0
+              ];
+              setRotation(newRotation);
+
+              if (rt >= 1) {
+                clearInterval(rotateInterval);
+                setAnimationPhase('completed');
+
+                // Phase 3: Select city and show panel (0.5 second delay)
+                setTimeout(() => {
+                  setSelectedCity(nearestCity);
+                  setShowCityPanel(true);
+                  setIsAnimating(false);
+                  setHasCompletedInitialAnimation(true);
+                }, 500);
+              }
+            }, 50);
+          }, 200);
+        }
+      }, 50);
+    };
+
+    // Start animation after a brief delay
+    setTimeout(zoomAnimation, 500);
+  }, [isOpen, activeCities, playerLocation, isAnimating, hasCompletedInitialAnimation]);
 
   // Load world data once
   useEffect(() => {
@@ -809,13 +1328,22 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
       .attr('stroke-width', 0.5)
       .attr('opacity', 0.5);
 
-    // Draw cities
+    // Draw cities - only show cities on the visible (front) side of the globe
     const visibleCities = activeCities.filter(city => {
       const projected = projection(city.coordinates);
-      return projected !== null;
+      if (!projected) return false;
+
+      // Check if city is on the visible side of the globe using geoDistance
+      // rotation[0] is longitude, rotation[1] is latitude of center
+      const centerPoint = [-rotation[0], -rotation[1]]; // Center of visible hemisphere
+      const cityPoint = city.coordinates; // [lng, lat]
+
+      // If distance is > 90 degrees (π/2 radians), city is on the back side
+      const distance = d3.geoDistance(centerPoint, cityPoint);
+      return distance <= Math.PI / 2;
     });
 
-    // City points
+    // City points with faction colors
     g.selectAll('.city')
       .data(visibleCities)
       .enter().append('circle')
@@ -823,12 +1351,21 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
       .attr('cx', d => projection(d.coordinates)?.[0] || 0)
       .attr('cy', d => projection(d.coordinates)?.[1] || 0)
       .attr('r', d => 2 + Math.sqrt(d.importance))
-      .attr('fill', d => REGION_COLORS[d.zone] || '#64748B')
+      .attr('fill', d => {
+        // Use faction color if city has allegiance, otherwise use region color
+        if (d.allegiance && FACTION_ICONS[d.allegiance]) {
+          return FACTION_ICONS[d.allegiance].color;
+        }
+        return REGION_COLORS[d.zone] || '#64748B';
+      })
       .attr('stroke', '#fff')
       .attr('stroke-width', 0.5)
-      .attr('opacity', 0.9)
+      .attr('opacity', d => d.isActive ? 0.9 : 0.4)
       .style('cursor', 'pointer')
-      .on('click', (event, d) => setSelectedCity(d))
+      .on('click', (event, d) => {
+        setSelectedCity(d);
+        setShowCityPanel(true);
+      })
       .on('mouseover', function(event, d) {
         d3.select(this)
           .transition()
@@ -846,7 +1383,7 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
 
     // City labels for important cities
     g.selectAll('.city-label')
-      .data(visibleCities.filter(c => c.importance > 3))
+      .data(visibleCities.filter(c => c.importance > 3 && scale > 0.8))
       .enter().append('text')
       .attr('class', 'city-label')
       .attr('x', d => (projection(d.coordinates)?.[0] || 0) + 5)
@@ -854,10 +1391,62 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
       .text(d => d.name)
       .attr('font-size', '10px')
       .attr('fill', '#fff')
+      .attr('opacity', d => d.isActive ? 1 : 0.4)
       .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)')
       .style('pointer-events', 'none');
 
-  }, [activeCities, isOpen, rotation, scale, worldDataRef.current]);
+    // Highlight circle for selected city
+    if (selectedCity) {
+      const selectedProjected = projection(selectedCity.coordinates);
+      if (selectedProjected) {
+        // Check if selected city is visible
+        const centerPoint = [-rotation[0], -rotation[1]];
+        const distance = d3.geoDistance(centerPoint, selectedCity.coordinates);
+
+        if (distance <= Math.PI / 2) {
+          g.append('circle')
+            .attr('class', 'city-highlight')
+            .attr('cx', selectedProjected[0])
+            .attr('cy', selectedProjected[1])
+            .attr('r', 15)
+            .attr('fill', 'none')
+            .attr('stroke', '#fbbf24')
+            .attr('stroke-width', 3)
+            .attr('opacity', 0.8)
+            .style('pointer-events', 'none');
+
+          // Pulsing animation
+          g.append('circle')
+            .attr('class', 'city-highlight-pulse')
+            .attr('cx', selectedProjected[0])
+            .attr('cy', selectedProjected[1])
+            .attr('r', 15)
+            .attr('fill', 'none')
+            .attr('stroke', '#fbbf24')
+            .attr('stroke-width', 2)
+            .attr('opacity', 0.6)
+            .style('pointer-events', 'none')
+            .transition()
+            .duration(2000)
+            .ease(d3.easeSinInOut)
+            .attr('r', 25)
+            .attr('opacity', 0)
+            .on('end', function() {
+              // Restart the pulse
+              d3.select(this)
+                .attr('r', 15)
+                .attr('opacity', 0.6)
+                .transition()
+                .duration(2000)
+                .ease(d3.easeSinInOut)
+                .attr('r', 25)
+                .attr('opacity', 0);
+            });
+        }
+      }
+    }
+
+  }, [activeCities, isOpen, rotation, scale, selectedCity, worldDataRef.current]);
 
   // Handle dragging
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -924,7 +1513,9 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
             <Globe className="w-8 h-8 text-blue-500" />
             <div>
               <h2 className="text-2xl font-bold text-white">Cities of the World</h2>
-              <p className="text-slate-400">{activeCities.length} active cities in {currentYear < 0 ? `${Math.abs(currentYear)} BCE` : `${currentYear} CE`}</p>
+              <p className="text-slate-400">
+                {activeCities.length} active cities • {currentFactions.length} empires • {currentYear < 0 ? `${Math.abs(currentYear)} BCE` : `${currentYear} CE`}
+              </p>
             </div>
           </div>
 
@@ -973,16 +1564,19 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
         <div className="flex-1 flex relative">
           {/* Slide-in Detail Panel on Left */}
           <div
-            className={`absolute left-0 top-0 bottom-0 z-20 bg-slate-900/95 border-r border-slate-700 overflow-y-auto transition-all duration-300 ease-in-out ${
-              selectedCity ? 'w-96' : 'w-0'
+            className={`absolute left-0 top-0 bottom-0 z-20 bg-slate-900/98 border-r border-slate-600 overflow-y-auto transition-all duration-300 ease-in-out ${
+              selectedCity && showCityPanel ? 'w-[36rem]' : 'w-0'
             }`}
           >
-            {selectedCity && (
-              <div className="w-96">
+            {selectedCity && showCityPanel && (
+              <div className="w-[36rem]">
                 <div className="sticky top-0 z-30 bg-slate-900/95 border-b border-slate-700 p-4 flex justify-between items-center">
                   <h2 className="text-lg font-semibold text-white">{selectedCity.name}</h2>
                   <button
-                    onClick={() => setSelectedCity(null)}
+                    onClick={() => {
+                      setSelectedCity(null);
+                      setShowCityPanel(false);
+                    }}
                     className="p-1 hover:bg-slate-800 rounded transition-colors"
                     aria-label="Close panel"
                   >
@@ -1015,6 +1609,43 @@ const CityMapGlobe: React.FC<CityMapProps> = ({ isOpen, onClose, currentGameYear
             <div className="absolute bottom-4 left-4 bg-slate-800/90 rounded-lg p-3 text-xs text-slate-300">
               <p>Drag to rotate • Scroll to zoom • Click cities for details</p>
             </div>
+
+            {/* Faction Legend */}
+            {currentFactions.length > 0 && (
+              <div className="absolute top-4 right-4 bg-slate-800/95 rounded-lg p-4 max-w-xs shadow-xl border border-slate-700">
+                <div className="flex items-center gap-2 mb-3 border-b border-slate-700 pb-2">
+                  <Flag className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-bold text-white">Active Empires</h3>
+                  <span className="text-xs text-slate-400 ml-auto">
+                    {currentYear < 0 ? `${Math.abs(currentYear)} BCE` : `${currentYear} CE`}
+                  </span>
+                </div>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {currentFactions.map(([name, data]) => {
+                    const factionIcon = FACTION_ICONS[name];
+                    const Icon = factionIcon?.icon;
+                    return (
+                      <div key={name} className="flex items-center gap-2 text-xs hover:bg-slate-700/50 p-1 rounded transition-colors">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0 border border-white/20"
+                          style={{ backgroundColor: data.color }}
+                        />
+                        {Icon && <Icon className="w-3 h-3 text-slate-400" />}
+                        <span className="text-slate-300 truncate flex-1">
+                          {name.replace('/', ' / ')}
+                        </span>
+                        <span className="text-slate-500 text-[10px]">{data.count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {currentFactions.length === 10 && (
+                  <div className="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-700">
+                    Showing top 10 empires by city count
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Prompt to select city when none selected */}
             {!selectedCity && (

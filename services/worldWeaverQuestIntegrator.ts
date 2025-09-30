@@ -26,12 +26,27 @@ export class WorldWeaverQuestIntegrator {
     console.log(`[WorldWeaverIntegrator] Integrating quest: "${weaverQuest.title}"`);
 
     try {
-      // 1. Spawn the special NPC at the specified location
-      const npcId = await this.spawnQuestNPC(weaverQuest.specialNPC, context);
-      console.log(`[WorldWeaverIntegrator] Spawned NPC: ${weaverQuest.specialNPC.name} with ID: ${npcId}`);
+      // Handle both specialNPC (singular) and specialNPCs (plural) formats
+      const npcsToSpawn = weaverQuest.specialNPCs || (weaverQuest.specialNPC ? [weaverQuest.specialNPC] : []);
+
+      if (npcsToSpawn.length === 0) {
+        console.warn('[WorldWeaverIntegrator] No special NPCs defined for quest');
+      }
+
+      // 1. Spawn all special NPCs
+      const spawnedNPCIds: string[] = [];
+      for (const npc of npcsToSpawn) {
+        try {
+          const npcId = await this.spawnQuestNPC(npc, context);
+          spawnedNPCIds.push(npcId);
+          console.log(`[WorldWeaverIntegrator] Spawned NPC: ${npc.name} with ID: ${npcId}`);
+        } catch (error) {
+          console.error(`[WorldWeaverIntegrator] Failed to spawn NPC ${npc.name}:`, error);
+        }
+      }
 
       // 2. Create the game quest with real objectives
-      const quest = await this.createGameQuest(weaverQuest, npcId, context);
+      const quest = await this.createGameQuest(weaverQuest, spawnedNPCIds[0] || 'unknown', context);
 
       // 3. Register quest with quest service
       questService.addQuest(quest);
@@ -53,7 +68,13 @@ export class WorldWeaverQuestIntegrator {
    * Spawn the quest NPC at the exact specified coordinates
    */
   private async spawnQuestNPC(specialNPC: any, context: GameContext): Promise<string> {
-    const npcLocation = specialNPC.location;
+    // Handle location as either array [x, y] or object {x, y}
+    let npcLocation: { x: number; y: number };
+    if (Array.isArray(specialNPC.location)) {
+      npcLocation = { x: specialNPC.location[0], y: specialNPC.location[1] };
+    } else {
+      npcLocation = specialNPC.location;
+    }
 
     // Validate coordinates are on the map and on land
     if (!this.validateSpawnLocation(npcLocation, context.mapData)) {
@@ -61,7 +82,7 @@ export class WorldWeaverQuestIntegrator {
       // Find nearest valid spawn location
       const validLocation = this.findNearestValidSpawnLocation(npcLocation, context.mapData);
       if (validLocation) {
-        specialNPC.location = validLocation;
+        npcLocation = validLocation;
         console.log(`[WorldWeaverIntegrator] Corrected NPC spawn to: ${validLocation.x}, ${validLocation.y}`);
       } else {
         throw new Error(`Cannot find valid spawn location near ${npcLocation.x}, ${npcLocation.y}`);
@@ -78,13 +99,14 @@ export class WorldWeaverQuestIntegrator {
 
     // Convert to QuestNPC format for compatibility
     const questNPC = {
-      id: generateId(),
+      id: specialNPC.id || generateId(),
       name: specialNPC.name,
-      role: 'Quest Giver',
+      role: specialNPC.role || 'Quest Giver',
       personality: specialNPC.personality,
       profession: specialNPC.profession,
-      location: { x: specialNPC.location.x, y: specialNPC.location.y },
-      stages: {}
+      appearance: specialNPC.appearance,
+      location: [npcLocation.x, npcLocation.y] as [number, number],
+      stages: specialNPC.stages || {}
     };
 
     const spawnedIds = await worldWeaverNpcService.spawnQuestNPCs([questNPC], spawnContext);

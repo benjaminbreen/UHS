@@ -146,8 +146,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
       const style = document.createElement('style');
       style.id = 'safari-rightsidebar-optimization';
       style.textContent = `
-        .right-sidebar button,
-        .sidebar-content button {
+        .right-sidebar button:not(.portrait-container button),
+        .sidebar-content button:not(.portrait-container button) {
           filter: none !important;
           drop-shadow: none !important;
           text-shadow: none !important;
@@ -155,9 +155,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           transition: background-color 0.2s ease, transform 0.15s ease !important;
           will-change: auto !important;
         }
-        .right-sidebar * {
+        .right-sidebar *:not(.portrait-container *):not(svg):not(svg *) {
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
+        }
+        /* Preserve SVG filters for portrait rendering */
+        .right-sidebar svg filter,
+        .right-sidebar svg *[filter],
+        .portrait-container svg,
+        .portrait-container svg * {
+          filter: inherit !important;
+          -webkit-filter: inherit !important;
         }
         /* Optimize animations for Safari */
         .animate-fadeIn, .animate-pulse {
@@ -168,11 +176,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           -webkit-transform: translateZ(0) !important;
           transform: translateZ(0) !important;
         }
-        /* Optimize gradient rendering */
-        .right-sidebar .bg-gradient-to-br,
-        .right-sidebar .bg-gradient-to-r {
-          background: #1e293b !important;
-        }
+       
       `;
       document.head.appendChild(style);
       return () => {
@@ -355,7 +359,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
       <style>{progressBarStyles}</style>
       <div
         className={`right-sidebar ${getSafariOptimizedClassName(
-          'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-right-light dark:shadow-sidebar-right backdrop-blur-xl border-l border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200'
+          'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-right-light dark:shadow-sidebar-right border-l border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200'
         )}`}
         style={{
           width: `${sidebarWidth}px`,
@@ -381,18 +385,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
         <div className="flex-shrink-0 p-2.5">
           {playerCharacter && playerCharacter.appearance && (
             <div
-              className="p-3 mb-2 transition-all duration-300 border rounded-2xl cursor-pointer
+              className="p-3 mb-2 transition-[transform,border-color] duration-200 border rounded-2xl cursor-pointer
                          bg-gradient-to-br from-slate-800/95 via-slate-850/90 to-slate-900/95
-                         border-slate-600/60 backdrop-blur-sm
-                         hover:border-slate-500/80 hover:shadow-2xl hover:shadow-black/40
-                         hover:-translate-y-1 hover:bg-gradient-to-br hover:from-slate-750/95 hover:via-slate-800/90 hover:to-slate-850/95
-                         active:translate-y-0 active:shadow-lg transition-transform"
+                         border-slate-600/60
+                         hover:border-slate-500/80 hover:-translate-y-1
+                         active:translate-y-0"
               onClick={handleProfileClick}
             >
               <div className="flex items-start gap-4 mb-3">
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <div className="relative flex-shrink-0 w-24 h-24 overflow-hidden bg-gray-100 dark:bg-gray-900 rounded-full border-2 border-slate-400/70 dark:border-slate-500/70 shadow-xl shadow-slate-400/50 dark:shadow-black/50">
+                    <div className="portrait-container relative flex-shrink-0 w-24 h-24 overflow-hidden bg-gray-100 dark:bg-gray-900 rounded-full border-2 border-slate-400/70 dark:border-slate-500/70 shadow-xl shadow-slate-400/50 dark:shadow-black/50">
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                       <div className="flex items-center justify-center w-full h-full">
@@ -501,9 +504,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 <div>
                   <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                     <span>HEALTH</span>
-                    <span className={`transition-all duration-300 ${
-                      healthPercent < 10 ? 'animate-pulse text-red-400 font-bold text-sm' :
-                      healthPercent < 20 ? 'animate-bounce text-orange-400' : 'text-gray-400'
+                    <span className={`transition-colors duration-200 ${
+                      healthPercent < 10 ? 'text-red-400 font-bold text-sm' :
+                      healthPercent < 20 ? 'text-orange-400 font-semibold' : 'text-gray-400'
                     }`}>
                       {Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}
                     </span>
@@ -526,7 +529,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         }}
                       >
                         {/* Inner highlight */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
+                        
                       </div>
                     </div>
                   </div>
@@ -534,9 +537,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 <div>
                   <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                     <span>FATIGUE</span>
-                    <span className={`transition-all duration-300 ${
-                      fatiguePercent >= 90 ? 'animate-bounce text-red-400 font-bold text-sm' :
-                      fatiguePercent >= 80 ? 'text-orange-400' : 'text-gray-400'
+                    <span className={`transition-colors duration-200 ${
+                      fatiguePercent >= 90 ? 'text-red-400 font-bold text-sm' :
+                      fatiguePercent >= 80 ? 'text-orange-400 font-semibold' : 'text-gray-400'
                     }`}>
                       {Math.ceil(playerCharacter.fatigue)} / {Math.ceil(playerCharacter.maxFatigue)}
                     </span>
@@ -560,7 +563,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         }}
                       >
                         {/* Inner highlight */}
-                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/90 to-transparent rounded-full" />
+                        
                       </div>
                     </div>
                   </div>
@@ -591,7 +594,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         }}
                       >
                         {/* Inner highlight */}
-                        <div className="absolute top-0 left-0 right-0 h-.5 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full" />
+                       
                       </div>
                     </div>
                   </div>
@@ -735,7 +738,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
         </div>
 
         {/* Enhanced Tab Navigation */}
-        <div className="flex p-1 mx-2 mt-1 mb-2 bg-slate-800/60 border border-slate-600/60 rounded-xl shrink-0 backdrop-blur-sm">
+        <div className="flex p-1 mx-2 mt-1 mb-2 bg-slate-800 border border-slate-600/60 rounded-xl shrink-0">
           <button
             onClick={() => handleTabClick('narrator')}
             className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
@@ -744,9 +747,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            {activeTab === 'narrator' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-blue-300/30 to-blue-400/20 animate-pulse" />
-            )}
             <span className="relative z-10">Narrator</span>
           </button>
           <button
@@ -757,9 +757,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            {activeTab === 'inventory' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 via-emerald-300/30 to-emerald-400/20 animate-pulse" />
-            )}
             <span className="relative z-10">Inventory</span>
           </button>
           <button
@@ -770,9 +767,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            {activeTab === 'study' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-purple-300/30 to-purple-400/20 animate-pulse" />
-            )}
             <span className="relative z-10">Study</span>
           </button>
           <button
@@ -783,9 +777,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
             }`}
           >
-            {activeTab === 'sources' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 via-amber-300/30 to-amber-400/20 animate-pulse" />
-            )}
             <span className="relative z-10">Sources</span>
           </button>
         </div>

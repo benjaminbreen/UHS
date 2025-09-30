@@ -996,8 +996,8 @@ export const MENA_FACTIONS: FactionFile = {
                 }
             },
             [HistoricalEra.FUTURE_ERA]: {
-                dominantPower: 'Persian Confederation',
-                dominantPowerDescription: 'Climate change and water crisis force political evolution, with Iran leveraging its educated population and energy transition to remain a regional power.',
+                dominantPower: 'Islamic Republic of Iran',
+                dominantPowerDescription: 'Amid climate change and regional crises, Iran leverages its educated population to remain a regional power.',
                 eraContextSentence: 'an era of environmental adaptation, where ancient qanat wisdom meets modern technology.',
                 allegianceGroups: [
                     { name: 'Federal Government', type: 'primary', description: 'Post-theocratic system balancing regions.' },

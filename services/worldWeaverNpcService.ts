@@ -144,16 +144,27 @@ class WorldWeaverNpcService {
     const mapWidth = mapData.tiles[0].length;
     const mapHeight = mapData.tiles.length;
 
+    console.log(`[WorldWeaverNPC] Finding spawn for ${questNPC.name}:`, {
+      playerLoc: playerLocation,
+      mapSize: `${mapWidth}x${mapHeight}`,
+      role: questNPC.role
+    });
+
     // Define search preferences based on role
     const rolePreferences = this.getRoleLocationPreferences(questNPC.role);
+    console.log(`[WorldWeaverNPC] Role preferences:`, rolePreferences);
 
     // Try preferred biomes first
     for (const biomeType of rolePreferences.preferredBiomes) {
       const location = this.findLocationNearBiome(biomeType, playerLocation, mapData);
-      if (location) return location;
+      if (location) {
+        console.log(`[WorldWeaverNPC] Found location at preferred biome ${biomeType}:`, location);
+        return location;
+      }
     }
 
-    // Fallback: find any walkable location near player (within 5-15 tiles)
+    // Fallback 1: find any walkable location near player (within 5-15 tiles)
+    console.log(`[WorldWeaverNPC] Trying fallback: 50 random attempts near player (5-15 tiles)`);
     for (let attempts = 0; attempts < 50; attempts++) {
       const angle = Math.random() * Math.PI * 2;
       const distance = 5 + Math.random() * 10; // 5-15 tiles away
@@ -161,37 +172,88 @@ class WorldWeaverNpcService {
       const x = Math.round(playerLocation.x + Math.cos(angle) * distance);
       const y = Math.round(playerLocation.y + Math.sin(angle) * distance);
 
-      if (this.isValidSpawnLocation(x, y, mapData)) {
+      // Enable debug logging for first 10 attempts
+      if (this.isValidSpawnLocation(x, y, mapData, attempts < 10)) {
+        console.log(`[WorldWeaverNPC] Found valid fallback location at (${x}, ${y}) after ${attempts + 1} attempts`);
         return { x, y };
       }
     }
 
-    console.warn(`[WorldWeaverNPC] Could not find valid spawn location for ${questNPC.name}`);
+    // Fallback 2: Expand search radius to entire map if nearby search failed
+    console.log(`[WorldWeaverNPC] Nearby search failed, trying wider search across entire map`);
+    for (let attempts = 0; attempts < 100; attempts++) {
+      const x = Math.floor(Math.random() * mapWidth);
+      const y = Math.floor(Math.random() * mapHeight);
+
+      if (this.isValidSpawnLocation(x, y, mapData)) {
+        console.log(`[WorldWeaverNPC] Found valid location at (${x}, ${y}) after ${attempts + 1} wider attempts`);
+        return { x, y };
+      }
+    }
+
+    // Diagnostic: Count total valid spawn locations on entire map
+    let validTileCount = 0;
+    let sampleValidTiles: string[] = [];
+    for (let scanY = 0; scanY < mapHeight; scanY++) {
+      for (let scanX = 0; scanX < mapWidth; scanX++) {
+        if (this.isValidSpawnLocation(scanX, scanY, mapData, false)) {
+          validTileCount++;
+          if (sampleValidTiles.length < 5) {
+            sampleValidTiles.push(`(${scanX}, ${scanY})`);
+          }
+        }
+      }
+    }
+
+    console.error(`[WorldWeaverNPC] CRITICAL: Could not find ANY valid spawn location for ${questNPC.name} after 150 attempts on ${mapWidth}x${mapHeight} map`);
+    console.error(`[WorldWeaverNPC] DIAGNOSTIC: Total valid tiles on map: ${validTileCount}/${mapWidth * mapHeight} (${(validTileCount / (mapWidth * mapHeight) * 100).toFixed(1)}%)`);
+    console.error(`[WorldWeaverNPC] DIAGNOSTIC: Sample valid tiles: ${sampleValidTiles.join(', ')}`);
+    console.error(`[WorldWeaverNPC] DIAGNOSTIC: Total NPCs on map: ${mapData.npcs?.length || 0}`);
     return null;
   }
 
   /**
    * Check if location is valid for NPC spawning
+   * Uses same logic as regular NPC generator - checks isLand and excludes water biomes
    */
-  private isValidSpawnLocation(x: number, y: number, mapData: MapData): boolean {
+  private isValidSpawnLocation(x: number, y: number, mapData: MapData, debugMode: boolean = false): boolean {
     const mapWidth = mapData.tiles[0].length;
     const mapHeight = mapData.tiles.length;
 
     // Check bounds
-    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) return false;
+    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) {
+      if (debugMode) console.log(`[ValidSpawn] (${x}, ${y}) - OUT OF BOUNDS`);
+      return false;
+    }
 
     const tile = mapData.tiles[y][x];
 
-    // Must be walkable
-    if (!tile.walkable) return false;
+    // Must be land (matches regular NPC generator logic)
+    if (!tile.isLand) {
+      if (debugMode) console.log(`[ValidSpawn] (${x}, ${y}) - NOT LAND (biome: ${tile.biome})`);
+      return false;
+    }
 
     // Check for existing NPCs at this location
-    if (mapData.npcs?.some(npc => npc.x === x && npc.y === y)) return false;
+    if (mapData.npcs?.some(npc => npc.x === x && npc.y === y)) {
+      if (debugMode) console.log(`[ValidSpawn] (${x}, ${y}) - NPC ALREADY HERE`);
+      return false;
+    }
 
-    // Avoid water tiles for land NPCs
+    // Avoid water biomes (matches regular NPC generator logic)
     const waterBiomes = ['DEEP_OCEAN', 'SHALLOW_OCEAN', 'RIVER', 'MAJOR_RIVER'];
-    if (waterBiomes.includes(tile.biome)) return false;
+    if (waterBiomes.includes(tile.biome)) {
+      if (debugMode) console.log(`[ValidSpawn] (${x}, ${y}) - WATER BIOME (${tile.biome})`);
+      return false;
+    }
 
+    // Check if tile is blocking (from overlay objects like walls, furniture)
+    if (tile.isBlocking) {
+      if (debugMode) console.log(`[ValidSpawn] (${x}, ${y}) - BLOCKING (overlayObject or base biome blocks movement)`);
+      return false;
+    }
+
+    if (debugMode) console.log(`[ValidSpawn] (${x}, ${y}) - ✅ VALID (biome: ${tile.biome}, isLand: ${tile.isLand})`);
     return true;
   }
 

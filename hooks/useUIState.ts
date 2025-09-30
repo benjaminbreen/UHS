@@ -13,6 +13,7 @@ import {
 } from '../types';
 import { LogService } from '../services/logService';
 import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils';
+import { dispatchItemAcquired } from '../utils/itemEventDispatcher';
 import { executeSkill } from '../services/skillService';
 import { generateDmResponse, summarizeConversation } from '../services/llmService';
 import { executeCrafting } from '../services/craftingService';
@@ -443,11 +444,14 @@ export const useUIState = () => {
             return { ...prev, inventory: addItemToInventory(prev.inventory, item) };
         });
 
+        // Dispatch item acquired event for quest system
+        dispatchItemAcquired(item.baseId, item.quantity || 1);
+
         setInteractionModalData((prev: any) => {
             if (!prev || prev.entityId !== entityId) return prev;
             return { ...prev, items: prev.items.filter((i: Item) => i.id !== item.id) };
         });
-        
+
         addGameLogEntry(LogService.createItemAcquiredLog(item.name, item.quantity, `from a ${interactionModalData.title}`, gameDate, formattedTime));
         setPanelNotificationItem(item);
         setTimeout(() => setPanelNotificationItem(null), 5000);
@@ -1229,6 +1233,9 @@ export const useUIState = () => {
     const handleLooting = useCallback((item: Item, opponentId: string) => {
         if(!playerCharacter) return;
         setPlayerCharacter(prev => prev ? { ...prev, inventory: addItemToInventory(prev.inventory, item) } : null);
+
+        // Dispatch item acquired event for quest system
+        dispatchItemAcquired(item.baseId, item.quantity || 1);
 
         // Add gamelog entry for combat loot
         if (addGameLogEntry && gameDate && formattedTime) {

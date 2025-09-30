@@ -30,7 +30,7 @@ class WorldWeaverObjectiveHandler {
       console.log(`[WorldWeaverObjective] Handling dialogue with ${questNPC.name} for quest ${originalQuest.title}`);
 
       // Check if this dialogue triggers quest progression
-      const currentStage = this.getCurrentQuestStage(originalQuest);
+      const currentStage = this.getCurrentQuestStage(originalQuest, questId);
       if (currentStage && this.isDialogueProgression(currentStage, questNPC)) {
         this.progressQuestStage(questId, currentStage.id);
       }
@@ -38,7 +38,7 @@ class WorldWeaverObjectiveHandler {
   }
 
   /**
-   * Handle location-based objectives with fuzzy matching
+   * Handle location-based objectives with proximity checking
    */
   handleLocationObjective(playerLocation: { x: number; y: number }, questId: string): void {
     if (!worldWeaverQuestService.isWorldWeaverQuest(questId)) {
@@ -48,20 +48,21 @@ class WorldWeaverObjectiveHandler {
     const originalQuest = worldWeaverQuestService.getOriginalQuest(questId);
     if (!originalQuest) return;
 
-    const currentStage = this.getCurrentQuestStage(originalQuest);
+    const currentStage = this.getCurrentQuestStage(originalQuest, questId);
     if (!currentStage || currentStage.completionTrigger !== 'reach_location') return;
 
-    // Check if player is in the general area for location-based objectives
+    // Check if player is near quest NPCs for location-based objectives
     const spawnedNPCs = worldWeaverQuestService.getSpawnedNPCs(questId);
     if (spawnedNPCs.length > 0) {
-      // Use NPC locations as reference points for quest locations
-      // This is a simple approximation - could be enhanced with actual coordinate mapping
       const isNearQuestArea = this.isPlayerNearQuestArea(playerLocation, spawnedNPCs);
 
       if (isNearQuestArea) {
         console.log(`[WorldWeaverObjective] Player reached quest location for stage: ${currentStage.objective}`);
         this.progressQuestStage(questId, currentStage.id);
       }
+    } else {
+      // If no NPCs spawned yet, quest location objectives can't be checked
+      console.warn(`[WorldWeaverObjective] No NPCs spawned for quest ${questId} - cannot check location objective`);
     }
   }
 
@@ -76,7 +77,7 @@ class WorldWeaverObjectiveHandler {
     const originalQuest = worldWeaverQuestService.getOriginalQuest(questId);
     if (!originalQuest) return;
 
-    const currentStage = this.getCurrentQuestStage(originalQuest);
+    const currentStage = this.getCurrentQuestStage(originalQuest, questId);
     if (!currentStage || currentStage.completionTrigger !== 'survive_days') return;
 
     // Check if enough time has passed (basic implementation)
@@ -102,7 +103,7 @@ class WorldWeaverObjectiveHandler {
     const originalQuest = worldWeaverQuestService.getOriginalQuest(questId);
     if (!originalQuest) return;
 
-    const currentStage = this.getCurrentQuestStage(originalQuest);
+    const currentStage = this.getCurrentQuestStage(originalQuest, questId);
     if (!currentStage || currentStage.completionTrigger !== 'obtain_item') return;
 
     // Check if the collected item matches quest requirements
@@ -113,14 +114,110 @@ class WorldWeaverObjectiveHandler {
   }
 
   /**
-   * Get the current active stage for a WorldWeaver quest
+   * Handle observation objectives via journal entries
    */
-  private getCurrentQuestStage(quest: WorldWeaverQuest): QuestStage | null {
-    // For now, return the first stage - this could be enhanced to track actual progression
-    // In a full implementation, we'd store which stage the player is currently on
-    if (quest.stages.length > 0) {
-      return quest.stages[0];
+  handleObservationObjective(questId: string, journalEntry: any): void {
+    if (!worldWeaverQuestService.isWorldWeaverQuest(questId)) {
+      return;
     }
+
+    const originalQuest = worldWeaverQuestService.getOriginalQuest(questId);
+    if (!originalQuest) return;
+
+    const currentStage = this.getCurrentQuestStage(originalQuest, questId);
+    if (!currentStage || currentStage.completionTrigger !== 'make_observations') return;
+
+    // Check if journal entry contains relevant observations
+    // Store observation count in quest progress
+    const progressKey = `observations_${questId}_${currentStage.id}`;
+    const currentCount = parseInt(localStorage.getItem(progressKey) || '0');
+    const newCount = currentCount + 1;
+
+    localStorage.setItem(progressKey, newCount.toString());
+
+    // Check if target reached (default 3 observations)
+    const targetCount = currentStage.targetAmount || 3;
+    if (newCount >= targetCount) {
+      console.log(`[WorldWeaverObjective] Observation objective completed: ${newCount}/${targetCount}`);
+      this.progressQuestStage(questId, currentStage.id);
+      localStorage.removeItem(progressKey); // Cleanup
+    } else {
+      console.log(`[WorldWeaverObjective] Observation progress: ${newCount}/${targetCount}`);
+    }
+  }
+
+  /**
+   * Handle journal reflection objectives
+   */
+  handleJournalReflectionObjective(questId: string, journalEntry: any): void {
+    if (!worldWeaverQuestService.isWorldWeaverQuest(questId)) {
+      return;
+    }
+
+    const originalQuest = worldWeaverQuestService.getOriginalQuest(questId);
+    if (!originalQuest) return;
+
+    const currentStage = this.getCurrentQuestStage(originalQuest, questId);
+    if (!currentStage || currentStage.completionTrigger !== 'journal_reflection') return;
+
+    // Check if journal entry contains reflection content
+    // For now, any journal entry counts as reflection
+    console.log(`[WorldWeaverObjective] Journal reflection objective completed`);
+    this.progressQuestStage(questId, currentStage.id);
+  }
+
+  /**
+   * Handle resource collection objectives
+   */
+  handleResourceObjective(questId: string, resourceId: string, quantity: number): void {
+    if (!worldWeaverQuestService.isWorldWeaverQuest(questId)) {
+      return;
+    }
+
+    const originalQuest = worldWeaverQuestService.getOriginalQuest(questId);
+    if (!originalQuest) return;
+
+    const currentStage = this.getCurrentQuestStage(originalQuest, questId);
+    if (!currentStage || currentStage.completionTrigger !== 'collect_resource') return;
+
+    // Track resource collection progress
+    const progressKey = `resources_${questId}_${currentStage.id}`;
+    const currentAmount = parseInt(localStorage.getItem(progressKey) || '0');
+    const newAmount = currentAmount + quantity;
+
+    localStorage.setItem(progressKey, newAmount.toString());
+
+    // Check if target reached
+    const targetAmount = currentStage.targetAmount || 5;
+    if (newAmount >= targetAmount) {
+      console.log(`[WorldWeaverObjective] Resource collection objective completed: ${newAmount}/${targetAmount}`);
+      this.progressQuestStage(questId, currentStage.id);
+      localStorage.removeItem(progressKey); // Cleanup
+    } else {
+      console.log(`[WorldWeaverObjective] Resource collection progress: ${newAmount}/${targetAmount}`);
+    }
+  }
+
+  /**
+   * Get the current active stage for a WorldWeaver quest with progression tracking
+   */
+  private getCurrentQuestStage(quest: WorldWeaverQuest, questId: string): QuestStage | null {
+    // Get the quest entry with progression data
+    const entry = worldWeaverQuestService.getQuestEntry(questId);
+
+    if (!entry) {
+      console.warn('[WorldWeaverObjective] No quest entry found for', questId, '- defaulting to stage 0');
+      return quest.stages[0] || null;
+    }
+
+    const currentIndex = entry.currentStageIndex || 0;
+
+    if (currentIndex < quest.stages.length) {
+      console.log(`[WorldWeaverObjective] Quest ${questId} is on stage ${currentIndex + 1}/${quest.stages.length}`);
+      return quest.stages[currentIndex];
+    }
+
+    console.warn('[WorldWeaverObjective] Stage index out of bounds:', currentIndex, '- quest may be complete');
     return null;
   }
 
@@ -142,10 +239,18 @@ class WorldWeaverObjectiveHandler {
       const currentObjective = quest.objectives[quest.currentObjectiveIndex];
       if (currentObjective && !currentObjective.completed) {
         questService.completeObjective(questId, currentObjective.id);
-        console.log(`[WorldWeaverObjective] Progressed quest stage: ${stageId}`);
+        console.log(`[WorldWeaverObjective] Completed stage: ${stageId}`);
 
-        // Add journal entry for stage completion
-        this.addStageCompletionJournalEntry(questId, stageId);
+        // Advance to next stage
+        const hasNextStage = worldWeaverQuestService.advanceToNextStage(questId);
+
+        if (hasNextStage) {
+          console.log(`[WorldWeaverObjective] Moving to next stage for quest ${questId}`);
+          this.addStageCompletionJournalEntry(questId, stageId);
+        } else {
+          console.log(`[WorldWeaverObjective] Quest ${questId} completed - all stages done`);
+          this.addStageCompletionJournalEntry(questId, stageId);
+        }
       }
     }
   }
@@ -180,13 +285,45 @@ class WorldWeaverObjectiveHandler {
   }
 
   /**
-   * Check if player is near quest area (simple proximity check)
+   * Check if player is near quest area using NPC positions from localStorage
    */
   private isPlayerNearQuestArea(playerLocation: { x: number; y: number }, npcIds: string[]): boolean {
-    // This is a simplified implementation
-    // In a full version, we'd check proximity to actual quest NPCs or marked locations
-    // For now, assume any location change could trigger location objectives
-    return true; // Placeholder - would need actual NPC position checking
+    if (npcIds.length === 0) return false;
+
+    // Get NPCs from MapContext via localStorage (fallback method)
+    // In production, this should be passed as a parameter from the event
+    const mapNpcsJson = localStorage.getItem('mapNpcs');
+    if (!mapNpcsJson) {
+      console.warn('[WorldWeaverObjective] No NPC data available for location check');
+      return false;
+    }
+
+    try {
+      const mapNpcs = JSON.parse(mapNpcsJson);
+
+      // Check proximity to any quest NPC (within 10 tiles = close enough)
+      const PROXIMITY_RADIUS = 10;
+
+      for (const npcId of npcIds) {
+        const npc = mapNpcs.find((n: any) => n.id === npcId);
+        if (npc && npc.x !== undefined && npc.y !== undefined) {
+          const distance = Math.sqrt(
+            Math.pow(npc.x - playerLocation.x, 2) +
+            Math.pow(npc.y - playerLocation.y, 2)
+          );
+
+          if (distance <= PROXIMITY_RADIUS) {
+            console.log(`[WorldWeaverObjective] Player within ${distance.toFixed(1)} tiles of quest NPC ${npcId}`);
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('[WorldWeaverObjective] Error checking NPC proximity:', error);
+      return false;
+    }
   }
 
   /**
@@ -215,10 +352,22 @@ class WorldWeaverObjectiveHandler {
       const { itemId, quantity, activeQuests } = event.detail;
       activeQuests?.forEach((questId: string) => {
         this.handleItemObjective(questId, itemId, quantity);
+        this.handleResourceObjective(questId, itemId, quantity);
       });
     });
 
-    console.log('[WorldWeaverObjective] Initialized enhanced objective handlers');
+    // Listen for journal entry events
+    window.addEventListener('journalEntryAdded', (event: any) => {
+      const { entry, activeQuests } = event.detail;
+      if (activeQuests && Array.isArray(activeQuests)) {
+        activeQuests.forEach((questId: string) => {
+          this.handleObservationObjective(questId, entry);
+          this.handleJournalReflectionObjective(questId, entry);
+        });
+      }
+    });
+
+    console.log('[WorldWeaverObjective] Initialized enhanced objective handlers with journal support');
   }
 }
 

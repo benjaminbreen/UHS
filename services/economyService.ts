@@ -2,7 +2,7 @@
  * services/economyService.ts - Manages dynamic pricing models.
  */
 import { MapData, Item, BiomeType, ItemDefinition, CulturalZone, HistoricalEra, NpcEntity } from '../types';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 import { createItemInstance } from '../utils/inventoryUtils';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
@@ -22,7 +22,7 @@ interface PriceInfo {
  * @returns An object with calculated buyPrice and sellPrice.
  */
 export function calculatePrices(itemBaseId: string, mapData: MapData, npcs: NpcEntity[]): PriceInfo {
-  const definition = ITEM_DEFINITIONS[itemBaseId];
+  const definition = getItemDefinition(itemBaseId);
   if (!definition) {
     console.warn(`No item definition found for ${itemBaseId} in economyService.`);
     return { buyPrice: 999, sellPrice: 0 };
@@ -113,7 +113,7 @@ export function getMarketInventory(mapData: MapData, era: HistoricalEra, cultura
     mapData.tiles.flat().forEach(tile => {
         if (tile.biome === BiomeType.FARMLAND && tile.cropType) {
             const cropId = tile.cropType.toUpperCase().replace(/ /g, '_');
-            if (ITEM_DEFINITIONS[cropId]) {
+            if (getItemDefinition(cropId)) {
                 availableGoods.add(cropId);
             }
         }
@@ -125,7 +125,7 @@ export function getMarketInventory(mapData: MapData, era: HistoricalEra, cultura
     // 4. Calculate prices for all available goods and filter by context
     const inventory = Array.from(availableGoods)
         .map(baseId => {
-            const definition = ITEM_DEFINITIONS[baseId];
+            const definition = getItemDefinition(baseId);
             if (!definition || definition.value === 0) return null;
 
             // Historical Era Check

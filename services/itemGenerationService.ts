@@ -1,6 +1,6 @@
 import { Item, ItemDefinition, ItemCategory, ItemQuality } from '../types';
 import { CulturalZone, HistoricalEra } from '../types';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 import { v4 as uuidv4 } from 'uuid';
 
 type ProfessionType = 'military' | 'religious' | 'herder' | 'noble' | 'civilian' | 'criminal' | 'official';
@@ -851,9 +851,24 @@ export function applyMaterialVariation(item: ItemDefinition, availableMaterials:
   };
 }
 
+/**
+ * Categories that should NEVER receive colors (natural items)
+ */
+const NO_COLOR_CATEGORIES = new Set<ItemCategory>([
+  'Food',
+  'Material',  // Raw materials like logs, stones
+  'Consumable', // Potions, medicines
+  'Document'    // Books, scrolls
+]);
+
 export function assignProceduralColors(item: Item, culture: CulturalZone, socialClass: 'common' | 'noble' | 'religious' = 'common'): Item {
-  // For clothing/apparel
-  if (item.category === 'Apparel') {
+  // NEVER assign colors to natural categories
+  if (NO_COLOR_CATEGORIES.has(item.category)) {
+    return item;
+  }
+
+  // For clothing/apparel - use cultural palettes
+  if (item.category === 'Apparel' || item.category === 'Armor') {
     const palette = CLOTHING_COLOR_PALETTES[culture]?.[socialClass] || CLOTHING_COLOR_PALETTES['EUROPEAN']['common'];
     const color = randomChoice(palette);
     return {
@@ -862,20 +877,80 @@ export function assignProceduralColors(item: Item, culture: CulturalZone, social
     };
   }
 
-  // For items with materials, assign material-based colors
+  // For weapons - only color handles/grips, not the metal parts
+  if (item.category === 'Weapon') {
+    // Only add color if it has a wooden or leather handle component
+    const nameLower = item.name.toLowerCase();
+    if (nameLower.includes('staff') || nameLower.includes('club') ||
+        nameLower.includes('bow') || nameLower.includes('spear')) {
+      const handleColors = ['#8B4513', '#654321', '#3E2723']; // Brown wood colors
+      return {
+        ...item,
+        color: randomChoice(handleColors)
+      };
+    }
+    return item; // No color for pure metal weapons like swords
+  }
+
+  // For tools - similar to weapons, only color wooden handles
+  if (item.category === 'Tool') {
+    const nameLower = item.name.toLowerCase();
+    if (nameLower.includes('axe') || nameLower.includes('hammer') ||
+        nameLower.includes('shovel') || nameLower.includes('hoe')) {
+      const handleColors = ['#8B4513', '#654321', '#3E2723'];
+      return {
+        ...item,
+        color: randomChoice(handleColors)
+      };
+    }
+    return item;
+  }
+
+  // For jewelry/accessories - use appropriate metallic colors
+  if (item.equipmentSlot === 'necklace' || item.equipmentSlot === 'ring1' ||
+      item.equipmentSlot === 'ring2' || item.equipmentSlot === 'accessory') {
+    const metalColors = socialClass === 'noble' ?
+      ['#FFD700', '#C0C0C0', '#B87333'] : // Gold, Silver, Copper for nobles
+      ['#B87333', '#8B7355', '#A0522D']; // Copper, Bronze, Sienna for common
+    return {
+      ...item,
+      color: randomChoice(metalColors)
+    };
+  }
+
+  // For vessels - natural wood/clay colors
+  if (item.category === 'Vessel') {
+    const vesselColors = ['#8B4513', '#A0522D', '#CD853F', '#DEB887']; // Wood and clay colors
+    return {
+      ...item,
+      color: randomChoice(vesselColors)
+    };
+  }
+
+  // For items with materials, use material-appropriate colors
   if (item.material) {
     const materialLower = item.material.toLowerCase();
+
+    // Skip coloring for metal materials (they have natural colors)
+    if (materialLower.includes('iron') || materialLower.includes('steel') ||
+        materialLower.includes('bronze') || materialLower.includes('gold') ||
+        materialLower.includes('silver')) {
+      return item;
+    }
+
+    // Try to get material-specific colors
     const colorRange = MATERIAL_COLOR_RANGES[materialLower];
     if (colorRange) {
       const colors = colorRange.primary;
       const selectedColor = randomChoice(colors);
       return {
         ...item,
-        color: selectedColor // Store hex color directly
+        color: selectedColor
       };
     }
   }
 
+  // Default: no color for unrecognized items
   return item;
 }
 
@@ -994,17 +1069,17 @@ export function generateMaterialVariation(material: string, quality: ItemQuality
 
 // Item name variations to reduce repetition
 const ITEM_NAME_VARIATIONS: Record<string, string[]> = {
-  'Walking Staff': ['Traveling Staff', 'Pilgrim Rod', 'Wanderer Stick', 'Journey Staff', 'Trail Pole', 'Hiking Staff', 'Support Cane', 'Path Staff', 'Road Stick'],
-  'Stick': ['Branch', 'Rod', 'Pole', 'Staff', 'Club', 'Baton', 'Cudgel', 'Switch'],
-  'Quarterstaff': ['Battle Staff', 'Fighting Stick', 'War Staff', 'Combat Pole', 'Defense Rod'],
-  'Herding Staff': ['Shepherd Rod', 'Cattle Stick', 'Livestock Pole', 'Animal Staff', 'Flock Stick'],
-  'Walking Cane': ['Gentleman Cane', 'Support Stick', 'Mobility Aid', 'Elder Staff', 'Town Cane'],
-  'Worker\'s Trousers': ['Work Pants', 'Labor Breeches', 'Factory Pants', 'Mill Trousers', 'Dock Pants', 'Field Bottoms'],
+  'Walking Staff': ['Traveling Staff', 'Pilgrim Rod', 'Wanderer Stick', 'Journey Staff', 'Trail Pole', 'Hiking Staff',],
+  'Stick': ['Branch', 'Rod', 'Pole', 'Staff', 'Club', 'Cudgel', 'Switch'],
+  'Quarterstaff': ['Long Stick'],
+  'Herding Staff': ['Shepherd Rod', 'Cattle Stick',],
+  'Walking Cane': ['Walking Stick', 'Support Stick',],
+  'Worker\'s Trousers': ['Work Pants', 'Breeches', 'Hose', 'Trousers'],
   'Cotton Shirt': ['Cotton Blouse', 'Cotton Top', 'Light Shirt', 'Summer Top', 'Plain Shirt', 'Daily Shirt'],
   'Shirt': ['Blouse', 'Top', 'Garment', 'Upper Wear', 'Tunic', 'Jersey'],
-  'Simple Tunic': ['Basic Shirt', 'Plain Top', 'Common Garment', 'Work Blouse', 'Daily Wear', 'Folk Shirt'],
-  'Tunic': ['Shirt', 'Blouse', 'Top', 'Jerkin', 'Vest', 'Garment'],
-  'Wool Tunic': ['Woolen Shirt', 'Winter Top', 'Warm Garment', 'Fleece Shirt', 'Heavy Tunic']
+  'Simple Tunic': ['Simple Tunic', 'Plain Top', 'Tunic', 'Work Blouse', 'Folk Shirt'],
+  'Tunic': ['Shirt', 'Blouse', 'Tunic'],
+  'Wool Tunic': ['Woolen Shirt', 'Heavy Tunic']
 };
 
 // Helper function to get regional meat name
@@ -1026,6 +1101,56 @@ function getItemNameVariation(baseName: string): string {
   return baseName;
 }
 
+/**
+ * Normalize a word for duplicate checking (removes common suffixes/prefixes)
+ */
+function normalizeWord(word: string): string {
+  const lower = word.toLowerCase();
+  // Remove common material suffixes
+  return lower.replace(/en$|ern$|ine$|ish$/, '');
+}
+
+/**
+ * Check if a word appears in text (with fuzzy matching)
+ */
+function wordAppearsIn(word: string, text: string): boolean {
+  const normalizedWord = normalizeWord(word);
+  const normalizedText = normalizeWord(text);
+
+  // Exact match
+  if (normalizedText.includes(normalizedWord)) return true;
+
+  // Check if it's a substring (min 3 chars)
+  if (word.length >= 3 && text.toLowerCase().includes(word.toLowerCase())) return true;
+
+  return false;
+}
+
+/**
+ * Clean duplicate words from an array of name parts
+ */
+function deduplicateNameParts(parts: string[]): string[] {
+  const seen = new Set<string>();
+  const normalized = new Set<string>();
+  const result: string[] = [];
+
+  for (const part of parts) {
+    const normalizedPart = normalizeWord(part);
+
+    // Skip if we've seen this exact word
+    if (seen.has(part.toLowerCase())) continue;
+
+    // Skip if we've seen a similar word (normalized form)
+    if (normalized.has(normalizedPart) && normalizedPart.length > 3) continue;
+
+    seen.add(part.toLowerCase());
+    normalized.add(normalizedPart);
+    result.push(part);
+  }
+
+  return result;
+}
+
 export function generateProceduralName(
   baseItem: ItemDefinition,
   options: {
@@ -1039,11 +1164,16 @@ export function generateProceduralName(
     era?: HistoricalEra;
   }
 ): string {
+  // Safety check: ensure baseItem has required properties
+  if (!baseItem || !baseItem.name || typeof baseItem.name !== 'string') {
+    console.warn('generateProceduralName called with invalid baseItem:', baseItem);
+    return 'Unknown Item';
+  }
+
   // For meat items, use regional variants
   if (baseItem.baseId === 'MEAT' && options.culture && options.era) {
     const meatName = getRegionalMeatName(options.culture, options.era);
     if (options.quality && options.quality !== 'standard') {
-      // Use food-specific quality words for meat
       const foodQualityWords = CATEGORY_QUALITY_WORDS['Food']?.[options.quality] || QUALITY_ADJECTIVES[options.quality];
       const qualityWord = randomChoice(foodQualityWords);
       return `${qualityWord} ${meatName}`;
@@ -1051,41 +1181,71 @@ export function generateProceduralName(
     return meatName;
   }
 
-  // Simple, clean naming: [Quality] [Color] [Material] [Item Name]
+  // Build name parts array
   const parts: string[] = [];
+  const baseNameLower = baseItem.name.toLowerCase();
 
-  // Use category-specific quality descriptors
+  // Track words already in base name to avoid duplication
+  const baseNameWords = baseNameLower.split(/\s+/);
+
+  // 1. Quality adjective (if not standard)
   if (options.quality && options.quality !== 'standard') {
     const categoryQualityWords = CATEGORY_QUALITY_WORDS[baseItem.category]?.[options.quality];
     const qualityWord = categoryQualityWords
       ? randomChoice(categoryQualityWords)
       : randomChoice(QUALITY_ADJECTIVES[options.quality]);
-    parts.push(qualityWord);
-  }
 
-  // Add color if provided
-  if (options.color && options.color !== '#8b7355') { // Skip default color
-    // Convert hex to name if needed
-    const colorName = getColorName(options.color);
-    if (colorName) {
-      parts.push(colorName);
+    // Only add if quality word isn't in base name
+    if (!wordAppearsIn(qualityWord, baseItem.name)) {
+      parts.push(qualityWord);
     }
   }
 
-  // Add material (just the clean material name, not variations)
-  // Skip adding material if it's an era name
-  const eraNames = ['PREHISTORY', 'ANTIQUITY', 'MEDIEVAL', 'RENAISSANCE_EARLY_MODERN',
-                    'INDUSTRIAL_ERA', 'MODERN_ERA', 'FUTURE_ERA'];
-  if (options.material && options.material !== baseItem.material &&
-      !eraNames.includes(options.material)) {
-    parts.push(options.material);
+  // 2. Color (if provided and not default)
+  if (options.color && options.color !== '#8b7355') {
+    const colorName = getColorName(options.color);
+    if (colorName && !wordAppearsIn(colorName, baseItem.name)) {
+      // Also check it's not already in parts
+      if (!parts.some(p => wordAppearsIn(colorName, p))) {
+        parts.push(colorName);
+      }
+    }
   }
 
-  // Base item name with variations (always last)
-  // Apply variations to common repetitive items
+  // 3. Material (if different from base and not redundant)
+  if (options.material && options.material !== baseItem.material) {
+    // Skip era names
+    const eraNames = ['PREHISTORY', 'ANTIQUITY', 'MEDIEVAL', 'RENAISSANCE_EARLY_MODERN',
+                      'INDUSTRIAL_ERA', 'MODERN_ERA', 'FUTURE_ERA'];
+
+    if (!eraNames.includes(options.material)) {
+      // Check each word of the material
+      const materialWords = options.material.split(/\s+/);
+      let shouldAddMaterial = true;
+
+      for (const materialWord of materialWords) {
+        // Skip if any significant word (3+ chars) is already in base name
+        if (materialWord.length >= 3 && wordAppearsIn(materialWord, baseItem.name)) {
+          shouldAddMaterial = false;
+          break;
+        }
+        // Skip if already in parts
+        if (parts.some(p => wordAppearsIn(materialWord, p))) {
+          shouldAddMaterial = false;
+          break;
+        }
+      }
+
+      if (shouldAddMaterial) {
+        parts.push(options.material);
+      }
+    }
+  }
+
+  // 4. Get base item name (with possible variation)
   let finalName = baseItem.name;
 
-  // Check for items that need variation
+  // Apply variations to common repetitive items
   const needsVariation = ['Walking Staff', 'Stick', 'Worker\'s Trousers', 'Simple Tunic',
                          'Tunic', 'Cotton Shirt', 'Wool Tunic', 'Shirt'].includes(baseItem.name);
 
@@ -1093,9 +1253,21 @@ export function generateProceduralName(
     finalName = getItemNameVariation(baseItem.name);
   }
 
-  parts.push(finalName);
+  // 5. Final deduplication check
+  // Remove any words from parts that appear in finalName
+  const cleanedParts = parts.filter(part => {
+    const partWords = part.split(/\s+/);
+    return !partWords.every(word => wordAppearsIn(word, finalName));
+  });
 
-  return parts.join(' ');
+  // Add final name
+  cleanedParts.push(finalName);
+
+  // One more pass to remove any lingering duplicates
+  const allWords = cleanedParts.join(' ').split(/\s+/);
+  const dedupedWords = deduplicateNameParts(allWords);
+
+  return dedupedWords.join(' ');
 }
 
 // Helper to convert hex colors to names
@@ -1151,6 +1323,123 @@ export function applyQualityModifiers(item: Item, quality: ItemQuality): Item {
   };
 }
 
+// Cache for deterministic base properties (NOT complete items)
+// This caches only the parts that don't change: materials, cultural styles, etc.
+interface CachedBaseProperties {
+  baseItem: ItemDefinition;
+  eraAppropriateMaterial?: string;
+  culturalStyle?: string;
+  shouldHaveMaterial: boolean;
+}
+
+const PROCEDURAL_CACHE = new Map<string, CachedBaseProperties>();
+const CACHE_MAX_SIZE = 1000; // Limit cache size to prevent memory issues
+
+function createCacheKey(
+  baseItemId: string,
+  options: {
+    culture?: CulturalZone;
+    era?: HistoricalEra;
+    quality?: ItemQuality;
+    forceColor?: string;
+    socialClass?: 'common' | 'noble' | 'religious';
+    privilegeModifier?: number;
+  }
+): string {
+  // Create deterministic cache key from options
+  const parts = [
+    baseItemId,
+    options.culture || 'NONE',
+    options.era || 'NONE',
+    options.quality || 'NONE',
+    options.forceColor || 'NONE',
+    options.socialClass || 'NONE',
+    (options.privilegeModifier || 0).toString()
+  ];
+  return parts.join('|');
+}
+
+/**
+ * Create cache key for deterministic base properties only
+ * Excludes random variations like quality, age, condition
+ */
+function createDeterministicCacheKey(
+  baseItemId: string,
+  options: {
+    culture?: CulturalZone;
+    era?: string;
+    socialClass?: 'common' | 'noble' | 'religious';
+  }
+): string {
+  // Only include properties that affect base material/style selection
+  const parts = [
+    baseItemId,
+    options.culture || 'NONE',
+    options.era || 'MEDIEVAL',
+    options.socialClass || 'NONE'
+  ];
+  return parts.join('|');
+}
+
+function clearCacheIfNeeded(): void {
+  if (PROCEDURAL_CACHE.size > CACHE_MAX_SIZE) {
+    // Clear oldest 50% of entries (simple LRU approximation)
+    const entries = Array.from(PROCEDURAL_CACHE.entries());
+    const toKeep = entries.slice(Math.floor(entries.length / 2));
+    PROCEDURAL_CACHE.clear();
+    toKeep.forEach(([key, value]) => PROCEDURAL_CACHE.set(key, value));
+  }
+}
+
+/**
+ * Generate only deterministic base properties that can be cached
+ * This includes: era-appropriate materials, cultural styles, base stats
+ * Excludes: quality, condition, age (which should vary per instance)
+ */
+function generateBaseProperties(
+  baseItem: ItemDefinition,
+  options: {
+    culture?: CulturalZone;
+    era?: string;
+    socialClass?: 'common' | 'noble' | 'religious';
+  }
+): CachedBaseProperties {
+  const era = options.era || 'MEDIEVAL';
+
+  // Determine if item should have materials
+  const shouldHaveMaterial = !MATERIAL_EXCLUDED_CATEGORIES.includes(baseItem.category) &&
+                            !MATERIAL_EXCLUDED_ITEMS.includes(baseItem.baseId || '') &&
+                            (baseItem.material || baseItem.category === 'Weapon' ||
+                             baseItem.category === 'Apparel' || baseItem.category === 'Armor');
+
+  let eraAppropriateMaterial: string | undefined;
+  let culturalStyle: string | undefined;
+
+  if (shouldHaveMaterial && baseItem.material) {
+    // Get era-appropriate material (deterministic based on era/category)
+    const baseMaterial = baseItem.material;
+    eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era as HistoricalEra, baseItem.category);
+
+    // Validate the substituted material
+    if (!isValidMaterialForItem(eraAppropriateMaterial, baseItem.name, baseItem.equipmentSlot)) {
+      eraAppropriateMaterial = baseMaterial;
+    }
+
+    // Get cultural style (deterministic based on culture/material)
+    if (options.culture) {
+      culturalStyle = getCulturalStyle(options.culture, eraAppropriateMaterial);
+    }
+  }
+
+  // Return cached base properties
+  return {
+    baseItem,
+    eraAppropriateMaterial: eraAppropriateMaterial || baseItem.material,
+    culturalStyle,
+    shouldHaveMaterial
+  };
+}
+
 export function generateProceduralItem(
   baseItemId: string,
   options: {
@@ -1162,50 +1451,55 @@ export function generateProceduralItem(
     privilegeModifier?: number;
   } = {}
 ): Item | null {
-  const baseItem = ITEM_DEFINITIONS[baseItemId];
-  if (!baseItem) return null;
-  
-  // Generate procedural properties
+  const baseItem = getItemDefinition(baseItemId);
+  if (!baseItem) {
+    console.warn(`generateProceduralItem: Could not find item definition for "${baseItemId}"`);
+    return null;
+  }
+
+  // Additional safety check for valid item structure
+  if (!baseItem.name || !baseItem.category) {
+    console.warn(`generateProceduralItem: Invalid item definition for "${baseItemId}"`, baseItem);
+    return null;
+  }
+
+  // Separate deterministic base properties from random variations
+  // Cache key should only include deterministic inputs that affect base properties
+  const deterministicOptions = {
+    culture: options.culture,
+    era: options.era || 'MEDIEVAL',
+    socialClass: options.socialClass,
+    // Note: We DON'T include quality, age, or condition in cache key
+    // because these should vary per item instance
+  };
+
+  const cacheKey = createDeterministicCacheKey(baseItemId, deterministicOptions);
+  let baseProperties = PROCEDURAL_CACHE.get(cacheKey);
+
+  if (!baseProperties) {
+    // Generate only the deterministic base properties that can be cached
+    baseProperties = generateBaseProperties(baseItem, deterministicOptions);
+    PROCEDURAL_CACHE.set(cacheKey, baseProperties);
+    clearCacheIfNeeded();
+  }
+
+  // Now apply random variations that should NOT be cached
   const privilege = options.privilegeModifier || (options.socialClass === 'noble' ? 0.3 : 0);
   const quality = options.quality || generateItemQuality(privilege);
   const era = options.era || 'MEDIEVAL';
   const age = generateAge(era);
   const condition = generateCondition(quality, age);
 
-  // Only apply materials to items that should have them
-  // Skip Food, consumables, and items without base materials
-  let eraAppropriateMaterial: string | undefined;
-  let culturalStyle: string | undefined;
-
-  const shouldHaveMaterial = !MATERIAL_EXCLUDED_CATEGORIES.includes(baseItem.category) &&
-                            !MATERIAL_EXCLUDED_ITEMS.includes(baseItemId) &&
-                            (baseItem.material || baseItem.category === 'Weapon' ||
-                             baseItem.category === 'Apparel' || baseItem.category === 'Armor');
-
-  if (shouldHaveMaterial && baseItem.material) {
-    // Get era-appropriate material
-    const baseMaterial = baseItem.material;
-    eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era, baseItem.category);
-
-    // Validate the substituted material makes sense for this item
-    if (!isValidMaterialForItem(eraAppropriateMaterial, baseItem.name, baseItem.equipmentSlot)) {
-      eraAppropriateMaterial = baseMaterial; // Keep original material if substitution is invalid
-    }
-
-    // Get cultural style
-    culturalStyle = options.culture ? getCulturalStyle(options.culture, eraAppropriateMaterial) : undefined;
-  }
-  
-  // Create item instance with all procedural properties
+  // Create item instance combining cached base properties with random variations
   let item: Item = {
-    ...baseItem,
+    ...baseProperties.baseItem,
     id: `item-${uuidv4()}`,
     quantity: 1,
-    quality,
-    condition,
-    culturalStyle,
-    age,
-    material: eraAppropriateMaterial || baseItem.material
+    quality,  // Random per instance
+    condition,  // Random per instance
+    culturalStyle: baseProperties.culturalStyle,  // From cache
+    age,  // Random per instance
+    material: baseProperties.eraAppropriateMaterial  // From cache
   };
   
   // Apply colors FIRST so we can use them in the name
@@ -1216,9 +1510,9 @@ export function generateProceduralItem(
   }
   
   // Generate procedural name with color, culture, and era
-  item.name = generateProceduralName(baseItem, {
+  item.name = generateProceduralName(baseProperties.baseItem, {
     quality,
-    material: eraAppropriateMaterial, // Will be undefined for food/consumables
+    material: baseProperties.shouldHaveMaterial ? baseProperties.eraAppropriateMaterial : undefined,
     color: item.color,
     culture: options.culture,
     era: era
@@ -1241,7 +1535,7 @@ export function generateProceduralItem(
       }
     }
   }
-  
+
   return item;
 }
 
@@ -1272,10 +1566,10 @@ export function getDiverseStartingWeapon(profession: string, era: HistoricalEra,
   if (weaponId === 'STICK') {
     // Try to return something more appropriate when possible
     const profType = getProfessionType(profession);
-    if (profType === 'military' && ITEM_DEFINITIONS['SWORD']) {
+    if (profType === 'military' && getItemDefinition('SWORD')) {
       return 'SWORD';
     }
-    if (profType === 'herder' && ITEM_DEFINITIONS['ROPE']) {
+    if (profType === 'herder' && getItemDefinition('ROPE')) {
       return 'ROPE';
     }
   }
@@ -1327,10 +1621,11 @@ export function generateCrafterSignature(): string {
 
 export function addCrafterSignature(item: Item): Item {
   if (item.quality === 'excellent' && Math.random() < 0.3) {
+    const crafterName = generateCrafterSignature();
     return {
       ...item,
-      crafterName: generateCrafterSignature(),
-      name: `${item.name} (by ${generateCrafterSignature()})`
+      crafterName: crafterName,
+      name: `${item.name} (by ${crafterName})`
     };
   }
   return item;
@@ -1352,40 +1647,53 @@ export function applyColorsToAllItems(
   });
 }
 
+/**
+ * UNIFIED item generation function - replaces both createColoredItemInstance and createItemInstance
+ * Provides consistent item generation with optional cultural and historical context
+ */
+export function generateItem(
+  baseItemId: string,
+  options: {
+    culture?: CulturalZone;
+    era?: HistoricalEra;
+    privilege?: number;
+    forceColor?: string;
+    quality?: ItemQuality;
+  } = {}
+): Item | null {
+  const baseItem = getItemDefinition(baseItemId);
+  if (!baseItem) return null;
+
+  // Determine social class from privilege
+  const privilege = options.privilege ?? 0.5;
+  const socialClass = privilege > 0.7 ? 'noble' : privilege > 0.3 ? 'common' : 'common';
+
+  // Generate the item with full procedural variation
+  return generateProceduralItem(baseItemId, {
+    culture: options.culture,
+    era: options.era,
+    quality: options.quality,
+    forceColor: options.forceColor,
+    socialClass,
+    privilegeModifier: privilege > 0.7 ? 0.2 : 0
+  });
+}
+
+// Backward compatibility aliases - will be removed in future version
 export function createColoredItemInstance(
   baseItemId: string,
   culture: CulturalZone,
   privilege: number = 0.5,
   era?: HistoricalEra
 ): Item | null {
-  const baseItem = ITEM_DEFINITIONS[baseItemId];
-  if (!baseItem) return null;
-  
-  // Generate the item with full procedural variation
-  return generateProceduralItem(baseItemId, {
-    culture,
-    era,
-    socialClass: privilege > 0.7 ? 'noble' : privilege > 0.3 ? 'common' : 'common',
-    privilegeModifier: privilege > 0.7 ? 0.2 : 0 // Better quality for high privilege
-  });
+  return generateItem(baseItemId, { culture, era, privilege });
 }
 
 export function ensureItemHasColor(item: Item, culture: CulturalZone, privilege: number = 0.5): Item {
   // Skip if item already has a color
   if (item.color) return item;
-  
-  // Apply color based on material first
-  if (item.material) {
-    const materialColor = getMaterialColorHex(item.material);
-    if (materialColor !== '#8b7355') { // Not default color
-      return {
-        ...item,
-        color: materialColor
-      };
-    }
-  }
-  
-  // Apply cultural color if it's apparel
-  const socialClass = privilege > 0.7 ? 'noble' : 'common';
+
+  // Use the improved color assignment logic
+  const socialClass = privilege > 0.7 ? 'noble' : privilege > 0.3 ? 'common' : 'common';
   return assignProceduralColors(item, culture, socialClass);
 }

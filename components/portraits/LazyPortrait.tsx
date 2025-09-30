@@ -16,6 +16,7 @@ interface LazyPortraitProps {
   trackChanges?: boolean;
   className?: string;
   immediate?: boolean; // Skip lazy loading for critical portraits
+  staticMode?: boolean; // Disable animations/expressions for lists
 }
 
 const LazyPortrait: React.FC<LazyPortraitProps> = ({
@@ -25,7 +26,8 @@ const LazyPortrait: React.FC<LazyPortraitProps> = ({
   useEquippedItems = false,
   trackChanges = false,
   className = '',
-  immediate = false
+  immediate = false,
+  staticMode = false
 }) => {
   const [isLoading, setIsLoading] = useState(!immediate);
   const [portraitHtml, setPortraitHtml] = useState<string | null>(null);
@@ -153,7 +155,7 @@ const LazyPortrait: React.FC<LazyPortraitProps> = ({
   // Render actual portrait
   return (
     <div ref={containerRef} className={className}>
-      {type === 'animated' ? (
+      {type === 'animated' && !staticMode ? (
         <AnimatedPortrait
           character={character}
           size={size}
@@ -164,6 +166,7 @@ const LazyPortrait: React.FC<LazyPortraitProps> = ({
           character={character}
           size={size}
           useEquippedItems={useEquippedItems}
+          staticMode={staticMode}
         />
       )}
     </div>

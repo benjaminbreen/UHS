@@ -5,7 +5,7 @@
 
 import { Item, CulturalZone, HistoricalEra } from '../types';
 import { CULTURAL_ACCESSORIES, getAccessoriesForCharacter, selectRandomAccessory } from '../constants/characterData/accessories';
-import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
 import { createItemInstance } from '../utils/inventoryUtils';
 
 // Quality tiers affect value and appearance
@@ -246,7 +246,7 @@ export function generateCulturalAccessory(options: AccessoryGenerationOptions): 
   if (!selectedId) return null;
   
   // Get base item definition
-  const baseItem = ITEM_DEFINITIONS[selectedId];
+  const baseItem = getItemDefinition(selectedId);
   if (!baseItem) return null;
   
   // Create item instance
