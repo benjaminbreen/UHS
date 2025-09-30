@@ -15,11 +15,12 @@ import { shareableStateService } from '../services/shareableStateService';
 import { findZoneForMapArea } from '../services/zoneDetectionService';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { dialectContinuumService } from '../services/dialectContinuumService';
-import { FACTION_DATA } from '../constants/index';
+// FACTION_DATA will be lazy-loaded for better performance
 import { FACTION_ICONS } from '../constants/gameData/factionIcons';
+import SimplePopulationChart from './charts/SimplePopulationChart';
 
 // Lazy load heavy chart components
-const PopulationChart = lazy(() => import('./charts/PopulationChart'));
+// PopulationChart replaced with SimplePopulationChart (no D3/Recharts dependency)
 const MiniLocationMap = lazy(() => import('./charts/MiniLocationMap'));
 
 // Loading skeleton component for charts
@@ -339,6 +340,9 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     // Animation states for stylish fade-in
     const [isVisible, setIsVisible] = useState(false);
     const [contentVisible, setContentVisible] = useState(false);
+    const [shouldRenderPortrait, setShouldRenderPortrait] = useState(false);
+    const [factionDataCache, setFactionDataCache] = useState<any>(null);
+    const [isFactionDataLoading, setIsFactionDataLoading] = useState(false);
 
     // Detect Safari for performance optimizations
     const isSafari = useMemo(() => {
@@ -350,11 +354,24 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
             // Start the fade-in animation sequence
             setTimeout(() => setIsVisible(true), 10);
             setTimeout(() => setContentVisible(true), 100);
+
+            // Defer portrait rendering until after modal animation completes
+            // This prevents blocking the main thread during modal open
+            const portraitDelay = isSafari ? 400 : 300;
+            const portraitTimer = setTimeout(() => setShouldRenderPortrait(true), portraitDelay);
+
+            return () => {
+                clearTimeout(portraitTimer);
+            };
         } else {
             setIsVisible(false);
             setContentVisible(false);
+            setShouldRenderPortrait(false);
+            // Reset faction data cache when modal closes
+            setFactionDataCache(null);
+            setIsFactionDataLoading(false);
         }
-    }, [isOpen]);
+    }, [isOpen, isSafari]);
     
     if (!isOpen) return null;
 
@@ -363,27 +380,40 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const culturalZone = useMemo(() => mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone, [currentZone, dateInfo.year]);
     const era = useMemo(() => dateInfo.era as HistoricalEra, [dateInfo.era]);
 
-    // Get faction data for the current region (using same structure as LeftSidebar)
-    const factionData = useMemo(() => {
-        if (!currentZone || !currentRegion || !gameDate) return null;
-        try {
-            const dateInfo = parseDateString(gameDate.year.toString());
-            const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
-            const result = FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
-            console.log('InitialScenarioModal faction debug:', {
-                currentZone,
-                currentRegion,
-                culturalZoneEnum,
-                era: dateInfo.era,
-                factionData: result,
-                dominantPower: result?.dominantPower
-            });
-            return result;
-        } catch (error) {
-            console.error('Error getting faction data in InitialScenarioModal:', error);
-            return null;
-        }
-    }, [currentZone, currentRegion, gameDate]);
+    // Lazy load faction data for better performance (especially on Safari)
+    useEffect(() => {
+        if (!currentZone || !currentRegion || !gameDate || factionDataCache) return;
+
+        setIsFactionDataLoading(true);
+
+        // Dynamically import FACTION_DATA only when needed
+        import('../constants/gameData/factions').then((module) => {
+            try {
+                const dateInfo = parseDateString(gameDate.year.toString());
+                const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
+                const result = module.FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
+
+                console.log('InitialScenarioModal faction debug:', {
+                    currentZone,
+                    currentRegion,
+                    culturalZoneEnum,
+                    era: dateInfo.era,
+                    factionData: result,
+                    dominantPower: result?.dominantPower
+                });
+
+                setFactionDataCache(result);
+                setIsFactionDataLoading(false);
+            } catch (error) {
+                console.error('Error getting faction data in InitialScenarioModal:', error);
+                setFactionDataCache(null);
+                setIsFactionDataLoading(false);
+            }
+        });
+    }, [currentZone, currentRegion, gameDate, factionDataCache]);
+
+    // Use cached faction data
+    const factionData = factionDataCache;
 
     // Get dominant faction icon
     const { dominantFactionIcon: DominantFactionIcon } = useMemo(() => {
@@ -498,7 +528,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         <div className={`p-2 md:p-3 bg-gradient-to-br rounded-lg shrink-0 ${
                         gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-500 to-amber-600' : 'from-amber-500 to-amber-600'
                     }`}>
-                            <DominantFactionIcon className="w-5 h-5 md:w-7 md:h-7 text-white" />
+                            {isFactionDataLoading ? (
+                                <Globe className="w-5 h-5 md:w-7 md:h-7 text-white animate-pulse" />
+                            ) : (
+                                <DominantFactionIcon className="w-5 h-5 md:w-7 md:h-7 text-white" />
+                            )}
                         </div>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 break-words">
@@ -571,20 +605,30 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                             <div
                                                 className="w-24 h-24 md:w-32 md:h-32 rounded-lg border-2 border-amber-400/50 shadow-lg overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 cursor-pointer hover:border-amber-400 transition-colors"
                                                 onClick={() => {
-                                                    const expressions: Array<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'> = ['neutral', 'smile', 'frown', 'surprise', 'angry'];
-                                                    const currentIndex = expressions.indexOf(portraitExpression);
-                                                    const filteredExpressions = expressions.filter((_, i) => i !== currentIndex);
-                                                    const newExpression = filteredExpressions[Math.floor(Math.random() * filteredExpressions.length)];
-                                                    setPortraitExpression(newExpression);
+                                                    if (shouldRenderPortrait) {
+                                                        const expressions: Array<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'> = ['neutral', 'smile', 'frown', 'surprise', 'angry'];
+                                                        const currentIndex = expressions.indexOf(portraitExpression);
+                                                        const filteredExpressions = expressions.filter((_, i) => i !== currentIndex);
+                                                        const newExpression = filteredExpressions[Math.floor(Math.random() * filteredExpressions.length)];
+                                                        setPortraitExpression(newExpression);
+                                                    }
                                                 }}
-                                                title="Click to change expression"
+                                                title={shouldRenderPortrait ? "Click to change expression" : "Loading portrait..."}
                                             >
-                                                <ProceduralPortrait
-                                                    character={playerCharacter}
-                                                    size={128}
-                                                    expression={portraitExpression}
-                                                    className="w-full h-full"
-                                                />
+                                                {shouldRenderPortrait ? (
+                                                    <ProceduralPortrait
+                                                        character={playerCharacter}
+                                                        size={128}
+                                                        expression={portraitExpression}
+                                                        className="w-full h-full"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
+                                                        <div className="animate-pulse">
+                                                            <User className="w-12 h-12 text-slate-500" />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-amber-400/30 to-amber-600/30 blur-sm -z-10" />
                                         </div>
@@ -803,13 +847,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                         {/* Right Column - Charts (2/5) */}
                         <div className="lg:col-span-2 space-y-2 md:space-y-3">
-                            {/* Population Chart */}
-                            <Suspense fallback={<ChartSkeleton height="200px" />}>
-                                <PopulationChart
-                                    currentYear={gameDate.year}
-                                    culturalZone={culturalZone.toString()}
-                                />
-                            </Suspense>
+                            {/* Population Chart - Static SVG version for better performance */}
+                            <SimplePopulationChart
+                                currentYear={gameDate.year}
+                                culturalZone={culturalZone.toString()}
+                            />
 
                             {/* Mini Location Map */}
                             <Suspense fallback={<ChartSkeleton height="300px" />}>

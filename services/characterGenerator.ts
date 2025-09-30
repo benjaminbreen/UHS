@@ -215,7 +215,7 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
     'spiritual': 'deeply spiritual',
     'prophet': 'gifted with divine visions',
     'blessed': 'blessed by fortune',
-    'cursed': 'cursed',
+    'cursed': 'believed to be cursed',
     'mystic': 'blessed with mystical insights',
     'skeptic': 'doubtful of all religions',
 

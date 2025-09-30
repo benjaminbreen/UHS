@@ -92,19 +92,18 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     // Handle player response
     const handlePlayerResponse = useCallback(async () => {
         if (!currentDialogue || !playerInput.trim()) return;
-        
+
         setIsSubmittingInput(true);
-        console.log(`🗣️ [Interior] Player responds: ${playerInput}`);
-        
+
         try {
-            if (config.buildingType === 'fortress' && mapData) {
+            if (mapData) {
                 const { dialogue } = await generateFortressCommanderDialogue(
                     playerCharacter,
                     mapData,
                     currentDialogue.npc,
                     playerInput
                 );
-                
+
                 // Fade out current dialogue and show response
                 setCurrentDialogue(prev => prev ? { ...prev, visible: false } : null);
                 setTimeout(() => {
@@ -122,10 +121,10 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             // Show a cold dismissal as fallback
             setCurrentDialogue(prev => prev ? { ...prev, text: 'I have no time for this.', visible: true } : null);
         }
-        
+
         setPlayerInput('');
         setIsSubmittingInput(false);
-    }, [currentDialogue, playerInput, config.buildingType, mapData, playerCharacter]);
+    }, [currentDialogue, playerInput, mapData, playerCharacter]);
     
     // Create procedural portrait for fortress commander (similar to GovernmentDistrictModal)
     const commanderPortrait = useMemo(() => {
@@ -369,6 +368,16 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     // Initialize interior data
     useEffect(() => {
         const data = generateBeautifulInterior(config);
+
+        console.log('🎨 [BeautifulInteriorMapDisplay] Interior rendering debug:', {
+            playerPos: data.layout.entrance,
+            npcCount: data.npcs?.length || 0,
+            npcs: data.npcs?.map(n => ({ name: n.name, x: n.x, y: n.y, id: n.id })) || [],
+            namedElite: data.namedElite ? { name: data.namedElite.name, x: data.namedElite.x, y: data.namedElite.y } : null,
+            layoutBounds: data.layout.totalBounds,
+            spaces: data.layout.spaces.map(s => ({ id: s.id, bounds: s.bounds }))
+        });
+
         setInteriorData({
             layout: data.layout,
             namedElite: data.namedElite,
@@ -376,7 +385,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             npcs: data.npcs || []
         });
         setPlayerPosition(data.layout.entrance);
-        
+
         // For fortress, automatically trigger commander dialogue on entry (only once)
         if (config.buildingType === 'fortress' && data.namedElite && mapData && !hasFetchedFortressDialogue.current) {
             hasFetchedFortressDialogue.current = true;
@@ -463,19 +472,17 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     }
     
     return (
-        <div className="w-full h-screen bg-black relative overflow-hidden">
+        <div className="w-full h-full bg-black relative overflow-hidden">
             {/* Beautiful interior renderer */}
-            <div className="w-full h-full flex items-center justify-center">
-                <div className="max-w-4xl max-h-4xl w-full h-full p-4">
-                    <BeautifulInteriorRenderer
-                        layout={interiorData.layout}
-                        playerPosition={playerPosition}
-                        playerCharacter={playerCharacter}
-                        npcs={interiorData.npcs}
-                        scale={1}
-                        onNpcClick={onNpcClick}
-                    />
-                </div>
+            <div className="w-full h-full flex items-center justify-center p-4">
+                <BeautifulInteriorRenderer
+                    layout={interiorData.layout}
+                    playerPosition={playerPosition}
+                    playerCharacter={playerCharacter}
+                    npcs={interiorData.npcs}
+                    scale={1}
+                    onNpcClick={onNpcClick}
+                />
             </div>
             
             {/* FF6-Style Dialogue Box with Portrait */}
@@ -615,7 +622,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             `}</style>
             
             {/* UI Overlay */}
-            <div className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-4 rounded-lg border border-gray-600">
+            <div className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-4 rounded-lg border border-gray-600 max-w-[280px] z-50">
                 <h2 className="text-lg font-bold mb-2">{interiorData.layout.name}</h2>
                 <p className="text-sm text-gray-300 mb-2">{interiorData.layout.name}</p>
                 {interiorData.namedElite && (
@@ -632,7 +639,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             {/* Exit button */}
             <button
                 onClick={onExit}
-                className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg border border-red-400 transition-colors text-sm font-semibold"
+                className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg border border-red-400 transition-colors text-sm font-semibold max-w-[100px] z-50"
             >
                 Exit
             </button>

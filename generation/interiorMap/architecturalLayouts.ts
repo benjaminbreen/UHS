@@ -774,19 +774,20 @@ export function selectBuildingLayout(
         console.log('⛪ [ArchitecturalLayouts] Processing holy place with religion:', lowerReligion);
         console.log('🌍 Cultural zone:', culturalZone, 'Era:', era);
         
-        // Try to use our culturally-specific holy place layouts first
-        if (culturalZone && era) {
-            const culturalLayout = getHolyPlaceBuildingLayout(
-                culturalZone as CulturalZone,
-                era,
-                religion
-            );
-            
-            if (culturalLayout) {
-                console.log('✨ Using culturally-specific holy place layout:', culturalLayout.name);
-                return culturalLayout;
-            }
-        }
+        // TEMPORARILY DISABLED - procedural holy place layouts have NaN bugs
+        // TODO: Fix holyPlaceInteriorIntegration.ts to generate valid connected layouts
+        // if (culturalZone && era) {
+        //     const culturalLayout = getHolyPlaceBuildingLayout(
+        //         culturalZone as CulturalZone,
+        //         era,
+        //         religion
+        //     );
+        //
+        //     if (culturalLayout) {
+        //         console.log('✨ Using culturally-specific holy place layout:', culturalLayout.name);
+        //         return culturalLayout;
+        //     }
+        // }
         
         // Fallback to religion-based selection if no cultural layout found
         if (lowerReligion.includes('islam') || lowerReligion.includes('sunni') || lowerReligion.includes('shia')) {

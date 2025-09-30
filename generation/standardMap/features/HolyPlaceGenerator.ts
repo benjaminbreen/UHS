@@ -4,6 +4,7 @@
 import { Tile, BiomeType, MapData, SocietalProfile, TerrainStructure, FactionData, HistoricalEra } from '../../../types/index';
 import { ValueNoise } from '../../../utils/noise';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ALTITUDE_LEVELS, STRUCTURE_BLUEPRINTS, FACTION_DATA } from '../../../constants/index';
+// Note: FACTION_DATA is loaded lazily via Proxy - it's available synchronously
 import { parseDateString } from '../../../utils/dateUtils';
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { RELIGION_DATA } from '../../../constants/characterData/religions';

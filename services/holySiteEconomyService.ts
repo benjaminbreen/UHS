@@ -3,11 +3,10 @@
  * Manages tithes, offerings, blessings, and religious economic flows
  */
 
-import { TerrainStructure, MapData, NpcEntity, HistoricalEra, Item, GameDate } from '../types';
+import { TerrainStructure, MapData, NpcEntity, HistoricalEra, Item, GameDate, CulturalZone } from '../types';
 import { parseDateString } from '../utils/dateUtils';
-import { FACTION_DATA } from '../constants';
-import { CulturalZone } from '../constants';
 import { getReligionDisplay, detectReligion } from '../constants/gameData/religionIcons';
+// FACTION_DATA removed - not actually used in this file
 
 export interface ReligiousEconomy {
   holySiteId: string;

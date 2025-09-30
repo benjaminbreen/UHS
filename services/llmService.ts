@@ -5,7 +5,9 @@ import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile, BiomeType } from '../types';
 import { StudyContext, StudyAction } from '../types/studyTypes';
 import type { Season } from '../types';
-import { CulturalZone, FACTION_DATA, GEOGRAPHICAL_DATA, ANIMAL_DATA } from '../constants/index';
+import { CulturalZone, ANIMAL_DATA } from '../constants/index';
+import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
+// FACTION_DATA is loaded on-demand - see getAllFactionData() where needed
 import { generateAmbianceText } from "./ambianceGenerator";
 import { generateNpcName } from "../generation/common/npcUtils";
 import { mapLocationToCulture } from "../utils/mapUtils";

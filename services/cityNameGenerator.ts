@@ -2,7 +2,9 @@
  * services/cityNameGenerator.ts - Procedural city name generation system
  */
 import { CityInfo, CulturalZone, HistoricalEra } from '../types';
-import { CITIES_DATA, PROCEDURAL_CITY_DATA } from '../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { CITIES_DATA } from '../constants/gameData/cities';
+import { PROCEDURAL_CITY_DATA } from '../constants/gameData/proceduralCityData';
 import { parseDateString } from '../utils/dateUtils';
 
 

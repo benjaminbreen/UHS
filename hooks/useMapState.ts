@@ -8,9 +8,10 @@ import { proceduralGenerateMap } from '../generation/standardMap/standardMapGene
 import { generateSpecialMap } from '../generation/specialMap/specialMapGenerator';
 import { deriveMapSeed } from '../utils/mapUtils';
 import { findMapAreaDefinition, getNextMapArea } from '../utils/geographyUtils';
-import { geography } from '../constants/gameData/geography';
 import { ValueNoise } from '../utils/noise';
-import {  GEOGRAPHICAL_DATA, MAP_WIDTH_TILES, MAP_HEIGHT_TILES, SOCIETAL_PROFILES } from '../constants/index';
+import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, SOCIETAL_PROFILES } from '../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { geography, GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { generateCharacter, generateCharacterWithSpec } from '../services/characterGenerator';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';

@@ -3,14 +3,16 @@
  */
 import { ValueNoise } from '../../utils/noise';
 import { MapData, MapArchetype, ClimateType, Tile, BiomeType, Point, NeighboringEdges, EdgeDataSet, EdgeTileInfo, AltitudeSetting, CulturalZone, HistoricalEra, MapGenerationParams, SocietalProfile } from '../../types/index';
-import { 
-    MAP_WIDTH_TILES, MAP_HEIGHT_TILES, RIVER_PORT_WATER_CORRIDOR_RATIO, 
-    LAND_THRESHOLD_BASE, NOISE_SCALE_LANDMASS, NOISE_SCALE_TEMPERATURE, 
+import {
+    MAP_WIDTH_TILES, MAP_HEIGHT_TILES, RIVER_PORT_WATER_CORRIDOR_RATIO,
+    LAND_THRESHOLD_BASE, NOISE_SCALE_LANDMASS, NOISE_SCALE_TEMPERATURE,
     ATOLL_LAGOON_RADIUS_RATIO, ATOLL_REEF_RING_INNER_RADIUS_RATIO, ATOLL_REEF_RING_OUTER_RADIUS_RATIO,
     PENINSULA_LAND_RATIO, BAY_WATER_RATIO, BAY_OPENING_WIDTH_FACTOR, FRESHWATER_LAKE_RADIUS_RATIO,
     SHOALS_ARCHETYPE_LAND_PATCH_CHANCE, SHOALS_ARCHETYPE_SHOAL_TILE_DENSITY, OPEN_OCEAN_LAND_FALLOFF,
-    NOISE_SCALE_THERMAL, ALTITUDE_LEVELS, FACTION_DATA, GEOGRAPHICAL_DATA, SOCIETAL_PROFILES
+    NOISE_SCALE_THERMAL, ALTITUDE_LEVELS, FACTION_DATA, SOCIETAL_PROFILES
 } from '../../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../../constants/gameData/geography';
 
 import { 
   generateAltitudeAndInitialBiomes, 

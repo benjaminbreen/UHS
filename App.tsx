@@ -1,7 +1,7 @@
 /**
  * App.tsx - Main application component for the Map Voyager Engine
  */
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { MapProvider, useMap } from './contexts/MapContext';
@@ -14,18 +14,17 @@ import LeftSidebar from './components/LeftSidebar';
 import MapViewport from './components/MapViewport';
 import RightSidebar from './components/RightSidebar';
 import { isMobileDevice } from './utils/deviceUtils';
+import { isSafari } from './utils/safariUtils';
 import MobileHeader from './components/mobile/MobileHeader';
 import MobileQuickStats from './components/mobile/MobileQuickStats';
 import MobileSidebar from './components/mobile/MobileSidebar';
 import ModalHub from './components/ModalHub';
 import DebugOverlay from './components/DebugOverlay';
 import FPSCounter from './components/FPSCounter';
-import { EventModal } from './components/EventModal';
 import { EventNotification, EventBadge } from './components/EventNotification';
 import { GameModeSelector } from './components/GameModeSelector';
 import { suggestGameMode, GAME_MODES, getGameModeById } from './constants/gameData/gameModes';
 import { themeService } from './services/themeService';
-import InitialScenarioModal from './components/InitialScenarioModal';
 import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
 import TransitionOverlay from './components/TransitionOverlay';
@@ -39,28 +38,49 @@ import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetection
 import { worldWeaverObjectiveHandler } from './services/worldWeaverObjectiveHandler';
 import { worldWeaverNotificationService } from './services/worldWeaverNotificationService';
 import { useURLGameConfig } from './hooks/useURLGameConfig';
-import FactionsModal from './components/FactionsModal';
 import FactionTooltip from './components/FactionTooltip';
-import GameOverModal from './components/GameOverModal';
-import NpcDeathModal from './components/NpcDeathModal';
-import DiseaseProgressionModal from './components/DiseaseProgressionModal';
-import CampModal from './components/CampModal';
 import PlayerTooltip from './components/PlayerTooltip';
 import { DiseaseProgressionEvent } from './services/diseaseNotificationService';
 import { SavedGame } from './services/saveGameService';
 import FloatingText from './components/ui/FloatingText';
 import GameSetupScreen from './components/GameSetupScreen';
+import { LoadingSkeleton } from './components/LoadingSkeleton';
+
+// Lazy load heavy modals that are used infrequently
+const EventModal = lazy(() => import('./components/EventModal').then(m => ({ default: m.EventModal })));
+const InitialScenarioModal = lazy(() => import('./components/InitialScenarioModal'));
+const FactionsModal = lazy(() => import('./components/FactionsModal'));
+const GameOverModal = lazy(() => import('./components/GameOverModal'));
+const NpcDeathModal = lazy(() => import('./components/NpcDeathModal'));
+const DiseaseProgressionModal = lazy(() => import('./components/DiseaseProgressionModal'));
+const CampModal = lazy(() => import('./components/CampModal'));
 
 const AppContent: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    
+
+    // Show loading skeleton until core systems initialize
+    const [isInitializing, setIsInitializing] = React.useState(true);
+    const [uiVisible, setUiVisible] = React.useState(false);
+
+    // Detect Safari for conditional optimizations
+    const isSafariBrowser = React.useMemo(() => isSafari(), []);
+
     // Initialize theme on app startup
     React.useEffect(() => {
         themeService.initializeTheme();
         // Initialize WorldWeaver systems
         worldWeaverObjectiveHandler.initialize();
         worldWeaverNotificationService.initialize();
+
+        // Hide loading skeleton after brief delay to ensure UI is ready
+        const timer = setTimeout(() => {
+            setIsInitializing(false);
+            // Trigger Safari fade-in after skeleton is hidden
+            setTimeout(() => setUiVisible(true), 50);
+        }, 300);
+
+        return () => clearTimeout(timer);
     }, []);
 
     // Parse URL config FIRST, before any hooks that use game state
@@ -286,8 +306,11 @@ const AppContent: React.FC = () => {
     // Increased delay to give WorldWeaver a chance to set its flag
     React.useEffect(() => {
         const timer = setTimeout(() => {
-            setDelayInitialMap(false);
-        }, 500); // Longer delay to allow WorldWeaver to initialize if it's going to be used
+            // Use startTransition to make map generation non-blocking (helps Safari performance)
+            React.startTransition(() => {
+                setDelayInitialMap(false);
+            });
+        }, 100); // Reduced delay - UI will render first via startTransition
         return () => clearTimeout(timer);
     }, []);
 
@@ -353,9 +376,13 @@ const AppContent: React.FC = () => {
         
         console.log('[App] Initiating world generation...');
         setHasInitializedFromURL(true);
-        setIsGeneratingMap(true);
         hasGeneratedFromURLRef.current = true;
-        
+
+        // Wrap heavy generation in startTransition for better perceived performance
+        React.startTransition(() => {
+            setIsGeneratingMap(true);
+        });
+
         // If we have URL config, generate based on that
         if (shouldWaitForURLConfig) {
             console.log('[URL_RESTORE] Step 3.5: Starting world generation from URL config');
@@ -680,6 +707,11 @@ const AppContent: React.FC = () => {
         };
     }, [mobileMenuOpen]);
 
+    // Show loading skeleton while initializing
+    if (isInitializing) {
+        return <LoadingSkeleton />;
+    }
+
     return (
       <div className="bg-slate-200 text-slate-800 dark:bg-slate-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden transition-colors duration-300">
         {/* Quest Notifications */}
@@ -694,10 +726,12 @@ const AppContent: React.FC = () => {
         
         <div className="relative z-10 flex flex-col h-full">
             {/* Desktop Navigation */}
-            {!isMobile && <TopNavBarPolished
-                onWorldWeaverLoadingChange={setIsProcessingWorldWeaver}
-                onWorldWeaverDataReceived={setWorldWeaverData}
-            />}
+            {!isMobile && <div className={isSafariBrowser ? `safari-fade-in ${uiVisible ? 'visible' : ''}` : 'animate-fade-in'}>
+                <TopNavBarPolished
+                    onWorldWeaverLoadingChange={setIsProcessingWorldWeaver}
+                    onWorldWeaverDataReceived={setWorldWeaverData}
+                />
+            </div>}
             
             {/* Mobile Header */}
             {isMobile && playerCharacter && (
@@ -762,7 +796,7 @@ const AppContent: React.FC = () => {
                     {mobileMenuOpen === 'left' && (
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
                     )}
-                    <div className={`${mobileMenuOpen === 'left' ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content' : 'h-full'} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
+                    <div className={`${mobileMenuOpen === 'left' ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content' : `h-full ${isSafariBrowser ? `safari-slide-left ${uiVisible ? 'visible' : ''}` : 'animate-slide-in-left delay-100'}`} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
                         <LeftSidebar
                     onShowFactionsModal={(data) => {
                         setFactionData(data);
@@ -785,6 +819,7 @@ const AppContent: React.FC = () => {
                     mapVisible={mapVisible}
                     isProcessingWorldWeaver={isProcessingWorldWeaver}
                     onPlayerDeath={handleDeath}
+                    className={isSafariBrowser ? `safari-fade-in-scale ${uiVisible ? 'visible' : ''}` : 'animate-fade-in-scale delay-200'}
                 />
                 
                 {/* Right Sidebar with mobile overlay and slide animation */}
@@ -792,7 +827,7 @@ const AppContent: React.FC = () => {
                     {mobileMenuOpen === 'right' && (
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
                     )}
-                    <div className={`${mobileMenuOpen === 'right' ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content' : 'h-full'} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
+                    <div className={`${mobileMenuOpen === 'right' ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content' : `h-full ${isSafariBrowser ? '' : 'animate-slide-in-right delay-100'}`} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
                         <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
                     </div>
                 </div>
@@ -813,18 +848,20 @@ const AppContent: React.FC = () => {
         
         {/* Event System Components */}
         {showEventModal && currentEvent && playerCharacter && (
-          <EventModal
-            event={currentEvent}
-            player={playerCharacter}
-            onChoice={(choice) => {
-              handleEventChoice(choice);
-              setShowEventModal(false);
-              setNotificationEvent(null);
-            }}
-            onClose={() => {
-              setShowEventModal(false);
-            }}
-          />
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <EventModal
+              event={currentEvent}
+              player={playerCharacter}
+              onChoice={(choice) => {
+                handleEventChoice(choice);
+                setShowEventModal(false);
+                setNotificationEvent(null);
+              }}
+              onClose={() => {
+                setShowEventModal(false);
+              }}
+            />
+          </Suspense>
         )}
         
         <EventNotification
@@ -870,15 +907,17 @@ const AppContent: React.FC = () => {
         
         {/* Faction Modal */}
         {showFactionsModal && factionData && (
-          <FactionsModal
-            onClose={() => setShowFactionsModal(false)}
-            currentZone={localArea}
-            currentRegion={currentRegion}
-            dominantPower={factionData.dominantPower}
-            dominantPowerDescription={factionData.dominantPowerDescription}
-            allegianceGroups={factionData.allegianceGroups}
-            gameYear={gameDate?.year}
-          />
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <FactionsModal
+              onClose={() => setShowFactionsModal(false)}
+              currentZone={localArea}
+              currentRegion={currentRegion}
+              dominantPower={factionData.dominantPower}
+              dominantPowerDescription={factionData.dominantPowerDescription}
+              allegianceGroups={factionData.allegianceGroups}
+              gameYear={gameDate?.year}
+            />
+          </Suspense>
         )}
         
         {/* Faction Tooltip */}
@@ -893,25 +932,27 @@ const AppContent: React.FC = () => {
         
         {/* Initial Scenario Modal for all games */}
         {showInitialScenarioModal && playerCharacter && gameDate && currentZone && (
-          <InitialScenarioModal
-            isOpen={showInitialScenarioModal}
-            onClose={() => {
-              setShowInitialScenarioModal(false);
-              // Clear WorldWeaver data after use
-              if (worldWeaverData) {
-                setWorldWeaverData(null);
-              }
-            }}
-            playerCharacter={playerCharacter}
-            gameDate={gameDate}
-            currentZone={currentZone}
-            worldWeaverData={worldWeaverData}
-            currentRegion={currentRegion || currentZone} // Use actual region, fallback to zone
-            localArea={localArea || 'Unknown Region'} // Use actual localArea from map
-            gameMode={currentMode}
-            urlConfig={urlConfig}
-            isProcessingWorldWeaver={isProcessingWorldWeaver}
-          />
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <InitialScenarioModal
+              isOpen={showInitialScenarioModal}
+              onClose={() => {
+                setShowInitialScenarioModal(false);
+                // Clear WorldWeaver data after use
+                if (worldWeaverData) {
+                  setWorldWeaverData(null);
+                }
+              }}
+              playerCharacter={playerCharacter}
+              gameDate={gameDate}
+              currentZone={currentZone}
+              worldWeaverData={worldWeaverData}
+              currentRegion={currentRegion || currentZone} // Use actual region, fallback to zone
+              localArea={localArea || 'Unknown Region'} // Use actual localArea from map
+              gameMode={currentMode}
+              urlConfig={urlConfig}
+              isProcessingWorldWeaver={isProcessingWorldWeaver}
+            />
+          </Suspense>
         )}
 
         {/* Floating Text System */}
@@ -922,61 +963,67 @@ const AppContent: React.FC = () => {
 
         {/* Death Modal */}
         {playerCharacter && (
-          <GameOverModal
-            isOpen={showDeathModal}
-            causeOfDeath={deathCause || { type: 'accident' }}
-            playerStats={{
-              name: playerCharacter.name,
-              age: playerCharacter.age,
-              daysAlive: gameDate ? (gameDate.year * 365 + gameDate.month * 30 + gameDate.day) : 0,
-              location: localArea || currentZone || 'Unknown',
-              year: gameDate?.year,
-              profession: playerCharacter.profession,
-              culturalZone: currentZone,
-              distanceTraveled: playerCharacter.distanceTraveled || 0,
-              itemsCollected: playerCharacter.inventory?.length || 0,
-              questsCompleted: playerCharacter.questsCompleted || 0,
-              npcsMetTotal: playerCharacter.npcsMetTotal || 0
-            }}
-            achievements={playerCharacter.achievements || []}
-            onRestart={() => {
-              setShowDeathModal(false);
-              window.location.reload(); // Simple restart for now
-            }}
-            onMainMenu={() => {
-              setShowDeathModal(false);
-              navigate('/'); // Navigate to main menu
-            }}
-          />
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <GameOverModal
+              isOpen={showDeathModal}
+              causeOfDeath={deathCause || { type: 'accident' }}
+              playerStats={{
+                name: playerCharacter.name,
+                age: playerCharacter.age,
+                daysAlive: gameDate ? (gameDate.year * 365 + gameDate.month * 30 + gameDate.day) : 0,
+                location: localArea || currentZone || 'Unknown',
+                year: gameDate?.year,
+                profession: playerCharacter.profession,
+                culturalZone: currentZone,
+                distanceTraveled: playerCharacter.distanceTraveled || 0,
+                itemsCollected: playerCharacter.inventory?.length || 0,
+                questsCompleted: playerCharacter.questsCompleted || 0,
+                npcsMetTotal: playerCharacter.npcsMetTotal || 0
+              }}
+              achievements={playerCharacter.achievements || []}
+              onRestart={() => {
+                setShowDeathModal(false);
+                window.location.reload(); // Simple restart for now
+              }}
+              onMainMenu={() => {
+                setShowDeathModal(false);
+                navigate('/'); // Navigate to main menu
+              }}
+            />
+          </Suspense>
         )}
 
         {/* NPC Death Modal */}
         {showNpcDeathModal && npcDeathData && (
-          <NpcDeathModal
-            isOpen={showNpcDeathModal}
-            npc={npcDeathData.npc}
-            disease={npcDeathData.disease}
-            onClose={() => {
-              setShowNpcDeathModal(false);
-              setNpcDeathData(null);
-            }}
-          />
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <NpcDeathModal
+              isOpen={showNpcDeathModal}
+              npc={npcDeathData.npc}
+              disease={npcDeathData.disease}
+              onClose={() => {
+                setShowNpcDeathModal(false);
+                setNpcDeathData(null);
+              }}
+            />
+          </Suspense>
         )}
 
         {/* Disease Progression Modal */}
         {showDiseaseProgressionModal && currentDiseaseProgression && (
-          <DiseaseProgressionModal
-            isOpen={showDiseaseProgressionModal}
-            title={currentDiseaseProgression.title}
-            description={currentDiseaseProgression.description}
-            icon={currentDiseaseProgression.icon}
-            diseaseName={currentDiseaseProgression.diseaseName}
-            stage={currentDiseaseProgression.stage}
-            onClose={() => {
-              setShowDiseaseProgressionModal(false);
-              setCurrentDiseaseProgression(null);
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <DiseaseProgressionModal
+              isOpen={showDiseaseProgressionModal}
+              title={currentDiseaseProgression.title}
+              description={currentDiseaseProgression.description}
+              icon={currentDiseaseProgression.icon}
+              diseaseName={currentDiseaseProgression.diseaseName}
+              stage={currentDiseaseProgression.stage}
+              onClose={() => {
+                setShowDiseaseProgressionModal(false);
+                setCurrentDiseaseProgression(null);
             }}
           />
+          </Suspense>
         )}
 
         {/* Tooltip Portal Container - Renders tooltips above all other UI elements */}

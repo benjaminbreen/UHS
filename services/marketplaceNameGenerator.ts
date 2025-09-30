@@ -2,9 +2,9 @@
  * services/marketplaceNameGenerator.ts - Generates historically authentic, procedural names for marketplaces.
  */
 import { MapData, BiomeType, MarketplaceInfo, CulturalZone, HistoricalEra } from '../types';
-import { FACTION_DATA } from '../constants/index';
 import { getMapAreaCardinalDirection } from '../utils/geographyUtils';
 import { parseDateString } from '../utils/dateUtils';
+import { FACTION_DATA } from '../constants/index';
 
 function isNearRiver(tileX: number, tileY: number, mapData: MapData): boolean {
     for (let dy = -2; dy <= 2; dy++) {
@@ -24,8 +24,8 @@ function isNearRiver(tileX: number, tileY: number, mapData: MapData): boolean {
 export function generateMarketplaceNames(mapData: MapData): MarketplaceInfo[] {
     const marketplaces: MarketplaceInfo[] = [];
     const dateInfo = parseDateString(mapData.timeSlice || '1650');
-    
-    // Check if faction data is available, otherwise use a generic descriptor
+
+    // FACTION_DATA is loaded lazily via Proxy - available synchronously
     const factionData = FACTION_DATA[mapData.continent as CulturalZone]?.[mapData.region || '']?.[dateInfo.era as HistoricalEra];
     const dominantFaction = factionData?.dominantPower || mapData.continent;
 

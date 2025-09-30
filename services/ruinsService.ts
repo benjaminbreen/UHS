@@ -4,9 +4,10 @@
  */
 
 import { HistoricalEra, CulturalZone, TerrainStructure, ClimateType } from '../types';
-import { FACTION_DATA } from '../constants/gameData/factions';
-import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { ValueNoise } from '../utils/noise';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
+import { FACTION_DATA } from '../constants/index';
 
 // Map historical eras to approximate year ranges for age calculation
 const ERA_YEAR_RANGES: Record<HistoricalEra, [number, number]> = {

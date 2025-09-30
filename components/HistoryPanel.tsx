@@ -4,7 +4,8 @@ import { GameDate, HistoricalEra, MapData, NpcEntity } from '../types';
 
 // Define CulturalZone type locally to avoid import issues
 type CulturalZone = 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
-import { HISTORY_GUIDE_DATA } from '../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { HISTORY_GUIDE_DATA } from '../constants/gameData/historyguide';
 import WikipediaArticle from './WikipediaArticle';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';

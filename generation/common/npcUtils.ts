@@ -2,7 +2,11 @@
  * generation/common/npcUtils.ts - Enhanced NPC utility functions with portrait generation.
  */
 import { NpcEntity, NpcStats, NpcPersonality, NpcSocialContext, HistoricalEra, CharacterStats, CharacterPersonality, CharacterSocialContext, WealthLevel, Gender, TerrainStructure, PlayerCharacter, Ideology, Appearance, ClothingPiece, ClothingPalette, MapAreaDefinition, FactionData, TerrainStructureType, PersonalGoal } from '../../types';
-import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, GEOGRAPHICAL_DATA, IDEOLOGIES, PERSONAL_BELIEFS, ADJACENCIES, FACTION_DATA } from '../../constants/index';
+import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, IDEOLOGIES, PERSONAL_BELIEFS } from '../../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../../constants/gameData/geography';
+import { ADJACENCIES } from '../../constants/gameData/adjacencies';
+// FACTION_DATA removed - not actually used in this file
 
 // Import clothing data synchronously
 import * as clothingModule from '../../constants/characterData/clothing';

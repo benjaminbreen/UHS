@@ -19,14 +19,14 @@ import {
   ItemDefinition 
 } from '../types';
 import { ITEM_DEFINITIONS, getItemDefinition } from '../constants/gameData/itemDefinitions';
-import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { ANIMAL_DATA } from '../constants/gameData/animals';
 import { VEGETATION_SPECIES_DATA } from '../constants/gameData/vegetationData';
 import { HISTORICAL_MINERALS } from '../constants/gameData/historicalMinerals';
 import { RELIGIOUS_ECONOMY, getReligiousEconomy } from '../constants/gameData/religiousEconomy';
 import { EconomicSector, getDominantSector, getRegionalIndustries } from '../constants/gameData/economicSectors';
-import { FACTION_DATA } from '../constants/gameData/factions';
 import { PROFESSIONS } from '../constants/characterData/professions';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { parseDateString } from '../utils/dateUtils';
 
 export interface CulturalMarketGood {

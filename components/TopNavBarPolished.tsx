@@ -12,7 +12,9 @@ import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { MapArchetype, ClimateType, AltitudeSetting, GameDate } from '../types';
 import { PrimarySourceSearch } from './PrimarySourceSearch';
-import { MAP_ARCHETYPE_DESCRIPTIONS, CLIMATE_TYPE_DESCRIPTIONS, CULTURE_ZONES, GEOGRAPHICAL_DATA } from '../constants/index';
+import { MAP_ARCHETYPE_DESCRIPTIONS, CLIMATE_TYPE_DESCRIPTIONS, CULTURE_ZONES } from '../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { worldWeaverService } from '../services/worldWeaverService';
 import WorldWeaverModal from './WorldWeaverModal';
@@ -173,6 +175,18 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [showLLMHistory, setShowLLMHistory] = useState(false);
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
+
+  // Performance: Throttle API stats updates to every 3 seconds when tracker is visible
+  useEffect(() => {
+    if (!showAPITracker) return;
+
+    const updateInterval = setInterval(() => {
+      setApiStats(eventService.getAPIUsageStats());
+      setLlmHistory(eventService.getLLMHistory());
+    }, 3000); // Update every 3 seconds instead of on every render
+
+    return () => clearInterval(updateInterval);
+  }, [showAPITracker]);
   const [showQuestsPanel, setShowQuestsPanel] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showGameModeTooltip, setShowGameModeTooltip] = useState(false);

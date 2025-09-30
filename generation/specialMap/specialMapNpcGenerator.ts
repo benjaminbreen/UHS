@@ -7,14 +7,16 @@ import { NpcEntity, HistoricalEra, CulturalZone, BiomeType, Gender } from '../..
 import { SpecialMapArchetype, SpecialMapConfig, RoomDefinition, ProfessionCategory } from '../../types/specialMapTypes';
 import { ValueNoise } from '../../utils/noise';
 import { generateBaseProfile, generateNpcName } from '../common/npcUtils';
-import { 
-  getProfessionsByCategory, 
-  getCategoryForProfession, 
+import {
+  getProfessionsByCategory,
+  getCategoryForProfession,
   getSocialClassForProfession,
-  getCultureDefaultProfessions 
+  getCultureDefaultProfessions
 } from '../../constants/specialMaps/professionMapping';
 import { getApplicableRules, getHistoricalGenderRestriction, AccessRule } from '../../constants/specialMaps/historicalAccessRules';
 import { PROFESSIONS } from '../../constants/characterData/professions';
+import { findMultipleValidPositions, isBlockingBiome, isWalkableBiome, findValidPosition } from '../common/npcPositionCalculator';
+import { worldWeaverNpcService } from '../../services/worldWeaverNpcService';
 
 // Track if we've assigned a ruler in throne rooms
 let hasAssignedRuler = false;
@@ -329,37 +331,9 @@ function getRulerProfession(culturalZone: string, era: string): string {
 
 /**
  * Check if a biome type blocks NPC placement
+ * @deprecated Use isBlockingBiome from npcPositionCalculator instead
  */
-function isBlockingTerrain(biome: BiomeType): boolean {
-  const blockingBiomes = [
-    BiomeType.WALL,
-    BiomeType.OCEAN,
-    BiomeType.LAKE,
-    BiomeType.RIVER,
-    BiomeType.PILLAR,
-    BiomeType.COLUMN,
-    BiomeType.STATUE,
-    BiomeType.FOUNTAIN,
-    BiomeType.ALTAR,
-    BiomeType.SHRINE,
-    BiomeType.TABLE,
-    BiomeType.DESK,
-    BiomeType.BED,
-    BiomeType.THRONE,
-    BiomeType.BOOKSHELF,
-    BiomeType.CABINET,
-    BiomeType.CHEST,
-    BiomeType.BARREL,
-    // Workshop equipment
-    BiomeType.ANVIL,
-    BiomeType.OVEN_BRICK,
-    BiomeType.SPINNING_WHEEL,
-    BiomeType.LOOM,
-    BiomeType.WORKBENCH
-  ];
-
-  return blockingBiomes.includes(biome);
-}
+// Function removed - now using shared isBlockingBiome from npcPositionCalculator
 
 // Elite professions for different cultures and eras
 const PALACE_NPCS = {
@@ -624,6 +598,63 @@ export function generateSpecialMapNpcs(
   }
   
   return npcs;
+}
+
+/**
+ * Load and add quest NPCs to an existing special map
+ * Call this after generating the special map to add quest-related NPCs
+ */
+export async function addQuestNPCsToSpecialMap(
+  npcs: NpcEntity[],
+  tiles: any[][],
+  rooms: RoomDefinition[],
+  buildingId: string,
+  culturalZone: string,
+  era: string
+): Promise<void> {
+  console.log(`[SpecialMapNpcGenerator] Loading quest NPCs for building ${buildingId}`);
+
+  try {
+    const questNpcs = await worldWeaverNpcService.loadQuestNPCsForBuilding(
+      buildingId,
+      culturalZone,
+      era
+    );
+
+    if (questNpcs.length > 0) {
+      // Position quest NPCs in appropriate rooms using shared calculator
+      for (const questNpc of questNpcs) {
+        // If NPC doesn't have a position yet, find one
+        if (!questNpc.x || !questNpc.y) {
+          // Find an appropriate room (prefer public/common rooms for quest NPCs)
+          const publicRoom = rooms.find(r =>
+            r.purpose === 'gathering' || r.purpose === 'common' || r.purpose === 'entrance'
+          ) || rooms[0];
+
+          if (publicRoom) {
+            const { x, y } = findValidPosition(
+              publicRoom,
+              tiles,
+              { type: 'random' }
+            );
+
+            questNpc.x = x;
+            questNpc.y = y;
+          } else {
+            console.warn(`[SpecialMapNpcGenerator] No suitable room found for quest NPC ${questNpc.name}`);
+            continue;
+          }
+        }
+
+        // Add to NPCs array
+        npcs.push(questNpc);
+      }
+
+      console.log(`[SpecialMapNpcGenerator] Added ${questNpcs.length} quest NPCs to special map`);
+    }
+  } catch (error) {
+    console.error(`[SpecialMapNpcGenerator] Error loading quest NPCs:`, error);
+  }
 }
 
 /**
@@ -918,34 +949,23 @@ function calculateNpcCount(room: RoomDefinition): number {
 }
 
 /**
- * Find valid positions within a room
+ * Find valid positions within a room using shared position calculator
  */
 function findValidPositionsInRoom(
   tiles: any[][],
   bounds: { x: number, y: number, width: number, height: number },
   count: number
 ): { x: number, y: number }[] {
-  const positions: { x: number, y: number }[] = [];
-  const attempts = count * 10;
-  
-  for (let i = 0; i < attempts && positions.length < count; i++) {
-    const x = bounds.x + 1 + Math.floor(Math.random() * (bounds.width - 2));
-    const y = bounds.y + 1 + Math.floor(Math.random() * (bounds.height - 2));
-    
-    // Check if position is valid
-    if (tiles[y] && tiles[y][x] && isWalkableTile(tiles[y][x])) {
-      // Check not too close to other NPCs
-      const tooClose = positions.some(pos => 
-        Math.abs(pos.x - x) < 2 && Math.abs(pos.y - y) < 2
-      );
-      
-      if (!tooClose) {
-        positions.push({ x, y });
-      }
-    }
-  }
-  
-  return positions;
+  // Use shared calculator with special map format
+  // Wrap bounds in expected format for npcPositionCalculator
+  const room = { bounds };
+
+  return findMultipleValidPositions(
+    room,
+    tiles,
+    count,
+    2  // minDistance = 2 (matches original behavior)
+  );
 }
 
 /**
@@ -1152,7 +1172,7 @@ function generateEntranceGuards(
   guardPositions.forEach((pos, index) => {
     // Make sure position is valid
     if (pos.x >= 0 && pos.x < mapWidth && pos.y >= 0 && pos.y < mapHeight &&
-        tiles[pos.y][pos.x] && !isBlockingTerrain(tiles[pos.y][pos.x].biome)) {
+        tiles[pos.y][pos.x] && !isBlockingBiome(tiles[pos.y][pos.x].biome)) {
       
       const guard = createSpecialMapNpc(
         startId + index,
@@ -1641,15 +1661,13 @@ function findValidNpcPosition(
 }
 
 /**
- * Check if tile is walkable
+ * Check if tile is walkable using shared calculator
  */
 function isWalkableTile(tile: any): boolean {
-  const walkableBiomes = [
-    'FLOOR_STONE', 'FLOOR_WOOD', 'FLOOR_MARBLE', 'FLOOR_TILE',
-    'PLAZA', 'PARK', 'CARPET', 'DIRT', 'GRASS'
-  ];
-  
-  return walkableBiomes.some(biome => tile.biome?.includes(biome));
+  if (!tile || !tile.biome) return false;
+
+  // Use shared calculator for comprehensive walkability check
+  return isWalkableBiome(tile.biome) && !isBlockingBiome(tile.biome);
 }
 
 /**

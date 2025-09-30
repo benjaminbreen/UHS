@@ -67,9 +67,10 @@ interface MapViewportProps {
   mapVisible?: boolean;
   isProcessingWorldWeaver?: boolean;
   onPlayerDeath?: (deathInfo: any) => void;
+  className?: string;
 }
 
-const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath }) => {
+const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, className }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage, setToastMessage,
@@ -1318,7 +1319,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     }, [mapData, controlledIconX, controlledIconY]);
 
     return (
-        <main className="flex-1 flex flex-col bg-transparent relative overflow-hidden">
+        <main className={`flex-1 flex flex-col bg-transparent relative overflow-hidden ${className || ''}`}>
           {/* Helper Mode Notification - shows above everything */}
           <HelperModeNotification />
 

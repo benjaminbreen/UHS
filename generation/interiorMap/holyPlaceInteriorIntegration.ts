@@ -20,15 +20,16 @@ export function convertHolyPlaceLayoutToBuildingLayout(
   
   // Main Hall - Large central public space
   const mainHall = holyLayout.mainHall;
+  const mainHallBounds = { x: 10, y: 8, width: 20, height: 16 };
   spaces.push({
     id: 'main_hall',
     name: mainHall.name,
     type: 'altar',
-    bounds: { x: 10, y: 8, width: 20, height: 16 },
+    bounds: mainHallBounds,
     floorType: getFloorTypeForCulture(holyLayout.culturalZone, holyLayout.era),
     wallHeight: 8,
-    lightingSources: getLightingForRoom(mainHall, holyLayout.culturalZone),
-    furniture: getFurnitureForRoom(mainHall, holyLayout.culturalZone),
+    lightingSources: getLightingForRoomWithPositions(mainHall, holyLayout.culturalZone, mainHallBounds),
+    furniture: getFurnitureForRoomWithPositions(mainHall, holyLayout.culturalZone, mainHallBounds),
     accessibility: 'public',
     requiredReligion: undefined,
     requiredClass: undefined
@@ -38,36 +39,38 @@ export function convertHolyPlaceLayoutToBuildingLayout(
   holyLayout.privateRooms.forEach((room, index) => {
     const xOffset = index % 2 === 0 ? 2 : 32; // Left or right side
     const yOffset = 26 + Math.floor(index / 2) * 10;
-    
+    const privateBounds = { x: xOffset, y: yOffset, width: 6, height: 8 };
+
     spaces.push({
       id: `private_${index}`,
       name: room.name,
       type: 'room',
-      bounds: { x: xOffset, y: yOffset, width: 6, height: 8 },
+      bounds: privateBounds,
       floorType: getFloorTypeForCulture(holyLayout.culturalZone, holyLayout.era),
       wallHeight: 5,
-      lightingSources: getLightingForRoom(room, holyLayout.culturalZone),
-      furniture: getFurnitureForRoom(room, holyLayout.culturalZone),
+      lightingSources: getLightingForRoomWithPositions(room, holyLayout.culturalZone, privateBounds),
+      furniture: getFurnitureForRoomWithPositions(room, holyLayout.culturalZone, privateBounds),
       accessibility: room.type as 'public' | 'restricted' | 'sacred',
       requiredReligion: room.requiredPermission === 'clergy' ? religion : undefined,
       requiredClass: getRequiredClassForPermission(room.requiredPermission)
     });
   });
-  
+
   // Restricted Rooms - Medium-sized, special access
   holyLayout.restrictedRooms.forEach((room, index) => {
     const yOffset = 2 + index * 6;
     const xOffset = index % 2 === 0 ? 8 : 24;
-    
+    const restrictedBounds = { x: xOffset, y: yOffset, width: 8, height: 5 };
+
     spaces.push({
       id: `restricted_${index}`,
       name: room.name,
       type: 'room',
-      bounds: { x: xOffset, y: yOffset, width: 8, height: 5 },
+      bounds: restrictedBounds,
       floorType: getFloorTypeForCulture(holyLayout.culturalZone, holyLayout.era),
       wallHeight: 6,
-      lightingSources: getLightingForRoom(room, holyLayout.culturalZone),
-      furniture: getFurnitureForRoom(room, holyLayout.culturalZone),
+      lightingSources: getLightingForRoomWithPositions(room, holyLayout.culturalZone, restrictedBounds),
+      furniture: getFurnitureForRoomWithPositions(room, holyLayout.culturalZone, restrictedBounds),
       accessibility: 'restricted',
       requiredReligion: room.requiredPermission === 'clergy' || room.requiredPermission === 'high_clergy' ? religion : undefined,
       requiredClass: getRequiredClassForPermission(room.requiredPermission)
@@ -184,71 +187,119 @@ function getFloorTypeForCulture(culture: CulturalZone, era: HistoricalEra): Arch
 }
 
 /**
- * Get lighting for a room based on its features and culture
+ * Get lighting for a room based on its features and culture WITH PROPER POSITIONS
  */
-function getLightingForRoom(room: HolyPlaceRoom, culture: CulturalZone): ArchitecturalSpace['lightingSources'] {
+function getLightingForRoomWithPositions(
+  room: HolyPlaceRoom,
+  culture: CulturalZone,
+  bounds: { x: number; y: number; width: number; height: number }
+): ArchitecturalSpace['lightingSources'] {
   const lights: ArchitecturalSpace['lightingSources'] = [];
-  
-  // Map room features to lighting
-  if (room.features.includes('candles')) {
-    lights.push({ type: 'candle', position: { x: 0, y: 0 }, intensity: 0.3, color: '#FFD700' });
-  }
-  if (room.features.includes('oil_lamps')) {
-    lights.push({ type: 'candle', position: { x: 0, y: 0 }, intensity: 0.4, color: '#FFA500' });
-  }
-  if (room.features.includes('brazier') || room.features.includes('incense_burners')) {
-    lights.push({ type: 'brazier', position: { x: 0, y: 0 }, intensity: 0.5, color: '#FF6347' });
-  }
+  const centerX = bounds.x + Math.floor(bounds.width / 2);
+  const centerY = bounds.y + Math.floor(bounds.height / 2);
+
+  // Map room features to lighting with ACTUAL positions
   if (room.features.includes('chandelier') || room.features.includes('crystal_chandeliers')) {
-    lights.push({ type: 'chandelier', position: { x: 0, y: 0 }, intensity: 0.8, color: '#FFD700' });
+    lights.push({ type: 'chandelier', position: { x: centerX, y: centerY }, intensity: 0.8, color: '#FFD700' });
   }
+
+  if (room.features.includes('brazier') || room.features.includes('incense_burners')) {
+    lights.push({ type: 'brazier', position: { x: bounds.x + 2, y: bounds.y + 2 }, intensity: 0.5, color: '#FF6347' });
+    lights.push({ type: 'brazier', position: { x: bounds.x + bounds.width - 2, y: bounds.y + 2 }, intensity: 0.5, color: '#FF6347' });
+  }
+
   if (room.features.includes('stained_glass')) {
-    lights.push({ type: 'window', position: { x: 0, y: 0 }, intensity: 0.6, color: '#87CEEB' });
+    lights.push({ type: 'window', position: { x: bounds.x + 1, y: centerY }, intensity: 0.6, color: '#87CEEB' });
+    lights.push({ type: 'window', position: { x: bounds.x + bounds.width - 1, y: centerY }, intensity: 0.6, color: '#87CEEB' });
   }
-  if (room.features.includes('sacred_flame') || room.features.includes('eternal_flame')) {
-    lights.push({ type: 'altar_glow', position: { x: 0, y: 0 }, intensity: 0.7, color: '#FF4500' });
+
+  if (room.features.includes('sacred_flame') || room.features.includes('eternal_flame') || room.features.includes('altar')) {
+    lights.push({ type: 'altar_glow', position: { x: centerX, y: bounds.y + 3 }, intensity: 1.0, color: '#FFD700' });
   }
-  
-  // Default lighting if none specified
+
+  if (room.features.includes('candles') || room.features.includes('oil_lamps')) {
+    // Add corner lighting
+    lights.push({ type: 'candle', position: { x: bounds.x + 2, y: bounds.y + 2 }, intensity: 0.4, color: '#FFD700' });
+    lights.push({ type: 'candle', position: { x: bounds.x + bounds.width - 2, y: bounds.y + 2 }, intensity: 0.4, color: '#FFD700' });
+  }
+
+  // Default: torches in corners if no other lighting
   if (lights.length === 0) {
-    lights.push({ type: 'torch', position: { x: 0, y: 0 }, intensity: 0.5, color: '#FFA500' });
+    lights.push({ type: 'torch', position: { x: bounds.x + 2, y: bounds.y + 2 }, intensity: 0.6, color: '#FFA500' });
+    lights.push({ type: 'torch', position: { x: bounds.x + bounds.width - 2, y: bounds.y + 2 }, intensity: 0.6, color: '#FFA500' });
   }
-  
+
   return lights;
 }
 
 /**
- * Get furniture for a room based on its features
+ * Get furniture for a room based on its features WITH PROPER POSITIONS
  */
-function getFurnitureForRoom(room: HolyPlaceRoom, culture: CulturalZone): ArchitecturalSpace['furniture'] {
+function getFurnitureForRoomWithPositions(
+  room: HolyPlaceRoom,
+  culture: CulturalZone,
+  bounds: { x: number; y: number; width: number; height: number }
+): ArchitecturalSpace['furniture'] {
   const furniture: ArchitecturalSpace['furniture'] = [];
-  
-  // Map room features to furniture
+  const centerX = bounds.x + Math.floor(bounds.width / 2);
+  const centerY = bounds.y + Math.floor(bounds.height / 2);
+
+  // ALTAR - always at the front/top of the room
   if (room.features.includes('altar') || room.features.includes('offering_altar')) {
-    furniture.push({ type: 'altar', position: { x: 0, y: 0 } });
+    furniture.push({ type: 'altar', position: { x: centerX, y: bounds.y + 2 }, rotation: 0, scale: 1.2 });
   }
-  if (room.features.includes('pews') || room.features.includes('prayer_rugs')) {
-    furniture.push({ type: 'pew', position: { x: 0, y: 0 } });
-  }
-  if (room.features.includes('throne') || room.features.includes('golden_stool')) {
-    furniture.push({ type: 'throne', position: { x: 0, y: 0 } });
-  }
+
+  // PILLARS - in corners or flanking altar
   if (room.features.includes('columns') || room.features.includes('pillars') || room.features.includes('ornate_pillars')) {
-    furniture.push({ type: 'pillar', position: { x: 0, y: 0 } });
+    furniture.push({ type: 'pillar', position: { x: bounds.x + 2, y: bounds.y + 2 }, rotation: 0, scale: 1 });
+    furniture.push({ type: 'pillar', position: { x: bounds.x + bounds.width - 2, y: bounds.y + 2 }, rotation: 0, scale: 1 });
+
+    // Add more pillars if room is large enough
+    if (bounds.width > 15) {
+      furniture.push({ type: 'pillar', position: { x: bounds.x + 2, y: bounds.y + bounds.height - 2 }, rotation: 0, scale: 1 });
+      furniture.push({ type: 'pillar', position: { x: bounds.x + bounds.width - 2, y: bounds.y + bounds.height - 2 }, rotation: 0, scale: 1 });
+    }
   }
+
+  // PEWS/SEATING - rows in the middle/back area
+  if (room.features.includes('pews') || room.features.includes('prayer_rugs')) {
+    const pewY = bounds.y + Math.floor(bounds.height * 0.5);
+    furniture.push({ type: 'pew', position: { x: bounds.x + 4, y: pewY }, rotation: 0, scale: 1 });
+    furniture.push({ type: 'pew', position: { x: bounds.x + bounds.width - 4, y: pewY }, rotation: 0, scale: 1 });
+
+    if (bounds.height > 12) {
+      furniture.push({ type: 'pew', position: { x: bounds.x + 4, y: pewY + 3 }, rotation: 0, scale: 1 });
+      furniture.push({ type: 'pew', position: { x: bounds.x + bounds.width - 4, y: pewY + 3 }, rotation: 0, scale: 1 });
+    }
+  }
+
+  // THRONE - center back or near altar
+  if (room.features.includes('throne') || room.features.includes('golden_stool')) {
+    furniture.push({ type: 'throne', position: { x: centerX, y: bounds.y + bounds.height - 3 }, rotation: 0, scale: 1.1 });
+  }
+
+  // RUG - center floor
   if (room.features.includes('carpet') || room.features.includes('silk_carpets') || room.features.includes('persian_rugs')) {
-    furniture.push({ type: 'rug', position: { x: 0, y: 0 }, scale: 2 });
+    furniture.push({ type: 'rug', position: { x: centerX, y: centerY + 2 }, rotation: 0, scale: 1.5 });
   }
-  if (room.features.includes('treasure_chests') || room.features.includes('donation_chest')) {
-    furniture.push({ type: 'chest', position: { x: 0, y: 0 } });
-  }
+
+  // TAPESTRY - on back wall
   if (room.features.includes('tapestries')) {
-    furniture.push({ type: 'tapestry', position: { x: 0, y: 0 } });
+    furniture.push({ type: 'tapestry', position: { x: centerX - 4, y: bounds.y + 1 }, rotation: 0, scale: 0.9 });
+    furniture.push({ type: 'tapestry', position: { x: centerX + 4, y: bounds.y + 1 }, rotation: 0, scale: 0.9 });
   }
+
+  // STATUE - flanking altar or in corners
   if (room.features.includes('statue') || room.features.includes('buddha_statue') || room.features.includes('deity_statue')) {
-    furniture.push({ type: 'statue', position: { x: 0, y: 0 } });
+    furniture.push({ type: 'statue', position: { x: bounds.x + 3, y: bounds.y + 4 }, rotation: 0, scale: 1 });
+    furniture.push({ type: 'statue', position: { x: bounds.x + bounds.width - 3, y: bounds.y + 4 }, rotation: 0, scale: 1 });
   }
-  
+
+  // CHEST - near entrance or side room
+  if (room.features.includes('treasure_chests') || room.features.includes('donation_chest')) {
+    furniture.push({ type: 'chest', position: { x: bounds.x + 2, y: bounds.y + bounds.height - 2 }, rotation: 0, scale: 1 });
+  }
+
   return furniture;
 }
 

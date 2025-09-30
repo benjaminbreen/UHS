@@ -62,8 +62,7 @@ import { getFortressSymbol } from './symbols/fortresses/FortressSymbolsImproved'
 import { SpecialMapSymbolRenderer } from './symbols/specialMap/SpecialMapSymbolRenderer';
 import { OverlayRenderer } from './symbols/architecture/specialMap/OverlayRenderer';
 import { MultiTilePillar } from './symbols/architecture/specialMap/MultiTilePillar';
-import GovernmentDistrictSymbol from './symbols/GovernmentDistrictSymbol';
-import { 
+import {
   CityHallSymbol,
   TribalCouncilSymbol,
   MandateHallSymbol,
@@ -409,6 +408,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const currentPanX = useRef(panX);
   const currentPanY = useRef(panY);
 
+  // Performance optimization: track if transform needs updating
+  const transformDirty = useRef(false);
+  const lastTransform = useRef<string>('');
+
   // Display state
   const [displayPixelIconX, setDisplayPixelIconX] = useState<number | null>(null);
   const [displayPixelIconY, setDisplayPixelIconY] = useState<number | null>(null);
@@ -743,7 +746,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
     const smoothCameraLoop = (timestamp?: number) => {
         if (!isLooping || !containerRef.current || !mapData) return;
-        
+
         // Throttle frame rate if enabled
         if (frameInterval > 0 && timestamp) {
             if (timestamp - lastFrameTime < frameInterval) {
@@ -760,7 +763,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             focusX = displayPixelIconX;
             focusY = displayPixelIconY;
         }
-        
+
         if (focusX !== null && focusY !== null && !isDragging && !isFreePanMode) {
             const containerWidth = containerRef.current.clientWidth;
             const containerHeight = containerRef.current.clientHeight;
@@ -769,13 +772,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             const deadZoneXMax = Math.max(containerWidth - margin, containerWidth * 0.6);
             const deadZoneYMin = Math.min(margin, containerHeight * 0.4);
             const deadZoneYMax = Math.max(containerHeight - margin, containerHeight * 0.6);
-            
+
             const focusScreenX = focusX * zoomLevel + currentPanX.current;
             const focusScreenY = focusY * zoomLevel + currentPanY.current;
-            
+
             let newTargetPanX = targetPanX.current;
             let newTargetPanY = targetPanY.current;
-            
+
             if (focusScreenX < deadZoneXMin) newTargetPanX = deadZoneXMin - focusX * zoomLevel;
             else if (focusScreenX > deadZoneXMax) newTargetPanX = deadZoneXMax - focusX * zoomLevel;
             if (focusScreenY < deadZoneYMin) newTargetPanY = deadZoneYMin - focusY * zoomLevel;
@@ -788,15 +791,27 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         const deltaX = targetPanX.current - currentPanX.current;
         const deltaY = targetPanY.current - currentPanY.current;
 
-        if (!isDragging && !isFreePanMode && (Math.abs(deltaX) > CAMERA_SNAP_THRESHOLD || Math.abs(deltaY) > CAMERA_SNAP_THRESHOLD)) {
+        // Performance: only update DOM if actually moving
+        const isMoving = Math.abs(deltaX) > CAMERA_SNAP_THRESHOLD || Math.abs(deltaY) > CAMERA_SNAP_THRESHOLD;
+
+        if (!isDragging && !isFreePanMode && isMoving) {
             currentPanX.current += deltaX * CAMERA_SMOOTH_FACTOR;
             currentPanY.current += deltaY * CAMERA_SMOOTH_FACTOR;
 
             // Add translate3d for Safari GPU acceleration
-      const newTransform = `translate3d(${currentPanX.current}px, ${currentPanY.current}px, 0) scale(${zoomLevel})`;
-            if (svgRef.current) svgRef.current.style.transform = newTransform;
-            if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+            const newTransform = `translate3d(${currentPanX.current}px, ${currentPanY.current}px, 0) scale(${zoomLevel})`;
+
+            // Performance: only update DOM if transform actually changed
+            if (newTransform !== lastTransform.current) {
+                lastTransform.current = newTransform;
+                if (svgRef.current) svgRef.current.style.transform = newTransform;
+                if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+            }
+
+            // Continue animating
+            cameraAnimationFrame.current = requestAnimationFrame(smoothCameraLoop);
         } else if (!isDragging && !isFreePanMode) {
+            // Snap to final position
             currentPanX.current = targetPanX.current;
             currentPanY.current = targetPanY.current;
 
@@ -804,9 +819,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 setPanX(targetPanX.current);
                 setPanY(targetPanY.current);
             }
-        }
 
-        cameraAnimationFrame.current = requestAnimationFrame(smoothCameraLoop);
+            // Performance: Stop RAF loop when not moving (will restart on next dependency change)
+            isLooping = false;
+        } else if (isMoving) {
+            // Continue animating if still moving
+            cameraAnimationFrame.current = requestAnimationFrame(smoothCameraLoop);
+        }
     };
     
     cameraAnimationFrame.current = requestAnimationFrame(smoothCameraLoop);

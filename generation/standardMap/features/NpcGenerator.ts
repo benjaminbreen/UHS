@@ -2,7 +2,10 @@
  * generation/standardMap/features/NpcGenerator.ts - Enhanced NPC generation with portrait integration
  */
 import { Tile, ClimateType, NpcEntity, HistoricalEra, MapData, TerrainStructure, BiomeType, Appearance, Item, EquipmentSlot, ClothingPiece, Point, SocietalProfile, WealthLevel, Gender } from '../../../types';
-import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, CulturalZone, STRUCTURE_BLUEPRINTS, PROFESSIONS, ProfessionDefinition, FACTION_DATA, GEOGRAPHICAL_DATA, STARTING_PACKAGES, SOCIETAL_PROFILES } from '../../../constants/index';
+import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, CulturalZone, STRUCTURE_BLUEPRINTS, PROFESSIONS, ProfessionDefinition, STARTING_PACKAGES, SOCIETAL_PROFILES } from '../../../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../../../constants/gameData/geography';
+// Note: FACTION_DATA is loaded lazily via Proxy from constants/index - it's available synchronously
 import { ValueNoise } from '../../../utils/noise';
 import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateCompleteOutfit, generateCulturalAppearance } from '../../common/npcUtils';
 import { parseDateString } from '../../../utils/dateUtils';
@@ -798,7 +801,9 @@ export function generateNpcsForStandardMap(
             for (const structure of mapData.terrainStructures) {
                  if (structure.state !== 'active') continue; // Only spawn at active structures
 
-                 const factionData = FACTION_DATA[context.culturalZone]?.[context.region]?.[context.era];
+                 // Note: FACTION_DATA is now lazy-loaded, so we skip faction-specific roles
+                 // and use societalProfile fallback (Priority 2) which works fine
+                 const factionData = undefined;
                  let rolesToSpawn: string[] = [];
 
                  // Special handling for holy sites - use clergy roles

@@ -333,8 +333,15 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
     onNpcClick
 }) => {
     const renderData = useMemo(() => {
+        // Add padding around the viewBox to prevent clipping player/NPCs at edges
+        const padding = TILE_SIZE * 2;
+        const viewBoxX = -padding;
+        const viewBoxY = -padding;
+        const viewBoxWidth = (layout.totalBounds.width * TILE_SIZE * scale) + (padding * 2);
+        const viewBoxHeight = (layout.totalBounds.height * TILE_SIZE * scale) + (padding * 2);
+
         return {
-            viewBox: `0 0 ${layout.totalBounds.width * TILE_SIZE * scale} ${layout.totalBounds.height * TILE_SIZE * scale}`,
+            viewBox: `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`,
             spaces: layout.spaces,
             lighting: layout.spaces.flatMap(space => space.lightingSources),
             furniture: layout.spaces.flatMap(space => space.furniture)
@@ -344,10 +351,12 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
     return (
         <svg
             viewBox={renderData.viewBox}
+            preserveAspectRatio="xMidYMid meet"
             className="w-full h-full"
             style={{
                 background: `radial-gradient(ellipse at center, ${layout.ambientLighting.color} 0%, rgba(0,0,0,0.8) 100%)`,
-                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))'
+                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+                maxHeight: '100%'
             }}
         >
             <defs>
@@ -436,13 +445,13 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
             
             {/* NPCs - using proper sprite rendering */}
             {npcs.map((npc, idx) => (
-                <g 
-                    key={`npc-${npc.id || idx}`} 
+                <g
+                    key={`npc-${npc.id || idx}`}
                     transform={`translate(${npc.x * TILE_SIZE * scale}, ${npc.y * TILE_SIZE * scale})`}
                     onClick={onNpcClick ? () => onNpcClick(npc) : undefined}
                     style={onNpcClick ? { cursor: 'pointer' } : undefined}
                 >
-                    <NpcIcon 
+                    <NpcIcon
                         npc={npc}
                         x={0}
                         y={0}

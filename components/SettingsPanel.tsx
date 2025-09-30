@@ -446,7 +446,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <span>Interactive City Map</span>
                 </button>
                 <p className="mt-2 text-xs text-slate-400">
-                  Browse 167 authentic historical documents across all regions and time periods.
+                  Not finished yet.
                 </p>
               </div>
 
@@ -456,7 +456,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-teal-600 to-green-600 rounded-md hover:from-teal-700 hover:to-green-700 flex items-center justify-center gap-2"
                 >
                   <Hexagon className="w-4 h-4" />
-                  <span>Hexagonal World Map</span>
+                  <span>Hexagonal World Map (broken!)</span>
                 </button>
                 <p className="mt-2 text-xs text-slate-400">
                   Explore world geography with a hexagonal grid showing all game regions and territories.
@@ -476,18 +476,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-                <button
-                  onClick={() => setShowCityTimeline(true)}
-                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
-                >
-                  <MapIcon className="w-4 h-4" />
-                  <span>Chronicle of Civilizations</span>
-                </button>
-                <p className="mt-2 text-xs text-slate-400">
-                  Interactive timeline showing the rise and fall of cities through 4000+ years of history.
-                </p>
-              </div>
 
               <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
                 <button
@@ -495,7 +483,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-md hover:from-cyan-700 hover:to-blue-700 flex items-center justify-center gap-2"
                 >
                   <Activity className="w-4 h-4" />
-                  <span>Silk Roads of the World</span>
+                  <span>City Globe Attempt #1</span>
                 </button>
                 <p className="mt-2 text-xs text-slate-400">
                   3D globe visualization of trade networks and city connections throughout history.

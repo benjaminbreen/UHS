@@ -11,19 +11,19 @@
  * - Political/faction relationships
  */
 
-import { 
-  MapData, 
-  HistoricalEra, 
-  CulturalZone, 
-  NpcEntity, 
+import {
+  MapData,
+  HistoricalEra,
+  CulturalZone,
+  NpcEntity,
   TerrainStructure,
   BiomeType,
   ClimateType,
   Season
 } from '../types';
 import { CulturalMarketGood } from './culturalMarketplaceService';
-import { FACTION_DATA } from '../constants/gameData/factions';
 import { parseDateString } from '../utils/dateUtils';
+import { FACTION_DATA } from '../constants/gameData/factions';
 
 export interface PricingFactors {
   basePrice: number;

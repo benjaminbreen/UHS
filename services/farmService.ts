@@ -8,7 +8,8 @@ import { generateNpcName, generateBaseProfile } from '../generation/common/npcUt
 import { ValueNoise } from '../utils/noise';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { parseDateString } from '../utils/dateUtils';
-import { GEOGRAPHICAL_DATA } from '../constants';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 
 export interface FarmSkill {
   name: string;

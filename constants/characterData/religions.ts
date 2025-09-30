@@ -2,8 +2,9 @@
  * constants/characterData/religions.ts - Defines religious demographics by region for procedural generation.
  */
 import { HistoricalEra, CulturalZone, Religion } from '../../types';
-import { GEOGRAPHICAL_DATA } from '../../constants/index';
 import { ValueNoise } from '../../utils/noise';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../gameData/geography';
 
 
 // This data is keyed by Region string, which must match the keys in constants/gameData/geography.ts

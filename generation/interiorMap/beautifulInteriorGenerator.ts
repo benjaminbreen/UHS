@@ -8,6 +8,9 @@ import { parseDateString } from '../../utils/dateUtils';
 import { mapLocationToCulture } from '../../utils/mapUtils';
 import { NpcEntity } from '../../types/npcTypes';
 import { CulturalZone, HistoricalEra } from '../../types';
+import { findValidPosition, calculateGuardPosition } from '../common/npcPositionCalculator';
+import { worldWeaverNpcService } from '../../services/worldWeaverNpcService';
+import { generateHistoricalName } from '../../constants/characterData/names';
 
 interface BeautifulInteriorData extends InteriorMapData {
     layout: BuildingLayout;
@@ -23,33 +26,38 @@ function generateSupportNpcs(
     buildingType: string,
     culturalZone: CulturalZone,
     era: HistoricalEra,
+    region: string,
+    year: number,
     religion?: string
 ): NpcEntity[] {
     const npcs: NpcEntity[] = [];
     let npcIdCounter = 0;
-    
+
     // Find restricted spaces that need guards
-    const restrictedSpaces = layout.spaces.filter(space => 
+    const restrictedSpaces = layout.spaces.filter(space =>
         space.accessibility === 'restricted' || space.accessibility === 'sacred'
     );
-    
+
     // Generate 1-2 guard NPCs (more for fortress)
-    const guardCount = buildingType === 'fortress' ? 
-        Math.min(3, Math.max(2, restrictedSpaces.length)) : 
+    const guardCount = buildingType === 'fortress' ?
+        Math.min(3, Math.max(2, restrictedSpaces.length)) :
         Math.min(2, Math.max(1, restrictedSpaces.length));
-    
+
     for (let i = 0; i < guardCount; i++) {
         const guardSpace = restrictedSpaces[i] || layout.spaces[0];
-        const guardPosition = {
-            x: guardSpace.bounds.x + guardSpace.bounds.width / 2,
-            y: guardSpace.bounds.y + guardSpace.bounds.height - 1
-        };
-        
+
+        // Use shared position calculator for consistent positioning logic
+        const { x: guardX, y: guardY } = calculateGuardPosition(
+            guardSpace,
+            null, // Interior maps don't use tile-based collision (SVG rendering)
+            i
+        );
+
         const guardNpc: NpcEntity = {
             id: `guard-${npcIdCounter++}`,
-            name: generateGuardName(culturalZone),
-            x: guardPosition.x,
-            y: guardPosition.y,
+            name: generateGuardName(culturalZone, region, year, i),
+            x: guardX,
+            y: guardY,
             health: 120,
             maxHealth: 120,
             stats: {
@@ -109,8 +117,8 @@ function generateSupportNpcs(
             backstory: `Trained to protect this sacred space and maintain order`,
             activity: 'patrolling',
             movement: { type: 'patrol' },
-            targetX: guardPosition.x,
-            targetY: guardPosition.y,
+            targetX: guardX,
+            targetY: guardY,
             direction: 'down',
             walkFrame: 0,
             onRoad: false,
@@ -144,10 +152,10 @@ function generateSupportNpcs(
             // Guard-specific properties
             isHostile: false,
             patrolRoute: [
-                guardPosition,
-                { x: guardPosition.x + 2, y: guardPosition.y },
-                { x: guardPosition.x, y: guardPosition.y + 2 },
-                { x: guardPosition.x - 2, y: guardPosition.y }
+                { x: guardX, y: guardY },
+                { x: guardX + 2, y: guardY },
+                { x: guardX, y: guardY + 2 },
+                { x: guardX - 2, y: guardY }
             ],
             guardedRoom: guardSpace.id,
             requiredReligionToPass: guardSpace.requiredReligion,
@@ -172,7 +180,7 @@ function generateSupportNpcs(
         
         const servantNpc: NpcEntity = {
             id: `servant-${npcIdCounter++}`,
-            name: generateServantName(culturalZone),
+            name: generateServantName(culturalZone, region, year, npcs.length),
             x: servantPosition.x,
             y: servantPosition.y,
             health: 80,
@@ -277,38 +285,23 @@ function generateSupportNpcs(
     return npcs;
 }
 
-function generateGuardName(culturalZone: CulturalZone): string {
-    const names: Record<CulturalZone, string[]> = {
-        EUROPE: ['Marcus', 'Wilhelm', 'Gareth', 'Duncan', 'Roland'],
-        MENA: ['Hassan', 'Omar', 'Khalid', 'Mustafa', 'Tariq'],
-        EAST_ASIA: ['Kenji', 'Takeshi', 'Hiroshi', 'Akira', 'Ryu'],
-        SOUTH_ASIA: ['Raj', 'Arjun', 'Krishna', 'Vikram', 'Suresh'],
-        AFRICA: ['Kofi', 'Kwame', 'Jengo', 'Bakari', 'Tau'],
-        AMERICAS: ['Cuauhtemoc', 'Tlacaelel', 'Necalli', 'Itzel', 'Milintica'],
-        OCEANIA: ['Kai', 'Akamu', 'Keoni', 'Kalani', 'Makoa'],
-        ARCTIC: ['Nanook', 'Yutu', 'Kaskae', 'Atuat', 'Siku'],
-        NORTH_AMERICAN_PRE_COLUMBIAN: ['Strong Bear', 'Iron Wolf', 'Swift Eagle', 'Stone Hawk', 'Thunder Cloud']
-    };
-    
-    const guardNames = names[culturalZone] || names.EUROPE;
-    return guardNames[Math.floor(Math.random() * guardNames.length)];
+/**
+ * Generate culturally accurate guard name using sophisticated name generation
+ */
+function generateGuardName(culturalZone: CulturalZone, region: string, year: number, guardIndex: number): string {
+    // Create seed from guard index for deterministic names
+    const gender = guardIndex % 3 === 0 ? 'female' : 'male'; // ~33% female guards
+    const nameData = generateHistoricalName(culturalZone, region, year, gender);
+    return `${nameData.firstName} ${nameData.surname}`;
 }
 
-function generateServantName(culturalZone: CulturalZone): string {
-    const names: Record<CulturalZone, string[]> = {
-        EUROPE: ['Thomas', 'Mary', 'John', 'Anne', 'Peter'],
-        MENA: ['Ali', 'Fatima', 'Ahmed', 'Aisha', 'Yusuf'],
-        EAST_ASIA: ['Taro', 'Hanako', 'Jiro', 'Sakura', 'Kenta'],
-        SOUTH_ASIA: ['Ram', 'Sita', 'Gopal', 'Radha', 'Mohan'],
-        AFRICA: ['Amara', 'Kofi', 'Asha', 'Kwaku', 'Nala'],
-        AMERICAS: ['Ixchel', 'Yaotl', 'Citlali', 'Ehecatl', 'Itzel'],
-        OCEANIA: ['Leilani', 'Kaleo', 'Nalani', 'Ikaika', 'Mahina'],
-        ARCTIC: ['Tala', 'Nayeli', 'Kesuk', 'Siku', 'Yutu'],
-        NORTH_AMERICAN_PRE_COLUMBIAN: ['Little Fox', 'Quiet Stream', 'Gentle Wind', 'Bright Star', 'Soft Rain']
-    };
-    
-    const servantNames = names[culturalZone] || names.EUROPE;
-    return servantNames[Math.floor(Math.random() * servantNames.length)];
+/**
+ * Generate culturally accurate servant name using sophisticated name generation
+ */
+function generateServantName(culturalZone: CulturalZone, region: string, year: number, servantIndex: number): string {
+    const gender = servantIndex % 2 === 0 ? 'female' : 'male'; // 50/50 split
+    const nameData = generateHistoricalName(culturalZone, region, year, gender);
+    return `${nameData.firstName} ${nameData.surname}`;
 }
 
 function getSkinToneForCulture(culturalZone: CulturalZone): string {
@@ -390,18 +383,37 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
     if (existingWorkplaceNpc) {
         // Use the existing NPC from the standard map as the elite
         console.log('🎯 [BeautifulInteriorGenerator] Using existing workplace NPC as elite:', existingWorkplaceNpc.name, existingWorkplaceNpc.role);
-        
-        // Position the existing NPC in the interior
-        const eliteSpace = layout.spaces.find(s => 
+
+        // Position the existing NPC in the interior using shared calculator
+        const eliteSpace = layout.spaces.find(s =>
             s.type === 'altar' || s.accessibility === 'restricted'
         ) || layout.spaces[0];
-        
+
+        // Use appropriate position preference based on building type
+        const positionPref = config.buildingType === 'palace' ? 'throne' :
+                           config.buildingType === 'holy_place' ? 'altar' : 'restricted_area';
+
+        const { x: calculatedX, y: calculatedY } = findValidPosition(
+            eliteSpace,
+            null, // No tile collision for interior maps
+            { type: positionPref }
+        );
+
         namedElite = {
             ...existingWorkplaceNpc,
-            x: eliteSpace.bounds.x + Math.floor(eliteSpace.bounds.width / 2),
-            y: eliteSpace.bounds.y + Math.floor(eliteSpace.bounds.height / 2)
+            x: calculatedX,
+            y: calculatedY,
+            targetX: calculatedX,
+            targetY: calculatedY
         };
-        
+
+        console.log('✅ [BeautifulInteriorGenerator] Positioned workplace NPC:', {
+            name: namedElite.name,
+            position: { x: namedElite.x, y: namedElite.y },
+            spaceUsed: eliteSpace.id,
+            verifiedCoordinates: { x: namedElite.x, y: namedElite.y, isValid: !isNaN(namedElite.x) && !isNaN(namedElite.y) }
+        });
+
     } else {
         // Fallback: create new elite using the buildingElites service
         console.log('🆕 [BeautifulInteriorGenerator] No existing workplace NPC found, creating new elite');
@@ -430,32 +442,46 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
             );
         }
         
-        // Position the elite NPC based on building type
-        let eliteX, eliteY;
+        // Position the elite NPC using shared calculator
+        let eliteSpace: ArchitecturalSpace;
+        let positionPref: 'throne' | 'altar' | 'restricted_area';
+
         if (existingElite.id.includes('fortress') || config.buildingType === 'fortress') {
             // Fortress commander goes in the command chamber (restricted space)
-            const commandSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
-            eliteX = commandSpace.bounds.x + Math.floor(commandSpace.bounds.width / 2);
-            eliteY = commandSpace.bounds.y + Math.floor(commandSpace.bounds.height / 2) - 2; // Positioned near throne
+            eliteSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
+            positionPref = 'restricted_area';
         } else if (existingElite.id.includes('palace')) {
-            const restrictedSpace = layout.spaces.find(s => s.accessibility === 'restricted');
-            eliteX = restrictedSpace?.bounds.x || 10;
-            eliteY = restrictedSpace?.bounds.y || 10;
+            eliteSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
+            positionPref = 'throne';
         } else {
-            const altarSpace = layout.spaces.find(s => s.type === 'altar');
-            eliteX = altarSpace?.bounds.x || 10;
-            eliteY = altarSpace?.bounds.y || 10;
+            eliteSpace = layout.spaces.find(s => s.type === 'altar') || layout.spaces[0];
+            positionPref = 'altar';
         }
-        
+
+        // Use shared position calculator for consistent logic
+        const { x: validEliteX, y: validEliteY } = findValidPosition(
+            eliteSpace,
+            null, // No tile collision for interior maps
+            { type: positionPref, offset: { x: 0, y: -2 } } // Slight offset for visual appeal
+        );
+
         namedElite = convertEliteToNpc(existingElite, {
-            x: eliteX,
-            y: eliteY
+            x: validEliteX,
+            y: validEliteY
         });
-        
+
+        // Explicitly set coordinates after conversion to ensure they persist
+        // This fixes the NaN bug where coordinates were lost during object transformation
+        namedElite.x = validEliteX;
+        namedElite.y = validEliteY;
+        namedElite.targetX = validEliteX;
+        namedElite.targetY = validEliteY;
+
         console.log('🎖️ [BeautifulInteriorGenerator] Created fortress/building elite:', {
             name: namedElite.name,
-            position: { x: eliteX, y: eliteY },
-            buildingType: config.buildingType
+            position: { x: namedElite.x, y: namedElite.y },
+            buildingType: config.buildingType,
+            verifiedCoordinates: { x: namedElite.x, y: namedElite.y, isValid: !isNaN(namedElite.x) && !isNaN(namedElite.y) }
         });
     }
     
@@ -465,12 +491,14 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
         config.buildingType,
         culturalZone,
         dateInfo.era as HistoricalEra,
+        config.location || 'Europe',
+        dateInfo.year,
         religion
     );
-    
+
     // Player start position (always at entrance)
     const playerPosition = layout.entrance;
-    
+
     // Create simplified interior data structure
     const interiorData: BeautifulInteriorData = {
         width: layout.totalBounds.width,
@@ -495,8 +523,57 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
         guardNpcs,
         npcs: guardNpcs.concat(namedElite ? [namedElite] : [])
     };
-    
+
     return interiorData;
+}
+
+/**
+ * Load and add quest NPCs to an existing interior map
+ * Call this after generating the interior to add quest-related NPCs
+ */
+export async function addQuestNPCsToInterior(
+    interiorData: BeautifulInteriorData,
+    buildingId: string,
+    culturalZone: string,
+    era: string
+): Promise<void> {
+    console.log(`[BeautifulInteriorGenerator] Loading quest NPCs for building ${buildingId}`);
+
+    try {
+        const questNpcs = await worldWeaverNpcService.loadQuestNPCsForBuilding(
+            buildingId,
+            culturalZone,
+            era
+        );
+
+        if (questNpcs.length > 0) {
+            // Position quest NPCs in appropriate spaces using shared calculator
+            for (const questNpc of questNpcs) {
+                // If NPC doesn't have a position yet, find one
+                if (!questNpc.x || !questNpc.y) {
+                    // Find an appropriate space (prefer public areas for quest NPCs)
+                    const publicSpace = interiorData.layout.spaces.find(s => s.accessibility === 'public')
+                        || interiorData.layout.spaces[0];
+
+                    const { x, y } = findValidPosition(
+                        publicSpace,
+                        null, // No tile collision for interior maps
+                        { type: 'random' }
+                    );
+
+                    questNpc.x = x;
+                    questNpc.y = y;
+                }
+
+                // Add to NPCs array
+                interiorData.npcs.push(questNpc);
+            }
+
+            console.log(`[BeautifulInteriorGenerator] Added ${questNpcs.length} quest NPCs to interior`);
+        }
+    } catch (error) {
+        console.error(`[BeautifulInteriorGenerator] Error loading quest NPCs:`, error);
+    }
 }
 
 /**

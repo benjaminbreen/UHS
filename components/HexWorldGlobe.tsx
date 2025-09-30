@@ -43,54 +43,37 @@ function Globe({ regions, onRegionClick, hoveredRegion, setHoveredRegion }: {
   setHoveredRegion: (region: RegionHex | null) => void;
 }) {
   const globeRef = useRef<THREE.Mesh>(null);
-  const [globeTexture, setGlobeTexture] = useState<THREE.Texture | null>(null);
+  const [textureError, setTextureError] = useState(false);
 
   // Get Three.js context - this must be inside Canvas
   const { camera, raycaster } = useThree();
 
-  // Create simple earth texture
-  useEffect(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d')!;
+  // Load Earth texture using THREE.TextureLoader directly (not in useEffect)
+  console.log('[Globe] Component rendering');
 
-    // Create ocean gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#1e3a8a');
-    gradient.addColorStop(0.5, '#1e40af');
-    gradient.addColorStop(1, '#1e3a8a');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const globeTexture = useMemo(() => {
+    console.log('[Globe] Loading Earth texture...');
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load(
+      '/8081_earthmap2k.jpg',
+      (loadedTexture) => {
+        console.log('[Globe] Successfully loaded Earth texture!');
+      },
+      (progress) => {
+        if (progress.total > 0) {
+          console.log('[Globe] Loading:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
+        }
+      },
+      (error) => {
+        console.error('[Globe] Failed to load Earth texture:', error);
+        setTextureError(true);
+      }
+    );
 
-    // Add landmass shapes (simplified)
-    ctx.fillStyle = '#166534';
-    ctx.globalAlpha = 0.6;
-
-    // Simple continent shapes
-    const continents = [
-      // Europe
-      { x: 400, y: 150, w: 80, h: 60 },
-      // Asia
-      { x: 500, y: 120, w: 200, h: 120 },
-      // Africa
-      { x: 420, y: 200, w: 60, h: 120 },
-      // North America
-      { x: 150, y: 100, w: 120, h: 140 },
-      // South America
-      { x: 200, y: 280, w: 60, h: 120 },
-      // Australia
-      { x: 650, y: 350, w: 80, h: 40 }
-    ];
-
-    continents.forEach(continent => {
-      ctx.fillRect(continent.x, continent.y, continent.w, continent.h);
-    });
-
-    const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    setGlobeTexture(texture);
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+
+    return texture;
   }, []);
 
   // Handle mouse interactions
@@ -129,11 +112,15 @@ function Globe({ regions, onRegionClick, hoveredRegion, setHoveredRegion }: {
         onClick={handleClick}
       >
         <sphereGeometry args={[5, 64, 32]} />
-        <meshStandardMaterial
-          map={globeTexture}
-          transparent
-          opacity={0.8}
-        />
+        {globeTexture ? (
+          <meshBasicMaterial
+            map={globeTexture}
+          />
+        ) : (
+          <meshBasicMaterial
+            color="#1a4d7a"
+          />
+        )}
       </mesh>
 
       {/* Region points */}
@@ -166,14 +153,14 @@ function Globe({ regions, onRegionClick, hoveredRegion, setHoveredRegion }: {
         </group>
       ))}
 
-      {/* Lighting */}
-      <ambientLight intensity={0.4} />
+      {/* Lighting - balanced to not wash out texture */}
+      <ambientLight intensity={0.6} />
       <directionalLight
         position={[10, 10, 5]}
-        intensity={0.8}
+        intensity={0.4}
         castShadow
       />
-      <pointLight position={[-10, -10, -5]} intensity={0.3} color="#4facfe" />
+      <pointLight position={[-10, -10, -5]} intensity={0.2} color="#4facfe" />
     </group>
   );
 }

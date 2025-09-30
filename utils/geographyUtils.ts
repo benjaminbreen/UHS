@@ -1,5 +1,8 @@
 import { AdjacencyDirection, MapAreaDefinition, MapArchetype, Point } from '../types';
-import { ADJACENCIES, LIMINAL_SEQUENCES, GEOGRAPHICAL_DATA, MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants/index';
+import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { ADJACENCIES, LIMINAL_SEQUENCES } from '../constants/gameData/adjacencies';
+import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 
 export interface NextMapResultAdjacent {
     type: 'adjacent';

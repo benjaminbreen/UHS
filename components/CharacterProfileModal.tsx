@@ -550,37 +550,60 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   // Lazy-load life events only when history tab is active
   const [lifeEventsGenerated, setLifeEventsGenerated] = useState(false);
+  const [lifeEventsLoading, setLifeEventsLoading] = useState(false);
   const [expandedLifeEvents, setExpandedLifeEvents] = useState<LifeEvent[]>([]);
 
   useEffect(() => {
-    if (active === 'history' && !lifeEventsGenerated && character) {
-      console.log('[CharacterProfileModal] Starting life events generation...');
-      const generationStart = performance.now();
+    if (active === 'history' && !lifeEventsGenerated && !lifeEventsLoading && character) {
+      console.log('[CharacterProfileModal] Starting life events generation with Web Worker...');
+      setLifeEventsLoading(true);
 
-      // Debounced generation with longer delay to avoid blocking UI
-      const timeoutId = setTimeout(() => {
-        // Use requestIdleCallback if available for better performance
-        if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(() => {
-            const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
-            setExpandedLifeEvents(events);
-            setLifeEventsGenerated(true);
-            const elapsed = performance.now() - generationStart;
-            console.log(`[CharacterProfileModal] Life events generated in ${elapsed.toFixed(2)}ms (${events.length} events)`);
-          }, { timeout: 2000 });
-        } else {
-          // Fallback to setTimeout with longer delay
+      // Use Web Worker for background generation
+      const worker = new Worker(new URL('../workers/lifeEventsWorker.ts', import.meta.url), {
+        type: 'module'
+      });
+
+      const currentYear = parseInt(date || '', 10) || character.year || 1500;
+
+      worker.postMessage({
+        character,
+        currentYear,
+        culturalZone: culturalZone || 'EUROPEAN',
+        era: era || 'MEDIEVAL',
+        companions: tamedAnimals || []
+      });
+
+      worker.onmessage = (event) => {
+        if (event.data.error) {
+          console.error('[CharacterProfileModal] Worker error:', event.data.error);
+          // Fallback to synchronous generation on error
           const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
           setExpandedLifeEvents(events);
-          setLifeEventsGenerated(true);
-          const elapsed = performance.now() - generationStart;
-          console.log(`[CharacterProfileModal] Life events generated in ${elapsed.toFixed(2)}ms (${events.length} events)`);
+        } else {
+          const { events, generationTime } = event.data;
+          console.log(`[CharacterProfileModal] Life events generated in ${generationTime.toFixed(2)}ms (${events.length} events) using Web Worker`);
+          setExpandedLifeEvents(events);
         }
-      }, 500); // Increased delay from 100ms to 500ms
+        setLifeEventsGenerated(true);
+        setLifeEventsLoading(false);
+        worker.terminate();
+      };
 
-      return () => clearTimeout(timeoutId);
+      worker.onerror = (error) => {
+        console.error('[CharacterProfileModal] Worker error:', error);
+        // Fallback to synchronous generation
+        const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
+        setExpandedLifeEvents(events);
+        setLifeEventsGenerated(true);
+        setLifeEventsLoading(false);
+        worker.terminate();
+      };
+
+      return () => {
+        worker.terminate();
+      };
     }
-  }, [active, lifeEventsGenerated, character, date, tamedAnimals, culturalZone, era]);
+  }, [active, lifeEventsGenerated, lifeEventsLoading, character, date, tamedAnimals, culturalZone, era]);
 
   // Helper to find events mentioning family members
   const findFamilyEvents = useCallback((familyMemberName: string) => {
@@ -1411,15 +1434,24 @@ const CharacterProfileModal: React.FC<Props> = ({
 
               {/* HISTORY (enhanced with portraits and interactivity) --------- */}
               {active === 'history' && (
-                <CharacterHistoryTab
-                  character={character}
-                  expandedLifeEvents={expandedLifeEvents}
-                  lifeEventsGenerated={lifeEventsGenerated}
-                  findFamilyEvents={findFamilyEvents}
-                  scrollToEvent={scrollToEvent}
-                  timelineRef={timelineRef}
-                  highlightedEventYear={highlightedEventYear}
-                />
+                lifeEventsLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+                      <p className="text-slate-300">Generating life events in background...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <CharacterHistoryTab
+                    character={character}
+                    expandedLifeEvents={expandedLifeEvents}
+                    lifeEventsGenerated={lifeEventsGenerated}
+                    findFamilyEvents={findFamilyEvents}
+                    scrollToEvent={scrollToEvent}
+                    timelineRef={timelineRef}
+                    highlightedEventYear={highlightedEventYear}
+                  />
+                )
               )}
 
               {/* HOUSEHOLD (now shows companions with Release) ---------------- */}

@@ -1410,6 +1410,143 @@
 }
 
 /* ==========================================
+   SMOOTH LOADING ANIMATIONS
+   ========================================== */
+
+/* Fade-in animation for main UI elements */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Apply animations with staggered delays */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.5s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.4s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out forwards;
+}
+
+/* Safari-compatible fade using transitions instead of animations */
+.safari-fade-in {
+  opacity: 0;
+  transform: translateY(0);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.safari-fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.safari-fade-in-scale {
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.safari-fade-in-scale.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.safari-slide-left {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.safari-slide-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.safari-slide-right {
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.safari-slide-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+
+/* Staggered delays for cascading effect */
+.delay-50 {
+  animation-delay: 50ms;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-250 {
+  animation-delay: 250ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+/* ==========================================
    SAFARI PERFORMANCE OPTIMIZATIONS
    ========================================== */
 

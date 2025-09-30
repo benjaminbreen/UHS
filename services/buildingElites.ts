@@ -4,7 +4,10 @@
 import { NpcEntity } from '../types/npcTypes';
 import { CulturalZone, HistoricalEra, FactionData } from '../types';
 import { Point } from '../types';
-import { FACTION_DATA } from '../constants';
+import { FACTION_DATA } from '../constants/gameData/factions';
+import { generateHistoricalName } from '../constants/characterData/names';
+import { generateBaseProfile } from '../generation/common/npcUtils';
+import { ValueNoise } from '../utils/noise';
 
 export interface BuildingElite {
     id: string;
@@ -19,6 +22,14 @@ export interface BuildingElite {
     era: HistoricalEra;
     respectThreshold: number; // How much deference they expect
     dialogueStyle: 'aggressive' | 'condescending' | 'imperious';
+    // ✅ NEW: Store rich profile data for sophisticated rendering
+    profileData?: {
+        appearance: any;
+        stats: any;
+        gender: 'male' | 'female';
+        age: number;
+        portraitSeed?: number;
+    };
 }
 
 /**
@@ -149,27 +160,99 @@ function generateTitle(
 }
 
 /**
- * Generate culturally appropriate names
+ * Helper: Create seeded random number generator
  */
-function generateEliteName(
+function seeded(seed: number) {
+    let s = Math.sin(seed) * 10000;
+    const next = () => {
+        s = (s + 1) % 10000;
+        return (s - Math.floor(s));
+    };
+    const rangeInt = (min: number, max: number) => Math.floor(next() * (max - min)) + min;
+    return { next, rangeInt };
+}
+
+/**
+ * Helper: Get approximate year from era
+ */
+function getYearFromEra(era: HistoricalEra): number {
+    const eraYears: Record<HistoricalEra, number> = {
+        'Prehistory': -3000,
+        'Classical': -500,
+        'Antiquity': 100,
+        'Medieval': 1100,
+        'Renaissance': 1450,
+        'Early Modern': 1650,
+        'Industrial': 1850,
+        'Modern': 1950,
+        'Future': 2050
+    };
+    return eraYears[era] || 1500;
+}
+
+/**
+ * Generate sophisticated elite profile using the same system as government districts
+ */
+function generateEliteProfile(
     culturalZone: CulturalZone,
     era: HistoricalEra,
+    region: string,
+    buildingId: string,
     religion?: string
-): string {
-    const namesByZone: Record<CulturalZone, string[]> = {
-        EUROPE: ['Wilhelm', 'Godwin', 'Eleanor', 'Aldric', 'Matilda', 'Conrad', 'Adelaide', 'Roderick'],
-        MENA: ['Hassan', 'Fatima', 'Omar', 'Aisha', 'Khalid', 'Zara', 'Mustafa', 'Layla'],
-        EAST_ASIA: ['Hiroshi', 'Akiko', 'Takeshi', 'Yuki', 'Kenji', 'Mei', 'Ryu', 'Sakura'],
-        SOUTH_ASIA: ['Raj', 'Priya', 'Arjun', 'Devi', 'Krishna', 'Sita', 'Vikram', 'Lakshmi'],
-        AFRICA: ['Kwame', 'Amina', 'Kofi', 'Asha', 'Jengo', 'Nala', 'Bakari', 'Zuri'],
-        AMERICAS: ['Itzel', 'Cuauhtemoc', 'Xochitl', 'Tlacaelel', 'Citlali', 'Necalli', 'Zyanya', 'Milintica'],
-        OCEANIA: ['Kai', 'Leilani', 'Akamu', 'Nalani', 'Keoni', 'Mahina', 'Kalani', 'Pika'],
-        ARCTIC: ['Yutu', 'Siku', 'Nanook', 'Tala', 'Kaskae', 'Nayeli', 'Atuat', 'Kesuk'],
-        NORTH_AMERICAN_PRE_COLUMBIAN: ['Running Bear', 'White Eagle', 'Morning Star', 'Red Cloud', 'Swift River', 'Golden Hawk', 'Bright Moon', 'Strong Wolf']
+): {
+    name: string;
+    appearance: any;
+    stats: any;
+    personality: any;
+    gender: 'male' | 'female';
+    age: number;
+} {
+    // Create deterministic seed from buildingId
+    const seed = buildingId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const rng = seeded(seed);
+
+    // Create pseudo-noise for deterministic generation
+    const pseudoNoise: ValueNoise = {
+        random: () => rng.next(),
+        get: (x: number, y: number) => rng.next(),
+        getNormalized: (x: number, y: number) => rng.next()
     };
-    
-    const names = namesByZone[culturalZone] || namesByZone.EUROPE;
-    return names[Math.floor(Math.random() * names.length)];
+
+    const year = getYearFromEra(era);
+    const gender = rng.next() > 0.5 ? 'male' : 'female';
+
+    // Use sophisticated base profile generator (same as government districts)
+    const baseProfile = generateBaseProfile(pseudoNoise, {
+        era: era,
+        culturalZone,
+        region
+    });
+
+    // Generate culturally accurate name using the SAME system as government NPCs
+    const nameData = generateHistoricalName(culturalZone, region, year, gender);
+
+    return {
+        name: `${nameData.firstName} ${nameData.surname}`,
+        appearance: {
+            ...baseProfile.appearance,
+            clothing: {
+                ...baseProfile.appearance.clothing,
+                quality: 'fine',
+                wealth: 'wealthy'
+            }
+        },
+        stats: {
+            ...baseProfile.stats,
+            // Boost stats for elites
+            intelligence: Math.min(10, (baseProfile.stats.intelligence || 5) + 3),
+            charisma: Math.min(10, (baseProfile.stats.charisma || 5) + 3),
+            wisdom: Math.min(10, (baseProfile.stats.wisdom || 5) + 2),
+            strength: Math.min(10, (baseProfile.stats.strength || 5) + 1)
+        },
+        personality: baseProfile.personality,
+        gender,
+        age: 35 + rng.rangeInt(0, 25) // 35-60 years old
+    };
 }
 
 /**
@@ -186,15 +269,16 @@ export function createBuildingElite(
 ): BuildingElite {
     // Get faction data for court roles
     const factionData = FACTION_DATA[culturalZone]?.[region || '']?.[era];
-    
-    const name = generateEliteName(culturalZone, era, religion);
+
+    // ✅ NEW: Use sophisticated profile generation instead of random names
+    const profile = generateEliteProfile(culturalZone, era, region || '', buildingId, religion);
     const title = generateTitle(buildingType, religion, culturalZone, era, region, factionData);
-    
+
     let personality: BuildingElite['personality'];
     let dialogueStyle: BuildingElite['dialogueStyle'];
     let respectThreshold: number;
     let socialClass: BuildingElite['socialClass'];
-    
+
     if (buildingType === 'palace') {
         personality = Math.random() > 0.5 ? 'arrogant' : Math.random() > 0.5 ? 'regal' : 'intimidating';
         dialogueStyle = Math.random() > 0.5 ? 'condescending' : 'imperious';
@@ -211,10 +295,25 @@ export function createBuildingElite(
         respectThreshold = 60; // Moderate threshold for clergy
         socialClass = 'clergy';
     }
-    
+
+    // Generate portrait seed for consistent rendering
+    const portraitSeed = buildingId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000000;
+
+    console.log(`🎨 [BuildingElites] Generated elite profile:`, {
+        name: profile.name,
+        title,
+        culturalZone,
+        era,
+        region,
+        buildingType,
+        gender: profile.gender,
+        age: profile.age,
+        portraitSeed
+    });
+
     return {
         id: `elite-${buildingId}`,
-        name,
+        name: profile.name, // ✅ Use sophisticated name
         title,
         buildingId,
         buildingType,
@@ -224,7 +323,15 @@ export function createBuildingElite(
         culturalZone,
         era,
         respectThreshold,
-        dialogueStyle
+        dialogueStyle,
+        // ✅ Store profile data for rendering
+        profileData: {
+            appearance: profile.appearance,
+            stats: profile.stats,
+            gender: profile.gender,
+            age: profile.age,
+            portraitSeed
+        }
     };
 }
 
@@ -232,6 +339,38 @@ export function createBuildingElite(
  * Convert BuildingElite to NpcEntity for interior rendering
  */
 export function convertEliteToNpc(elite: BuildingElite, position: Point): NpcEntity {
+    // ✅ Use profileData if available, otherwise fall back to defaults
+    const stats = elite.profileData?.stats || {
+        strength: 12,
+        dexterity: 10,
+        constitution: 14,
+        intelligence: 16,
+        wisdom: 15,
+        charisma: 18,
+        maxHealth: 100,
+        experience: 1000,
+        level: 5,
+        fatigue: 0,
+        maxFatigue: 120
+    };
+
+    const appearance = elite.profileData?.appearance || {
+        skinTone: getSkinToneForCulture(elite.culturalZone),
+        skinColor: getSkinToneForCulture(elite.culturalZone),
+        hairColor: '#4A4A4A',
+        eyeColor: '#654321',
+        height: 165 + Math.random() * 20,
+        build: 'regal',
+        hairstyle: 'elaborate',
+        affect: 'imperious',
+        clothing: [],
+        palette: {
+            primary: elite.socialClass === 'royalty' ? '#800080' : '#4169E1',
+            secondary: '#FFD700',
+            accent: '#8B4513'
+        }
+    };
+
     return {
         id: elite.id,
         name: `${elite.title} ${elite.name}`,
@@ -239,24 +378,12 @@ export function convertEliteToNpc(elite: BuildingElite, position: Point): NpcEnt
         y: position.y,
         health: 100,
         maxHealth: 100,
-        stats: {
-            strength: 12,
-            dexterity: 10,
-            constitution: 14,
-            intelligence: 16,
-            wisdom: 15,
-            charisma: 18,
-            maxHealth: 100,
-            experience: 1000,
-            level: 5,
-            fatigue: 0,
-            maxFatigue: 120
-        },
+        stats,
         personality: {
             openness: elite.personality === 'pious' ? 0.7 : 0.4,
             conscientiousness: 0.8,
             extraversion: elite.personality === 'arrogant' ? 0.9 : 0.6,
-            agreeableness: 0.2, // Generally not agreeable
+            agreeableness: 0.2,
             neuroticism: elite.personality === 'intimidating' ? 0.3 : 0.6,
             traits: [elite.personality, 'prideful', 'demanding']
         },
@@ -268,27 +395,15 @@ export function convertEliteToNpc(elite: BuildingElite, position: Point): NpcEnt
         },
         class: elite.socialClass,
         role: elite.title,
-        emoji: elite.buildingType === 'palace' ? '👑' : 
+        emoji: elite.buildingType === 'palace' ? '👑' :
                elite.buildingType === 'fortress' ? '⚔️' : '⛪',
-        age: 35 + Math.floor(Math.random() * 25),
-        gender: Math.random() > 0.5 ? 'male' : 'female',
+        age: elite.profileData?.age || (35 + Math.floor(Math.random() * 25)),
+        gender: elite.profileData?.gender || (Math.random() > 0.5 ? 'male' : 'female'),
         wealthLevel: elite.socialClass === 'royalty' ? 'noble' : 'wealthy',
-        appearance: {
-            skinTone: getSkinToneForCulture(elite.culturalZone),
-            skinColor: getSkinToneForCulture(elite.culturalZone),
-            hairColor: '#4A4A4A',
-            eyeColor: '#654321',
-            height: 165 + Math.random() * 20,
-            build: 'regal',
-            hairstyle: 'elaborate',
-            affect: 'imperious',
-            clothing: [],
-            palette: {
-                primary: elite.socialClass === 'royalty' ? '#800080' : '#4169E1', // Purple for royalty, blue for nobility
-                secondary: '#FFD700', // Gold accents
-                accent: '#8B4513'
-            }
-        },
+        appearance,
+        // ✅ Add portrait info
+        portraitType: 'procedural',
+        portraitSeed: elite.profileData?.portraitSeed,
         descriptions: {
             short: `The ${elite.title.toLowerCase()} of this ${
                 elite.buildingType === 'palace' ? 'palace' : 

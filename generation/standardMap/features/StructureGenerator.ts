@@ -3,7 +3,10 @@
  */
 import { Tile, MapData, TerrainStructure, BiomeType, TerrainStructureType, Allegiance, CulturalZone, HistoricalEra, MetalDefinition, SocietalProfile } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
-import { STRUCTURE_BLUEPRINTS, MAP_WIDTH_TILES, MAP_HEIGHT_TILES, FACTION_DATA, METALS, GEOGRAPHICAL_DATA } from '../../../constants/index';
+import { STRUCTURE_BLUEPRINTS, MAP_WIDTH_TILES, MAP_HEIGHT_TILES, METALS, FACTION_DATA } from '../../../constants/index';
+// Heavy data files - import directly to avoid loading on app startup
+import { GEOGRAPHICAL_DATA } from '../../../constants/gameData/geography';
+// Note: FACTION_DATA is loaded lazily via Proxy - it's available synchronously
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { parseDateString } from '../../../utils/dateUtils';
 import { determineReligion } from '../../common/npcUtils';

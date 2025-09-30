@@ -19,7 +19,7 @@ interface SpawnContext {
 class WorldWeaverNpcService {
 
   /**
-   * Spawn quest NPCs near the player with appropriate placement
+   * Spawn quest NPCs near the player with appropriate placement (main map)
    */
   async spawnQuestNPCs(questNPCs: QuestNPC[], context: SpawnContext): Promise<string[]> {
     const spawnedIds: string[] = [];
@@ -37,6 +37,108 @@ class WorldWeaverNpcService {
     }
 
     return spawnedIds;
+  }
+
+  /**
+   * Spawn a quest NPC in a building (interior/special map)
+   * Returns the spawned NPC entity or null if failed
+   */
+  async spawnQuestNPCInBuilding(
+    questNPC: QuestNPC,
+    buildingId: string,
+    culturalZone: string,
+    era: string,
+    position?: { x: number; y: number }
+  ): Promise<NpcEntity | null> {
+    console.log(`[WorldWeaverNPC] Spawning quest NPC ${questNPC.name} in building ${buildingId}`);
+
+    // Create NPC entity based on quest NPC data
+    const npcEntity: NpcEntity = {
+      id: generateId(),
+      name: questNPC.name,
+      x: position?.x || 0, // Position will be set by generator if not provided
+      y: position?.y || 0,
+      profession: questNPC.profession || this.guessProfessionFromRole(questNPC.role),
+      socialClass: this.guessSocialClassFromRole(questNPC.role),
+      stats: this.generateStatsForRole(questNPC.role),
+      inventory: [],
+
+      // Quest-specific properties
+      isQuestNPC: true,
+      questId: questNPC.id,
+      originalQuestData: questNPC,
+
+      // Building association
+      buildingId,
+
+      // Memory system
+      memory: this.createSafeNpcMemory(),
+
+      // Basic AI state
+      aiState: 'idle',
+      isMoving: false,
+
+      // Appearance based on description
+      gender: this.guessGenderFromName(questNPC.name),
+      age: this.guessAgeFromRole(questNPC.role),
+
+      // Historical context
+      culturalZone: ((questNPC as any).ethnicity || culturalZone) as any,
+      historicalEra: era as any
+    };
+
+    // Add ethnicCulturalZone if different from geographic zone
+    const questEthnicity = (questNPC as any).ethnicity;
+    if (questEthnicity && questEthnicity !== culturalZone) {
+      (npcEntity as any).ethnicCulturalZone = questEthnicity;
+    }
+
+    // Generate AI portrait for this quest NPC
+    try {
+      console.log(`[WorldWeaverNPC] Generating AI portrait for ${questNPC.name} in building...`);
+
+      const portraitContext = {
+        npc: questNPC,
+        culturalZone: questEthnicity || culturalZone,
+        era,
+        location: 'interior'
+      };
+
+      const { imageUrl, prompt } = await imageGenerationService.generateQuestNPCPortrait(portraitContext);
+
+      if (imageUrl) {
+        npcEntity.aiPortrait = imageUrl;
+        npcEntity.portraitType = 'ai';
+        npcEntity.portraitPrompt = prompt;
+        console.log(`[WorldWeaverNPC] ✨ Generated AI portrait for ${questNPC.name}: ${imageUrl}`);
+      } else {
+        npcEntity.portraitType = 'procedural';
+      }
+    } catch (error) {
+      console.error(`[WorldWeaverNPC] Error generating portrait for ${questNPC.name}:`, error);
+      npcEntity.portraitType = 'procedural';
+    }
+
+    console.log(`[WorldWeaverNPC] Successfully spawned quest NPC ${questNPC.name} in building ${buildingId}`);
+    return npcEntity;
+  }
+
+  /**
+   * Load quest NPCs for a specific building
+   * Checks if any active quests have NPCs that should be in this building
+   */
+  async loadQuestNPCsForBuilding(
+    buildingId: string,
+    culturalZone: string,
+    era: string
+  ): Promise<NpcEntity[]> {
+    console.log(`[WorldWeaverNPC] Loading quest NPCs for building ${buildingId}`);
+
+    // TODO: Integrate with quest system to find active quests
+    // For now, return empty array - will be wired up when quest system is ready
+    // The quest system will need to track which NPCs belong to which buildings
+
+    return [];
   }
 
   /**

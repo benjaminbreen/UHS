@@ -416,9 +416,9 @@ export const usePlayerState = (props: usePlayerStateProps) => {
     const handleInteriorMove = useCallback((newPos: Point) => {
         if (!interiorViewState) return;
         const map = interiorViewState.maps.get(interiorViewState.currentFloor);
-        if (map && newPos.x >= 0 && newPos.x < map.width && newPos.y >= 0 && newPos.y < map.height) {
-            const targetTile = map.tiles[newPos.y][newPos.x];
-            if (targetTile.isWalkable) {
+        if (map && map.tiles && newPos.x >= 0 && newPos.x < map.width && newPos.y >= 0 && newPos.y < map.height) {
+            const targetTile = map.tiles[newPos.y]?.[newPos.x];
+            if (targetTile?.isWalkable) {
                 setInteriorMapPlayerPos(newPos);
             }
         }
