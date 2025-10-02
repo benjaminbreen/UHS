@@ -40,14 +40,17 @@ import {
   generateHistoricalSummary,
   generateFarmDetails as llmGenerateFarmDetails,
   assessFarmWork,
+  generateFarmWorkSimulation,
 } from '../services/llmService';
 import { parseDateString, formatDateWithSeason } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { ProceduralPortrait } from './portraits';
-import LeftSidebar from './LeftSidebar';
 import PlayerProfileCard from './PlayerProfileCard';
 import NPCToast from './NPCToast';
 import { gameSounds } from '../services/gameSoundsService';
+import { useUI } from '../contexts/UIContext';
+import { CROP_DATA, formatPlantingSeason } from '../constants/gameData/cropData';
+import { generateFarmName } from '../constants/gameData/farmNaming';
 
 // lucide icons
 import {
@@ -91,13 +94,19 @@ interface FarmPanelImprovedProps {
   leftSidebarTab?: string;
   onTabChange?: (tab: string) => void;
   onInitiateEncounter?: (target: any) => void;
+  onPlayerStateChange?: (changes: {
+    health?: number;
+    fatigue?: number;
+    statusEffects?: Array<{ type: string; name: string; duration: number; severity?: 'mild' | 'moderate' | 'severe' }>;
+    inventory?: { add?: Item[]; remove?: string[] };
+  }) => void;
 }
 
 type TabType = 'overview' | 'fields' | 'family' | 'trade' | 'advisor';
 
 // Minimal crop glyphs (fallback to emoji only for crops since icon coverage varies)
 const CROP_EMOJIS: Record<string, string> = {
-  wheat: '🌾', barley: '🌾', rice: '🌾', oats: '🌾', rye: '🌾',
+  wheat: '🌾', barley: '🌾', rice: '🌾', oats: '🌾', rye: '🌾', quinoa: '🌾',
   maize: '🌽', corn: '🌽',
   potatoes: '🥔', potato: '🥔',
   tomatoes: '🍅', tomato: '🍅',
@@ -112,7 +121,6 @@ const CROP_EMOJIS: Record<string, string> = {
   sugarcane: '🎋', sugar: '🎋',
 };
 
-const PANEL_LEFT_W = 360;
 const PANEL_RIGHT_W = 340;
 
 const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
@@ -128,13 +136,18 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   onProgressTime,
   onShowEvent,
   currentGameDay,
-  useLlm = false,
+  useLlm = true,
   gameDate,
   onInitiateEncounter,
+  onPlayerStateChange,
 }) => {
+  const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, setIsRightSidebarVisible } = useUI();
+
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [farmState, setFarmState] = useState<FarmState | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [previousLeftSidebarState, setPreviousLeftSidebarState] = useState<boolean | null>(null);
+  const [previousRightSidebarState, setPreviousRightSidebarState] = useState<boolean | null>(null);
 
   // Derive cultural zone early for use in callbacks
   const culturalZone = mapLocationToCulture(mapData?.timeSlice || 'Europe 1650', mapData?.continent || 'Europe');
@@ -142,6 +155,20 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   // Fields
   const [selectedField, setSelectedField] = useState<number | null>(null);
   const [selectedCrop, setSelectedCrop] = useState<string>('');
+
+  // Text-based Farm Work Adventure
+  const [farmWorkHistory, setFarmWorkHistory] = useState<Array<{ type: 'player' | 'narrator'; text: string }>>([]);
+  const [farmWorkInput, setFarmWorkInput] = useState('');
+  const [isFarmWorkProcessing, setIsFarmWorkProcessing] = useState(false);
+  const [hoursWorkedToday, setHoursWorkedToday] = useState(0);
+  const [currentFarmTime, setCurrentFarmTime] = useState(gameTimeHours); // Track current time in farm work
+  const [farmActionLog, setFarmActionLog] = useState<Array<{ action: string; timeElapsed: number }>>([]);
+
+  // Overview tab expanded cards
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+  // Farm Work tab expanded sections
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Family & chat
   const [selectedMember, setSelectedMember] = useState<FarmFamilyMember | null>(null);
@@ -337,10 +364,38 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   const centerRef = useRef<HTMLDivElement>(null);
   const isUnmountingRef = useRef(false);
   const [centerWidth, setCenterWidth] = useState<number>(1200);
+
+  // Auto-collapse left sidebar and hide right sidebar when farm panel opens
+  useEffect(() => {
+    // Store current states and collapse/hide on mount
+    const wasLeftExpanded = isLeftSidebarExpanded;
+    const wasRightVisible = isRightSidebarVisible;
+    setPreviousLeftSidebarState(wasLeftExpanded);
+    setPreviousRightSidebarState(wasRightVisible);
+
+    if (wasLeftExpanded) {
+      setIsLeftSidebarExpanded(false);
+    }
+    if (wasRightVisible) {
+      setIsRightSidebarVisible(false);
+    }
+
+    // Restore previous states when component unmounts
+    return () => {
+      if (wasLeftExpanded) {
+        setIsLeftSidebarExpanded(true);
+      }
+      if (wasRightVisible) {
+        setIsRightSidebarVisible(true);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount/unmount
+
   useEffect(() => {
     const handleResize = () => {
       const total =
-        window.innerWidth - PANEL_LEFT_W - PANEL_RIGHT_W - 2; // borders
+        window.innerWidth - PANEL_RIGHT_W - 2; // borders
       setCenterWidth(Math.max(total, 600));
     };
     handleResize();
@@ -364,6 +419,18 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
       };
     }
   }, [mapData?.timeSlice, mapData?.continent]);
+
+  // Initialize farm work history with context-aware intro message
+  useEffect(() => {
+    if (farmWorkHistory.length === 0 && era && season) {
+      const eraName = era === 'MEDIEVAL' ? 'medieval' : era === 'RENAISSANCE_EARLY_MODERN' ? 'early modern' : 'ancient';
+      const zoneName = culturalZone.toLowerCase().replace(/_/g, ' ');
+      setFarmWorkHistory([{
+        type: 'narrator',
+        text: `You stand at the edge of your fields in the ${season} season. The ${eraName} ${zoneName} landscape stretches before you. What will you do? (Try commands like: "plant wheat in field 1", "water the crops", "check field 2", "harvest mature crops")`
+      }]);
+    }
+  }, [era, season, culturalZone, farmWorkHistory.length]);
 
   // Check if player is a worker
   const isWorker = farmState?.residencyStatus?.playerStatus === 'worker';
@@ -398,6 +465,81 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     if (gameTimeHours >= 17 && gameTimeHours < 20) return 'Dusk';
     return 'Night';
   }, [gameTimeHours]);
+
+  // Format time display (12-hour format)
+  const formatTime = (hours: number) => {
+    const h = Math.floor(hours) % 24;
+    const m = Math.floor((hours % 1) * 60);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${displayHour}:${m.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Toggle expanded card
+  const toggleCard = (cardId: string) => {
+    setExpandedCard(prev => prev === cardId ? null : cardId);
+  };
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
+
+  // Head farmer (owner or first adult member) - MUST BE DEFINED FIRST
+  const headFarmer = useMemo(() => {
+    if (!farmState?.family?.members) return null;
+    return farmState.family.members.find(m => m.role === 'Farmer' && m.age >= 30) ||
+           farmState.family.members.find(m => m.role === 'Farmer') ||
+           farmState.family.members.find(m => m.age >= 18) ||
+           farmState.family.members[0];
+  }, [farmState]);
+
+  // Get primary crop from tile.cropType (single source of truth)
+  const primaryCrop = useMemo(() => {
+    // First check if tile has cropType
+    if (tile.cropType) return tile.cropType;
+
+    // Otherwise find most common crop in fields
+    if (!farmState?.fields) return 'none';
+    const cropCounts: Record<string, number> = {};
+    farmState.fields.forEach(f => {
+      if (f.crop) {
+        cropCounts[f.crop] = (cropCounts[f.crop] || 0) + 1;
+      }
+    });
+    const sorted = Object.entries(cropCounts).sort((a, b) => b[1] - a[1]);
+    return sorted[0]?.[0] || 'none';
+  }, [tile.cropType, farmState?.fields]);
+
+  // Generate farm name dynamically (depends on headFarmer and primaryCrop)
+  const dynamicFarmName = useMemo(() => {
+    if (!farmState) return 'The Farm';
+    const farmerName = headFarmer?.name?.split(' ')[0] || farmState.family.headOfHousehold.split(' ')[0];
+    return generateFarmName(
+      farmerName,
+      culturalZone,
+      era,
+      primaryCrop !== 'none' ? primaryCrop : undefined
+    );
+  }, [farmState, headFarmer, culturalZone, era, primaryCrop]);
+
+  // Get prosperity display info
+  const prosperityInfo = useMemo(() => {
+    const status = farmState?.economicStatus || 'humble';
+    const config = {
+      humble: { label: 'Modest', color: 'text-slate-400', bg: 'bg-slate-800/30', emoji: '🏚️' },
+      prosperous: { label: 'Prosperous', color: 'text-emerald-400', bg: 'bg-emerald-900/20', emoji: '🏡' },
+      wealthy: { label: 'Wealthy', color: 'text-amber-400', bg: 'bg-amber-900/20', emoji: '🏰' }
+    };
+    return config[status as keyof typeof config] || config.humble;
+  }, [farmState?.economicStatus]);
 
   // Music and soundscape on mount + cleanup tracking
   useEffect(() => {
@@ -449,15 +591,6 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
         : [],
     [farmState, season]
   );
-  
-  // Head farmer (owner or first adult member)
-  const headFarmer = useMemo(() => {
-    if (!farmState?.family?.members) return null;
-    return farmState.family.members.find(m => m.role === 'Farmer' && m.age >= 30) || 
-           farmState.family.members.find(m => m.role === 'Farmer') ||
-           farmState.family.members.find(m => m.age >= 18) ||
-           farmState.family.members[0];
-  }, [farmState]);
 
   // ===== Farmer Messages ===========================================================
   
@@ -922,6 +1055,117 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     }
   }, [useLlm, farmState, tile, year, mapData]);
 
+  // ===== Text-Based Farm Work Handler ==========================================
+
+  const handleFarmWorkCommand = useCallback(async (command: string) => {
+    if (!useLlm || !farmState || isFarmWorkProcessing) return;
+
+    setIsFarmWorkProcessing(true);
+    setFarmWorkHistory(prev => [...prev, { type: 'player', text: command }]);
+
+    try {
+      // Prepare livestock data
+      const livestock = farmState.livestock?.map(l => ({
+        type: l.type,
+        health: l.health,
+        productivity: l.productivity,
+        lastFed: l.lastFed
+      }));
+
+      // Call new farm simulation function
+      const result = await generateFarmWorkSimulation(
+        command,
+        farmState,
+        playerCharacter,
+        validCrops,
+        season,
+        timeOfDay,
+        currentFarmTime,
+        livestock
+      );
+
+      // Add narrative to history
+      setFarmWorkHistory(prev => [...prev, { type: 'narrator', text: result.narrative }]);
+
+      // Apply state changes
+      if (result.stateChanges) {
+        let updated = { ...farmState };
+
+        // Apply field changes
+        if (result.stateChanges.fields) {
+          Object.entries(result.stateChanges.fields).forEach(([fieldId, changes]) => {
+            const fieldIndex = parseInt(fieldId) - 1;
+            if (fieldIndex >= 0 && fieldIndex < updated.fields.length) {
+              updated.fields[fieldIndex] = { ...updated.fields[fieldIndex], ...changes };
+            }
+          });
+        }
+
+        // Apply livestock changes
+        if (result.stateChanges.livestock && updated.livestock) {
+          Object.entries(result.stateChanges.livestock).forEach(([livestockId, changes]) => {
+            const livestockIndex = updated.livestock!.findIndex(l => l.type === livestockId || `${l.type}_${updated.livestock!.indexOf(l) + 1}` === livestockId);
+            if (livestockIndex >= 0) {
+              updated.livestock![livestockIndex] = { ...updated.livestock![livestockIndex], ...changes };
+            }
+          });
+        }
+
+        // Update farm state
+        setFarmState(updated);
+        updateFarmState(farmState.tileKey, {
+          fields: updated.fields,
+          livestock: updated.livestock
+        });
+
+        // Apply player state changes via callback
+        if (result.stateChanges.player && onPlayerStateChange) {
+          onPlayerStateChange({
+            health: result.stateChanges.player.health,
+            fatigue: result.stateChanges.player.fatigue,
+            statusEffects: result.stateChanges.player.statusEffects,
+            inventory: result.stateChanges.inventory
+          });
+        }
+
+        // Track time
+        const timeElapsed = result.stateChanges.time?.elapsed || 0.5;
+        const newHours = hoursWorkedToday + timeElapsed;
+        setHoursWorkedToday(newHours);
+
+        const newTime = currentFarmTime + timeElapsed;
+        setCurrentFarmTime(newTime);
+
+        // Add to action log (keep last 5)
+        setFarmActionLog(prev => {
+          const newLog = [{ action: command, timeElapsed }, ...prev].slice(0, 5);
+          return newLog;
+        });
+
+        // End of day check
+        if (newHours >= 8 && headFarmer) {
+          setTimeout(() => {
+            setFarmerToast({
+              message: `The sun sets. ${headFarmer.name} calls you home. A day's work is done.`,
+              type: 'news'
+            });
+            setHoursWorkedToday(0);
+          }, 1500);
+        }
+      }
+
+    } catch (e) {
+      console.error('Farm work command failed:', e);
+      setFarmWorkHistory(prev => [...prev, {
+        type: 'narrator',
+        text: 'You struggle to focus on your work...'
+      }]);
+    } finally {
+      setIsFarmWorkProcessing(false);
+      setFarmWorkInput('');
+    }
+  }, [useLlm, farmState, isFarmWorkProcessing, season, validCrops, playerCharacter, hoursWorkedToday, currentFarmTime, headFarmer, timeOfDay, onPlayerStateChange]);
+
   // ===== Worker Planning Functions ==============================================
 
   const handleFieldAction = useCallback((fieldId: number, action: string, cropToPlant?: string) => {
@@ -1150,8 +1394,17 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     );
   }
 
+  // Early return if farmState not loaded yet
+  if (!farmState) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+        <div className="text-slate-400 text-lg">Loading farm...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-40 flex" style={{ top: '48px' }}>
+    <div className="fixed inset-0 z-50 flex bg-gradient-to-b from-slate-900 via-slate-950 to-black">
       {/* Fade transition overlay */}
       {isTransitioning && (
         <div
@@ -1159,14 +1412,6 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
           style={{ opacity: isTransitioning ? 1 : 0 }}
         />
       )}
-
-      {/* Left Sidebar */}
-      <div
-        className="bg-slate-950/95 border-r border-slate-800/60 overflow-y-auto flex-shrink-0"
-        style={{ width: PANEL_LEFT_W }}
-      >
-        <LeftSidebar />
-      </div>
 
       {/* Main */}
       <div className="flex-1 flex bg-gradient-to-b from-slate-900 via-slate-950 to-black">
@@ -1210,693 +1455,768 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
 
           {/* Tabs */}
           <div className="bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 border-b border-slate-800/60">
-            <div className="flex">
-              {[
-                { id: 'overview' as TabType, label: 'Overview', icon: Home },
-                { id: 'fields' as TabType, label: 'Farm Work', icon: Sprout },
-                { id: 'family' as TabType, label: 'Family', icon: Users },
-                { id: 'trade' as TabType, label: 'Trade', icon: Store },
-                { id: 'advisor' as TabType, label: 'Advisor', icon: ScrollText },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`relative px-4 py-3 font-medium transition-colors ${
-                      active
-                        ? 'text-amber-400 bg-slate-900/40'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" />
-                      <span className="text-xs uppercase tracking-wide">{tab.label}</span>
-                    </span>
-                    {active && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400/70" />
-                    )}
-                  </button>
-                );
-              })}
+            <div className="flex items-center justify-between">
+              {/* Location and time on left */}
+              <div className="px-4 py-3 min-w-[200px]">
+                <div className="text-xs text-slate-400">{mapData.localArea || culturalZone}</div>
+                {activeTab === 'fields' && (
+                  <div className="flex items-center gap-1.5 text-amber-400 mt-0.5">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    <span className="text-[11px] font-medium tracking-wide">{formatTime(currentFarmTime)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Centered tabs */}
+              <div className="flex justify-center flex-1">
+                {[
+                  { id: 'overview' as TabType, label: 'Overview', icon: Home },
+                  { id: 'fields' as TabType, label: 'Farm Work', icon: Sprout },
+                  { id: 'family' as TabType, label: 'Family', icon: Users },
+                  { id: 'trade' as TabType, label: 'Trade', icon: Store },
+                  { id: 'advisor' as TabType, label: 'Advisor', icon: ScrollText },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const active = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`relative px-4 py-3 font-medium transition-colors ${
+                        active
+                          ? 'text-amber-400 bg-slate-900/40'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Icon className="w-4 h-4" />
+                        <span className="text-xs uppercase tracking-wide">{tab.label}</span>
+                      </span>
+                      {active && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400/70" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Empty space on right for symmetry */}
+              <div className="px-4 py-3 min-w-[120px]"></div>
             </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* ================= OVERVIEW ================= */}
-            {activeTab === 'overview' && (
-              <div className="animate-fadeIn space-y-6">
-                {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-br from-emerald-900/20 to-green-900/10 rounded-xl p-4 border border-emerald-800/30">
-                    <div className="flex items-center gap-2 text-emerald-300">
-                      <Wheat className="w-4 h-4" />
-                      <h4 className="text-sm font-semibold">Crops</h4>
+            {activeTab === 'overview' && farmState && (
+              <div className="animate-fadeIn space-y-3 max-w-7xl mx-auto">
+                {/* Farm Info Card - Static, Information-Rich */}
+                <div className="w-full bg-slate-700/40 border border-slate-500/50 rounded-lg p-5">
+                  {/* Compact Single Row Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-baseline gap-4">
+                      <h2 className="text-3xl font-bold text-slate-50 tracking-tight">{dynamicFarmName}</h2>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-semibold text-slate-300">{Math.abs(year)} {year < 0 ? 'BCE' : 'CE'}</span>
+                        <span className="text-slate-600">|</span>
+                        <span className="text-base font-medium text-blue-400 capitalize">{season}</span>
+                      </div>
                     </div>
-                    <div className="mt-2 text-slate-100 text-2xl font-bold">
-                      {farmState.fields.filter((f) => f.crop).length}/
-                      {farmState.fields.length}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-xs text-slate-500 uppercase tracking-wide">Head Farmer</div>
+                        <div className="text-base font-semibold text-amber-400">{headFarmer?.name || farmState.family.headOfHousehold}</div>
+                      </div>
+                      <div className={`px-3 py-2 rounded-md ${prosperityInfo.bg} border ${prosperityInfo.bg.replace('bg-', 'border-').replace('/20', '/40')}`}>
+                        <span className={`text-base font-semibold ${prosperityInfo.color}`}>{prosperityInfo.label}</span>
+                      </div>
                     </div>
-                    <div className="text-xs text-emerald-300/70">Fields planted</div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-amber-900/20 to-orange-900/10 rounded-xl p-4 border border-amber-800/30">
-                    <div className="flex items-center gap-2 text-amber-300">
-                      <Hammer className="w-4 h-4" />
-                      <h4 className="text-sm font-semibold">Livestock</h4>
-                    </div>
-                    <div className="mt-2 text-slate-100 text-2xl font-bold">
-                      {farmState.livestock.reduce((sum, l) => sum + l.count, 0)}
-                    </div>
-                    <div className="text-xs text-amber-300/70">Total animals</div>
-                  </div>
+                  {/* Last Year Performance - Compressed with Expand */}
+                  {farmState.lastYearData && (
+                    <div className="bg-slate-800/30 rounded-lg p-2.5 border border-slate-600/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{farmState.lastYearData.profit >= 0 ? '📈' : '📉'}</span>
+                          <div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wide">Last Year</div>
+                            <div className="flex items-baseline gap-2">
+                              <span className={`text-sm font-bold ${farmState.lastYearData.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {farmState.lastYearData.profit >= 0 ? '+' : ''}{farmState.lastYearData.profit}¢
+                              </span>
+                              <span className="text-xs text-slate-400">net</span>
+                            </div>
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            <span className="text-slate-300">{farmState.lastYearData.totalHarvest}u</span> {farmState.lastYearData.cropsMostGrown}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => toggleCard('last_year')}
+                          className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                        >
+                          {expandedCard === 'last_year' ? 'Less' : 'Details'}
+                          <span className={`transform transition-transform ${expandedCard === 'last_year' ? 'rotate-180' : ''}`}>▼</span>
+                        </button>
+                      </div>
 
-                  <div className="bg-gradient-to-br from-sky-900/20 to-blue-900/10 rounded-xl p-4 border border-sky-800/30">
-                    <div className="flex items-center gap-2 text-sky-300">
-                      <Pickaxe className="w-4 h-4" />
-                      <h4 className="text-sm font-semibold">Workers</h4>
+                      {/* Expanded Details */}
+                      {expandedCard === 'last_year' && (
+                        <div className="mt-3 pt-3 border-t border-slate-600/30 grid grid-cols-3 gap-2">
+                          <div className="bg-slate-700/30 rounded px-2 py-1.5">
+                            <div className="text-[9px] text-slate-500 mb-0.5">Revenue</div>
+                            <div className="text-xs text-emerald-400 font-semibold">{farmState.lastYearData.revenue}¢</div>
+                          </div>
+                          <div className="bg-slate-700/30 rounded px-2 py-1.5">
+                            <div className="text-[9px] text-slate-500 mb-0.5">Expenses</div>
+                            <div className="text-xs text-red-400/70 font-semibold">{farmState.lastYearData.expenses}¢</div>
+                          </div>
+                          <div className="bg-slate-700/30 rounded px-2 py-1.5">
+                            <div className="text-[9px] text-slate-500 mb-0.5">Margin</div>
+                            <div className="text-xs text-slate-300 font-semibold">
+                              {Math.round((farmState.lastYearData.profit / farmState.lastYearData.revenue) * 100)}%
+                            </div>
+                          </div>
+                          {(farmState.lastYearData.weatherEvents.length > 0 || farmState.lastYearData.crisisEvents.length > 0) && (
+                            <div className="col-span-3 pt-2 border-t border-slate-600/20">
+                              <div className="text-[9px] text-slate-500 mb-1">Events</div>
+                              <div className="flex flex-wrap gap-1">
+                                {farmState.lastYearData.weatherEvents.map((evt, i) => (
+                                  <span key={i} className="text-[10px] px-1.5 py-0.5 bg-blue-900/20 border border-blue-700/30 rounded text-blue-300 capitalize">{evt}</span>
+                                ))}
+                                {farmState.lastYearData.crisisEvents.map((evt, i) => (
+                                  <span key={i} className="text-[10px] px-1.5 py-0.5 bg-red-900/20 border border-red-700/30 rounded text-red-300 capitalize">{evt}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-2 text-slate-100 text-2xl font-bold">
-                      {farmState.workers}
-                    </div>
-                    <div className="text-xs text-sky-300/70">Active laborers</div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Quick Actions - Hidden for workers */}
-                {!isWorker && (
-                  <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800/60">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-amber-400 flex items-center gap-2">
-                      <History className="w-5 h-5" />
-                      Quick Actions
-                    </h3>
-                    <div className="flex items-center gap-3 text-xs text-slate-400">
-                      <Beaker className="w-4 h-4" />
-                      <span>Selected crop:</span>
-                      <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-200">
-                        {selectedCrop || '(none)'}
-                      </span>
+                {/* Expandable Info Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Primary Crop Card - Expandable */}
+                  <button
+                    onClick={() => toggleCard('crop')}
+                    className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-5 border border-slate-500/40 transition-all text-left"
+                  >
+                    {primaryCrop !== 'none' ? (
+                      <>
+                        {/* Header - Left aligned */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="text-xs text-slate-500 uppercase tracking-wide">Primary Crop</div>
+                          <div className={`transform transition-transform text-slate-500 ${expandedCard === 'crop' ? 'rotate-180' : ''}`}>
+                            <span className="text-sm">▼</span>
+                          </div>
+                        </div>
+
+                        {/* Crop name and emoji with info to right */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-4xl">{CROP_EMOJIS[primaryCrop] || '🌱'}</span>
+                          <div className="flex-1">
+                            <div className="text-lg font-bold text-emerald-400 capitalize mb-1">
+                              {CROP_DATA[primaryCrop]?.name || primaryCrop}
+                            </div>
+                            {!CROP_DATA[primaryCrop] && (
+                              <p className="text-sm text-slate-400">
+                                Cultivation info not yet available
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {CROP_DATA[primaryCrop] ? (
+                          <>
+                            {/* Description */}
+                            <p className="text-xs text-slate-400 leading-relaxed mb-3">{CROP_DATA[primaryCrop].description}</p>
+
+                        {/* Key Stats Grid */}
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div className="bg-slate-800/40 rounded px-2.5 py-2 border border-slate-700/30">
+                            <div className="text-[10px] text-slate-500 mb-0.5">Best Planting</div>
+                            <div className="text-xs text-slate-200 font-medium">{formatPlantingSeason(CROP_DATA[primaryCrop].bestPlantingMonths)}</div>
+                          </div>
+                          <div className="bg-slate-800/40 rounded px-2.5 py-2 border border-slate-700/30">
+                            <div className="text-[10px] text-slate-500 mb-0.5">Growth Time</div>
+                            <div className="text-xs text-slate-200 font-medium">{CROP_DATA[primaryCrop].growthDays} days</div>
+                          </div>
+                          <div className="bg-slate-800/40 rounded px-2.5 py-2 border border-slate-700/30">
+                            <div className="text-[10px] text-slate-500 mb-0.5">Water Needs</div>
+                            <div className={`text-xs font-medium capitalize ${
+                              CROP_DATA[primaryCrop].waterNeeds === 'high' ? 'text-blue-400' :
+                              CROP_DATA[primaryCrop].waterNeeds === 'moderate' ? 'text-sky-400' : 'text-slate-400'
+                            }`}>{CROP_DATA[primaryCrop].waterNeeds}</div>
+                          </div>
+                          <div className="bg-slate-800/40 rounded px-2.5 py-2 border border-slate-700/30">
+                            <div className="text-[10px] text-slate-500 mb-0.5">Fertilizer</div>
+                            <div className={`text-xs font-medium capitalize ${
+                              CROP_DATA[primaryCrop].fertilizerNeeds === 'high' ? 'text-amber-400' :
+                              CROP_DATA[primaryCrop].fertilizerNeeds === 'moderate' ? 'text-yellow-400' : 'text-slate-400'
+                            }`}>{CROP_DATA[primaryCrop].fertilizerNeeds}</div>
+                          </div>
+                        </div>
+
+                        {/* Base Price */}
+                        <div className="flex items-center justify-between bg-emerald-900/15 rounded px-3 py-2 border border-emerald-700/30">
+                          <span className="text-xs text-slate-400">Base Market Price</span>
+                          <span className="text-sm font-semibold text-emerald-400">{CROP_DATA[primaryCrop].basePrice}¢/unit</span>
+                        </div>
+
+                            {/* Expanded: Cultivation Tip */}
+                            {expandedCard === 'crop' && CROP_DATA[primaryCrop].tip && (
+                              <div className="mt-3 pt-3 border-t border-slate-700/30" onClick={(e) => e.stopPropagation()}>
+                                <div className="bg-blue-900/10 border border-blue-700/20 rounded p-3">
+                                  <div className="text-[10px] text-blue-400 uppercase tracking-wide mb-1.5 font-semibold">💡 Cultivation Tip</div>
+                                  <p className="text-xs text-slate-300 leading-relaxed">{CROP_DATA[primaryCrop].tip}</p>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : null}
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">🌱</span>
+                        <div>
+                          <div className="text-xs text-slate-500 uppercase tracking-wide">Primary Crop</div>
+                          <div className="text-lg font-semibold text-slate-400">No crop planted</div>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Fields Card - Expandable */}
+                  <button
+                    onClick={() => toggleCard('fields')}
+                    className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-5 border border-slate-500/40 transition-all text-left"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="text-xs text-slate-500 uppercase tracking-wide">Fields Status</div>
+                      <div className={`transform transition-transform text-slate-500 ${expandedCard === 'fields' ? 'rotate-180' : ''}`}>
+                        <span className="text-sm">▼</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <button
-                      onClick={plantAll}
-                      className="group bg-gradient-to-b from-emerald-800/30 to-emerald-900/30 hover:from-emerald-700/40 hover:to-emerald-800/40 text-emerald-200 p-3 rounded-lg transition-all border border-emerald-700/30 hover:scale-[1.02]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Sprout className="w-4 h-4" />
-                        <span className="text-xs font-medium">Plant All</span>
-                      </div>
-                      <div className="mt-1 text-[10px] text-emerald-300/70">
-                        Uses selected crop
-                      </div>
-                    </button>
 
-                    <button
-                      onClick={waterAll}
-                      className="group bg-gradient-to-b from-sky-800/30 to-sky-900/30 hover:from-sky-700/40 hover:to-sky-800/40 text-sky-200 p-3 rounded-lg transition-all border border-sky-700/30 hover:scale-[1.02]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Droplets className="w-4 h-4" />
-                        <span className="text-xs font-medium">Water All</span>
-                      </div>
-                      <div className="mt-1 text-[10px] text-sky-300/70">
-                        Boosts crop health
-                      </div>
-                    </button>
+                    {/* Visual Field Boxes centered with crop labels below */}
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
+                      {farmState.fields.slice(0, 6).map((field, idx) => {
+                        const cropEmoji = field.crop ? CROP_EMOJIS[field.crop] || '🌱' : '🟫';
+                        const healthColor = field.crop && field.health > 70 ? 'border-emerald-500/50' :
+                                           field.crop && field.health > 40 ? 'border-yellow-500/50' :
+                                           field.crop ? 'border-red-500/50' : 'border-slate-600/30';
+                        const cropName = field.crop ? (field.crop.charAt(0).toUpperCase() + field.crop.slice(1)) : 'Fallow';
+                        return (
+                          <div key={idx} className="flex flex-col items-center">
+                            <div className={`bg-slate-800/50 rounded-lg p-3 border-2 ${healthColor} w-16 h-16 flex items-center justify-center`}>
+                              <div className="text-3xl">{cropEmoji}</div>
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-1 capitalize">{cropName}</div>
+                          </div>
+                        );
+                      })}
+                      {farmState.fields.length > 6 && (
+                        <div className="flex flex-col items-center">
+                          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600/30 w-16 h-16 flex items-center justify-center">
+                            <span className="text-sm text-slate-400">+{farmState.fields.length - 6}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1">More</div>
+                        </div>
+                      )}
+                    </div>
 
-                    <button
-                      onClick={harvestAll}
-                      className="group bg-gradient-to-b from-amber-800/30 to-amber-900/30 hover:from-amber-700/40 hover:to-amber-800/40 text-amber-200 p-3 rounded-lg transition-all border border-amber-700/30 hover:scale-[1.02]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Wheat className="w-4 h-4" />
-                        <span className="text-xs font-medium">Harvest Mature</span>
+                    {/* Expanded: Detailed Field Grid */}
+                    {expandedCard === 'fields' && (
+                      <div className="mt-3 pt-3 border-t border-slate-600/30" onClick={(e) => e.stopPropagation()}>
+                        <div className="grid grid-cols-3 gap-2">
+                          {farmState.fields.map((field, idx) => {
+                            const cropEmoji = field.crop ? CROP_EMOJIS[field.crop] || '🌱' : '🟫';
+                            const healthColor = field.health > 70 ? 'text-emerald-400' : field.health > 40 ? 'text-yellow-400' : 'text-red-400';
+                            return (
+                              <div key={idx} className="bg-slate-800/40 rounded p-2 border border-slate-700/30">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className="text-2xl">{cropEmoji}</div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[11px] text-slate-500">Field {idx + 1}</div>
+                                    {field.crop && (
+                                      <div className="text-xs text-slate-300 capitalize truncate">{field.crop}</div>
+                                    )}
+                                  </div>
+                                </div>
+                                {field.crop && (
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-slate-500">Health</span>
+                                    <span className={`font-medium ${healthColor}`}>{field.health}%</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="mt-1 text-[10px] text-amber-300/70">
-                        Adds to harvest ledger
-                      </div>
-                    </button>
+                    )}
+                  </button>
 
-                    <button
-                      onClick={() => setActiveTab('trade')}
-                      className="group bg-gradient-to-b from-purple-800/30 to-purple-900/30 hover:from-purple-700/40 hover:to-purple-800/40 text-purple-200 p-3 rounded-lg transition-all border border-purple-700/30 hover:scale-[1.02]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Store className="w-4 h-4" />
-                        <span className="text-xs font-medium">Open Market</span>
+                  {/* Livestock Card - Expandable */}
+                  <button
+                    onClick={() => toggleCard('livestock')}
+                    className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-5 border border-slate-500/40 transition-all text-left"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="text-xs text-slate-500 uppercase tracking-wide">Livestock</div>
+                      <div className={`transform transition-transform text-slate-500 ${expandedCard === 'livestock' ? 'rotate-180' : ''}`}>
+                        <span className="text-sm">▼</span>
                       </div>
-                      <div className="mt-1 text-[10px] text-purple-300/70">
-                        Buy seeds / Sell harvest
-                      </div>
-                    </button>
-                  </div>
-                  </div>
-                )}
+                    </div>
 
-                {/* Head Farmer Toast - positioned at bottom of overview */}
+                    {/* Centered Animal Visualization with bigger typography */}
+                    <div className="flex items-center justify-center gap-6">
+                      {farmState.livestock.slice(0, 4).map((animal, idx) => {
+                        const emoji = animal.type.toLowerCase().includes('chicken') ? '🐔' :
+                                     animal.type.toLowerCase().includes('cow') || animal.type.toLowerCase().includes('cattle') ? '🐄' :
+                                     animal.type.toLowerCase().includes('goat') ? '🐐' :
+                                     animal.type.toLowerCase().includes('sheep') ? '🐑' :
+                                     animal.type.toLowerCase().includes('pig') ? '🐷' :
+                                     animal.type.toLowerCase().includes('horse') ? '🐴' : '🐾';
+                        return (
+                          <div key={idx} className="flex flex-col items-center">
+                            <div className="text-4xl mb-2">{emoji}</div>
+                            <div className="text-base font-bold text-amber-400">{animal.count}</div>
+                            <div className="text-xs text-slate-300 capitalize">{animal.type}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Expanded: Detailed Stats */}
+                    {expandedCard === 'livestock' && (
+                      <div className="mt-3 pt-3 border-t border-slate-700/30 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        {farmState.livestock.map((animal, idx) => (
+                          <div key={idx} className="bg-slate-800/40 rounded p-3 border border-slate-700/30">
+                            <div className="text-xs font-medium text-slate-200 mb-2 capitalize">{animal.count} {animal.type}</div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-slate-900/40 rounded px-2 py-1.5">
+                                <div className="text-[10px] text-slate-500 mb-0.5">Health</div>
+                                <div className={`text-xs font-medium ${animal.health > 70 ? 'text-emerald-400' : animal.health > 40 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                  {animal.health}%
+                                </div>
+                              </div>
+                              <div className="bg-slate-900/40 rounded px-2 py-1.5">
+                                <div className="text-[10px] text-slate-500 mb-0.5">Productivity</div>
+                                <div className="text-xs font-medium text-blue-400">{animal.productivity}%</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Residents Card - Expandable */}
+                  <button
+                    onClick={() => toggleCard('residents')}
+                    className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-5 border border-slate-500/40 transition-all text-left"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="text-xs text-slate-500 uppercase tracking-wide">Household Members</div>
+                      <div className={`transform transition-transform text-slate-500 ${expandedCard === 'residents' ? 'rotate-180' : ''}`}>
+                        <span className="text-sm">▼</span>
+                      </div>
+                    </div>
+
+                    {/* Centered Member portraits with bigger names and roles */}
+                    <div className="flex items-center justify-center gap-6">
+                      {farmState.family.members.slice(0, 4).map((member, idx) => {
+                        return (
+                          <div key={idx} className="flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800/50 border-2 border-purple-500/30 mb-2">
+                              <ProceduralPortrait
+                                character={{
+                                  name: member.name,
+                                  gender: member.gender,
+                                  age: member.age,
+                                  ethnicity: playerCharacter.ethnicity || 'Mixed',
+                                  profession: member.role || 'Farmer',
+                                }}
+                                size={48}
+                                culturalZone={culturalZone}
+                                era={era}
+                              />
+                            </div>
+                            <div className="text-sm font-bold text-purple-400 truncate max-w-[80px]">{member.name.split(' ')[0]}</div>
+                            <div className="text-xs text-slate-400 capitalize">{member.role || 'Farmer'}</div>
+                            <div className="text-[10px] text-slate-500">{member.age}y</div>
+                          </div>
+                        );
+                      })}
+                      {farmState.family.members.length > 4 && (
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 rounded-full bg-slate-800/50 border-2 border-purple-500/30 flex items-center justify-center mb-2">
+                            <span className="text-lg text-slate-400">+{farmState.family.members.length - 4}</span>
+                          </div>
+                          <div className="text-xs text-slate-400">More</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Expanded: Full Details with Roles */}
+                    {expandedCard === 'residents' && (
+                      <div className="mt-3 pt-3 border-t border-slate-700/30 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                        {farmState.family.members.map((member, idx) => (
+                          <div key={idx} className="bg-slate-800/40 rounded p-2.5 border border-slate-700/30">
+                            <div className="text-xs font-medium text-slate-200 mb-1">{member.name}</div>
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-slate-500">Age {member.age}</span>
+                              {member.role && (
+                                <span className="text-emerald-400 capitalize">{member.role}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* ================= FIELDS ================= */}
+            {/* ================= FARM WORK (Text Adventure) ================= */}
             {activeTab === 'fields' && (
-              <div className="animate-fadeIn space-y-6">
-                {/* Worker Seasonal Objectives OR Crop selection */}
-                {isWorker ? (
-                  <div className="bg-blue-900/30 rounded-xl p-4 border border-blue-700/40">
+              <div className="animate-fadeIn flex gap-4 h-full">
+                {/* Left Sidebar - Field Status & Action Log */}
+                <div className="w-64 flex flex-col gap-4">
+                  {/* Head Farmer Info */}
+                  <button
+                    onClick={() => toggleSection('head_farmer')}
+                    className="w-full bg-slate-900/50 hover:bg-slate-900/70 rounded-xl p-4 border border-slate-800/60 transition-all text-left"
+                  >
                     <div className="flex items-center justify-between">
-                      <h4 className="text-blue-400 font-bold flex items-center gap-2">
-                        <Hammer className="w-4 h-4" />
-                        {season.charAt(0).toUpperCase() + season.slice(1)} Work Objectives
-                      </h4>
-                      <div className="text-xs text-blue-300">
-                        Month {monthInSeason + 1} of 3
-                      </div>
-                    </div>
-                    <div className="mt-3 text-sm text-blue-200">
-                      {{
-                        spring: "Focus on planting crops and preparing fields for the growing season. Choose which crops to plant where based on soil conditions and water access.",
-                        summer: "Manage crop growth by allocating water and fertilizer efficiently. Monitor plant health and apply resources where needed most.",
-                        autumn: "Plan harvest timing carefully - some crops may benefit from early harvest while others should wait for full maturation.",
-                        winter: "Prepare fields for next year through rotation planning and soil improvement. Some crops can still be planted in winter."
-                      }[season] || "Plan your work strategy carefully based on the current season."}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-slate-900/60 rounded-xl p-4 border border-slate-800/60">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-amber-400 font-bold flex items-center gap-2">
-                      <Leaf className="w-4 h-4" />
-                      Select Crop
-                    </h4>
-                    <div className="text-xs text-slate-400 flex items-center gap-3">
-                      <Brain className="w-4 h-4" />
-                      <span>Era-aware list</span>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {validCrops.map((crop) => (
-                      <button
-                        key={crop}
-                        onClick={() => setSelectedCrop(crop)}
-                        className={`px-3 py-1.5 rounded-lg transition-all text-sm border ${
-                          selectedCrop === crop
-                            ? 'bg-amber-600 text-white border-amber-500 shadow'
-                            : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border-slate-700'
-                        }`}
-                      >
-                        <span className="mr-2">{CROP_EMOJIS[crop] || '🌱'}</span>
-                        <span className="capitalize">{crop}</span>
-                      </button>
-                    ))}
-                    {validCrops.length === 0 && (
-                      <div className="text-xs text-slate-400 italic">
-                        No suitable crops for this season and region.
-                      </div>
-                    )}
-                  </div>
-                  </div>
-                )}
-
-                {/* Fields grid */}
-                <div className="bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-6 border border-slate-700/40 shadow-xl">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h4 className="text-amber-400 font-bold flex items-center gap-2 text-lg">
-                        <Sprout className="w-5 h-5" />
-                        Farm Fields
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {season.charAt(0).toUpperCase() + season.slice(1)} Season • {farmState?.fields?.filter(f => f.crop).length || 0} of {farmState?.fields?.length || 0} planted • {(farmState?.prosperityLevel || 'small').charAt(0).toUpperCase() + (farmState?.prosperityLevel || 'small').slice(1)} Farm
-                      </p>
-                    </div>
-                    {selectedField !== null && (
-                      <div className="bg-amber-400/10 border border-amber-400/30 rounded-lg px-3 py-1.5">
-                        <div className="text-xs text-amber-300 font-medium">
-                          Field #{selectedField + 1} Selected
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">👨‍🌾</span>
+                        <div>
+                          <h3 className="text-base font-semibold text-amber-400">Head Farmer</h3>
+                          <p className="text-sm text-slate-400">{headFarmer?.name || farmState.family.headOfHousehold}</p>
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  <div className={`grid gap-4 ${
-                    (farmState?.fields?.length || 0) <= 2 ? 'grid-cols-2' :
-                    (farmState?.fields?.length || 0) <= 4 ? 'grid-cols-2 md:grid-cols-2' :
-                    (farmState?.fields?.length || 0) <= 6 ? 'grid-cols-2 md:grid-cols-3' :
-                    'grid-cols-2 md:grid-cols-4'
-                  }`}>
-                    {farmState?.fields ? farmState.fields.map((field) => {
-                      // Determine soil texture based on moisture and health
-                      const getSoilTexture = () => {
-                        const baseColor = field.moisture === 'wet'
-                          ? '#1a2f1a'
-                          : field.moisture === 'moist'
-                          ? '#3d3420'
-                          : '#5a4a38';
-
-                        const healthMultiplier = 0.5 + (field.health / 200);
-                        const r = parseInt(baseColor.slice(1, 3), 16);
-                        const g = parseInt(baseColor.slice(3, 5), 16);
-                        const b = parseInt(baseColor.slice(5, 7), 16);
-
-                        return `rgb(${Math.floor(r * healthMultiplier)}, ${Math.floor(g * healthMultiplier)}, ${Math.floor(b * healthMultiplier)})`;
-                      };
-
-                      // Get crop rows display with growth progression
-                      const getCropRows = () => {
-                        if (!field.crop) return null;
-
-                        const stages: Record<string, { emoji: string; density: number }> = {
-                          'seeds': { emoji: '⚪', density: 0.3 },
-                          'sprouts': { emoji: '🌱', density: 0.5 },
-                          'growing': { emoji: '🌿', density: 0.7 },
-                          'mature': { emoji: CROP_EMOJIS[field.crop] || '🌾', density: 0.9 },
-                          'ready': { emoji: CROP_EMOJIS[field.crop] || '🌾', density: 1.0 }
-                        };
-
-                        const stage = stages[field.growthStage] || stages['sprouts'];
-                        const totalSpots = 9; // 3x3 grid
-                        const filledSpots = Math.floor(totalSpots * stage.density);
-
-                        const cropGrid = Array(totalSpots).fill('').map((_, i) =>
-                          i < filledSpots ? stage.emoji : ''
-                        );
-
-                        return (
-                          <div className="grid grid-cols-3 gap-0.5 text-xs leading-none">
-                            {cropGrid.map((emoji, i) => (
-                              <div key={i} className="w-4 h-4 flex items-center justify-center">
-                                {emoji}
-                              </div>
-                            ))}
+                      <div className={`transform transition-transform ${expandedSections.has('head_farmer') ? 'rotate-180' : ''}`}>
+                        <span className="text-slate-500">▼</span>
+                      </div>
+                    </div>
+                    {expandedSections.has('head_farmer') && (
+                      <div className="mt-4 pt-4 border-t border-slate-800/60 grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-slate-500">Age:</span>
+                          <span className="ml-2 text-slate-200">{headFarmer?.age || 'Unknown'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Role:</span>
+                          <span className="ml-2 text-slate-200">{headFarmer?.role || 'Farmer'}</span>
+                        </div>
+                        {headFarmer && (
+                          <div className="col-span-2">
+                            <span className="text-slate-500">Personality:</span>
+                            <span className="ml-2 text-slate-200">{headFarmer.personality || 'Hardworking and practical'}</span>
                           </div>
-                        );
-                      };
+                        )}
+                      </div>
+                    )}
+                  </button>
 
-                      const soilColor = getSoilTexture();
-
-                      // Seasonal border colors
-                      const getSeasonalBorder = () => {
-                        const seasonColors = {
-                          spring: 'border-green-500/60 shadow-green-500/20',
-                          summer: 'border-yellow-500/60 shadow-yellow-500/20',
-                          autumn: 'border-orange-500/60 shadow-orange-500/20',
-                          winter: 'border-blue-400/60 shadow-blue-400/20'
-                        };
-                        return seasonColors[season] || seasonColors.spring;
-                      };
-
-                      return (
-                        <button
-                          key={field.id}
-                          onClick={() => {
-                            if (isWorker) {
-                              // Worker mode: open planning for this field
-                              setSelectedField(field.id);
-                            } else {
-                              // Owner mode: normal field selection
-                              setSelectedField(field.id);
-                            }
-                          }}
-                          className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl border-2 ${
-                            selectedField === field.id
-                              ? 'ring-4 ring-amber-400 border-amber-400/60 scale-[1.05] shadow-amber-400/30'
-                              : isWorker && fieldPlans.has(field.id)
-                              ? 'border-blue-500/60'
-                              : `${getSeasonalBorder()} hover:border-slate-600`
-                          }`}
-                          style={{
-                            height: farmState.fields.length <= 4 ? '200px' : '160px',
-                            background: `linear-gradient(180deg, ${soilColor} 0%, ${soilColor}dd 50%, ${soilColor}aa 100%)`,
-                            boxShadow: selectedField === field.id
-                              ? '0 10px 30px rgba(251, 191, 36, 0.2)'
-                              : '0 4px 12px rgba(0, 0, 0, 0.3)',
-                          }}
-                        >
-                          {/* Soil texture patterns */}
-                          <div
-                            className="absolute inset-0 opacity-30"
-                            style={{
-                              backgroundImage: field.moisture === 'wet'
-                                ? `repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(100,200,100,0.2) 3px, rgba(100,200,100,0.2) 6px),
-                                   repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(50,150,50,0.15) 5px, rgba(50,150,50,0.15) 8px)`
-                                : field.moisture === 'moist'
-                                ? `repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(139,69,19,0.1) 4px, rgba(139,69,19,0.1) 8px),
-                                   repeating-linear-gradient(0deg, transparent, transparent 4px, rgba(160,82,45,0.1) 4px, rgba(160,82,45,0.1) 8px)`
-                                : `repeating-linear-gradient(30deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px),
-                                   radial-gradient(circle at 30% 50%, rgba(139,69,19,0.1) 0%, transparent 50%)`,
-                            }}
-                          />
-
-                          {/* Moisture droplets for wet soil */}
-                          {field.moisture === 'wet' && (
-                            <div className="absolute inset-0 pointer-events-none">
-                              <div className="absolute top-4 left-3 w-1 h-1 bg-blue-300/40 rounded-full animate-pulse" />
-                              <div className="absolute top-8 right-5 w-1.5 h-1.5 bg-blue-300/30 rounded-full animate-pulse" style={{animationDelay: '0.5s'}} />
-                              <div className="absolute bottom-6 left-6 w-1 h-1 bg-blue-300/35 rounded-full animate-pulse" style={{animationDelay: '1s'}} />
-                            </div>
-                          )}
-
-                          {/* Content */}
-                          <div className="relative h-full flex flex-col items-center justify-center p-2">
-                            {field.crop ? (
-                              <>
-                                {/* Crop Growth Grid */}
-                                <div
-                                  className={`mb-2 transition-all duration-500 relative cursor-help ${
-                                    field.growthStage === 'ready' ? 'animate-pulse' : ''
-                                  }`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setInspectedField(field.id);
-                                  }}
-                                  title="Click to inspect field details"
-                                >
-                                  {getCropRows()}
-
-                                  {/* Animated Pest System */}
-                                  {field.pests && (
-                                    <div className="absolute inset-0 pointer-events-none">
-                                      {/* Small crawling bugs (weevils/aphids) */}
-                                      <div className="absolute top-0 left-2 w-1 h-1 bg-red-500 rounded-full animate-ping opacity-60" />
-                                      <div className="absolute top-1 right-3 w-0.5 h-0.5 bg-orange-600 rounded-full animate-pulse" style={{animationDelay: '0.5s'}} />
-                                      <div className="absolute bottom-2 left-1 w-0.5 h-0.5 bg-red-600 rounded-full animate-bounce" style={{animationDelay: '1s'}} />
-
-                                      {/* Larger pest emoji */}
-                                      <div className="absolute top-1 right-1 text-[8px] animate-bounce" style={{animationDelay: '1.5s'}}>
-                                        🐛
-                                      </div>
-
-                                      {/* Moving pest indicators */}
-                                      <div
-                                        className="absolute w-0.5 h-0.5 bg-brown-600 rounded-full"
-                                        style={{
-                                          animation: 'pestCrawl 3s linear infinite',
-                                          top: '20%',
-                                          left: '10%'
-                                        }}
-                                      />
-                                      <div
-                                        className="absolute w-0.5 h-0.5 bg-orange-700 rounded-full"
-                                        style={{
-                                          animation: 'pestCrawl 4s linear infinite reverse',
-                                          top: '60%',
-                                          left: '70%',
-                                          animationDelay: '2s'
-                                        }}
-                                      />
+                  {/* Field Details */}
+                  <button
+                    onClick={() => toggleSection('fields')}
+                    className="w-full bg-slate-900/50 hover:bg-slate-900/70 rounded-xl p-4 border border-slate-800/60 transition-all text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Wheat className="w-6 h-6 text-emerald-400" />
+                        <div>
+                          <h3 className="text-base font-semibold text-emerald-400">Field Layout</h3>
+                          <p className="text-sm text-slate-400">{farmState.fields.length} total fields</p>
+                        </div>
+                      </div>
+                      <div className={`transform transition-transform ${expandedSections.has('fields') ? 'rotate-180' : ''}`}>
+                        <span className="text-slate-500">▼</span>
+                      </div>
+                    </div>
+                    {expandedSections.has('fields') && (
+                      <div className="mt-4 pt-4 border-t border-slate-800/60">
+                        <div className="grid grid-cols-4 gap-2">
+                          {farmState.fields.map((field, idx) => {
+                            const cropEmoji = field.crop ? CROP_EMOJIS[field.crop] || '🌱' : '🟫';
+                            return (
+                              <div key={idx} className="bg-slate-800/40 rounded-lg p-3 border border-slate-700/40 text-center">
+                                <div className="text-2xl mb-1">{cropEmoji}</div>
+                                <div className="text-[10px] text-slate-500 mb-1">Field {idx + 1}</div>
+                                <div className="text-xs text-slate-300 capitalize">{field.crop || 'Fallow'}</div>
+                                {field.crop && (
+                                  <div className="mt-2 space-y-1">
+                                    <div className="flex justify-between text-[9px]">
+                                      <span className="text-slate-500">Health</span>
+                                      <span className={field.health > 70 ? 'text-green-400' : field.health > 40 ? 'text-yellow-400' : 'text-red-400'}>
+                                        {field.health}%
+                                      </span>
                                     </div>
-                                  )}
-                                </div>
-
-                                {/* Field Info */}
-                                <div className="text-xs text-white font-bold capitalize bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
-                                  {field.crop}
-                                </div>
-                                <div className="text-[10px] text-amber-300 font-medium mt-1">
-                                  {field.growthStage === 'ready' ? '✨ Ready!' : field.growthStage}
-                                </div>
-
-                                {/* Growth Progress Bar */}
-                                <div className="w-full mt-2 bg-black/20 rounded-full h-1.5 overflow-hidden">
-                                  <div
-                                    className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-1000"
-                                    style={{
-                                      width: `${
-                                        field.growthStage === 'seeds' ? '20%' :
-                                        field.growthStage === 'sprouts' ? '40%' :
-                                        field.growthStage === 'growing' ? '70%' :
-                                        field.growthStage === 'mature' ? '90%' :
-                                        field.growthStage === 'ready' ? '100%' : '0%'
-                                      }`
-                                    }}
-                                  />
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="text-slate-300/80 text-sm font-medium">Fallow</div>
-                                <div className="text-[10px] text-slate-400 mt-1">Click to plant</div>
-                              </>
-                            )}
-
-                            {/* Health & moisture indicators */}
-                            <div className="absolute bottom-2 left-2 right-2">
-                              {/* Health bar with gradient */}
-                              <div className="h-2 bg-black/50 rounded-full overflow-hidden backdrop-blur-sm">
-                                <div
-                                  className="h-full transition-all duration-500"
-                                  style={{
-                                    width: `${Math.max(0, Math.min(100, field.health))}%`,
-                                    background: field.health > 70
-                                      ? 'linear-gradient(90deg, #10b981, #34d399)'
-                                      : field.health > 40
-                                      ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                                      : 'linear-gradient(90deg, #ef4444, #f87171)'
-                                  }}
-                                />
-                              </div>
-                              {/* Moisture indicator dots */}
-                              <div className="flex justify-center gap-1 mt-1">
-                                <div className={`w-1 h-1 rounded-full ${
-                                  field.moisture === 'wet' ? 'bg-blue-400' : field.moisture === 'moist' ? 'bg-blue-600' : 'bg-gray-500'
-                                }`} />
-                                <div className={`w-1 h-1 rounded-full ${
-                                  field.moisture === 'wet' ? 'bg-blue-400' : field.moisture === 'moist' ? 'bg-blue-600' : 'bg-gray-500'
-                                }`} />
-                                <div className={`w-1 h-1 rounded-full ${
-                                  field.moisture === 'wet' ? 'bg-blue-400' : 'bg-gray-500'
-                                }`} />
-                              </div>
-                            </div>
-
-                            {/* Worker Planning Overlays */}
-                            {isWorker && (
-                              <>
-                                {/* Planned Action Indicator */}
-                                {fieldPlans.get(field.id) && (
-                                  <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-xs px-2 py-1 rounded">
-                                    {fieldPlans.get(field.id)!.action}
+                                    <div className="flex justify-between text-[9px]">
+                                      <span className="text-slate-500">Stage</span>
+                                      <span className="text-slate-300 capitalize">{field.growthStage}</span>
+                                    </div>
                                   </div>
                                 )}
-
-                                {/* Enhanced Resource Allocation Indicators */}
-                                <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-                                  {/* Water allocation with pixel droplets */}
-                                  {fieldPlans.get(field.id)?.waterAmount ? (
-                                    <div className="flex gap-0.5 bg-black/30 rounded p-1">
-                                      {Array.from({length: fieldPlans.get(field.id)!.waterAmount}).map((_, i) => (
-                                        <div key={i} className="relative">
-                                          {/* Main water droplet */}
-                                          <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                                          {/* Pixel highlights */}
-                                          <div className="absolute top-0 left-0.5 w-0.5 h-0.5 bg-blue-200 rounded-full" />
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : null}
-
-                                  {/* Manure allocation with enhanced graphics */}
-                                  {fieldPlans.get(field.id)?.manureAmount ? (
-                                    <div className="bg-black/30 rounded p-1">
-                                      <div className="relative">
-                                        <div className="w-2 h-2 bg-amber-700 rounded-sm" />
-                                        {/* Texture dots */}
-                                        <div className="absolute top-0 left-0 w-0.5 h-0.5 bg-amber-600 rounded-full" />
-                                        <div className="absolute bottom-0 right-0 w-0.5 h-0.5 bg-amber-800 rounded-full" />
-                                      </div>
-                                    </div>
-                                  ) : null}
-                                </div>
-
-                                {/* Click to Plan Overlay */}
-                                <div className="absolute inset-0 bg-blue-500/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <div className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                    Click to Plan
-                                  </div>
-                                </div>
-                              </>
-                            )}
-
-                            {/* Selected indicator (non-worker) */}
-                            {!isWorker && selectedField === field.id && (
-                              <div className="absolute top-2 right-2">
-                                <div className="w-2 h-2 bg-amber-400 rounded-full animate-ping" />
-                                <div className="w-2 h-2 bg-amber-400 rounded-full absolute top-0" />
                               </div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    }) : null}
-                  </div>
-
-                  {/* Worker Planning Panel */}
-                  {isWorker && selectedField !== null && farmState?.fields && (
-                    <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-700/40 animate-slideUp">
-                      <div className="flex items-center justify-between mb-4">
-                        <h5 className="text-blue-300 font-medium">
-                          Field #{selectedField + 1} - {season.charAt(0).toUpperCase() + season.slice(1)} Planning
-                        </h5>
-                        <div className="text-xs text-blue-400">
-                          Choose action for this month
+                            );
+                          })}
                         </div>
                       </div>
+                    )}
+                  </button>
 
-                      {/* Seasonal Actions */}
-                      <div className="grid grid-cols-3 gap-2 mb-4">
-                        {getSeasonalActions(season).map(action => (
-                          <button
-                            key={action}
-                            onClick={() => handleFieldAction(selectedField, action)}
-                            className={`px-3 py-2 rounded text-sm transition-all border ${
-                              fieldPlans.get(selectedField)?.action === action
-                                ? 'bg-blue-600 text-white border-blue-500'
-                                : 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700'
-                            }`}
-                          >
-                            {action === 'plant' ? '🌱' : action === 'water' ? '💧' : action === 'manure' ? '💩' :
-                             action === 'harvest' ? '🌾' : action === 'weed' ? '🌿' : '🏞️'} {action}
-                          </button>
+                  {/* Livestock Details */}
+                  <button
+                    onClick={() => toggleSection('livestock')}
+                    className="w-full bg-slate-900/50 hover:bg-slate-900/70 rounded-xl p-4 border border-slate-800/60 transition-all text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🐄</span>
+                        <div>
+                          <h3 className="text-base font-semibold text-amber-400">Livestock</h3>
+                          <p className="text-sm text-slate-400">{farmState.livestock.length} types of animals</p>
+                        </div>
+                      </div>
+                      <div className={`transform transition-transform ${expandedSections.has('livestock') ? 'rotate-180' : ''}`}>
+                        <span className="text-slate-500">▼</span>
+                      </div>
+                    </div>
+                    {expandedSections.has('livestock') && (
+                      <div className="mt-4 pt-4 border-t border-slate-800/60 space-y-3">
+                        {farmState.livestock.map((animal, idx) => (
+                          <div key={idx} className="bg-slate-800/40 rounded-lg p-3 border border-slate-700/40">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-slate-200 capitalize">{animal.type}</span>
+                              <span className="text-lg font-bold text-slate-100">{animal.count}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Health</span>
+                                <span className={animal.health > 70 ? 'text-green-400' : animal.health > 40 ? 'text-yellow-400' : 'text-red-400'}>
+                                  {animal.health}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Productivity</span>
+                                <span className="text-sky-400">{animal.productivity}%</span>
+                              </div>
+                            </div>
+                          </div>
                         ))}
                       </div>
+                    )}
+                  </button>
 
-                      {/* Resource Allocation */}
-                      {fieldPlans.get(selectedField)?.action && fieldPlans.get(selectedField)?.action !== 'fallow' && (
-                        <div className="space-y-3">
-                          {/* Water allocation */}
-                          <div className="flex items-center gap-3">
-                            <label className="text-sm text-slate-300 w-16">Water:</label>
-                            <div className="flex gap-1">
-                              {[0, 1, 2, 3].map(amount => (
-                                <button
-                                  key={amount}
-                                  onClick={() => handleResourceAllocation(selectedField, 'water', amount)}
-                                  className={`w-8 h-8 rounded border text-xs ${
-                                    (fieldPlans.get(selectedField)?.waterAmount || 0) === amount
-                                      ? 'bg-blue-600 text-white border-blue-500'
-                                      : 'bg-slate-800 text-slate-400 border-slate-600 hover:bg-slate-700'
-                                  }`}
-                                >
-                                  {amount === 0 ? '0' : '💧'.repeat(amount)}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Manure allocation */}
-                          <div className="flex items-center gap-3">
-                            <label className="text-sm text-slate-300 w-16">Manure:</label>
-                            <div className="flex gap-1">
-                              {[0, 1].map(amount => (
-                                <button
-                                  key={amount}
-                                  onClick={() => handleResourceAllocation(selectedField, 'manure', amount)}
-                                  className={`w-8 h-8 rounded border text-xs ${
-                                    (fieldPlans.get(selectedField)?.manureAmount || 0) === amount
-                                      ? 'bg-amber-600 text-white border-amber-500'
-                                      : 'bg-slate-800 text-slate-400 border-slate-600 hover:bg-slate-700'
-                                  }`}
-                                >
-                                  {amount === 0 ? '0' : '💩'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => setSelectedField(null)}
-                        className="mt-3 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-sm"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Owner Actions for selected field */}
-                  {!isWorker && selectedField !== null && farmState?.fields && (
-                    <div className="mt-4 p-4 bg-slate-800/70 rounded-lg border border-slate-700 animate-slideUp">
-                      <div className="flex flex-wrap items-center gap-3 justify-between">
-                        <h5 className="text-amber-300 font-medium">
-                          Field #{selectedField + 1} Actions
-                        </h5>
-                        <div className="flex items-center gap-2 text-xs text-slate-300">
-                          <Users className="w-4 h-4" />
-                          <span>Assign:</span>
-                          <select
-                            onChange={(e) =>
-                              handleFieldWork(
-                                selectedField,
-                                'plant',
-                                e.target.value || undefined
-                              )
-                            }
-                            disabled={
-                              !selectedCrop ||
-                              farmState.fields[selectedField].growthStage !== 'fallow'
-                            }
-                            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
-                            defaultValue=""
-                          >
-                            <option value="" disabled>
-                              Choose worker to plant now
-                            </option>
-                            {farmState.family.members.map((m) => (
-                              <option key={m.id} value={m.id}>
-                                {m.name} ({m.role})
-                              </option>
-                            ))}
-                          </select>
+                  {/* Residents Details */}
+                  <button
+                    onClick={() => toggleSection('residents')}
+                    className="w-full bg-slate-900/50 hover:bg-slate-900/70 rounded-xl p-4 border border-slate-800/60 transition-all text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Users className="w-6 h-6 text-purple-400" />
+                        <div>
+                          <h3 className="text-base font-semibold text-purple-400">Household</h3>
+                          <p className="text-sm text-slate-400">{farmState.family.members.length} family members</p>
                         </div>
                       </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {farmState.fields[selectedField].growthStage === 'fallow' && (
-                          <button
-                            onClick={() => handleFieldWork(selectedField, 'plant')}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition-all text-sm"
-                            disabled={!selectedCrop}
-                          >
-                            <Sprout className="w-4 h-4" />
-                            Plant {selectedCrop || '(select crop)'}
-                          </button>
-                        )}
-                        {farmState.fields[selectedField].crop && (
-                          <>
-                            <button
-                              onClick={() => handleFieldWork(selectedField, 'water')}
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-sky-700 hover:bg-sky-600 text-white rounded-lg transition-all text-sm"
-                            >
-                              <Droplets className="w-4 h-4" />
-                              Water
-                            </button>
-                            {farmState.fields[selectedField].growthStage === 'mature' && (
-                              <button
-                                onClick={() => handleFieldWork(selectedField, 'harvest')}
-                                className="inline-flex items-center gap-2 px-3 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-lg transition-all text-sm"
-                              >
-                                <Wheat className="w-4 h-4" />
-                                Harvest
-                              </button>
+                      <div className={`transform transition-transform ${expandedSections.has('residents') ? 'rotate-180' : ''}`}>
+                        <span className="text-slate-500">▼</span>
+                      </div>
+                    </div>
+                    {expandedSections.has('residents') && (
+                      <div className="mt-4 pt-4 border-t border-slate-800/60 grid grid-cols-2 gap-3">
+                        {farmState.family.members.map((member, idx) => (
+                          <div key={idx} className="bg-slate-800/40 rounded-lg p-3 border border-slate-700/40">
+                            <div className="text-sm font-medium text-slate-200 mb-1">{member.name}</div>
+                            <div className="text-xs text-slate-400">Age {member.age}</div>
+                            {member.role && (
+                              <div className="text-xs text-emerald-400 mt-1 capitalize">{member.role}</div>
                             )}
-                          </>
-                        )}
-
-                        <button
-                          onClick={() => setSelectedField(null)}
-                          className="ml-auto inline-flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all text-sm"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          Clear Selection
-                        </button>
+                          </div>
+                        ))}
                       </div>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ================= FARM WORK (Text Adventure) ================= */}
+            {activeTab === 'fields' && (
+              <div className="animate-fadeIn flex gap-4 h-full">
+                {/* Left Sidebar - Field Status & Action Log */}
+                <div className="w-64 flex flex-col gap-4">
+                  {/* Compact Field Display */}
+                  <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60">
+                    <h4 className="text-xs font-semibold text-amber-400 mb-2 uppercase tracking-wide">Fields</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {farmState.fields.slice(0, 8).map((field, idx) => {
+                        const cropEmoji = field.crop ? CROP_EMOJIS[field.crop] || '🌱' : '🟫';
+                        const healthColor = field.health > 70 ? 'text-green-400' : field.health > 40 ? 'text-yellow-400' : 'text-red-400';
+                        return (
+                          <div key={idx} className="bg-slate-800/40 rounded p-2 text-center border border-slate-700/40">
+                            <div className="text-2xl mb-1">{cropEmoji}</div>
+                            <div className="text-[9px] text-slate-500">Field {idx + 1}</div>
+                            <div className={`text-[9px] font-medium ${healthColor}`}>
+                              {field.crop ? `${field.health}%` : 'Empty'}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Available Resources (Crops in Spring/Winter, Tools in Summer/Fall) */}
+                  <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60">
+                    <h4 className="text-xs font-semibold text-amber-400 mb-2 uppercase tracking-wide">
+                      {season === 'Spring' || season === 'Winter' ? 'Available Crops' : 'Available Tools'}
+                    </h4>
+                    <div className="space-y-1">
+                      {season === 'Spring' || season === 'Winter' ? (
+                        // Show crop counts
+                        validCrops.map((crop) => {
+                          const emoji = CROP_EMOJIS[crop] || '🌱';
+                          // Count from player inventory (simplified - showing as available)
+                          return (
+                            <div key={crop} className="flex items-center justify-between text-[10px] text-slate-300">
+                              <span className="flex items-center gap-1">
+                                <span>{emoji}</span>
+                                <span className="capitalize">{crop}</span>
+                              </span>
+                              <span className="text-slate-500">Available</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        // Show tools for tending fields in Summer/Fall
+                        <>
+                          <div className="flex items-center justify-between text-[10px] text-slate-300">
+                            <span className="flex items-center gap-1">
+                              <Droplets className="w-3 h-3" />
+                              <span>Water bucket</span>
+                            </span>
+                            <span className="text-slate-500">Ready</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-300">
+                            <span className="flex items-center gap-1">
+                              <Pickaxe className="w-3 h-3" />
+                              <span>Hoe</span>
+                            </span>
+                            <span className="text-slate-500">Ready</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-300">
+                            <span className="flex items-center gap-1">
+                              <Wheat className="w-3 h-3" />
+                              <span>Scythe</span>
+                            </span>
+                            <span className="text-slate-500">Ready</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Log */}
+                  <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60 flex-1">
+                    <h4 className="text-xs font-semibold text-amber-400 mb-2 uppercase tracking-wide">Recent Actions</h4>
+                    <div className="space-y-2">
+                      {farmActionLog.length === 0 ? (
+                        <div className="text-[10px] text-slate-500 italic">No actions yet today</div>
+                      ) : (
+                        farmActionLog.map((log, idx) => (
+                          <div key={idx} className="text-[10px] text-slate-400 pb-2 border-b border-slate-800/40 last:border-0">
+                            <div className="italic mb-1">"{log.action}"</div>
+                            <div className="text-slate-500 flex items-center gap-1">
+                              <Timer className="w-3 h-3" />
+                              {log.timeElapsed.toFixed(1)}h
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col">
+                  {/* Header */}
+                  <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/60 mb-4">
+                    <h3 className="text-lg font-semibold text-amber-400 mb-2 flex items-center gap-2">
+                      <Sprout className="w-5 h-5" />
+                      A Day's Farm Work
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Enter commands to work the farm. Be specific! ({hoursWorkedToday.toFixed(1)} hours worked today)
+                    </p>
+                  </div>
+
+                  {/* Conversation History */}
+                  <div className="flex-1 bg-slate-900/30 rounded-xl p-4 border border-slate-800/60 overflow-y-auto mb-4 space-y-3">
+                    {farmWorkHistory.map((entry, i) => (
+                      <div
+                        key={i}
+                        className={`${
+                          entry.type === 'player'
+                            ? 'bg-blue-900/30 border-blue-700/40 ml-8'
+                            : 'bg-slate-800/40 border-slate-700/40 mr-8'
+                        } p-3 rounded-lg border`}
+                      >
+                        <div className="text-xs text-slate-500 mb-1">
+                          {entry.type === 'player' ? 'You' : 'Narrator'}
+                        </div>
+                        <div className="text-sm text-slate-200">{entry.text}</div>
+                      </div>
+                    ))}
+                    {isFarmWorkProcessing && (
+                      <div className="bg-slate-800/40 border-slate-700/40 mr-8 p-3 rounded-lg border">
+                        <div className="text-xs text-slate-500 mb-1">Narrator</div>
+                        <div className="text-sm text-slate-400 italic">Considering your actions...</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input Area */}
+                  <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/60">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (farmWorkInput.trim() && !isFarmWorkProcessing) {
+                          handleFarmWorkCommand(farmWorkInput);
+                        }
+                      }}
+                      className="flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={farmWorkInput}
+                        onChange={(e) => setFarmWorkInput(e.target.value)}
+                        disabled={isFarmWorkProcessing || !useLlm}
+                        placeholder={useLlm ? "What do you do? (e.g., 'plant wheat in field 1 carefully')" : "LLM disabled"}
+                        className="flex-1 bg-slate-800/60 border border-slate-700/60 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isFarmWorkProcessing || !useLlm || !farmWorkInput.trim()}
+                        className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium text-sm transition-colors"
+                      >
+                        {isFarmWorkProcessing ? 'Working...' : 'Do It'}
+                      </button>
+                    </form>
+                    <div className="mt-2 text-[10px] text-slate-500">
+                      Tip: Be detailed for better results. Commands like "carefully plant wheat seeds 2 inches deep in field 1, then water gently" work better than just "plant wheat"
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -2271,7 +2591,7 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
 
         {/* Right Panel — Player + Time */}
         <div
-          className="bg-gradient-to-b from-slate-950 to-black border-l border-slate-800/60 flex flex-col flex-shrink-0"
+          className="keep-dark bg-gradient-to-b from-slate-950 to-black border-l border-slate-800/60 flex flex-col flex-shrink-0"
           style={{ width: PANEL_RIGHT_W }}
         >
           <PlayerProfileCard playerCharacter={playerCharacter} showActions={false} />

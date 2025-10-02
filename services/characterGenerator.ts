@@ -277,6 +277,44 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
 };
 
 // Generate attribute sentence for a character
+// Helper to format hairstyle descriptions properly
+function formatHairstyle(hairstyle: string): string {
+    const styleMap: Record<string, string> = {
+        'high_forehead': 'with a high forehead',
+        'receding_hairline': 'with a receding hairline',
+        'widow_peak': 'with a widow\'s peak',
+        'straight_bangs': 'with straight bangs',
+        'side_part': 'parted to the side',
+        'center_part': 'parted in the center',
+        'swept_back': 'swept back',
+        'shaved_sides': 'with shaved sides',
+        'long_flowing': 'long and flowing',
+        'tight_curls': 'in tight curls',
+        'loose_curls': 'in loose curls',
+        'braided': 'in braids',
+        'top_knot': 'in a top knot',
+        'man_bun': 'in a bun',
+        'bun': 'in a bun',
+        'ponytail': 'in a ponytail',
+        'shaved_head': 'shaved',
+        'close_cropped': 'close-cropped',
+        'shoulder_length': 'shoulder-length',
+        'waist_length': 'waist-length',
+        'afro': 'in an afro',
+        'cornrows': 'in cornrows',
+        'dreadlocks': 'in dreadlocks',
+        'mohawk': 'in a mohawk',
+        'pigtails': 'in pigtails',
+        'twin_buns': 'in twin buns',
+        'elaborate_updo': 'in an elaborate updo',
+        'messy': 'worn messy',
+        'tousled': 'tousled',
+        'slicked_back': 'slicked back',
+    };
+
+    return styleMap[hairstyle] || hairstyle.replace(/_/g, ' ');
+}
+
 export function generateAttributeSentence(character: { attributes?: Array<{ id: string; name: string }> }): string | null {
     if (!character.attributes || character.attributes.length === 0) {
         return null;
@@ -319,7 +357,8 @@ function _generateProceduralBackstory(character: Omit<PlayerCharacter, 'backstor
     // Sentence 3: Physical Description
     const eyeColorName = hexToColorName(character.appearance.eyeColor);
     const hairColorName = hexToColorName(character.appearance.hairColor);
-    let physicalDesc = `You have a ${character.appearance.build} build, standing at ${heightStr}. Your eyes are a shade of ${eyeColorName} and your hair is ${hairColorName}, styled in a ${character.appearance.hairstyle.replace(/_/g, ' ')} fashion.`;
+    const hairstyleDesc = formatHairstyle(character.appearance.hairstyle);
+    let physicalDesc = `You have a ${character.appearance.build} build, standing at ${heightStr}. Your eyes are a shade of ${eyeColorName} and your hair is ${hairColorName}, worn ${hairstyleDesc}.`;
     if (character.appearance.facialHair && character.appearance.facialHairStyle) {
         physicalDesc += ` You wear a ${character.appearance.facialHairStyle.replace(/_/g, ' ')}.`;
     }

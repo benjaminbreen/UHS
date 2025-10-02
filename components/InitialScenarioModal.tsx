@@ -8,7 +8,7 @@ import { GameMode } from '../types/eventTypes';
 import { HISTORY_GUIDE_DATA } from '../constants/gameData/historyguide';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { parseDateString, formatDateWithSeason, getSeasonFromDate } from '../utils/dateUtils';
-import { getDetailedHistoricalDescription } from '../utils/historicalPeriodUtils';
+import { regionalHistoryService } from '../services/regionalHistoryService';
 import { URLGameConfig } from '../services/urlConfigService';
 import { SeedManager } from '../services/seedService';
 import { shareableStateService } from '../services/shareableStateService';
@@ -492,17 +492,32 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         }
     }, [showShareLink, gameDate, localArea, currentZone, currentRegion, gameMode, playerCharacter, gameSeed]);
     
-    // Try to get a more specific historical description based on the exact year
-    const detailedDescription = useMemo(() =>
-        getDetailedHistoricalDescription(culturalZone, era, gameDate.year),
-        [culturalZone, era, gameDate.year]
+    // Load historical context using regional history service
+    const [historicalContext, setHistoricalContext] = useState<string>(
+        "Loading historical context..."
     );
-    const historicalContext = useMemo(() =>
-        detailedDescription ||
-        HISTORY_GUIDE_DATA[culturalZone]?.[era] ||
-        "This is a time of great change and opportunity. The world is full of challenges and adventures waiting to be discovered.",
-        [detailedDescription, culturalZone, era]
-    );
+
+    useEffect(() => {
+        const loadHistoricalContext = async () => {
+            try {
+                const description = await regionalHistoryService.getHistoricalContext(
+                    culturalZone,
+                    currentRegion,
+                    gameDate.year,
+                    era
+                );
+                setHistoricalContext(description);
+            } catch (error) {
+                console.error('Error loading historical context:', error);
+                // Fallback to era-level description
+                const fallback = HISTORY_GUIDE_DATA[culturalZone]?.[era] ||
+                    "This is a time of great change and opportunity. The world is full of challenges and adventures waiting to be discovered.";
+                setHistoricalContext(fallback);
+            }
+        };
+
+        loadHistoricalContext();
+    }, [culturalZone, currentRegion, gameDate.year, era]);
 
     const modeDescription = useMemo(() =>
         getModeDescription(gameMode, era, culturalZone, playerCharacter),

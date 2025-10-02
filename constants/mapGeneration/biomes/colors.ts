@@ -15,19 +15,19 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.BEACH]: '#fde895', 
   [BiomeType.GRASSLAND]: '#64a641', // lime-500
   [BiomeType.FOREST]: '#386b1e', // green-600
-  [BiomeType.DENSE_FOREST]: '#14532d', // green-900
+  [BiomeType.DENSE_FOREST]: '#1a4d2e', // darker rich forest green
   [BiomeType.HILLS]: '#57a14a', // greener hills
   [BiomeType.MOUNTAIN]: '#8f96a0',
   [BiomeType.HIGH_PEAK]: '#e5e7eb',
-  [BiomeType.SNOW]: '#ffffff', 
-  [BiomeType.RIVER]: '#60a5fa', 
+  [BiomeType.SNOW]: '#ffffff',
+  [BiomeType.RIVER]: '#60a5fa',
   [BiomeType.MAJOR_RIVER]: '#2563eb', // Will be adjusted by climate water colors
   [BiomeType.RIVERBANK]: '#77a842', // lime-400
   [BiomeType.HAMLET]: '#D2B48C', // Tan for buildings
   [BiomeType.LOW_DENSITY_CITY]: '#A9A9A9', // DarkGray for buildings/roads
   [BiomeType.DENSE_CITY]: '#808080', // Gray for dense structures
   [BiomeType.URBAN]: '#ef4444', // Legacy
-  [BiomeType.JUNGLE]: '#22a33e', // emerald-500
+  [BiomeType.JUNGLE]: '#2d7a3f', // rich jungle green (between FOREST and DENSE_FOREST)
   [BiomeType.DESERT]: '#fde68a', 
   [BiomeType.OASIS]: '#bfc478',   
   [BiomeType.WETLANDS]: '#bdbd93', 

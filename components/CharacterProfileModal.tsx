@@ -43,7 +43,9 @@ import {
   type EnhancedLifeEvent,
   type EventKind
 } from '../services/lifeHistoryService';
-import { CharacterHistoryTab } from './CharacterHistoryTab';
+
+// Lazy-load heavy tab components for better performance
+const CharacterHistoryTab = React.lazy(() => import('./CharacterHistoryTab').then(m => ({ default: m.CharacterHistoryTab })));
 
 /* lucide icons */
 import {
@@ -296,6 +298,7 @@ const generateExpandedLifeEvents = (
   culturalZone?: string,
   era?: string
 ): LifeEvent[] => {
+  console.log('[generateExpandedLifeEvents] Starting generation for', char.name);
   const currentYear = parseInt(currentDate || '', 10) || char.year || 1500;
   const nowYear = currentYear; // Keep for compatibility
 
@@ -305,6 +308,7 @@ const generateExpandedLifeEvents = (
   // Determine historical era from year
   const historicalEra = era || getHistoricalEraFromYear(currentYear) || 'MEDIEVAL';
 
+  console.log('[generateExpandedLifeEvents] Calling generateLifeHistory with zone:', zone, 'era:', historicalEra);
   // Generate sophisticated, contextual life history
   const events = generateLifeHistory(
     char,
@@ -312,6 +316,8 @@ const generateExpandedLifeEvents = (
     zone,
     historicalEra as any
   ) as LifeEvent[];
+
+  console.log('[generateExpandedLifeEvents] generateLifeHistory returned', events.length, 'events');
 
   // Add companion acquisitions to generated events
   if (companions?.length > 0) {
@@ -329,9 +335,13 @@ const generateExpandedLifeEvents = (
   }
 
   // Sort chronologically and filter future events
-  return events
+  console.log('[generateExpandedLifeEvents] Sorting and filtering events');
+  const filtered = events
     .filter((e) => e.year && e.year <= nowYear)
     .sort((a, b) => a.year - b.year);
+
+  console.log('[generateExpandedLifeEvents] Returning', filtered.length, 'events');
+  return filtered;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -555,52 +565,31 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (active === 'history' && !lifeEventsGenerated && !lifeEventsLoading && character) {
-      console.log('[CharacterProfileModal] Starting life events generation with Web Worker...');
+      console.log('[CharacterProfileModal] Starting life events generation...');
       setLifeEventsLoading(true);
 
-      // Use Web Worker for background generation
-      const worker = new Worker(new URL('../workers/lifeEventsWorker.ts', import.meta.url), {
-        type: 'module'
-      });
-
-      const currentYear = parseInt(date || '', 10) || character.year || 1500;
-
-      worker.postMessage({
-        character,
-        currentYear,
-        culturalZone: culturalZone || 'EUROPEAN',
-        era: era || 'MEDIEVAL',
-        companions: tamedAnimals || []
-      });
-
-      worker.onmessage = (event) => {
-        if (event.data.error) {
-          console.error('[CharacterProfileModal] Worker error:', event.data.error);
-          // Fallback to synchronous generation on error
+      // Use setTimeout to defer generation and prevent UI blocking
+      // This is more reliable than Web Workers which have module loading issues in dev mode
+      const timeoutId = setTimeout(() => {
+        const startTime = performance.now();
+        try {
+          console.log('[CharacterProfileModal] Generating life events...');
           const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
+          const generationTime = performance.now() - startTime;
+          console.log(`[CharacterProfileModal] Life events generated in ${generationTime.toFixed(2)}ms (${events.length} events)`);
           setExpandedLifeEvents(events);
-        } else {
-          const { events, generationTime } = event.data;
-          console.log(`[CharacterProfileModal] Life events generated in ${generationTime.toFixed(2)}ms (${events.length} events) using Web Worker`);
-          setExpandedLifeEvents(events);
+          setLifeEventsGenerated(true);
+          setLifeEventsLoading(false);
+        } catch (error) {
+          console.error('[CharacterProfileModal] Error generating life events:', error);
+          setExpandedLifeEvents([]);
+          setLifeEventsGenerated(true);
+          setLifeEventsLoading(false);
         }
-        setLifeEventsGenerated(true);
-        setLifeEventsLoading(false);
-        worker.terminate();
-      };
-
-      worker.onerror = (error) => {
-        console.error('[CharacterProfileModal] Worker error:', error);
-        // Fallback to synchronous generation
-        const events = generateExpandedLifeEvents(character, date, tamedAnimals, culturalZone, era);
-        setExpandedLifeEvents(events);
-        setLifeEventsGenerated(true);
-        setLifeEventsLoading(false);
-        worker.terminate();
-      };
+      }, 0);
 
       return () => {
-        worker.terminate();
+        clearTimeout(timeoutId);
       };
     }
   }, [active, lifeEventsGenerated, lifeEventsLoading, character, date, tamedAnimals, culturalZone, era]);
@@ -710,6 +699,50 @@ const CharacterProfileModal: React.FC<Props> = ({
       ? generateProceduralItemDescription(selectedItem)
       : selectedItem.description;
   }, [selectedItem?.description, selectedItem?.name, selectedItem?.id]);
+
+  // Memoized backstory with color highlighting (performant - only runs on character change)
+  const highlightedBackstory = useMemo(() => {
+    if (!character.backstory) return null;
+
+    const text = character.backstory;
+
+    // Performant approach - split on word boundaries and check each segment
+    const segments = text.split(/\b/);
+
+    return segments.map((segment, i) => {
+      const lowerSegment = segment.toLowerCase();
+
+      // 1. RELIGIONS (amber/gold) - most distinctive
+      if (/^(sunni islam|shia islam|sufi islam|buddhism|zen buddhism|hinduism|christianity|roman catholicism|protestantism|eastern orthodoxy|judaism|islam|confucianism|taoism|shinto|shamanism|animism|zoroastrianism|atheism|agnosticism|celtic christianity|celtic druidism|norse paganism|greek polytheism|roman polytheism|germanic paganism|slavic paganism|early christianity|vodou|santería|tengrism|zoroastrianism|deism|secularism|great spirit worship|sun dance religion|pueblo religion|iroquois longhouse religion)$/i.test(segment)) {
+        return <span key={i} className="text-amber-300 font-semibold">{segment}</span>;
+      }
+
+      // 2. PROFESSIONS (emerald green)
+      if (/^(tea picker|blacksmith|merchant|scholar|farmer|weaver|potter|baker|carpenter|guard|priest|scribe|healer|hunter|fisher|miner|mason|sailor|soldier|cook|tailor|cobbler|innkeeper|brewer|tanner|cooper|fletcher|jeweler|painter|musician|artist|dancer|performer|herbalist|midwife|wet nurse|nanny|servant|laborer|porter|messenger|ferryman|teamster|peddler|trader|banker|lawyer|judge|tax collector|administrator|clerk|teacher|tutor|librarian|philosopher|alchemist|astrologer|cartographer|navigator|explorer|pilgrim|hermit|monk|nun|beggar|thief|smuggler|pirate|assassin|mercenary|bodyguard|gladiator|courtesan|slave|prisoner|mother|father)$/i.test(segment)) {
+        return <span key={i} className="text-emerald-300 font-semibold">{segment}</span>;
+      }
+
+      // 3. ATTRIBUTES & SPECIAL TRAITS (purple/violet) - personality/conditions
+      if (/^(exceptionally strong|physically frail|completely blind|deaf|nearsighted|naturally athletic|walking with a limp|covered in scars|unusually tall|remarkably small|brilliant|simple-minded|well-educated|unable to read|speak many languages|terribly forgetful|have keen eyesight|prone to daydreaming|naturally charming|painfully shy|remarkably lucky|plagued by bad luck|compulsively honest|a habitual liar|exceptionally generous|consumed by greed|fearless|cowardly|deeply spiritual|gifted with divine visions|blessed by fortune|believed to be cursed|blessed with mystical insights|doubtful of all religions|a hardened survivor|an experienced hunter|a skilled healer|good with money|experienced at sea|an experienced farmer|a former soldier|dependent on drink|hard of hearing|quick to anger|deeply paranoid|devoutly religious|addicted to gambling|chronically sad|constantly eating|disdainful of worldly pleasures|insatiably curious|extremely cautious|dangerously reckless|endlessly patient|terribly impatient|incredibly stubborn|highly adaptable|an animal lover|one who prefers solitude|a natural leader|prefer to follow|hopelessly romantic|an orphan|a twin|of ancient but fallen family|most active at night|able to predict weather|a skilled calligrapher|an artist|a poet|a musician|a craftsman|a veteran of war|street smart|deeply pessimistic|eternally optimistic|an insomniac|a foreigner here|a local|a wanderer|a hajji)$/i.test(segment)) {
+        return <span key={i} className="text-purple-300 font-semibold">{segment}</span>;
+      }
+
+      // 4. Special religious/cultural titles (rose/pink)
+      if (/^(hajji|sheikh|imam|rabbi|priest|monk|nun|lama|guru)$/i.test(segment)) {
+        return <span key={i} className="text-rose-300 font-semibold">{segment}</span>;
+      }
+
+      // 5. CITIES/REGIONS (cyan) - check if preceded by location words
+      if (/^[A-Z][a-z]+/.test(segment) && i > 2) {
+        const prevWord = segments[i - 2]?.toLowerCase();
+        if (prevWord && /^(city|village|region|town|settlement|of|near|from|in)$/.test(prevWord)) {
+          return <span key={i} className="text-cyan-400 font-semibold">{segment}</span>;
+        }
+      }
+
+      return segment;
+    });
+  }, [character.backstory]);
 
   /* ----------------------------- Fixed Heights ---------------------------- */
   return (
@@ -1079,7 +1112,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                     <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50 h-full">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-3">Background</h4>
                       <p className="text-slate-200/90 leading-relaxed italic whitespace-pre-wrap">
-                        {character.backstory}
+                        {highlightedBackstory || character.backstory}
                       </p>
                     </div>
                   </div>
@@ -1434,24 +1467,23 @@ const CharacterProfileModal: React.FC<Props> = ({
 
               {/* HISTORY (enhanced with portraits and interactivity) --------- */}
               {active === 'history' && (
-                lifeEventsLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-                      <p className="text-slate-300">Generating life events in background...</p>
-                    </div>
+                <React.Suspense fallback={
+                  <div className="p-6 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-3"></div>
+                    <p className="text-slate-400 text-sm">Loading history...</p>
                   </div>
-                ) : (
+                }>
                   <CharacterHistoryTab
                     character={character}
                     expandedLifeEvents={expandedLifeEvents}
                     lifeEventsGenerated={lifeEventsGenerated}
+                    lifeEventsLoading={lifeEventsLoading}
                     findFamilyEvents={findFamilyEvents}
                     scrollToEvent={scrollToEvent}
                     timelineRef={timelineRef}
                     highlightedEventYear={highlightedEventYear}
                   />
-                )
+                </React.Suspense>
               )}
 
               {/* HOUSEHOLD (now shows companions with Release) ---------------- */}

@@ -46,7 +46,7 @@ export function parseDateString(dateStr: string): ParsedDateInfo {
     era = HistoricalEra.RENAISSANCE_EARLY_MODERN;
   } else if (year >= 500) {
     era = HistoricalEra.MEDIEVAL;
-  } else if (year >= -3000) {
+  } else if (year >= -2000) {
     era = HistoricalEra.ANTIQUITY;
   } else {
     era = HistoricalEra.PREHISTORY;

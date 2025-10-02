@@ -52,6 +52,11 @@ export function isNearSpecificRiver(tiles: Tile[][], x: number, y: number, radiu
 
 export function generateWetlands(tiles: Tile[][], climate: ClimateType, humidityNoise: ValueNoise, featurePlacementNoise: ValueNoise, archetype: MapArchetype) {
     if (climate === ClimateType.ARID && featurePlacementNoise.random() > 0.2) return;
+
+    if (archetype === MapArchetype.DELTA) {
+        console.log('[Wetlands] Using balanced delta multiplier (1.3x) to prevent over-generation');
+    }
+
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
             const tile = tiles[y][x];
@@ -70,13 +75,16 @@ export function generateWetlands(tiles: Tile[][], climate: ClimateType, humidity
             }
             if (waterSourceNeighborCount > 0) {
                 const humidityVal = humidityNoise.octaveNoise(x * NOISE_SCALE_HUMIDITY, y * NOISE_SCALE_HUMIDITY, 3, 0.5, 2.0);
-                let chance = 0.20; 
-                if (waterSourceNeighborCount >= 2) chance += 0.30; 
-                if (isAtRiverMouth) chance += 0.40; 
-                if (humidityVal > 0.55) chance += 0.15; 
+                let chance = 0.20;
+                if (waterSourceNeighborCount >= 2) chance += 0.30;
+                if (isAtRiverMouth) chance += 0.40;
+                if (humidityVal > 0.55) chance += 0.15;
                 if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) chance += 0.20;
-                if (climate === ClimateType.ARID) chance *= 0.3; 
-                if (archetype === MapArchetype.DELTA) chance *= 2.5;
+                if (climate === ClimateType.ARID) chance *= 0.3;
+
+                // Reduced from 2.5x to 1.3x for deltas since riverbank generation already handles delta wetlands/estuaries
+                // This prevents double-generation and excessive wetland coverage
+                if (archetype === MapArchetype.DELTA) chance *= 1.3;
 
                 if (featurePlacementNoise.random() < chance * WETLANDS_MOISTURE_PROXIMITY_FACTOR) {
                     tile.biome = BiomeType.WETLANDS;

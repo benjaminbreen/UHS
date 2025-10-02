@@ -17,6 +17,12 @@ interface FarmPanelProps {
     onProgressTime?: (months: number) => void;
     onShowEvent?: (event: any) => void;
     onInitiateEncounter?: (target: any) => void;
+    onPlayerStateChange?: (changes: {
+        health?: number;
+        fatigue?: number;
+        statusEffects?: Array<{ type: string; name: string; duration: number; severity?: 'mild' | 'moderate' | 'severe' }>;
+        inventory?: { add?: any[]; remove?: string[] };
+    }) => void;
 }
 
 interface PriceInfo {
@@ -26,7 +32,7 @@ interface PriceInfo {
 
 const FarmPanel: React.FC<FarmPanelProps> = ({
     tile, mapData, playerCharacter, npcs, onClose, onBuy, onSell, useLlm, season,
-    gameTimeHours, onProgressTime, onShowEvent, onInitiateEncounter
+    gameTimeHours, onProgressTime, onShowEvent, onInitiateEncounter, onPlayerStateChange
 }) => {
     const { gameDate } = useGame();
 
@@ -53,6 +59,7 @@ const FarmPanel: React.FC<FarmPanelProps> = ({
             useLlm={useLlm}
             gameDate={gameDate}
             onInitiateEncounter={onInitiateEncounter}
+            onPlayerStateChange={onPlayerStateChange}
         />
     );
 };

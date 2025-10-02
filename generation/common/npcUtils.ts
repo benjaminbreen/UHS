@@ -6,6 +6,7 @@ import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARAC
 // Heavy data files - import directly to avoid loading on app startup
 import { GEOGRAPHICAL_DATA } from '../../constants/gameData/geography';
 import { ADJACENCIES } from '../../constants/gameData/adjacencies';
+import { CITIES_DATA } from '../../constants/gameData/cities';
 // FACTION_DATA removed - not actually used in this file
 
 // Import clothing data synchronously
@@ -415,10 +416,16 @@ function generateBirthplace(noise: ValueNoise, context: { region: string, cultur
         const neighbors = getNeighboringMapAreas(context.region, context.culturalZone);
         if (neighbors.length > 0) {
             const neighbor = neighbors[Math.floor(noise.random() * neighbors.length)];
-            return `the city of ${neighbor.name}`;
+            // Try to get actual cities from CITIES_DATA
+            const citiesInRegion = CITIES_DATA[neighbor.name];
+            if (citiesInRegion && citiesInRegion.length > 0) {
+                const city = citiesInRegion[Math.floor(noise.random() * citiesInRegion.length)];
+                return `the city of ${city.name}`;
+            }
+            return `the ${neighbor.name} region`;
         }
     }
-    
+
     // 30% chance to be from a neighboring region's village
     if (roll < 0.50) {
         const neighbors = getNeighboringMapAreas(context.region, context.culturalZone);

@@ -1,0 +1,162 @@
+/**
+ * constants/gameData/regionalHistory/europe.ts
+ * Century and region-specific historical descriptions for Europe
+ */
+
+import { RegionalHistoryData } from '../../../types/regionalHistory';
+
+export const EUROPE_REGIONAL_HISTORY: RegionalHistoryData['EUROPEAN'] = {
+    "British Isles": {
+        "-3000": "Neolithic farmers build massive stone monuments like Stonehenge and Newgrange. Agricultural communities replace hunter-gatherer societies. The megalithic culture flourishes across the islands.",
+        "-2000": "The Bronze Age arrives with new metalworking technology from the continent. Beaker culture spreads across Britain and Ireland. Trade networks extend to continental Europe.",
+        "-1000": "Celtic tribes begin arriving from the continent, bringing iron technology. Hill forts dot the landscape. Druidic religion takes root alongside older practices.",
+        400: "Post-Roman Britain fragments into Celtic kingdoms as Saxon raiders begin settling the eastern coasts. The legacy of Rome fades while Christian monasteries preserve learning in Ireland and Wales.",
+        500: "Anglo-Saxon kingdoms consolidate power across England, pushing Celtic Britons to the western margins. Irish monasteries become centers of Christian learning, sending missionaries across Europe.",
+        600: "The Heptarchy emerges as seven major Anglo-Saxon kingdoms compete for dominance. Lindisfarne and Iona become renowned centers of Celtic Christianity and illuminated manuscript production.",
+        700: "The age of Bede and the Venerable scholars. Northumbria reaches its cultural zenith before Viking raids begin devastating coastal monasteries in the final decades of the century.",
+        800: "Viking invasions intensify, with Danish armies conquering large portions of England. Alfred the Great of Wessex leads resistance and establishes the Danelaw boundary.",
+        900: "Anglo-Saxon England gradually reconquers the Danelaw. The Kingdom of Scotland consolidates under the House of Alpin while Wales remains divided among rival princes.",
+        1000: "England unifies under strong kings but faces renewed Scandinavian invasions. Danish king Cnut briefly rules a North Sea empire including England, Denmark, and Norway.",
+        1100: "Norman conquest transforms England with French-speaking aristocracy and continental feudalism. Stone castles dot the landscape as Norman power extends into Wales and Ireland.",
+        1200: "England under Angevin rule controls vast French territories. Magna Carta limits royal power. Scotland's independence solidifies despite English pressure. English settlers colonize Ireland.",
+        1300: "The Scottish Wars of Independence rage. Edward I attempts conquest but Robert the Bruce secures Scottish freedom. Ireland fractures between Gaelic lords and Anglo-Norman barons.",
+        1400: "The Wars of the Roses loom as Lancastrian and Yorkist factions compete for the English throne. Wales is formally annexed. English control in Ireland weakens beyond the Pale.",
+        1500: "The Tudor dynasty stabilizes England. Henry VIII's break with Rome creates the Anglican Church. Ireland faces intensified English colonization. Scotland and England remain separate kingdoms.",
+        1600: "The Stuart dynasty unites the Scottish and English crowns. Religious conflict leads to civil war. Cromwell's Commonwealth briefly replaces the monarchy before the Restoration.",
+        1700: "The Act of Union creates Great Britain from England and Scotland. Britain emerges as a major colonial and naval power, while Ireland faces harsh penal laws.",
+        1800: "Britain leads the Industrial Revolution. The Act of Union incorporates Ireland. The empire expands globally while working-class movements demand reform at home.",
+        1900: "Britain reaches its imperial zenith but faces Irish independence movement, labor unrest, and the devastation of World War I. The empire begins its gradual dissolution."
+    },
+
+    "France": {
+        "-3000": "Neolithic farmers cultivate the fertile valleys and build megalithic monuments across western France. Coastal communities harvest salt and trade with Britain.",
+        "-2000": "Bronze Age cultures flourish in the river valleys. Fortified settlements emerge. Trade routes connect the Mediterranean to the Atlantic coasts.",
+        "-1000": "Celtic Gauls settle throughout the region, organizing into powerful tribes. Iron tools and weapons transform agriculture and warfare. Oppidum hillforts serve as tribal centers.",
+        400: "Roman Gaul collapses as Germanic tribes settle. The Franks emerge as the dominant power, blending Roman and Germanic traditions under the Merovingian dynasty.",
+        500: "Clovis unites the Frankish tribes and converts to Catholic Christianity. The Merovingian kingdom expands but gradually weakens as mayors of the palace gain real power.",
+        600: "Merovingian 'do-nothing kings' reign nominally while Carolingian mayors rule effectively. Monasteries flourish as centers of learning and agricultural innovation.",
+        700: "Charles Martel halts Muslim expansion at Tours. The Carolingians formalize their control, setting the stage for Charlemagne's empire.",
+        800: "Charlemagne is crowned Emperor, briefly recreating a Western European empire. The Carolingian Renaissance revives classical learning and standardizes Latin script.",
+        900: "Charlemagne's empire fragments. Viking raids devastate the coasts and rivers. West Francia emerges as the core of what will become France, though royal power is weak.",
+        1000: "The Capetian dynasty begins its long rule. Feudalism reaches full development with powerful regional lords. The Peace and Truce of God movements limit warfare.",
+        1100: "French knights lead the Crusades. Capetian kings slowly consolidate royal domain. Gothic architecture emerges with cathedrals like Saint-Denis and Notre-Dame.",
+        1200: "Philip II Augustus defeats the Angevins and greatly expands royal territory. Paris becomes Europe's intellectual capital. Albigensian Crusade extends royal power south.",
+        1300: "The Hundred Years' War begins as English kings claim the French throne. Black Death devastates the population. Royal authority weakens amid military defeats.",
+        1400: "France reaches its nadir with English occupation of Paris, but Joan of Arc inspires revival. Charles VII gradually reconquers French territory from the English.",
+        1500: "The Renaissance reaches France under Francis I. Italian wars drain resources but bring cultural splendor. Protestantism arrives, setting stage for religious conflict.",
+        1600: "Religious wars devastate France until Henry IV's pragmatic conversion. Richelieu strengthens royal absolutism. Louis XIV builds Versailles and makes France Europe's dominant power.",
+        1700: "Louis XIV's wars and lavish spending burden France. Enlightenment philosophy flourishes. Growing social tensions between aristocracy, bourgeoisie, and peasantry.",
+        1800: "The French Revolution and Napoleon transform France and Europe. Though Napoleon falls, revolutionary ideals spread. France industrializes more slowly than Britain.",
+        1900: "France recovers from Franco-Prussian defeat. Colonial expansion in Africa and Asia. World War I devastates northern France despite victory. Interwar instability precedes Nazi occupation."
+    },
+
+    "Iberian Peninsula": {
+        "-3000": "Neolithic cultures build dolmens and practice early metallurgy. The Los Millares culture develops sophisticated fortifications in the southeast.",
+        "-2000": "The El Argar Bronze Age culture dominates southeastern Iberia with advanced metalworking. Pastoral and agricultural communities spread across the peninsula.",
+        "-1000": "Phoenician traders establish coastal colonies including Cádiz, bringing eastern Mediterranean influence. Celtic and Iberian tribes control the interior, developing distinct cultures.",
+        400: "Visigothic kingdom replaces Roman Hispania. Christian bishops gain influence while Jewish communities maintain cultural continuity from Roman times.",
+        500: "Visigothic rulers consolidate power, eventually converting from Arianism to Catholicism. Toledo becomes the capital of a kingdom blending Roman and Germanic traditions.",
+        600: "Visigothic Spain reaches cultural height with scholars like Isidore of Seville. The kingdom remains politically unstable with frequent royal assassinations.",
+        700: "Muslim armies cross from North Africa and swiftly conquer most of Iberia. The Visigothic kingdom collapses except for small Christian holdouts in northern mountains.",
+        800: "Al-Andalus flourishes under the Umayyad Emirate. Córdoba becomes one of Europe's largest and most cultured cities. Christian kingdoms slowly organize in the north.",
+        900: "Abd al-Rahman III declares himself Caliph of Córdoba at the height of Al-Andalus's power. Northern Christian kingdoms expand cautiously southward.",
+        1000: "The Caliphate of Córdoba fragments into taifa kingdoms. Christian kingdoms grow stronger and begin extracting tribute. El Cid epitomizes the era's complexity.",
+        1100: "The Almoravid and later Almohad dynasties reunify Al-Andalus temporarily. Christian Reconquista accelerates with the conquest of Toledo, Lisbon, and Zaragoza.",
+        1200: "The decisive Battle of Las Navas de Tolosa breaks Almohad power. Christian kingdoms capture Córdoba, Seville, and most of Andalusia. Only Granada remains Muslim.",
+        1300: "The Crown of Aragon dominates Mediterranean trade. Castile and Portugal consolidate as major kingdoms. The Nasrid dynasty maintains Granada through diplomacy and tribute.",
+        1400: "Castile and Aragon unite through the marriage of Isabella and Ferdinand. Portugal explores the African coast. Granada's fall in 1492 ends the Reconquista.",
+        1500: "Spain becomes a global empire with American conquests. The Habsburg dynasty rules vast European territories. The Inquisition enforces religious uniformity after expelling Jews and Muslims.",
+        1600: "Spain's golden age of art and literature contrasts with economic decline and military defeats. The Dutch revolt, Portuguese independence, and the Thirty Years' War drain resources.",
+        1700: "The War of Spanish Succession brings the Bourbon dynasty to power. Spain loses European territories but maintains American colonies. Enlightenment reforms modernize institutions.",
+        1800: "Napoleonic occupation sparks peninsular war. Spain loses most American colonies to independence movements. Political instability alternates between liberal and conservative factions.",
+        1900: "Spain loses its last colonies in 1898. The country remains neutral in World War I. Political polarization leads to civil war in 1936, followed by Franco's dictatorship."
+    },
+
+    "Italy": {
+        "-3000": "Neolithic cultures spread across the Italian peninsula. Early copper working begins. Lake dwellings appear in the north while pastoral communities develop in the south.",
+        "-2000": "Bronze Age cultures flourish. The Terramare culture dominates the Po Valley. Trade connects Italy to the eastern Mediterranean and central Europe.",
+        "-1000": "Etruscan civilization emerges in Tuscany with sophisticated cities, writing, and religious practices. Greek colonists establish cities in southern Italy and Sicily. Iron Age cultures spread.",
+        400: "The Western Roman Empire crumbles. Italy becomes a battlefield for Ostrogoths, Byzantines, and Lombards, each claiming to restore Roman glory.",
+        500: "The Ostrogothic kingdom attempts to preserve Roman culture before Justinian's Byzantine armies reconquer Italy in devastating wars that ruin the peninsula.",
+        600: "Lombard kingdoms dominate northern Italy while Byzantines hold the south and Rome. The Pope emerges as a political power, mediating between competing forces.",
+        700: "The Papacy grows more independent of Byzantine control. Lombard power peaks before Charlemagne's Frankish armies conquer the kingdom at papal request.",
+        800: "Charlemagne crowned Emperor in Rome. Carolingian control is nominal; local powers dominate. Muslim raiders attack southern coasts and Sicily.",
+        900: "Italy fragments into competing powers: German emperors in the north, Byzantines and later Normans in the south, and the Papal States in central Italy.",
+        1000: "Norman adventurers conquer southern Italy and Sicily. Maritime republics like Venice, Genoa, and Pisa grow wealthy from Mediterranean trade.",
+        1100: "Northern Italian communes gain independence from imperial control. The conflict between Guelphs and Ghibellines divides loyalties. The crusades enrich Italian merchants.",
+        1200: "Frederick II creates a sophisticated kingdom in Sicily. Northern city-states reach commercial height. Venice dominates eastern Mediterranean trade after the Fourth Crusade.",
+        1300: "The Renaissance begins in Florence. Dante writes the Divine Comedy. Powerful families like the Medici emerge. The Black Death devastates cities but wealth concentrates.",
+        1400: "The Renaissance reaches full flower with Leonardo, Michelangelo, and Machiavelli. Italian city-states compete in art, culture, and warfare. Foreign powers eye the wealthy peninsula.",
+        1500: "Italy becomes the battlefield of Europe as France, Spain, and the Empire fight for control. The Italian Wars devastate the peninsula despite continued cultural brilliance.",
+        1600: "Spain dominates most of Italy. The Counter-Reformation strengthens papal power. Economic decline sets in as trade routes shift to the Atlantic, though art and music still flourish.",
+        1700: "Austrian Habsburgs replace Spanish dominance in northern Italy. Enlightenment ideas spread. The peninsula remains politically fragmented among foreign dynasties and local rulers.",
+        1800: "Napoleon's conquest awakens Italian nationalism. After his fall, Austria reasserts control, but unification movements grow. Risorgimento ideals spread despite Austrian repression.",
+        1900: "Italy unifies under the House of Savoy. Industrialization proceeds in the north while the south remains poor. World War I brings territorial gains but economic strain."
+    },
+
+    "Germanic Lands": {
+        "-3000": "Neolithic farming communities spread across northern Europe. Megalithic monuments and stone tombs dot the landscape. Early agricultural villages develop along rivers.",
+        "-2000": "Bronze Age Nordic cultures emerge with distinctive metalwork and trade networks extending to the Mediterranean. Burial mounds and ritual sites proliferate.",
+        "-1000": "Early Germanic tribes consolidate from Indo-European migrations. Iron technology spreads. Tribal societies develop warrior cultures and complex kinship systems.",
+        400: "Germanic tribes migrate across the Rhine and Danube as Roman authority collapses. Tribal confederations form, some settling within former Roman territory.",
+        500: "The Frankish kingdom emerges as the dominant Germanic power while Saxon and Alemannic tribes maintain independence. Christianity spreads gradually from Roman and Irish missionaries.",
+        600: "Frankish Austrasia and Neustria compete while pagan Saxons resist Frankish expansion. Monasteries spread as centers of conversion and learning.",
+        700: "Boniface leads conversion efforts. Frankish power expands eastward. Charlemagne's grandfather Charles Martel becomes the real power behind Merovingian kings.",
+        800: "Charlemagne conquers and forcibly converts the Saxons after decades of brutal warfare. The Carolingian Empire brings Germanic lands under a unified Christian rule.",
+        900: "The Carolingian empire fragments. East Francia emerges as a separate kingdom. Magyar raids devastate the region until Otto I's decisive victory at Lechfeld.",
+        1000: "Otto I founds the Holy Roman Empire. German emperors claim to be Charlemagne's heirs. The Ottonian dynasty brings cultural renaissance and eastward expansion.",
+        1100: "The Investiture Controversy divides Germany between papal and imperial factions. The Salian and later Hohenstaufen dynasties struggle to maintain imperial authority.",
+        1200: "Frederick Barbarossa and Frederick II represent the empire's height and decline. German settlement pushes east. The Hanseatic League dominates Baltic trade.",
+        1300: "The interregnum weakens imperial power. The Habsburgs begin their long dominance. German princes and cities gain independence. The Golden Bull formalizes electoral system.",
+        1400: "The Habsburg dynasty consolidates power. German cities flourish economically. Gutenberg's printing press in Mainz revolutionizes knowledge transmission.",
+        1500: "Martin Luther sparks the Protestant Reformation in Wittenberg. Religious warfare divides Germany. Charles V rules vast territories but cannot enforce religious unity.",
+        1600: "The Thirty Years' War devastates German lands. Population falls by a third. The Peace of Westphalia confirms fragmentation into hundreds of semi-independent states.",
+        1700: "Prussia rises as a major power under the Hohenzollern dynasty. Austria and Prussia compete for German leadership. Enlightenment culture flourishes despite political division.",
+        1800: "Napoleon dissolves the Holy Roman Empire. German nationalism awakens. Prussia defeats Austria and France to unify Germany under Prussian leadership by 1871.",
+        1900: "The German Empire industrializes rapidly and builds a colonial empire. World War I ends in defeat, revolution, and the Weimar Republic's troubled democracy."
+    },
+
+    "Balkans": {
+        "-3000": "Neolithic farming cultures like the Vinča civilization develop sophisticated pottery and early copper working. Agricultural communities thrive in river valleys.",
+        "-2000": "Bronze Age cultures expand across the Balkans. Fortified settlements emerge. Trade connects the region to the Aegean, Anatolia, and the Danube valley.",
+        "-1000": "Thracian and Illyrian tribes dominate the interior while Greek colonists settle the coasts. The region becomes a crossroads between Mediterranean and continental cultures.",
+        400: "The Balkans remain part of the Eastern Roman Empire but face increasing Gothic, Hunnic, and Slavic pressure on the northern frontiers.",
+        500: "Slavic tribes begin settling the Balkans in large numbers. Byzantine control weakens in the interior while coastal cities remain Greek-speaking and imperial.",
+        600: "Slavic settlement reaches its peak. The Avars dominate the region briefly. Byzantium struggles to maintain control over what was once solidly Roman territory.",
+        700: "The Bulgars, a Turkic people, establish a powerful khanate. Byzantine-Bulgarian wars define the era. Slavic and Greek populations mix under Bulgarian rule.",
+        800: "The Byzantine Empire reasserts control under strong emperors. Christianity spreads among South Slavs. Cyril and Methodius create the Glagolitic script.",
+        900: "The First Bulgarian Empire reaches its zenith before Byzantine conquest. Croatia and Serbia emerge as distinct kingdoms. Christianity becomes firmly established.",
+        1000: "Basil the Bulgar-Slayer destroys the First Bulgarian Empire. Byzantium controls most of the Balkans. The Great Schism divides eastern and western Christianity.",
+        1100: "The Second Bulgarian Empire breaks free from Byzantine rule. Serbian principalities gain independence. The Fourth Crusade's capture of Constantinople weakens Byzantine power.",
+        1200: "The Latin Empire fragments the Balkans. Bulgaria and Serbia expand at Byzantine expense. The region becomes a patchwork of competing Orthodox Christian states.",
+        1300: "Serbia under Stefan Dušan reaches its greatest extent, briefly threatening Byzantine survival. Bulgaria fragments. Ottoman Turks begin raiding the region.",
+        1400: "Ottoman conquest transforms the Balkans. Serbia falls after Kosovo. The Byzantine Empire shrinks to Constantinople's environs. Bosnia maintains brief independence.",
+        1500: "Most of the Balkans are firmly under Ottoman control. Islamic conversion occurs in Bosnia and Albania. Christian populations pay special taxes but keep their faith.",
+        1600: "The Balkans are the Ottoman Empire's European heartland. Habsburg Austria becomes the main Christian rival. Periodic wars shift borders but Ottoman control remains firm.",
+        1700: "Habsburg-Ottoman wars result in Austrian gains in the north. The Ottoman system begins to strain. Christian elites in Phanariot Greece and Wallachia gain influence.",
+        1800: "Serbian and Greek revolutions begin the Ottoman withdrawal from Europe. Nationalist movements emerge among all Balkan peoples. Great Powers compete for influence.",
+        1900: "The Balkan Wars expel Ottomans from most of Europe. Competing nationalisms create instability. Sarajevo's assassination triggers World War I."
+    },
+
+    "Scandinavia": {
+        "-3000": "Hunter-gatherers and early farmers coexist in Scandinavia. Megalithic tombs appear along the coasts. The Funnel Beaker culture spreads agricultural practices.",
+        "-2000": "The Nordic Bronze Age flourishes with distinctive metalwork, rock carvings, and sun worship. Maritime trade extends across the Baltic and North Seas.",
+        "-1000": "Late Bronze Age cultures develop into early Germanic societies. Bog bodies and ritual deposits suggest complex religious practices. Iron technology begins arriving.",
+        600: "The Vendel period sees the development of warrior culture and sophisticated metalwork in Sweden. Trade networks extend across the Baltic.",
+        700: "Proto-Viking societies emerge. Shipbuilding techniques improve dramatically. Long-distance trade increases wealth and cultural contact with the continent.",
+        800: "The Viking Age begins. Norwegian and Danish raiders terrorize coastal Europe while Swedish traders penetrate Russia. Pagan Norse culture flourishes.",
+        900: "Vikings settle Iceland, Normandy, and northern England. The first Norwegian and Danish kingdoms consolidate. Christianity begins penetrating the region from Denmark.",
+        1000: "Norway, Denmark, and Sweden emerge as Christian kingdoms. Viking expansion ends. The North Sea empire of Cnut briefly unites Scandinavia and England.",
+        1100: "Scandinavian kingdoms stabilize under Christian rule. The crusading movement reaches the Baltic. Norway expands westward to Iceland and Greenland.",
+        1200: "The Kalmar Union periodically unites the three kingdoms. The Hanseatic League dominates Scandinavian trade. Royal power strengthens against local chieftains.",
+        1300: "The Black Death devastates Scandinavia. The Kalmar Union creates a single monarchy over Denmark, Norway, and Sweden, though Swedish resistance persists.",
+        1400: "Sweden breaks from the Kalmar Union under the Vasa dynasty. Denmark-Norway remains united. Lutheran Reformation spreads rapidly through Scandinavia.",
+        1500: "Sweden becomes a major Baltic power. Denmark-Norway remains strong. The Reformation transforms religious and cultural life, with the Bible translated into vernacular languages.",
+        1600: "Sweden emerges as a great power in the Thirty Years' War. Gustavus Adolphus leads Protestant forces. The Swedish Empire controls much of the Baltic.",
+        1700: "Sweden's Baltic empire collapses after defeats by Russia, Denmark, and Poland. Denmark-Norway remains stable. Enlightenment ideas spread in Copenhagen and Stockholm.",
+        1800: "Sweden loses Finland to Russia. Norway breaks from Denmark and unites with Sweden. Industrialization begins slowly. Emigration to America increases.",
+        1900: "The Scandinavian countries develop distinct national identities. Norway gains full independence. Neutrality, social democracy, and the welfare state model emerge."
+    },
+
+    // remember to add Greece and Aegean region here
+};

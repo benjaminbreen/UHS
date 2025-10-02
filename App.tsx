@@ -29,6 +29,7 @@ import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
 import TransitionOverlay from './components/TransitionOverlay';
 import QuestNotificationToast from './components/QuestNotification';
+import StatusWarningToast from './components/ui/StatusWarningToast';
 import ContainerPrompt from './components/ContainerPrompt';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
 import { SeedManager } from './services/seedService';
@@ -237,6 +238,24 @@ const AppContent: React.FC = () => {
     const [diseaseProgressionQueue, setDiseaseProgressionQueue] = React.useState<DiseaseProgressionEvent[]>([]);
     const [currentDiseaseProgression, setCurrentDiseaseProgression] = React.useState<DiseaseProgressionEvent | null>(null);
 
+    // Status warning toast state
+    const [statusWarning, setStatusWarning] = React.useState<{
+        type: 'health' | 'fatigue';
+        severity: 'warning' | 'danger' | 'critical';
+        currentValue: number;
+        maxValue: number;
+    } | null>(null);
+
+    // Handle status warnings (health/fatigue)
+    const handleStatusWarning = React.useCallback((
+        type: 'health' | 'fatigue',
+        severity: 'warning' | 'danger' | 'critical',
+        currentValue: number,
+        maxValue: number
+    ) => {
+        setStatusWarning({ type, severity, currentValue, maxValue });
+    }, []);
+
     // Handle death callback
     const handleDeath = React.useCallback((deathInfo: any) => {
         setDeathCause(deathInfo);
@@ -259,7 +278,7 @@ const AppContent: React.FC = () => {
     const [showPlayerTooltip, setShowPlayerTooltip] = React.useState(false);
     const [playerTooltipPos, setPlayerTooltipPos] = React.useState({ x: 0, y: 0 });
 
-    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression);
+    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning);
 
     // Handle disease progression queue
     React.useEffect(() => {
@@ -271,7 +290,7 @@ const AppContent: React.FC = () => {
         }
     }, [diseaseProgressionQueue, showDiseaseProgressionModal, currentDiseaseProgression]);
 
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime } = useGame();
     const mapContext = useMap();
@@ -716,9 +735,21 @@ const AppContent: React.FC = () => {
       <div className="bg-slate-200 text-slate-800 dark:bg-slate-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden transition-colors duration-300">
         {/* Quest Notifications */}
         <QuestNotificationToast />
-        
+
+        {/* Status Warning Toasts (Health & Fatigue) */}
+        {statusWarning && (
+          <StatusWarningToast
+            type={statusWarning.type}
+            severity={statusWarning.severity}
+            currentValue={statusWarning.currentValue}
+            maxValue={statusWarning.maxValue}
+            onClose={() => setStatusWarning(null)}
+            duration={statusWarning.severity === 'critical' ? 0 : statusWarning.severity === 'danger' ? 8000 : 5000}
+          />
+        )}
+
         {/* Container Prompt */}
-        <ContainerPrompt 
+        <ContainerPrompt
           message={containerPrompt.message}
           isVisible={containerPrompt.isVisible}
           onClose={hideContainerPrompt}
@@ -823,14 +854,16 @@ const AppContent: React.FC = () => {
                 />
                 
                 {/* Right Sidebar with mobile overlay and slide animation */}
-                <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full`}>
-                    {mobileMenuOpen === 'right' && (
-                        <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
-                    )}
-                    <div className={`${mobileMenuOpen === 'right' ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content' : `h-full ${isSafariBrowser ? '' : 'animate-slide-in-right delay-100'}`} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
-                        <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
+                {isRightSidebarVisible && (
+                    <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-300`}>
+                        {mobileMenuOpen === 'right' && (
+                            <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
+                        )}
+                        <div className={`${mobileMenuOpen === 'right' ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content' : `h-full ${isSafariBrowser ? '' : 'animate-slide-in-right delay-100'}`} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
+                            <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
         <ModalHub />

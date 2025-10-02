@@ -472,34 +472,37 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     }
     
     return (
-        <div className="w-full h-full bg-black relative overflow-hidden">
-            {/* Beautiful interior renderer */}
-            <div className="w-full h-full flex items-center justify-center p-4">
-                <BeautifulInteriorRenderer
-                    layout={interiorData.layout}
-                    playerPosition={playerPosition}
-                    playerCharacter={playerCharacter}
-                    npcs={interiorData.npcs}
-                    scale={1}
-                    onNpcClick={onNpcClick}
-                />
+        <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
+            {/* Beautiful interior renderer - constrained container */}
+            <div className="flex-1 relative overflow-hidden" style={{ minHeight: 0 }}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <BeautifulInteriorRenderer
+                        layout={interiorData.layout}
+                        playerPosition={playerPosition}
+                        playerCharacter={playerCharacter}
+                        npcs={interiorData.npcs}
+                        scale={1}
+                        onNpcClick={onNpcClick}
+                    />
+                </div>
             </div>
-            
+
             {/* FF6-Style Dialogue Box with Portrait */}
             {currentDialogue?.visible && (
                 <div
                     className="ff6-dialogue-box"
                     style={{
-                        position: 'absolute',
-                        top: '20px',
-                        right: '20px',
+                        position: 'fixed',
+                        top: '80px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
                         zIndex: 1000,
                         background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
                         border: '3px solid #4a90e2',
                         borderRadius: '12px',
                         padding: '20px',
-                        maxWidth: 'min(400px, calc(100vw - 40px))',
-                        minWidth: 'min(300px, calc(100vw - 40px))',
+                        maxWidth: 'min(500px, calc(100vw - 40px))',
+                        minWidth: 'min(400px, calc(100vw - 40px))',
                         boxShadow: '0 8px 32px rgba(74, 144, 226, 0.3), inset 0 2px 4px rgba(74, 144, 226, 0.2)',
                         animation: 'dialogueFadeIn 0.3s ease-out',
                         display: 'flex',
@@ -543,14 +546,15 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 </div>
             )}
             
-            {/* Player Input Box (FF6-style, positioned at bottom right) */}
+            {/* Player Input Box (FF6-style, positioned at bottom center of viewport) */}
             {currentDialogue?.visible && (
                 <div
                     style={{
-                        position: 'absolute',
+                        position: 'fixed',
                         bottom: '20px',
-                        right: '20px',
-                        width: 'min(400px, calc(100vw - 40px))',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: 'min(500px, calc(100vw - 40px))',
                         zIndex: 1000
                     }}
                 >
@@ -621,8 +625,8 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 }
             `}</style>
             
-            {/* UI Overlay */}
-            <div className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-4 rounded-lg border border-gray-600 max-w-[280px] z-50">
+            {/* UI Overlay - fixed positioning */}
+            <div className="fixed top-4 left-4 bg-black bg-opacity-75 text-white p-4 rounded-lg border border-gray-600 max-w-[280px] z-50">
                 <h2 className="text-lg font-bold mb-2">{interiorData.layout.name}</h2>
                 <p className="text-sm text-gray-300 mb-2">{interiorData.layout.name}</p>
                 {interiorData.namedElite && (
@@ -635,17 +639,17 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                     <p>ESC to exit</p>
                 </div>
             </div>
-            
-            {/* Exit button */}
+
+            {/* Exit button - fixed positioning, won't be blocked by dialogue */}
             <button
                 onClick={onExit}
-                className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg border border-red-400 transition-colors text-sm font-semibold max-w-[100px] z-50"
+                className="fixed top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg border border-red-400 transition-colors text-sm font-semibold z-[1001]"
             >
                 Exit
             </button>
-            
-            {/* Status indicators */}
-            <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 text-white p-3 rounded-lg border border-gray-600">
+
+            {/* Status indicators - fixed positioning */}
+            <div className="fixed bottom-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-lg border border-gray-600 z-50">
                 <div className="text-sm">
                     <p>Position: ({playerPosition.x}, {playerPosition.y})</p>
                     <p>Class: {playerClass}</p>

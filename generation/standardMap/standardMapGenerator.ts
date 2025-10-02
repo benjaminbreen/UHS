@@ -66,8 +66,9 @@ const EDGE_BIAS_STRENGTH = 0.4;   // How strongly a neighbor pulls the land thre
  * Extend rivers from neighboring map edges into the current map
  * This prevents rivers from being cut off abruptly at map boundaries
  */
-function extendRiversFromEdges(tiles: Tile[][], neighboringEdges: NeighboringEdges) {
-  const RIVER_EXTENSION_LENGTH = 15; // How far to extend rivers inward
+function extendRiversFromEdges(tiles: Tile[][], neighboringEdges: NeighboringEdges, archetype: MapArchetype) {
+  // ALL_LAND maps should have minimal river extension to maintain their character
+  const RIVER_EXTENSION_LENGTH = archetype === MapArchetype.ALL_LAND ? 3 : 15; // Minimal extension for ALL_LAND
   const RIVER_MEANDER_CHANCE = 0.3; // Chance to curve the river
 
   // Check western edge for rivers
@@ -165,7 +166,21 @@ export function proceduralGenerateMap(
 
   // NEW: Select Societal Profile
   let societalProfile = SOCIETAL_PROFILES[culturalZone]?.[dateInfo.era as HistoricalEra] || SOCIETAL_PROFILES.DEFAULT;
-  // Apply user overrides
+
+  // Apply region-specific overrides if they exist
+  if (societalProfile.regionOverrides && region && societalProfile.regionOverrides[region]) {
+    const regionOverride = societalProfile.regionOverrides[region];
+    societalProfile = {
+      ...societalProfile,
+      ...regionOverride,
+      // Merge arrays properly
+      allowedStructures: regionOverride.allowedStructures || societalProfile.allowedStructures,
+      allowedMineTypes: regionOverride.allowedMineTypes || societalProfile.allowedMineTypes
+    };
+    console.log(`[Gen] Applied region override for ${region}: isAgricultural=${societalProfile.isAgricultural}`);
+  }
+
+  // Apply user overrides (these take highest priority)
   if (generationParams?.isAgricultural !== undefined) {
     societalProfile = { ...societalProfile, isAgricultural: generationParams.isAgricultural };
   }
@@ -1276,7 +1291,7 @@ export function proceduralGenerateMap(
   // console.log("[Gen] Phase 7: Enhanced river generation - END");
 
   // console.log("[Gen] Phase 8: Riverbank generation - START");
-  generateRiverbanks(tiles, featurePlacementNoise);
+  generateRiverbanks(tiles, featurePlacementNoise, archetype);
   // console.log("[Gen] Phase 8: Riverbank generation - END");
   
   // console.log("[Gen] Phase 8.5: Estuary Generation - START");

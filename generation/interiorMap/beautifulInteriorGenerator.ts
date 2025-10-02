@@ -443,19 +443,54 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
         }
         
         // Position the elite NPC using shared calculator
-        let eliteSpace: ArchitecturalSpace;
+        let eliteSpace: ArchitecturalSpace | undefined;
         let positionPref: 'throne' | 'altar' | 'restricted_area';
 
-        if (existingElite.id.includes('fortress') || config.buildingType === 'fortress') {
-            // Fortress commander goes in the command chamber (restricted space)
-            eliteSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
-            positionPref = 'restricted_area';
-        } else if (existingElite.id.includes('palace')) {
-            eliteSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
-            positionPref = 'throne';
-        } else {
-            eliteSpace = layout.spaces.find(s => s.type === 'altar') || layout.spaces[0];
+        // Safety check: ensure layout has spaces
+        if (!layout.spaces || layout.spaces.length === 0) {
+            console.error('🚨 [BeautifulInteriorGenerator] Layout has no spaces defined!', {
+                buildingType: config.buildingType,
+                layoutName: layout.name,
+                hasSpaces: !!layout.spaces,
+                spaceCount: layout.spaces?.length || 0
+            });
+            // Create a default space based on entrance
+            eliteSpace = {
+                id: 'default_space',
+                name: 'Default Space',
+                type: 'room',
+                bounds: { x: layout.entrance.x - 2, y: layout.entrance.y - 4, width: 4, height: 4 },
+                floorType: 'stone',
+                wallHeight: 3,
+                accessibility: 'public'
+            };
             positionPref = 'altar';
+        } else {
+            if (existingElite.id.includes('fortress') || config.buildingType === 'fortress') {
+                // Fortress commander goes in the command chamber (restricted space)
+                eliteSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
+                positionPref = 'restricted_area';
+            } else if (existingElite.id.includes('palace')) {
+                eliteSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
+                positionPref = 'throne';
+            } else {
+                eliteSpace = layout.spaces.find(s => s.type === 'altar') || layout.spaces[0];
+                positionPref = 'altar';
+            }
+        }
+
+        // Final safety check
+        if (!eliteSpace || !eliteSpace.bounds) {
+            console.error('🚨 [BeautifulInteriorGenerator] No valid elite space found, using entrance fallback');
+            eliteSpace = {
+                id: 'entrance_fallback',
+                name: 'Entrance Area',
+                type: 'room',
+                bounds: { x: layout.entrance.x - 2, y: layout.entrance.y - 4, width: 4, height: 4 },
+                floorType: 'stone',
+                wallHeight: 3,
+                accessibility: 'public'
+            };
         }
 
         // Use shared position calculator for consistent logic
@@ -481,8 +516,38 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
             name: namedElite.name,
             position: { x: namedElite.x, y: namedElite.y },
             buildingType: config.buildingType,
-            verifiedCoordinates: { x: namedElite.x, y: namedElite.y, isValid: !isNaN(namedElite.x) && !isNaN(namedElite.y) }
+            verifiedCoordinates: { x: namedElite.x, y: namedElite.y, isValid: !isNaN(namedElite.x) && !isNaN(namedElite.y) },
+            calculatedPosition: { validEliteX, validEliteY },
+            eliteSpaceUsed: {
+                id: eliteSpace?.id,
+                bounds: eliteSpace?.bounds,
+                hasValidBounds: !!(eliteSpace?.bounds?.x !== undefined && eliteSpace?.bounds?.y !== undefined)
+            }
         });
+
+        // CRITICAL: Validate coordinates before continuing
+        if (isNaN(namedElite.x) || isNaN(namedElite.y)) {
+            console.error('🚨🚨🚨 [BeautifulInteriorGenerator] NPC HAS NaN COORDINATES!', {
+                elite: namedElite.name,
+                x: namedElite.x,
+                y: namedElite.y,
+                validEliteX,
+                validEliteY,
+                layoutName: layout.name,
+                layoutHasSpaces: !!layout.spaces,
+                spaceCount: layout.spaces?.length || 0,
+                eliteSpaceId: eliteSpace?.id
+            });
+            // Force valid position at entrance as emergency fallback
+            namedElite.x = layout.entrance.x;
+            namedElite.y = layout.entrance.y - 2;
+            namedElite.targetX = namedElite.x;
+            namedElite.targetY = namedElite.y;
+            console.log('🚑 [BeautifulInteriorGenerator] Emergency fallback applied:', {
+                x: namedElite.x,
+                y: namedElite.y
+            });
+        }
     }
     
     // Generate support NPCs

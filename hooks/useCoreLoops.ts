@@ -51,7 +51,8 @@ interface DeathInfo {
 const useCoreLoops = (
   onDeath?: (deathInfo: DeathInfo) => void,
   onNpcDeath?: (npc: NpcEntity, disease: Disease) => void,
-  onDiseaseProgression?: (events: DiseaseProgressionEvent[]) => void
+  onDiseaseProgression?: (events: DiseaseProgressionEvent[]) => void,
+  onStatusWarning?: (type: 'health' | 'fatigue', severity: 'warning' | 'danger' | 'critical', currentValue: number, maxValue: number) => void
 ) => {
   const {
     setGameTimeMinutes,
@@ -146,6 +147,10 @@ const useCoreLoops = (
   const nextMoveAllowed = useRef<number>(0); // Track when next move is allowed
   const npcNarrationHistory = useRef<Set<string>>(new Set()); // Track NPCs who have had narration generated
   const lastNarrationTime = useRef<number>(0); // Track last narration generation time
+
+  // Health/Fatigue warning tracking to prevent duplicate warnings
+  const healthWarningShown = useRef<40 | 20 | 5 | null>(null);
+  const fatigueWarningShown = useRef<60 | 80 | 95 | null>(null);
 
   // Repeat control for movement (time-based; replaces setTimeout gating)
   const repeatRef = useRef({ holdStart: 0, nextStepAt: 0, isRepeating: false });
@@ -437,6 +442,70 @@ const useCoreLoops = (
 
     return () => clearInterval(drowningInterval);
   }, [isAnyModalOpen, playerCharacter, viewMode, controlledIconX, controlledIconY, mapData, playerMode, onDeath, setPlayerCharacter, setNarrationHistory]);
+
+  // Health/Fatigue warning system - Check thresholds and trigger warnings
+  useEffect(() => {
+    if (!playerCharacter || isAnyModalOpen) return;
+
+    const healthPercent = (playerCharacter.health / playerCharacter.maxHealth) * 100;
+    const fatiguePercent = (playerCharacter.fatigue / 100) * 100; // Assuming max fatigue is 100
+
+    // Health warnings (40%, 20%, 5%)
+    if (healthPercent <= 5 && healthWarningShown.current !== 5) {
+      healthWarningShown.current = 5;
+      if (onStatusWarning) {
+        onStatusWarning('health', 'critical', playerCharacter.health, playerCharacter.maxHealth);
+      }
+    } else if (healthPercent <= 20 && healthWarningShown.current !== 20 && healthWarningShown.current !== 5) {
+      healthWarningShown.current = 20;
+      if (onStatusWarning) {
+        onStatusWarning('health', 'danger', playerCharacter.health, playerCharacter.maxHealth);
+      }
+    } else if (healthPercent <= 40 && healthWarningShown.current !== 40 && healthWarningShown.current !== 20 && healthWarningShown.current !== 5) {
+      healthWarningShown.current = 40;
+      if (onStatusWarning) {
+        onStatusWarning('health', 'warning', playerCharacter.health, playerCharacter.maxHealth);
+      }
+      // Add narration panel message for initial warning
+      setNarrationHistory(prev => [...prev, {
+        sender: 'narrator',
+        text: "Your wounds are taking their toll. You should rest when you have a chance."
+      }]);
+    }
+
+    // Reset health warning when health recovers above all thresholds
+    if (healthPercent > 40) {
+      healthWarningShown.current = null;
+    }
+
+    // Fatigue warnings (60%, 80%, 95%)
+    if (fatiguePercent >= 95 && fatigueWarningShown.current !== 95) {
+      fatigueWarningShown.current = 95;
+      if (onStatusWarning) {
+        onStatusWarning('fatigue', 'critical', playerCharacter.fatigue, 100);
+      }
+    } else if (fatiguePercent >= 80 && fatigueWarningShown.current !== 80 && fatigueWarningShown.current !== 95) {
+      fatigueWarningShown.current = 80;
+      if (onStatusWarning) {
+        onStatusWarning('fatigue', 'danger', playerCharacter.fatigue, 100);
+      }
+    } else if (fatiguePercent >= 60 && fatigueWarningShown.current !== 60 && fatigueWarningShown.current !== 80 && fatigueWarningShown.current !== 95) {
+      fatigueWarningShown.current = 60;
+      if (onStatusWarning) {
+        onStatusWarning('fatigue', 'warning', playerCharacter.fatigue, 100);
+      }
+      // Add narration panel message for initial warning
+      setNarrationHistory(prev => [...prev, {
+        sender: 'narrator',
+        text: "Exhaustion is beginning to set in. Consider making camp to rest."
+      }]);
+    }
+
+    // Reset fatigue warning when fatigue drops below all thresholds
+    if (fatiguePercent < 60) {
+      fatigueWarningShown.current = null;
+    }
+  }, [playerCharacter?.health, playerCharacter?.fatigue, isAnyModalOpen, onStatusWarning, setNarrationHistory]);
 
   // Clear animals when entering special or interior maps
   useEffect(() => {

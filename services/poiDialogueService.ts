@@ -431,24 +431,24 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   },
   
   // ==================== FORTRESS DIALOGUES ====================
-  // Europe - Medieval - Fortress
+  // Europe - Medieval - Fortress (FEUDAL CASTLE, not military base)
   {
     type: 'fortress',
     culturalZone: 'Europe',
     era: HistoricalEra.MEDIEVAL,
     speakerTitles: [
       'Gate Guard',
-      'Garrison Sergeant',
-      'Watch Captain',
-      'Castle Warden',
-      'Fortress Commander'
+      'Castellan',
+      'Man-at-Arms',
+      'Knight',
+      'Chamberlain'
     ],
     greetings: [
-      "*hand on sword hilt* State your business. Now.",
-      "Gates close at dusk. No exceptions.",
-      "*looks you up and down* You're not from here. Move along.",
-      "This is a military post, not an inn.",
-      "*spits* Another beggar. The lord has no charity today."
+      "*hand on sword hilt* State your business with my lord.",
+      "The castle gates close at dusk. State your purpose.",
+      "*looks you up and down* Are you a vassal of this realm?",
+      "This is the lord's castle. What brings you here?",
+      "*from the gatehouse* My lord sees visitors by appointment only."
     ],
     services: [
       {
@@ -475,24 +475,24 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
     ]
   },
   
-  // Asia - Classical - Fortress  
+  // Asia - Antiquity - Fortress (GARRISON FORT - bureaucrat-general)
   {
     type: 'fortress',
     culturalZone: 'Asia',
-    era: HistoricalEra.CLASSICAL,
+    era: HistoricalEra.ANTIQUITY,
     speakerTitles: [
       'Gate Keeper',
-      'Wall Captain',
-      'Fortress Guard',
-      'Military Inspector',
-      'Defense Commander'
+      'Garrison Scribe',
+      'Military Magistrate',
+      'Watch Captain',
+      'Border Inspector'
     ],
     greetings: [
-      "*stares silently from the wall* Papers.",
-      "No travelers after the drums. Leave.",
-      "*adjusts spear* The general sees no one.",
-      "Military district. Civilians prohibited.",
-      "*from behind gate* Turn back. Now."
+      "*scribe looks up from records* State your business at this garrison.",
+      "Travelers must present documents. The magistrate's orders.",
+      "*from gate* This garrison guards the frontier. Papers?",
+      "The garrison commander requires written authorization for entry.",
+      "*military official* What brings you to this imperial outpost?"
     ],
     services: [
       {
@@ -512,24 +512,24 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
     ]
   },
   
-  // North America - Antiquity - Fortress
+  // North America - Prehistory/Antiquity - Fortress (PALISADED VILLAGE, not fortress)
   {
     type: 'fortress',
     culturalZone: 'North America',
     era: HistoricalEra.ANTIQUITY,
     speakerTitles: [
-      'War Chief',
-      'Clan Warrior',
-      'Village Guardian',
-      'Battle Leader',
-      'Shield Bearer'
+      'War Leader',
+      'Warrior',
+      'Village Elder',
+      'Clan Guardian',
+      'War Chief'
     ],
     greetings: [
-      "*blocks path with spear* This is sacred ground, stranger.",
-      "State your clan. These lands are protected.",
-      "*stares silently* ...You do not belong here.",
-      "Turn back. The elders have spoken.",
-      "*grips war club* Speak quickly, outsider."
+      "*warrior steps forward* State your clan and purpose.",
+      "These lands are protected by our warriors. What do you seek?",
+      "*elder speaks* All who come in peace may speak.",
+      "We are watchful. The village must be defended.",
+      "*gestures to fire* Sit. Tell us why you come."
     ],
     services: [
       {
@@ -549,24 +549,24 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
     ]
   },
   
-  // Europe - Antiquity - Fortress
+  // Europe - Antiquity - Fortress (ROMAN CASTRUM - professional military)
   {
     type: 'fortress',
     culturalZone: 'Europe',
     era: HistoricalEra.ANTIQUITY,
     speakerTitles: [
       'Centurion',
-      'Praetorian Guard',
-      'Legion Commander',
+      'Optio',
       'Camp Prefect',
-      'Garrison Officer'
+      'Legion Centurion',
+      'Gate Sentry'
     ],
     greetings: [
       "Halt! State your business with the Legion.",
-      "This is a military installation. Move along, citizen.",
-      "*adjusts armor* Papers, if you have them.",
-      "The camp is closed to civilians without authorization.",
-      "*hand on gladius* What brings you to our gates?"
+      "This is a Roman military camp. Civilians require authorization.",
+      "*adjusts armor* Papers, if you have them, citizen.",
+      "The castrum is closed to civilians without proper documents.",
+      "*hand on gladius* What brings a civilian to the legion's gates?"
     ],
     services: [
       {
@@ -1014,24 +1014,24 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
     ]
   },
 
-  // Middle East - Antiquity - Fortress
+  // Middle East - Antiquity - Fortress (PALACE-FORTRESS - governor with military)
   {
     type: 'fortress',
     culturalZone: 'Middle East',
     era: HistoricalEra.ANTIQUITY,
     speakerTitles: [
-      'Garrison Commander',
-      'Assyrian Captain',
-      'Fortress Keeper',
-      'Watch Chief',
-      'Persian Satrap Guard'
+      'Fortress Governor',
+      'Royal Scribe',
+      'Garrison Captain',
+      'Gate Keeper',
+      'Palace Guard'
     ],
     greetings: [
-      "*hand on sword* State your purpose at this fortress.",
-      "The king's stronghold guards this passage. Move along.",
-      "*from the walls* You approach the military garrison!",
-      "Papers! No one enters without authorization.",
-      "*sternly* This is a restricted military zone."
+      "*scribe at desk* State your petition for the governor.",
+      "This fortress serves the king. What business brings you here?",
+      "*from the walls* Travelers must state their purpose.",
+      "The governor's scribes will record your request.",
+      "*guard gestures* Wait here. The officials will see you."
     ],
     services: [
       {

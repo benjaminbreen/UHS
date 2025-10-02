@@ -1003,14 +1003,50 @@ export async function generateEncounterDialogue(
         }
         
         console.log(`[NPC Dialogue] Final dialogue: "${npcText}", Reputation change: ${reputationChange}`);
-        
+
+        // Generate translations for foreign words if dialect continuum is active
+        let translations: Record<string, string> | undefined;
+        let language: string | undefined;
+
+        if (dialectContinuumEnabled && dialectDistance > 0) {
+            const foreignWords = Array.from(dialectContinuumService.extractUniqueForeignWords(npcText));
+
+            if (foreignWords.length > 0) {
+                // Get the language name
+                const { getLanguageForCharacter } = await import('../constants/gameData/languages');
+                const dateInfo = parseDateString(String(mapData.timeSlice));
+                const historicalLanguage = getLanguageForCharacter(
+                    target.culturalZone,
+                    dateInfo.year,
+                    mapData.region,
+                    mapData.localArea,
+                    target.name,
+                    target.profession
+                );
+
+                if (historicalLanguage) {
+                    language = historicalLanguage.name;
+
+                    // Translate foreign words
+                    try {
+                        translations = await translateForeignWords(foreignWords, historicalLanguage.name);
+                        console.log(`[Dialect Continuum] Translated ${foreignWords.length} words:`, translations);
+                    } catch (error) {
+                        console.error('[Dialect Continuum] Translation failed:', error);
+                    }
+                }
+            }
+        }
+
         return {
             text: npcText,
             reputationChange: reputationChange !== 0 ? reputationChange : undefined,
             shouldLeave,
             shouldAttack,
             shouldCallAuthorities,
-            tradeAvailable
+            tradeAvailable,
+            translations,
+            language
         };
     } catch (error) {
         console.error("Error generating NPC dialogue:", error);
@@ -3130,6 +3166,268 @@ RESPONSE FORMAT - JSON ONLY:
                 adaptationToConditions: averageWater > 1 ? 70 : 45
             }
         };
+    }
+}
+
+/**
+ * FARM WORK SIMULATION
+ * Dedicated function for simulating farm activities with proper game integration
+ */
+
+export interface FarmSimulationResult {
+    narrative: string;
+    stateChanges: {
+        fields?: Record<string, {
+            crop?: string;
+            health?: number;
+            moisture?: number;
+            lastWorked?: number;
+        }>;
+        livestock?: Record<string, {
+            health?: number;
+            productivity?: number;
+            lastFed?: number;
+        }>;
+        player?: {
+            health?: number;  // Delta (can be negative for injuries)
+            fatigue?: number; // Delta (increases with work)
+            statusEffects?: Array<{
+                type: string;
+                name: string;
+                duration: number;
+                severity?: 'mild' | 'moderate' | 'severe';
+            }>;
+        };
+        inventory?: {
+            add?: Array<{
+                name: string;
+                category: string;
+                quantity: number;
+            }>;
+            remove?: string[]; // Item IDs to remove
+        };
+        time?: {
+            elapsed: number; // Hours elapsed
+        };
+    };
+}
+
+export async function generateFarmWorkSimulation(
+    command: string,
+    farmState: any, // FarmState type
+    playerCharacter: PlayerCharacter,
+    validCrops: string[],
+    season: Season,
+    timeOfDay: string,
+    currentFarmTime: number,
+    livestock?: Array<{ type: string; health: number; productivity: number; lastFed: number }>
+): Promise<FarmSimulationResult> {
+
+    const model = genAI.models.get("gemini-2.0-flash-exp");
+    if (!model) {
+        throw new Error("Model not available");
+    }
+
+    // Build livestock context
+    const livestockContext = livestock && livestock.length > 0
+        ? `\n- Livestock: ${livestock.map(l => `${l.type} (health: ${l.health}%, productivity: ${l.productivity}%, last fed ${currentFarmTime - l.lastFed}h ago)`).join(', ')}`
+        : '';
+
+    // Build field context
+    const fieldInfo = farmState.fields
+        .map((f: any) => `Field ${f.id}: ${f.crop !== 'none' ? `${f.crop} (health: ${f.health}%, moisture: ${f.moisture}%)` : 'fallow'}`)
+        .join(', ');
+
+    // Build player state context
+    const playerStateContext = `
+- Player Health: ${playerCharacter.health}/${playerCharacter.maxHealth} HP
+- Player Fatigue: ${playerCharacter.fatigue}/${playerCharacter.maxFatigue}
+- Player Skills: ${Object.entries(playerCharacter.skills || {}).map(([skill, level]) => `${skill} ${level}`).join(', ')}
+- Player Inventory: ${playerCharacter.inventory.map(i => i.name).slice(0, 10).join(', ')}${playerCharacter.inventory.length > 10 ? '...' : ''}`;
+
+    // Generate affordances (what player CAN do)
+    const affordances: string[] = [];
+
+    // Field work affordances
+    if (farmState.fields.some((f: any) => f.crop !== 'none')) {
+        affordances.push("Water crops", "Check field health", "Harvest mature crops", "Apply fertilizer");
+    }
+    if (farmState.fields.some((f: any) => f.crop === 'none')) {
+        affordances.push(`Plant crops (${validCrops.slice(0, 5).join(', ')}...)`);
+    }
+
+    // Livestock affordances
+    if (livestock && livestock.length > 0) {
+        affordances.push("Feed animals", "Milk livestock", "Check animal health", "Gather eggs");
+        if (livestock.some(l => currentFarmTime - l.lastFed > 12)) {
+            affordances.push("⚠️ Some animals haven't been fed in 12+ hours");
+        }
+    }
+
+    // Tool requirements
+    const toolHints: string[] = [];
+    if (!playerCharacter.inventory.some(i => i.name.toLowerCase().includes('bucket'))) {
+        toolHints.push("Missing: Bucket (needed for milking, watering)");
+    }
+    if (!playerCharacter.inventory.some(i => i.name.toLowerCase().includes('hoe') || i.name.toLowerCase().includes('plow'))) {
+        toolHints.push("Missing: Hoe/Plow (needed for planting)");
+    }
+
+    const affordanceList = affordances.length > 0
+        ? `\nCURRENT AFFORDANCES (what player can do):\n${affordances.map(a => `- ${a}`).join('\n')}`
+        : '';
+
+    const toolHintsList = toolHints.length > 0
+        ? `\nTOOL REQUIREMENTS:\n${toolHints.map(h => `- ${h}`).join('\n')}`
+        : '';
+
+    const prompt = `You are a FARM WORK SIMULATOR. You simulate farm activities realistically, determine consequences, and report results in engaging second-person present tense narrative.
+
+YOU ARE NOT A CHARACTER. You are the game master/simulator that describes what happens when the player takes actions.
+
+CONTEXT:
+- Time of Day: ${timeOfDay}, Season: ${season}
+- Farm Time: ${currentFarmTime}h (game hours since farm creation)
+- Fields: ${fieldInfo}${livestockContext}
+${playerStateContext}${affordanceList}${toolHintsList}
+
+PLAYER COMMAND: "${command}"
+
+SIMULATION RULES:
+1. **Narrative Perspective**: Always use second-person present tense ("You approach the cow...", "You try to milk her, but she kicks you hard in the ribs!")
+2. **Realistic Consequences**: Actions have realistic outcomes. Dangerous actions can cause injury. Neglected animals may be hostile. Weather affects success rates.
+3. **Affordance Awareness**: If player tries something impossible (no tool, wrong season, etc.), explain WHY it doesn't work in narrative ("You reach for your bucket, but realize you don't have one")
+4. **Player Effects**: Actions affect player health/fatigue. Heavy work increases fatigue. Injuries decrease health. Success can add items to inventory.
+5. **Time Passage**: Most actions take time (0.5-3 hours). Complex tasks take longer.
+6. **Skill Checks**: Player skill levels affect success. Low-skill players make mistakes more often.
+
+EXAMPLES OF GOOD NARRATION:
+- "You grab your bucket and approach the brown cow. She eyes you warily - it's been 18 hours since anyone fed her. As you try to position the bucket, she lashes out with a powerful kick, catching you square in the ribs! Pain explodes through your chest. You stagger back, gasping. That's going to leave a nasty bruise - you should probably head back to the farmhouse and rest."
+
+- "You kneel down beside the wheat field and examine the golden stalks. They're perfectly ripe - the timing couldn't be better. You spend the next two hours methodically cutting and bundling the wheat. It's backbreaking work under the hot sun, and by the end you're exhausted and dripping with sweat. But you've harvested 45 units of wheat, which should fetch a good price at market."
+
+- "You reach for your hoe to plant the corn seeds, but your hands come up empty - you don't have a hoe! You'll need to get one from the tool shed or purchase one before you can plant anything."
+
+OUTPUT FORMAT (JSON):
+Return a JSON object with:
+{
+  "narrative": "Second-person present tense description of what happens (2-4 sentences)",
+  "stateChanges": {
+    "fields": {
+      "1": { "health": 85, "moisture": 60 }  // Only include fields that changed
+    },
+    "livestock": {
+      "cow_1": { "health": 90, "lastFed": ${currentFarmTime} }  // Only include animals that changed
+    },
+    "player": {
+      "health": -15,  // DELTA (negative for injuries, positive for healing)
+      "fatigue": 25,  // DELTA (positive for tiredness, negative for rest)
+      "statusEffects": [
+        { "type": "injury", "name": "Bruised Ribs", "duration": 48, "severity": "moderate" }
+      ]
+    },
+    "inventory": {
+      "add": [
+        { "name": "Wheat Bundle", "category": "Material", "quantity": 45 }
+      ],
+      "remove": ["tool_hoe_123"]  // Item IDs of consumed/broken items
+    },
+    "time": {
+      "elapsed": 2.0  // Hours passed
+    }
+  }
+}
+
+IMPORTANT: Only include state changes that actually happened. If nothing changed in a category, omit that category entirely. Make consequences realistic and proportional to the action.`;
+
+    try {
+        const result = await model.generateContent({
+            systemInstruction: "You are a farm work simulator. Output only valid JSON matching the specified format. Be realistic and consequential.",
+            contents: prompt
+        });
+
+        const responseText = result.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        // Parse JSON from response
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            // Fallback if LLM doesn't return proper JSON
+            return {
+                narrative: `You ${command.toLowerCase()}. The farm work continues.`,
+                stateChanges: {
+                    time: { elapsed: 0.5 }
+                }
+            };
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]) as FarmSimulationResult;
+        return parsed;
+
+    } catch (error) {
+        console.error('Farm simulation error:', error);
+        return {
+            narrative: `You attempt to ${command.toLowerCase()}, but something goes wrong. Perhaps try a different approach.`,
+            stateChanges: {
+                time: { elapsed: 0.5 }
+            }
+        };
+    }
+}
+
+/**
+ * Translate foreign words to English using Gemini Flash Lite
+ * Used for dialect continuum tooltip translations
+ */
+export async function translateForeignWords(
+    words: string[],
+    nativeLanguage: string
+): Promise<Record<string, string>> {
+    if (words.length === 0) return {};
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        console.warn('No Gemini API key found, skipping translation');
+        return {};
+    }
+
+    try {
+        const genAI = new GoogleGenAI({ apiKey });
+
+        const prompt = `Translate these ${nativeLanguage} words to English. Respond ONLY with valid JSON in this exact format:
+{"word1": "translation1", "word2": "translation2"}
+
+Words to translate: ${JSON.stringify(words)}
+
+Rules:
+1. Keep translations concise (1-3 words maximum)
+2. If a word appears to be a proper noun, translate its meaning if it has one
+3. Return ONLY the JSON object, no other text
+4. Use lowercase for translations unless it's a proper noun`;
+
+        const result = await genAI.models.generateContent({
+            model: "gemini-2.5-flash-lite",
+            contents: prompt,
+            generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 500
+            }
+        });
+
+        const responseText = result.text || '';
+
+        // Extract JSON from response (in case LLM adds extra text)
+        const jsonMatch = responseText.match(/\{[^}]*\}/);
+        if (!jsonMatch) {
+            console.warn('Translation response not in JSON format:', responseText);
+            return {};
+        }
+
+        const translations = JSON.parse(jsonMatch[0]);
+        return translations;
+
+    } catch (error) {
+        console.error('Translation error:', error);
+        return {};
     }
 }
 

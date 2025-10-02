@@ -39,7 +39,7 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   // Epistemological Beliefs
   {
     id: 'EMPIRICAL_KNOWLEDGE',
-    text: 'Trusts only what can be observed and tested through experience',
+    text: 'Believes only what can be observed and tested through experience',
     tags: ['epistemological', 'scientific', 'rational'],
     icon: '🔬'
   },
@@ -51,25 +51,25 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   },
   {
     id: 'SKEPTIC_OF_THE_DIVINE',
-    text: 'Questions supernatural explanations and seeks natural causes',
+    text: 'Believes it is important to question what religious leaders say',
     tags: ['skeptical', 'rational', 'questioning'],
     icon: '❓'
   },
   {
     id: 'INTUITIVE_WISDOM',
-    text: 'Trusts inner knowing and gut feelings over logical analysis',
+    text: 'Believes inner knowing and gut feelings over logical analysis',
     tags: ['intuitive', 'emotional', 'personal'],
     icon: '💭'
   },
   {
     id: 'COLLECTIVE_MEMORY',
-    text: 'Values traditional knowledge passed down through generations',
+    text: 'Believes traditional knowledge passed down through generations is important',
     tags: ['traditional', 'collective', 'cultural'],
     icon: '📚'
   },
   {
     id: 'MYSTICAL_EXPERIENCE',
-    text: 'Seeks direct spiritual experience as the path to truth',
+    text: 'Believes direct spiritual experience is the path to truth',
     tags: ['mystical', 'spiritual', 'experiential'],
     icon: '✨'
   },
@@ -77,13 +77,13 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   // Nature and Cosmology
   {
     id: 'LIVING_COSMOS',
-    text: 'Views the universe as a living, conscious entity',
+    text: 'Believes the universe is a living, conscious entity',
     tags: ['cosmological', 'spiritual', 'holistic'],
     icon: '🌌'
   },
   {
     id: 'MECHANICAL_UNIVERSE',
-    text: 'Sees the cosmos as operating like a great machine following natural laws',
+    text: 'Believes the cosmos operates like a great machine following natural laws',
     tags: ['scientific', 'mechanistic', 'rational'],
     icon: '⚙️'
   },
@@ -95,7 +95,7 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   },
   {
     id: 'NATURE_AS_TEACHER',
-    text: 'Looks to natural patterns and animal behavior for life guidance',
+    text: 'Believes natural patterns and animal behavior provide life guidance',
     tags: ['nature', 'observational', 'practical'],
     icon: '🦅'
   },
@@ -121,13 +121,13 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   },
   {
     id: 'TRIBAL_LOYALTY',
-    text: 'Places kinship group welfare above individual or universal concerns',
+    text: 'Believes kinship group welfare must be above individual or universal concerns',
     tags: ['social', 'kinship', 'collective'],
     icon: '👥'
   },
   {
     id: 'INDIVIDUAL_FREEDOM',
-    text: 'Prioritizes personal liberty and self-determination',
+    text: 'Believes personal freedom and self-determination are paramount',
     tags: ['individualistic', 'freedom', 'personal'],
     icon: '🕊️'
   },
@@ -183,21 +183,16 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
     tags: ['dharmic', 'duty', 'traditional'],
     icon: '📋'
   },
-  {
-    id: 'CASTE_CONSCIOUSNESS',
-    text: 'Accepts hereditary social categories as reflecting spiritual development',
-    tags: ['social', 'hierarchical', 'spiritual'],
-    icon: '🏺'
-  },
+
   {
     id: 'AHIMSA_PRINCIPLE',
-    text: 'Practices non-violence toward all living beings',
+    text: 'Believes one must practice non-violence toward all living beings',
     tags: ['ethical', 'non-violent', 'compassionate'],
     icon: '🕊️'
   },
   {
     id: 'MOKSHA_SEEKING',
-    text: 'Pursues liberation from the cycle of death and rebirth',
+    text: 'Believes one can find liberation from the cycle of death and rebirth',
     tags: ['spiritual', 'liberation', 'transcendent'],
     icon: '🌅'
   },
@@ -205,25 +200,25 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   // MENA Regional Beliefs
   {
     id: 'SCHOLARLY_TRADITION',
-    text: 'Deeply values learning, books, and intellectual discourse',
+    text: 'Believes there is enormous value in learning and intellectual discourse',
     tags: ['intellectual', 'scholarly', 'cultural'],
     icon: '📖'
   },
   {
     id: 'HOSPITALITY_SACRED',
-    text: 'Considers welcoming strangers a sacred duty and honor',
+    text: 'Believes welcoming strangers is a sacred duty and honor',
     tags: ['social', 'traditional', 'hospitable'],
     icon: '🏺'
   },
   {
     id: 'GEOMETRIC_HARMONY',
-    text: 'Sees mathematical patterns as reflecting divine order',
+    text: 'Believes mathematical patterns are reflective of divine order',
     tags: ['mathematical', 'aesthetic', 'spiritual'],
     icon: '🔶'
   },
   {
     id: 'DESERT_WISDOM',
-    text: 'Draws spiritual insight from harsh landscapes and scarcity',
+    text: 'Believes spiritual insight can be drawn from harsh landscapes and scarcity',
     tags: ['environmental', 'spiritual', 'austere'],
     icon: '🏜️'
   },
@@ -237,19 +232,19 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   },
   {
     id: 'ANCESTRAL_GUIDANCE',
-    text: 'Regularly consults with deceased elders for important decisions',
+    text: 'Believes one must consult with deceased elders for important decisions',
     tags: ['spiritual', 'traditional', 'communal'],
     icon: '👻'
   },
   {
     id: 'ORAL_TRADITION',
-    text: 'Trusts spoken wisdom and storytelling over written records',
+    text: 'Believes spoken wisdom and storytelling over written records',
     tags: ['cultural', 'traditional', 'narrative'],
     icon: '🗣️'
   },
   {
     id: 'RHYTHMIC_COSMOS',
-    text: 'Understands reality through musical and rhythmic patterns',
+    text: 'Believes reality emerges through musical and rhythmic patterns',
     tags: ['cultural', 'aesthetic', 'spiritual'],
     icon: '🥁'
   },
@@ -257,25 +252,25 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   // American Indigenous Worldviews
   {
     id: 'SEVENTH_GENERATION',
-    text: 'Considers the impact of decisions on seven generations in the future',
+    text: 'Believes one must consider the impact of decisions on seven generations in the future',
     tags: ['temporal', 'responsibility', 'traditional'],
     icon: '🌱'
   },
   {
     id: 'MEDICINE_WHEEL',
-    text: 'Organizes understanding through circular, interconnected relationships',
+    text: 'Believes understanding is achieved through circular, interconnected relationships',
     tags: ['holistic', 'circular', 'traditional'],
     icon: '⭕'
   },
   {
     id: 'VISION_QUEST',
-    text: 'Seeks spiritual guidance through solitary encounters with nature',
+    text: 'Believes guidance comes through solitary encounters with nature',
     tags: ['spiritual', 'individual', 'nature'],
     icon: '🌄'
   },
   {
     id: 'EARTH_MOTHER',
-    text: 'Relates to land as a living maternal presence deserving reverence',
+    text: 'Believes land is a living maternal presence deserving reverence',
     tags: ['nature', 'spiritual', 'feminine'],
     icon: '🌍'
   },
@@ -283,33 +278,28 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   // Oceanic Worldviews
   {
     id: 'DREAMTIME_REALITY',
-    text: 'Experiences the eternal present of ancestral creation stories',
+    text: 'Believes in the eternal present of ancestral creation stories',
     tags: ['temporal', 'spiritual', 'aboriginal'],
     icon: '🌈'
   },
   {
     id: 'SONGLINE_NAVIGATION',
-    text: 'Uses sacred songs to navigate both physical and spiritual landscapes',
+    text: 'Believes one can use sacred songs to navigate both physical and spiritual landscapes',
     tags: ['navigational', 'spiritual', 'cultural'],
     icon: '🎵'
   },
   {
     id: 'ISLAND_THINKING',
-    text: 'Values self-sufficiency while maintaining ocean connections',
+    text: 'Believes in self-sufficiency while maintaining ocean connections',
     tags: ['practical', 'balanced', 'environmental'],
     icon: '🏝️'
   },
-  {
-    id: 'WAVE_KNOWLEDGE',
-    text: 'Reads ocean patterns as a complex information system',
-    tags: ['environmental', 'practical', 'observational'],
-    icon: '🌊'
-  },
+
 
   // Modern Era Beliefs
   {
     id: 'SCIENTIFIC_METHOD',
-    text: 'Relies on hypothesis, experimentation, and peer review for truth',
+    text: 'Believes in finding things out for yourself through methodical observation',
     tags: ['scientific', 'systematic', 'modern'],
     icon: '🧪'
   },
@@ -321,25 +311,25 @@ export const PERSONAL_BELIEFS: PersonalBelief[] = [
   },
   {
     id: 'PSYCHOLOGICAL_INSIGHT',
-    text: 'Analyzes behavior through unconscious drives and mental patterns',
+    text: 'Believes one can understand behavior through unconscious drives and mental patterns',
     tags: ['psychological', 'analytical', 'modern'],
     icon: '🧠'
   },
   {
     id: 'SYSTEMS_THINKING',
-    text: 'Understands phenomena through complex interconnected relationships',
+    text: 'Believes in tracing phenomena through complex interconnected relationships',
     tags: ['systematic', 'holistic', 'analytical'],
     icon: '🕸️'
   },
   {
     id: 'EXISTENTIAL_ANXIETY',
-    text: 'Confronts the apparent meaninglessness and absurdity of existence',
+    text: 'Believes in the apparent meaninglessness and absurdity of existence',
     tags: ['existential', 'philosophical', 'modern'],
     icon: '🎭'
   },
   {
     id: 'SURVIVAL_FIRST',
-    text: 'Prioritizes immediate survival above all other concerns',
+    text: 'Believes one must prioritize immediate survival above all other concerns',
     tags: ['practical', 'individualistic'],
     icon: '🛡️'
   }

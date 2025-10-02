@@ -27,10 +27,12 @@ export interface LifeEventsResponse {
 
 // Worker message handler
 self.onmessage = (event: MessageEvent<LifeEventsRequest>) => {
+  console.log('[LifeEventsWorker] Starting life events generation...');
   const startTime = performance.now();
   const { character, currentYear, culturalZone, era, companions } = event.data;
 
   try {
+    console.log('[LifeEventsWorker] Calling generateLifeHistory...');
     // Generate life history events
     const events = generateLifeHistory(
       character,
@@ -38,6 +40,7 @@ self.onmessage = (event: MessageEvent<LifeEventsRequest>) => {
       culturalZone,
       era
     );
+    console.log(`[LifeEventsWorker] Generated ${events.length} events`);
 
     // Add companion acquisitions
     if (companions?.length > 0) {
@@ -67,6 +70,7 @@ self.onmessage = (event: MessageEvent<LifeEventsRequest>) => {
       generationTime
     };
 
+    console.log(`[LifeEventsWorker] Posting ${sortedEvents.length} events back to main thread (took ${generationTime.toFixed(2)}ms)`);
     self.postMessage(response);
   } catch (error) {
     // Send error back to main thread

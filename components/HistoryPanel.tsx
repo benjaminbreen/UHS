@@ -10,6 +10,7 @@ import WikipediaArticle from './WikipediaArticle';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
+import { regionalHistoryService } from '../services/regionalHistoryService';
 import { useUI } from '../contexts/UIContext';
 
 interface HistoryPanelProps {
@@ -117,6 +118,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     const [activeSubTab, setActiveSubTab] = useState<HistorySubTab>('primary_sources'); // Default to primary sources
     const [primarySources, setPrimarySources] = useState<PrimarySourceMetadata[]>([]);
     const [loading, setLoading] = useState(false);
+    const [wikipediaOverrideTerm, setWikipediaOverrideTerm] = useState<string | null>(null);
 
     const { era, culturalZone } = useMemo(() => {
         const dateInfo = parseDateString(String(gameDate.year));
@@ -124,9 +126,33 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         return { era: dateInfo.era as HistoricalEra, culturalZone: culture as CulturalZone };
     }, [gameDate.year, currentZone]);
 
-    const historicalSummary = useMemo(() => {
-        return HISTORY_GUIDE_DATA[culturalZone]?.[era] || "No specific historical context is available for this time and place. The world is yours to discover.";
-    }, [culturalZone, era]);
+    const [historicalSummary, setHistoricalSummary] = useState<string>(
+        "Loading historical context..."
+    );
+
+    // Load historical context using new regional system
+    useEffect(() => {
+        const loadHistoricalContext = async () => {
+            try {
+                // Try to get region-specific description
+                const description = await regionalHistoryService.getHistoricalContext(
+                    culturalZone,
+                    currentRegion,
+                    gameDate.year,
+                    era
+                );
+                setHistoricalSummary(description);
+            } catch (error) {
+                console.error('Error loading historical context:', error);
+                // Fallback to era-level description
+                const fallback = HISTORY_GUIDE_DATA[culturalZone]?.[era] ||
+                    "No specific historical context is available for this time and place. The world is yours to discover.";
+                setHistoricalSummary(fallback);
+            }
+        };
+
+        loadHistoricalContext();
+    }, [culturalZone, currentRegion, gameDate.year, era]);
 
     // Load primary sources when era/zone changes - filtered by temporal proximity
     useEffect(() => {
@@ -185,12 +211,100 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         loadSources();
     }, [era, culturalZone, gameDate.year]);
 
+    // Parse historical summary and make capitalized words/phrases clickable
+    const renderHistoricalSummary = (text: string) => {
+        // Split by sentences to preserve sentence-initial capitals
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+
+        return sentences.map((sentence, sentenceIdx) => {
+            const parts: React.ReactNode[] = [];
+            const words = sentence.split(/(\s+)/); // Keep whitespace
+
+            let skipNext = 0; // Track if we should skip next word (part of multi-word phrase)
+
+            words.forEach((word, wordIdx) => {
+                if (skipNext > 0) {
+                    skipNext--;
+                    return;
+                }
+
+                const trimmed = word.trim();
+                const isFirstWord = wordIdx === 0 || (wordIdx === 1 && words[0].trim() === '');
+
+                // Match capitalized words (excluding sentence-initial and common words)
+                const commonWords = new Set(['The', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'To', 'From', 'With', 'And', 'Or', 'But', 'As', 'This', 'That', 'These', 'Those', 'It', 'Its', 'Their', 'There', 'Where', 'When', 'How', 'Why', 'What', 'Which', 'Who']);
+                const hasCapital = /^[A-Z][a-z]+/.test(trimmed);
+                const isClickable = hasCapital && !isFirstWord && !commonWords.has(trimmed);
+
+                if (isClickable) {
+                    // Look ahead to see if next word(s) are also capitalized (multi-word proper nouns)
+                    const phrase: string[] = [trimmed];
+                    let lookahead = wordIdx + 2; // Start 2 ahead (skip the whitespace after current word)
+
+                    while (lookahead < words.length) {
+                        const nextWord = words[lookahead].trim();
+
+                        // If we hit empty string (whitespace-only), skip it
+                        if (!nextWord) {
+                            lookahead++;
+                            continue;
+                        }
+
+                        const nextHasCapital = /^[A-Z][a-z]+/.test(nextWord);
+
+                        // Stop if non-capitalized word
+                        if (!nextHasCapital) break;
+
+                        phrase.push(nextWord);
+                        lookahead += 2; // Skip to next word (past whitespace)
+                    }
+
+                    // Calculate how many indices to skip
+                    const phraseLength = phrase.length;
+                    if (phraseLength > 1) {
+                        skipNext = (phraseLength - 1) * 2; // Each additional word has whitespace before it
+                    }
+
+                    // Reconstruct the full phrase with original whitespace
+                    let fullPhrase = word;
+                    for (let i = 1; i < phraseLength; i++) {
+                        const whitespaceIdx = wordIdx + (i * 2) - 1;
+                        const wordIndex = wordIdx + (i * 2);
+                        if (whitespaceIdx < words.length) fullPhrase += words[whitespaceIdx];
+                        if (wordIndex < words.length) fullPhrase += words[wordIndex];
+                    }
+
+                    // Clean phrase for Wikipedia (underscores between words)
+                    const cleanPhrase = phrase.map(w => w.replace(/[.,;:!?()]/g, '').replace(/'s$/i, '')).join('_');
+
+                    parts.push(
+                        <span
+                            key={`${sentenceIdx}-${wordIdx}`}
+                            onClick={() => {
+                                setWikipediaOverrideTerm(cleanPhrase);
+                                setActiveSubTab('wikipedia');
+                            }}
+                            className="underline decoration-amber-500/60 hover:decoration-amber-400 hover:text-amber-300 cursor-pointer transition-colors"
+                            style={{ textShadow: '0 0 8px rgba(251, 191, 36, 0.3)' }}
+                        >
+                            {fullPhrase}
+                        </span>
+                    );
+                } else {
+                    parts.push(<span key={`${sentenceIdx}-${wordIdx}`}>{word}</span>);
+                }
+            });
+
+            return <span key={sentenceIdx}>{parts}</span>;
+        });
+    };
+
     return (
         <>
             <div className="flex flex-col h-full bg-slate-900/30 rounded-lg border border-slate-700/50">
                 <div className="p-4 shrink-0">
                     <h3 className="text-lg font-semibold text-amber-300 mb-2">Historical Context</h3>
-                    <p className="text-sm italic text-slate-400">{historicalSummary}</p>
+                    <p className="text-sm italic text-slate-400">{renderHistoricalSummary(historicalSummary)}</p>
                 </div>
                 
                 <div className="flex bg-slate-800/60 border-y border-slate-700/50 shrink-0">
@@ -217,6 +331,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                             currentRegion={currentRegion}
                             localArea={localArea}
                             useLlm={useLlmForDescriptions}
+                            overrideSearchTerm={wikipediaOverrideTerm}
+                            onTermUsed={() => setWikipediaOverrideTerm(null)}
                         />
                     )}
                     {activeSubTab === 'primary_sources' && (

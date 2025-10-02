@@ -380,8 +380,8 @@ function placeRiverTileWithWidth(
   // Strict width constraints based on archetype and river type
   let constrainedWidth = width;
   if (archetype === MapArchetype.ALL_LAND) {
-      // ALL_LAND maps get very narrow rivers (1 tile for normal, max 2 for major)
-      constrainedWidth = isPrimaryChannel ? Math.min(width, 2) : 1;
+      // ALL_LAND maps get very narrow rivers (1 tile width for ALL rivers to prevent lake formation)
+      constrainedWidth = 1;
   } else if (archetype === MapArchetype.RIVER_PORT) {
       // River ports can have wider rivers
       constrainedWidth = isPrimaryChannel ? Math.min(width, 4) : Math.min(width, 2);

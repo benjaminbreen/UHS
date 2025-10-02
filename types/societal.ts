@@ -56,9 +56,12 @@ export interface SocietalProfile {
   holyPlaceNames: string[]; // Culturally appropriate names for 'holy_site' structures
   palaceNames: string[];
   ruinNames: string[];
-  
+
   // Economic tie-ins for holy places
   holyPlaceConsumes?: string[]; // Item IDs
   holyPlaceProduces?: string[]; // Item IDs
   courtRoles?: Partial<Record<TerrainStructureType, string[]>>;
+
+  // Region-specific overrides for within same cultural zone (e.g., Australian Outback vs Polynesian islands)
+  regionOverrides?: Record<string, Partial<SocietalProfile>>;
 }

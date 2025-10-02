@@ -182,20 +182,20 @@ export function generateCommanderChamber(
     playerSpawnOffset: { x: 0, y: -2 } // Spawn player 2 tiles up from the exit
   });
   
-  // Define the room for NPC spawning
+  // Define the room for NPC spawning - ERA-SPECIFIC
   rooms.push(createRoom({
     id: 'commander_chamber',
-    name: 'Commander\'s Chamber',
+    name: getChamberName(config.era, config.culturalZone),
     bounds: { x: 1, y: 1, width: size.width - 2, height: size.height - 2 },
-    roomType: 'military_command',
+    roomType: getRoomTypeForEra(config.era, config.culturalZone), // DYNAMIC based on era
     accessLevel: 'restricted',
     allowedSocialClasses: ['noble', 'military_officer'],
-    npcDensity: 'sparse', // Just the commander and maybe 1-2 guards
+    npcDensity: 'sparse', // Just the leader and maybe 1-2 guards/attendants
     genderRestriction: 'any',
-    // Add custom data to indicate fixed commander position
+    // Add custom data to indicate fixed leader position
     customData: {
       fixedNpc: {
-        position: { x: commanderX, y: commanderY + 1 }, // Just in front of throne
+        position: { x: commanderX, y: commanderY + 1 }, // Just in front of throne/seat
         profession: getCommanderTitle(config.culturalZone, config.era),
         isCommander: true
       }
@@ -206,63 +206,173 @@ export function generateCommanderChamber(
 }
 
 /**
- * Get culturally appropriate commander title
+ * Get era-appropriate room type for historical accuracy
  */
-function getCommanderTitle(zone: CulturalZone, era: HistoricalEra): string {
-  const titles: Record<string, Record<string, string>> = {
-    EUROPEAN: {
-      ancient: 'Centurion',
-      medieval: 'Knight Commander',
-      earlyModern: 'Fortress Captain',
-      modern: 'Base Commander'
-    },
-    MENA: {
-      ancient: 'Garrison Chief',
-      medieval: 'Qaid',
-      earlyModern: 'Janissary Commander',
-      modern: 'Military Commander'
-    },
-    EAST_ASIAN: {
-      ancient: 'Garrison General',
-      medieval: 'Samurai Commander',
-      earlyModern: 'Fortress Magistrate',
-      modern: 'Base Commander'
-    },
-    SOUTH_ASIAN: {
-      ancient: 'Fort Commander',
-      medieval: 'Rajput Captain',
-      earlyModern: 'Mughal Commander',
-      modern: 'Military Commander'
-    },
-    SUB_SAHARAN_AFRICAN: {
-      ancient: 'War Chief',
-      medieval: 'Military Chief',
-      earlyModern: 'Fort Captain',
-      modern: 'Base Commander'
-    },
-    INDIGENOUS_AMERICAN: {
-      ancient: 'War Chief',
-      medieval: 'War Captain',
-      earlyModern: 'Fort Commander',
-      modern: 'Military Chief'
-    },
-    OCEANIC: {
-      ancient: 'War Chief',
-      medieval: 'Warrior Leader',
-      earlyModern: 'Fort Captain',
-      modern: 'Base Commander'
-    }
-  };
-  
-  const eraKey = era.toLowerCase().replace(/\s+/g, '');
-  const zoneTitles = titles[zone] || titles.EUROPEAN;
-  return zoneTitles[eraKey] || 'Fortress Commander';
+function getRoomTypeForEra(era: HistoricalEra, zone: CulturalZone): string {
+  // Prehistoric = communal leadership, no formal "command"
+  if (era === HistoricalEra.PREHISTORY) return 'council_chamber';
+
+  // Early antiquity (Mesopotamia/Egypt) = bureaucratic, not purely military
+  if (era === HistoricalEra.ANTIQUITY && (zone === 'MENA' || zone === 'EAST_ASIAN')) {
+    return 'administrative_office';
+  }
+
+  // Classical antiquity (Greece/Rome) = professional military
+  if (era === HistoricalEra.ANTIQUITY) return 'military_command';
+
+  // Medieval = feudal lord's hall (domestic + military combined)
+  if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.EARLY_MODERN) {
+    return 'great_hall';
+  }
+
+  // Modern = professional military command
+  return 'military_command';
 }
 
 /**
- * Add cultural-specific decorative elements
+ * Get era-appropriate chamber name
+ */
+function getChamberName(era: HistoricalEra, zone: CulturalZone): string {
+  if (era === HistoricalEra.PREHISTORY) return 'War Leader\'s Lodge';
+  if (era === HistoricalEra.ANTIQUITY && (zone === 'MENA' || zone === 'EAST_ASIAN')) {
+    return 'Governor\'s Chamber';
+  }
+  if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.EARLY_MODERN) {
+    return 'Lord\'s Great Hall';
+  }
+  return 'Commander\'s Chamber';
+}
+
+/**
+ * Get culturally appropriate commander title - UPDATED FOR HISTORICAL ACCURACY
+ */
+function getCommanderTitle(zone: CulturalZone, era: HistoricalEra): string {
+  // PREHISTORY: No professional commanders, just temporary war leaders
+  if (era === HistoricalEra.PREHISTORY) {
+    const titles: Record<string, string> = {
+      EUROPEAN: 'War Leader',
+      EAST_ASIAN: 'Warrior Chief',
+      MENA: 'Clan Leader',
+      NORTH_AMERICAN_PRE_COLUMBIAN: 'War Chief',
+      NORTH_AMERICAN_COLONIAL: 'War Chief',
+      SUB_SAHARAN_AFRICAN: 'War Leader',
+      SOUTH_AMERICAN: 'Warrior Elder',
+      OCEANIA: 'War Chief'
+    };
+    return titles[zone] || 'War Leader';
+  }
+
+  // ANTIQUITY: Mix of bureaucrats and professional military depending on culture
+  if (era === HistoricalEra.ANTIQUITY) {
+    const titles: Record<string, string> = {
+      EUROPEAN: 'Centurion',              // Rome: professional military
+      EAST_ASIAN: 'Garrison Magistrate',  // China: bureaucrat-general
+      MENA: 'Fortress Governor',          // Egypt/Mesopotamia: civil + military
+      SOUTH_ASIAN: 'Fort Keeper',
+      SUB_SAHARAN_AFRICAN: 'Garrison Chief',
+      NORTH_AMERICAN_PRE_COLUMBIAN: 'War Chief',
+      SOUTH_AMERICAN: 'Fortress Captain',
+      OCEANIA: 'War Leader'
+    };
+    return titles[zone] || 'Garrison Commander';
+  }
+
+  // MEDIEVAL: Feudal lords with military duties, NOT career officers
+  if (era === HistoricalEra.MEDIEVAL) {
+    const titles: Record<string, string> = {
+      EUROPEAN: 'Lord of the Castle',
+      EAST_ASIAN: 'Daimyo',
+      MENA: 'Qaid',
+      SOUTH_ASIAN: 'Rajput Lord',
+      SUB_SAHARAN_AFRICAN: 'Fortress Chief',
+      NORTH_AMERICAN_COLONIAL: 'War Chief',
+      SOUTH_AMERICAN: 'Cacique',
+      OCEANIA: 'Chief Warrior'
+    };
+    return titles[zone] || 'Castellan';
+  }
+
+  // EARLY MODERN: Transition to professional officers
+  if (era === HistoricalEra.EARLY_MODERN || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+    const titles: Record<string, string> = {
+      EUROPEAN: 'Fortress Captain',
+      EAST_ASIAN: 'Fortress Magistrate',
+      MENA: 'Janissary Commander',
+      SOUTH_ASIAN: 'Mughal Commander',
+      SUB_SAHARAN_AFRICAN: 'Fort Captain',
+      NORTH_AMERICAN_COLONIAL: 'Fort Commander',
+      SOUTH_AMERICAN: 'Garrison Commander',
+      OCEANIA: 'Fort Captain'
+    };
+    return titles[zone] || 'Fortress Commander';
+  }
+
+  // MODERN+: Professional military officers
+  return 'Base Commander';
+}
+
+/**
+ * Add cultural-specific decorative elements - UPDATED FOR ERA-APPROPRIATE AESTHETICS
  */
 function addCulturalDecorations(tiles: Tile[][], config: SpecialMapConfig, size: { width: number, height: number }) {
+  const centerX = Math.floor(size.width / 2);
+  const centerY = Math.floor(size.height / 2);
+
+  // PREHISTORY: Central fire pit, no throne or formal decorations
+  if (config.era === HistoricalEra.PREHISTORY) {
+    // Replace war table with fire pit for communal gathering
+    tiles[centerY][centerX].overlayObjects = [{
+      type: OverlayObjectType.FIRE_PIT,
+      variant: 'central_hearth'
+    }];
+    tiles[centerY][centerX].isWalkable = false;
+
+    // Remove throne - leader sits among warriors
+    const commanderY = 1;
+    if (tiles[commanderY] && tiles[commanderY][centerX]) {
+      tiles[commanderY][centerX].overlayObjects = [];
+    }
+
+    // Simple weapon displays on walls
+    if (size.width > 6) {
+      tiles[2][1].overlayObjects = [{
+        type: OverlayObjectType.WEAPON_RACK,
+        variant: 'primitive_weapons'
+      }];
+      tiles[2][size.width - 2].overlayObjects = [{
+        type: OverlayObjectType.WEAPON_RACK,
+        variant: 'primitive_weapons'
+      }];
+    }
+    return; // Skip cultural decorations for prehistory
+  }
+
+  // MEDIEVAL: Great hall style - long tables, hearths, domestic feel
+  if (config.era === HistoricalEra.MEDIEVAL || config.era === HistoricalEra.EARLY_MODERN) {
+    // Add hearth for warmth (domestic space)
+    if (size.height > 5) {
+      tiles[size.height - 3][1].overlayObjects = [{
+        type: OverlayObjectType.HEARTH,
+        variant: 'stone_hearth'
+      }];
+    }
+
+    // Tapestries for feudal decoration
+    if (config.culturalZone === 'EUROPEAN') {
+      tiles[1][2].overlayObjects = [{
+        type: OverlayObjectType.BANNER,
+        variant: 'heraldic_tapestry',
+        culturalStyle: 'european_medieval'
+      }];
+      tiles[1][size.width - 3].overlayObjects = [{
+        type: OverlayObjectType.BANNER,
+        variant: 'heraldic_tapestry',
+        culturalStyle: 'european_medieval'
+      }];
+    }
+  }
+
+  // Continue with existing cultural decorations based on zone
   switch (config.culturalZone) {
     case 'EUROPEAN':
       // Add heraldic shields or banners

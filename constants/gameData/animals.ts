@@ -158,7 +158,10 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         name: 'Goat', emoji: '🐐', type: 'Domestic', social: 'herd', sizeMultiplier: 0.5, attack: 1, defense: 1, maxHealth: 8, speed: 6, strength: 3, agility: 7, perception: 6, level: 1,
         drops: [{ name: 'Goat Hide', chance: 0.8 }, { name: 'Meat', chance: 0.9 }],
         spawnBiomes: [BiomeType.HILLS, BiomeType.MOUNTAIN, BiomeType.FARMLAND],
-        spawnConditions: { nearSettlement: true, zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN'] },
+        spawnConditions: {
+            nearSettlement: true,
+            zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_COLONIAL', 'SOUTH_AMERICAN_COLONIAL']
+        },
         habitat: 'mountain', behaviorProfile: 'deer'
     },
     SHEEP: {
@@ -206,7 +209,11 @@ MULE: {
         name: 'Chicken', emoji: '🐓', type: 'Domestic', social: 'herd', sizeMultiplier: 0.3, attack: 1, defense: 0, maxHealth: 3, speed: 6, strength: 1, agility: 4, perception: 2, level: 1,
         drops: [{ name: 'Poultry', chance: 1.0 }, { name: 'Feather', chance: 0.9 }],
         spawnBiomes: [BiomeType.FARMLAND, BiomeType.HAMLET],
-        spawnConditions: { nearSettlement: true },
+        spawnConditions: {
+            nearSettlement: true,
+            // Chickens were domesticated in Asia, spread to Europe/MENA/Africa, brought to Americas post-Columbian Exchange
+            zones: ['EUROPEAN', 'EAST_ASIAN', 'SOUTH_ASIAN', 'MENA', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_COLONIAL', 'SOUTH_AMERICAN_COLONIAL', 'OCEANIA']
+        },
         habitat: 'grassland', behaviorProfile: 'rabbit'
     },
      DUCK: {
@@ -284,10 +291,25 @@ MULE: {
     
     // New region-specific animals
     LLAMA: {
-        name: 'Llama', emoji: '🦙', type: 'Prey', social: 'herd', sizeMultiplier: 0.9, attack: 2, defense: 3, maxHealth: 14, speed: 5, strength: 5, agility: 6, perception: 7, level: 2,
+        name: 'Llama', emoji: '🦙', type: 'Domestic', social: 'herd', sizeMultiplier: 0.9, attack: 2, defense: 3, maxHealth: 14, speed: 5, strength: 5, agility: 6, perception: 7, level: 2,
         drops: [{ name: 'Llama Wool', chance: 0.8 }, { name: 'Meat', chance: 0.7 }],
-        spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.HILLS, BiomeType.GRASSLAND],
-        spawnConditions: { zones: ['SOUTH_AMERICAN'], minAltitude: 0.3 },
+        spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.HILLS, BiomeType.GRASSLAND, BiomeType.FARMLAND],
+        spawnConditions: {
+            zones: ['SOUTH_AMERICAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'], // Llamas were domesticated in South America, some in North America
+            minAltitude: 0.3,
+            nearSettlement: true
+        },
+        habitat: 'mountain', behaviorProfile: 'deer'
+    },
+    ALPACA: {
+        name: 'Alpaca', emoji: '🦙', type: 'Domestic', social: 'herd', sizeMultiplier: 0.7, attack: 1, defense: 2, maxHealth: 12, speed: 4, strength: 4, agility: 5, perception: 6, level: 1,
+        drops: [{ name: 'Alpaca Wool', chance: 0.9 }, { name: 'Meat', chance: 0.6 }],
+        spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.HILLS, BiomeType.GRASSLAND, BiomeType.FARMLAND],
+        spawnConditions: {
+            zones: ['SOUTH_AMERICAN'], // Alpacas domesticated in Andes
+            minAltitude: 0.3,
+            nearSettlement: true
+        },
         habitat: 'mountain', behaviorProfile: 'deer'
     },
     PENGUIN: {

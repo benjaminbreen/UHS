@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
 import { themeService } from '../services/themeService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon } from 'lucide-react';
+import { gameSounds } from '../services/gameSoundsService';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
@@ -31,7 +32,7 @@ import CityTimeline from './CityTimeline';
 import TradeNetworkGlobe from './TradeNetworkGlobe';
 import CityMapGlobe from './CityMapGlobe';
 import HexWorldMap from './HexWorldMap';
-import HexWorldGlobe3D from './HexWorldGlobe3D';
+import HexWorldGlobe from './HexWorldGlobe';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -110,6 +111,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
 
+  // Audio settings state
+  const [isMuted, setIsMuted] = useState(() => {
+    const saved = localStorage.getItem('gameMuted');
+    return saved === 'true' || gameSounds.getIsMuted();
+  });
+  const [volume, setVolume] = useState(() => {
+    const saved = localStorage.getItem('gameVolume');
+    return saved ? parseFloat(saved) : 0.5;
+  });
+
   // Developer mode state
   const [showDeveloperMode, setShowDeveloperMode] = useState(false);
 
@@ -120,7 +131,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showTradeNetworkGlobe, setShowTradeNetworkGlobe] = useState(false);
   const [showCityMap, setShowCityMap] = useState(false);
   const [showHexWorldMap, setShowHexWorldMap] = useState(false);
-  const [showHexWorldGlobe3D, setShowHexWorldGlobe3D] = useState(false);
+  const [showHexWorldGlobe, setShowHexWorldGlobe] = useState(false);
 
   // Developer testing panels
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
@@ -157,6 +168,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     return unsubscribe;
   }, []);
 
+  // Initialize audio settings from localStorage
+  useEffect(() => {
+    const savedMuted = localStorage.getItem('gameMuted');
+    const savedVolume = localStorage.getItem('gameVolume');
+
+    if (savedMuted !== null) {
+      const mutedValue = savedMuted === 'true';
+      setIsMuted(mutedValue);
+      gameSounds.setMuted(mutedValue);
+    }
+
+    if (savedVolume !== null) {
+      const volumeValue = parseFloat(savedVolume);
+      setVolume(volumeValue);
+      gameSounds.setMasterVolume(volumeValue);
+    }
+  }, []);
+
   // Update API stats when panel is opened
   useEffect(() => {
     if (isOpen) {
@@ -179,6 +208,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   const handleNewRandomInitialSeed = () => {
     onSeedChange(Math.floor(Math.random() * 1000000));
+  };
+
+  const handleMuteToggle = () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    gameSounds.setMuted(newMutedState);
+    localStorage.setItem('gameMuted', String(newMutedState));
+  };
+
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    gameSounds.setMasterVolume(newVolume);
+    localStorage.setItem('gameVolume', String(newVolume));
   };
 
   // Disease testing functions
@@ -400,6 +442,68 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </div>
           </section>
 
+          {/* Audio Controls */}
+          <section className="mb-6">
+            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              Audio
+            </h3>
+            <div className="space-y-3">
+              {/* Mute Toggle */}
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-green-400" />}
+                    <label className="text-sm font-medium text-gray-200">
+                      {isMuted ? 'Muted' : 'Sound Enabled'}
+                    </label>
+                  </div>
+                  <button
+                    onClick={handleMuteToggle}
+                    className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-800 ${!isMuted ? 'bg-green-600' : 'bg-slate-600'}`}
+                    role="switch"
+                    aria-checked={!isMuted}
+                    aria-label="Toggle mute"
+                  >
+                    <span className={`${!isMuted ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`} />
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">Mute all game sounds and music</p>
+              </div>
+
+              {/* Volume Slider */}
+              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="volumeSlider" className="text-sm font-medium text-gray-200">
+                    Master Volume
+                  </label>
+                  <span className="text-xs text-slate-400 font-mono">
+                    {Math.round(volume * 100)}%
+                  </span>
+                </div>
+                <input
+                  id="volumeSlider"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                  disabled={isMuted}
+                  className={`w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer slider-thumb ${isMuted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{
+                    background: isMuted
+                      ? '#475569'
+                      : `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #475569 ${volume * 100}%, #475569 100%)`
+                  }}
+                />
+                <p className="mt-2 text-xs text-slate-400">
+                  Controls volume for all sounds and music
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* Save/Load Game */}
           <section className="mb-6">
             <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
@@ -465,7 +569,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
               <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
                 <button
-                  onClick={() => setShowHexWorldGlobe3D(true)}
+                  onClick={() => setShowHexWorldGlobe(true)}
                   className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center gap-2"
                 >
                   <Activity className="w-4 h-4" />
@@ -1124,10 +1228,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       )}
 
       {/* Hex World Globe 3D Modal */}
-      {showHexWorldGlobe3D && (
-        <HexWorldGlobe3D
-          isOpen={showHexWorldGlobe3D}
-          onClose={() => setShowHexWorldGlobe3D(false)}
+      {showHexWorldGlobe && (
+        <HexWorldGlobe
+          isOpen={showHexWorldGlobe}
+          onClose={() => setShowHexWorldGlobe(false)}
         />
       )}
     </>

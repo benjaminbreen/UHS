@@ -52,6 +52,7 @@ import { poiServiceHandler } from '../services/poiServiceHandler';
 const PrimarySourceModal = lazy(() => import('./PrimarySourceModal').then(module => ({ default: module.PrimarySourceModal })));
 const NpcConfrontationModal = lazy(() => import('./NpcConfrontationModal'));
 const DiseaseContractedModal = lazy(() => import('./DiseaseContractedModal'));
+const CityHistoricalModal = lazy(() => import('./CityHistoricalModal').then(module => ({ default: module.CityHistoricalModal })));
 import { processNpcReactions, ItemCollectionEvent } from '../services/npcAwarenessService';
 import { updateCachedContents } from '../services/containerCacheService';
 import { useState } from 'react';
@@ -97,7 +98,8 @@ const ModalHub: React.FC = () => {
         poiToastData, setPoiToastData,
         containerModalData, setContainerModalData, showToast,
         selectedPrimarySource, setSelectedPrimarySource,
-        diseaseContractedModalData, setDiseaseContractedModalData
+        diseaseContractedModalData, setDiseaseContractedModalData,
+        cityHistoricalModalData, setCityHistoricalModalData
     } = useUI();
 
     const {
@@ -819,6 +821,17 @@ const ModalHub: React.FC = () => {
                     disease={diseaseContractedModalData.disease}
                     playerCharacter={playerCharacter}
                     gameDate={gameDate}
+                    />
+                </Suspense>
+            )}
+            {cityHistoricalModalData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <CityHistoricalModal
+                        isOpen={!!cityHistoricalModalData}
+                        onClose={() => setCityHistoricalModalData(null)}
+                        cityName={cityHistoricalModalData.cityName}
+                        cityDescription={cityHistoricalModalData.cityDescription}
+                        nearbyNpcs={npcs}
                     />
                 </Suspense>
             )}

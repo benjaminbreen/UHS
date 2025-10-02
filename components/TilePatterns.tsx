@@ -154,6 +154,46 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 }
             }
 
+            // Add alpine meadow wildflowers for summer/fall seasons
+            if (isAlpine && (season === 'summer' || season === 'fall')) {
+                // Alpine wildflowers - smaller, more colorful than prairie
+                for (let i = 0; i < 18; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const flowerType = noise.random();
+
+                    if (flowerType < 0.33) {
+                        // Red alpine flowers (Indian paintbrush style)
+                        ctx.fillStyle = `rgba(220, 50, 60, ${0.7 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.2 + noise.random() * 0.8, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (flowerType < 0.66) {
+                        // Bright yellow alpine flowers (glacier lilies)
+                        ctx.fillStyle = `rgba(255, 220, 40, ${0.7 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.0 + noise.random() * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Small orange center
+                        ctx.fillStyle = `rgba(255, 140, 20, 0.9)`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Blue alpine flowers (forget-me-nots, gentians)
+                        ctx.fillStyle = `rgba(80, 120, 255, ${0.7 + noise.random() * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.9 + noise.random() * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Bright white center
+                        ctx.fillStyle = `rgba(255, 255, 255, 0.9)`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+
             // Add prairie-specific tall grass waves
             if (isPrairie) {
                 for (let i = 0; i < 15; i++) {
@@ -1360,47 +1400,147 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
             }
             break;
 
-        case BiomeType.FOREST:
-        case BiomeType.DENSE_FOREST:
-            // Dense forest undergrowth with fallen leaves
-            // Dark forest floor base
-            for (let i = 0; i < 20; i++) {
+        case BiomeType.JUNGLE:
+            // Lush jungle undergrowth with layered canopy shadows
+            // Deep canopy shadow patches - much more visible
+            for (let i = 0; i < 25; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
-                const size = 15 + noise.random() * 25;
-                
+                const size = 20 + noise.random() * 40;
+
                 const shadowGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
-                shadowGrad.addColorStop(0, 'rgba(20, 50, 20, 0.2)');
+                shadowGrad.addColorStop(0, 'rgba(5, 25, 10, 0.65)');
+                shadowGrad.addColorStop(0.5, 'rgba(5, 25, 10, 0.35)');
                 shadowGrad.addColorStop(1, 'transparent');
-                
+
                 ctx.fillStyle = shadowGrad;
                 ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
             }
-            
-            // Fallen leaves scattered
-            for (let i = 0; i < 40; i++) {
+
+            // Layered canopy texture - tree tops from above (more visible)
+            for (let i = 0; i < 45; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
-                const size = 1 + noise.random() * 3;
-                const hue = noise.random() > 0.5 ? 'rgba(139, 69, 19, ' : 'rgba(184, 115, 51, ';
-                
-                ctx.fillStyle = hue + (0.1 + noise.random() * 0.2) + ')';
+                const size = 10 + noise.random() * 20;
+
+                ctx.fillStyle = `rgba(20, 90, 40, ${0.4 + noise.random() * 0.3})`;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
             }
-            
-            // Forest undergrowth
-            for (let i = 0; i < 50; i++) {
+
+            // Jungle undergrowth - ferns and large leaves (more visible)
+            for (let i = 0; i < 80; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
-                const height = 3 + noise.random() * 6;
-                
-                ctx.strokeStyle = `rgba(34, 139, 34, ${0.3 + noise.random() * 0.2})`;
-                ctx.lineWidth = 0.8;
+                const height = 6 + noise.random() * 12;
+                const leafWidth = 3 + noise.random() * 4;
+
+                // Fern-like leaves - thicker and more opaque
+                ctx.strokeStyle = `rgba(30, 150, 50, ${0.5 + noise.random() * 0.3})`;
+                ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(x, y);
-                ctx.lineTo(x + (noise.random() - 0.5) * 2, y - height);
+                ctx.lineTo(x + (noise.random() - 0.5) * leafWidth, y - height);
+                ctx.stroke();
+
+                // Leaf fronds - more visible
+                for (let j = 0; j < 4; j++) {
+                    const offset = (j / 3 - 0.5) * height * 0.8;
+                    ctx.strokeStyle = `rgba(30, 150, 50, ${0.35 + noise.random() * 0.25})`;
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y - offset);
+                    ctx.lineTo(x + (noise.random() - 0.5) * leafWidth * 1.5, y - offset - 3);
+                    ctx.stroke();
+                }
+            }
+
+            // Dappled sunlight patches - brighter
+            for (let i = 0; i < 15; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 12 + noise.random() * 25;
+
+                const lightGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                lightGrad.addColorStop(0, 'rgba(255, 255, 150, 0.35)');
+                lightGrad.addColorStop(0.5, 'rgba(255, 255, 150, 0.15)');
+                lightGrad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = lightGrad;
+                ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
+            }
+            break;
+
+        case BiomeType.FOREST:
+        case BiomeType.DENSE_FOREST:
+            // Enhanced forest with canopy shadows and tree tops
+            // Canopy shadow texture - much more visible
+            const canopyDarkness = biomeType === BiomeType.DENSE_FOREST ? 0.55 : 0.4;
+            for (let i = 0; i < 35; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 18 + noise.random() * 35;
+
+                const shadowGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                shadowGrad.addColorStop(0, `rgba(10, 25, 10, ${canopyDarkness})`);
+                shadowGrad.addColorStop(0.5, `rgba(10, 25, 10, ${canopyDarkness * 0.5})`);
+                shadowGrad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = shadowGrad;
+                ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
+            }
+
+            // Canopy texture - tree tops from above (more visible)
+            for (let i = 0; i < 35; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 12 + noise.random() * 22;
+
+                ctx.fillStyle = `rgba(15, 60, 30, ${0.35 + noise.random() * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Dark forest floor base (more visible)
+            for (let i = 0; i < 30; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 15 + noise.random() * 30;
+
+                const shadowGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                shadowGrad.addColorStop(0, 'rgba(15, 40, 15, 0.4)');
+                shadowGrad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = shadowGrad;
+                ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
+            }
+
+            // Fallen leaves scattered (more visible)
+            for (let i = 0; i < 60; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 1.5 + noise.random() * 4;
+                const hue = noise.random() > 0.5 ? 'rgba(139, 69, 19, ' : 'rgba(184, 115, 51, ';
+
+                ctx.fillStyle = hue + (0.3 + noise.random() * 0.3) + ')';
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Forest undergrowth (thicker and more visible)
+            for (let i = 0; i < 70; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const height = 4 + noise.random() * 8;
+
+                ctx.strokeStyle = `rgba(30, 120, 30, ${0.5 + noise.random() * 0.3})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + (noise.random() - 0.5) * 3, y - height);
                 ctx.stroke();
             }
             break;

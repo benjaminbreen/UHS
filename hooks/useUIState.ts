@@ -80,8 +80,8 @@ export const useUIState = () => {
     const [pinnedDevData, setPinnedDevData] = useState<DevTooltipDisplayData | null>(null);
     const [isTooltipPinnedOpen, setIsTooltipPinnedOpen] = useState<boolean>(false);
     const [showDevTooltip, setShowDevTooltip] = useState<boolean>(false);
-    const [useLlmForDescriptions, setUseLlmForDescriptions] = useState(false);
-    const [useLlmForCharacter, setUseLlmForCharacter] = useState(false);
+    const [useLlmForDescriptions, setUseLlmForDescriptions] = useState(true);
+    const [useLlmForCharacter, setUseLlmForCharacter] = useState(true);
     const [isTestModeEnabled, setIsTestModeEnabled] = useState<boolean>(false);
     const [isDevBuildingModeOpen, setIsDevBuildingModeOpen] = useState<boolean>(false);
     const [debugSettings, setDebugSettings] = useState({
@@ -102,6 +102,9 @@ export const useUIState = () => {
     const [isLeftSidebarExpanded, setIsLeftSidebarExpanded] = useState<boolean>(true);
     const [activeMapSubTab, setActiveMapSubTab] = useState<'analysis' | 'overview' | 'npcs' | 'animals'>('overview');
     const [activeLens, setActiveLens] = useState<LensMode>('none');
+
+    // Right Sidebar
+    const [isRightSidebarVisible, setIsRightSidebarVisible] = useState<boolean>(true);
     
     // Modal-specific data
     const [tileInfoModalProps, setTileInfoModalProps] = useState<TileInfoModalProps | null>(null);
@@ -123,6 +126,7 @@ export const useUIState = () => {
     const [victoryDetails, setVictoryDetails] = useState<VictoryDetails | null>(null);
     const [lootModalData, setLootModalData] = useState<LootModalData | null>(null);
     const [activePoi, setActivePoi] = useState<TerrainStructure | null>(null);
+    const [cityHistoricalModalData, setCityHistoricalModalData] = useState<{ cityName: string; cityDescription: string } | null>(null);
     const [poiToastData, setPoiToastData] = useState<{
         structure: TerrainStructure;
         description: string;
@@ -1329,6 +1333,7 @@ export const useUIState = () => {
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, panelNotificationItem,
+        isRightSidebarVisible, setIsRightSidebarVisible,
         floatingTextMessages, containerPrompt,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,
@@ -1340,7 +1345,8 @@ export const useUIState = () => {
         inMiningRoguelike,
         miningRoguelikeData,
         containerModalData,
-        
+        cityHistoricalModalData,
+
         // Handlers
         handleDevHover, handleCondenseTooltip, togglePinnedTooltip,
         setTileInfoModalProps, setInfoModalTarget, setStructureModalTarget, setActiveSettlementInfo,
@@ -1361,6 +1367,7 @@ export const useUIState = () => {
         setActivePoi,
         setPoiToastData,
         setContainerModalData,
+        setCityHistoricalModalData,
         selectedPrimarySource,
         setSelectedPrimarySource,
         diseaseContractedModalData,

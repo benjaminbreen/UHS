@@ -173,7 +173,7 @@ function spawnDomesticAnimalsInPaddocks(
 ): AnimalEntity[] {
     const paddockAnimals: AnimalEntity[] = [];
     const paddockTiles: Tile[] = [];
-    
+
     // Find all paddock tiles
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
@@ -183,16 +183,36 @@ function spawnDomesticAnimalsInPaddocks(
             }
         }
     }
-    
+
     if (paddockTiles.length === 0) {
         return paddockAnimals;
     }
-    
+
     // Shuffle paddock tiles
     paddockTiles.sort(() => noise.random() - 0.5);
-    
-    // List of domestic animals that should spawn in paddocks
-    const paddockAnimalTypes = ['COW', 'GOAT', 'SHEEP', 'PIG'];
+
+    // List of domestic animals that should spawn in paddocks - MUST respect zone restrictions
+    const allPaddockAnimalTypes = ['COW', 'GOAT', 'SHEEP', 'PIG', 'LLAMA', 'ALPACA'];
+
+    // Filter animals based on zone restrictions from ANIMAL_DATA
+    const paddockAnimalTypes = allPaddockAnimalTypes.filter(animalType => {
+        const animalData = ANIMAL_DATA[animalType];
+        if (!animalData) return false;
+
+        // Check zone restrictions
+        if (animalData.spawnConditions?.zones) {
+            return animalData.spawnConditions.zones.includes(culturalZone);
+        }
+
+        // If no zone restrictions, allow it (shouldn't happen for domestics)
+        return true;
+    });
+
+    // If no valid animals for this zone, return empty
+    if (paddockAnimalTypes.length === 0) {
+        console.log(`[Gen] No valid paddock animals for cultural zone ${culturalZone} - skipping paddock spawning`);
+        return paddockAnimals;
+    }
     
     // Try to spawn 2-5 animals per paddock region
     const animalsPerPaddock = 2 + Math.floor(noise.random() * 4);

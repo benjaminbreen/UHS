@@ -891,6 +891,52 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         showToast('You wake feeling refreshed at dawn.');
     }, [playerCharacter, setPlayerCharacter, gameDate, setGameDate, showToast]);
 
+    const handleFarmPlayerStateChange = useCallback((changes: {
+        health?: number;
+        fatigue?: number;
+        statusEffects?: Array<{ type: string; name: string; duration: number; severity?: 'mild' | 'moderate' | 'severe' }>;
+        inventory?: { add?: any[]; remove?: string[] };
+    }) => {
+        if (!playerCharacter) return;
+
+        setPlayerCharacter(prev => {
+            if (!prev) return prev;
+
+            let updated = { ...prev };
+
+            // Apply health delta
+            if (changes.health !== undefined) {
+                updated.health = Math.max(0, Math.min(updated.maxHealth, updated.health + changes.health));
+                if (changes.health < 0) {
+                    showToast(`You take ${Math.abs(changes.health)} damage!`);
+                }
+            }
+
+            // Apply fatigue delta
+            if (changes.fatigue !== undefined) {
+                updated.fatigue = Math.max(0, Math.min(updated.maxFatigue, updated.fatigue + changes.fatigue));
+            }
+
+            // Add status effects
+            if (changes.statusEffects && changes.statusEffects.length > 0) {
+                updated.statusEffects = [...(updated.statusEffects || []), ...changes.statusEffects];
+                changes.statusEffects.forEach(effect => {
+                    showToast(`Status effect: ${effect.name}`);
+                });
+            }
+
+            // Inventory changes
+            if (changes.inventory?.add && changes.inventory.add.length > 0) {
+                updated.inventory = [...updated.inventory, ...changes.inventory.add];
+            }
+            if (changes.inventory?.remove && changes.inventory.remove.length > 0) {
+                updated.inventory = updated.inventory.filter(item => !changes.inventory!.remove!.includes(item.id));
+            }
+
+            return updated;
+        });
+    }, [playerCharacter, setPlayerCharacter, showToast]);
+
     const handleExploreCampground = useCallback(() => {
         console.log('[MapViewport] Entering campground special map');
 
@@ -1701,6 +1747,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
               onProgressTime={handleProgressTime}
               onShowEvent={handleShowWorkEvent}
               onInitiateEncounter={handleEncounter}
+              onPlayerStateChange={handleFarmPlayerStateChange}
             />
           )}
           

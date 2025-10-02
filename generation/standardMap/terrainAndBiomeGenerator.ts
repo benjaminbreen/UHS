@@ -58,7 +58,7 @@ export function generateAltitudeAndInitialBiomes(
 
       if (tile.isLand) {
         let altNoiseVal = altitudeNoiseGen.octaveNoise(x * NOISE_SCALE_ALTITUDE, y * NOISE_SCALE_ALTITUDE, 5, 0.45, 2.1);
-        
+
         if (altitudeSetting === 'high') {
             altNoiseVal = Math.pow(altNoiseVal, 0.8) * 1.1;
         } else if (altitudeSetting === 'low') {
@@ -231,11 +231,14 @@ export function generateAltitudeAndInitialBiomes(
             }
         }
 
+        // Use spatially coherent noise for hills transitions (not random)
+        const hillsTransitionNoise = biomeVariationNoise.noise(x * 0.12, y * 0.12);
+
         if (tile.biome === BiomeType.GRASSLAND && tile.altitude >= ALTITUDE_LEVELS.HILLS_START && tile.altitude <= ALTITUDE_LEVELS.HILLS_MAX) { // GRASSLAND to HILLS
-            if (tile.altitude > ALTITUDE_LEVELS.FOREST_LOWER_MAX || biomeVariationNoise.random() > 0.6) tile.biome = BiomeType.HILLS;
+            if (tile.altitude > ALTITUDE_LEVELS.FOREST_LOWER_MAX || hillsTransitionNoise > 0.2) tile.biome = BiomeType.HILLS;
         }
         if (tile.biome === BiomeType.FOREST && tile.altitude >= ALTITUDE_LEVELS.HILLS_START && tile.altitude > ALTITUDE_LEVELS.FOREST_UPPER_MAX * 0.85 && tile.altitude <= ALTITUDE_LEVELS.HILLS_MAX) { // FOREST to HILLS
-            if (biomeVariationNoise.random() > 0.5) tile.biome = BiomeType.HILLS;
+            if (hillsTransitionNoise > 0.0) tile.biome = BiomeType.HILLS;
         }
 
         const preserveSnowHighPeak = new Set([BiomeType.HIGH_PEAK]); // CLIFF, ESTUARY, FRESHWATER_LAKE removed as they'd be overwritten
@@ -400,6 +403,8 @@ export function applyClimateBiomeChanges(
     biomeVariationNoise: ValueNoise, featurePlacementNoise: ValueNoise,
     neighboringEdges?: NeighboringEdges
 ) {
+  console.log('[Biome Variation] Using spatially coherent noise for realistic biome clustering');
+
   for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
     for (let x = 0; x < MAP_WIDTH_TILES; x++) {
       const tile = tiles[y][x];
@@ -407,7 +412,8 @@ export function applyClimateBiomeChanges(
 
       const humidityVal = humidityNoise.octaveNoise(x * NOISE_SCALE_HUMIDITY, y * NOISE_SCALE_HUMIDITY, 3, 0.5, 2.0);
       const desertChance = desertificationNoise.noise(x * NOISE_SCALE_DESERTIFICATION, y * NOISE_SCALE_DESERTIFICATION);
-      const biomeVar = biomeVariationNoise.random();
+      // Use spatially coherent noise instead of random() for biome clustering
+      const biomeVar = biomeVariationNoise.noise(x * NOISE_SCALE_BIOME_VARIATION, y * NOISE_SCALE_BIOME_VARIATION);
 
       // Store original biome for comparison
       const originalBiome = tile.biome;
@@ -830,7 +836,7 @@ export function generateDenseForests(
   }
 }
 
-export function generateRiverbanks(tiles: Tile[][], featurePlacementNoise: ValueNoise): void {
+export function generateRiverbanks(tiles: Tile[][], featurePlacementNoise: ValueNoise, archetype?: MapArchetype): void {
   const riverTiles: Point[] = [];
   for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
     for (let x = 0; x < MAP_WIDTH_TILES; x++) {
@@ -840,6 +846,77 @@ export function generateRiverbanks(tiles: Tile[][], featurePlacementNoise: Value
     }
   }
 
+  // First pass: Create river valleys with realistic erosion
+  // Valley width varies by river type and uses noise for organic shapes
+  const VALLEY_RADIUS = 6; // Extended valley influence (was 2)
+
+  // SKIP valley erosion for ALL_LAND maps (they should have minimal water features)
+  const shouldSkipValleyErosion = archetype === MapArchetype.ALL_LAND;
+
+  if (riverTiles.length > 0 && !shouldSkipValleyErosion) {
+    console.log(`[River Valleys] Generating erosion patterns for ${riverTiles.length} river segments`);
+  } else if (riverTiles.length > 0 && shouldSkipValleyErosion) {
+    console.log(`[River Valleys] Skipping valley erosion for ALL_LAND map (${riverTiles.length} river segments)`);
+  }
+
+  if (!shouldSkipValleyErosion) {
+    for (const riverTile of riverTiles) {
+    const isMajorRiver = tiles[riverTile.y][riverTile.x].biome === BiomeType.MAJOR_RIVER;
+    const valleyWidth = isMajorRiver ? 1.4 : 1.0; // Major rivers create wider valleys
+
+    for (let dy = -VALLEY_RADIUS; dy <= VALLEY_RADIUS; dy++) {
+      for (let dx = -VALLEY_RADIUS; dx <= VALLEY_RADIUS; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const checkX = riverTile.x + dx;
+        const checkY = riverTile.y + dy;
+
+        if (checkX >= 0 && checkX < MAP_WIDTH_TILES && checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
+          const tile = tiles[checkY][checkX];
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // Only affect land tiles within valley radius
+          if (tile.isLand && distance <= VALLEY_RADIUS &&
+              tile.biome !== BiomeType.ESTUARY &&
+              tile.biome !== BiomeType.FRESHWATER_LAKE &&
+              tile.biome !== BiomeType.CLIFF) {
+
+            // Add noise to create organic valley shapes (not perfect circles)
+            const valleyNoise = featurePlacementNoise.noise(checkX * 0.15, checkY * 0.15);
+            const effectiveDistance = distance * (0.9 + valleyNoise * 0.2); // ±10% distance variation
+
+            // Calculate valley depth based on distance with realistic erosion profile
+            // Valley is deepest at the river (distance 0-1), then gradual slopes outward
+            let valleyDepthFactor = 0;
+
+            if (effectiveDistance <= 1.5) {
+              // River channel - very deep (70-85% depth reduction)
+              valleyDepthFactor = 0.7 + (effectiveDistance / 1.5) * 0.15;
+            } else if (effectiveDistance <= 3.5) {
+              // Inner valley walls - steep slope (40-70% depth)
+              const innerValleyProgress = (effectiveDistance - 1.5) / 2.0;
+              valleyDepthFactor = 0.4 + innerValleyProgress * 0.3;
+            } else if (effectiveDistance <= VALLEY_RADIUS * valleyWidth) {
+              // Outer valley slopes - gentle incline (10-40% depth)
+              const outerValleyProgress = (effectiveDistance - 3.5) / (VALLEY_RADIUS * valleyWidth - 3.5);
+              valleyDepthFactor = 0.1 + outerValleyProgress * 0.3;
+            }
+
+            if (valleyDepthFactor > 0) {
+              // Apply erosion - more pronounced in lower areas (sedimentary erosion is easier)
+              const erosionMultiplier = tile.altitude < 0.4 ? 1.2 : 1.0; // Low areas erode more
+              const targetDepth = tile.altitude * (1 - (valleyDepthFactor * erosionMultiplier * 0.5));
+
+              // Don't erode below beach level (rivers can't cut below sea level)
+              tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.01, targetDepth);
+            }
+          }
+        }
+      }
+    }
+    }
+  }
+
+  // Second pass: Add riverbank biomes and fertility (after valley formation)
   for (const riverTile of riverTiles) {
     for (let dy = -RIVERBANK_GENERATION_RADIUS; dy <= RIVERBANK_GENERATION_RADIUS; dy++) {
       for (let dx = -RIVERBANK_GENERATION_RADIUS; dx <= RIVERBANK_GENERATION_RADIUS; dx++) {
@@ -851,14 +928,9 @@ export function generateRiverbanks(tiles: Tile[][], featurePlacementNoise: Value
           const tile = tiles[checkY][checkX];
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          const eligibleBiomes = [BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.STEPPE, BiomeType.TUNDRA, BiomeType.DESERT, BiomeType.SAVANNA];
+          const eligibleBiomes = [BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.STEPPE, BiomeType.TUNDRA, BiomeType.DESERT, BiomeType.SAVANNA, BiomeType.HILLS, BiomeType.PRAIRIE, BiomeType.BADLANDS];
           if (tile.isLand && eligibleBiomes.includes(tile.biome) && distance <= RIVERBANK_GENERATION_RADIUS && tile.biome !== BiomeType.ESTUARY && tile.biome !== BiomeType.FRESHWATER_LAKE && tile.biome !== BiomeType.CLIFF) {
             const probability = 1 - (distance / RIVERBANK_GENERATION_RADIUS);
-
-            // Rivers create river valleys - lower altitude near rivers
-            if (distance <= 2) {
-              tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude * (0.85 - distance * 0.05));
-            }
 
             // Rivers make surrounding land more fertile
             if (distance === 1) {
@@ -869,6 +941,11 @@ export function generateRiverbanks(tiles: Tile[][], featurePlacementNoise: Value
             } else if (distance <= 2 && tile.biome === BiomeType.DESERT) {
               // Desert near rivers becomes scrub/grassland (river valley effect)
               if (featurePlacementNoise.random() < 0.7) {
+                tile.biome = BiomeType.SCRUB;
+              }
+            } else if (distance <= 2 && tile.biome === BiomeType.BADLANDS) {
+              // Badlands near rivers become more vegetated
+              if (featurePlacementNoise.random() < 0.5) {
                 tile.biome = BiomeType.SCRUB;
               }
             } else if (featurePlacementNoise.random() < probability * 0.6) {
@@ -1934,11 +2011,26 @@ export function generateSpecialTerrainTiles(
         }
     }
 
+    // Hot Springs Generation - Geologically Realistic with Fault Lines
+    // First, identify potential thermal zones using rotated noise to avoid grid artifacts
     const allowedHotSpringBiomes = [BiomeType.HILLS, BiomeType.MOUNTAIN, BiomeType.VOLCANIC_ROCK, BiomeType.GRASSLAND, BiomeType.FOREST, BiomeType.TUNDRA, BiomeType.CLIFF];
+
+    // Create fault line seeds - hot springs cluster along these
+    const numFaultLines = Math.floor(featurePlacementNoise.random() * 2) + 1; // 1-2 fault lines
+    const faultLines: Array<{x: number, y: number, angle: number}> = [];
+
+    for (let i = 0; i < numFaultLines; i++) {
+        faultLines.push({
+            x: Math.floor(featurePlacementNoise.random() * MAP_WIDTH_TILES),
+            y: Math.floor(featurePlacementNoise.random() * MAP_HEIGHT_TILES),
+            angle: featurePlacementNoise.random() * Math.PI * 2
+        });
+    }
+
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
             const tile = tiles[y][x];
-            if (!tile.isLand || !allowedHotSpringBiomes.includes(tile.biome) ) continue;
+            if (!tile.isLand || !allowedHotSpringBiomes.includes(tile.biome)) continue;
 
             let nearVolcano = false; let nearMountain = false;
             for (let dy = -Math.max(HOT_SPRINGS_VOLCANIC_PROXIMITY, HOT_SPRINGS_MOUNTAIN_PROXIMITY); dy <= Math.max(HOT_SPRINGS_VOLCANIC_PROXIMITY, HOT_SPRINGS_MOUNTAIN_PROXIMITY); dy++) {
@@ -1951,10 +2043,28 @@ export function generateSpecialTerrainTiles(
                     }
                 }
             }
-            const thermalVal = thermalNoise.noise(x * NOISE_SCALE_THERMAL, y * NOISE_SCALE_THERMAL);
-            if ((nearVolcano || nearMountain) && thermalVal > 0.65 && featurePlacementNoise.random() < 0.02) { // Reduced from 0.05 to 0.02
+
+            // Use multiple octaves to break diagonal patterns
+            const thermalVal = thermalNoise.octaveNoise(x * NOISE_SCALE_THERMAL, y * NOISE_SCALE_THERMAL, 2, 0.5, 2.0);
+
+            // Calculate distance to nearest fault line
+            let nearestFaultDist = Infinity;
+            for (const fault of faultLines) {
+                // Calculate perpendicular distance to fault line
+                const dx = x - fault.x;
+                const dy = y - fault.y;
+                const perpDist = Math.abs(dx * Math.sin(fault.angle) - dy * Math.cos(fault.angle));
+                nearestFaultDist = Math.min(nearestFaultDist, perpDist);
+            }
+
+            // Hot springs more likely near fault lines (geological realism)
+            const faultBonus = Math.max(0, 1 - nearestFaultDist / 15); // Stronger within 15 tiles of fault
+            const thermalThreshold = 0.7 - (faultBonus * 0.2); // Lower threshold near faults
+
+            // Reduced spawn rate (0.015 instead of 0.02) and higher thermal threshold
+            if ((nearVolcano || nearMountain) && thermalVal > thermalThreshold && featurePlacementNoise.random() < 0.012) {
                 tile.biome = BiomeType.HOT_SPRINGS;
-                tile.isLand = true; // Changed to land tile
+                tile.isLand = true;
                 tile.altitude = Math.max(ALTITUDE_LEVELS.GRASSLAND_LOWER_MIN, tile.altitude * 0.8);
             }
         }

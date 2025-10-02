@@ -42,6 +42,7 @@ import gameSounds from '../services/gameSoundsService';
 import { HighlightedText } from '../hooks/usePrimarySourceKeywords';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { parseDateString } from '../utils/dateUtils';
+import TranslatableWord from './ui/TranslatableWord';
 import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
 import { generateSourceDiscussion, createSubmittedSource, createSourceDiscussion } from '../services/sourceDiscussionService';
 import { SubmittedSource, SourceDiscussion } from '../types/primarySource';
@@ -213,6 +214,57 @@ interface EncounterModalProps {
   onInitiateCombat: (target: EncounterableEntity) => void;
   onOpenInfo: (target: EncounterableEntity) => void;
   onUpdateNpc?: (updatedNpc: NpcEntity) => void;
+}
+
+/**
+ * Helper function to parse dialogue text and render foreign words with translations
+ */
+function parseDialogueWithTranslations(
+    text: string,
+    translations?: Record<string, string>,
+    language?: string
+): React.ReactNode[] {
+    if (!translations || Object.keys(translations).length === 0) {
+        // No translations, just return text as-is (with italics preserved)
+        return [text];
+    }
+
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    // Regex to find italicized words: *word*
+    const regex = /\*([^*]+)\*/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+        const foreignWord = match[1];
+        const matchStart = match.index;
+        const matchEnd = regex.lastIndex;
+
+        // Add text before the match
+        if (matchStart > lastIndex) {
+            parts.push(text.substring(lastIndex, matchStart));
+        }
+
+        // Add TranslatableWord component for the foreign word
+        parts.push(
+            <TranslatableWord
+                key={matchStart}
+                word={foreignWord}
+                translation={translations[foreignWord]}
+                language={language}
+            />
+        );
+
+        lastIndex = matchEnd;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
 }
 
 const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
@@ -434,7 +486,9 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                         const initialEntry: DialogueEntry = {
                             speaker: 'npc',
                             text: response.text,
-                            timestamp: new Date()
+                            timestamp: new Date(),
+                            translations: response.translations,
+                            language: response.language
                         };
                         setHistory([initialEntry]);
 
@@ -726,10 +780,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         
         try {
             const response = await generateEncounterDialogue(currentTarget, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
-            const newNpcEntry: DialogueEntry = { 
-                speaker: 'npc', 
-                text: response.text, 
-                timestamp: new Date() 
+            const newNpcEntry: DialogueEntry = {
+                speaker: 'npc',
+                text: response.text,
+                timestamp: new Date(),
+                translations: response.translations,
+                language: response.language
             };
             setHistory(prev => [...prev, newNpcEntry]);
             
@@ -1344,12 +1400,18 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                         </span>
                                                                     </div>
                                                                     <p className="text-slate-200 leading-relaxed">
-                                                                        <HighlightedText
-                                                                            text={entry.text}
-                                                                            era={currentEra}
-                                                                            zone={culturalZone}
-                                                                            onKeywordClick={(source) => setSelectedPrimarySource(source)}
-                                                                        />
+                                                                        {entry.translations && entry.language ? (
+                                                                            // Render with translatable words
+                                                                            parseDialogueWithTranslations(entry.text, entry.translations, entry.language)
+                                                                        ) : (
+                                                                            // Regular highlighted text
+                                                                            <HighlightedText
+                                                                                text={entry.text}
+                                                                                era={currentEra}
+                                                                                zone={culturalZone}
+                                                                                onKeywordClick={(source) => setSelectedPrimarySource(source)}
+                                                                            />
+                                                                        )}
                                                                     </p>
                                                                 </div>
                                                             </div>

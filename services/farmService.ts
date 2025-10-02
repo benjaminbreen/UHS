@@ -85,6 +85,16 @@ export interface FarmResidencyStatus {
   negotiationRounds?: number; // tracks negotiation attempts
 }
 
+export interface LastYearData {
+  totalHarvest: number; // Total units harvested
+  cropsMostGrown: string; // Primary crop last year
+  revenue: number; // Total revenue
+  expenses: number; // Total expenses
+  profit: number; // Net profit/loss
+  weatherEvents: string[]; // Notable events (drought, flood, etc.)
+  crisisEvents: string[]; // Other crises (pests, disease, etc.)
+}
+
 export interface FarmState {
   tileKey: string; // `${x},${y}` for unique identification
   family: FarmFamily;
@@ -109,10 +119,79 @@ export interface FarmState {
     culturalZone: CulturalZone;
     year: number;
   };
+  farmName?: string; // Custom farm name
+  farmDescription?: string; // Farm description
+  lastYearData?: LastYearData; // Previous season's performance
 }
 
 // Global farm state storage (in production, this would be in a database)
 const farmStates = new Map<string, FarmState>();
+
+/**
+ * Generate procedural last year's harvest data
+ */
+function generateLastYearData(
+  primaryCrop: string,
+  economicStatus: 'humble' | 'prosperous' | 'wealthy',
+  prosperityLevel: 'subsistence' | 'small' | 'moderate' | 'thriving',
+  numFields: number,
+  noise: ValueNoise
+): LastYearData {
+  // Base harvest multipliers by prosperity
+  const baseHarvest = {
+    'subsistence': 15,
+    'small': 35,
+    'moderate': 60,
+    'thriving': 100
+  }[prosperityLevel];
+
+  // Randomize harvest (70-130% of base)
+  const totalHarvest = Math.floor(baseHarvest * (0.7 + noise.random() * 0.6));
+
+  // Base prices vary by crop quality/status
+  const basePricePerUnit = economicStatus === 'wealthy' ? 18 : economicStatus === 'prosperous' ? 12 : 8;
+
+  // Calculate revenue with some market variation
+  const priceVariation = 0.8 + noise.random() * 0.4; // 80-120% of base price
+  const revenue = Math.floor(totalHarvest * basePricePerUnit * priceVariation);
+
+  // Calculate expenses (seeds, tools, labor, taxes)
+  const baseExpenses = {
+    'subsistence': 50,
+    'small': 120,
+    'moderate': 250,
+    'thriving': 450
+  }[prosperityLevel];
+
+  const expenses = Math.floor(baseExpenses * (0.9 + noise.random() * 0.2));
+
+  // Profit = revenue - expenses
+  const profit = revenue - expenses;
+
+  // Generate weather events (20% chance)
+  const weatherEvents: string[] = [];
+  if (noise.random() < 0.2) {
+    const eventTypes = ['drought', 'flood', 'frost', 'hailstorm', 'windstorm'];
+    weatherEvents.push(eventTypes[Math.floor(noise.random() * eventTypes.length)]);
+  }
+
+  // Generate crisis events (15% chance)
+  const crisisEvents: string[] = [];
+  if (noise.random() < 0.15) {
+    const crisisTypes = ['locust swarm', 'blight', 'cattle disease', 'crop disease', 'rat infestation'];
+    crisisEvents.push(crisisTypes[Math.floor(noise.random() * crisisTypes.length)]);
+  }
+
+  return {
+    totalHarvest,
+    cropsMostGrown: primaryCrop,
+    revenue,
+    expenses,
+    profit,
+    weatherEvents,
+    crisisEvents
+  };
+}
 
 /**
  * Get or create farm state for a tile
@@ -249,9 +328,14 @@ export function getFarmState(
       era: dateInfo.era as HistoricalEra,
       culturalZone,
       year: dateInfo.year
-    }
+    },
+    // Generate last year's data
+    lastYearData: generateLastYearData(primaryCrop, economicStatus, prosperityLevel, numFields, noise),
+    // Generate custom farm name and description
+    farmName: undefined, // Will be generated in component with proper naming
+    farmDescription: undefined // Will be generated in component if LLM is enabled
   };
-  
+
   // Store and return
   farmStates.set(tileKey, farmState);
   return farmState;

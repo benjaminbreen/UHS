@@ -13,13 +13,16 @@ import { useUI } from '../contexts/UIContext';
 export const useWeatherEffects = (weather: WeatherState | null) => {
   const { playerCharacter, setPlayerCharacter } = usePlayer();
   const { gameTimeMinutes, gameTimeHours } = useGame();
-  const { showToast } = useUI();
-  
+  const { showToast, isAnyModalOpen } = useUI();
+
   // Track last time we applied effects (every game minute)
   const lastEffectTime = useRef<string>('');
-  
+
   useEffect(() => {
     if (!weather || !playerCharacter) return;
+
+    // Don't apply weather effects when modals are open (player is "paused")
+    if (isAnyModalOpen) return;
     
     // Create time key to trigger once per game minute
     const timeKey = `${gameTimeHours}:${gameTimeMinutes}`;
@@ -56,8 +59,8 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
         showToast('❄️ You are feeling cold! Find shelter or warm clothing.', 'warning');
       }
       
-      // Apply cold damage every minute
-      const coldDamage = 1; // 1 health per game minute
+      // Apply cold damage every minute (reduced from 1 to 0.2)
+      const coldDamage = 0.2; // ~12 health/hour instead of 60/hour
       updates.health = Math.max(0, (playerCharacter.health || 100) - coldDamage);
       shouldUpdate = true;
       
@@ -85,8 +88,8 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
         showToast('🌡️ You are feeling hot! Movement will be more tiring.', 'warning');
       }
       
-      // Extra fatigue every minute in hot weather
-      const extraFatigue = 0.5;
+      // Extra fatigue every minute in hot weather (reduced from 0.5 to 0.1)
+      const extraFatigue = 0.1; // 6 fatigue/hour instead of 30/hour
       updates.fatigue = Math.min(100, (playerCharacter.fatigue || 0) + extraFatigue);
       shouldUpdate = true;
     } else {
@@ -110,8 +113,8 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
         showToast('💧 You are feeling wet! Movement will be more tiring.', 'info');
       }
       
-      // Extra fatigue in wet conditions
-      const extraFatigue = 0.3;
+      // Extra fatigue in wet conditions (reduced from 0.3 to 0.08)
+      const extraFatigue = 0.08; // ~5 fatigue/hour instead of 18/hour
       updates.fatigue = Math.min(100, (playerCharacter.fatigue || 0) + extraFatigue);
       shouldUpdate = true;
     } else {
@@ -136,7 +139,7 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
       }));
     }
     
-  }, [weather, playerCharacter, gameTimeMinutes, gameTimeHours, setPlayerCharacter, showToast]);
+  }, [weather, playerCharacter, gameTimeMinutes, gameTimeHours, setPlayerCharacter, showToast, isAnyModalOpen]);
 };
 
 // Hook to modify movement fatigue based on weather

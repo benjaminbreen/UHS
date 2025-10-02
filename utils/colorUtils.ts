@@ -425,41 +425,49 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
                                '#b8a268',                          // Fall - dry yellow-brown
     };
     
-    // Winter colors for cold climates - snow-covered or frozen variations
+    // Winter colors for cold climates - snow-covered or frozen variations with warmer, less blue tones
     const winterColdMapping: Partial<Record<BiomeType, string>> = {
-        [BiomeType.GRASSLAND]: '#e8f0f8',     // Snow-covered grass (light blue-white)
-        [BiomeType.RIVERBANK]: '#d8e8f0',     // Frozen/snowy riverbank
-        [BiomeType.FOREST]: '#c8dce8',        // Snow-dusted forest floor
-        [BiomeType.DENSE_FOREST]: '#b8ccd8',  // Deeper snow in dense forest
-        [BiomeType.HILLS]: '#d0dce4',         // Snow-covered hills
-        [BiomeType.SCRUB]: '#dce4ec',         // Frozen scrubland
-        [BiomeType.WETLANDS]: '#c8d8e0',      // Frozen wetlands
-        [BiomeType.STEPPE]: '#e0e8f0',        // Snow-covered steppe
-        [BiomeType.FARMLAND]: '#dce8f4',      // Snow-covered fields
-        [BiomeType.OASIS]: '#c0d4e0',         // Frozen oasis (rare but possible)
-        [BiomeType.TAIGA]: '#d4e0e8',         // Heavy snow on taiga (slightly darker than grassland)
-        [BiomeType.ALPINE_MEADOW]: '#dce8f0', // Alpine meadow heavily snow-covered (between taiga and full snow)
+        [BiomeType.GRASSLAND]: '#f2f0ed',     // Snow-covered grass (warm cream-white)
+        [BiomeType.RIVERBANK]: '#e8e4df',     // Frozen/snowy riverbank (soft warm gray)
+        [BiomeType.FOREST]: '#dcd8d2',        // Snow-dusted forest floor (warm stone)
+        [BiomeType.DENSE_FOREST]: '#d0ccc6',  // Deeper snow in dense forest (warm gray)
+        [BiomeType.HILLS]: '#e4e0db',         // Snow-covered hills (warm pearl)
+        [BiomeType.MOUNTAIN]: '#f8f6f4',      // Snow-covered mountains (bright warm white)
+        [BiomeType.SCRUB]: '#ece8e2',         // Frozen scrubland (light warm)
+        [BiomeType.WETLANDS]: '#d8d4ce',      // Frozen wetlands (warm gray-brown)
+        [BiomeType.STEPPE]: '#f0ece6',        // Snow-covered steppe (very light warm)
+        [BiomeType.FARMLAND]: '#ebe8e3',      // Snow-covered fields (soft pearl)
+        [BiomeType.OASIS]: '#dcd9d4',         // Frozen oasis (warm gray)
+        [BiomeType.TAIGA]: '#e0dcd6',         // Heavy snow on taiga (medium warm)
+        [BiomeType.ALPINE_MEADOW]: '#e8e4de', // Alpine meadow heavily snow-covered (warm light gray)
     };
     
-    // Winter colors for temperate climates - light snow coverage
+    // Winter colors for temperate climates - light snow coverage with warmer tones
     const winterTemperateMapping: Partial<Record<BiomeType, string>> = {
-        [BiomeType.GRASSLAND]: '#c8d8e8',     // Light snow on grass
-        [BiomeType.FOREST]: '#a8c0d0',        // Snow-dusted forest
-        [BiomeType.DENSE_FOREST]: '#98b0c0',  // More snow in dense forest
-        [BiomeType.HILLS]: '#b8c8d8',         // Snowy hills
-        [BiomeType.SCRUB]: '#c0d0e0',         // Light snow on scrubland
-        [BiomeType.TAIGA]: '#b8ccd8',         // Heavy snow on temperate taiga
-        [BiomeType.ALPINE_MEADOW]: '#c0d4e4', // Snow-covered alpine meadow
-        [BiomeType.FARMLAND]: '#c8d8e8',      // Snow on fields
-        [BiomeType.RIVERBANK]: '#b8c8d8',     // Partially frozen riverbank
-        [BiomeType.WETLANDS]: '#b0c0d0',      // Frozen wetlands
+        [BiomeType.GRASSLAND]: '#d8d4ce',     // Light snow on grass (warm light gray)
+        [BiomeType.FOREST]: '#c4bfb8',        // Snow-dusted forest (warm medium gray)
+        [BiomeType.DENSE_FOREST]: '#b8b3ac',  // More snow in dense forest (warm darker gray)
+        [BiomeType.HILLS]: '#ccc8c2',         // Snowy hills (warm stone)
+        [BiomeType.MOUNTAIN]: '#f4f2f0',      // Snow-covered mountains (bright warm white)
+        [BiomeType.SCRUB]: '#dcd8d2',         // Light snow on scrubland (warm light)
+        [BiomeType.TAIGA]: '#c8c4be',         // Heavy snow on temperate taiga (medium warm)
+        [BiomeType.ALPINE_MEADOW]: '#d4d0ca', // Snow-covered alpine meadow (warm pearl)
+        [BiomeType.FARMLAND]: '#d8d4ce',      // Snow on fields (warm light gray)
+        [BiomeType.RIVERBANK]: '#c8c4be',     // Partially frozen riverbank (medium warm)
+        [BiomeType.WETLANDS]: '#c0bcb6',      // Frozen wetlands (warm gray-brown)
+    };
+
+    // Winter colors for semitropical climates - occasional snow on highest peaks only
+    const winterSemitropicalMapping: Partial<Record<BiomeType, string>> = {
+        [BiomeType.MOUNTAIN]: '#ece8e2',      // Light snow on high mountains (light warm)
+        [BiomeType.HIGH_PEAK]: '#f4f2f0',     // Snow on highest peaks (bright warm white)
     };
 
     // Winter colors for Mediterranean climates - occasional snow at higher elevations
     const winterMediterraneanMapping: Partial<Record<BiomeType, string>> = {
-        [BiomeType.MOUNTAIN]: '#a8b8c8',      // Snow-capped peaks
-        [BiomeType.HIGH_PEAK]: '#c0d0e0',     // Heavy snow on peaks
-        [BiomeType.ALPINE_MEADOW]: '#98b8d0', // Light snow on high meadows
+        [BiomeType.MOUNTAIN]: '#f0ede8',      // Snow-capped peaks (warm white)
+        [BiomeType.HIGH_PEAK]: '#f8f6f4',     // Heavy snow on peaks (bright warm white)
+        [BiomeType.ALPINE_MEADOW]: '#c0bcb6', // Light snow on high meadows (warm gray)
         [BiomeType.HILLS]: '#7a9068',         // Some snow patches on high hills
         [BiomeType.TAIGA]: '#88a898',         // Light frost on Mediterranean conifers
     };
@@ -541,7 +549,7 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         return shadeColorHSL(blendColors(riverColor, shallowOceanColor, 0.7), 1.05); // More oceanic and lighter
     }
     
-    // Climate-specific wetlands colors
+    // Climate-specific wetlands colors with seasonal variation
     if (currentBiome === BiomeType.WETLANDS) {
         switch(climate) {
             case ClimateType.TROPICAL:
@@ -549,11 +557,15 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
             case ClimateType.SEMITROPICAL:
                 return '#5a6e48'; // Green similar to riverbank but deeper and brownish
             case ClimateType.TEMPERATE:
-                return '#606850'; // Slightly brownish green
+                return season === 'summer' ? '#5a7048' : // Greener in summer
+                       season === 'spring' ? '#5a7048' : // Green in spring
+                       '#606850'; // Brownish green in winter/fall
             case ClimateType.ARID:
                 return '#7a7058'; // Gray-brown with hint of green
             case ClimateType.COLD:
-                return '#9a9088'; // Drab gray (original color, works well)
+                return season === 'summer' ? '#6a7858' : // Much greener in summer
+                       season === 'spring' ? '#7a8060' : // Green in spring
+                       '#9a9088'; // Drab gray in winter/fall
             case ClimateType.MEDITERRANEAN:
                 return season === 'winter' ? '#5a6848' : // Greener in winter
                        season === 'spring' ? '#6a7250' : // Still green
@@ -570,6 +582,9 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
     } else if (climate === ClimateType.TEMPERATE && season === 'winter' && winterTemperateMapping[currentBiome]) {
         // Winter snow for temperate climates
         baseColorHex = winterTemperateMapping[currentBiome]!;
+    } else if (climate === ClimateType.SEMITROPICAL && season === 'winter' && winterSemitropicalMapping[currentBiome]) {
+        // Winter snow for semitropical climates (only highest peaks)
+        baseColorHex = winterSemitropicalMapping[currentBiome]!;
     } else if (climate === ClimateType.MEDITERRANEAN && season === 'winter' && winterMediterraneanMapping[currentBiome]) {
         // Winter snow for Mediterranean climates (mainly high elevations)
         baseColorHex = winterMediterraneanMapping[currentBiome]!;
@@ -584,36 +599,48 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         // Dead grass color in summer for non-arid/mediterranean climates
         baseColorHex = '#a8a060';
     }
-    // Tundra with snow in cold climates
+    // Tundra with snow in cold climates - warmer whites, only winter/spring snow
     else if (currentBiome === BiomeType.TUNDRA) {
-        if (climate === ClimateType.COLD && season && ['winter', 'spring', 'fall'].includes(season)) {
-            baseColorHex = '#e8e8e8'; // Mostly white with snow patches
+        if (climate === ClimateType.COLD && season && ['winter', 'spring'].includes(season)) {
+            baseColorHex = '#f0ede8'; // Mostly warm white with snow patches
+        } else if (climate === ClimateType.COLD && season === 'summer') {
+            baseColorHex = '#98a090'; // Summer tundra - greenish gray moss
         } else if (climate === ClimateType.TEMPERATE && season === 'winter') {
-            baseColorHex = '#d0d0d0'; // Snow patches in winter for temperate
+            baseColorHex = '#dcd8d2'; // Snow patches in winter for temperate (warm gray)
         } else {
             baseColorHex = BIOME_COLORS[currentBiome];
         }
     }
-    // Special handling for TAIGA - always shows significant snow in cold/temperate winters
+    // Special handling for TAIGA - shows snow in winter/spring only
     else if (currentBiome === BiomeType.TAIGA) {
-        if (climate === ClimateType.COLD && season && ['winter', 'spring', 'fall'].includes(season)) {
-            baseColorHex = '#d4e0e8'; // Heavy snow
+        if (climate === ClimateType.COLD && season === 'winter') {
+            baseColorHex = '#e0dcd6'; // Heavy snow (warm white)
+        } else if (climate === ClimateType.COLD && season === 'spring') {
+            baseColorHex = '#c8d0c8'; // Light snow with green showing through
         } else if (climate === ClimateType.TEMPERATE && season === 'winter') {
-            baseColorHex = '#b8ccd8'; // Moderate snow
+            baseColorHex = '#c8c4be'; // Moderate snow (warm medium gray)
         } else {
             baseColorHex = BIOME_COLORS[currentBiome] || '#4a6050';
         }
     }
-    // Special handling for ALPINE_MEADOW - always snowy in winter/cold seasons
+    // Special handling for ALPINE_MEADOW - snowy in winter/spring, flowery in summer/fall
     else if (currentBiome === BiomeType.ALPINE_MEADOW) {
-        if (climate === ClimateType.COLD && season && ['winter', 'spring', 'fall'].includes(season)) {
-            baseColorHex = '#dce8f0'; // Very snowy
+        if (climate === ClimateType.COLD && season && ['winter', 'spring'].includes(season)) {
+            baseColorHex = '#e8e4de'; // Very snowy (warm light)
+        } else if (climate === ClimateType.COLD && season === 'summer') {
+            baseColorHex = '#77a842'; // Vibrant green like riverbank - summer wildflowers
+        } else if (climate === ClimateType.COLD && season === 'fall') {
+            baseColorHex = '#88b04a'; // Slightly brighter green - fall wildflowers
         } else if (climate === ClimateType.TEMPERATE && season === 'winter') {
-            baseColorHex = '#c0d4e4'; // Snowy
+            baseColorHex = '#d4d0ca'; // Snowy (warm pearl)
+        } else if (climate === ClimateType.TEMPERATE && season === 'summer') {
+            baseColorHex = '#7ab844'; // Bright green - temperate summer flowers
+        } else if (climate === ClimateType.TEMPERATE && season === 'fall') {
+            baseColorHex = '#84b850'; // Golden-green - fall flowers
         } else if (climate === ClimateType.MEDITERRANEAN && season === 'winter') {
-            baseColorHex = '#98b8d0'; // Light snow
+            baseColorHex = '#c0bcb6'; // Light snow (warm gray)
         } else {
-            baseColorHex = BIOME_COLORS[currentBiome] || '#68a868';
+            baseColorHex = '#77a842'; // Default to vibrant riverbank green
         }
     } else {
         baseColorHex = BIOME_COLORS[currentBiome] || '#ff00ff';
@@ -710,25 +737,6 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
     }
     
     let finalColorHex = getTileColorVariation(baseColorHex, tile.x, tile.y, seed);
-
-    // Add subtle blue shadows and variation to winter tiles
-    if (shouldApplyWinterColors && winterColdMapping[currentBiome]) {
-        // Add subtle bluish shadow variations for depth
-        const noise = new ValueNoise(seed + tile.x * 17 + tile.y * 23);
-        const shadowNoise = noise.noise(tile.x * 0.1, tile.y * 0.1);
-        
-        // Apply subtle blue shadow based on noise
-        if (shadowNoise < 0.3) {
-            const rgb = hexToRgb(finalColorHex);
-            if (rgb) {
-                // Slightly reduce red/green, enhance blue for shadow effect
-                rgb.r = Math.max(0, rgb.r - 5);
-                rgb.g = Math.max(0, rgb.g - 5);
-                rgb.b = Math.min(255, rgb.b + 3);
-                finalColorHex = rgbToString(rgb);
-            }
-        }
-    }
 
     // Make arid climates warmer and more saturated
     if (climate === ClimateType.ARID) {

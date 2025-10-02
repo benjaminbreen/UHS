@@ -86,7 +86,22 @@ export function extractBounds(space: any): SpaceBounds {
         };
     }
 
-    throw new Error('[NpcPositionCalculator] Unable to extract bounds from space object');
+    console.error('[NpcPositionCalculator] Unable to extract bounds from space object:', {
+        space,
+        hasBounds: !!space.bounds,
+        hasXY: 'x' in space && 'y' in space,
+        keys: Object.keys(space || {})
+    });
+
+    // Return a minimal fallback bounds instead of throwing
+    // This prevents the entire interior generation from failing
+    console.warn('[NpcPositionCalculator] Using fallback minimal bounds (5x5 at origin)');
+    return {
+        x: 5,
+        y: 5,
+        width: 5,
+        height: 5
+    };
 }
 
 /**
@@ -169,6 +184,14 @@ export function calculatePreferredPosition(
     bounds: SpaceBounds,
     preference: PositionPreference
 ): { x: number; y: number } {
+    // Defensive check: ensure bounds has all required properties
+    if (bounds.x === undefined || bounds.y === undefined ||
+        bounds.width === undefined || bounds.height === undefined ||
+        isNaN(bounds.x) || isNaN(bounds.y) || isNaN(bounds.width) || isNaN(bounds.height)) {
+        console.error('[NpcPositionCalculator] Invalid bounds received:', bounds);
+        throw new Error(`[NpcPositionCalculator] Invalid bounds: x=${bounds.x}, y=${bounds.y}, width=${bounds.width}, height=${bounds.height}`);
+    }
+
     let baseX: number;
     let baseY: number;
 

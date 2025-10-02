@@ -27,6 +27,7 @@ export * from './societal'; // NEW: Export societal profiles
 export * from './goals'; // NEW: Export goal types
 export * from './diseaseTypes'; // NEW: Export disease types
 export * from './vesselTypes'; // NEW: Export vessel types
+export * from './regionalHistory'; // NEW: Export regional history types
 
 // Removed export of deleted SimplifiedArchetype - now using SpecialMapArchetype
 
@@ -138,6 +139,8 @@ export interface DialogueEntry {
     text: string;
     timestamp: Date;
     typed?: boolean;
+    translations?: Record<string, string>; // Foreign word translations: { "manoomin": "wild rice" }
+    language?: string; // Native language name (e.g., "Proto-Algonquian")
 }
 
 

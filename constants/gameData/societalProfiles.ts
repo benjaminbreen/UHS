@@ -26,8 +26,8 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.PREHISTORY]: {
             isAgricultural: false,
             isPastoral: true,
-            allowedStructures: ['encampment', 'fishing_hut'],
-            allowedMineTypes: ['FLINT', 'CLAY', 'STONE', 'OCHRE'],
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Hillfort', 'Enclosure'],
             holyPlaceNames: ['Stone Circle', 'Sacred Grove', 'Burial Mound'],
             palaceNames: ["Chieftain's Hut"],
@@ -145,6 +145,31 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         }
     },
     EAST_ASIAN: {
+        [HistoricalEra.PREHISTORY]: {
+            isAgricultural: false, // Default false for East Asian prehistory
+            isPastoral: true,
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedMineTypes: [], // No mining in prehistory, only quarrying
+            fortressNames: ['Enclosure', 'Fortified Village'],
+            holyPlaceNames: ['Sacred Grove', 'Shrine', 'Burial Mound'],
+            palaceNames: ["Chieftain's House", 'Great Hall'],
+            ruinNames: ['Ancient Camp', 'Old Settlement'],
+            // Region-specific overrides for early agricultural centers
+            regionOverrides: {
+                // Yellow River Valley civilization - allow farming
+                'Yellow River Valley': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'North China Plain': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Loess Plateau': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Beijing Basin': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                // Yangtze Valley - allow farming
+                'Yangtze Delta': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Yangtze Gorges': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] }
+            },
+            courtRoles: {
+                palace: ['Tribal Chief', 'Elder', 'Shaman', 'Lead Hunter'],
+                holy_site: ['Shaman', 'Spirit Medium', 'Keeper of Ancestors']
+            }
+        },
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: true,
@@ -190,14 +215,27 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
     },
     MENA: {
         [HistoricalEra.PREHISTORY]: {
-            isAgricultural: true,
+            isAgricultural: false, // Default false for MENA prehistory
             isPastoral: true,
-            allowedStructures: ['encampment', 'farm'],
-            allowedMineTypes: ['CLAY', 'STONE', 'COPPER'],
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Mud Brick Wall', 'Settlement'],
             holyPlaceNames: ['Shrine', 'Ziggurat'],
             palaceNames: ["Chieftain's House"],
             ruinNames: ['Ancient Camp Site', 'Collapsed Hut'],
+            // Region-specific overrides for early agricultural centers
+            regionOverrides: {
+                // Mesopotamia regions - allow farming
+                'Mesopotamian Lowlands': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Tigris-Euphrates Valley': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Zagros Foothills': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Fertile Crescent': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                // Egypt regions - allow farming
+                'Nile Delta': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Nile Valley': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Upper Nile': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Lower Nile': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] }
+            },
             courtRoles: {
                 palace: ['Headman', 'Elder Council', 'Lead Warrior'],
                 holy_site: ['Priest-King', 'Temple Attendant']
@@ -466,42 +504,106 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
     },
     OCEANIA: {
         [HistoricalEra.PREHISTORY]: {
-            isAgricultural: false,
+            isAgricultural: false, // Default false - most of Oceania was hunter-gatherer
             isPastoral: false,
-            allowedStructures: ['fishing_hut', 'encampment'],
-            allowedMineTypes: ['STONE', 'CLAY', 'OCHRE', 'FLINT'],
+            allowedStructures: ['fishing_hut', 'encampment', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Pa', 'Fortified Village'],
-            holyPlaceNames: ['Sacred Site', 'Marae', 'Stone Platform'],
-            palaceNames: ["Chief's Hut", 'Great House'],
-            ruinNames: ['Ancient Camp', 'Old Settlement'],
+            holyPlaceNames: ['Sacred Site', 'Marae', 'Stone Platform', 'Dreaming Site'],
+            palaceNames: ["Chief's Hut", 'Great House', "Elder's Camp"],
+            ruinNames: ['Ancient Camp', 'Old Settlement', 'Rock Shelter'],
+            // Region-specific overrides - Polynesian regions allow farming
+            regionOverrides: {
+                // Polynesian regions - agricultural
+                'Society Islands': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Marquesas': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Samoa Archipelago': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Tonga Ridge': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Rapa Nui': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                // New Zealand Maori - agricultural
+                'Canterbury Plains': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                "Hawke's Bay": { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Wellington Coast': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                // Hawaii - agricultural
+                'Big Island Highlands': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Maui Slopes': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Oahu Basin': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Kauai Valleys': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                // New Guinea - agricultural
+                'Sepik River Basin': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Highlands of Papua': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                // Australian regions remain non-agricultural (not listed)
+            },
             courtRoles: {
-                palace: ['Ariki (Chief)', 'Tohunga (Priest)', 'Rangatira (Noble)', 'Warrior'],
-                holy_site: ['Tohunga', 'Keeper of Lore', 'Sacred Guardian']
+                palace: ['Ariki (Chief)', 'Tohunga (Priest)', 'Rangatira (Noble)', 'Elder', 'Warrior'],
+                holy_site: ['Tohunga', 'Keeper of Lore', 'Sacred Guardian', 'Songline Keeper']
             }
         },
         [HistoricalEra.ANTIQUITY]: {
-            isAgricultural: true,
+            isAgricultural: false, // Default false - Australia remains hunter-gatherer
             isPastoral: false,
-            allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site'],
+            allowedStructures: ['fishing_hut', 'encampment', 'holy_site', 'quarry'],
             allowedMineTypes: ['STONE', 'CLAY', 'OCHRE', 'JADE'],
             fortressNames: ['Pa', 'Hill Fort', 'Coastal Fort'],
-            holyPlaceNames: ['Marae', 'Heiau', 'Sacred Grove', 'Stone Platform'],
-            palaceNames: ["Chief's Compound", 'Royal Hale', 'Great House'],
-            ruinNames: ['Ancient Marae', 'Old Pa Site', 'Abandoned Village'],
+            holyPlaceNames: ['Marae', 'Heiau', 'Sacred Grove', 'Stone Platform', 'Dreaming Site'],
+            palaceNames: ["Chief's Compound", 'Royal Hale', 'Great House', "Elder's Ground"],
+            ruinNames: ['Ancient Marae', 'Old Pa Site', 'Abandoned Village', 'Ancient Camp'],
+            // Region-specific overrides - Polynesian/Melanesian regions allow farming
+            regionOverrides: {
+                // Polynesian regions - agricultural
+                'Society Islands': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Marquesas': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Samoa Archipelago': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Tonga Ridge': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Rapa Nui': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                // New Zealand - agricultural
+                'Canterbury Plains': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                "Hawke's Bay": { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Wellington Coast': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                // Hawaii - agricultural
+                'Big Island Highlands': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Maui Slopes': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Oahu Basin': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Kauai Valleys': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                // New Guinea - agricultural
+                'Sepik River Basin': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] },
+                'Highlands of Papua': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site', 'quarry'] }
+            },
             courtRoles: {
-                palace: ["Ali'i (Chief)", 'Kahuna (Priest)', 'Navigator', 'Master Fisherman'],
-                holy_site: ['Kahuna Nui', 'Temple Keeper', 'Sacred Chanter']
+                palace: ["Ali'i (Chief)", 'Kahuna (Priest)', 'Navigator', 'Master Fisherman', 'Elder'],
+                holy_site: ['Kahuna Nui', 'Temple Keeper', 'Sacred Chanter', 'Keeper of Dreamtime']
             }
         },
         [HistoricalEra.MEDIEVAL]: {
-            isAgricultural: true,
+            isAgricultural: false, // Default false for Australia
             isPastoral: false,
-            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site'],
+            allowedStructures: ['fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'],
             allowedMineTypes: ['STONE', 'CLAY', 'JADE', 'OBSIDIAN'],
             fortressNames: ['Pa', 'Fortified Village', 'Coastal Stronghold'],
-            holyPlaceNames: ['Marae', 'Heiau', 'Temple Platform', 'Sacred Grove'],
+            holyPlaceNames: ['Marae', 'Heiau', 'Temple Platform', 'Sacred Grove', 'Bora Ground'],
             palaceNames: ['Royal Compound', "Paramount Chief's Residence", 'Great House'],
-            ruinNames: ['Ancient Temple', 'Ruined Pa', 'Old Marae'],
+            ruinNames: ['Ancient Temple', 'Ruined Pa', 'Old Marae', 'Abandoned Camp'],
+            // Region-specific overrides
+            regionOverrides: {
+                // Polynesian regions - agricultural
+                'Society Islands': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Marquesas': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Samoa Archipelago': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Tonga Ridge': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Rapa Nui': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                // New Zealand - agricultural
+                'Canterbury Plains': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                "Hawke's Bay": { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Wellington Coast': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                // Hawaii - agricultural
+                'Big Island Highlands': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Maui Slopes': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Oahu Basin': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Kauai Valleys': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                // New Guinea - agricultural
+                'Sepik River Basin': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] },
+                'Highlands of Papua': { isAgricultural: true, allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'] }
+            },
             courtRoles: {
                 palace: ['Paramount Chief', 'War Chief', 'High Navigator', 'Royal Genealogist', 'Master Craftsman'],
                 holy_site: ['High Priest', 'Temple Guardian', 'Keeper of Sacred Knowledge', 'Ritual Specialist']

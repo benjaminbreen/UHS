@@ -17,7 +17,7 @@ interface LiminalTravelState {
 }
 
 const getInitialDate = (): GameDate => {
-    const randomYear = Math.floor(Math.random() * (2050 - -700 + 1)) - 700;
+    const randomYear = Math.floor(Math.random() * (2050 - -3000 + 1)) - 3000;
     const randomMonth = Math.floor(Math.random() * 12) + 1;
     const maxDaysInMonth = getDaysInMonth(randomYear, randomMonth);
     const randomDay = Math.floor(Math.random() * maxDaysInMonth) + 1;

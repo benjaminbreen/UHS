@@ -163,6 +163,30 @@ class DialectContinuumService {
     }
 
     /**
+     * Extract foreign words from text that contains italicized foreign words (*word*)
+     * Returns array of foreign words without asterisks
+     */
+    extractForeignWords(text: string): string[] {
+        const foreignWords: string[] = [];
+        const regex = /\*([^*]+)\*/g;
+        let match;
+
+        while ((match = regex.exec(text)) !== null) {
+            foreignWords.push(match[1]);
+        }
+
+        return foreignWords;
+    }
+
+    /**
+     * Extract foreign words with their context for translation mapping
+     * Returns a Set to avoid duplicates
+     */
+    extractUniqueForeignWords(text: string): Set<string> {
+        return new Set(this.extractForeignWords(text));
+    }
+
+    /**
      * Generate a prompt instruction for LLM-based language mixing
      */
     generateLLMPrompt(nativeLanguage: string, percentage?: number): string {

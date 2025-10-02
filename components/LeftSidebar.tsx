@@ -27,7 +27,6 @@ import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
 import { primarySourceService } from '../services/primarySourceService';
 import { LazyPortrait } from './portraits';
-import { CityHistoricalModal } from './CityHistoricalModal';
 import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
 import { languageVisualizationService } from '../services/languageVisualizationService';
 import { LanguageFamilyTree } from './LanguageFamilyTree';
@@ -196,7 +195,8 @@ const LeftSidebar: React.FC<{
     activeLens, setActiveLens,
     setInfoModalTarget, infoModalTarget, useLlmForDescriptions,
     setIsMapDetailsModalOpen, setStructureModalTarget, setActivePoi,
-    inMiningRoguelike
+    inMiningRoguelike,
+    setCityHistoricalModalData
   } = useUI();
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
@@ -208,8 +208,6 @@ const LeftSidebar: React.FC<{
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [npcQuery, setNpcQuery] = useState<string>('');
-  const [showCityModal, setShowCityModal] = useState<boolean>(false);
-  const [selectedCity, setSelectedCity] = useState<{ name: string; description: string } | null>(null);
 
   // Language tree modal state
   const [showLanguageTree, setShowLanguageTree] = useState(false);
@@ -220,7 +218,7 @@ const LeftSidebar: React.FC<{
   // Memoize main container className for performance
   const sidebarClassName = useMemo(() =>
     getSafariOptimizedClassName(
-      `relative flex-shrink-0 bg-slate-900/95 dark:bg-slate-950/95 border-r border-slate-700/80 flex flex-col text-slate-200 h-full`
+      `relative flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient border-r border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 h-full flex flex-col`
     ), []);
 
   /* ----- formatters ----- */
@@ -754,8 +752,10 @@ const LeftSidebar: React.FC<{
                   <div
                     className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4 cursor-pointer hover:bg-cyan-800/30 hover:border-cyan-600/40"
                     onClick={() => {
-                      setSelectedCity(majorCity);
-                      setShowCityModal(true);
+                      setCityHistoricalModalData({
+                        cityName: majorCity.name,
+                        cityDescription: majorCity.description
+                      });
                     }}
                     title="Click to explore historical details"
                   >
@@ -1124,13 +1124,28 @@ const LeftSidebar: React.FC<{
           </div>
 
           {/* Major tabs */}
-          <div className="flex mb-2 bg-slate-800/60 rounded-lg p-1 border border-slate-700/50 gap-1">
-            {majorTabs.map(tab => (
-              <button key={tab.id} onClick={() => setActiveMajorTab(tab.id)}
-                className={`flex-1 py-2.5 px-2 text-center text-sm font-semibold rounded-md transition-colors ${activeMajorTab === tab.id ? `${tab.color} text-white ring-2 ring-white/20` : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`} >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex mb-2 bg-slate-800 border border-slate-600/60 rounded-xl p-1 gap-1">
+            {majorTabs.map(tab => {
+              const isActive = activeMajorTab === tab.id;
+              const gradientMap: Record<string, string> = {
+                'bg-amber-600': 'from-amber-600 to-amber-700 shadow-amber-600/30',
+                'bg-blue-600': 'from-blue-600 to-blue-700 shadow-blue-600/30',
+                'bg-purple-600': 'from-purple-600 to-purple-700 shadow-purple-600/30'
+              };
+              const gradient = gradientMap[tab.color] || 'from-blue-600 to-blue-700 shadow-blue-600/30';
+
+              return (
+                <button key={tab.id} onClick={() => setActiveMajorTab(tab.id)}
+                  className={`flex-1 py-2.5 px-2 text-center text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
+                    isActive
+                      ? `text-white bg-gradient-to-r ${gradient} shadow-lg transform scale-105`
+                      : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
+                  }`}
+                >
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1158,17 +1173,6 @@ const LeftSidebar: React.FC<{
         </div>
       </div>
     </div>
-
-      {/* City Historical Modal */}
-      {showCityModal && selectedCity && (
-        <CityHistoricalModal
-          isOpen={showCityModal}
-          onClose={() => setShowCityModal(false)}
-          cityName={selectedCity.name}
-          cityDescription={selectedCity.description}
-          nearbyNpcs={npcs}
-        />
-      )}
 
       {/* Language Family Tree Modal */}
       {showLanguageTree && selectedLanguageId && (

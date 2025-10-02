@@ -2771,15 +2771,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     east: tile.x < MAP_WIDTH_TILES - 1 ? tiles[tile.y][tile.x + 1] : undefined,
                     west: tile.x > 0 ? tiles[tile.y][tile.x - 1] : undefined,
                   };
-                  
+
+                  // Get cultural zone for paddock styling
+                  const { year } = parseDateString(mapData.timeSlice || '1650');
+                  const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', year);
+
                   return (
-                    <PaddockSymbol 
-                      key={`paddock-${tile.x}-${tile.y}`} 
-                      x={symbolX} 
-                      y={symbolY} 
-                      size={TILE_SIZE_PX} 
-                      tile={tile} 
+                    <PaddockSymbol
+                      key={`paddock-${tile.x}-${tile.y}`}
+                      x={symbolX}
+                      y={symbolY}
+                      size={TILE_SIZE_PX}
+                      tile={tile}
                       adjacentTiles={adjacentTiles}
+                      culturalZone={culturalZone}
                     />
                   );
                 })}

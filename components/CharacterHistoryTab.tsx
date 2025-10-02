@@ -74,6 +74,7 @@ interface CharacterHistoryTabProps {
   character: PlayerCharacter;
   expandedLifeEvents: LifeEvent[];
   lifeEventsGenerated: boolean;
+  lifeEventsLoading: boolean;
   findFamilyEvents: (name: string) => LifeEvent[];
   scrollToEvent: (year: number) => void;
   timelineRef: React.RefObject<HTMLDivElement>;
@@ -84,11 +85,24 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
   character,
   expandedLifeEvents,
   lifeEventsGenerated,
+  lifeEventsLoading,
   findFamilyEvents,
   scrollToEvent,
   timelineRef,
   highlightedEventYear
 }) => {
+  // Show loading state while Web Worker generates life events
+  if (lifeEventsLoading || !expandedLifeEvents || expandedLifeEvents.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Generating life events in background...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Generate siblings from family data
   const siblings = (character.family || []).filter(
     f => f.relation === 'brother' || f.relation === 'sister'
