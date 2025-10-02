@@ -3,7 +3,7 @@ import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
 import { themeService } from '../services/themeService';
 import { gameSounds } from '../services/gameSoundsService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
@@ -21,6 +21,9 @@ import { FishingDataService, FishSpecies } from '../services/fishingDataService'
 import { ClimateType } from '../types/biomes/climate';
 import { SavedGamesModal } from './SavedGamesModal';
 import { SavedGame } from '../services/saveGameService';
+import { shareableStateService } from '../services/shareableStateService';
+import { SeedManager } from '../services/seedService';
+import { findZoneForMapArea } from '../services/zoneDetectionService';
 import SoundTestPanel from './SoundTestPanel';
 import IconTestPanel from './IconTestPanel';
 import { PrimarySourcesDevPanel } from './PrimarySourcesDevPanel';
@@ -132,6 +135,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showCityMap, setShowCityMap] = useState(false);
   const [showHexWorldMap, setShowHexWorldMap] = useState(false);
   const [showHexWorldGlobe, setShowHexWorldGlobe] = useState(false);
+
+  // Share URL state
+  const [shareableURL, setShareableURL] = useState('');
+  const [copiedShareURL, setCopiedShareURL] = useState(false);
 
   // Developer testing panels
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
@@ -521,6 +528,104 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <p className="mt-2 text-xs text-slate-400">
                 Save your current game or load a previously saved game. Up to 10 saves stored locally.
               </p>
+            </div>
+
+            {/* Share URL Section */}
+            <div className="mt-3 p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <button
+                onClick={() => {
+                  if (!shareableURL && playerCharacter && currentYear && currentZone) {
+                    // Generate shareable URL
+                    const gameSeed = SeedManager.getInstance().getSeed();
+                    const gameMode = localStorage.getItem('currentGameMode') || 'survival';
+
+                    let finalZone = currentZone;
+                    let finalRegion = '';
+
+                    if (playerLocation) {
+                      const detected = findZoneForMapArea(playerLocation);
+                      if (detected) {
+                        finalZone = detected.zone;
+                        finalRegion = detected.region;
+                      }
+                    }
+
+                    const shareableState = {
+                      year: currentYear,
+                      month: 1,
+                      day: 1,
+                      mapArea: playerLocation || 'Unknown',
+                      zone: finalZone,
+                      region: finalRegion,
+                      gameMode: gameMode,
+                      character: {
+                        name: playerCharacter.name,
+                        profession: playerCharacter.occupation || playerCharacter.profession || 'traveler',
+                        gender: (playerCharacter.gender?.toLowerCase() as 'male' | 'female') || 'male',
+                        age: playerCharacter.age || 25,
+                        socialClass: playerCharacter.class || 'commoner',
+                        health: playerCharacter.diseaseHealth?.overallHealthStatus || 'healthy'
+                      },
+                      mapSeed: gameSeed,
+                      scenarioType: 'procedural' as const,
+                      version: '2.0'
+                    };
+
+                    const url = shareableStateService.generateShareableURL(shareableState);
+                    setShareableURL(url);
+                  } else {
+                    setShareableURL('');
+                  }
+                }}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-md hover:from-blue-700 hover:to-cyan-700 flex items-center justify-center gap-2"
+              >
+                <Link className="w-4 h-4" />
+                <span>{shareableURL ? 'Hide Share Link' : 'Get Shareable Link'}</span>
+              </button>
+
+              {shareableURL && (
+                <div className="mt-3 space-y-2 animate-fade-in">
+                  <label className="text-xs font-medium text-slate-400 block">
+                    Share this URL to recreate this exact game:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={shareableURL}
+                      readOnly
+                      className="flex-1 px-3 py-2 bg-slate-900 text-slate-200 text-xs rounded border border-slate-600 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onClick={(e) => e.currentTarget.select()}
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareableURL);
+                        setCopiedShareURL(true);
+                        setTimeout(() => setCopiedShareURL(false), 2000);
+                      }}
+                      className={`px-4 py-2 rounded transition-all flex items-center gap-2 text-xs whitespace-nowrap ${
+                        copiedShareURL
+                          ? 'bg-green-600 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      {copiedShareURL ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    This link preserves: character, location, date, game mode, and map seed
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

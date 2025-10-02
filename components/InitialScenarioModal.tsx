@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
-import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import ProceduralPortrait from './portraits/ProceduralPortrait';
 import { GameDate, HistoricalEra, CulturalZone } from '../types';
 import { PlayerCharacter } from '../types/playerCharacter';
@@ -436,6 +436,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     }, []);
     const [showShareLink, setShowShareLink] = React.useState(false);
     const [shareableURL, setShareableURL] = React.useState('');
+    const [copiedToClipboard, setCopiedToClipboard] = React.useState(false);
     const [dialectContinuumEnabled, setDialectContinuumEnabled] = React.useState(true);
     const [showModeDetails, setShowModeDetails] = React.useState(false);
     const [showCharacterDetails, setShowCharacterDetails] = React.useState(false);
@@ -912,6 +913,67 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 >
                                     Begin the Simulation
                                 </button>
+
+                                {/* Share Button */}
+                                <button
+                                    onClick={() => {
+                                        setShowShareLink(!showShareLink);
+                                        setCopiedToClipboard(false);
+                                    }}
+                                    className={`w-full mt-2 px-4 py-2 bg-slate-700 hover:bg-slate-600
+                                               text-slate-200 font-medium rounded-lg transition-colors
+                                               flex items-center justify-center gap-2 text-sm md:text-base`}
+                                >
+                                    <Link className="w-4 h-4" />
+                                    {showShareLink ? 'Hide Share Link' : 'Share This Scenario'}
+                                </button>
+
+                                {/* Share URL Display */}
+                                {showShareLink && shareableURL && (
+                                    <div className="mt-3 p-3 bg-slate-800/80 rounded-lg border border-slate-600/50 animate-fade-in">
+                                        <label className="text-xs font-medium text-slate-400 block mb-2">
+                                            Share this URL to recreate this exact scenario:
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={shareableURL}
+                                                readOnly
+                                                className="flex-1 px-3 py-2 bg-slate-900 text-slate-200 text-xs md:text-sm
+                                                          rounded border border-slate-600 font-mono focus:outline-none
+                                                          focus:ring-2 focus:ring-blue-500"
+                                                onClick={(e) => e.currentTarget.select()}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(shareableURL);
+                                                    setCopiedToClipboard(true);
+                                                    // Reset after 2 seconds
+                                                    setTimeout(() => setCopiedToClipboard(false), 2000);
+                                                }}
+                                                className={`px-4 py-2 rounded transition-all flex items-center gap-2 text-sm
+                                                    ${copiedToClipboard
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                                            >
+                                                {copiedToClipboard ? (
+                                                    <>
+                                                        <Check className="w-4 h-4" />
+                                                        Copied!
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy className="w-4 h-4" />
+                                                        Copy
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-2">
+                                            This link preserves: character, location, date, game mode, and map seed
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

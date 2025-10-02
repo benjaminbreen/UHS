@@ -293,10 +293,24 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
     onFatigueChange,
     onPlayerDeath
 }) => {
+    // Map dimensions
     const MAP_WIDTH = 80;
     const MAP_HEIGHT = 40;
-    const VIEWPORT_WIDTH = 22;  // Even more zoom for better visibility
-    const VIEWPORT_HEIGHT = 12; // Even more zoom for better visibility
+    const VIEWPORT_WIDTH = 22;
+    const VIEWPORT_HEIGHT = 12;
+
+    // Game balance constants
+    const FALL_DAMAGE_MULTIPLIER = 10;
+    const FALL_DAMAGE_CAP = 80;
+    const SAFE_FALL_DISTANCE = 2;
+    const CRUSH_DAMAGE = 50;
+    const GEM_CHANCE_BASE = 0.02;
+    const GEM_CHANCE_RARE_ORE = 0.1;
+    const GEM_CHANCE_CRYSTAL = 0.3;
+    const ORE_PICKUP_RADIUS = 1; // Can pickup ore from 1 tile away
+
+    // Randomized bedrock depth (5-20 tiles deep)
+    const [bedrockDepth] = useState(() => Math.floor(Math.random() * 16) + 5);
 
     // Initialize mine map
     const [mineMap, setMineMap] = useState<MineTile[][]>(() => {
@@ -304,6 +318,17 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
         for (let y = 0; y < MAP_HEIGHT; y++) {
             const row: MineTile[] = [];
             for (let x = 0; x < MAP_WIDTH; x++) {
+                // Add bedrock layer at randomized depth
+                if (y >= bedrockDepth) {
+                    row.push({
+                        type: 'bedrock',
+                        visible: false,
+                        explored: false,
+                        durability: 999 // Unbreakable
+                    });
+                    continue;
+                }
+
                 // Create initial mine shaft entrance
                 if (y === 0 && x >= MAP_WIDTH / 2 - 2 && x <= MAP_WIDTH / 2 + 2) {
                     row.push({ type: 'empty', visible: true, explored: true });
@@ -640,16 +665,11 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
     // Handle mining action with proper direction mapping
     const handleMine = useCallback((direction: 'north' | 'south' | 'east' | 'west') => {
-        // Use current player position directly to avoid stale closure
-        const currentX = player.x;
-        const currentY = player.y;
-
         const dx = direction === 'east' ? 1 : direction === 'west' ? -1 : 0;
         const dy = direction === 'south' ? 1 : direction === 'north' ? -1 : 0;
-        const targetX = currentX + dx;
-        const targetY = currentY + dy;
+        const targetX = player.x + dx;
+        const targetY = player.y + dy;
 
-        console.log(`Mining ${direction} from (${currentX},${currentY}) to (${targetX},${targetY})`);
 
         if (targetX < 0 || targetX >= MAP_WIDTH || targetY < 0 || targetY >= MAP_HEIGHT) {
             return;
@@ -705,7 +725,9 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                     let isGem = false;
 
                     // Check for gem chance (higher at depth, higher for crystal tiles)
-                    const gemChance = targetTile.type === 'crystal' ? 0.3 : targetTile.type === 'rare_ore' ? 0.1 : 0.02;
+                    const gemChance = targetTile.type === 'crystal' ? GEM_CHANCE_CRYSTAL :
+                                     targetTile.type === 'rare_ore' ? GEM_CHANCE_RARE_ORE :
+                                     GEM_CHANCE_BASE;
                     if (mineralRoll < gemChance + (targetY / 100)) {
                         // It's a gem!
                         isGem = true;
@@ -741,10 +763,6 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                         }
                     };
 
-                    console.log(`🔍 EXPOSED ORE: ${minedItem} at (${targetX},${targetY})`);
-                    console.log(`   Type: ${newMap[targetY][targetX].type}`);
-                    console.log(`   HasPickup: ${newMap[targetY][targetX].hasPickup}`);
-                    console.log(`   PickupItem:`, newMap[targetY][targetX].pickupItem);
 
                     // Add sparkle particles for ore exposure
                     addParticle(targetX, targetY, 'sparkle');
@@ -878,9 +896,9 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                 }
             }
 
-            setMineMap(updateVisibility(currentX, currentY, newMap));
+            setMineMap(updateVisibility(player.x, player.y, newMap));
         }
-    }, [player.x, player.y, player.pickaxeLevel, player.fatigue, mineMap, mineData?.oreType, onInventoryAdd, onFatigueChange, updateVisibility]);
+    }, [player, mineMap, mineData?.oreType, onInventoryAdd, onFatigueChange, updateVisibility]);
 
     // Handle player movement
     const handleMove = useCallback((dx: number, dy: number) => {
@@ -901,7 +919,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
             // Play footstep sound based on surface type
             if (targetTile.type === 'water') {
-                gameSoundsService.playFootstepSound('sand'); // Water splashing sound
+                gameSoundsService.playWaterSound(); // Water splashing sound
             } else if (targetTile.type === 'ore_deposit' || targetTile.type === 'gem_deposit') {
                 gameSoundsService.playFootstepSound('metal'); // Metallic clink when stepping on ore
             } else {
@@ -951,8 +969,8 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                     }
 
                     // Calculate fall damage
-                    if (fallDistance > 2) {
-                        const damage = Math.min(fallDistance * 10, 80); // Cap at 80 damage
+                    if (fallDistance > SAFE_FALL_DISTANCE) {
+                        const damage = Math.min(fallDistance * FALL_DAMAGE_MULTIPLIER, FALL_DAMAGE_CAP);
                         const newHp = Math.max(0, player.hp - damage);
                         setPlayer(prev => ({ ...prev, hp: newHp }));
 
@@ -1014,7 +1032,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                         // Check if player is below falling rock
                         if (player.x === x && player.y === y + 1) {
                             // Player gets crushed!
-                            const damage = 50;
+                            const damage = CRUSH_DAMAGE;
                             const newHp = Math.max(0, player.hp - damage);
                             setPlayer(prev => ({ ...prev, hp: newHp }));
 
@@ -1204,17 +1222,35 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
         }
     }, [onPlayerDeath]);
 
-    // Handle ore pickup
+    // Handle ore pickup - checks current tile and adjacent tiles within radius
     const handlePickup = useCallback(() => {
-        const currentTile = mineMap[player.y][player.x];
-        console.log(`🎯 Attempting pickup at (${player.x},${player.y})`);
-        console.log(`   Tile type: ${currentTile.type}`);
-        console.log(`   HasPickup: ${currentTile.hasPickup}`);
-        console.log(`   PickupItem:`, currentTile.pickupItem);
+        // Check current tile first
+        let pickupTile = mineMap[player.y]?.[player.x];
+        let pickupX = player.x;
+        let pickupY = player.y;
 
-        if (currentTile.hasPickup && currentTile.pickupItem) {
-            const item = currentTile.pickupItem;
-            console.log(`✅ Pickup successful! Item:`, item);
+        // If nothing on current tile, check adjacent tiles
+        if (!pickupTile?.hasPickup) {
+            for (let dy = -ORE_PICKUP_RADIUS; dy <= ORE_PICKUP_RADIUS; dy++) {
+                for (let dx = -ORE_PICKUP_RADIUS; dx <= ORE_PICKUP_RADIUS; dx++) {
+                    const checkX = player.x + dx;
+                    const checkY = player.y + dy;
+                    if (checkX >= 0 && checkX < MAP_WIDTH && checkY >= 0 && checkY < MAP_HEIGHT) {
+                        const tile = mineMap[checkY][checkX];
+                        if (tile.hasPickup && tile.pickupItem) {
+                            pickupTile = tile;
+                            pickupX = checkX;
+                            pickupY = checkY;
+                            break;
+                        }
+                    }
+                }
+                if (pickupTile?.hasPickup) break;
+            }
+        }
+
+        if (pickupTile?.hasPickup && pickupTile.pickupItem) {
+            const item = pickupTile.pickupItem;
 
             // Play appropriate sound based on item type
             if (item.isGem) {
@@ -1311,7 +1347,7 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
 
             // Clear the pickup from the tile and make it empty
             const newMap = [...mineMap];
-            newMap[player.y][player.x] = {
+            newMap[pickupY][pickupX] = {
                 type: 'empty',
                 visible: true,
                 explored: true,
@@ -1319,6 +1355,12 @@ const MiningRoguelikeDisplay: React.FC<MiningRoguelikeDisplayProps> = ({
                 pickupItem: undefined
             };
             setMineMap(newMap);
+
+            // Show message with distance if not on current tile
+            const distance = Math.abs(pickupX - player.x) + Math.abs(pickupY - player.y);
+            if (distance > 0) {
+                setMessages(prev => [...prev.slice(-4), `Picked up ${item.name} from nearby!`]);
+            }
         } else {
             setMessages(prev => [...prev.slice(-4), 'Nothing to pick up here.']);
         }

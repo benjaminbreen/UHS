@@ -115,8 +115,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
             year = -year;
         }
+        if (year < -3000) return HistoricalEra.PREHISTORY;
         if (year < 500) return HistoricalEra.ANTIQUITY;
-        if (year < 1450) return HistoricalEra.MEDIEVAL; 
+        if (year < 1450) return HistoricalEra.MEDIEVAL;
         if (year < 1800) return HistoricalEra.RENAISSANCE_EARLY_MODERN;
         if (year < 1900) return HistoricalEra.INDUSTRIAL_ERA;
         return HistoricalEra.MODERN_ERA;

@@ -243,7 +243,56 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         )}
       </div>
 
-      
+      {/* Time Control Buttons */}
+      {settings.showQuickReplies && !isPlaceholderVisible && (
+        <div className="flex-shrink-0 px-3 py-2 border-t border-slate-600/30 bg-slate-800/50">
+          <p className="text-xs text-slate-400 font-semibold mb-2 flex items-center gap-1">
+            <span>⏱️</span> Quick Time Commands
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => sendQuick('rest for 1 hour')}
+              disabled={isLoading}
+              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
+                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+            >
+              Rest 1h
+            </button>
+            <button
+              onClick={() => sendQuick('rest until dawn')}
+              disabled={isLoading}
+              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
+                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+            >
+              Until Dawn
+            </button>
+            <button
+              onClick={() => sendQuick('camp for the night')}
+              disabled={isLoading}
+              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
+                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+            >
+              Camp 8h
+            </button>
+            <button
+              onClick={() => sendQuick('wait for 3 hours')}
+              disabled={isLoading}
+              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
+                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+            >
+              Wait 3h
+            </button>
+            <button
+              onClick={() => sendQuick('skip 1 day')}
+              disabled={isLoading}
+              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
+                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+            >
+              Skip Day
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* composer */}
       <div className="flex-shrink-0 flex gap-2 p-3 border-t border-slate-600/40

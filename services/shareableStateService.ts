@@ -442,6 +442,43 @@ class ShareableStateService {
       console.error('[ShareableState] Failed to save to localStorage:', error);
     }
   }
+
+  /**
+   * PHASE 3: Unified game mode restoration
+   * Single source of truth for game mode restoration from URLs
+   */
+  public setGameModeForRestoration(mode: string): void {
+    try {
+      localStorage.setItem('__restoration_gameMode', mode);
+      console.log('[Restoration] Game mode queued for restoration:', mode);
+    } catch (error) {
+      console.error('[Restoration] Failed to queue game mode:', error);
+    }
+  }
+
+  public getGameModeForRestoration(): string | null {
+    try {
+      const mode = localStorage.getItem('__restoration_gameMode');
+      if (mode) {
+        localStorage.removeItem('__restoration_gameMode'); // One-time use, auto-clean
+        console.log('[Restoration] Game mode retrieved and cleared:', mode);
+        return mode;
+      }
+      return null;
+    } catch (error) {
+      console.error('[Restoration] Failed to retrieve game mode:', error);
+      return null;
+    }
+  }
+
+  public clearGameModeRestoration(): void {
+    try {
+      localStorage.removeItem('__restoration_gameMode');
+      console.log('[Restoration] Game mode restoration cleared');
+    } catch (error) {
+      console.error('[Restoration] Failed to clear game mode:', error);
+    }
+  }
   
   /**
    * Retrieve state from localStorage

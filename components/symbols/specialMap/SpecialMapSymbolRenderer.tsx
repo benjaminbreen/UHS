@@ -182,7 +182,7 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         
       case BiomeType.PILLAR:
         // Check if this is part of a multi-tile pillar
-        console.log(`[MultiTile Debug] PILLAR tile at (${tileX}, ${tileY}) multiTileData:`, multiTileData);
+        console.log(`[MultiTile Debug] PILLAR tile at (${x}, ${y}) multiTileData:`, multiTileData);
         if (multiTileData && multiTileData.isBase) {
           // For base tiles, render the PillarBase
           console.log(`[MultiTile Debug] Rendering PillarBase with material: ${multiTileData.material}`);

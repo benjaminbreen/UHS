@@ -1879,7 +1879,97 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
             }
             break;
 
-        case BiomeType.CLIFF:
+        case BiomeType.CLIFF: {
+            // Climate-aware cliff rendering
+            const isWinter = season === 'winter';
+            const isTropical = climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL;
+            const isCold = climate === ClimateType.ARCTIC || climate === ClimateType.SUBARCTIC;
+            const isTemperate = climate === ClimateType.TEMPERATE || climate === ClimateType.CONTINENTAL;
+
+            // Determine cliff coloring based on climate and season
+            const cliffBaseColor = 'rgba(139, 69, 19, 0.3)'; // Default brown stone
+            const vegetationColor = 'rgba(34, 139, 34, 0.4)'; // Green vegetation
+            const snowColor = 'rgba(255, 255, 255, 0.7)'; // White snow
+
+            // Base rocky texture
+            for (let i = 0; i < 30; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 4 + noise.random() * 10;
+
+                ctx.fillStyle = cliffBaseColor;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Add climate-specific overlay
+            if (isTropical) {
+                // Tropical cliffs: green vegetation overlay
+                for (let i = 0; i < 40; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const size = 3 + noise.random() * 8;
+
+                    ctx.fillStyle = vegetationColor;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Add moss/lichen patches
+                for (let i = 0; i < 20; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+
+                    ctx.fillStyle = `rgba(107, 142, 35, ${0.2 + noise.random() * 0.2})`;
+                    ctx.fillRect(x, y, 5 + noise.random() * 8, 2 + noise.random() * 4);
+                }
+            } else if (isCold || (isTemperate && isWinter)) {
+                // Cold/Winter cliffs: white snow overlay
+                for (let i = 0; i < 35; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const size = 5 + noise.random() * 12;
+
+                    ctx.fillStyle = snowColor;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Add ice/frost streaks
+                for (let i = 0; i < 15; i++) {
+                    const x1 = noise.random() * PATTERN_SIZE;
+                    const y1 = noise.random() * PATTERN_SIZE;
+                    const y2 = y1 + 10 + noise.random() * 20;
+
+                    ctx.strokeStyle = `rgba(200, 220, 255, ${0.3 + noise.random() * 0.3})`;
+                    ctx.lineWidth = 2 + noise.random() * 3;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x1 + (noise.random() - 0.5) * 5, y2);
+                    ctx.stroke();
+                }
+            }
+
+            // Rock cracks and striations (all climates)
+            for (let i = 0; i < 15; i++) {
+                const x1 = noise.random() * PATTERN_SIZE;
+                const y1 = noise.random() * PATTERN_SIZE;
+                const x2 = x1 + (noise.random() - 0.5) * 30;
+                const y2 = y1 + (noise.random() - 0.5) * 30;
+
+                ctx.strokeStyle = `rgba(80, 80, 80, ${0.2 + noise.random() * 0.15})`;
+                ctx.lineWidth = 1 + noise.random() * 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            break;
+        }
+
         case BiomeType.VOLCANIC_ROCK:
             // Enhanced volcanic rock texture with lava veins and rough surfaces
             // Rough volcanic surface base
@@ -1887,20 +1977,20 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
                 const size = 4 + noise.random() * 10;
-                
+
                 ctx.fillStyle = `rgba(139, 69, 19, ${0.2 + noise.random() * 0.25})`;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
             }
-            
+
             // Volcanic veins and cracks
             for (let i = 0; i < 15; i++) {
                 const x1 = noise.random() * PATTERN_SIZE;
                 const y1 = noise.random() * PATTERN_SIZE;
                 const x2 = x1 + (noise.random() - 0.5) * 30;
                 const y2 = y1 + (noise.random() - 0.5) * 30;
-                
+
                 ctx.strokeStyle = `rgba(220, 20, 60, ${0.15 + noise.random() * 0.15})`;
                 ctx.lineWidth = 1 + noise.random() * 1.5;
                 ctx.beginPath();
@@ -1908,13 +1998,13 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, clima
                 ctx.lineTo(x2, y2);
                 ctx.stroke();
             }
-            
+
             // Rough texture spots
             for (let i = 0; i < 25; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
                 const size = 2 + noise.random() * 4;
-                
+
                 ctx.fillStyle = `rgba(105, 105, 105, ${0.3 + noise.random() * 0.2})`;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);

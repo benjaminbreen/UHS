@@ -1,8 +1,12 @@
 /**
  * components/FortressBanner.tsx - Animated pixel-art banner for fortress structures
- * 8 historical variants with deep customization and charm
+ * V2: Improved composition with climate/season awareness, better vertical layout
+ * - More sky visible (fortress centered vertically)
+ * - Fortress inset into landscape with shadows and depth
+ * - Climate/season affects landscape rendering
+ * - Matches quality of FishingHutBanner and CityBanner
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { TerrainStructure, ClimateType, Season, TimeOfDay, BiomeType } from '../types';
 
 interface FortressBannerProps {
@@ -19,8 +23,11 @@ interface FortressBannerProps {
   fortressType?: string;
 }
 
-// Fixed ground level - matching TerrainStructureBanner exactly
-const GROUND_Y = 110;
+// IMPROVED: Ground positioned lower for better sky visibility
+// Fortress will be inset slightly into ground for depth
+const GROUND_Y = 160; // Balanced to show sky but not push fortress to horizon
+const HORIZON_Y = 105; // Far background elements
+const FORTRESS_Y = 135; // Fortress base position - higher than ground for proper placement
 
 // Seeded random
 class SeededRandom {
@@ -45,53 +52,175 @@ const SKY_COLORS: Record<string, string[]> = {
   night: ['#2C3E50', '#34495E', '#4A6741']
 };
 
-// Get ground color based on climate and season
-const getGroundColor = (climate: ClimateType, season: Season): { ground: string, vegetation: string, accent: string } => {
+// IMPROVED: Get ground/landscape colors based on climate and season
+const getGroundColor = (climate: ClimateType, season: Season): {
+  ground: string;  // Main ground color
+  vegetation: string;  // Vegetation/grass color
+  accent: string;  // Secondary terrain features
+  shadow: string;  // Shadow color for depth
+  highlight: string;  // Highlight color
+} => {
   // Winter snow for cold and temperate climates
   if (season === 'winter') {
     if (climate === ClimateType.COLD) {
-      return { ground: '#F0F8FF', vegetation: '#E0E8EF', accent: '#C0D0E0' }; // Always snow
+      return {
+        ground: '#F0F8FF',
+        vegetation: '#E0E8EF',
+        accent: '#C0D0E0',
+        shadow: '#B0C5D8',
+        highlight: '#FFFFFF'
+      }; // Always snow
     }
     if (climate === ClimateType.TEMPERATE) {
-      return { ground: '#E8F0F8', vegetation: '#D0E0F0', accent: '#B0C0D0' }; // Winter snow
+      return {
+        ground: '#E8F0F8',
+        vegetation: '#D0E0F0',
+        accent: '#B0C0D0',
+        shadow: '#A0B0C0',
+        highlight: '#F5FAFF'
+      }; // Winter snow
     }
     if (climate === ClimateType.MEDITERRANEAN) {
-      return { ground: '#86EFAC', vegetation: '#22C55E', accent: '#16A34A' }; // Green in winter
+      return {
+        ground: '#9BC5A0',
+        vegetation: '#6B8E70',
+        accent: '#557A5A',
+        shadow: '#4A6850',
+        highlight: '#B5D5BA'
+      }; // Green in winter
     }
   }
-  
-  // Cold climate - always snow
+
+  // Cold climate - always snow/ice
   if (climate === ClimateType.COLD) {
-    return { ground: '#F0F8FF', vegetation: '#E0E8EF', accent: '#C0D0E0' };
+    return {
+      ground: '#F0F8FF',
+      vegetation: '#E0E8EF',
+      accent: '#C0D0E0',
+      shadow: '#B0C5D8',
+      highlight: '#FFFFFF'
+    };
   }
-  
-  // Arid climate - always desert colors
+
+  // Arid climate - desert colors with seasonal variation
   if (climate === ClimateType.ARID) {
-    return { ground: '#D2B48C', vegetation: '#CD853F', accent: '#A0826D' };
+    if (season === 'summer') {
+      return {
+        ground: '#E5D4B8',
+        vegetation: '#D9A668',
+        accent: '#C89850',
+        shadow: '#9A7A50',
+        highlight: '#F2E6D0'
+      }; // Hot, bleached sand
+    }
+    return {
+      ground: '#D2B48C',
+      vegetation: '#CD853F',
+      accent: '#A0826D',
+      shadow: '#8B7355',
+      highlight: '#E8D7C0'
+    }; // Standard desert
   }
-  
-  // Mediterranean - seasonal changes
+
+  // Mediterranean - strong seasonal changes
   if (climate === ClimateType.MEDITERRANEAN) {
     if (season === 'summer') {
-      return { ground: '#C4B5A0', vegetation: '#A08060', accent: '#8B7355' }; // Arid summer
+      return {
+        ground: '#D4C5A0',
+        vegetation: '#B8A080',
+        accent: '#9A8565',
+        shadow: '#7A6850',
+        highlight: '#E8DCC0'
+      }; // Dry, golden summer
     }
-    if (season === 'spring' || season === 'fall') {
-      return { ground: '#B4C5A0', vegetation: '#8B9070', accent: '#7A8060' }; // Yellow-green
+    if (season === 'spring') {
+      return {
+        ground: '#AAC58F',
+        vegetation: '#7AA857',
+        accent: '#5F8A45',
+        shadow: '#4A6835',
+        highlight: '#C5E0A8'
+      }; // Lush spring green
+    }
+    if (season === 'fall') {
+      return {
+        ground: '#B4A88F',
+        vegetation: '#9A8570',
+        accent: '#7A6850',
+        shadow: '#5A4A35',
+        highlight: '#D0C0A8'
+      }; // Autumn browns
     }
   }
-  
-  // Tropical - lush green with mud
+
+  // Tropical - lush green with rich earth, wet in summer
   if (climate === ClimateType.TROPICAL) {
-    return { ground: '#4A7C59', vegetation: '#059669', accent: '#047857' };
+    if (season === 'summer') {
+      return {
+        ground: '#4A7C59',
+        vegetation: '#047857',
+        accent: '#036849',
+        shadow: '#024A35',
+        highlight: '#5F9A70'
+      }; // Deep wet green
+    }
+    return {
+      ground: '#5A8C69',
+      vegetation: '#059669',
+      accent: '#047857',
+      shadow: '#035A42',
+      highlight: '#6FAA80'
+    }; // Standard tropical
   }
-  
-  // Semitropical - lush green
+
+  // Semitropical - vibrant green
   if (climate === ClimateType.SEMITROPICAL) {
-    return { ground: '#6EE7B7', vegetation: '#32CD32', accent: '#228B22' };
+    return {
+      ground: '#7ED6A4',
+      vegetation: '#32CD32',
+      accent: '#228B22',
+      shadow: '#1A6B1A',
+      highlight: '#98E6B8'
+    };
   }
-  
+
+  // Default temperate - seasonal variation
+  if (season === 'summer') {
+    return {
+      ground: '#96F5AC',
+      vegetation: '#32D550',
+      accent: '#22A540',
+      shadow: '#1A7A32',
+      highlight: '#B0FFCC'
+    }; // Bright summer green
+  }
+  if (season === 'spring') {
+    return {
+      ground: '#A0E8B0',
+      vegetation: '#40D060',
+      accent: '#28B048',
+      shadow: '#1A8035',
+      highlight: '#C0F5D0'
+    }; // Fresh spring green
+  }
+  if (season === 'fall') {
+    return {
+      ground: '#B8C098',
+      vegetation: '#8A9870',
+      accent: '#6A7850',
+      shadow: '#4A5835',
+      highlight: '#D0D8B0'
+    }; // Autumn yellow-green
+  }
+
   // Default temperate
-  return { ground: '#86EFAC', vegetation: '#22C55E', accent: '#16A34A' };
+  return {
+    ground: '#86EFAC',
+    vegetation: '#22C55E',
+    accent: '#16A34A',
+    shadow: '#107830',
+    highlight: '#A8FFCC'
+  };
 };
 
 // Guard/soldier types for different fortress variants
@@ -113,6 +242,7 @@ const getTimeOfDayCategory = (time: TimeOfDay): 'dawn' | 'day' | 'dusk' | 'night
 };
 
 // Determine fortress variant based on type, era, and culture
+// IMPROVED: Era-first logic for historical authenticity
 const getFortressVariant = (
   fortressType?: string,
   era?: string,
@@ -122,31 +252,89 @@ const getFortressVariant = (
   if (fortressType) {
     return fortressType;
   }
-  
+
   const year = parseInt(era || '1500');
   const zone = culturalZone?.toLowerCase() || 'european';
-  
-  // Era and culture-based selection
-  if (zone.includes('japan') || zone.includes('asia')) {
-    if (year >= 1400 && year <= 1600) return 'japanese-castle';
+
+  // === PREHISTORY (< -3000 BCE) ===
+  // Simple earthworks, wooden palisades, no stone construction
+  if (year < -3000) {
+    if (zone.includes('europe')) return 'earth-berm';
+    if (zone.includes('mena')) return 'earth-berm';
+    if (zone.includes('east_asian') || zone.includes('asia')) return 'palisade-fort';
+    if (zone.includes('america')) return 'palisade-fort';
+    if (zone.includes('africa')) return 'thorn-enclosure';
+    if (zone.includes('oceania')) return 'palisade-fort';
+    return 'earth-berm'; // Default prehistoric
   }
-  
-  if (zone.includes('mena') || zone.includes('arab') || zone.includes('islamic')) {
-    return 'desert-fort';
+
+  // === BRONZE AGE / EARLY ANTIQUITY (-3000 to -500 BCE) ===
+  // Mix of earthworks, early stone, wooden stockades
+  if (year < -500) {
+    if (zone.includes('europe')) return 'hill-fort'; // Celtic/Iberian hill forts
+    if (zone.includes('mena')) return 'adobe-fortress'; // Mesopotamian/Egyptian mud brick
+    if (zone.includes('east_asian') || zone.includes('asia')) return 'rammed-earth-fort'; // Chinese stamped earth
+    if (zone.includes('america')) return 'adobe-fortress'; // Adobe in Americas
+    if (zone.includes('africa')) return 'stone-enclosure'; // African stone works
+    if (zone.includes('oceania')) return 'pa-fortification'; // Maori pa
+    return 'hill-fort'; // Default bronze age
   }
-  
-  if (zone.includes('america')) {
-    if (year >= 1750 && year <= 1890) return 'frontier-fort';
-    if (year >= 1500 && year <= 1750) return 'presidio';
+
+  // === CLASSICAL ANTIQUITY (-500 BCE to 500 CE) ===
+  // Professional military architecture begins
+  if (year < 500) {
+    if (zone.includes('europe')) return 'roman-castrum'; // Roman military camps
+    if (zone.includes('mena')) return 'desert-fort'; // Nabataean/Persian forts
+    if (zone.includes('east_asian') || zone.includes('asia')) return 'rammed-earth-fort'; // Qin/Han fortifications
+    if (zone.includes('south_asian') || zone.includes('india')) return 'stone-fortress'; // Indian stone forts
+    if (zone.includes('america')) return 'adobe-fortress'; // Maya/Zapotec
+    if (zone.includes('africa')) return 'stone-fortress'; // Aksumite/Kushite
+    return 'hill-fort'; // Default classical
   }
-  
+
+  // === MEDIEVAL (500-1500 CE) ===
+  if (year >= 500 && year < 1500) {
+    // Early Medieval (500-1000)
+    if (year < 1000) {
+      if (zone.includes('europe')) return 'motte-bailey'; // Norman/Saxon
+      if (zone.includes('mena')) return 'desert-fort'; // Islamic fortifications
+      if (zone.includes('east_asian') || zone.includes('japan')) return 'japanese-castle'; // Early Japanese yamajiro
+      if (zone.includes('asia')) return 'rammed-earth-fort'; // Tang/Song fortifications
+      return 'byzantine'; // Byzantine default for this era
+    }
+
+    // High Medieval (1000-1500)
+    if (zone.includes('japan') || zone.includes('east_asian')) return 'japanese-castle';
+    if (zone.includes('mena') || zone.includes('arab') || zone.includes('islamic')) return 'desert-fort';
+    if (zone.includes('india') || zone.includes('south_asian')) return 'stone-fortress';
+    return 'medieval-castle'; // European default
+  }
+
+  // === EARLY MODERN (1500-1800) ===
+  if (year >= 1500 && year < 1800) {
+    if (zone.includes('america')) {
+      if (zone.includes('colonial')) {
+        if (year >= 1750) return 'frontier-fort'; // American frontier
+        return 'presidio'; // Spanish colonial
+      }
+      return 'adobe-fortress'; // Indigenous fortifications
+    }
+    if (zone.includes('japan')) return 'japanese-castle'; // Azuchi-Momoyama/Edo castles
+    if (zone.includes('europe')) return 'star-fort'; // Trace italienne
+    if (zone.includes('mena')) return 'desert-fort'; // Ottoman fortifications
+    return 'star-fort'; // Default early modern
+  }
+
+  // === INDUSTRIAL (1800-1950) ===
+  if (year >= 1800 && year < 1950) {
+    if (zone.includes('america') && year >= 1750 && year <= 1890) return 'frontier-fort';
+    return 'star-fort'; // Late bastioned fortifications
+  }
+
+  // === MODERN (1950+) ===
   if (year >= 1950) return 'modern-base';
-  if (year >= 1500 && year <= 1700) return 'star-fort';
-  if (year >= 1000 && year <= 1200) return 'motte-bailey';
-  if (year < 500) return 'hill-fort';
-  if (year >= 500 && year <= 1000) return 'byzantine';
-  
-  // Default to medieval castle
+
+  // Fallback to medieval castle (shouldn't reach here)
   return 'medieval-castle';
 };
 
@@ -248,39 +436,45 @@ const FortressBanner: React.FC<FortressBannerProps> = ({
     return () => clearInterval(interval);
   }, [width, variant]);
   
-  // Render sky
+  // IMPROVED: Render sky with better vertical proportions
   const renderSky = () => {
     const cloudOffset = (animationFrame * 0.1) % (width + 100);
-    
+
     return (
       <g>
         <defs>
           <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor={skyGradient[0]} />
-            <stop offset="50%" stopColor={skyGradient[1]} />
+            <stop offset="40%" stopColor={skyGradient[1]} />
             <stop offset="100%" stopColor={skyGradient[2] || skyGradient[1]} />
           </linearGradient>
         </defs>
-        <rect x="0" y="0" width={width} height="90" fill="url(#skyGradient)" />
-        
-        {/* Sun/Moon */}
+        {/* Sky now extends much lower to show more sky */}
+        <rect x="0" y="0" width={width} height={HORIZON_Y} fill="url(#skyGradient)" />
+
+        {/* Sun/Moon - positioned higher in expanded sky */}
         {todCategory === 'night' ? (
           <g>
-            <circle cx={width - 80} cy="25" r="12" fill="#F7FAFC" />
-            <circle cx={width - 77} cy="22" r="2" fill={skyGradient[0]} />
+            <circle cx={width - 80} cy="40" r="14" fill="#F7FAFC" opacity="0.95" />
+            <circle cx={width - 77} cy="37" r="2.5" fill={skyGradient[0]} />
+            <circle cx={width - 82} cy="42" r="1.5" fill={skyGradient[0]} />
           </g>
+        ) : todCategory === 'dusk' || todCategory === 'dawn' ? (
+          <circle cx={width - 80} cy="40" r="18" fill="#FF8C42" opacity="0.85" />
         ) : (
-          <circle cx={width - 80} cy="25" r="15" fill="#FDE047" />
+          <circle cx={width - 80} cy="40" r="18" fill="#FDE047" opacity="0.9" />
         )}
-        
-        {/* Clouds */}
-        {[0, 1, 2, 3].map((i) => {
-          const cloudX = -100 + cloudOffset + i * 180;
-          const cloudY = 20 + staticRng.range(-5, 10);
+
+        {/* More clouds with better depth */}
+        {todCategory !== 'night' && [0, 1, 2, 3, 4].map((i) => {
+          const cloudX = -100 + cloudOffset + i * 150;
+          const cloudY = 25 + staticRng.range(-10, 15);
+          const cloudSize = 0.8 + staticRng.range(0, 0.4);
           return (
-            <g key={i} opacity="0.8">
-              <rect x={cloudX} y={cloudY} width="16" height="8" rx="4" fill="#F1F5F9" />
-              <rect x={cloudX + 8} y={cloudY - 2} width="20" height="8" rx="4" fill="#F1F5F9" />
+            <g key={i} opacity={0.7 + staticRng.range(0, 0.2)}>
+              <rect x={cloudX} y={cloudY} width={16 * cloudSize} height={8 * cloudSize} rx="4" fill="#F1F5F9" />
+              <rect x={cloudX + 8 * cloudSize} y={cloudY - 2 * cloudSize} width={20 * cloudSize} height={8 * cloudSize} rx="4" fill="#F1F5F9" />
+              <rect x={cloudX + 12 * cloudSize} y={cloudY + 1 * cloudSize} width={12 * cloudSize} height={6 * cloudSize} rx="3" fill="#F1F5F9" />
             </g>
           );
         })}
@@ -288,44 +482,44 @@ const FortressBanner: React.FC<FortressBannerProps> = ({
     );
   };
   
-  // Render mountains/background
+  // IMPROVED: Render mountains/background positioned at horizon
   const renderBackground = () => {
-    const layers = variant === 'desert-fort' ? 
+    const layers = variant === 'desert-fort' || climate === ClimateType.ARID ?
       [
-        { color: '#D2B48C', opacity: 0.3, height: 40 },
-        { color: '#C19A6B', opacity: 0.5, height: 35 },
-        { color: '#A0826D', opacity: 0.7, height: 30 }
-      ] : nearMountains || variant === 'hill-fort' ?
+        { color: '#D2B48C', opacity: 0.25, height: 40 },
+        { color: '#C19A6B', opacity: 0.4, height: 35 },
+        { color: '#A0826D', opacity: 0.6, height: 30 }
+      ] : nearMountains || variant === 'hill-fort' || variant === 'motte-bailey' ?
       [
-        { color: '#606060', opacity: 0.3, height: 45 },
-        { color: '#4A4A4A', opacity: 0.5, height: 40 },
-        { color: '#3C3C3C', opacity: 0.7, height: 35 }
+        { color: '#707080', opacity: 0.25, height: 50 },
+        { color: '#5A5A6A', opacity: 0.4, height: 45 },
+        { color: '#4A4A5A', opacity: 0.6, height: 40 }
       ] :
       [
-        { color: '#8B9DC3', opacity: 0.3, height: 40 },
-        { color: '#6B8CAF', opacity: 0.5, height: 35 },
-        { color: '#4A6B8A', opacity: 0.7, height: 30 }
+        { color: palette.accent, opacity: 0.2, height: 35 },
+        { color: palette.vegetation, opacity: 0.35, height: 30 },
+        { color: palette.shadow, opacity: 0.5, height: 25 }
       ];
-    
+
     return (
       <g>
         {layers.map((layer, layerIndex) => {
           const points = [];
           for (let i = 0; i <= width + 40; i += 40) {
-            const baseY = 90 - layer.height;
-            const peakY = baseY - staticRng.range(5, 15);
-            
-            if (i === 0) points.push(`${i - 20},90`);
+            const baseY = HORIZON_Y - layer.height;
+            const peakY = baseY - staticRng.range(5, 20);
+
+            if (i === 0) points.push(`${i - 20},${HORIZON_Y}`);
             points.push(`${i},${baseY}`);
             points.push(`${i + 20},${peakY}`);
             points.push(`${i + 40},${baseY}`);
-            if (i >= width) points.push(`${width + 20},90`);
+            if (i >= width) points.push(`${width + 20},${HORIZON_Y}`);
           }
-          
+
           return (
             <polygon
               key={layerIndex}
-              points={points.join(' ') + ` ${width + 20},90 -20,90`}
+              points={points.join(' ') + ` ${width + 20},${HORIZON_Y} -20,${HORIZON_Y}`}
               fill={layer.color}
               opacity={layer.opacity}
             />
@@ -335,94 +529,195 @@ const FortressBanner: React.FC<FortressBannerProps> = ({
     );
   };
   
-  // Render ground
+  // IMPROVED: Render ground with transition zone, shadows, and climate-specific features
   const renderGround = () => {
     const isSnowy = (climate === ClimateType.COLD || (climate === ClimateType.TEMPERATE && season === 'winter'));
     const isDesert = climate === ClimateType.ARID || variant === 'desert-fort';
-    
+    const isTropical = climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL;
+
     return (
       <g>
-        {/* Extended ground gradient to bottom (like ocean in fishing hut) */}
+        {/* Atmospheric haze - subtle fade from horizon to sky */}
         <defs>
+          <linearGradient id="hazeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={palette.ground} stopOpacity="0.15" />
+            <stop offset="50%" stopColor={palette.accent} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={palette.ground} stopOpacity="0.75" />
+          </linearGradient>
           <linearGradient id="groundGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor={palette.ground} stopOpacity="1" />
-            <stop offset="50%" stopColor={palette.ground} stopOpacity="0.95" />
-            <stop offset="100%" stopColor={palette.accent} stopOpacity="0.9" />
+            <stop offset="80%" stopColor={palette.ground} stopOpacity="1" />
+            <stop offset="100%" stopColor={palette.shadow} stopOpacity="0.15" />
           </linearGradient>
         </defs>
-        
-        {/* Main ground extending to bottom */}
+
+        {/* Atmospheric haze band - subtle transition */}
+        <rect x="0" y={HORIZON_Y} width={width} height={GROUND_Y - HORIZON_Y} fill="url(#hazeGradient)" />
+
+        {/* Main foreground extending to bottom - MUCH softer gradient */}
         <rect x="0" y={GROUND_Y} width={width} height={height - GROUND_Y} fill="url(#groundGradient)" />
-        
-        {/* Path/road */}
-        <rect x="0" y={GROUND_Y + 8} width={width} height="4" fill="#8B4513" opacity={isSnowy ? "0.2" : "0.3"} />
-        
-        {/* Snow drifts if winter/cold */}
+
+        {/* Fortress shadow zone - positioned at fortress base */}
+        <ellipse
+          cx={width / 2}
+          cy={FORTRESS_Y + 5}
+          rx="95"
+          ry="10"
+          fill={palette.shadow}
+          opacity="0.25"
+        />
+
+        {/* Path/road approaching fortress */}
+        <path
+          d={`M ${width / 2 - 25} ${height} Q ${width / 2} ${GROUND_Y + 10} ${width / 2 + 25} ${height}`}
+          fill={isSnowy ? palette.accent : '#8B6F47'}
+          opacity={isSnowy ? "0.15" : "0.25"}
+        />
+        <path
+          d={`M ${width / 2 - 20} ${height} Q ${width / 2} ${GROUND_Y + 12} ${width / 2 + 20} ${height}`}
+          fill={isSnowy ? palette.shadow : '#6B5337'}
+          opacity={isSnowy ? "0.1" : "0.2"}
+        />
+
+        {/* Climate-specific ground features */}
         {isSnowy && (
-          Array.from({ length: 8 }, (_, i) => (
-            <ellipse
-              key={`snow-${i}`}
-              cx={i * (width / 7) + staticRng.range(-20, 20)}
-              cy={GROUND_Y + 5}
-              rx={30 + staticRng.range(-10, 10)}
-              ry="8"
-              fill="#FFFFFF"
-              opacity="0.8"
-            />
-          ))
-        )}
-        
-        {/* Desert features */}
-        {isDesert && (
           <>
-            {/* Sand dunes */}
-            {Array.from({ length: 5 }, (_, i) => (
+            {/* Snow drifts with better depth */}
+            {Array.from({ length: 12 }, (_, i) => (
               <ellipse
-                key={`dune-${i}`}
-                cx={i * (width / 4) + staticRng.range(-30, 30)}
-                cy={GROUND_Y + 8}
-                rx={40 + staticRng.range(-15, 15)}
-                ry="6"
-                fill="#D2B48C"
-                opacity="0.4"
+                key={`snow-${i}`}
+                cx={i * (width / 11) + staticRng.range(-15, 15)}
+                cy={GROUND_Y + staticRng.range(-5, 20)}
+                rx={25 + staticRng.range(-10, 15)}
+                ry={6 + staticRng.range(-2, 4)}
+                fill={palette.highlight}
+                opacity={0.7 + staticRng.range(0, 0.2)}
               />
             ))}
-            {/* Desert rocks */}
-            {Array.from({ length: 3 }, (_, i) => (
-              <rect
-                key={`rock-${i}`}
-                x={60 + i * 180 + staticRng.range(-20, 20)}
-                y={GROUND_Y + 2}
-                width={12 + staticRng.range(-4, 4)}
-                height="6"
-                fill="#A0826D"
+            {/* Ice patches */}
+            {Array.from({ length: 5 }, (_, i) => (
+              <ellipse
+                key={`ice-${i}`}
+                cx={staticRng.range(50, width - 50)}
+                cy={GROUND_Y + staticRng.range(5, 30)}
+                rx={12 + staticRng.range(0, 8)}
+                ry={4 + staticRng.range(0, 3)}
+                fill="#E0F0FF"
                 opacity="0.6"
               />
             ))}
           </>
         )}
-        
-        {/* Grass/vegetation if not snow or desert */}
-        {!isSnowy && !isDesert && Array.from({ length: width / 8 }, (_, i) => (
+
+        {isDesert && (
+          <>
+            {/* Sand dunes with proper layering */}
+            {Array.from({ length: 8 }, (_, i) => {
+              const duneX = i * (width / 7) + staticRng.range(-20, 20);
+              const duneY = GROUND_Y + staticRng.range(0, 25);
+              return (
+                <ellipse
+                  key={`dune-${i}`}
+                  cx={duneX}
+                  cy={duneY}
+                  rx={35 + staticRng.range(-10, 20)}
+                  ry={8 + staticRng.range(-2, 4)}
+                  fill={i % 2 === 0 ? palette.highlight : palette.accent}
+                  opacity={0.3 + staticRng.range(0, 0.2)}
+                />
+              );
+            })}
+            {/* Desert rocks and stones */}
+            {Array.from({ length: 6 }, (_, i) => (
+              <rect
+                key={`rock-${i}`}
+                x={staticRng.range(30, width - 30)}
+                y={GROUND_Y + staticRng.range(0, 20)}
+                width={8 + staticRng.range(-3, 6)}
+                height={5 + staticRng.range(-2, 4)}
+                fill={palette.shadow}
+                opacity={0.5 + staticRng.range(0, 0.2)}
+              />
+            ))}
+          </>
+        )}
+
+        {isTropical && (
+          <>
+            {/* Lush vegetation patches */}
+            {Array.from({ length: 10 }, (_, i) => {
+              const patchX = i * (width / 9) + staticRng.range(-10, 10);
+              const patchY = GROUND_Y + staticRng.range(-5, 15);
+              return (
+                <ellipse
+                  key={`vegetation-${i}`}
+                  cx={patchX}
+                  cy={patchY}
+                  rx={15 + staticRng.range(-5, 10)}
+                  ry={6 + staticRng.range(-2, 3)}
+                  fill={palette.accent}
+                  opacity={0.4 + staticRng.range(0, 0.2)}
+                />
+              );
+            })}
+            {/* Palm fronds or tropical plants in foreground */}
+            {Array.from({ length: 4 }, (_, i) => (
+              <g key={`plant-${i}`}>
+                <rect
+                  x={staticRng.range(20, width - 20)}
+                  y={GROUND_Y + staticRng.range(0, 20)}
+                  width="3"
+                  height={8 + staticRng.range(0, 6)}
+                  fill={palette.vegetation}
+                  opacity="0.6"
+                />
+              </g>
+            ))}
+          </>
+        )}
+
+        {/* Temperate grass/vegetation if not special climate */}
+        {!isSnowy && !isDesert && !isTropical && Array.from({ length: width / 6 }, (_, i) => (
           <rect
-            key={i}
-            x={i * 8 + staticRng.range(-2, 2)}
-            y={GROUND_Y - 2 + staticRng.range(-2, 2)}
+            key={`grass-${i}`}
+            x={i * 6 + staticRng.range(-3, 3)}
+            y={GROUND_Y + staticRng.range(-8, 12)}
             width="2"
-            height="4"
+            height={4 + staticRng.range(0, 3)}
             fill={palette.vegetation}
-            opacity="0.6"
+            opacity={0.5 + staticRng.range(0, 0.3)}
+          />
+        ))}
+
+        {/* Rocks and pebbles (all climates except desert) */}
+        {!isDesert && Array.from({ length: 8 }, (_, i) => (
+          <circle
+            key={`pebble-${i}`}
+            cx={staticRng.range(20, width - 20)}
+            cy={GROUND_Y + staticRng.range(5, 25)}
+            r={2 + staticRng.range(0, 2)}
+            fill={palette.shadow}
+            opacity={0.4 + staticRng.range(0, 0.2)}
           />
         ))}
       </g>
     );
   };
   
+  // Helper: Scale fortress coordinates
+  const scaleY = (y: number, scale: number = 1.25) => {
+    // Translate GROUND_Y references to FORTRESS_Y and scale
+    if (y <= 0) return FORTRESS_Y + (y * scale);
+    return FORTRESS_Y - (Math.abs(y) * scale);
+  };
+
   // Render fortress based on variant
   const renderFortress = () => {
     const centerX = width / 2;
-    
+    const fortressScale = 1.25; // Make all fortresses 25% bigger
+
     switch (variant) {
+      // Existing variants
       case 'medieval-castle':
         return renderMedievalCastle(centerX);
       case 'japanese-castle':
@@ -443,6 +738,27 @@ const FortressBanner: React.FC<FortressBannerProps> = ({
         return renderByzantineFortress(centerX);
       case 'presidio':
         return renderPresidio(centerX);
+
+      // NEW: Prehistoric/Bronze Age variants
+      case 'earth-berm':
+        return renderEarthBerm(centerX);
+      case 'palisade-fort':
+        return renderPalisadeFort(centerX);
+      case 'thorn-enclosure':
+        return renderThornEnclosure(centerX);
+      case 'adobe-fortress':
+        return renderAdobeFortress(centerX);
+      case 'rammed-earth-fort':
+        return renderRammedEarthFort(centerX);
+      case 'stone-enclosure':
+        return renderStoneEnclosure(centerX);
+      case 'pa-fortification':
+        return renderPaFortification(centerX);
+      case 'roman-castrum':
+        return renderRomanCastrum(centerX);
+      case 'stone-fortress':
+        return renderStoneFortress(centerX);
+
       default:
         return renderMedievalCastle(centerX);
     }
@@ -755,43 +1071,119 @@ const FortressBanner: React.FC<FortressBannerProps> = ({
     );
   };
   
-  // Hill Fort (Celtic/Ancient, 500 BC - 500 AD)
+  // Hill Fort (Celtic/Ancient, 500 BC - 500 AD) - IMPROVED
   const renderHillFort = (centerX: number) => {
+    const baseY = FORTRESS_Y;
+    const scale = 1.4; // 40% bigger for better visibility
+
     return (
       <g>
-        {/* Earthwork ramparts */}
-        <ellipse cx={centerX} cy={GROUND_Y - 8} rx="60" ry="15" fill="#8B7355" stroke="#6B5345" strokeWidth="1" />
-        <ellipse cx={centerX} cy={GROUND_Y - 10} rx="45" ry="10" fill="#9B8976" />
-        
-        {/* Wooden palisade */}
-        {Array.from({ length: 12 }, (_, i) => {
-          const angle = (i / 12) * Math.PI * 2;
-          const px = centerX + Math.cos(angle) * 40;
-          const py = GROUND_Y - 10 + Math.sin(angle) * 8;
-          return <rect key={i} x={px - 1} y={py - 10} width="2" height="10" fill="#654321" />;
+        {/* Earthwork ramparts - layered mounds */}
+        <ellipse
+          cx={centerX}
+          cy={baseY - 10 * scale}
+          rx={70 * scale}
+          ry={18 * scale}
+          fill="#8B7355"
+          stroke="#6B5345"
+          strokeWidth="1.5"
+          opacity="0.9"
+        />
+        <ellipse
+          cx={centerX}
+          cy={baseY - 14 * scale}
+          rx={55 * scale}
+          ry={13 * scale}
+          fill="#9B8976"
+          opacity="0.95"
+        />
+
+        {/* Wooden palisade - more posts for better detail */}
+        {Array.from({ length: 18 }, (_, i) => {
+          const angle = (i / 18) * Math.PI * 2;
+          const px = centerX + Math.cos(angle) * (48 * scale);
+          const py = baseY - 14 * scale + Math.sin(angle) * (10 * scale);
+          const height = 12 * scale + staticRng.range(-1, 1);
+          return (
+            <rect
+              key={`palisade-${i}`}
+              x={px - 1.2}
+              y={py - height}
+              width="2.5"
+              height={height}
+              fill="#654321"
+              stroke="#4A2810"
+              strokeWidth="0.5"
+              opacity="0.9"
+            />
+          );
         })}
-        
-        {/* Round houses */}
-        <circle cx={centerX - 15} cy={GROUND_Y - 10} r="6" fill="#A0826D" stroke="#8B4513" strokeWidth="1" />
-        <circle cx={centerX + 10} cy={GROUND_Y - 8} r="5" fill="#A0826D" stroke="#8B4513" strokeWidth="1" />
-        
-        {/* Conical roofs */}
-        <polygon points={`${centerX - 21},${GROUND_Y - 10} ${centerX - 15},${GROUND_Y - 18} ${centerX - 9},${GROUND_Y - 10}`}
-                 fill="#8B7355" stroke="#6B5345" strokeWidth="1" />
-        <polygon points={`${centerX + 5},${GROUND_Y - 8} ${centerX + 10},${GROUND_Y - 14} ${centerX + 15},${GROUND_Y - 8}`}
-                 fill="#8B7355" stroke="#6B5345" strokeWidth="1" />
-        
-        {/* Standing stone */}
-        <rect x={centerX + 30} y={GROUND_Y - 12} width="4" height="12" fill="#808080" stroke="#606060" strokeWidth="1" />
-        
-        {/* Torch flames */}
-        <rect x={centerX - 30} y={GROUND_Y - 8} width="1" height="6" fill="#654321" />
-        <ellipse cx={centerX - 29.5} cy={GROUND_Y - 9 - Math.abs(Math.sin(animationFrame * 0.1))} 
-                 rx="1.5" ry="2" fill="#FF6B6B" opacity="0.8" />
-        
-        <rect x={centerX + 25} y={GROUND_Y - 8} width="1" height="6" fill="#654321" />
-        <ellipse cx={centerX + 25.5} cy={GROUND_Y - 9 - Math.abs(Math.sin(animationFrame * 0.1 + 1))} 
-                 rx="1.5" ry="2" fill="#FF6B6B" opacity="0.8" />
+
+        {/* Round houses - bigger and more detailed */}
+        <circle cx={centerX - 18 * scale} cy={baseY - 12 * scale} r={8 * scale} fill="#A0826D" stroke="#8B4513" strokeWidth="1.5" />
+        <circle cx={centerX + 12 * scale} cy={baseY - 10 * scale} r={7 * scale} fill="#A0826D" stroke="#8B4513" strokeWidth="1.5" />
+
+        {/* Conical thatch roofs */}
+        <polygon
+          points={`${centerX - 26 * scale},${baseY - 12 * scale} ${centerX - 18 * scale},${baseY - 24 * scale} ${centerX - 10 * scale},${baseY - 12 * scale}`}
+          fill="#8B7355"
+          stroke="#6B5345"
+          strokeWidth="1.2"
+        />
+        <polygon
+          points={`${centerX + 5 * scale},${baseY - 10 * scale} ${centerX + 12 * scale},${baseY - 20 * scale} ${centerX + 19 * scale},${baseY - 10 * scale}`}
+          fill="#8B7355"
+          stroke="#6B5345"
+          strokeWidth="1.2"
+        />
+
+        {/* Standing stone marker */}
+        <rect
+          x={centerX + 35 * scale}
+          y={baseY - 16 * scale}
+          width={5 * scale}
+          height={16 * scale}
+          fill="#808080"
+          stroke="#606060"
+          strokeWidth="1"
+        />
+
+        {/* Torch flames - animated */}
+        <rect x={centerX - 36 * scale} y={baseY - 10 * scale} width="1.5" height={8 * scale} fill="#654321" />
+        <ellipse
+          cx={centerX - 35.25 * scale}
+          cy={baseY - 12 * scale - Math.abs(Math.sin(animationFrame * 0.1)) * 2}
+          rx="2"
+          ry="3"
+          fill="#FF6B6B"
+          opacity="0.85"
+        />
+        <ellipse
+          cx={centerX - 35.25 * scale}
+          cy={baseY - 13 * scale - Math.abs(Math.sin(animationFrame * 0.1)) * 2}
+          rx="1.5"
+          ry="2"
+          fill="#FFD700"
+          opacity="0.7"
+        />
+
+        <rect x={centerX + 30 * scale} y={baseY - 10 * scale} width="1.5" height={8 * scale} fill="#654321" />
+        <ellipse
+          cx={centerX + 30.75 * scale}
+          cy={baseY - 12 * scale - Math.abs(Math.sin(animationFrame * 0.1 + 1)) * 2}
+          rx="2"
+          ry="3"
+          fill="#FF6B6B"
+          opacity="0.85"
+        />
+        <ellipse
+          cx={centerX + 30.75 * scale}
+          cy={baseY - 13 * scale - Math.abs(Math.sin(animationFrame * 0.1 + 1)) * 2}
+          rx="1.5"
+          ry="2"
+          fill="#FFD700"
+          opacity="0.7"
+        />
       </g>
     );
   };
@@ -864,7 +1256,330 @@ const FortressBanner: React.FC<FortressBannerProps> = ({
       </g>
     );
   };
-  
+
+  // ============================================
+  // NEW FORTRESS TYPES - Prehistoric/Bronze Age
+  // ============================================
+
+  // Earth Berm (Prehistory, < -3000 BCE)
+  // Simple earthen mound with wooden stakes
+  const renderEarthBerm = (centerX: number) => {
+    return (
+      <g>
+        {/* Earthen rampart - irregular mound */}
+        <ellipse cx={centerX} cy={GROUND_Y - 5} rx="60" ry="15" fill="#8B7355" stroke="#6B5345" strokeWidth="1" opacity="0.9" />
+        <ellipse cx={centerX} cy={GROUND_Y - 8} rx="50" ry="12" fill="#9B8976" opacity="0.8" />
+
+        {/* Wooden stakes/palisade on top - crude and irregular */}
+        {Array.from({ length: 16 }, (_, i) => {
+          const angle = (i / 16) * Math.PI;
+          const px = centerX + Math.cos(angle) * 45 - Math.cos(angle) * 5;
+          const py = GROUND_Y - 8 + Math.sin(angle) * 10;
+          const height = 8 + staticRng.range(-2, 2);
+          return (
+            <rect
+              key={`stake-${i}`}
+              x={px - 1}
+              y={py - height}
+              width="2"
+              height={height}
+              fill="#654321"
+              opacity="0.8"
+            />
+          );
+        })}
+
+        {/* Standing stone or marker */}
+        <rect x={centerX + 25} y={GROUND_Y - 10} width="4" height="10" fill="#808080" stroke="#606060" strokeWidth="0.5" />
+
+        {/* Fire pit visible inside */}
+        <circle cx={centerX - 10} cy={GROUND_Y - 6} r="3" fill="#FF6B6B" opacity="0.6" />
+        <circle cx={centerX - 10} cy={GROUND_Y - 8} r="2" fill="#FFD700" opacity="0.7" />
+      </g>
+    );
+  };
+
+  // Palisade Fort (Prehistory, wooden stockade)
+  const renderPalisadeFort = (centerX: number) => {
+    return (
+      <g>
+        {/* Wooden palisade wall - tight vertical logs */}
+        {Array.from({ length: 22 }, (_, i) => {
+          const x = centerX - 55 + i * 5;
+          const logHeight = 18 + staticRng.range(-2, 2);
+          return (
+            <rect
+              key={`log-${i}`}
+              x={x}
+              y={GROUND_Y - logHeight}
+              width="4"
+              height={logHeight}
+              fill="#8B4513"
+              stroke="#654321"
+              strokeWidth="0.5"
+            />
+          );
+        })}
+
+        {/* Entrance gap with crude gate */}
+        <rect x={centerX - 8} y={GROUND_Y - 14} width="16" height="14" fill="#654321" />
+        <rect x={centerX - 6} y={GROUND_Y - 12} width="12" height="12" fill="#2C1810" />
+
+        {/* Watch platform */}
+        <rect x={centerX + 30} y={GROUND_Y - 22} width="12" height="4" fill="#A0826D" />
+        <rect x={centerX + 34} y={GROUND_Y - 18} width="1" height="4" fill="#654321" />
+        <rect x={centerX + 37} y={GROUND_Y - 18} width="1" height="4" fill="#654321" />
+
+        {/* Warrior figure on platform */}
+        <rect x={centerX + 35} y={GROUND_Y - 26} width="3" height="4" fill="#8B4513" />
+      </g>
+    );
+  };
+
+  // Thorn Enclosure (African, prehistoric)
+  const renderThornEnclosure = (centerX: number) => {
+    return (
+      <g>
+        {/* Circular thorn barrier - irregular spiky appearance */}
+        {Array.from({ length: 30 }, (_, i) => {
+          const angle = (i / 30) * Math.PI * 2;
+          const radius = 50 + staticRng.range(-5, 5);
+          const px = centerX + Math.cos(angle) * radius;
+          const py = GROUND_Y - 5 + Math.sin(angle) * 10;
+
+          return (
+            <g key={`thorn-${i}`}>
+              {/* Thorn branch */}
+              <line
+                x1={px} y1={py}
+                x2={px + staticRng.range(-3, 3)}
+                y2={py - 6 - staticRng.range(0, 4)}
+                stroke="#654321"
+                strokeWidth="1.5"
+              />
+              {/* Thorns */}
+              <line x1={px} y1={py - 2} x2={px - 2} y2={py - 4} stroke="#8B4513" strokeWidth="0.5" />
+              <line x1={px} y1={py - 4} x2={px + 2} y2={py - 5} stroke="#8B4513" strokeWidth="0.5" />
+            </g>
+          );
+        })}
+
+        {/* Central hut */}
+        <ellipse cx={centerX} cy={GROUND_Y - 6} rx="15" ry="8" fill="#A0826D" />
+        <polygon points={`${centerX - 18},${GROUND_Y - 6} ${centerX},${GROUND_Y - 18} ${centerX + 18},${GROUND_Y - 6}`}
+                 fill="#8B7355" stroke="#6B5345" strokeWidth="1" />
+
+        {/* Entrance through thorns */}
+        <rect x={centerX - 3} y={GROUND_Y - 4} width="6" height="4" fill="#2C1810" />
+      </g>
+    );
+  };
+
+  // Adobe Fortress (Bronze Age MENA/Americas)
+  const renderAdobeFortress = (centerX: number) => {
+    return (
+      <g>
+        {/* Adobe/mud brick walls - rounded, organic appearance */}
+        <rect x={centerX - 45} y={GROUND_Y - 25} width="90" height="25" fill="#D2B48C" stroke="#A0826D" strokeWidth="1" rx="2" />
+
+        {/* Corner towers - rounded */}
+        <rect x={centerX - 50} y={GROUND_Y - 28} width="12" height="28" fill="#C19A6B" stroke="#A0826D" strokeWidth="1" rx="2" />
+        <rect x={centerX + 38} y={GROUND_Y - 28} width="12" height="28" fill="#C19A6B" stroke="#A0826D" strokeWidth="1" rx="2" />
+
+        {/* Battlements - adobe style (rounded crenellations) */}
+        {[-40, -25, -10, 5, 20, 35].map(offset => (
+          <rect key={offset} x={centerX + offset} y={GROUND_Y - 28} width="8" height="3" fill="#D2B48C" rx="1" />
+        ))}
+
+        {/* Entrance - arched */}
+        <path d={`M ${centerX - 7} ${GROUND_Y} L ${centerX - 7} ${GROUND_Y - 12} Q ${centerX} ${GROUND_Y - 16} ${centerX + 7} ${GROUND_Y - 12} L ${centerX + 7} ${GROUND_Y}`}
+              fill="#2C1810" />
+
+        {/* Decorative bands */}
+        <rect x={centerX - 45} y={GROUND_Y - 15} width="90" height="1" fill="#A0826D" opacity="0.5" />
+      </g>
+    );
+  };
+
+  // Rammed Earth Fort (Chinese, Bronze Age+)
+  const renderRammedEarthFort = (centerX: number) => {
+    return (
+      <g>
+        {/* Rammed earth walls - horizontal layering visible */}
+        <rect x={centerX - 50} y={GROUND_Y - 30} width="100" height="30" fill="#A0826D" stroke="#8B7355" strokeWidth="1" />
+
+        {/* Horizontal layers showing rammed earth construction */}
+        {Array.from({ length: 8 }, (_, i) => (
+          <line
+            key={`layer-${i}`}
+            x1={centerX - 50}
+            y1={GROUND_Y - 4 - i * 3}
+            x2={centerX + 50}
+            y2={GROUND_Y - 4 - i * 3}
+            stroke="#8B7355"
+            strokeWidth="0.5"
+            opacity="0.6"
+          />
+        ))}
+
+        {/* Corner watchtowers */}
+        <rect x={centerX - 55} y={GROUND_Y - 35} width="10" height="35" fill="#8B7355" stroke="#6B5345" strokeWidth="1" />
+        <rect x={centerX + 45} y={GROUND_Y - 35} width="10" height="35" fill="#8B7355" stroke="#6B5345" strokeWidth="1" />
+
+        {/* Tower roofs - Chinese style */}
+        <path d={`M ${centerX - 58} ${GROUND_Y - 35} L ${centerX - 50} ${GROUND_Y - 38} L ${centerX - 42} ${GROUND_Y - 35}`}
+              fill="#2C2C2C" stroke="#1C1C1C" strokeWidth="0.5" />
+        <path d={`M ${centerX + 42} ${GROUND_Y - 35} L ${centerX + 50} ${GROUND_Y - 38} L ${centerX + 58} ${GROUND_Y - 35}`}
+              fill="#2C2C2C" stroke="#1C1C1C" strokeWidth="0.5" />
+
+        {/* Gate - wooden with reinforcement */}
+        <rect x={centerX - 8} y={GROUND_Y - 16} width="16" height="16" fill="#654321" />
+        <rect x={centerX - 1} y={GROUND_Y - 14} width="2" height="14" fill="#8B4513" />
+      </g>
+    );
+  };
+
+  // Stone Enclosure (African Bronze Age)
+  const renderStoneEnclosure = (centerX: number) => {
+    return (
+      <g>
+        {/* Dry stone walls - irregular but fitted */}
+        <path
+          d={`M ${centerX - 55} ${GROUND_Y}
+              L ${centerX - 50} ${GROUND_Y - 18}
+              L ${centerX - 45} ${GROUND_Y - 20}
+              L ${centerX - 20} ${GROUND_Y - 22}
+              L ${centerX} ${GROUND_Y - 23}
+              L ${centerX + 20} ${GROUND_Y - 22}
+              L ${centerX + 45} ${GROUND_Y - 20}
+              L ${centerX + 50} ${GROUND_Y - 18}
+              L ${centerX + 55} ${GROUND_Y}
+              Z`}
+          fill="#808080"
+          stroke="#606060"
+          strokeWidth="1"
+        />
+
+        {/* Stone texture - individual blocks */}
+        {Array.from({ length: 40 }, (_, i) => {
+          const x = centerX - 50 + staticRng.range(0, 100);
+          const y = GROUND_Y - staticRng.range(2, 20);
+          return (
+            <rect
+              key={`stone-${i}`}
+              x={x} y={y}
+              width={4 + staticRng.range(0, 3)}
+              height={2 + staticRng.range(0, 2)}
+              fill="none"
+              stroke="#505050"
+              strokeWidth="0.5"
+              opacity="0.4"
+            />
+          );
+        })}
+
+        {/* Entrance - gap in wall */}
+        <rect x={centerX - 6} y={GROUND_Y - 12} width="12" height="12" fill="#A0826D" />
+      </g>
+    );
+  };
+
+  // Pa Fortification (Maori/Polynesian)
+  const renderPaFortification = (centerX: number) => {
+    return (
+      <g>
+        {/* Terraced earthworks */}
+        <ellipse cx={centerX} cy={GROUND_Y - 3} rx="65" ry="12" fill="#8B7355" opacity="0.7" />
+        <ellipse cx={centerX} cy={GROUND_Y - 8} rx="52" ry="10" fill="#9B8976" opacity="0.8" />
+        <ellipse cx={centerX} cy={GROUND_Y - 13} rx="40" ry="8" fill="#A0826D" opacity="0.9" />
+
+        {/* Wooden palisade on top terrace */}
+        {Array.from({ length: 18 }, (_, i) => {
+          const angle = (i / 18) * Math.PI;
+          const px = centerX + Math.cos(angle) * 38;
+          const py = GROUND_Y - 13 + Math.sin(angle) * 7;
+          return (
+            <rect
+              key={`palisade-${i}`}
+              x={px - 1.5}
+              y={py - 10}
+              width="3"
+              height="10"
+              fill="#8B4513"
+              stroke="#654321"
+              strokeWidth="0.5"
+            />
+          );
+        })}
+
+        {/* Carved posts/totems */}
+        <rect x={centerX - 35} y={GROUND_Y - 18} width="4" height="12" fill="#654321" />
+        <rect x={centerX - 35} y={GROUND_Y - 20} width="6" height="3" fill="#8B4513" /> {/* carved detail */}
+
+        <rect x={centerX + 31} y={GROUND_Y - 18} width="4" height="12" fill="#654321" />
+        <rect x={centerX + 31} y={GROUND_Y - 20} width="6" height="3" fill="#8B4513" />
+      </g>
+    );
+  };
+
+  // Roman Castrum (Classical Antiquity)
+  const renderRomanCastrum = (centerX: number) => {
+    return (
+      <g>
+        {/* Rectangular Roman walls - precise geometry */}
+        <rect x={centerX - 48} y={GROUND_Y - 28} width="96" height="28" fill="#A0A0A0" stroke="#808080" strokeWidth="1" />
+
+        {/* Corner towers - square Roman style */}
+        <rect x={centerX - 53} y={GROUND_Y - 33} width="10" height="33" fill="#909090" stroke="#707070" strokeWidth="1" />
+        <rect x={centerX + 43} y={GROUND_Y - 33} width="10" height="33" fill="#909090" stroke="#707070" strokeWidth="1" />
+
+        {/* Crenellations - precise Roman battlement */}
+        {[-45, -35, -25, -15, -5, 5, 15, 25, 35].map(offset => (
+          <rect key={offset} x={centerX + offset} y={GROUND_Y - 31} width="8" height="3" fill="#A0A0A0" />
+        ))}
+
+        {/* Gate - Roman arch */}
+        <path d={`M ${centerX - 9} ${GROUND_Y} L ${centerX - 9} ${GROUND_Y - 14} Q ${centerX} ${GROUND_Y - 18} ${centerX + 9} ${GROUND_Y - 14} L ${centerX + 9} ${GROUND_Y}`}
+              fill="#2C1810" stroke="#654321" strokeWidth="1" />
+
+        {/* Roman standards/flags */}
+        <rect x={centerX - 40} y={GROUND_Y - 40} width="2" height="12" fill="#8B4513" />
+        <rect x={centerX - 40} y={GROUND_Y - 40} width="8" height="5" fill="#DC143C" />
+        <text x={centerX - 37} y={GROUND_Y - 36} fontSize="4" fill="#FFD700">SPQR</text>
+      </g>
+    );
+  };
+
+  // Stone Fortress (Generic strong stone fortification)
+  const renderStoneFortress = (centerX: number) => {
+    return (
+      <g>
+        {/* Massive stone walls */}
+        <rect x={centerX - 45} y={GROUND_Y - 32} width="90" height="32" fill="#808080" stroke="#606060" strokeWidth="1.5" />
+
+        {/* Large corner bastions */}
+        <circle cx={centerX - 45} cy={GROUND_Y - 16} r="14" fill="#909090" stroke="#707070" strokeWidth="1" />
+        <circle cx={centerX + 45} cy={GROUND_Y - 16} r="14" fill="#909090" stroke="#707070" strokeWidth="1" />
+
+        {/* Central tower */}
+        <rect x={centerX - 12} y={GROUND_Y - 42} width="24" height="42" fill="#707070" stroke="#505050" strokeWidth="1" />
+
+        {/* Tower battlements */}
+        {[-10, -4, 2, 8].map(offset => (
+          <rect key={offset} x={centerX + offset} y={GROUND_Y - 45} width="4" height="3" fill="#808080" />
+        ))}
+
+        {/* Gate - fortified entrance */}
+        <rect x={centerX - 10} y={GROUND_Y - 18} width="20" height="18" fill="#654321" stroke="#2C1810" strokeWidth="1" />
+        <rect x={centerX - 8} y={GROUND_Y - 16} width="16" height="16" fill="#2C1810" />
+
+        {/* Murder holes */}
+        <rect x={centerX - 5} y={GROUND_Y - 20} width="2" height="2" fill="#1C1C1C" />
+        <rect x={centerX + 3} y={GROUND_Y - 20} width="2" height="2" fill="#1C1C1C" />
+      </g>
+    );
+  };
+
   // Render guards/soldiers
   const renderGuards = () => {
     return (

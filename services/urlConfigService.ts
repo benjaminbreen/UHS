@@ -10,6 +10,7 @@
 
 import { HistoricalEra, CulturalZone, Region } from '../types';
 import { GameModeId } from '../constants/gameData/gameModes';
+import { findZoneForMapArea, findSimilarMapArea } from './zoneDetectionService';
 
 export interface URLGameConfig {
   dateRange?: {
@@ -19,6 +20,7 @@ export interface URLGameConfig {
   geography?: {
     culturalZone?: CulturalZone;
     region?: Region;
+    mapArea?: string; // NEW: Specific map area name from URL
   };
   gameMode?: GameModeId;
   seed?: string;
@@ -108,17 +110,29 @@ function parseDateRange(segment: string): URLGameConfig['dateRange'] | undefined
 }
 
 /**
+ * Convert URL slug to readable map area name
+ * Example: "north-china-plain" -> "North China Plain"
+ */
+function unslugify(slug: string): string {
+  return slug
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
  * Parse geography from URL segment
  * Formats:
  * - "europe" (cultural zone)
  * - "europe.iberia" (zone.region)
+ * - "north-china-plain" (map area name)
  * - "random" (random selection)
  */
 function parseGeography(segment: string): URLGameConfig['geography'] | undefined {
   if (!segment || segment === 'random') {
     return undefined;
   }
-  
+
   const culturalZoneMap: Record<string, CulturalZone> = {
     'europe': 'EUROPEAN',
     'european': 'EUROPEAN',
@@ -138,7 +152,7 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     'oceania': 'OCEANIA',
     'pacific': 'OCEANIA'
   };
-  
+
   const regionMap: Record<string, Region> = {
     // European regions
     'iberia': 'IBERIA',
@@ -152,7 +166,7 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     'russia': 'RUSSIA_AND_CAUCASUS',
     'balkans': 'BALKANS',
     'greece': 'GREECE_AND_AEGEAN',
-    
+
     // MENA regions
     'northafrica': 'NORTH_AFRICA',
     'egypt': 'EGYPT_AND_SUDAN',
@@ -160,34 +174,90 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     'arabia': 'ARABIAN_PENINSULA',
     'persia': 'PERSIA',
     'anatolia': 'ANATOLIA',
-    
+
     // Add more regions as needed
   };
-  
+
   // Check for zone.region format
   if (segment.includes('.')) {
     const [zoneStr, regionStr] = segment.toLowerCase().split('.');
     const zone = culturalZoneMap[zoneStr];
     const region = regionMap[regionStr];
-    
+
     if (zone || region) {
       return { culturalZone: zone, region };
     }
   }
-  
-  // Check for just cultural zone
+
+  // Check for just cultural zone (backward compatibility)
   const lowerSegment = segment.toLowerCase();
   const zone = culturalZoneMap[lowerSegment];
   if (zone) {
     return { culturalZone: zone };
   }
-  
-  // Check for just region
+
+  // Check for just region (backward compatibility)
   const region = regionMap[lowerSegment];
   if (region) {
     return { region };
   }
-  
+
+  // NEW: Check if it's a map area name (e.g., "north-china-plain")
+  const mapAreaName = unslugify(segment);
+  console.log('[URLConfig] Attempting to parse as map area:', mapAreaName);
+
+  // First try exact match
+  const zoneInfo = findZoneForMapArea(mapAreaName);
+  if (zoneInfo) {
+    console.log('[URLConfig] Found zone for map area:', zoneInfo);
+    // Map zone name to CulturalZone enum
+    const zoneMapping: Record<string, CulturalZone> = {
+      'Europe': 'EUROPEAN',
+      'East Asia': 'EAST_ASIAN',
+      'Middle East and North Africa': 'MENA',
+      'South Asia': 'SOUTH_ASIAN',
+      'Sub-Saharan Africa': 'SUB_SAHARAN_AFRICAN',
+      'North America (Pre-Columbian)': 'NORTH_AMERICAN_PRE_COLUMBIAN',
+      'North America': 'NORTH_AMERICAN_COLONIAL',
+      'South America': 'SOUTH_AMERICAN',
+      'Oceania': 'OCEANIA'
+    };
+
+    const culturalZone = zoneMapping[zoneInfo.zone];
+    if (culturalZone) {
+      return {
+        culturalZone,
+        // Store the map area name for later use
+        mapArea: mapAreaName
+      } as any; // Extended type with mapArea
+    }
+  }
+
+  // Try fuzzy matching as fallback
+  const similarZoneInfo = findSimilarMapArea(mapAreaName);
+  if (similarZoneInfo) {
+    console.log('[URLConfig] Found similar map area:', similarZoneInfo);
+    const zoneMapping: Record<string, CulturalZone> = {
+      'Europe': 'EUROPEAN',
+      'East Asia': 'EAST_ASIAN',
+      'Middle East and North Africa': 'MENA',
+      'South Asia': 'SOUTH_ASIAN',
+      'Sub-Saharan Africa': 'SUB_SAHARAN_AFRICAN',
+      'North America (Pre-Columbian)': 'NORTH_AMERICAN_PRE_COLUMBIAN',
+      'North America': 'NORTH_AMERICAN_COLONIAL',
+      'South America': 'SOUTH_AMERICAN',
+      'Oceania': 'OCEANIA'
+    };
+
+    const culturalZone = zoneMapping[similarZoneInfo.zone];
+    if (culturalZone) {
+      return {
+        culturalZone,
+        mapArea: mapAreaName
+      } as any;
+    }
+  }
+
   return undefined;
 }
 
@@ -198,16 +268,23 @@ function parseGameMode(segment: string): GameModeId | undefined {
   if (!segment || segment === 'random') {
     return undefined;
   }
-  
+
   const gameModeMap: Record<string, GameModeId> = {
     'survival': 'survival',
     'exploration': 'exploration',
-    'empire': 'empire',
-    'cultural': 'cultural',
-    'sandbox': 'sandbox',
-    'balanced': 'balanced'
+    'commerce': 'commerce',
+    'scholarship': 'scholarship',
+    'leadership': 'leadership',
+    'livelihood': 'livelihood',
+    'diplomacy': 'diplomacy',
+    'legal': 'legal',
+    // Legacy aliases for backward compatibility
+    'empire': 'leadership',
+    'cultural': 'scholarship',
+    'sandbox': 'exploration',
+    'balanced': 'survival'
   };
-  
+
   return gameModeMap[segment.toLowerCase()];
 }
 

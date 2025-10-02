@@ -868,31 +868,192 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
   },
   
   // ==================== FORTRESS TEMPLATES ====================
-  // Basic fortress templates - keep them simple and universal
+
+  // PREHISTORY (<-3000 BCE) - Earth/Wood Fortifications
+  {
+    type: 'fortress',
+    culturalZone: 'Europe',
+    era: HistoricalEra.PREHISTORY,
+    templates: {
+      setting: [
+        "Earthen ramparts encircle the hilltop settlement, topped with {materialType} palisades",
+        "A ring of defensive earthworks surrounds this fortified village on the {terrain}",
+        "Ancient earthen banks and timber walls protect the community from raiders",
+        "This hilltop refuge features circular earthworks and wooden defenses"
+      ],
+      materials: [
+        "Sharpened {materialType} stakes line the outer ditches",
+        "The {color} earth has been piled high to create defensive banks",
+        "Wooden posts driven deep into the earthworks form a barrier",
+        "A woven fence of branches reinforces the earthen walls"
+      ],
+      atmosphere: [
+        "Smoke rises from hearths within the protected settlement",
+        "Dogs bark warnings as strangers approach the defenses",
+        "The settlement bustles with the sounds of daily life behind the walls",
+        "Children play near the earthworks while adults keep watch"
+      ],
+      workers: [
+        "A {workerType} bearing a stone axe observes your approach warily",
+        "The clan's {workerType} stands ready with spear in hand",
+        "An elder {workerType} in {clothing} steps forward to challenge you",
+        "Several {workerType}s gather at the entrance, weapons visible"
+      ],
+      approach: [
+        "The path winds through outer ditches meant to slow attackers",
+        "Cleared ground around the fortifications prevents surprise",
+        "A narrow gap in the earthworks serves as the main entrance",
+        "Stones piled beside the entrance can be used as weapons"
+      ]
+    }
+  },
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.PREHISTORY,
+    templates: {
+      setting: [
+        "A fortified settlement of mudbrick walls rises from the {terrain}",
+        "Thick earthen walls protect this early farming community",
+        "Tightly packed dwellings create a defensive warren in the {terrain}",
+        "This tell sits atop generations of earlier settlements, its walls strong"
+      ],
+      materials: [
+        "The {color} mudbrick construction is remarkably solid",
+        "Layers of mud and straw form impressive defensive walls",
+        "The walls show evidence of constant repair and reinforcement",
+        "Fired brick reinforces the most vulnerable sections"
+      ],
+      atmosphere: [
+        "The smell of baking bread and animals fills the fortified space",
+        "Narrow passages wind between closely-built structures",
+        "The settlement hums with the activity of many families",
+        "Lookouts scan the horizon from the highest rooftops"
+      ],
+      workers: [
+        "A {workerType} with a sling and stones eyes you from the wall",
+        "The settlement's {workerType} wears {clothing} and carries a bronze dagger",
+        "An armed {workerType} blocks the entrance, demanding your business",
+        "Several {workerType}s watch from above, ready to defend"
+      ],
+      approach: [
+        "A single narrow gateway provides the only easy entrance",
+        "The approach is deliberately exposed to watchers above",
+        "Recent tracks show this settlement sees regular visitors",
+        "Guards can be seen watching from firing positions"
+      ]
+    }
+  },
+  {
+    type: 'fortress',
+    culturalZone: 'North America',
+    era: HistoricalEra.PREHISTORY,
+    templates: {
+      setting: [
+        "A palisaded village sits on defensible {terrain}, surrounded by wooden walls",
+        "This fortified settlement features circular earthworks topped with timber stakes",
+        "The village is protected by a wall of upright logs driven into the earth",
+        "Defensive ditches and wooden palisades encircle the longhouses within"
+      ],
+      materials: [
+        "Tall {materialType} logs form an imposing barrier around the settlement",
+        "The {color} wood of the palisade posts shows recent sharpening",
+        "Woven mats of bark and branches fill gaps between posts",
+        "Watchtowers of lashed poles rise at intervals along the wall"
+      ],
+      atmosphere: [
+        "Smoke from multiple fires drifts through the palisade gaps",
+        "The sounds of daily life - grinding corn, children playing - echo within",
+        "Dogs roam between the outer ditch and inner palisade",
+        "Drums signal your approach, alerting the community"
+      ],
+      workers: [
+        "A painted {workerType} with bow in hand steps forward",
+        "The clan's {workerType} wears {clothing} and bear-claw necklace",
+        "An elder {workerType} carrying a stone-headed war club emerges",
+        "Young {workerType}s watch from platforms above the gate"
+      ],
+      approach: [
+        "A narrow causeway leads across the defensive ditch",
+        "Cleared fields around the palisade offer no cover for enemies",
+        "Totems mark the boundaries of the settlement's territory",
+        "The gate is flanked by watchtowers on either side"
+      ]
+    }
+  },
+
+  // BRONZE AGE / EARLY ANTIQUITY (-3000 to -500 BCE)
   {
     type: 'fortress',
     culturalZone: 'Europe',
     era: HistoricalEra.ANTIQUITY,
     templates: {
       setting: [
-        "A military {materialType} fortress commands the {terrain}, its walls weathered by countless seasons",
-        "This fortified position overlooks the {biomeDescription}, built from local {materialType}"
+        "A hill-fort crowns the {terrain}, its ramparts and wooden palisades commanding the approaches",
+        "Stone and timber fortifications encircle this Bronze Age stronghold",
+        "This fortified hilltop shows evidence of Mycenaean-style cyclopean masonry",
+        "Ancient stone walls topped with timber defenses protect the settlement"
       ],
       materials: [
-        "The {color} {materialType} walls show signs of recent repair work",
-        "Defensive positions built from {materialType} line the ramparts"
+        "Massive {color} stones form the base, with timber palisades above",
+        "The walls combine {materialType} masonry with wooden reinforcements",
+        "Bronze-age construction techniques are evident in the stonework",
+        "Rough-hewn {materialType} blocks stack to create impressive walls"
       ],
       atmosphere: [
-        "Guards patrol the walls with practiced vigilance",
-        "The sound of military drills echoes from the courtyard"
+        "Warriors patrol the ramparts with bronze-tipped spears",
+        "The clang of bronze-smithing echoes from within the walls",
+        "Livestock graze in protected enclosures near the gates",
+        "Smoke from forges and hearths rises above the fortifications"
       ],
       workers: [
-        "A gruff {workerType} in {clothing} barely acknowledges your presence",
-        "The {workerType} eyes you with suspicion before returning to their duties"
+        "A {workerType} in bronze armor and leather stands guard",
+        "The war leader's {workerType} wears {clothing} and a bronze helmet",
+        "An armed {workerType} bearing a bronze sword challenges your approach",
+        "Several {workerType}s in leather armor watch from the walls"
       ],
       approach: [
-        "Armed sentries watch your approach with professional interest",
-        "The fortress gate stands partially open, guards visible within"
+        "A steep earthen ramp leads up to the timber gate",
+        "Multiple rings of ditches and banks surround the hilltop",
+        "The entrance is designed to expose attackers to missile fire",
+        "Standing stones mark the boundaries of the fortified zone"
+      ]
+    }
+  },
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This fortified palace commands the {terrain} with walls of mudbrick and stone",
+        "A citadel of sun-baked brick rises above the surrounding {biomeDescription}",
+        "The fortress combines defensive walls with palatial architecture",
+        "Massive gates and towered walls protect this center of power"
+      ],
+      materials: [
+        "The {color} mudbrick walls are reinforced with timber beams",
+        "Glazed bricks decorate the gates, showing wealth and power",
+        "Stone foundations support upper stories of pressed mud",
+        "Bronze-shod gates bar entry to the fortress proper"
+      ],
+      atmosphere: [
+        "Scribes and officials come and go from the administrative complex",
+        "The fortress serves as both military post and governmental center",
+        "Guards in bronze scale armor patrol the battlements",
+        "The smell of incense and cooking drifts from within"
+      ],
+      workers: [
+        "A {workerType} in fine {clothing} and bronze weapons guards the gate",
+        "The garrison {workerType} wears scale armor and carries a bronze axe",
+        "An official {workerType} questions your business at the fortress",
+        "Palace guards in {clothing} stand at attention near the entrance"
+      ],
+      approach: [
+        "A stone-paved road leads to the fortress gates",
+        "Petitioners and merchants cluster near the entrance",
+        "Carved reliefs of gods and kings decorate the gateway",
+        "The gates are designed to impress and intimidate visitors"
       ]
     }
   },
@@ -903,23 +1064,33 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
     templates: {
       setting: [
         "This {materialType} fortress guards the strategic {terrain} position",
-        "Military fortifications of {materialType} dominate the {biomeDescription}"
+        "Rammed earth walls topped with wooden battlements protect the garrison",
+        "The fortress combines Chinese wall-building techniques with military architecture",
+        "Watchtowers punctuate the walls of this provincial stronghold"
       ],
       materials: [
-        "Walls of {color} {materialType} rise imposingly above",
-        "The fortress is built from solid {materialType} blocks"
+        "Walls of {color} rammed earth rise imposingly above",
+        "The fortress construction shows sophisticated engineering",
+        "Timber reinforcements strengthen the earthen walls",
+        "Bronze fittings adorn the heavy wooden gates"
       ],
       atmosphere: [
-        "The fortress maintains an air of watchful readiness",
-        "Military discipline is evident in every aspect of the fortress"
+        "The fortress maintains an air of bureaucratic military discipline",
+        "Soldiers drill in the courtyard with bronze weapons",
+        "Officials manage both military and civil administration here",
+        "The garrison serves to collect taxes and maintain order"
       ],
       workers: [
-        "A stern {workerType} in {clothing} watches you carefully",
-        "The {workerType} gives you a hard look before looking away"
+        "A stern {workerType} in lamellar armor watches you carefully",
+        "The {workerType} wears {clothing} marking official rank",
+        "A military {workerType} with bronze halberd challenges your approach",
+        "Garrison {workerType}s in leather armor stand ready"
       ],
       approach: [
-        "Guards at the gate eye all visitors with suspicion",
-        "The fortress entrance is heavily guarded"
+        "The approach is carefully observed from multiple watchtowers",
+        "A stone road leads directly to the fortress gates",
+        "Defensive ditches slow any hostile approach",
+        "The fortress entrance is flanked by banner poles"
       ]
     }
   },
@@ -1270,6 +1441,15 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
 // Cultural context data for variable substitution
 const CULTURAL_POI_DATA = {
   'North America': {
+    [HistoricalEra.PREHISTORY]: {
+      fortress: {
+        materials: ['timber', 'oak', 'pine', 'earth', 'bark'],
+        workers: ['warrior', 'clan defender', 'war leader', 'sentinel', 'guardian'],
+        clothing: ['hide armor', 'deerskin', 'war paint', 'feathered headdress', 'fur cloaks'],
+        tools: ['stone-tipped spears', 'bows', 'war clubs', 'stone axes'],
+        colors: ['brown', 'earthen', 'dark', 'weathered', 'gray']
+      }
+    },
     [HistoricalEra.ANTIQUITY]: {
       quarry: {
         materials: ['obsidian', 'flint', 'chert', 'sandstone', 'pipestone'],
@@ -1291,10 +1471,26 @@ const CULTURAL_POI_DATA = {
         clothing: ['deerskin leggings', 'bark capes', 'fur wraps', 'woven fiber shirts'],
         tools: ['stone axes', 'bone wedges', 'fire starters', 'bark peelers'],
         colors: ['brown', 'golden', 'red', 'silver', 'dark']
+      },
+      fortress: {
+        materials: ['timber', 'oak', 'earth', 'stone', 'bark'],
+        workers: ['warrior', 'clan defender', 'war leader', 'sentinel', 'village guardian'],
+        clothing: ['hide armor', 'decorated leather', 'war paint', 'feathered bands', 'furs'],
+        tools: ['bows', 'spears', 'stone-headed war clubs', 'wooden shields'],
+        colors: ['brown', 'earthen', 'weathered', 'dark', 'painted']
       }
     }
   },
   'Europe': {
+    [HistoricalEra.PREHISTORY]: {
+      fortress: {
+        materials: ['timber', 'earth', 'oak', 'pine', 'stone'],
+        workers: ['warrior', 'clan guardian', 'sentinel', 'war leader', 'defender'],
+        clothing: ['hide armor', 'leather straps', 'fur cloaks', 'bone ornaments'],
+        tools: ['stone axes', 'wooden spears', 'slings', 'clubs'],
+        colors: ['brown', 'earthen', 'weathered', 'dark', 'gray']
+      }
+    },
     [HistoricalEra.ANTIQUITY]: {
       quarry: {
         materials: ['marble', 'limestone', 'granite', 'slate', 'travertine'],
@@ -1304,11 +1500,11 @@ const CULTURAL_POI_DATA = {
         colors: ['white', 'gray', 'pink', 'black', 'cream']
       },
       fortress: {
-        materials: ['stone', 'brick', 'timber', 'limestone', 'granite'],
-        workers: ['guard', 'sentry', 'garrison soldier', 'watchman', 'centurion'],
-        clothing: ['worn armor', 'military tunics', 'leather gear', 'iron helmets'],
-        tools: ['spears', 'shields', 'crossbows', 'signal horns'],
-        colors: ['gray', 'brown', 'weathered', 'dark', 'stained']
+        materials: ['stone', 'timber', 'limestone', 'granite', 'bronze'],
+        workers: ['warrior', 'guard', 'spearman', 'sentinel', 'war leader'],
+        clothing: ['bronze armor', 'leather corslets', 'bronze helmets', 'wool cloaks'],
+        tools: ['bronze spears', 'wooden shields', 'bronze swords', 'war horns'],
+        colors: ['gray', 'brown', 'bronze', 'weathered', 'dark']
       }
     },
     [HistoricalEra.MEDIEVAL]: {
@@ -1322,6 +1518,15 @@ const CULTURAL_POI_DATA = {
     }
   },
   'Asia': {
+    [HistoricalEra.PREHISTORY]: {
+      fortress: {
+        materials: ['rammed earth', 'timber', 'bamboo', 'thatch', 'stone'],
+        workers: ['warrior', 'clan defender', 'sentinel', 'elder guardian', 'spearman'],
+        clothing: ['hide armor', 'woven hemp', 'leather wraps', 'bone decorations'],
+        tools: ['bamboo spears', 'stone axes', 'wooden shields', 'signal drums'],
+        colors: ['earthen', 'brown', 'dark', 'weathered', 'gray']
+      }
+    },
     [HistoricalEra.ANTIQUITY]: {
       quarry: {
         materials: ['jade', 'limestone', 'sandstone', 'basalt', 'granite'],
@@ -1331,11 +1536,11 @@ const CULTURAL_POI_DATA = {
         colors: ['green', 'white', 'gray', 'black', 'yellow']
       },
       fortress: {
-        materials: ['stone', 'rammed earth', 'brick', 'timber', 'tile'],
-        workers: ['guard', 'soldier', 'watchman', 'garrison commander', 'sentry'],
-        clothing: ['lamellar armor', 'military robes', 'leather guards', 'iron helmets'],
-        tools: ['halberds', 'crossbows', 'signal drums', 'watchtower bells'],
-        colors: ['gray', 'earthen', 'dark', 'weathered', 'red']
+        materials: ['rammed earth', 'timber', 'stone', 'brick', 'bronze'],
+        workers: ['garrison soldier', 'watchman', 'military official', 'border guard', 'sentry'],
+        clothing: ['lamellar armor', 'military tunics', 'leather guards', 'bronze helmets'],
+        tools: ['bronze halberds', 'crossbows', 'signal drums', 'war banners'],
+        colors: ['earthen', 'gray', 'dark', 'weathered', 'bronze']
       }
     },
     [HistoricalEra.MEDIEVAL]: {
@@ -1367,6 +1572,15 @@ const CULTURAL_POI_DATA = {
     }
   },
   'Middle East': {
+    [HistoricalEra.PREHISTORY]: {
+      fortress: {
+        materials: ['mudbrick', 'fired brick', 'timber', 'stone', 'reeds'],
+        workers: ['village defender', 'warrior', 'watchman', 'elder guardian', 'sentry'],
+        clothing: ['linen wraps', 'leather armor', 'wool robes', 'copper ornaments'],
+        tools: ['copper daggers', 'slings', 'wooden spears', 'stone maces'],
+        colors: ['earthen', 'tan', 'brown', 'gray', 'copper']
+      }
+    },
     [HistoricalEra.ANTIQUITY]: {
       quarry: {
         materials: ['limestone', 'alabaster', 'granite', 'sandstone', 'basalt'],
@@ -1374,6 +1588,13 @@ const CULTURAL_POI_DATA = {
         clothing: ['linen kilts', 'leather sandals', 'head cloths', 'bronze ornaments'],
         tools: ['copper saws', 'dolerite pounders', 'wooden levers', 'bronze chisels'],
         colors: ['white', 'pink', 'red', 'yellow', 'black']
+      },
+      fortress: {
+        materials: ['mudbrick', 'stone', 'fired brick', 'bronze', 'cedar'],
+        workers: ['palace guard', 'garrison soldier', 'official', 'watchman', 'sentry'],
+        clothing: ['bronze scale armor', 'linen kilts', 'leather wraps', 'bronze helmets'],
+        tools: ['bronze spears', 'composite bows', 'bronze axes', 'signal horns'],
+        colors: ['tan', 'earthen', 'bronze', 'weathered', 'gray']
       }
     },
     [HistoricalEra.MEDIEVAL]: {

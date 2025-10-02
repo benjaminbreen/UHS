@@ -57,9 +57,6 @@ const CampModal: React.FC<CampModalProps> = ({
       const events = campingService.getCampEvents(currentBiome, playerCharacter.inventory, hasWaterNearby);
       setCampEvents(events);
 
-      // Start camping music (track 1)
-      gameSoundsService.playCampingMusic1();
-
       // Get background image for this biome
       const loadBackground = async () => {
         const backgroundPaths = getBackgroundPaths(
@@ -79,12 +76,23 @@ const CampModal: React.FC<CampModalProps> = ({
 
       loadBackground();
     }
+  }, [isOpen, playerCharacter, currentBiome, mapData, timeOfDay]);
+
+  // Separate effect for music to prevent re-triggering
+  useEffect(() => {
+    if (isOpen) {
+      // Start camping music only when modal opens
+      gameSoundsService.stopAllMusic(); // Stop any existing music first
+      gameSoundsService.playCampingMusic1();
+    }
 
     return () => {
       // Stop music when modal closes
-      gameSoundsService.stopAllMusic();
+      if (!isOpen) {
+        gameSoundsService.stopAllMusic();
+      }
     };
-  }, [isOpen, playerCharacter, currentBiome, mapData, timeOfDay]);
+  }, [isOpen]); // Only depend on isOpen to prevent re-triggering
 
   const handleRest = () => {
     if (!campQuality) return;
@@ -151,79 +159,86 @@ const CampModal: React.FC<CampModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Background overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-80" onClick={onClose} />
+      <div className="absolute inset-0 bg-black bg-opacity-75" onClick={onClose} />
 
       {/* Modal content */}
       <div
-        className="relative w-full max-w-2xl mx-4 bg-gray-900 rounded-lg shadow-2xl overflow-hidden"
+        className="relative w-full max-w-2xl mx-4 rounded-xl shadow-2xl overflow-hidden border border-gray-700"
         style={{
           backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black bg-opacity-60" />
+        {/* Dark overlay for text readability - reduced opacity to show more background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" />
 
         {/* Content */}
         <div className="relative z-10 p-6">
           {/* Header */}
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-3">
-              <Tent className="w-6 h-6 text-yellow-500" />
-              <h2 className="text-2xl font-bold text-white">Make Camp</h2>
-              <Moon className="w-5 h-5 text-blue-300" />
+              <div className="p-2 bg-yellow-500/20 rounded-lg">
+                <Tent className="w-6 h-6 text-yellow-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  Make Camp
+                  <Moon className="w-5 h-5 text-blue-300" />
+                </h2>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
+              className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/10"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Camp Introduction */}
-          <div className="mb-4 text-gray-300 italic">
-            {timeGreeting}. {campingService.getBiomeCampIntro(currentBiome)}
+          <div className="mb-5 text-gray-200 text-base leading-relaxed">
+            <span className="text-yellow-300 font-medium">{timeGreeting}.</span>{' '}
+            {campingService.getBiomeCampIntro(currentBiome)}
           </div>
 
           {/* Camp Quality */}
-          <div className="bg-black bg-opacity-50 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-white font-semibold">Camp Quality</span>
+          <div className="bg-black/40 backdrop-blur-sm rounded-xl p-5 mb-5 border border-white/10">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-white font-semibold text-lg">Camp Quality</span>
               {renderQualityStars()}
             </div>
-            <p className="text-gray-300 text-sm mb-3">{campQuality.description}</p>
+            <p className="text-gray-200 text-sm mb-4 leading-relaxed">{campQuality.description}</p>
 
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-green-400">❤️</span>
-                <span className="text-gray-300">Health Recovery: {campQuality.healingPercent}%</span>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center gap-2 bg-green-500/10 rounded-lg p-2.5 border border-green-500/20">
+                <span className="text-green-400 text-lg">❤️</span>
+                <span className="text-gray-200">Health Recovery: <span className="text-green-300 font-semibold">{campQuality.healingPercent}%</span></span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-blue-400">💤</span>
-                <span className="text-gray-300">Fatigue Recovery: {campQuality.fatiguePercent}%</span>
+              <div className="flex items-center gap-2 bg-blue-500/10 rounded-lg p-2.5 border border-blue-500/20">
+                <span className="text-blue-400 text-lg">💤</span>
+                <span className="text-gray-200">Fatigue Recovery: <span className="text-blue-300 font-semibold">{campQuality.fatiguePercent}%</span></span>
               </div>
             </div>
           </div>
 
           {/* Optional Camp Events */}
           {campEvents.length > 0 && !isResting && (
-            <div className="bg-black bg-opacity-50 rounded-lg p-4 mb-4">
-              <h3 className="text-white font-semibold mb-2">Camp Activities</h3>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 mb-5 border border-white/10">
+              <h3 className="text-white font-semibold mb-3 text-lg">Camp Activities</h3>
+              <div className="grid grid-cols-1 gap-2">
                 {campEvents.map(event => (
                   <button
                     key={event.id}
                     onClick={() => handleEventClick(event.id)}
                     disabled={!event.available || selectedEvent === event.id}
                     className={`
-                      p-2 rounded text-sm transition-all
+                      p-3 rounded-lg text-sm transition-all border
                       ${selectedEvent === event.id
-                        ? 'bg-green-800 text-white'
+                        ? 'bg-green-500/20 text-green-200 border-green-500/40'
                         : event.available
-                          ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
-                          : 'bg-gray-900 text-gray-600 cursor-not-allowed'
+                          ? 'bg-gray-800/50 text-gray-200 hover:bg-gray-700/60 hover:text-white border-gray-600/40'
+                          : 'bg-gray-900/30 text-gray-500 cursor-not-allowed border-gray-700/30'
                       }
                     `}
                   >
@@ -242,11 +257,11 @@ const CampModal: React.FC<CampModalProps> = ({
               onClick={handleRest}
               disabled={isResting}
               className={`
-                flex items-center justify-center gap-2 py-3 px-6 rounded-lg font-semibold
-                transition-all transform hover:scale-105
+                flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-base
+                transition-all transform border-2
                 ${isResting
-                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500'
+                  ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed border-gray-600'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500 border-blue-400/30 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/20'
                 }
               `}
             >
@@ -266,9 +281,9 @@ const CampModal: React.FC<CampModalProps> = ({
             {!isResting && (
               <button
                 onClick={handleExploreCampground}
-                className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg
-                         bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white
-                         transition-colors"
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl
+                         bg-gray-800/60 text-gray-200 hover:bg-gray-700/70 hover:text-white
+                         transition-all border border-gray-600/40 hover:border-gray-500/60"
               >
                 <TreePine className="w-4 h-4" />
                 <span>Explore the Campground</span>
@@ -278,7 +293,7 @@ const CampModal: React.FC<CampModalProps> = ({
 
           {/* Flavor text */}
           {isResting && (
-            <div className="mt-4 text-center text-yellow-400 animate-pulse">
+            <div className="mt-5 text-center text-yellow-300 animate-pulse text-base">
               You drift off to sleep as the stars wheel overhead...
             </div>
           )}

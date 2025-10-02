@@ -52,6 +52,18 @@ import { useUI } from '../contexts/UIContext';
 import { CROP_DATA, formatPlantingSeason } from '../constants/gameData/cropData';
 import { generateFarmName } from '../constants/gameData/farmNaming';
 
+// Shared types (Phase 1 refactoring)
+import {
+  FarmPanelProps,
+  TabType,
+  FieldPlan,
+  ResourceAllocation,
+  FarmerToast,
+  WorkHistoryEntry,
+  CROP_EMOJIS,
+  PANEL_RIGHT_W,
+} from './farm/types';
+
 // lucide icons
 import {
   X,
@@ -76,52 +88,10 @@ import {
   HandCoins,
 } from 'lucide-react';
 
-interface FarmPanelImprovedProps {
-  tile: Tile;
-  mapData: MapData;
-  playerCharacter: PlayerCharacter;
-  npcs: NpcEntity[];
-  onClose: () => void;
-  onBuy: (itemBaseId: string, price: number) => void;
-  onSell: (item: Item, price: number) => void;
-  season: Season;
-  gameTimeHours: number;
-  onProgressTime?: (months: number) => void;
-  onShowEvent?: (event: any) => void;
-  currentGameDay: number;
-  useLlm?: boolean;
-  gameDate: any;
+interface FarmPanelImprovedProps extends FarmPanelProps {
   leftSidebarTab?: string;
   onTabChange?: (tab: string) => void;
-  onInitiateEncounter?: (target: any) => void;
-  onPlayerStateChange?: (changes: {
-    health?: number;
-    fatigue?: number;
-    statusEffects?: Array<{ type: string; name: string; duration: number; severity?: 'mild' | 'moderate' | 'severe' }>;
-    inventory?: { add?: Item[]; remove?: string[] };
-  }) => void;
 }
-
-type TabType = 'overview' | 'fields' | 'family' | 'trade' | 'advisor';
-
-// Minimal crop glyphs (fallback to emoji only for crops since icon coverage varies)
-const CROP_EMOJIS: Record<string, string> = {
-  wheat: '🌾', barley: '🌾', rice: '🌾', oats: '🌾', rye: '🌾', quinoa: '🌾',
-  maize: '🌽', corn: '🌽',
-  potatoes: '🥔', potato: '🥔',
-  tomatoes: '🍅', tomato: '🍅',
-  peas: '🟢', beans: '🫘', soybeans: '🫘',
-  vegetables: '🥬', cabbage: '🥬', 'bok choy': '🥬',
-  turnips: '🟣', radishes: '🔴',
-  onions: '🧅', carrots: '🥕',
-  melons: '🍈', squash: '🎃',
-  dates: '🌴', coconut: '🥥',
-  tea: '🍵', coffee: '☕',
-  cotton: '☁️', tobacco: '🍂',
-  sugarcane: '🎋', sugar: '🎋',
-};
-
-const PANEL_RIGHT_W = 340;
 
 const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   tile,
@@ -157,7 +127,7 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   const [selectedCrop, setSelectedCrop] = useState<string>('');
 
   // Text-based Farm Work Adventure
-  const [farmWorkHistory, setFarmWorkHistory] = useState<Array<{ type: 'player' | 'narrator'; text: string }>>([]);
+  const [farmWorkHistory, setFarmWorkHistory] = useState<WorkHistoryEntry[]>([]);
   const [farmWorkInput, setFarmWorkInput] = useState('');
   const [isFarmWorkProcessing, setIsFarmWorkProcessing] = useState(false);
   const [hoursWorkedToday, setHoursWorkedToday] = useState(0);
@@ -183,7 +153,7 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
   const [advisorChat, setAdvisorChat] = useState<string>('');
   
   // NPCToast for head farmer
-  const [farmerToast, setFarmerToastRaw] = useState<{ message: string; type: 'advice' | 'warning' | 'quest' | 'news' } | null>(null);
+  const [farmerToast, setFarmerToastRaw] = useState<FarmerToast | null>(null);
 
   // Safe state setter that checks if component is unmounting
   const setFarmerToast = useCallback((value: any) => {

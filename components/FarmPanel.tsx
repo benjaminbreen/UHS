@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tile, MapData, PlayerCharacter, Item, Season, NpcEntity } from '../types';
-import FarmPanelImproved from './FarmPanelImproved';
+import FarmPanelContainer from './farm/FarmPanelContainer';
 import { useGame } from '../contexts/GameContext';
 
 interface FarmPanelProps {
@@ -25,11 +25,6 @@ interface FarmPanelProps {
     }) => void;
 }
 
-interface PriceInfo {
-    buyPrice: number;
-    sellPrice: number;
-}
-
 const FarmPanel: React.FC<FarmPanelProps> = ({
     tile, mapData, playerCharacter, npcs, onClose, onBuy, onSell, useLlm, season,
     gameTimeHours, onProgressTime, onShowEvent, onInitiateEncounter, onPlayerStateChange
@@ -41,9 +36,9 @@ const FarmPanel: React.FC<FarmPanelProps> = ({
     const baseYear = parseInt(mapData.timeSlice?.split(' ')[0] || '1650');
     const currentGameDay = Math.floor((currentDate.getTime() - new Date(baseYear, 0, 1).getTime()) / (1000 * 60 * 60 * 24));
 
-    // Use the improved version with beautiful UI and full functionality
+    // Use the new refactored container component
     return (
-        <FarmPanelImproved
+        <FarmPanelContainer
             tile={tile}
             mapData={mapData}
             playerCharacter={playerCharacter}

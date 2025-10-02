@@ -29,6 +29,85 @@ import { questService } from '../services/questService';
 import { questTriggerService } from '../services/questTriggerService';
 import { FloatingTextMessage } from '../components/ui/FloatingText';
 import gameSoundsService from '../services/gameSoundsService';
+import { getDaysInMonth } from '../utils/dateUtils';
+import { TimeAdvancementRequest } from '../services/timeAdvancementService';
+
+/**
+ * Parse time advancement commands from player input
+ */
+function parseTimeCommand(input: string): Pick<TimeAdvancementRequest, 'duration' | 'durationType' | 'activity'> | null {
+    const lower = input.toLowerCase().trim();
+
+    // Match patterns for time commands
+    const patterns = [
+        // Rest commands
+        { regex: /\b(rest|sleep|nap)\s+(?:for\s+)?(\d+)\s+hours?\b/i, activity: 'resting' as const, unit: 'hours' as const },
+        { regex: /\b(rest|sleep|nap)\s+(?:for\s+)?(\d+)\s+days?\b/i, activity: 'resting' as const, unit: 'days' as const },
+        { regex: /\b(rest|sleep|nap)\s+until\s+(dawn|morning|dusk)\b/i, activity: 'resting' as const, special: true },
+
+        // Camp commands
+        { regex: /\b(camp|make\s+camp|set\s+up\s+camp)\s+(?:for\s+)?(\d+)\s+hours?\b/i, activity: 'camping' as const, unit: 'hours' as const },
+        { regex: /\b(camp|make\s+camp|set\s+up\s+camp)\s+(?:for\s+)?(\d+)\s+days?\b/i, activity: 'camping' as const, unit: 'days' as const },
+        { regex: /\b(camp|make\s+camp|set\s+up\s+camp)\s+(?:for\s+)?(\d+)\s+weeks?\b/i, activity: 'camping' as const, unit: 'weeks' as const },
+        { regex: /\b(camp|make\s+camp|set\s+up\s+camp)\s+(?:here|for\s+the\s+night)\b/i, activity: 'camping' as const, default: 8 },
+
+        // Wait commands
+        { regex: /\b(wait|stay|remain)\s+(?:for\s+)?(\d+)\s+hours?\b/i, activity: 'waiting' as const, unit: 'hours' as const },
+        { regex: /\b(wait|stay|remain)\s+(?:for\s+)?(\d+)\s+days?\b/i, activity: 'waiting' as const, unit: 'days' as const },
+        { regex: /\b(wait|stay|remain)\s+until\s+(dawn|morning|dusk)\b/i, activity: 'waiting' as const, special: true },
+
+        // Skip time commands
+        { regex: /\b(skip|pass|advance)\s+(?:time\s+)?(?:by\s+)?(\d+)\s+hours?\b/i, activity: 'waiting' as const, unit: 'hours' as const },
+        { regex: /\b(skip|pass|advance)\s+(?:time\s+)?(?:by\s+)?(\d+)\s+days?\b/i, activity: 'waiting' as const, unit: 'days' as const },
+        { regex: /\b(skip|pass|advance)\s+(?:time\s+)?(?:by\s+)?(\d+)\s+weeks?\b/i, activity: 'waiting' as const, unit: 'weeks' as const },
+
+        // Simple time advancement
+        { regex: /\buntil\s+(dawn|morning|dusk)\b/i, activity: 'waiting' as const, special: true }
+    ];
+
+    for (const pattern of patterns) {
+        const match = lower.match(pattern.regex);
+        if (match) {
+            // Handle special time-of-day commands
+            if (pattern.special) {
+                const timeOfDay = match[2] || match[1];
+                let durationType: TimeAdvancementRequest['durationType'];
+
+                if (timeOfDay === 'dawn') durationType = 'until-dawn';
+                else if (timeOfDay === 'morning') durationType = 'until-morning';
+                else if (timeOfDay === 'dusk') durationType = 'until-dusk';
+                else durationType = 'until-dawn'; // fallback
+
+                return {
+                    duration: 1, // Will be calculated by service
+                    durationType,
+                    activity: pattern.activity
+                };
+            }
+
+            // Handle default durations
+            if (pattern.default) {
+                return {
+                    duration: pattern.default,
+                    durationType: 'hours',
+                    activity: pattern.activity
+                };
+            }
+
+            // Handle numeric durations
+            const duration = parseInt(match[2]);
+            if (!isNaN(duration) && duration > 0 && duration <= 365) {
+                return {
+                    duration,
+                    durationType: pattern.unit!,
+                    activity: pattern.activity
+                };
+            }
+        }
+    }
+
+    return null;
+}
 
 export interface VictoryDetails {
     xpGained: number;
@@ -43,7 +122,7 @@ export const useUIState = () => {
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory } = usePlayer();
     const { localArea, mapData, currentMapArchetype, currentMapClimate, currentMapSeed, animals, npcs, terrainStructures, setNpcs, setAnimals, removeVegetation, updateMineralDeposit, addDugTile } = useMap();
     const {
-        gameDate, formattedTime, addGameLogEntry, gameTimeHours, gameTimeMinutes,
+        gameDate, setGameDate, formattedTime, addGameLogEntry, gameTimeHours, setGameTimeHours, gameTimeMinutes,
         narrationHistory, setNarrationHistory, playerInput, onPlayerInputChange: setPlayerInput,
         isNarratorLoading, setIsNarratorLoading, currentTimeOfDay,
         currentZone, season
@@ -52,6 +131,7 @@ export const useUIState = () => {
     // UI State
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
     const [isAboutModalOpen, setIsAboutModalOpen] = useState<boolean>(false);
+    const [isPauseModalOpen, setIsPauseModalOpen] = useState<boolean>(false);
     const [containerPrompt, setContainerPrompt] = useState<{ message: string; isVisible: boolean }>({
         message: '',
         isVisible: false
@@ -193,10 +273,10 @@ export const useUIState = () => {
 
     // Memoize if any modal is open
     const isAnyModalOpen = useMemo(() =>
-        isSettingsModalOpen || isAboutModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
+        isSettingsModalOpen || isAboutModalOpen || isPauseModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
         !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData,
-        [isSettingsModalOpen, isAboutModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
+        [isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
          interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData]
     );
@@ -699,6 +779,120 @@ export const useUIState = () => {
         if (locationQuestions.some(question => lowerInput.includes(question))) {
             // Emit event to show POV viewport
             eventBus.emit('pov:show');
+        }
+
+        // Check if this is a time advancement command
+        const timeCommand = parseTimeCommand(lowerInput);
+        if (timeCommand) {
+            try {
+                // Import time advancement service
+                const { timeAdvancementService } = await import('../services/timeAdvancementService');
+
+                // Get current game state
+                const currentTile = mapData.tiles[controlledIconY][controlledIconX];
+
+                // Create request
+                const request = {
+                    duration: timeCommand.duration,
+                    durationType: timeCommand.durationType,
+                    activity: timeCommand.activity,
+                    location: {
+                        biome: currentTile.type,
+                        climate: mapData.climate || 'temperate',
+                        season: mapData.season || 'spring',
+                        isDangerous: currentTile.type === 'MOUNTAINS' || currentTile.type === 'DEEP_OCEAN'
+                    }
+                };
+
+                // Advance time and get results
+                const result = await timeAdvancementService.advanceTime(
+                    request,
+                    playerCharacter,
+                    gameTimeHours,
+                    gameDate.day,
+                    gameDate.month,
+                    gameDate.year
+                );
+
+                // Update game time
+                let newHours = gameTimeHours + result.hoursPassed;
+                let newDays = gameDate.day;
+                let newMonth = gameDate.month;
+                let newYear = gameDate.year;
+
+                // Handle day/month/year rollover
+                while (newHours >= 24) {
+                    newHours -= 24;
+                    newDays++;
+
+                    const daysInMonth = getDaysInMonth(newYear, newMonth);
+                    if (newDays > daysInMonth) {
+                        newDays = 1;
+                        newMonth++;
+                        if (newMonth > 12) {
+                            newMonth = 1;
+                            newYear++;
+                        }
+                    }
+                }
+
+                setGameTimeHours(newHours);
+                setGameDate({ year: newYear, month: newMonth, day: newDays });
+
+                // Apply resource changes to player
+                const updatedCharacter = { ...playerCharacter };
+                if (result.resourceChanges.health) {
+                    updatedCharacter.health = Math.min(
+                        updatedCharacter.maxHealth,
+                        updatedCharacter.health + result.resourceChanges.health
+                    );
+                }
+                if (result.resourceChanges.fatigue) {
+                    updatedCharacter.fatigue = Math.max(
+                        0,
+                        Math.min(
+                            updatedCharacter.maxFatigue,
+                            updatedCharacter.fatigue + result.resourceChanges.fatigue
+                        )
+                    );
+                }
+                setPlayerCharacter(updatedCharacter);
+
+                // Add summary to narration
+                setNarrationHistory(prev => [...prev, {
+                    sender: 'narrator',
+                    text: result.summary
+                }]);
+
+                // Add detailed events if any
+                if (result.events.length > 0) {
+                    const significantEvents = result.events.filter(e => e.severity !== 'minor');
+                    if (significantEvents.length > 0) {
+                        const eventDetails = significantEvents.map(e => {
+                            const when = result.daysPassed > 0
+                                ? `Day ${e.day + 1}`
+                                : `Hour ${e.hour || 1}`;
+                            return `${when}: ${e.description}`;
+                        }).join('\n');
+
+                        setNarrationHistory(prev => [...prev, {
+                            sender: 'narrator-ambient',
+                            text: eventDetails
+                        }]);
+                    }
+                }
+
+            } catch (error) {
+                console.error('[TimeAdvancement] Error:', error);
+                setNarrationHistory(prev => [...prev, {
+                    sender: 'narrator',
+                    text: 'Time passes, though you lose track of the details.'
+                }]);
+            } finally {
+                setIsNarratorLoading(false);
+            }
+
+            return; // Don't continue to normal narrator processing
         }
 
         // Check if this is a physical feat attempt
@@ -1327,7 +1521,7 @@ export const useUIState = () => {
         // State
         hoveredDevData, pinnedDevData, isTooltipPinnedOpen,
         tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-        isSettingsModalOpen, isAboutModalOpen, useLlmForDescriptions, useLlmForCharacter, showDevTooltip,
+        isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, useLlmForDescriptions, useLlmForCharacter, showDevTooltip,
         isTestModeEnabled, debugSettings, isDevBuildingModeOpen,
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
@@ -1350,7 +1544,7 @@ export const useUIState = () => {
         // Handlers
         handleDevHover, handleCondenseTooltip, togglePinnedTooltip,
         setTileInfoModalProps, setInfoModalTarget, setStructureModalTarget, setActiveSettlementInfo,
-        setIsSettingsModalOpen, setIsAboutModalOpen, setUseLlmForDescriptions, setUseLlmForCharacter, setShowDevTooltip,
+        setIsSettingsModalOpen, setIsAboutModalOpen, setIsPauseModalOpen, setUseLlmForDescriptions, setUseLlmForCharacter, setShowDevTooltip,
         setIsTestModeEnabled, setDebugSettings, setIsDevBuildingModeOpen,
         setIsWorldMapModalOpen, setInteractionModalData, handleTakeItem,
         setIsSkillsModalOpen, setSkillResult, setIsMapDetailsModalOpen,

@@ -1137,15 +1137,15 @@ export function updateCoastlinesAndShallowOceans(
                 // Ocean coasts - diverse coastal types based on altitude and local conditions
                 const coastalNoise = featurePlacementNoise.noise(x * 0.03, y * 0.03);
 
-                if (tile.altitude > 0.5) {
-                    // High altitude coasts become cliffs (like Big Sur, White Cliffs of Dover)
+                if (tile.altitude > 0.6 && featurePlacementNoise.random() < 0.75) {
+                    // Very high altitude coasts usually become cliffs (like Big Sur, White Cliffs of Dover)
                     tile.biome = BiomeType.CLIFF;
                     // Keep altitude high for dramatic cliffs
-                } else if (tile.altitude > 0.35 && coastalNoise > -0.2) {
-                    // Mid-altitude coasts often become rocky cliffs
+                } else if (tile.altitude > 0.45 && coastalNoise > 0.1 && featurePlacementNoise.random() < 0.6) {
+                    // Mid-high altitude coasts with favorable geology become cliffs
                     tile.biome = BiomeType.CLIFF;
-                } else if (tile.altitude > 0.4 && coastalNoise > 0.3) {
-                    // High mountains meeting ocean become dramatic cliffs
+                } else if (tile.altitude > 0.5 && coastalNoise > 0.4 && featurePlacementNoise.random() < 0.7) {
+                    // High mountains meeting ocean can become dramatic cliffs
                     tile.biome = BiomeType.CLIFF;
                     tile.altitude = Math.max(0.45, tile.altitude); // Keep cliffs dramatic
                 } else if (tile.altitude < 0.15 && coastalNoise < -0.3) {
@@ -1157,9 +1157,9 @@ export function updateCoastlinesAndShallowOceans(
                     tile.biome = BiomeType.REEF;
                     tile.isLand = false; // Reefs are underwater
                     tile.altitude = ALTITUDE_LEVELS.SEA - 0.01; // Just below sea level
-                } else if (tile.altitude > 0.25 && coastalNoise > 0) {
+                } else if (tile.altitude > 0.3 && coastalNoise > 0.2) {
                     // Rocky coasts at moderate elevations
-                    if (featurePlacementNoise.random() < 0.4) {
+                    if (featurePlacementNoise.random() < 0.25) {
                         tile.biome = BiomeType.CLIFF;
                     } else {
                         // Pebble/rocky beach
@@ -1221,6 +1221,110 @@ export function updateCoastlinesAndShallowOceans(
                 tiles[y][x].biome = BiomeType.DEEP_OCEAN;
                 tiles[y][x].altitude = 0;
             }
+        }
+      }
+    }
+  }
+}
+
+export function generateInlandCliffs(tiles: Tile[][], featurePlacementNoise: ValueNoise) {
+  // Generate inland cliffs along altitude gradients (escarpments, fault lines)
+  // and apply cliff continuity for geological realism
+
+  const protectedBiomes = new Set([
+    BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.DEEP_OCEAN,
+    BiomeType.SHALLOW_OCEAN, BiomeType.RIVER, BiomeType.MAJOR_RIVER,
+    BiomeType.PALACE, BiomeType.HOLY_SITE, BiomeType.GOVERNMENT_DISTRICT,
+    BiomeType.MARKETPLACE, BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY,
+    BiomeType.HAMLET, BiomeType.ACTIVE_LAVA
+  ]);
+
+  // First pass: Generate escarpments along sharp altitude gradients
+  for (let y = 1; y < MAP_HEIGHT_TILES - 1; y++) {
+    for (let x = 1; x < MAP_WIDTH_TILES - 1; x++) {
+      const tile = tiles[y][x];
+
+      if (!tile.isLand || protectedBiomes.has(tile.biome) || tile.biome === BiomeType.CLIFF) {
+        continue;
+      }
+
+      // Check altitude differences with neighbors
+      let maxAltitudeDrop = 0;
+      let hasAdjacentCliff = false;
+
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+            const neighbor = tiles[ny][nx];
+            const altitudeDiff = tile.altitude - neighbor.altitude;
+
+            if (altitudeDiff > maxAltitudeDrop) {
+              maxAltitudeDrop = altitudeDiff;
+            }
+
+            if (neighbor.biome === BiomeType.CLIFF) {
+              hasAdjacentCliff = true;
+            }
+          }
+        }
+      }
+
+      // Generate cliff if there's a sharp altitude drop (escarpment/fault line)
+      if (maxAltitudeDrop > 0.25 && tile.altitude > ALTITUDE_LEVELS.HILLS_START) {
+        const cliffChance = Math.min(0.8, maxAltitudeDrop * 2); // Steeper = more likely
+        if (featurePlacementNoise.random() < cliffChance) {
+          tile.biome = BiomeType.CLIFF;
+        }
+      }
+
+      // Cliff continuity: existing cliffs tend to extend along geological features
+      if (hasAdjacentCliff && !protectedBiomes.has(tile.biome) && tile.altitude > ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX) {
+        const continuityChance = tile.altitude > ALTITUDE_LEVELS.HILLS_START ? 0.65 : 0.4;
+        if (featurePlacementNoise.random() < continuityChance && maxAltitudeDrop > 0.15) {
+          tile.biome = BiomeType.CLIFF;
+        }
+      }
+    }
+  }
+
+  // Second pass: Smooth isolated cliff tiles (geological realism - cliffs rarely appear as single tiles)
+  for (let y = 1; y < MAP_HEIGHT_TILES - 1; y++) {
+    for (let x = 1; x < MAP_WIDTH_TILES - 1; x++) {
+      const tile = tiles[y][x];
+
+      if (tile.biome !== BiomeType.CLIFF) continue;
+
+      // Count adjacent cliffs
+      let adjacentCliffs = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+            if (tiles[ny][nx].biome === BiomeType.CLIFF) {
+              adjacentCliffs++;
+            }
+          }
+        }
+      }
+
+      // If completely isolated and not coastal, revert to original biome
+      if (adjacentCliffs === 0 && !tile.isCoast) {
+        // Determine appropriate biome based on altitude
+        if (tile.altitude >= ALTITUDE_LEVELS.MOUNTAIN_MAX * 0.85) {
+          tile.biome = BiomeType.MOUNTAIN;
+        } else if (tile.altitude >= ALTITUDE_LEVELS.HILLS_START) {
+          tile.biome = BiomeType.HILLS;
+        } else {
+          tile.biome = BiomeType.GRASSLAND;
         }
       }
     }

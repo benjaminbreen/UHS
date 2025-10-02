@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { FaHeartBroken, FaBed, FaSkull, FaExclamationTriangle } from 'react-icons/fa';
 import { IoWarning } from 'react-icons/io5';
 import { GiNightSleep } from 'react-icons/gi';
+import { Tent } from 'lucide-react';
 
 interface StatusWarningToastProps {
   type: 'health' | 'fatigue';
@@ -14,6 +15,7 @@ interface StatusWarningToastProps {
   currentValue: number;
   maxValue: number;
   onClose: () => void;
+  onMakeCamp?: () => void; // Callback to open camping modal
   duration?: number; // milliseconds before auto-dismiss (0 = no auto-dismiss)
 }
 
@@ -23,6 +25,7 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
   currentValue,
   maxValue,
   onClose,
+  onMakeCamp,
   duration = 0
 }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -67,7 +70,7 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             iconColor: 'text-red-500',
             title: 'CRITICAL CONDITION',
             message: 'Death is imminent',
-            advice: 'Rest in a city or make camp immediately by clicking your character icon',
+            advice: 'Bed down for the night to recover your health',
             bgGradient: 'from-red-900/95 via-red-800/95 to-red-900/95',
             borderColor: 'border-red-500',
             textColor: 'text-red-200',
@@ -82,7 +85,7 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             iconColor: 'text-orange-500',
             title: 'Severely Injured',
             message: 'Your wounds are critical',
-            advice: 'Seek rest soon - click your character icon to make camp or find a settlement',
+            advice: 'Make camp soon to rest and heal your injuries',
             bgGradient: 'from-orange-900/90 via-orange-800/90 to-red-900/90',
             borderColor: 'border-orange-500',
             textColor: 'text-orange-100',
@@ -97,7 +100,7 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             iconColor: 'text-yellow-500',
             title: 'Wounded',
             message: 'Your injuries need attention',
-            advice: 'Consider resting when you can - make camp or visit a settlement',
+            advice: 'Consider bedding down for the night to recover',
             bgGradient: 'from-yellow-900/85 via-yellow-800/85 to-orange-900/85',
             borderColor: 'border-yellow-500',
             textColor: 'text-yellow-100',
@@ -115,8 +118,8 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             icon: <GiNightSleep className="w-8 h-8" />,
             iconColor: 'text-purple-500',
             title: isCollapsed ? 'COLLAPSED' : 'EXTREME EXHAUSTION',
-            message: isCollapsed ? 'You have collapsed' : 'You may collapse at any moment',
-            advice: isCollapsed ? 'You will be unable to move until you rest.' : 'Rest immediately - click your character icon to make camp or find shelter',
+            message: isCollapsed ? 'You have collapsed from exhaustion' : 'You may collapse at any moment',
+            advice: isCollapsed ? 'You will be unable to move until you rest.' : 'Bed down for the night immediately to replenish your energy',
             bgGradient: 'from-purple-900/95 via-indigo-900/95 to-purple-900/95',
             borderColor: 'border-purple-500',
             textColor: 'text-purple-200',
@@ -131,7 +134,7 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             iconColor: 'text-indigo-500',
             title: 'Dangerously Tired',
             message: 'Exhaustion is overwhelming you',
-            advice: 'You need rest soon - make camp or find a city to recover',
+            advice: 'Make camp soon to rest and restore your energy',
             bgGradient: 'from-indigo-900/90 via-indigo-800/90 to-purple-900/90',
             borderColor: 'border-indigo-500',
             textColor: 'text-indigo-100',
@@ -146,7 +149,7 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             iconColor: 'text-blue-500',
             title: 'Getting Tired',
             message: 'Fatigue is setting in',
-            advice: 'Rest when convenient - click your icon to make camp',
+            advice: 'Consider bedding down for the night to recover',
             bgGradient: 'from-blue-900/85 via-blue-800/85 to-indigo-900/85',
             borderColor: 'border-blue-500',
             textColor: 'text-blue-100',
@@ -219,6 +222,23 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             <div className="text-xs italic text-gray-300 leading-relaxed">
               {config.advice}
             </div>
+
+            {/* Make Camp Button - only show if callback provided and not collapsed */}
+            {onMakeCamp && !isCollapsed && (
+              <button
+                onClick={() => {
+                  onMakeCamp();
+                  handleManualClose();
+                }}
+                className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500
+                         text-white text-sm font-semibold rounded-lg transition-all
+                         border border-blue-400/30 hover:border-blue-400/50
+                         hover:shadow-lg hover:shadow-blue-500/20"
+              >
+                <Tent className="w-4 h-4" />
+                <span>Make Camp</span>
+              </button>
+            )}
 
             {/* Progress Bar */}
             <div className="mt-3 w-full bg-gray-800/60 rounded-full h-2.5 overflow-hidden">

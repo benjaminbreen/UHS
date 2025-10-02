@@ -600,9 +600,27 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
         structure.mineralDeposits
     };
 
+    // IMPORTANT: Parse timeSlice to get actual year number for era-specific rendering
+    // timeSlice format: "2822 BCE" or "1500 CE" or "1500"
+    // We need to convert this to a year number string like "-2822" or "1500"
+    let yearString = '1500'; // Default
+    if (mapData?.timeSlice) {
+      const timeSliceLower = mapData.timeSlice.toLowerCase().trim();
+      // Extract number from timeSlice
+      const match = timeSliceLower.match(/-?\d+/);
+      if (match) {
+        let year = parseInt(match[0], 10);
+        // Check if BCE/BC to make negative
+        if (timeSliceLower.includes('bce') || timeSliceLower.includes('bc')) {
+          year = -Math.abs(year); // Ensure negative
+        }
+        yearString = year.toString();
+      }
+    }
+
     const bannerProps = {
       structure: enhancedStructure,
-      era: currentEra || mapData?.timeSlice || '1500',
+      era: yearString, // Pass actual year number string, not enum
       culturalZone: currentCulturalZone || 'european',
       climate: mapData?.climate || 'temperate' as const,
       season: mapData?.season || 'spring' as const,
@@ -818,42 +836,54 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                         title={!onEnterBuilding ? 'Interior system not available' : 'Click to enter fortress'}
                       >
                         <div className="text-white font-medium text-sm mb-1">
-                          🏛️ Ask to see the Commander {!onEnterBuilding && '(Disabled)'}
+                          🏛️ {currentEra === HistoricalEra.PREHISTORY ? 'Ask to see the War Leader' : 'Ask to see the Commander'} {!onEnterBuilding && '(Disabled)'}
                         </div>
                         <div className="text-gray-400 text-xs leading-tight">
-                          Request an audience with the fortress commander
+                          {currentEra === HistoricalEra.PREHISTORY
+                            ? 'Request an audience with the clan war leader'
+                            : 'Request an audience with the fortress commander'}
                         </div>
                       </button>
-                      
-                      <button
-                        onClick={() => {
-                          // TODO: Trigger enlistment dialogue
-                          showToast?.('Enlistment system coming soon!');
-                        }}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
-                      >
-                        <div className="text-white font-medium text-sm mb-1">
-                          ⚔️ Inquire about Enlistment
-                        </div>
-                        <div className="text-gray-400 text-xs leading-tight">
-                          Ask about joining the military forces
-                        </div>
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          // TODO: Trigger supply trade dialogue
-                          showToast?.('Military supply trading coming soon!');
-                        }}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
-                      >
-                        <div className="text-white font-medium text-sm mb-1">
-                          📦 Request Supplies
-                        </div>
-                        <div className="text-gray-400 text-xs leading-tight">
-                          Ask for military supplies or provisions
-                        </div>
-                      </button>
+
+                      {/* Enlistment - Only available Medieval+ (professional militaries) */}
+                      {currentEra !== HistoricalEra.PREHISTORY && (
+                        <button
+                          onClick={() => {
+                            // TODO: Trigger enlistment dialogue
+                            showToast?.('Enlistment system coming soon!');
+                          }}
+                          className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                        >
+                          <div className="text-white font-medium text-sm mb-1">
+                            ⚔️ Inquire about Enlistment
+                          </div>
+                          <div className="text-gray-400 text-xs leading-tight">
+                            {currentEra === HistoricalEra.ANTIQUITY
+                              ? 'Ask about joining the garrison forces'
+                              : 'Ask about joining the military forces'}
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Supplies - Only available Medieval+ (professional supply systems) */}
+                      {currentEra !== HistoricalEra.PREHISTORY && (
+                        <button
+                          onClick={() => {
+                            // TODO: Trigger supply trade dialogue
+                            showToast?.('Military supply trading coming soon!');
+                          }}
+                          className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                        >
+                          <div className="text-white font-medium text-sm mb-1">
+                            📦 Request Supplies
+                          </div>
+                          <div className="text-gray-400 text-xs leading-tight">
+                            {currentEra === HistoricalEra.ANTIQUITY
+                              ? 'Ask for garrison provisions'
+                              : 'Ask for military supplies or provisions'}
+                          </div>
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

@@ -431,6 +431,139 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   },
   
   // ==================== FORTRESS DIALOGUES ====================
+
+  // PREHISTORY - Europe (HILL-FORT, earthworks and palisades)
+  {
+    type: 'fortress',
+    culturalZone: 'Europe',
+    era: HistoricalEra.PREHISTORY,
+    speakerTitles: [
+      'Warrior',
+      'War Leader',
+      'Clan Guardian',
+      'Sentinel',
+      'Defender'
+    ],
+    greetings: [
+      "*grips spear* Who comes to our walls?",
+      "The clan watches. State your purpose, stranger.",
+      "*warrior stands blocking path* You are not of our people.",
+      "What brings you to our stronghold?",
+      "*elder warrior nods* Speak. We will listen."
+    ],
+    services: [
+      {
+        id: 'seek_shelter',
+        nameTemplate: 'Request Shelter',
+        descriptionTemplate: 'Ask for temporary refuge within the walls',
+        costTemplate: 'Gift or service to the clan',
+        requirements: ['Peaceful intent']
+      },
+      {
+        id: 'trade_goods',
+        nameTemplate: 'Trade with Clan',
+        descriptionTemplate: 'Exchange goods with the community',
+        costTemplate: 'Fair barter',
+        requirements: ['Valuable goods']
+      },
+      {
+        id: 'clan_council',
+        nameTemplate: 'Speak to Council',
+        descriptionTemplate: 'Request audience with clan elders',
+        costTemplate: 'Respectful offering',
+        requirements: ['Important matter']
+      }
+    ]
+  },
+
+  // PREHISTORY - Middle East (MUDBRICK SETTLEMENT)
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.PREHISTORY,
+    speakerTitles: [
+      'Village Defender',
+      'Clan Leader',
+      'Watchman',
+      'Elder Guardian',
+      'Warrior'
+    ],
+    greetings: [
+      "*from wall* Who approaches our settlement?",
+      "We do not know your face. What do you want?",
+      "*elder steps forward* State your business, traveler.",
+      "This village is protected. Why do you come?",
+      "*gestures* Strangers must speak with the elders."
+    ],
+    services: [
+      {
+        id: 'enter_village',
+        nameTemplate: 'Request Entry',
+        descriptionTemplate: 'Ask permission to enter the fortified settlement',
+        costTemplate: 'Show peaceful intent',
+        requirements: ['No visible weapons drawn']
+      },
+      {
+        id: 'village_trade',
+        nameTemplate: 'Trade Goods',
+        descriptionTemplate: 'Exchange items with the community',
+        costTemplate: 'Fair exchange',
+        requirements: ['Tradeable goods']
+      },
+      {
+        id: 'seek_water',
+        nameTemplate: 'Request Water',
+        descriptionTemplate: 'Ask for water from the settlement well',
+        costTemplate: 'Small gift or labor',
+        requirements: ['Respectful approach']
+      }
+    ]
+  },
+
+  // PREHISTORY - North America (PALISADED VILLAGE)
+  {
+    type: 'fortress',
+    culturalZone: 'North America',
+    era: HistoricalEra.PREHISTORY,
+    speakerTitles: [
+      'War Leader',
+      'Warrior',
+      'Clan Guardian',
+      'Village Defender',
+      'Sentinel'
+    ],
+    greetings: [
+      "*painted warrior steps forward* What brings you to our village?",
+      "The palisade protects our people. Who are you?",
+      "*elder at gate* We do not know your clan.",
+      "State your purpose, stranger from beyond the forest.",
+      "*warriors gather* Speak quickly and truthfully."
+    ],
+    services: [
+      {
+        id: 'peaceful_passage',
+        nameTemplate: 'Request Safe Passage',
+        descriptionTemplate: 'Ask to pass through clan territory',
+        costTemplate: 'Show respect and peaceful intent',
+        requirements: ['No hostile actions']
+      },
+      {
+        id: 'ceremonial_exchange',
+        nameTemplate: 'Gift Exchange',
+        descriptionTemplate: 'Offer gifts to build relations with the clan',
+        costTemplate: 'Valuable items or tools',
+        requirements: ['Ceremonial items']
+      },
+      {
+        id: 'council_meeting',
+        nameTemplate: 'Speak with Elders',
+        descriptionTemplate: 'Request audience with the village council',
+        costTemplate: 'Sacred tobacco or gifts',
+        requirements: ['Important news or trade']
+      }
+    ]
+  },
+
   // Europe - Medieval - Fortress (FEUDAL CASTLE, not military base)
   {
     type: 'fortress',

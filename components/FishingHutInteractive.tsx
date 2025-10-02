@@ -13,6 +13,7 @@ import { HistoricalEra } from '../types/ambiance';
 import { ClimateType, Season, TimeOfDay, BiomeType, PlayerCharacter } from '../types';
 import type { TerrainStructure } from '../types/structures';
 import type { WeatherState } from '../services/weatherService';
+import { FishingVisualRenderer } from './FishingVisualRenderer';
 
 // Helper function to adjust color brightness for depth effects
 function adjustColorBrightness(hex: string, percent: number): string {
@@ -143,7 +144,19 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
   const [powerBar, setPowerBar] = useState(fishingGameState.getPowerBar());
   const [stats, setStats] = useState(fishingGameState.getStats());
   const [ripples, setRipples] = useState(fishingGameState.getRipples());
-  const [bannerFish, setBannerFish] = useState<Fish[]>([]);
+
+  // UPDATED: bannerFish now stores actual FishSpecies with position data
+  const [bannerFish, setBannerFish] = useState<Array<{
+    species: FishSpecies;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    id: string;
+    size: number;
+    direction: 'left' | 'right'; // Store direction from game state
+  }>>([]);
+
   const [hoveredFishId, setHoveredFishId] = useState<string | null>(null);
   const [isHoldingCast, setIsHoldingCast] = useState(false);
   const [isReeling, setIsReeling] = useState(false);
@@ -648,23 +661,23 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
     
     // Create initial fish if none exist - FORCE SPAWN FOR DEBUGGING
     const currentFish = fishingGameState.getFish();
-    // console.log('🐟 FISH SPAWN CHECK:', {
-    //   currentFishCount: currentFish.length,
-    //   availableFishCount: availableFish.length,
-    //   availableFishNames: availableFish.map(f => f.name)
-    // });
-    
+    console.log('🐟 FISH SPAWN CHECK:', {
+      currentFishCount: currentFish.length,
+      availableFishCount: availableFish.length,
+      availableFishNames: availableFish.map(f => f.name)
+    });
+
     if (currentFish.length < 8) { // Maintain minimum fish population
-      // console.log('🚀 FORCE SPAWNING FISH - no current fish detected');
-      
+      console.log('🚀 FORCE SPAWNING FISH - no current fish detected');
+
       // Use the actual available fish species - they should always be provided
-      // console.log('🐠 Using fish variety:', availableFish.map(f => f.name));
+      console.log('🐠 Using fish variety:', availableFish.map(f => f.name));
       const fishSpecies = availableFish;
-      
+
       // Spawn fish to reach target population
-      const targetFishCount = 4;
+      const targetFishCount = 6; // Reduced for better performance and less clutter
       const fishCount = targetFishCount - currentFish.length;
-      // console.log(`🐟 Spawning ${fishCount} fish using species:`, fishSpecies.map(f => f.name));
+      console.log(`🐟 Spawning ${fishCount} fish using species:`, fishSpecies.map(f => f.name));
       
       // Add sea urchins and sea stars on the ocean floor
       if (!isFreshwater && Math.random() < 0.4) {
@@ -719,26 +732,33 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
           i % fishSpecies.length : // Cycle through species 70% of the time
           Math.floor(Math.random() * fishSpecies.length); // Random species 30% of the time
         const species = fishSpecies[speciesIndex];
+        // Determine initial direction and velocity (they must match!)
+        const initialDirection = Math.random() > 0.5 ? 'right' : 'left';
+        const speed = 0.3 + Math.random() * 0.5; // Random speed between 0.3 and 0.8
+        const initialVx = initialDirection === 'right' ? speed : -speed;
+
         const gameFish: GameFish = {
           id: `fish_${i}_${Date.now()}`,
           species,
           x: 100 + Math.random() * (GAME_WIDTH - 200), // Keep away from edges
           y: WATER_Y + 30 + Math.random() * (MAX_DEPTH - 60), // Safe depth range
-          vx: (Math.random() - 0.5) * 0.8,
+          vx: initialVx, // Velocity matches direction
           vy: 0,
           size: 5 + Math.random() * 4,
           weight: species.size.min + Math.random() * (species.size.max - species.size.min),
-          direction: Math.random() > 0.5 ? 'right' : 'left',
+          direction: initialDirection, // Direction matches velocity
           interested: false,
           hooked: false,
           escaping: false,
           stamina: 100,
           distanceToHook: 1000
         };
-        
+
         console.log(`🐟 Registering fish ${i}:`, {
           id: gameFish.id,
           species: gameFish.species.name,
+          color: gameFish.species.color,
+          pattern: gameFish.species.pattern,
           position: { x: gameFish.x.toFixed(1), y: gameFish.y.toFixed(1) }
         });
         
@@ -786,7 +806,31 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
     const interval = setInterval(animateFish, 50);
     return () => clearInterval(interval);
   }, [GAME_WIDTH]);
-  
+
+  // Sync game fish to banner fish for visual rendering
+  useEffect(() => {
+    const syncFish = () => {
+      const gameFish = fishingGameState.getFish();
+
+      // Convert game fish to banner fish format with species data
+      const visualFish = gameFish.map(fish => ({
+        species: fish.species,
+        x: fish.x,
+        y: fish.y,
+        vx: fish.vx || 0,
+        vy: fish.vy || 0,
+        id: fish.id,
+        size: fish.size || 5,
+        direction: fish.direction // Preserve direction from game state
+      }));
+
+      setBannerFish(visualFish);
+    };
+
+    const interval = setInterval(syncFish, 100); // Sync 10x/sec
+    return () => clearInterval(interval);
+  }, []);
+
   // Particle system functions (defined before use)
   const addSplashParticles = useCallback((x: number, y: number, intensity: number = 1) => {
     const newParticles = [];
@@ -1823,611 +1867,109 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
                 );
               })}
               
-              {/* Render ALL fish - both banner and game fish */}
-              {/* First render banner fish as visual background */}
+              {/* Render ALL fish using species-based visual renderer */}
               {bannerFish.map((fish, index) => {
-                const isNearHook = lineState.cast ? 
+                const isNearHook = lineState.cast ?
                   Math.sqrt(Math.pow(fish.x - lineState.x, 2) + Math.pow(fish.y - (WATER_Y + lineState.depth), 2)) < 100 : false;
-                
+
                 const depth = (fish.y - WATER_Y) / (GAME_HEIGHT - WATER_Y);
-                const sizeMultiplier = Math.max(0.8, 1 - (depth * 0.2)); // Larger minimum size
-                const opacity = Math.max(0.7, 0.9 - (depth * 0.2)); // Higher minimum opacity
-                
+                const opacityFromDepth = Math.max(0.65, 1 - (depth * 0.35)); // Deeper = darker
+
+                // Check if fish is hooked
+                const gameFish = fishingGameState.getFish().find(gf => gf.id === fish.id);
+                const isHooked = gameFish?.hooked || false;
+
+                // Use stored direction from game state (updated by animation loop)
+                const direction = fish.direction;
+
                 return (
-                  <g key={`fish_${index}`} opacity={opacity}>
-                    {/* Fish glow when interested */}
-                    {isNearHook && (
-                      <ellipse
-                        cx={fish.x}
-                        cy={fish.y}
-                        rx={fish.size * 5}
-                        ry={fish.size * 3}
-                        fill="yellow"
-                        opacity={0.2}
-                        filter="url(#glow)"
-                      />
-                    )}
-                    
-                    {/* Fish shadow with depth */}
-                    <ellipse
-                      cx={fish.x + 3}
-                      cy={fish.y + 5}
-                      rx={fish.size * 3.5 * sizeMultiplier}
-                      ry={fish.size * 1.2 * sizeMultiplier}
-                      fill="rgba(0,0,0,0.25)"
-                      filter="url(#blur)"
-                    />
-                    
-                    {/* Beautiful fish body with shimmer */}
-                    <defs>
-                      <linearGradient id={`fishGrad_${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor={fish.color || '#6495ED'} stopOpacity="0.8" />
-                        <stop offset="50%" stopColor={fish.color || '#6495ED'} stopOpacity="1" />
-                        <stop offset="100%" stopColor={fish.color || '#4169E1'} stopOpacity="0.9" />
-                      </linearGradient>
-                    </defs>
-                    <ellipse
+                  <g key={fish.id}>
+                    {/* Invisible hit area for hover detection */}
+                    <circle
                       cx={fish.x}
                       cy={fish.y}
-                      rx={fish.size * 3.5 * sizeMultiplier}
-                      ry={fish.size * 1.8 * sizeMultiplier}
-                      fill={`url(#fishGrad_${index})`}
-                      stroke="rgba(255,255,255,0.4)"
-                      strokeWidth={0.8}
+                      r={15}
+                      fill="transparent"
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => setHoveredFishId(fish.id)}
+                      onMouseLeave={() => setHoveredFishId(null)}
                     />
-                    {/* Shimmer effect */}
-                    <ellipse
-                      cx={fish.x - fish.size * 0.8 * sizeMultiplier}
-                      cy={fish.y - fish.size * 0.3 * sizeMultiplier}
-                      rx={fish.size * 0.8 * sizeMultiplier}
-                      ry={fish.size * 0.4 * sizeMultiplier}
-                      fill="rgba(255,255,255,0.3)"
-                      transform={`rotate(-30 ${fish.x} ${fish.y})`}
-                    />
-                    
-                    {/* Elegant fish tail with movement */}
-                    <g transform={`rotate(${Math.sin(Date.now() * 0.003 + index) * 5} ${fish.x} ${fish.y})`}>
-                      <path
-                        d={fish.dir === 1 ?
-                          `M ${fish.x - fish.size * 2 * sizeMultiplier} ${fish.y}
-                           Q ${fish.x - fish.size * 3 * sizeMultiplier} ${fish.y - fish.size * 0.5 * sizeMultiplier}
-                             ${fish.x - fish.size * 4 * sizeMultiplier} ${fish.y - fish.size * 1.5 * sizeMultiplier}
-                           L ${fish.x - fish.size * 4 * sizeMultiplier} ${fish.y + fish.size * 1.5 * sizeMultiplier}
-                           Q ${fish.x - fish.size * 3 * sizeMultiplier} ${fish.y + fish.size * 0.5 * sizeMultiplier}
-                             ${fish.x - fish.size * 2 * sizeMultiplier} ${fish.y}` :
-                          `M ${fish.x + fish.size * 2 * sizeMultiplier} ${fish.y}
-                           Q ${fish.x + fish.size * 3 * sizeMultiplier} ${fish.y - fish.size * 0.5 * sizeMultiplier}
-                             ${fish.x + fish.size * 4 * sizeMultiplier} ${fish.y - fish.size * 1.5 * sizeMultiplier}
-                           L ${fish.x + fish.size * 4 * sizeMultiplier} ${fish.y + fish.size * 1.5 * sizeMultiplier}
-                           Q ${fish.x + fish.size * 3 * sizeMultiplier} ${fish.y + fish.size * 0.5 * sizeMultiplier}
-                             ${fish.x + fish.size * 2 * sizeMultiplier} ${fish.y}`
-                        }
-                        fill={fish.color || '#6495ED'}
-                        opacity={0.85}
-                        stroke={fish.color || '#4169E1'}
-                        strokeWidth={0.5}
-                      />
-                    </g>
-                    
-                    {/* Realistic fish eye with detail */}
-                    <circle
-                      cx={fish.dir === 1 ? fish.x + fish.size * 1.2 * sizeMultiplier : fish.x - fish.size * 1.2 * sizeMultiplier}
-                      cy={fish.y - fish.size * 0.2 * sizeMultiplier}
-                      r={1.5 * sizeMultiplier}
-                      fill="#FFD700"
-                      opacity={0.9}
-                    />
-                    <circle
-                      cx={fish.dir === 1 ? fish.x + fish.size * 1.2 * sizeMultiplier : fish.x - fish.size * 1.2 * sizeMultiplier}
-                      cy={fish.y - fish.size * 0.2 * sizeMultiplier}
-                      r={1.2 * sizeMultiplier}
-                      fill="black"
-                    />
-                    <circle
-                      cx={fish.dir === 1 ? fish.x + fish.size * 1.3 * sizeMultiplier : fish.x - fish.size * 1.1 * sizeMultiplier}
-                      cy={fish.y - fish.size * 0.3 * sizeMultiplier}
-                      r={0.4 * sizeMultiplier}
-                      fill="white"
-                      opacity={0.8}
-                    />
-                    
-                    {/* Dorsal fin */}
-                    <path
-                      d={`M ${fish.x - fish.size * 0.5 * sizeMultiplier} ${fish.y - fish.size * 1.2 * sizeMultiplier}
-                          L ${fish.x} ${fish.y - fish.size * 2 * sizeMultiplier}
-                          L ${fish.x + fish.size * 0.5 * sizeMultiplier} ${fish.y - fish.size * 1.2 * sizeMultiplier}`}
-                      fill={fish.color || '#6495ED'}
-                      opacity={0.7}
-                      stroke={fish.color || '#4169E1'}
-                      strokeWidth={0.3}
+                    <FishingVisualRenderer
+                      species={fish.species}
+                      x={fish.x}
+                      y={fish.y}
+                      size={fish.size * 0.15} // Much smaller for realism (reduced from 0.35)
+                      direction={direction}
+                      opacity={opacityFromDepth}
+                      isHooked={isHooked}
+                      isNearHook={isNearHook}
+                      depth={depth} // Pass depth for color temperature shift and scaling
                     />
                   </g>
                 );
               })}
-              
-              {/* Species-specific realistic fish rendering */}
-              {allFish.length > 0 && allFish.map(fish => {
-                const depthDiff = Math.abs(fish.y - (WATER_Y + lineState.depth));
-                const nearHook = lineState.cast ? Math.max(0.6, 1 - depthDiff / 150) : 0.8;
-                
-                // Depth-based visibility and murkiness
-                const depthPercent = (fish.y - WATER_Y) / (GAME_HEIGHT - WATER_Y);
-                const murkiness = Math.max(0.3, 1 - depthPercent * 0.6);
-                const shadowOpacity = 0.2 * (1 - depthPercent);
-                const visibility = (fish.hooked ? 1 : nearHook) * murkiness;
-                
-                // Properly sized realistic fish - 40-50% smaller for realism
-                const scaledSize = fish.size * 0.6;
-                
-                // More realistic animated fin movement
-                const time = Date.now() * 0.002; // Slower, more natural
-                const finPhase = time + fish.x * 0.008 + fish.id.charCodeAt(0);
-                const swimSpeed = Math.sqrt(fish.vx * fish.vx + fish.vy * fish.vy);
-                const finIntensity = Math.max(0.3, Math.min(1.5, swimSpeed * 0.8)); // Fins move based on swim speed
-                
-                const tailSwing = Math.sin(finPhase * 2.1) * (4 + finIntensity * 2);
-                const pectoralFlap = Math.sin(finPhase * 1.8 + 0.5) * (3 + finIntensity * 1.5);
-                const dorsalSway = Math.sin(finPhase * 0.9 + 1.2) * (2 + finIntensity);
-                
-                // Use actual species color data for variety
-                const species = fish.species;
-                const colors = {
-                  body: species.color || '#4682B4',
-                  bodyLight: species.secondaryColor || (species.color ? adjustColorBrightness(species.color, 20) : '#87CEEB'),
-                  fin: species.patternColor || (species.color ? adjustColorBrightness(species.color, -20) : '#191970'),
-                  accent: species.patternColor || '#000080',
-                  belly: species.bellyColor || '#F0F8FF'
+
+              {/* TODO: Species-specific creature rendering (octopus, squid, etc.) - Can be re-enabled in Phase 2 by uncommenting below and updating creature species in database */}
+
+              {/* Fish hover tooltip */}
+              {hoveredFishId && (() => {
+                const hoveredFish = bannerFish.find(f => f.id === hoveredFishId);
+                if (!hoveredFish) return null;
+
+                const rarityColors = {
+                  'common': '#AAA',
+                  'uncommon': '#4CAF50',
+                  'rare': '#2196F3',
+                  'ultra-rare': '#9C27B0',
+                  'unique': '#FFD700'
                 };
-                
-                // Animate hooked fish rising up with minigame progress
-                const hookedYOffset = fish.hooked && minigame.active && minigame.progress > 0 
-                  ? -(minigame.progress * (fish.y - WATER_Y)) // Move up based on progress
-                  : 0;
-                
+                const rarityColor = rarityColors[hoveredFish.species.rarity || 'common'] || '#AAA';
+
+                const sizeLabel = hoveredFish.size < 6 ? 'Small' : hoveredFish.size < 8 ? 'Medium' : 'Large';
+                const sizeIcon = hoveredFish.size < 6 ? '🐟' : hoveredFish.size < 8 ? '🐟🐟' : '🐟🐟🐟';
+
                 return (
-                  <g 
-                    key={fish.id} 
-                    opacity={visibility} 
-                    filter={fish.hooked ? "url(#fishGlow)" : ""}
-                    onMouseEnter={() => {
-                      console.log('🐟 Hovering fish:', fish.species.name);
-                      setHoveredFishId(fish.id);
-                    }}
-                    onMouseLeave={() => setHoveredFishId(null)}
-                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
-                  >
-                    {/* Fish shadow for depth effect */}
-                    <ellipse
-                      cx={fish.x}
-                      cy={fish.y + hookedYOffset + scaledSize * 1.5}
-                      rx={scaledSize * 1.2}
-                      ry={scaledSize * 0.3}
-                      fill="#000000"
-                      opacity={shadowOpacity}
-                      filter="blur(3px)"
+                  <g transform={`translate(${hoveredFish.x},${hoveredFish.y - 25})`}>
+                    {/* Tooltip background */}
+                    <rect
+                      x="-60"
+                      y="-35"
+                      width="120"
+                      height="32"
+                      fill="rgba(0,0,0,0.85)"
+                      stroke={rarityColor}
+                      strokeWidth="1.5"
+                      rx="4"
                     />
-                    {/* Species-specific creature rendering */}
-                    {(() => {
-                      const creatureType = getCreatureType(fish.species.name);
-                      const renderCreature = () => {
-                        switch (creatureType) {
-                          case 'octopus':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset})`}>
-                                {/* Octopus body */}
-                                <ellipse cx={0} cy={0} rx={scaledSize * 2} ry={scaledSize * 1.5} fill={colors.body} stroke={colors.accent} strokeWidth={1} />
-                                {/* Mantle pattern */}
-                                <ellipse cx={0} cy={0} rx={scaledSize * 1.5} ry={scaledSize * 1} fill={colors.bodyLight} opacity={0.6} />
-                                {/* Eyes */}
-                                <circle cx={-scaledSize * 0.5} cy={-scaledSize * 0.3} r={scaledSize * 0.4} fill="#2a2a2a" />
-                                <circle cx={scaledSize * 0.5} cy={-scaledSize * 0.3} r={scaledSize * 0.4} fill="#2a2a2a" />
-                                <circle cx={-scaledSize * 0.5} cy={-scaledSize * 0.3} r={scaledSize * 0.15} fill="white" />
-                                <circle cx={scaledSize * 0.5} cy={-scaledSize * 0.3} r={scaledSize * 0.15} fill="white" />
-                                {/* 8 tentacles */}
-                                {[0, 1, 2, 3, 4, 5, 6, 7].map(i => {
-                                  const angle = (i * Math.PI * 2) / 8;
-                                  const tentacleWave = Math.sin(time * 2 + i * 0.5) * scaledSize * 0.3;
-                                  return (
-                                    <path
-                                      key={i}
-                                      d={`M ${Math.cos(angle) * scaledSize * 0.8} ${Math.sin(angle) * scaledSize * 0.8 + scaledSize}
-                                          Q ${Math.cos(angle) * scaledSize * 2 + tentacleWave} ${Math.sin(angle) * scaledSize * 2 + scaledSize * 2}
-                                          ${Math.cos(angle) * scaledSize * 3 + tentacleWave * 1.5} ${Math.sin(angle) * scaledSize * 3 + scaledSize * 3}`}
-                                      stroke={colors.body}
-                                      strokeWidth={scaledSize * 0.3}
-                                      fill="none"
-                                      strokeLinecap="round"
-                                    />
-                                  );
-                                })}
-                              </g>
-                            );
-
-                          case 'squid':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset}) scale(${fish.direction === 'left' ? -1 : 1}, 1)`}>
-                                {/* Squid mantle (elongated body) */}
-                                <ellipse cx={0} cy={0} rx={scaledSize * 3} ry={scaledSize * 1} fill={colors.body} stroke={colors.accent} strokeWidth={1} />
-                                {/* Fins on sides */}
-                                <ellipse cx={0} cy={-scaledSize * 0.8} rx={scaledSize * 2.5} ry={scaledSize * 0.4} fill={colors.fin} opacity={0.7} />
-                                <ellipse cx={0} cy={scaledSize * 0.8} rx={scaledSize * 2.5} ry={scaledSize * 0.4} fill={colors.fin} opacity={0.7} />
-                                {/* Eyes */}
-                                <circle cx={scaledSize * 2.5} cy={-scaledSize * 0.3} r={scaledSize * 0.4} fill="#1a1a1a" />
-                                <circle cx={scaledSize * 2.5} cy={-scaledSize * 0.3} r={scaledSize * 0.15} fill="white" />
-                                {/* 10 tentacles (2 long feeding tentacles + 8 arms) */}
-                                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => {
-                                  const isLong = i < 2;
-                                  const angle = ((i - 1) * Math.PI * 2) / 8;
-                                  const length = isLong ? scaledSize * 4 : scaledSize * 2.5;
-                                  const tentacleWave = Math.sin(time * 1.5 + i * 0.3) * scaledSize * 0.2;
-                                  return (
-                                    <path
-                                      key={i}
-                                      d={`M ${scaledSize * 3} ${Math.sin(angle) * scaledSize * 0.5}
-                                          Q ${scaledSize * 3.5 + tentacleWave} ${Math.sin(angle) * length * 0.5}
-                                          ${scaledSize * 3 + length + tentacleWave} ${Math.sin(angle) * length}`}
-                                      stroke={colors.body}
-                                      strokeWidth={isLong ? scaledSize * 0.2 : scaledSize * 0.15}
-                                      fill="none"
-                                      strokeLinecap="round"
-                                    />
-                                  );
-                                })}
-                              </g>
-                            );
-
-                          case 'sea_urchin':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset})`}>
-                                {/* Urchin body */}
-                                <circle cx={0} cy={0} r={scaledSize * 1.2} fill={colors.body} stroke={colors.accent} strokeWidth={1} />
-                                {/* Spines */}
-                                {Array.from({ length: 20 }, (_, i) => {
-                                  const angle = (i * Math.PI * 2) / 20;
-                                  const spineLength = scaledSize * (1.5 + Math.sin(time + i) * 0.3);
-                                  return (
-                                    <line
-                                      key={i}
-                                      x1={Math.cos(angle) * scaledSize * 1.2}
-                                      y1={Math.sin(angle) * scaledSize * 1.2}
-                                      x2={Math.cos(angle) * spineLength}
-                                      y2={Math.sin(angle) * spineLength}
-                                      stroke={colors.accent}
-                                      strokeWidth={2}
-                                      strokeLinecap="round"
-                                    />
-                                  );
-                                })}
-                              </g>
-                            );
-
-                          case 'sea_star':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset})`}>
-                                {/* Sea star with 5 arms */}
-                                {Array.from({ length: 5 }, (_, i) => {
-                                  const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
-                                  const armLength = scaledSize * 1.8;
-                                  const armWidth = scaledSize * 0.6;
-                                  const wiggle = Math.sin(time * 0.5 + i) * 2;
-
-                                  return (
-                                    <g key={i} transform={`rotate(${(i * 72) + wiggle})`}>
-                                      {/* Each arm */}
-                                      <ellipse
-                                        cx={0}
-                                        cy={-armLength / 2}
-                                        rx={armWidth}
-                                        ry={armLength}
-                                        fill="#FF6B35"
-                                        stroke="#D65529"
-                                        strokeWidth={1}
-                                      />
-                                      {/* Texture dots on arms */}
-                                      <circle cx={0} cy={-armLength * 0.7} r={scaledSize * 0.1} fill="#D65529" opacity={0.6} />
-                                      <circle cx={armWidth * 0.3} cy={-armLength * 0.5} r={scaledSize * 0.08} fill="#D65529" opacity={0.5} />
-                                      <circle cx={-armWidth * 0.3} cy={-armLength * 0.5} r={scaledSize * 0.08} fill="#D65529" opacity={0.5} />
-                                    </g>
-                                  );
-                                })}
-                                {/* Central body */}
-                                <circle cx={0} cy={0} r={scaledSize * 0.8} fill="#FF8C42" stroke="#D65529" strokeWidth={1} />
-                                {/* Center detail */}
-                                <circle cx={0} cy={0} r={scaledSize * 0.3} fill="#FFa65C" opacity={0.7} />
-                              </g>
-                            );
-
-                          case 'ray':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset}) scale(${fish.direction === 'left' ? -1 : 1}, 1)`}>
-                                {/* Ray body (flat and wide) */}
-                                <ellipse cx={0} cy={0} rx={scaledSize * 4} ry={scaledSize * 2.5} fill={colors.body} stroke={colors.accent} strokeWidth={1} />
-                                {/* Wing-like fins with wave motion */}
-                                <path
-                                  d={`M ${-scaledSize * 4} ${-scaledSize * 2.5}
-                                      Q ${-scaledSize * 5 + Math.sin(time) * scaledSize * 0.5} ${Math.sin(time * 0.5) * scaledSize}
-                                      ${-scaledSize * 4} ${scaledSize * 2.5}`}
-                                  fill={colors.fin}
-                                  opacity={0.8}
-                                />
-                                <path
-                                  d={`M ${scaledSize * 4} ${-scaledSize * 2.5}
-                                      Q ${scaledSize * 5 + Math.sin(time + Math.PI) * scaledSize * 0.5} ${Math.sin(time * 0.5 + Math.PI) * scaledSize}
-                                      ${scaledSize * 4} ${scaledSize * 2.5}`}
-                                  fill={colors.fin}
-                                  opacity={0.8}
-                                />
-                                {/* Eyes on top */}
-                                <circle cx={scaledSize * 1} cy={-scaledSize * 0.5} r={scaledSize * 0.3} fill="#1a1a1a" />
-                                <circle cx={-scaledSize * 1} cy={-scaledSize * 0.5} r={scaledSize * 0.3} fill="#1a1a1a" />
-                                {/* Tail */}
-                                <line x1={0} y1={scaledSize * 2.5} x2={tailSwing * 0.1} y2={scaledSize * 5} stroke={colors.body} strokeWidth={scaledSize * 0.2} />
-                              </g>
-                            );
-
-                          case 'eel':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset}) scale(${fish.direction === 'left' ? -1 : 1}, 1)`}>
-                                {/* Eel body (long and snake-like) */}
-                                <path
-                                  d={`M ${-scaledSize * 2} 0
-                                      Q ${scaledSize * 2} ${Math.sin(time + fish.x * 0.01) * scaledSize * 0.5}
-                                      ${scaledSize * 6} ${Math.sin(time * 1.2 + fish.x * 0.01) * scaledSize * 0.8}
-                                      Q ${scaledSize * 10} ${Math.sin(time * 1.5 + fish.x * 0.01) * scaledSize}
-                                      ${scaledSize * 12} ${Math.sin(time * 1.8 + fish.x * 0.01) * scaledSize * 0.5}`}
-                                  stroke={colors.body}
-                                  strokeWidth={scaledSize * 1.5}
-                                  fill="none"
-                                  strokeLinecap="round"
-                                />
-                                {/* Head */}
-                                <ellipse cx={scaledSize * 2} cy={0} rx={scaledSize * 1.5} ry={scaledSize * 0.8} fill={colors.body} />
-                                {/* Eye */}
-                                <circle cx={scaledSize * 2.8} cy={-scaledSize * 0.2} r={scaledSize * 0.3} fill="#1a1a1a" />
-                                <circle cx={scaledSize * 2.8} cy={-scaledSize * 0.2} r={scaledSize * 0.1} fill="white" />
-                              </g>
-                            );
-
-                          case 'shark':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset}) scale(${fish.direction === 'left' ? -1 : 1}, 1)`}>
-                                {/* Shark body (torpedo shaped) */}
-                                <path
-                                  d={`M ${-scaledSize * 2} 0
-                                      C ${-scaledSize} ${-scaledSize * 1.2} ${scaledSize * 2} ${-scaledSize * 1.3} ${scaledSize * 4.5} 0
-                                      C ${scaledSize * 2} ${scaledSize * 1.3} ${-scaledSize} ${scaledSize * 1.2} ${-scaledSize * 2} 0 Z`}
-                                  fill={colors.body}
-                                  stroke={colors.accent}
-                                  strokeWidth={1}
-                                />
-                                {/* Dorsal fin */}
-                                <path
-                                  d={`M ${scaledSize * 0.5} ${-scaledSize * 1.3}
-                                      L ${scaledSize * 1.5} ${-scaledSize * 3}
-                                      L ${scaledSize * 2.5} ${-scaledSize * 1.3} Z`}
-                                  fill={colors.fin}
-                                />
-                                {/* Tail fin */}
-                                <path
-                                  d={`M ${-scaledSize * 2} 0
-                                      L ${-scaledSize * 4} ${-scaledSize * 2}
-                                      L ${-scaledSize * 3} 0
-                                      L ${-scaledSize * 4} ${scaledSize * 1.2} Z`}
-                                  fill={colors.fin}
-                                  transform={`rotate(${tailSwing * 0.3} ${-scaledSize * 2} 0)`}
-                                />
-                                {/* Pectoral fins */}
-                                <ellipse cx={scaledSize * 2} cy={scaledSize * 0.8} rx={scaledSize * 1.5} ry={scaledSize * 0.5} fill={colors.fin} opacity={0.8} />
-                                {/* Eye */}
-                                <circle cx={scaledSize * 3.5} cy={-scaledSize * 0.4} r={scaledSize * 0.4} fill="#1a1a1a" />
-                                <circle cx={scaledSize * 3.5} cy={-scaledSize * 0.4} r={scaledSize * 0.15} fill="white" />
-                                {/* Gills */}
-                                {[0, 1, 2, 3, 4].map(i => (
-                                  <line
-                                    key={i}
-                                    x1={scaledSize * (2.5 + i * 0.3)}
-                                    y1={scaledSize * 0.5}
-                                    x2={scaledSize * (2.5 + i * 0.3)}
-                                    y2={scaledSize * 1}
-                                    stroke={colors.accent}
-                                    strokeWidth={1}
-                                  />
-                                ))}
-                              </g>
-                            );
-
-                          case 'flatfish':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset}) scale(${fish.direction === 'left' ? -1 : 1}, 1)`}>
-                                {/* Flatfish body (oval and flat) */}
-                                <ellipse cx={0} cy={0} rx={scaledSize * 3.5} ry={scaledSize * 2} fill={colors.body} stroke={colors.accent} strokeWidth={1} />
-                                {/* Continuous fin around edge */}
-                                <path
-                                  d={`M ${-scaledSize * 3.5} 0
-                                      Q ${-scaledSize * 3} ${-scaledSize * 2.5} 0 ${-scaledSize * 2.2}
-                                      Q ${scaledSize * 3} ${-scaledSize * 2.5} ${scaledSize * 3.5} 0
-                                      Q ${scaledSize * 3} ${scaledSize * 2.5} 0 ${scaledSize * 2.2}
-                                      Q ${-scaledSize * 3} ${scaledSize * 2.5} ${-scaledSize * 3.5} 0 Z`}
-                                  fill={colors.fin}
-                                  opacity={0.6}
-                                />
-                                {/* Both eyes on one side (flatfish characteristic) */}
-                                <circle cx={scaledSize * 1} cy={-scaledSize * 0.5} r={scaledSize * 0.3} fill="#1a1a1a" />
-                                <circle cx={scaledSize * 0.3} cy={-scaledSize * 0.8} r={scaledSize * 0.3} fill="#1a1a1a" />
-                                <circle cx={scaledSize * 1} cy={-scaledSize * 0.5} r={scaledSize * 0.1} fill="white" />
-                                <circle cx={scaledSize * 0.3} cy={-scaledSize * 0.8} r={scaledSize * 0.1} fill="white" />
-                              </g>
-                            );
-
-                          case 'seahorse':
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset}) scale(${fish.direction === 'left' ? -1 : 1}, 1)`}>
-                                {/* Seahorse body (S-shaped) */}
-                                <path
-                                  d={`M 0 ${scaledSize * 3}
-                                      Q ${scaledSize * 0.5} ${scaledSize * 2} ${scaledSize * 0.3} ${scaledSize}
-                                      Q ${scaledSize * 0.1} 0 ${scaledSize * 0.8} ${-scaledSize}
-                                      Q ${scaledSize * 1.5} ${-scaledSize * 1.5} ${scaledSize * 1.2} ${-scaledSize * 2.5}`}
-                                  stroke={colors.body}
-                                  strokeWidth={scaledSize * 0.8}
-                                  fill="none"
-                                  strokeLinecap="round"
-                                />
-                                {/* Head */}
-                                <ellipse cx={scaledSize * 1.2} cy={-scaledSize * 2.5} rx={scaledSize * 0.6} ry={scaledSize * 0.8} fill={colors.body} />
-                                {/* Snout */}
-                                <ellipse cx={scaledSize * 1.8} cy={-scaledSize * 2.5} rx={scaledSize * 0.8} ry={scaledSize * 0.2} fill={colors.body} />
-                                {/* Eye */}
-                                <circle cx={scaledSize * 1.2} cy={-scaledSize * 2.8} r={scaledSize * 0.2} fill="#1a1a1a" />
-                                {/* Dorsal fin */}
-                                <path
-                                  d={`M ${scaledSize * 0.5} ${-scaledSize * 0.5}
-                                      Q ${scaledSize * 1.2} ${-scaledSize * 1.2} ${scaledSize * 1} ${-scaledSize * 2}`}
-                                  stroke={colors.fin}
-                                  strokeWidth={scaledSize * 0.3}
-                                  fill="none"
-                                />
-                                {/* Tail curl */}
-                                <circle cx={0} cy={scaledSize * 3} r={scaledSize * 0.5} fill="none" stroke={colors.body} strokeWidth={scaledSize * 0.3} />
-                              </g>
-                            );
-
-                          default:
-                            // Enhanced standard fish with more variety
-                            const bodyShape = (() => {
-                              if (creatureType === 'torpedo') {
-                                return `M ${-scaledSize * 3.5} 0
-                                        C ${-scaledSize * 3} ${-scaledSize * 0.8} ${scaledSize * 2} ${-scaledSize * 0.8} ${scaledSize * 4} 0
-                                        C ${scaledSize * 2} ${scaledSize * 0.8} ${-scaledSize * 3} ${scaledSize * 0.8} ${-scaledSize * 3.5} 0 Z`;
-                              } else if (creatureType === 'round') {
-                                return `M ${-scaledSize * 2} 0
-                                        C ${-scaledSize * 2} ${-scaledSize * 2} ${scaledSize * 2} ${-scaledSize * 2} ${scaledSize * 2} 0
-                                        C ${scaledSize * 2} ${scaledSize * 2} ${-scaledSize * 2} ${scaledSize * 2} ${-scaledSize * 2} 0 Z`;
-                              } else if (creatureType === 'elongated') {
-                                return `M ${-scaledSize * 4} 0
-                                        C ${-scaledSize * 3.5} ${-scaledSize * 0.6} ${scaledSize * 3} ${-scaledSize * 0.6} ${scaledSize * 5} 0
-                                        C ${scaledSize * 3} ${scaledSize * 0.6} ${-scaledSize * 3.5} ${scaledSize * 0.6} ${-scaledSize * 4} 0 Z`;
-                              } else if (creatureType === 'deep_body') {
-                                return `M ${-scaledSize * 2.5} 0
-                                        C ${-scaledSize * 2} ${-scaledSize * 1.8} ${scaledSize * 2} ${-scaledSize * 1.8} ${scaledSize * 3} 0
-                                        C ${scaledSize * 2} ${scaledSize * 1.8} ${-scaledSize * 2} ${scaledSize * 1.8} ${-scaledSize * 2.5} 0 Z`;
-                              } else {
-                                return `M ${-scaledSize * 3.2} 0
-                                        C ${-scaledSize * 2.8} ${-scaledSize * 1.4} ${scaledSize * 1.5} ${-scaledSize * 1.4} ${scaledSize * 3.5} 0
-                                        C ${scaledSize * 1.5} ${scaledSize * 1.4} ${-scaledSize * 2.8} ${scaledSize * 1.4} ${-scaledSize * 3.2} 0 Z`;
-                              }
-                            })();
-
-                            return (
-                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset}) scale(${fish.direction === 'left' ? -1 : 1}, 1)`}>
-                                <defs>
-                                  <radialGradient id={`bodyGrad_${fish.id}`} cx="30%" cy="30%">
-                                    <stop offset="0%" stopColor={colors.bodyLight} />
-                                    <stop offset="60%" stopColor={colors.body} />
-                                    <stop offset="100%" stopColor={colors.accent} />
-                                  </radialGradient>
-                                </defs>
-
-                                {/* Species-specific body shape */}
-                                <path
-                                  d={bodyShape}
-                                  fill={`url(#bodyGrad_${fish.id})`}
-                                  stroke={fish.hooked ? "#FFD700" : colors.accent}
-                                  strokeWidth={fish.hooked ? 2 : 1}
-                                  opacity={0.95}
-                                />
-
-                                {/* Tail */}
-                                <g transform={`rotate(${tailSwing} ${-scaledSize * 3.5} 0)`}>
-                                  <path
-                                    d={`M ${-scaledSize * 3.5} 0
-                                        L ${-scaledSize * 5} ${-scaledSize * 1.5}
-                                        L ${-scaledSize * 4.5} 0
-                                        L ${-scaledSize * 5} ${scaledSize * 1.5} Z`}
-                                    fill={colors.fin}
-                                    opacity={0.9}
-                                  />
-                                </g>
-
-                                {/* Dorsal fin */}
-                                <path
-                                  d={`M ${-scaledSize} ${-scaledSize * 1.5}
-                                      Q 0 ${-scaledSize * 2.5} ${scaledSize} ${-scaledSize * 1.5}`}
-                                  stroke={colors.fin}
-                                  strokeWidth={scaledSize * 0.3}
-                                  fill="none"
-                                />
-
-                                {/* Eye */}
-                                <circle cx={scaledSize * 2.5} cy={-scaledSize * 0.4} r={scaledSize * 0.4} fill="#F0F0F0" />
-                                <circle cx={scaledSize * 2.5} cy={-scaledSize * 0.4} r={scaledSize * 0.3} fill="#1a1a1a" />
-                                <circle cx={scaledSize * 2.6} cy={-scaledSize * 0.5} r={scaledSize * 0.1} fill="white" />
-                              </g>
-                            );
-                        }
-                      };
-
-                      return (
-                        <g opacity={visibility}>
-                          {/* Shadow */}
-                          <ellipse
-                            cx={fish.x + 2}
-                            cy={fish.y + hookedYOffset + scaledSize * 1.5}
-                            rx={scaledSize * 2}
-                            ry={scaledSize * 0.5}
-                            fill="#000000"
-                            opacity={shadowOpacity * 0.3}
-                            filter="blur(2px)"
-                          />
-
-                          {/* Creature */}
-                          {renderCreature()}
-
-                          {/* Interest indicator */}
-                          {fish.interested && !fish.hooked && (
-                            <g>
-                              <circle
-                                cx={fish.x}
-                                cy={fish.y + hookedYOffset - scaledSize * 3}
-                                r={scaledSize * 0.8}
-                                fill="none"
-                                stroke="#FFD700"
-                                strokeWidth={2}
-                                opacity={0.8}
-                              />
-                              <text
-                                x={fish.x}
-                                y={fish.y + hookedYOffset - scaledSize * 2.5}
-                                fill="#FFD700"
-                                fontSize={scaledSize}
-                                fontWeight="bold"
-                                textAnchor="middle"
-                              >!</text>
-                            </g>
-                          )}
-                        </g>
-                      );
-                    })()}
-                    
-                    {/* Hook line when caught */}
-                    {fish.hooked && (
-                      <line
-                        x1={fish.x}
-                        y1={fish.y}
-                        x2={lineState.x}
-                        y2={WATER_Y + lineState.depth}
-                        stroke="rgba(255,255,255,0.5)"
-                        strokeWidth={2}
-                        strokeDasharray="4,4"
-                />
-              )}
+                    {/* Species name */}
+                    <text
+                      x="0"
+                      y="-22"
+                      fill="#FFF"
+                      fontSize="11"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
+                      {hoveredFish.species.name}
+                    </text>
+                    {/* Size and rarity */}
+                    <text
+                      x="0"
+                      y="-10"
+                      fill={rarityColor}
+                      fontSize="9"
+                      textAnchor="middle"
+                    >
+                      {sizeIcon} {sizeLabel} • {hoveredFish.species.rarity || 'common'}
+                    </text>
                   </g>
                 );
-              })}
+              })()}
             </>
           );
         })()}
-        
+
+
         {/* Ripple effects */}
         {ripples.map((ripple, i) => (
           <ellipse
@@ -2988,11 +2530,11 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
             e.stopPropagation();
             onExit();
           }}
-          className="p-2 rounded-lg bg-black/50 hover:bg-black/70 text-white/90 hover:text-white border border-white/30 hover:border-white/50 transition-all"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/50 hover:bg-black/70 text-white/90 hover:text-white border border-white/30 hover:border-white/50 transition-all"
           style={{ pointerEvents: 'auto' }}
           title="Exit fishing"
         >
-          <span className="text-lg">✕</span>
+          <span className="text-lg leading-none">✕</span>
         </button>
       </div>
     </div>

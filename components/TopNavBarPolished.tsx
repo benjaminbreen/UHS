@@ -5,7 +5,7 @@ import {
   Cpu, ScrollText, MapPin, Compass, Activity,
   Zap, Download, History, AlertCircle, Sliders, Trophy, Target, Clock,
   Shield, Compass as CompassIcon, Coins, BookOpen, Crown, Home, Users, Scale,
-  Sun, Moon, FileText
+  Sun, Moon, FileText, Pause, Play
 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
@@ -112,7 +112,7 @@ interface TopNavBarPolishedProps {
 }
 
 const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived }) => {
-  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen } = useUI();
+  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal } = useUI();
   const { currentMode } = useEventSystem();
   const { setControlledIconX, setControlledIconY } = usePlayer();
   const { 
@@ -253,16 +253,25 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
       // Command+J (Mac) or Ctrl+J (PC) to toggle Journal
       if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
         e.preventDefault();
         setShowJournal(prev => !prev);
       }
+
+      // Space bar to toggle pause - BUT NOT when fishing modal is active (fishing uses spacebar)
+      if (e.key === ' ' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && !activeFishingHutModal) {
+        e.preventDefault();
+        setIsPauseModalOpen(prev => !prev);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [setIsPauseModalOpen, activeFishingHutModal]);
   
   // Show modal when map finishes loading with pending scenario data
   useEffect(() => {
@@ -548,8 +557,25 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   )}
                 </div>
               
-              {/* Journal Button - Right next to Game Mode */}
+              {/* Pause Button - Subtle, next to Game Mode */}
               <div className="relative ml-2">
+                <button
+                  onClick={() => setIsPauseModalOpen(prev => !prev)}
+                  className={getOptimizedButtonClassName(`
+                    px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 rounded-md
+                    transition-all duration-200 flex items-center gap-1.5
+                    bg-slate-200/40 dark:bg-slate-700/40 hover:bg-slate-300/60 dark:hover:bg-slate-600/60
+                    shadow-sm hover:shadow-md hover:scale-105
+                    ${isPauseModalOpen ? 'ring-2 ring-blue-500/50 bg-blue-200/40 dark:bg-blue-900/30' : ''}
+                  `)}
+                  title={isPauseModalOpen ? "Resume (Space)" : "Pause (Space)"}
+                >
+                  {isPauseModalOpen ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+
+              {/* Journal Button - Right next to Pause */}
+              <div className="relative ml-1">
                 <button
                   onClick={() => setShowJournal(prev => !prev)}
                   className={getOptimizedButtonClassName(`

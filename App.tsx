@@ -19,6 +19,7 @@ import MobileHeader from './components/mobile/MobileHeader';
 import MobileQuickStats from './components/mobile/MobileQuickStats';
 import MobileSidebar from './components/mobile/MobileSidebar';
 import ModalHub from './components/ModalHub';
+import PauseModal from './components/PauseModal';
 import DebugOverlay from './components/DebugOverlay';
 import FPSCounter from './components/FPSCounter';
 import { EventNotification, EventBadge } from './components/EventNotification';
@@ -163,7 +164,9 @@ const AppContent: React.FC = () => {
                 // Store character data for later restoration
                 console.log('[URL_RESTORE] Step 3: Storing character data in localStorage');
                 localStorage.setItem('urlCharacterData', JSON.stringify(fullState.character));
-                localStorage.setItem('urlGameMode', fullState.gameMode);
+
+                // PHASE 3: Use unified game mode restoration
+                shareableStateService.setGameModeForRestoration(fullState.gameMode);
 
                 // Store educational mode setting (Phase 1)
                 if (fullState.educationalMode) {
@@ -203,10 +206,12 @@ const AppContent: React.FC = () => {
                     seed: fullState.mapSeed,
                     fullState: fullState
                 };
-                
-                // Store game mode preference
-                localStorage.setItem('urlConfigGameMode', fullState.gameMode);
-                
+
+                // PHASE 3: Use unified game mode restoration
+                if (fullState.gameMode) {
+                    shareableStateService.setGameModeForRestoration(fullState.gameMode);
+                }
+
                 return config;
             }
         }
@@ -220,9 +225,9 @@ const AppContent: React.FC = () => {
             console.log('[App] Initialized seed from URL:', config.seed);
         }
         
-        // Store game mode preference if provided
+        // PHASE 3: Store game mode preference if provided using unified restoration
         if (config.gameMode) {
-            localStorage.setItem('urlConfigGameMode', config.gameMode);
+            shareableStateService.setGameModeForRestoration(config.gameMode);
             console.log('[App] Stored game mode preference:', config.gameMode);
         }
         
@@ -290,7 +295,7 @@ const AppContent: React.FC = () => {
         }
     }, [diseaseProgressionQueue, showDiseaseProgressionModal, currentDiseaseProgression]);
 
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime } = useGame();
     const mapContext = useMap();
@@ -414,6 +419,7 @@ const AppContent: React.FC = () => {
                 'SOUTH_ASIAN': 'South Asia',
                 'SUB_SAHARAN_AFRICAN': 'Sub-Saharan Africa',
                 'NORTH_AMERICAN_PRE_COLUMBIAN': 'North America (Pre-Columbian)',
+                'NORTH_AMERICAN_COLONIAL': 'North America',
                 'SOUTH_AMERICAN': 'South America',
                 'OCEANIA': 'Oceania'
             };
@@ -476,9 +482,9 @@ const AppContent: React.FC = () => {
                     region: finalRegion
                 };
                 
-                // Store game mode in localStorage for restoration after character creation
+                // PHASE 3: Store game mode using unified restoration
                 if (fullState.gameMode) {
-                    localStorage.setItem('urlConfigGameMode', fullState.gameMode);
+                    shareableStateService.setGameModeForRestoration(fullState.gameMode);
                     console.log('[URL_RESTORE] Stored game mode for restoration:', fullState.gameMode);
                 }
                 
@@ -497,18 +503,43 @@ const AppContent: React.FC = () => {
                     console.log('[URL_RESTORE] Step 4 FALLBACK: onStartNewWorldAtLocation not available');
                     onStartNewWorldAtZoneRegion(targetZone, targetRegion || '', characterSpec);
                 }
-            } else if (urlConfig.geography?.culturalZone || urlConfig.geography?.region) {
-                // Fall back to old URL parsing with zone/region
-                targetZone = urlConfig.geography?.culturalZone 
-                    ? (zoneMapping[urlConfig.geography.culturalZone] || 'Europe')
-                    : currentZone;
-                targetRegion = urlConfig.geography?.region || '';
+            } else if (urlConfig.geography?.culturalZone || urlConfig.geography?.region || urlConfig.geography?.mapArea) {
+                // Fall back to old URL parsing with zone/region/mapArea
+                const mapArea = urlConfig.geography?.mapArea;
+
+                // If we only have map area (no zone), detect it
+                if (mapArea && !urlConfig.geography?.culturalZone) {
+                    console.log('[App] Detecting zone from map area in URL:', mapArea);
+                    const detected = findZoneForMapArea(mapArea);
+                    if (detected) {
+                        targetZone = detected.zone;
+                        targetRegion = detected.region;
+                        console.log('[App] Detected zone:', targetZone, 'region:', targetRegion);
+                    } else {
+                        console.warn('[App] Could not detect zone for map area:', mapArea);
+                        targetZone = 'Europe'; // Fallback
+                        targetRegion = '';
+                    }
+                } else {
+                    targetZone = urlConfig.geography?.culturalZone
+                        ? (zoneMapping[urlConfig.geography.culturalZone] || 'Europe')
+                        : currentZone;
+                    targetRegion = urlConfig.geography?.region || '';
+                }
+
                 characterSpec = urlConfig.dateRange ? { year: urlConfig.dateRange.startYear } : undefined;
-                
-                console.log('[App] Legacy URL world generation - Zone:', targetZone, 'Region:', targetRegion);
-                
-                // Use onStartNewWorldAtZoneRegion for legacy URLs
-                onStartNewWorldAtZoneRegion(targetZone, targetRegion, characterSpec);
+
+                console.log('[App] Legacy URL world generation - Zone:', targetZone, 'Region:', targetRegion, 'MapArea:', mapArea);
+
+                // If we have a specific map area, use onStartNewWorldAtLocation
+                if (mapArea && typeof onStartNewWorldAtLocation === 'function') {
+                    console.log('[App] Using map area from URL:', mapArea);
+                    onStartNewWorldAtLocation(targetZone, mapArea, characterSpec, urlConfig.dateRange?.startYear);
+                } else {
+                    // Use onStartNewWorldAtZoneRegion for legacy URLs without map area
+                    console.log('[App] Generating random location in zone:', targetZone, 'region:', targetRegion || '(any)');
+                    onStartNewWorldAtZoneRegion(targetZone, targetRegion, characterSpec);
+                }
             } else {
                 // No geography in URL - generate a default random map
                 console.log('[App] Generating default random world (no URL geography)');
@@ -600,11 +631,8 @@ const AppContent: React.FC = () => {
             // Reset initial scenario modal state for new character
             setHasShownInitialScenario(false);
             
-            // Check if we have a URL-configured game mode
-            const urlGameMode =
-                localStorage.getItem('urlConfigGameMode') ||
-                localStorage.getItem('urlGameMode') ||
-                localStorage.getItem('pendingGameMode');
+            // PHASE 3: Check for unified game mode restoration
+            const urlGameMode = shareableStateService.getGameModeForRestoration();
 
             if (urlGameMode && !hasAppliedURLModeRef.current) {
                 // Use the URL-specified game mode
@@ -613,13 +641,7 @@ const AppContent: React.FC = () => {
                     console.log('[URL_RESTORE] Successfully restored game mode from URL:', urlGameMode);
                     setGameMode(mode);
                     hasAppliedURLModeRef.current = true;
-
-                    // Clear storage after successful application
-                    setTimeout(() => {
-                        localStorage.removeItem('urlConfigGameMode');
-                        localStorage.removeItem('urlGameMode');
-                        localStorage.removeItem('pendingGameMode');
-                    }, 100);
+                    // Note: getGameModeForRestoration() auto-clears the stored value
                 } else {
                     console.warn('[GameMode] Invalid game mode from URL:', urlGameMode);
                     // Fall through to suggested mode
@@ -744,6 +766,7 @@ const AppContent: React.FC = () => {
             currentValue={statusWarning.currentValue}
             maxValue={statusWarning.maxValue}
             onClose={() => setStatusWarning(null)}
+            onMakeCamp={() => setShowCampModal(true)}
             duration={statusWarning.severity === 'critical' ? 0 : statusWarning.severity === 'danger' ? 8000 : 5000}
           />
         )}
@@ -867,6 +890,10 @@ const AppContent: React.FC = () => {
             </div>
         </div>
         <ModalHub />
+        <PauseModal
+          isOpen={isPauseModalOpen}
+          onClose={() => setIsPauseModalOpen(false)}
+        />
         <TransitionOverlay
           isVisible={showTransitionOverlay}
           isProcessing={isProcessingWorldWeaver}

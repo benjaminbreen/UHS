@@ -18,10 +18,11 @@ import {
   generateAltitudeAndInitialBiomes, 
   applyClimateBiomeChanges, 
   generateDenseForests, 
-  generateRiverbanks, 
+  generateRiverbanks,
   updateCoastlinesAndShallowOceans,
-  generateVolcanicComplex, 
-  generateClimateEnhancedBiomes, 
+  generateVolcanicComplex,
+  generateInlandCliffs,
+  generateClimateEnhancedBiomes,
   generateSpecialTerrainTiles,
   generateEstuaries,
   applyClimateTransitions
@@ -873,6 +874,12 @@ export function proceduralGenerateMap(
     generateVolcanicComplex(tiles, temperatureNoise, featurePlacementNoise, archetype, forceVolcanic);
   }
   // console.log("[Gen] Phase 2.5: Volcanic Complex Generation - END");
+
+  // console.log("[Gen] Phase 2.6: Inland Cliff Generation - START");
+  if (!isEtherealRealm) {
+    generateInlandCliffs(tiles, featurePlacementNoise);
+  }
+  // console.log("[Gen] Phase 2.6: Inland Cliff Generation - END");
 
 
   // Special handling for ethereal realms - use special biomes

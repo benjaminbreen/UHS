@@ -1576,7 +1576,25 @@ export const useMapState = (props: useMapStateProps) => {
             console.error(`[onStartNewWorldAtZoneRegion] Zone not found: ${targetZone}`);
             return onStartNewWorldWithCurrentSettings(characterSpec); // Fallback to random
         }
-        
+
+        // If no region specified, randomly select from all regions in the zone
+        if (!targetRegion || targetRegion === '') {
+            console.log(`[onStartNewWorldAtZoneRegion] No region specified, randomly selecting from zone: ${targetZone}`);
+            const regionNames = Object.keys(zoneData);
+            if (regionNames.length > 0) {
+                const randomRegion = regionNames[Math.floor(Math.random() * regionNames.length)];
+                console.log(`[onStartNewWorldAtZoneRegion] Randomly selected region: ${randomRegion}`);
+                const areas = Object.values(zoneData[randomRegion]) as MapAreaDefinition[];
+                if (areas.length > 0) {
+                    const randomArea = areas[Math.floor(Math.random() * areas.length)];
+                    console.log(`[onStartNewWorldAtZoneRegion] Selected random area: ${randomArea.name} from region ${randomRegion}`);
+                    return onStartNewWorldAtLocation(targetZone, randomArea.name, characterSpec);
+                }
+            }
+            console.error(`[onStartNewWorldAtZoneRegion] No valid regions found in zone: ${targetZone}`);
+            return onStartNewWorldWithCurrentSettings(characterSpec);
+        }
+
         // Find the region data
         const regionData = zoneData[targetRegion];
         if (!regionData) {
@@ -1584,8 +1602,8 @@ export const useMapState = (props: useMapStateProps) => {
             // Try to find any region in the zone as fallback
             const regionNames = Object.keys(zoneData);
             if (regionNames.length > 0) {
-                const fallbackRegion = regionNames[0];
-                console.log(`[onStartNewWorldAtZoneRegion] Using fallback region: ${fallbackRegion}`);
+                const fallbackRegion = regionNames[Math.floor(Math.random() * regionNames.length)];
+                console.log(`[onStartNewWorldAtZoneRegion] Using random fallback region: ${fallbackRegion}`);
                 const areas = Object.values(zoneData[fallbackRegion]) as MapAreaDefinition[];
                 if (areas.length > 0) {
                     const randomArea = areas[Math.floor(Math.random() * areas.length)];
@@ -1594,14 +1612,14 @@ export const useMapState = (props: useMapStateProps) => {
             }
             return onStartNewWorldWithCurrentSettings(characterSpec);
         }
-        
+
         // Pick a random area from the region
         const areasInRegion = Object.values(regionData) as MapAreaDefinition[];
         if (areasInRegion.length === 0) {
             console.error(`[onStartNewWorldAtZoneRegion] No areas found in region: ${targetRegion}`);
             return onStartNewWorldWithCurrentSettings(characterSpec);
         }
-        
+
         const randomArea = areasInRegion[Math.floor(Math.random() * areasInRegion.length)];
         console.log(`[onStartNewWorldAtZoneRegion] Selected random area: ${randomArea.name} from region ${targetRegion}`);
         
