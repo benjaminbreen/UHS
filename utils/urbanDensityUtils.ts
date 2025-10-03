@@ -12,13 +12,13 @@ export type UrbanDensityMultiplier = 1 | 2 | 3 | 5 | 8;
  * Defines how urban density scales across historical periods
  */
 export const ERA_URBAN_MULTIPLIERS: Record<HistoricalEra, Record<UrbanDensityLevel, UrbanDensityMultiplier>> = {
-  [HistoricalEra.PREHISTORIC]: {
+  [HistoricalEra.PREHISTORY]: {
     small: 1,
     moderate: 1,
     large: 2,
     massive: 2
   },
-  [HistoricalEra.ANCIENT]: {
+  [HistoricalEra.ANTIQUITY]: {
     small: 1,
     moderate: 2,
     large: 3,
@@ -30,13 +30,13 @@ export const ERA_URBAN_MULTIPLIERS: Record<HistoricalEra, Record<UrbanDensityLev
     large: 3,
     massive: 5
   },
-  [HistoricalEra.EARLY_MODERN]: {
+  [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
     small: 1,
     moderate: 2,
     large: 3,
     massive: 5
   },
-  [HistoricalEra.MODERN]: {
+  [HistoricalEra.MODERN_ERA]: {
     small: 1,
     moderate: 2,
     large: 5,
@@ -144,22 +144,22 @@ function getDensityPriority(density: UrbanDensityLevel): number {
 
 function getEraStartYear(era: HistoricalEra): number {
   const eraYears: Record<HistoricalEra, number> = {
-    [HistoricalEra.PREHISTORIC]: -3000,
-    [HistoricalEra.ANCIENT]: -3000,
+    [HistoricalEra.PREHISTORY]: -3000,
+    [HistoricalEra.ANTIQUITY]: -3000,
     [HistoricalEra.MEDIEVAL]: 500,
-    [HistoricalEra.EARLY_MODERN]: 1450,
-    [HistoricalEra.MODERN]: 1800
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 1450,
+    [HistoricalEra.MODERN_ERA]: 1800
   };
   return eraYears[era];
 }
 
 function getEraEndYear(era: HistoricalEra): number {
   const eraYears: Record<HistoricalEra, number> = {
-    [HistoricalEra.PREHISTORIC]: -3000,
-    [HistoricalEra.ANCIENT]: 500,
+    [HistoricalEra.PREHISTORY]: -3000,
+    [HistoricalEra.ANTIQUITY]: 500,
     [HistoricalEra.MEDIEVAL]: 1450,
-    [HistoricalEra.EARLY_MODERN]: 1800,
-    [HistoricalEra.MODERN]: 2100
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 1800,
+    [HistoricalEra.MODERN_ERA]: 2100
   };
   return eraYears[era];
 }

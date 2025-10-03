@@ -689,7 +689,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
   {
     type: 'woodcutter',
     culturalZone: 'Asia',
-    era: HistoricalEra.CLASSICAL,
+    era: HistoricalEra.ANTIQUITY,
     templates: {
       setting: [
         "Bamboo scaffolding surrounds the giant {materialType} trees selected for harvest",
@@ -761,7 +761,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
   {
     type: 'woodcutter',
     culturalZone: 'Oceania',
-    era: HistoricalEra.CLASSICAL,
+    era: HistoricalEra.ANTIQUITY,
     templates: {
       setting: [
         "This coastal forest camp harvests {materialType} for boat building",
@@ -797,7 +797,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
   {
     type: 'woodcutter',
     culturalZone: 'South America',
-    era: HistoricalEra.CLASSICAL,
+    era: HistoricalEra.ANTIQUITY,
     templates: {
       setting: [
         "This {biomeDescription} camp carefully harvests precious {materialType} wood",
@@ -833,7 +833,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
   {
     type: 'woodcutter',
     culturalZone: 'Europe',
-    era: HistoricalEra.INDUSTRIAL,
+    era: HistoricalEra.INDUSTRIAL_ERA,
     templates: {
       setting: [
         "A steam-powered sawmill processes {materialType} from the surrounding {terrain}",

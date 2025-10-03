@@ -144,10 +144,10 @@ export function getProfessionContext(
     // Medieval era doesn't have FRONTIER or NATIVE_AMERICAN contexts
     if (era && [
         HistoricalEra.PREHISTORY,
-        HistoricalEra.CLASSICAL,
+        HistoricalEra.ANTIQUITY,
         HistoricalEra.MEDIEVAL,
-        HistoricalEra.RENAISSANCE,
-        HistoricalEra.EARLY_MODERN
+        HistoricalEra.RENAISSANCE_EARLY_MODERN,
+        HistoricalEra.RENAISSANCE_EARLY_MODERN
     ].includes(era)) {
         // These eras don't use FRONTIER/NATIVE_AMERICAN categories
         if (structureType === 'CITY' || (citySize && citySize > 10000)) {

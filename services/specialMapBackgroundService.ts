@@ -110,7 +110,7 @@ class SpecialMapBackgroundService {
       [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'renaissance period, ornate decorations',
       [HistoricalEra.INDUSTRIAL_ERA]: 'industrial era, Victorian style',
       [HistoricalEra.MODERN_ERA]: 'early 20th century, art deco',
-      [HistoricalEra.CONTEMPORARY]: 'mid-20th century, modernist'
+      [HistoricalEra.MODERN_ERA]: 'mid-20th century, modernist'
     };
     
     // Special additions for specific combinations

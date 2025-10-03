@@ -132,7 +132,7 @@ export function generateCommanderChamber(
   }
   
   // Add torches for lighting
-  if (config.era !== HistoricalEra.MODERN && config.era !== HistoricalEra.FUTURE) {
+  if (config.era !== HistoricalEra.MODERN_ERA && config.era !== HistoricalEra.FUTURE_ERA) {
     tiles[1][1].overlayObjects = tiles[1][1].overlayObjects || [];
     tiles[1][1].overlayObjects.push({
       type: OverlayObjectType.TORCH,
@@ -221,7 +221,7 @@ function getRoomTypeForEra(era: HistoricalEra, zone: CulturalZone): string {
   if (era === HistoricalEra.ANTIQUITY) return 'military_command';
 
   // Medieval = feudal lord's hall (domestic + military combined)
-  if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.EARLY_MODERN) {
+  if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
     return 'great_hall';
   }
 
@@ -237,7 +237,7 @@ function getChamberName(era: HistoricalEra, zone: CulturalZone): string {
   if (era === HistoricalEra.ANTIQUITY && (zone === 'MENA' || zone === 'EAST_ASIAN')) {
     return 'Governor\'s Chamber';
   }
-  if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.EARLY_MODERN) {
+  if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
     return 'Lord\'s Great Hall';
   }
   return 'Commander\'s Chamber';
@@ -293,7 +293,7 @@ function getCommanderTitle(zone: CulturalZone, era: HistoricalEra): string {
   }
 
   // EARLY MODERN: Transition to professional officers
-  if (era === HistoricalEra.EARLY_MODERN || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+  if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
     const titles: Record<string, string> = {
       EUROPEAN: 'Fortress Captain',
       EAST_ASIAN: 'Fortress Magistrate',
@@ -348,7 +348,7 @@ function addCulturalDecorations(tiles: Tile[][], config: SpecialMapConfig, size:
   }
 
   // MEDIEVAL: Great hall style - long tables, hearths, domestic feel
-  if (config.era === HistoricalEra.MEDIEVAL || config.era === HistoricalEra.EARLY_MODERN) {
+  if (config.era === HistoricalEra.MEDIEVAL || config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
     // Add hearth for warmth (domestic space)
     if (size.height > 5) {
       tiles[size.height - 3][1].overlayObjects = [{
@@ -376,7 +376,7 @@ function addCulturalDecorations(tiles: Tile[][], config: SpecialMapConfig, size:
   switch (config.culturalZone) {
     case 'EUROPEAN':
       // Add heraldic shields or banners
-      if (config.era === HistoricalEra.MEDIEVAL || config.era === HistoricalEra.EARLY_MODERN) {
+      if (config.era === HistoricalEra.MEDIEVAL || config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
         tiles[1][Math.floor(size.width / 2) - 1].overlayObjects = [{
           type: OverlayObjectType.BANNER,
           variant: 'heraldic_shield',
@@ -540,7 +540,7 @@ function getCulturalFloorType(zone: CulturalZone, era: HistoricalEra): Architect
   };
 
   // Modern era gets concrete/modern flooring
-  if (era === HistoricalEra.MODERN || era === HistoricalEra.FUTURE) {
+  if (era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA) {
     return ArchitecturalBiome.FLOOR_STONE;
   }
 
@@ -562,7 +562,7 @@ function getCulturalWallType(zone: CulturalZone, era: HistoricalEra): Architectu
   };
 
   // Modern era gets concrete walls
-  if (era === HistoricalEra.MODERN || era === HistoricalEra.FUTURE) {
+  if (era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA) {
     return ArchitecturalBiome.WALL_CONCRETE;
   }
 

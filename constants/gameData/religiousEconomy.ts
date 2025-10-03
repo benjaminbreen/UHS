@@ -262,13 +262,13 @@ export function calculateHolySiteWealth(
   
   // Era modifiers
   const eraModifiers: Record<HistoricalEra, number> = {
-    [HistoricalEra.PREHISTORIC]: -3,
+    [HistoricalEra.PREHISTORY]: -3,
     [HistoricalEra.ANTIQUITY]: -1,
     [HistoricalEra.MEDIEVAL]: 0,
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 2,
-    [HistoricalEra.INDUSTRIAL]: 1,
-    [HistoricalEra.MODERN]: 0,
-    [HistoricalEra.FUTURE]: -1,
+    [HistoricalEra.INDUSTRIAL_ERA]: 1,
+    [HistoricalEra.MODERN_ERA]: 0,
+    [HistoricalEra.FUTURE_ERA]: -1,
   };
   wealth += eraModifiers[era] || 0;
   

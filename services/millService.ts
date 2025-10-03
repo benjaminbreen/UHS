@@ -24,7 +24,7 @@ export const MILL_TYPES: { [key: string]: MillType } = {
     id: 'hand_quern',
     name: 'Hand Quern',
     description: 'A simple stone mill operated by hand',
-    era: [HistoricalEra.PREHISTORIC, HistoricalEra.ANCIENT],
+    era: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY],
     inputs: ['WHEAT', 'BARLEY', 'RYE', 'MILLET'],
     outputs: {
       'WHEAT': { itemId: 'FLOUR', ratio: 0.8 },
@@ -42,7 +42,7 @@ export const MILL_TYPES: { [key: string]: MillType } = {
     id: 'animal_mill',
     name: 'Animal-Powered Mill',
     description: 'A mill powered by oxen or donkeys',
-    era: [HistoricalEra.ANCIENT, HistoricalEra.MEDIEVAL],
+    era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL],
     inputs: ['WHEAT', 'BARLEY', 'RYE', 'CORN', 'OLIVES'],
     outputs: {
       'WHEAT': { itemId: 'FLOUR', ratio: 0.85 },
@@ -61,7 +61,7 @@ export const MILL_TYPES: { [key: string]: MillType } = {
     id: 'water_mill',
     name: 'Water Mill',
     description: 'A mill powered by flowing water',
-    era: [HistoricalEra.ANCIENT, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
     inputs: ['WHEAT', 'BARLEY', 'RYE', 'CORN', 'RICE', 'OLIVES', 'SUGARCANE'],
     outputs: {
       'WHEAT': { itemId: 'FLOUR', ratio: 0.9 },
@@ -121,7 +121,7 @@ export const MILL_TYPES: { [key: string]: MillType } = {
     id: 'steam_mill',
     name: 'Steam-Powered Mill',
     description: 'An industrial mill powered by steam engine',
-    era: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.WORLD_WARS, HistoricalEra.MODERN],
+    era: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
     inputs: ['WHEAT', 'BARLEY', 'RYE', 'CORN', 'RICE', 'SOYBEANS', 'COFFEE', 'COCOA'],
     outputs: {
       'WHEAT': { itemId: 'FLOUR', ratio: 0.95 },
@@ -143,7 +143,7 @@ export const MILL_TYPES: { [key: string]: MillType } = {
     id: 'electric_mill',
     name: 'Electric Mill',
     description: 'A modern mill powered by electricity',
-    era: [HistoricalEra.MODERN, HistoricalEra.CONTEMPORARY],
+    era: [HistoricalEra.MODERN_ERA, HistoricalEra.MODERN_ERA],
     inputs: ['WHEAT', 'BARLEY', 'RYE', 'CORN', 'RICE', 'SOYBEANS', 'QUINOA', 'COFFEE', 'COCOA', 'NUTS'],
     outputs: {
       'WHEAT': { itemId: 'FLOUR', ratio: 0.98 },
@@ -184,7 +184,7 @@ export const MILL_TYPES: { [key: string]: MillType } = {
     id: 'olive_press',
     name: 'Olive Press',
     description: 'A mill specifically for pressing olives',
-    era: [HistoricalEra.ANCIENT, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
     inputs: ['OLIVES'],
     outputs: {
       'OLIVES': { itemId: 'OLIVE_OIL', ratio: 0.5 }
@@ -199,7 +199,7 @@ export const MILL_TYPES: { [key: string]: MillType } = {
     id: 'rice_huller',
     name: 'Rice Huller',
     description: 'A mill for removing rice husks',
-    era: [HistoricalEra.ANCIENT, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
     inputs: ['RAW_RICE'],
     outputs: {
       'RAW_RICE': { itemId: 'POLISHED_RICE', ratio: 0.7 }

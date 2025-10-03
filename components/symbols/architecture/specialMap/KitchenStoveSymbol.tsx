@@ -10,7 +10,7 @@ export const KitchenStoveSymbol: React.FC<KitchenStoveSymbolProps> = ({
   culturalZone = 'EUROPEAN',
   era = HistoricalEra.MEDIEVAL 
 }) => {
-  const isModern = era === HistoricalEra.MODERN || era === HistoricalEra.CONTEMPORARY;
+  const isModern = era === HistoricalEra.MODERN_ERA || era === HistoricalEra.MODERN_ERA;
   
   if (isModern) {
     // Modern stove

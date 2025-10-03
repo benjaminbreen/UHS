@@ -2321,7 +2321,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               const { era } = parseDateString(mapData?.timeSlice || '1650');
               const hasRailroads = pathObjects?.some(p => p.type === PathType.RAILROAD);
               
-              if ((era === HistoricalEra.INDUSTRIAL || era === HistoricalEra.MODERN) && hasRailroads) {
+              if ((era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA) && hasRailroads) {
                 // Find all railroad paths
                 const railroads = pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
                 

@@ -337,7 +337,7 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   {
     type: 'woodcutter',
     culturalZone: 'Asia',
-    era: HistoricalEra.CLASSICAL,
+    era: HistoricalEra.ANTIQUITY,
     speakerTitles: [
       'Mountain Woodsman',
       'Bamboo Master',
@@ -386,7 +386,7 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   {
     type: 'woodcutter',
     culturalZone: 'Europe',
-    era: HistoricalEra.INDUSTRIAL,
+    era: HistoricalEra.INDUSTRIAL_ERA,
     speakerTitles: [
       'Lumber Foreman',
       'Mill Operator',
@@ -761,7 +761,7 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   {
     type: 'factory',
     culturalZone: 'Europe',
-    era: HistoricalEra.INDUSTRIAL,
+    era: HistoricalEra.INDUSTRIAL_ERA,
     speakerTitles: [
       'Factory Foreman',
       'Shift Manager',
@@ -805,7 +805,7 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   {
     type: 'factory',
     culturalZone: 'Asia',
-    era: HistoricalEra.MODERN,
+    era: HistoricalEra.MODERN_ERA,
     speakerTitles: [
       'Production Manager',
       'Floor Supervisor',
@@ -931,7 +931,7 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   {
     type: 'mill',
     culturalZone: 'Middle East',
-    era: HistoricalEra.RENAISSANCE,
+    era: HistoricalEra.RENAISSANCE_EARLY_MODERN,
     speakerTitles: [
       'Ottoman Mill Administrator',
       'Master Miller',
@@ -1239,7 +1239,7 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
   {
     type: 'fortress',
     culturalZone: 'Middle East',
-    era: HistoricalEra.RENAISSANCE,
+    era: HistoricalEra.RENAISSANCE_EARLY_MODERN,
     speakerTitles: [
       'Ottoman Fortress Ağa',
       'Janissary Commander',

@@ -1911,7 +1911,7 @@ function generateAssemblyHall(
   }
   
   // VOTING SYSTEM - Modern assemblies have electronic voting
-  if (config.era === HistoricalEra.INDUSTRIAL_ERA || config.era === HistoricalEra.MODERN) {
+  if (config.era === HistoricalEra.INDUSTRIAL_ERA || config.era === HistoricalEra.MODERN_ERA) {
     safeTileSet(tiles, podiumY, centerX - 2, {
       biome: BiomeType.TABLE,
       materialSubtype: 'voting_machine'

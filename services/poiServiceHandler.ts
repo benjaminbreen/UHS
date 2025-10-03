@@ -48,7 +48,7 @@ const PROCESSING_RATIOS = {
 
 // Service costs based on era and type
 const SERVICE_COSTS = {
-  [HistoricalEra.PREHISTORIC]: { base: 2, multiplier: 1 },
+  [HistoricalEra.PREHISTORY]: { base: 2, multiplier: 1 },
   [HistoricalEra.ANTIQUITY]: { base: 5, multiplier: 1.5 },
   [HistoricalEra.MEDIEVAL]: { base: 10, multiplier: 2 },
   [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { base: 20, multiplier: 2.5 },

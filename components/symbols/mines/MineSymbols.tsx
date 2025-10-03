@@ -22,7 +22,7 @@ export type MineSymbolType =
 
 export function getMineSymbol(era: HistoricalEra | string): React.ComponentType<any> {
   switch (era) {
-    case HistoricalEra.PREHISTORIC:
+    case HistoricalEra.PREHISTORY:
     case 'PREHISTORIC':
       return PrehistoricMine;
     
@@ -57,7 +57,7 @@ export function getMineSymbol(era: HistoricalEra | string): React.ComponentType<
 
 export function getMineSymbolType(era: HistoricalEra | string): MineSymbolType {
   switch (era) {
-    case HistoricalEra.PREHISTORIC:
+    case HistoricalEra.PREHISTORY:
     case 'PREHISTORIC':
       return 'prehistoric_mine';
     

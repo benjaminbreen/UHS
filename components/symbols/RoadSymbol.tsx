@@ -33,7 +33,7 @@ const RoadSymbol: React.FC<RoadSymbolProps> = React.memo(({
       edgeVariation2: localRand(1) * 2 - 1,
       edgeVariation3: localRand(2) * 2 - 1,
       edgeVariation4: localRand(3) * 2 - 1,
-      hasManhole: era === HistoricalEra.MODERN && localRand(4) < 0.15, // 15% chance in modern era
+      hasManhole: era === HistoricalEra.MODERN_ERA && localRand(4) < 0.15, // 15% chance in modern era
       hasPothole: localRand(5) < 0.1, // 10% chance of wear
       centerLineOffset: localRand(6) * 2 - 1,
     };
@@ -63,7 +63,7 @@ const RoadSymbol: React.FC<RoadSymbolProps> = React.memo(({
           hasCenter: false,
           hasDitches: true
         };
-      case HistoricalEra.INDUSTRIAL:
+      case HistoricalEra.INDUSTRIAL_ERA:
       case (HistoricalEra as any).INDUSTRIAL_ERA:
         return {
           mainColor: '#606060', // Early paved roads
@@ -72,9 +72,9 @@ const RoadSymbol: React.FC<RoadSymbolProps> = React.memo(({
           hasCenter: false,
           hasDitches: true
         };
-      case HistoricalEra.MODERN:
+      case HistoricalEra.MODERN_ERA:
       case (HistoricalEra as any).MODERN_ERA:
-      case HistoricalEra.FUTURE:
+      case HistoricalEra.FUTURE_ERA:
       case (HistoricalEra as any).FUTURE_ERA:
         return {
           mainColor: '#3a3a3a', // Asphalt

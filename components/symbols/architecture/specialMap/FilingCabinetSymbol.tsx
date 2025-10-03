@@ -11,7 +11,7 @@ export const FilingCabinetSymbol: React.FC<FilingCabinetSymbolProps> = ({
   era = HistoricalEra.MEDIEVAL 
 }) => {
   // For historical periods, show document chest/cabinet
-  const isModern = era === HistoricalEra.MODERN || era === HistoricalEra.CONTEMPORARY;
+  const isModern = era === HistoricalEra.MODERN_ERA || era === HistoricalEra.MODERN_ERA;
   
   if (isModern) {
     // Modern filing cabinet

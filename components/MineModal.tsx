@@ -45,7 +45,7 @@ const MineModal: React.FC<MineModalProps> = ({
     
     const getMineDescription = () => {
         switch (era) {
-            case HistoricalEra.PREHISTORIC:
+            case HistoricalEra.PREHISTORY:
                 return "A shallow pit where early humans extract flint and ochre using stone tools. The work is backbreaking and dangerous.";
             case HistoricalEra.ANTIQUITY:
                 return "A well-organized mining operation with slaves and workers extracting precious metals. Oil lamps provide dim light in the dark tunnels.";
@@ -66,7 +66,7 @@ const MineModal: React.FC<MineModalProps> = ({
     
     const getWorkingConditions = () => {
         switch (era) {
-            case HistoricalEra.PREHISTORIC:
+            case HistoricalEra.PREHISTORY:
             case HistoricalEra.ANTIQUITY:
                 return { danger: "Extreme", pay: "Subsistence", hours: "Dawn to Dusk" };
             case HistoricalEra.MEDIEVAL:
@@ -232,7 +232,7 @@ const MineModal: React.FC<MineModalProps> = ({
                 <div className="bg-slate-900 p-4 rounded-b-2xl border-t border-slate-600">
                     <div className="flex justify-between items-center">
                         <div className="text-sm text-slate-400">
-                            {era === HistoricalEra.PREHISTORIC || era === HistoricalEra.ANTIQUITY
+                            {era === HistoricalEra.PREHISTORY || era === HistoricalEra.ANTIQUITY
                                 ? "Mining is dangerous work with primitive tools"
                                 : era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA
                                 ? "Modern safety regulations are in effect"

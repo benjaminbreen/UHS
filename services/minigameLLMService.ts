@@ -200,13 +200,13 @@ export async function generateFarmEvent(
  */
 function getHistoricalFarmingContext(era: HistoricalEra, zone: CulturalZone, season: Season): string {
   const contexts = {
-    [HistoricalEra.PREHISTORIC]: {
+    [HistoricalEra.PREHISTORY]: {
       'EUROPEAN': `Early agriculture with basic tools. Slash-and-burn farming, small plots. Growing emmer wheat, barley. Seasonal migration common.`,
       'EAST_ASIAN': `Rice cultivation beginning. Millet is primary crop. Simple irrigation developing.`,
       'MENA': `Oasis agriculture. Date palms, basic grains. Following flood cycles.`,
       default: `Hunter-gatherer transitioning to farming. Basic tools, small gardens.`
     },
-    [HistoricalEra.ANCIENT]: {
+    [HistoricalEra.ANTIQUITY]: {
       'EUROPEAN': `Two-field rotation system. Ox-drawn plows. Wheat, barley, peas common. Manor system developing.`,
       'EAST_ASIAN': `Sophisticated rice paddies. Crop rotation with soybeans. Water buffalo for plowing.`,
       'MENA': `Basin irrigation from rivers. Wheat, barley, dates, flax. Shaduf for water lifting.`,
@@ -218,7 +218,7 @@ function getHistoricalFarmingContext(era: HistoricalEra, zone: CulturalZone, sea
       'MENA': `Qanat irrigation systems. Diverse crops: grains, cotton, fruits. Wind-powered mills.`,
       default: `Advanced farming with specialized tools. Market-oriented production beginning.`
     },
-    [HistoricalEra.EARLY_MODERN]: {
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
       'EUROPEAN': `Four-field rotation with turnips and clover. Enclosure movement. New World crops arriving. Improved breeds.`,
       'EAST_ASIAN': `High yields through intensive cultivation. Multiple cropping. Cash crops expanding.`,
       'MENA': `Traditional methods persist. Some European techniques adopted. Export crops growing.`,

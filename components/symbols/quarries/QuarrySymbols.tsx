@@ -20,7 +20,7 @@ export type QuarrySymbolType =
 
 export function getQuarrySymbol(era: HistoricalEra | string): React.ComponentType<any> {
   switch (era) {
-    case HistoricalEra.PREHISTORIC:
+    case HistoricalEra.PREHISTORY:
     case 'PREHISTORIC':
       return PrehistoricQuarry;
     
@@ -53,7 +53,7 @@ export function getQuarrySymbol(era: HistoricalEra | string): React.ComponentTyp
 
 export function getQuarrySymbolType(era: HistoricalEra | string): QuarrySymbolType {
   switch (era) {
-    case HistoricalEra.PREHISTORIC:
+    case HistoricalEra.PREHISTORY:
     case 'PREHISTORIC':
       return 'prehistoric_quarry';
     

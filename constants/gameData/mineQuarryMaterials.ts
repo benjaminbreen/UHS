@@ -19,8 +19,8 @@ export interface QuarryMaterial {
 
 export const MINE_MATERIALS: MineMaterial[] = [
   // Prehistoric
-  { id: 'flint', name: 'Flint', era: [HistoricalEra.PREHISTORIC], rarity: 0.8 },
-  { id: 'ochre', name: 'Red Ochre', era: [HistoricalEra.PREHISTORIC], rarity: 0.6 },
+  { id: 'flint', name: 'Flint', era: [HistoricalEra.PREHISTORY], rarity: 0.8 },
+  { id: 'ochre', name: 'Red Ochre', era: [HistoricalEra.PREHISTORY], rarity: 0.6 },
   
   // Antiquity
   { id: 'copper', name: 'Copper', era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL], rarity: 0.7 },
@@ -54,7 +54,7 @@ export const MINE_MATERIALS: MineMaterial[] = [
   { id: 'graphene', name: 'Graphene Deposits', era: [HistoricalEra.FUTURE_ERA], rarity: 0.15 },
   
   // Regional/Special materials (available across multiple eras)
-  { id: 'salt', name: 'Salt', era: [HistoricalEra.PREHISTORIC, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.6 },
+  { id: 'salt', name: 'Salt', era: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.6 },
   { id: 'jade', name: 'Jade', era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN], rarity: 0.15 }, // Primarily Asia
   { id: 'diamonds', name: 'Diamonds', era: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.03 }, // Very rare
   { id: 'opals', name: 'Opals', era: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.08 }, // Primarily Australia
@@ -65,9 +65,9 @@ export const MINE_MATERIALS: MineMaterial[] = [
 
 export const QUARRY_MATERIALS: QuarryMaterial[] = [
   // Prehistoric
-  { id: 'obsidian', name: 'Obsidian', era: [HistoricalEra.PREHISTORIC], rarity: 0.3 },
-  { id: 'flint_nodules', name: 'Flint Nodules', era: [HistoricalEra.PREHISTORIC], rarity: 0.7 },
-  { id: 'red_ochre', name: 'Red Ochre', era: [HistoricalEra.PREHISTORIC], rarity: 0.5 },
+  { id: 'obsidian', name: 'Obsidian', era: [HistoricalEra.PREHISTORY], rarity: 0.3 },
+  { id: 'flint_nodules', name: 'Flint Nodules', era: [HistoricalEra.PREHISTORY], rarity: 0.7 },
+  { id: 'red_ochre', name: 'Red Ochre', era: [HistoricalEra.PREHISTORY], rarity: 0.5 },
   
   // Antiquity
   { id: 'marble', name: 'Marble', era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN], rarity: 0.4 },
@@ -124,7 +124,7 @@ export function getRandomMaterial(era: HistoricalEra, type: 'mine' | 'quarry'): 
 
 // Era-based generation frequencies (0-1, higher = more common)
 export const MINE_FREQUENCY_BY_ERA: Record<HistoricalEra, number> = {
-  [HistoricalEra.PREHISTORIC]: 0.05,
+  [HistoricalEra.PREHISTORY]: 0.05,
   [HistoricalEra.ANTIQUITY]: 0.1,
   [HistoricalEra.MEDIEVAL]: 0.15,
   [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 0.3, // Rising frequency
@@ -134,7 +134,7 @@ export const MINE_FREQUENCY_BY_ERA: Record<HistoricalEra, number> = {
 };
 
 export const QUARRY_FREQUENCY_BY_ERA: Record<HistoricalEra, number> = {
-  [HistoricalEra.PREHISTORIC]: 0.7, // Most common
+  [HistoricalEra.PREHISTORY]: 0.7, // Most common
   [HistoricalEra.ANTIQUITY]: 0.8, // Very common
   [HistoricalEra.MEDIEVAL]: 0.6, // Common
   [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 0.4,

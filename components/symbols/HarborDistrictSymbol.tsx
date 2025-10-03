@@ -304,7 +304,7 @@ function renderEraGear(
     }
     const gx = x0 + w*0.72, gy = y0 + size*0.02;
     g.push(<g key="gantry"><rect x={gx} y={gy} width={size*0.02} height={size*0.12} fill="#4a5568"/><rect x={gx - size*0.12} y={gy - size*0.016} width={size*0.14} height={size*0.02} fill="#4a5568"/><line x1={gx - size*0.05} y1={gy + size*0.02} x2={gx - size*0.05} y2={gy + size*0.08} stroke="#1a202c" strokeWidth={1}/></g>);
-  } else if (era === HistoricalEra.MEDIEVAL_ERA || era === HistoricalEra.RENAISSANCE_ERA) {
+  } else if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
     const cx = x0 + w*0.62, cy = y0 + h*0.38;
     g.push(
       <g key="treadwheel">
@@ -552,14 +552,14 @@ function renderBoatVariant(
   era: HistoricalEra | undefined, culture: string, uid:string
 ){
   const C = culture.toLowerCase();
-  if (era === HistoricalEra.ANCIENT_ERA || era === HistoricalEra.CLASSICAL_ERA) {
+  if (era === HistoricalEra.ANTIQUITY || era === HistoricalEra.ANTIQUITY) {
     if (C.includes('mediterranean') || C.includes('mena')) return triremeBoat(key,cx,cy,rotation,size,uid);
     if (C.includes('asian')) return junkBoat(key,cx,cy,rotation,size,uid,'#805a3f');
     if (C.includes('northern') || C.includes('europe')) return longshipBoat(key,cx,cy,rotation,size,uid);
     if (C.includes('african')) return pirogueBoat(key,cx,cy,rotation,size,uid,true);
     return caravelBoat(key,cx,cy,rotation,size,uid);
   }
-  if (era === HistoricalEra.MEDIEVAL_ERA || era === HistoricalEra.RENAISSANCE_ERA) {
+  if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
     if (C.includes('asian')) return junkBoat(key,cx,cy,rotation,size,uid);
     if (C.includes('mediterranean') || C.includes('mena')) return dhowBoat(key,cx,cy,rotation,size,uid);
     if (C.includes('northern') || C.includes('europe')) return caravelBoat(key,cx,cy,rotation,size,uid);

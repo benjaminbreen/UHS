@@ -5199,7 +5199,7 @@ SUB_SAHARAN_AFRICAN: {
                 }
             }
         },
-        [HistoricalEra.ANCIENT_ERA]: {
+        [HistoricalEra.ANTIQUITY]: {
             poor: {
                 Male: {
                     garments: [
@@ -5326,7 +5326,7 @@ SUB_SAHARAN_AFRICAN: {
                 }
             }
         },
-        [HistoricalEra.MEDIEVAL_ERA]: {
+        [HistoricalEra.MEDIEVAL]: {
             poor: {
                 Male: {
                     garments: [
