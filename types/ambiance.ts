@@ -1,5 +1,10 @@
 
-import { Tile, MapArchetype, ClimateType, BiomeType, TileQualities, Point, InteriorMapData } from './index'; // Assuming other types are in the main index
+import { Tile, TileQualities } from './core/tile';
+import { MapArchetype } from './core/map';
+import { Point } from './core/geometry';
+import { ClimateType } from './biomes/climate';
+import { BiomeType } from './biomes/base';
+import { InteriorMapData } from './interiorMapTypes';
 
 export enum HistoricalEra {
   PREHISTORY = 'PREHISTORY',
