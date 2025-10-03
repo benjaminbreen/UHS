@@ -12,3 +12,13 @@ export enum HistoricalEra {
   MODERN_ERA = 'MODERN_ERA',
   FUTURE_ERA = 'FUTURE_ERA',
 }
+
+export enum ClimateType {
+  TEMPERATE = 'TEMPERATE',
+  SEMITROPICAL = 'SEMITROPICAL',
+  TROPICAL = 'TROPICAL',
+  ARID = 'ARID',
+  COLD = 'COLD',
+  MEDITERRANEAN = 'MEDITERRANEAN',
+  POLAR = 'POLAR',
+}
