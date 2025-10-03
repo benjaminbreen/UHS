@@ -12,22 +12,8 @@ import { Season } from '../ui';
 import { TimeOfDay } from '../ambiance';
 import { WeatherState } from '../../services/weatherService';
 
-export enum MapArchetype {
-  ALL_LAND = 'ALL_LAND',
-  ISLAND = 'ISLAND',
-  RIVER_PORT = 'RIVER_PORT',
-  SHOALS = 'SHOALS',
-  OPEN_OCEAN = 'OPEN_OCEAN',
-  ATOLL = 'ATOLL',
-  PENINSULA = 'PENINSULA',
-  BAY = 'BAY',
-  FRESHWATER_LAKE = 'FRESHWATER_LAKE',
-  STRAITS = 'STRAITS',
-  DELTA = 'DELTA',
-  SWAMP = 'SWAMP',
-  DESERT = 'DESERT', // Mostly desert/scrub/tundra with no urban unless overridden
-  BARRIER_ISLAND = 'BARRIER_ISLAND', // Long thin coastal island
-}
+// Re-export MapArchetype from enums.ts (zero-dependency file)
+export { MapArchetype } from '../enums';
 
 /**
  * Information for a single tile on the edge of a map segment.
