@@ -2,7 +2,8 @@
  * types/interiorMapTypes.ts - Type definitions for the Interior Map view.
  */
 import { Point } from './core/geometry';
-import { Tile, MapData } from './index';
+import { Tile } from './core/tile';
+import { MapData } from './core/map';
 
 export interface InteriorTileQualities {
     flammability: number; // 0-1, How likely to burn
