@@ -31,6 +31,11 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: (id) => {
+            // CRITICAL: Keep enums.ts separate to avoid circular dependency issues
+            if (id.includes('/types/enums.ts')) {
+              return 'types-enums';
+            }
+
             // Vendor chunks - group by library
             if (id.includes('node_modules')) {
               if (id.includes('react') || id.includes('react-dom')) {
