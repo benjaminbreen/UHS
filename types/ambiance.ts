@@ -6,15 +6,8 @@ import { ClimateType } from './biomes/climate';
 import { BiomeType } from './biomes/base';
 import { InteriorMapData } from './interiorMapTypes';
 
-export enum HistoricalEra {
-  PREHISTORY = 'PREHISTORY',
-  ANTIQUITY = 'ANTIQUITY',
-  MEDIEVAL = 'MEDIEVAL',
-  RENAISSANCE_EARLY_MODERN = 'RENAISSANCE_EARLY_MODERN',
-  INDUSTRIAL_ERA = 'INDUSTRIAL_ERA',
-  MODERN_ERA = 'MODERN_ERA',
-  FUTURE_ERA = 'FUTURE_ERA',
-}
+// Re-export HistoricalEra from enums.ts (zero-dependency file)
+export { HistoricalEra } from './enums';
 
 export type TimeOfDay = 'Predawn' | 'Dawn' | 'Morning' | 'Midday' | 'Afternoon' | 'Late Afternoon' | 'Golden Hour' | 'Dusk' | 'Late Twilight' | 'Early Evening' | 'Night';
 

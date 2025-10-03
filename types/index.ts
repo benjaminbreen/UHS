@@ -2,6 +2,7 @@
  * types/index.ts - Main entry point for core map generation type definitions
  */
 
+export * from './enums'; // Export enums first (zero dependencies)
 export * from './core/tile';
 export * from './core/map';
 export * from './core/geometry';
