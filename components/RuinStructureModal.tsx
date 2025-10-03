@@ -417,7 +417,7 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                 </button>
                 
                 {/* Enhanced Banner Header - Full width, no rounded corners */}
-                <header className="relative h-[410px] flex-shrink-0 overflow-hidden border-b-4 border-amber-700/50">
+                <header className="relative h-[240px] sm:h-[260px] md:h-[280px] flex-shrink-0 overflow-hidden border-b-4 border-amber-700/50">
                     <RuinBanner
                         ruinName={name}
                         ruinAge={age}
@@ -445,70 +445,70 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                         ruinMaterial={ruinMaterial}
                         originalStructureType={ruinType}
                         width={1400}
-                        height={410}
+                        height={280}
                     />
                     {/* Much lighter overlay - clear in center, light gradient only at bottom */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
                   <div className="absolute inset-0 bg-gradient-to-br  from-amber-900/20 via-transparent to-amber-800/30"></div>
 
-                    
+
                     {/* Header Content - Clear background */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-3 sm:pb-4 md:pb-5">
                         {/* Title Section */}
-                        <div className="flex justify-between items-end mb-4">
-                            <div className="flex items-start gap-4">
-                                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 backdrop-blur-sm border-2 border-amber-500/50 shadow-lg">
+                        <div className="flex justify-between items-end mb-3">
+                            <div className="flex items-start gap-2 sm:gap-3">
+                                <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 backdrop-blur-sm border-2 border-amber-500/50 shadow-lg">
                                     {getRuinIcon(ruinType, ruinStyle)}
                                 </div>
                                 <div>
-                                    <p className="text-amber-400 text-sm font-bold uppercase tracking-widest mb-1" style={{ textShadow: '1px 1px 3px #000' }}>
+                                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-0.5" style={{ textShadow: '1px 1px 3px #000', color: '#fbbf24' }}>
                                         {originalEra} • {age}
                                     </p>
-                                    <h2 className="text-4xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent" 
+                                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent"
                                         style={{ textShadow: '0 0 30px rgba(251, 191, 36, 0.5)' }}>
                                         {name}
                                     </h2>
-                                    <p className="text-lg capitalize text-amber-100/90 mt-2 flex items-center gap-2" style={{ textShadow: '1px 1px 2px #000' }}>
-                                        <GiAncientRuins className="text-amber-400" />
+                                    <p className="text-xs sm:text-sm capitalize text-amber-100/90 mt-0.5 flex items-center gap-1.5" style={{ textShadow: '1px 1px 2px #000' }}>
+                                        <GiAncientRuins className="text-amber-400" size={12} />
                                         {ruinType} • {mapData.mapAreaName || currentLocation || 'Unknown Region'}
                                     </p>
                                 </div>
                             </div>
-                            
-                            
+
+
                         </div>
 
                         {/* Tab Navigation */}
-                        <div className="flex gap-2 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-4 border border-amber-700/30">
+                        <div className="flex gap-1.5 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
                             <button
                                 onClick={() => handleTabChange('overview')}
-                                className={`flex-1 px-4 py-2 rounded-md font-bold transition-all ${
-                                    activeTab === 'overview' 
-                                        ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg' 
+                                className={`flex-1 px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
+                                    activeTab === 'overview'
+                                        ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
                                         : 'text-amber-400/70 hover:text-amber-300 hover:bg-slate-800/50'
                                 }`}
                             >
-                                <FaLandmark className="inline mr-2" />Overview
+                                <FaLandmark className="inline mr-1.5" size={12} />Overview
                             </button>
                             <button
                                 onClick={() => handleTabChange('exploration')}
-                                className={`flex-1 px-4 py-2 rounded-md font-bold transition-all ${
-                                    activeTab === 'exploration' 
-                                        ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg' 
+                                className={`flex-1 px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
+                                    activeTab === 'exploration'
+                                        ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
                                         : 'text-amber-400/70 hover:text-amber-300 hover:bg-slate-800/50'
                                 }`}
                             >
-                                <FaMap className="inline mr-2" />Exploration
+                                <FaMap className="inline mr-1.5" size={12} />Exploration
                             </button>
                             <button
                                 onClick={() => handleTabChange('artifacts')}
-                                className={`flex-1 px-4 py-2 rounded-md font-bold transition-all ${
-                                    activeTab === 'artifacts' 
-                                        ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg' 
+                                className={`flex-1 px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
+                                    activeTab === 'artifacts'
+                                        ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
                                         : 'text-amber-400/70 hover:text-amber-300 hover:bg-slate-800/50'
                                 }`}
                             >
-                                <GiScrollUnfurled className="inline mr-2" />Artifacts
+                                <GiScrollUnfurled className="inline mr-1.5" size={12} />Artifacts
                             </button>
                         </div>
                     </div>

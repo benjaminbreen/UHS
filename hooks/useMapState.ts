@@ -1445,7 +1445,13 @@ export const useMapState = (props: useMapStateProps) => {
         console.log('Region:', targetRegion || '(empty - will randomize)');
         console.log('CharacterSpec:', characterSpec);
         console.log('═══════════════════════════════════════════════════════');
-        
+
+        // Update the game date FIRST if characterSpec has a year
+        if (characterSpec?.year !== undefined) {
+            console.log('[onStartNewWorldAtZoneRegion] Setting year BEFORE map generation to:', characterSpec.year);
+            setGameState.onMapConfigDateChange({ year: characterSpec.year });
+        }
+
         // If both zone and region are empty, generate a completely random world
         if (!targetZone && !targetRegion) {
             console.log('[onStartNewWorldAtZoneRegion] No zone/region specified, generating random world');

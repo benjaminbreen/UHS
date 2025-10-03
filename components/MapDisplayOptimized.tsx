@@ -79,6 +79,7 @@ import QuestMarkers from './QuestMarkers';
 import { NpcHelperOverlay } from './NpcHelperModeHandler';
 import { getHelperMode } from '../services/npcHelperService';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle, getSafariGPUStyle, getSafariOptimizedTransform, isSafari } from '../utils/safariUtils';
+import { eventBus } from '../services/eventBus';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 const ICON_ANIMATION_DURATION = 200; // Back to 200ms for smoother, more controlled animation
@@ -348,6 +349,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [hoveredNPC, setHoveredNPC] = useState<NpcEntity | null>(null);
   const [hoveredAnimal, setHoveredAnimal] = useState<AnimalEntity | null>(null);
   const [hoveredEntityCoords, setHoveredEntityCoords] = useState<{x: number, y: number} | null>(null);
+
+  // NPC highlight state (for left sidebar NPC selection)
+  const [highlightedNpcId, setHighlightedNpcId] = useState<string | null>(null);
   
   // Simple boat state - just a trigger for re-render
   const [boatTick, setBoatTick] = useState(0);
@@ -553,7 +557,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       unsubscribe();
     };
   }, []);
-  
+
+  // Listen for NPC highlight events from left sidebar
+  useEffect(() => {
+    const handleNpcHighlight = (data: { npcId: string }) => {
+      setHighlightedNpcId(data.npcId);
+    };
+
+    eventBus.on('npc:highlight', handleNpcHighlight);
+
+    return () => {
+      eventBus.off('npc:highlight', handleNpcHighlight);
+    };
+  }, []);
+
   // Track player movement direction
   const prevPlayerPos = useRef({ x: logicalControlledIconX, y: logicalControlledIconY });
   useEffect(() => {
@@ -1555,6 +1572,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel, npcs, animals, updateHoverStates]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
+    // Clear NPC highlight when clicking anywhere on the map
+    if (highlightedNpcId) {
+      setHighlightedNpcId(null);
+      // Notify sidebar to clear highlight
+      eventBus.emit('npc:highlight:clear');
+    }
+
     const tile = getTileFromMouseEvent(e);
     if (!tile) return;
 
@@ -1585,7 +1609,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             componentInfo: componentInfo || undefined
         });
     }
-  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, onVesselClick, getTileFromMouseEvent, mapData, npcs, animals, deployedVessels]);
+  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, onVesselClick, getTileFromMouseEvent, mapData, npcs, animals, deployedVessels, highlightedNpcId]);
 
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
@@ -3861,9 +3885,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   <ellipse
                     cx={TILE_SIZE_PX/2}
                     cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
-                    rx={TILE_SIZE_PX * 0.3}
-                    ry={TILE_SIZE_PX * 0.1}
+                    rx={TILE_SIZE_PX * 0.3 * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
+                    ry={TILE_SIZE_PX * 0.1 * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
                     fill="rgba(0,0,0,0.3)"
+                    style={{ opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.3 : 1.0 }}
                     filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
                   />
                   <text
@@ -3871,12 +3896,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     y={TILE_SIZE_PX/2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
+                    fontSize={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
                     className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
                     style={{
                       filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
                       stroke: selectedAnimalId === animal.id ? 'yellow' : 'none',
-                      strokeWidth: selectedAnimalId === animal.id ? 2 : 0
+                      strokeWidth: selectedAnimalId === animal.id ? 2 : 0,
+                      opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.6 : 1.0
                     }}
                   >
                     {animal.emoji}
@@ -4116,6 +4142,37 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     playerX={logicalControlledIconX || 0}
                     playerY={logicalControlledIconY || 0}
                   />
+
+                  {/* Glowing highlight circle for left sidebar NPC selection */}
+                  {highlightedNpcId === npc.id && (
+                    <g>
+                      {/* Outer pulsing glow */}
+                      <circle
+                        cx={TILE_SIZE_PX / 2}
+                        cy={TILE_SIZE_PX / 2}
+                        r={TILE_SIZE_PX * 0.6}
+                        fill="none"
+                        stroke="#f59e0b"
+                        strokeWidth="3"
+                        opacity="0.6"
+                        pointerEvents="none"
+                        className="animate-pulse"
+                      />
+                      {/* Inner glowing circle */}
+                      <circle
+                        cx={TILE_SIZE_PX / 2}
+                        cy={TILE_SIZE_PX / 2}
+                        r={TILE_SIZE_PX * 0.5}
+                        fill="rgba(245, 158, 11, 0.2)"
+                        stroke="#f59e0b"
+                        strokeWidth="2"
+                        opacity="0.8"
+                        pointerEvents="none"
+                        className="animate-pulse"
+                      />
+                    </g>
+                  )}
+
                   {(hoveredNPC?.id === npc.id || selectedNpcId === npc.id) && (() => {
                     const helperMode = getHelperMode(npc.id);
                     const isFollowing = helperMode?.mode === 'lead';
@@ -4466,69 +4523,38 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         />
       )}
 
-      {/* Enhanced vignette effect */}
-      <div className="absolute inset-0 pointer-events-none" style={{ mixBlendMode: 'normal' }}>
+      {/* Optimized vignette effect - simplified for better performance */}
+      <div className="absolute inset-0 pointer-events-none">
         {isSpecialMap ? (
-          // Special interior vignette for immersive indoor atmosphere
-          <>
-            {/* Subtle interior vignette - darkens edges to simulate walls */}
-            <div className="absolute inset-0 opacity-35" 
-                 style={{
-                   background: 'radial-gradient(ellipse 75% 65% at center, transparent 45%, rgba(0,0,0,0.15) 80%, rgba(0,0,0,0.4) 100%)'
-                 }}
-            />
-            
-            {/* Very subtle ambient lighting based on archetype */}
-            <div className="absolute inset-0 transition-all duration-1000 opacity-20"
-                 style={{
-                   background: (mapData as any)?.specialArchetype === 'SACRED_COMPLEX' ? 
-                     'linear-gradient(to bottom, rgba(255,215,0,0.02), transparent, rgba(139,69,19,0.03))' :
-                   (mapData as any)?.specialArchetype === 'ESTATES' || (mapData as any)?.specialArchetype === 'PALACE_COMPLEX' ?
-                     'linear-gradient(to bottom, rgba(255,215,0,0.025), transparent, rgba(139,69,19,0.03))' :
-                   (mapData as any)?.specialArchetype === 'MARKET_BAZAAR' || (mapData as any)?.specialArchetype === 'MARKET_EXHIBITION' ?
-                     'linear-gradient(to bottom, rgba(255,140,0,0.02), transparent, rgba(160,82,45,0.025))' :
-                   (mapData as any)?.specialArchetype === 'UNIVERSITY' || (mapData as any)?.specialArchetype === 'UNIVERSITY_MONASTERY' ?
-                     'linear-gradient(to bottom, rgba(70,130,180,0.02), transparent, rgba(25,25,112,0.025))' :
-                   'linear-gradient(to bottom, rgba(128,128,128,0.015), transparent, rgba(64,64,64,0.02))'
-                 }}
-            />
-            
-            {/* Very subtle ceiling shadow */}
-            <div className="absolute inset-0 opacity-20" 
-                 style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.08), transparent 25%)' }}
-            />
-            
-            {/* Very subtle floor shadow */}
-            <div className="absolute inset-0 opacity-15" 
-                 style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent 25%)' }}
-            />
-          </>
+          // Interior vignette - simple, no blend modes
+          <div
+            className="absolute inset-0"
+            style={{
+              opacity: 0.4,
+              background: 'radial-gradient(ellipse 70% 60% at center, transparent 35%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.5) 100%)',
+              willChange: 'opacity'
+            }}
+          />
+        ) : timeOfDayData.isNight ? (
+          // Night vignette - midnight blue quality, extends further inward
+          <div
+            className="absolute inset-0 transition-opacity duration-2000"
+            style={{
+              opacity: 0.6 + (timeOfDayData.nightIntensity * 0.2),
+              background: 'radial-gradient(ellipse 65% 60% at center, transparent 25%, rgba(10,15,35,0.4) 55%, rgba(5,10,25,0.65) 85%, rgba(0,5,15,0.8) 100%)',
+              willChange: 'opacity'
+            }}
+          />
         ) : (
-          // Standard outdoor vignette - using inline styles since CSS class might not exist
-          <>
-            <div className="absolute inset-0 opacity-80" 
-                 style={{
-                   background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 100%)'
-                 }}
-            />
-            
-            <div className={`absolute inset-0 transition-all duration-1000 ${
-              season === 'winter' ? 'opacity-30 mix-blend-overlay' : 
-              season === 'fall' ? 'opacity-25 mix-blend-overlay' : 
-              season === 'spring' ? 'opacity-20 mix-blend-hard-light' : 
-              'opacity-0'
-            }`} 
-                 style={{
-                   background: season === 'winter' ? 'linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)' :
-                              season === 'fall' ? 'linear-gradient(to bottom, rgba(253,186,116,0.2), transparent)' :
-                              season === 'spring' ? 'linear-gradient(to bottom, rgba(187,247,208,0.15), transparent)' :
-                              'transparent'
-                 }}
-            />
-            <div className="absolute inset-0 opacity-60" 
-                 style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)' }}
-            />
-          </>
+          // Day vignette - standard daytime look
+          <div
+            className="absolute inset-0"
+            style={{
+              opacity: 0.7,
+              background: 'radial-gradient(ellipse at center, transparent 10%, rgba(0,0,0,0.15) 65%, rgba(0,0,0,0.4) 100%)',
+              willChange: 'opacity'
+            }}
+          />
         )}
       </div>
       

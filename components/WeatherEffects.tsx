@@ -83,14 +83,18 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
   const airPoolRef = useRef<ParticlePool | null>(null);
   const fireflyPoolRef = useRef<ParticlePool | null>(null);
 
+  // Throttle particle updates (performance optimization)
+  const lastUpdateRef = useRef<number>(0);
+  const THROTTLE_MS = 250; // Update particles max every 250ms
+
   // Shorthands / safe fallbacks
   const fx = weather.fx;
   const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 
-  // Initialize pools once
+  // Initialize pools once (reduced rain particles for performance)
   useEffect(() => {
     if (!containerRef.current) return;
-    rainPoolRef.current = new ParticlePool(260, 'rain-particle');
+    rainPoolRef.current = new ParticlePool(120, 'rain-particle'); // Reduced from 260
     snowPoolRef.current = new ParticlePool(180, 'snow-particle');
     leafPoolRef.current = new ParticlePool(140, 'leaf-particle');
     blossomPoolRef.current = new ParticlePool(160, 'petal-particle');
@@ -114,9 +118,16 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
     };
   }, []);
 
-  // Update particles whenever weather/size changes
+  // Update particles whenever weather/size changes (with throttling)
   useEffect(() => {
     if (!containerRef.current) return;
+
+    // Throttle updates for performance during heavy rain
+    const now = Date.now();
+    if (now - lastUpdateRef.current < THROTTLE_MS) {
+      return;
+    }
+    lastUpdateRef.current = now;
 
     const wind = weather.windSpeed ?? 0;
     const windDir = weather.windDirection ?? 0;
@@ -128,7 +139,8 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
     /* --------------------------- RAIN / DRIZZLE --------------------------- */
     if (weather.precipitation === 'rain' || weather.precipitation === 'drizzle') {
       const sizeFactor = fx?.dropletSize ?? (weather.precipitation === 'drizzle' ? 0.25 : 0.7);
-      const base = weather.precipitation === 'rain' ? 220 : 80;
+      // Reduced base counts for better performance (was 220/80)
+      const base = weather.precipitation === 'rain' ? 100 : 60;
       const count = Math.floor(intensity * base);
 
       rainPoolRef.current?.activate(count, (particle) => {
@@ -147,13 +159,14 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
         particle.style.height = `${dropH}px`;
         particle.style.borderRadius = '2px';
         particle.style.background =
-          'linear-gradient(to bottom, rgba(185,205,240,0.06), rgba(155,185,230,0.75))';
-        particle.style.opacity = String(0.55 + Math.random() * 0.45);
-        particle.style.animation = `rain-fall ${duration}s linear ${delay}s infinite, rain-tilt ${
-          1.8 + Math.random() * 1.2
-        }s ease-in-out ${Math.random().toFixed(2)}s infinite alternate`;
+          'linear-gradient(to bottom, rgba(185,205,240,0.08), rgba(155,185,230,0.8))';
+        particle.style.opacity = String(0.6 + Math.random() * 0.4);
+        // Removed expensive rain-tilt animation for performance
+        particle.style.animation = `rain-fall ${duration}s linear ${delay}s infinite`;
         const visualTilt = Math.max(-16, Math.min(16, windX * 0.6));
         particle.style.transform = `rotate(${visualTilt}deg) translateZ(0)`;
+        // Add subtle glow to compensate for removed animation
+        particle.style.boxShadow = '0 0 1px rgba(185,205,240,0.3)';
       });
     } else {
       rainPoolRef.current?.activate(0, () => {});
@@ -627,14 +640,10 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
 
       {/* CSS animations */}
       <style jsx="true">{`
-        /* RAIN */
+        /* RAIN (rain-tilt animation removed for performance) */
         @keyframes rain-fall {
           0%   { transform: translate3d(0, 0, 0); }
           100% { transform: translate3d(var(--wind-offset, 0), var(--fall-y, ${height + 50}px), 0); }
-        }
-        @keyframes rain-tilt {
-          0%   { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
-          100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.15)); }
         }
 
         /* SNOW */

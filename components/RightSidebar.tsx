@@ -52,7 +52,7 @@ interface RightSidebarProps {
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = false }) => {
-  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult } = useUI();
+  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen } = useUI();
   const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
   const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone } = useMap();
@@ -667,9 +667,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         <span className="text-[11px] leading-tight text-center">{action.name}</span>
                       </button>
 
-                      {/* Tooltip */}
+                      {/* Tooltip - smart positioning based on button position */}
                       {hoveredButton === index && (
-                        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn">
+                        <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn ${
+                          index >= 2 ? 'right-0' : 'left-0'
+                        }`}>
                           <p className="text-xs font-semibold text-white mb-1">{action.name}</p>
                           <p className="text-[10px] text-gray-300 mb-2">{action.description}</p>
                           <div className="flex items-center gap-2 text-[10px] text-purple-300">
@@ -718,9 +720,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         <span className="text-[11px] leading-tight text-center">{skill.name}</span>
                       </button>
 
-                      {/* Tooltip */}
+                      {/* Tooltip - smart positioning based on button position */}
                       {hoveredButton === index && (
-                        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn">
+                        <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn ${
+                          index >= 2 ? 'right-0' : 'left-0'
+                        }`}>
                           <p className="text-xs font-semibold text-white mb-1">{skill.name}</p>
                           <p className="text-[10px] text-gray-300 mb-2">{skill.description}</p>
                           <div className="flex items-center gap-2 text-[10px] text-blue-300">
@@ -791,6 +795,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               onPlayerInputChange={onPlayerInputChange}
               onSend={onSend}
               isLoading={isNarratorLoading}
+              onOpenCampModal={() => setIsCampModalOpen(true)}
             />
           )}
 

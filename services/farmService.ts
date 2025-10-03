@@ -62,6 +62,19 @@ export interface FieldState {
   lastWorked: number; // game day
   pests: boolean;
   weeds: boolean;
+
+  // Phase 4.1: Soil nutrients (0-100 each)
+  soilNitrogen: number;  // Depleted by grains, restored by legumes
+  soilPhosphorus: number; // Depleted by root crops, rice
+  soilPotassium: number; // Depleted by all crops slowly
+  lastCrop: string | null; // Track previous crop for rotation
+  consecutiveSeasons: number; // Times same crop planted in a row
+
+  // Phase 4.4: Enhanced pest/disease tracking
+  pestSeverity: number; // 0-100 (was just boolean)
+  diseaseType: 'none' | 'fungal_blight' | 'rust' | 'wilt' | 'rot'; // Specific diseases
+  diseaseSeverity: number; // 0-100
+  weedDensity: number; // 0-100 (was just boolean)
 }
 
 export interface FarmResidencyStatus {
@@ -104,6 +117,7 @@ export interface FarmState {
     count: number;
     health: number;
     productivity: number;
+    lastFed: number; // Phase 4.3: Track feeding times
   }>;
   buildings: string[];
   tools: string[];
@@ -122,6 +136,14 @@ export interface FarmState {
   farmName?: string; // Custom farm name
   farmDescription?: string; // Farm description
   lastYearData?: LastYearData; // Previous season's performance
+
+  // Phase 4.2: Weather tracking
+  activeWeather?: {
+    event: 'drought' | 'heavy_rain' | 'early_frost' | 'heatwave' | 'hailstorm';
+    severity: number;
+    daysRemaining: number;
+    description: string;
+  } | null;
 }
 
 // Global farm state storage (in production, this would be in a database)
@@ -287,7 +309,20 @@ export function getFarmState(
       lastWatered: 0,
       lastWorked: 0,
       pests: noise.random() < 0.15,
-      weeds: noise.random() < 0.25
+      weeds: noise.random() < 0.25,
+
+      // Phase 4.1: Initialize soil nutrients (60-90 range, somewhat healthy)
+      soilNitrogen: 60 + Math.floor(noise.random() * 30),
+      soilPhosphorus: 60 + Math.floor(noise.random() * 30),
+      soilPotassium: 60 + Math.floor(noise.random() * 30),
+      lastCrop: null, // Unknown history for new farms
+      consecutiveSeasons: 0,
+
+      // Phase 4.4: Initialize enhanced pest/disease tracking
+      pestSeverity: noise.random() < 0.15 ? 10 + Math.floor(noise.random() * 20) : 0,
+      diseaseType: 'none',
+      diseaseSeverity: 0,
+      weedDensity: noise.random() < 0.25 ? 10 + Math.floor(noise.random() * 30) : 0,
     });
   }
 
@@ -296,17 +331,17 @@ export function getFarmState(
     tileKey,
     family,
     fields,
-    livestock: economicStatus === 'humble' 
-      ? [{ type: 'chickens', count: 3 + Math.floor(noise.random() * 5), health: 75, productivity: 60 }]
+    livestock: economicStatus === 'humble'
+      ? [{ type: 'chickens', count: 3 + Math.floor(noise.random() * 5), health: 75, productivity: 60, lastFed: 0 }]
       : economicStatus === 'prosperous'
       ? [
-          { type: 'chickens', count: 8 + Math.floor(noise.random() * 8), health: 85, productivity: 75 },
-          { type: 'cattle', count: 2 + Math.floor(noise.random() * 3), health: 80, productivity: 70 }
+          { type: 'chickens', count: 8 + Math.floor(noise.random() * 8), health: 85, productivity: 75, lastFed: 0 },
+          { type: 'cattle', count: 2 + Math.floor(noise.random() * 3), health: 80, productivity: 70, lastFed: 0 }
         ]
       : [
-          { type: 'chickens', count: 15 + Math.floor(noise.random() * 10), health: 90, productivity: 85 },
-          { type: 'cattle', count: 4 + Math.floor(noise.random() * 4), health: 85, productivity: 80 },
-          { type: 'horses', count: 1 + Math.floor(noise.random() * 2), health: 90, productivity: 90 }
+          { type: 'chickens', count: 15 + Math.floor(noise.random() * 10), health: 90, productivity: 85, lastFed: 0 },
+          { type: 'cattle', count: 4 + Math.floor(noise.random() * 4), health: 85, productivity: 80, lastFed: 0 },
+          { type: 'horses', count: 1 + Math.floor(noise.random() * 2), health: 90, productivity: 90, lastFed: 0 }
         ],
     buildings: economicStatus === 'humble'
       ? ['cottage', 'shed']

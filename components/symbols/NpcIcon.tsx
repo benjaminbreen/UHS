@@ -7,6 +7,16 @@ interface NpcIconProps {
   tileSize: number;
 }
 
+// Helper function to adjust color brightness
+const adjustColorBrightness = (color: string, percent: number): string => {
+  const num = parseInt(color.replace("#",""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+  return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+};
+
 const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => {
   const { direction, walkFrame, gender } = npc;
 
@@ -197,7 +207,9 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
       const legWidth = isFemale ? p * 1.8 : p * 2;
       elements.push(
         <rect key="left-leg" x={-p * 2 + leftLegX} y={p * 7 + yOffset + leftLegY} width={legWidth} height={p * 4.5} fill={legColor} rx={p * 0.3} />,
-        <rect key="right-leg" x={p * 0.2 + rightLegX} y={p * 7 + yOffset + rightLegY} width={legWidth} height={p * 4.5} fill={legColor} rx={p * 0.3} />
+        <rect key="left-leg-highlight" x={-p * 2 + leftLegX} y={p * 7 + yOffset + leftLegY} width={legWidth * 0.3} height={p * 4.5} fill="rgba(255,255,255,0.1)" />,
+        <rect key="right-leg" x={p * 0.2 + rightLegX} y={p * 7 + yOffset + rightLegY} width={legWidth} height={p * 4.5} fill={legColor} rx={p * 0.3} />,
+        <rect key="right-leg-shadow" x={p * 0.2 + rightLegX + legWidth * 0.6} y={p * 7 + yOffset + rightLegY} width={legWidth * 0.3} height={p * 4.5} fill="rgba(0,0,0,0.1)" />
       );
     } else {
       // Hint of movement under dress/robe
@@ -218,7 +230,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
     
     // Body/Torso with better shapes for different garment types
     const topColor = clothingColor;
-    
+
     if (garmentType === 'dress' || garmentType === 'robe') {
       // Flowing garment - tapers from shoulders to hips with waist definition
       if (isFemale) {
@@ -226,13 +238,19 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
         elements.push(
           <rect key="upper-dress" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth} height={p * 2} fill={topColor} rx={p * 0.2} />,
           <rect key="waist-dress" x={-waistWidth / 2} y={p * 5 + yOffset} width={waistWidth} height={p * 1.5} fill={topColor} rx={p * 0.2} />,
-          <rect key="lower-dress" x={-hipWidth / 2} y={p * 6.5 + yOffset} width={hipWidth} height={p * 3} fill={topColor} rx={p * 0.2} />
+          <rect key="lower-dress" x={-hipWidth / 2} y={p * 6.5 + yOffset} width={hipWidth} height={p * 3} fill={topColor} rx={p * 0.2} />,
+          // Shading for depth
+          <rect key="dress-highlight" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth * 0.3} height={p * 6.5} fill="rgba(255,255,255,0.12)" />,
+          <rect key="dress-shadow" x={hipWidth / 2 - hipWidth * 0.25} y={p * 4 + yOffset} width={hipWidth * 0.25} height={p * 5.5} fill="rgba(0,0,0,0.12)" />
         );
       } else {
         // Male robe - straighter lines
         elements.push(
           <rect key="upper-robe" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth} height={p * 3} fill={topColor} rx={p * 0.2} />,
-          <rect key="lower-robe" x={-bodyWidth / 2} y={p * 6 + yOffset} width={bodyWidth} height={p * 3.5} fill={topColor} rx={p * 0.2} />
+          <rect key="lower-robe" x={-bodyWidth / 2} y={p * 6 + yOffset} width={bodyWidth} height={p * 3.5} fill={topColor} rx={p * 0.2} />,
+          // Shading for depth
+          <rect key="robe-highlight" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth * 0.3} height={p * 6.5} fill="rgba(255,255,255,0.12)" />,
+          <rect key="robe-shadow" x={bodyWidth / 2 - bodyWidth * 0.25} y={p * 4 + yOffset} width={bodyWidth * 0.25} height={p * 5.5} fill="rgba(0,0,0,0.12)" />
         );
       }
     } else if (garmentType === 'skirt') {
@@ -240,19 +258,28 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
       elements.push(
         <rect key="shirt-upper" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth} height={p * 2} fill={topColor} rx={p * 0.2} />,
         <rect key="shirt-waist" x={-waistWidth / 2} y={p * 5 + yOffset} width={waistWidth} height={p * 2} fill={topColor} rx={p * 0.2} />,
-        <rect key="skirt" x={-hipWidth / 2} y={p * 7 + yOffset} width={hipWidth} height={p * 2.5} fill={secondaryColor} rx={p * 0.2} />
+        <rect key="skirt" x={-hipWidth / 2} y={p * 7 + yOffset} width={hipWidth} height={p * 2.5} fill={secondaryColor} rx={p * 0.2} />,
+        // Shading for depth
+        <rect key="skirt-highlight" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth * 0.3} height={p * 6.5} fill="rgba(255,255,255,0.12)" />,
+        <rect key="skirt-shadow" x={hipWidth / 2 - hipWidth * 0.25} y={p * 4 + yOffset} width={hipWidth * 0.25} height={p * 5.5} fill="rgba(0,0,0,0.12)" />
       );
     } else {
       // Tunic or shirt with pants - different shapes for male/female
       if (isFemale) {
         elements.push(
           <rect key="tunic-shoulders" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth} height={p * 2} fill={topColor} rx={p * 0.2} />,
-          <rect key="tunic-waist" x={-waistWidth / 2} y={p * 5 + yOffset} width={waistWidth} height={p * 3} fill={topColor} rx={p * 0.2} />
+          <rect key="tunic-waist" x={-waistWidth / 2} y={p * 5 + yOffset} width={waistWidth} height={p * 3} fill={topColor} rx={p * 0.2} />,
+          // Shading for depth
+          <rect key="tunic-highlight" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth * 0.3} height={p * 5} fill="rgba(255,255,255,0.12)" />,
+          <rect key="tunic-shadow" x={waistWidth / 2 - waistWidth * 0.25} y={p * 4 + yOffset} width={waistWidth * 0.25} height={p * 4} fill="rgba(0,0,0,0.12)" />
         );
       } else {
         elements.push(
           <rect key="tunic-top" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth} height={p * 2.5} fill={topColor} rx={p * 0.2} />,
-          <rect key="tunic-body" x={-bodyWidth / 2} y={p * 5.5 + yOffset} width={bodyWidth} height={p * 2.5} fill={topColor} rx={p * 0.2} />
+          <rect key="tunic-body" x={-bodyWidth / 2} y={p * 5.5 + yOffset} width={bodyWidth} height={p * 2.5} fill={topColor} rx={p * 0.2} />,
+          // Shading for depth
+          <rect key="tunic-highlight" x={-shoulderWidth / 2} y={p * 3 + yOffset} width={shoulderWidth * 0.3} height={p * 5} fill="rgba(255,255,255,0.12)" />,
+          <rect key="tunic-shadow" x={bodyWidth / 2 - bodyWidth * 0.25} y={p * 4 + yOffset} width={bodyWidth * 0.25} height={p * 4} fill="rgba(0,0,0,0.12)" />
         );
       }
     }
@@ -280,12 +307,14 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
     // Left arm - sleeve then skin
     elements.push(
       <rect key="left-sleeve" x={-shoulderWidth / 2 - p * 0.8} y={p * 3.5 + yOffset + leftArmOffset} width={armWidth} height={sleeveLength} fill={clothingColor} rx={p * 0.3} />,
+      <rect key="left-sleeve-highlight" x={-shoulderWidth / 2 - p * 0.8} y={p * 3.5 + yOffset + leftArmOffset} width={armWidth * 0.3} height={sleeveLength} fill="rgba(255,255,255,0.1)" />,
       <rect key="left-forearm" x={-shoulderWidth / 2 - p * 0.8} y={p * 3.5 + sleeveLength + yOffset + leftArmOffset} width={armWidth} height={p * 2.5} fill={skinColor} rx={p * 0.3} />
     );
-    
+
     // Right arm - sleeve then skin
     elements.push(
       <rect key="right-sleeve" x={shoulderWidth / 2 - p * 0.7} y={p * 3.5 + yOffset + rightArmOffset} width={armWidth} height={sleeveLength} fill={clothingColor} rx={p * 0.3} />,
+      <rect key="right-sleeve-shadow" x={shoulderWidth / 2 - p * 0.7 + armWidth * 0.6} y={p * 3.5 + yOffset + rightArmOffset} width={armWidth * 0.3} height={sleeveLength} fill="rgba(0,0,0,0.1)" />,
       <rect key="right-forearm" x={shoulderWidth / 2 - p * 0.7} y={p * 3.5 + sleeveLength + yOffset + rightArmOffset} width={armWidth} height={p * 2.5} fill={skinColor} rx={p * 0.3} />
     );
     
@@ -298,8 +327,8 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
     elements.push(<rect key="neck" x={-neckWidth / 2} y={p * 2 + yOffset} width={neckWidth} height={p * 1.5} fill={skinColor} />);
     
     // Head - use multiple rects to create rounded pixel art appearance
-    // Main head block
-    elements.push(<rect key="head-main" x={-headWidth / 2 + p * 0.3} y={-p * 1.2 + yOffset} width={headWidth - p * 0.6} height={headHeight - p * 0.6} fill={skinColor} />);
+    // Main head block with rounded corners
+    elements.push(<rect key="head-main" x={-headWidth / 2 + p * 0.3} y={-p * 1.2 + yOffset} width={headWidth - p * 0.6} height={headHeight - p * 0.6} fill={skinColor} rx={p * 0.8} />);
     
     // Corner pixels for rounding
     elements.push(
@@ -435,10 +464,12 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
     }
 
     // Facial Features - simple pixel art style - adjusted for new head position
-    // Eyes
+    // Eyes - improved with better shape and highlights
     elements.push(
-      <ellipse key="left-eye" cx={-p * 0.8} cy={p * 0.5 + yOffset} rx={p * 0.35} ry={p * 0.25} fill="#000" />,
-      <ellipse key="right-eye" cx={p * 0.8} cy={p * 0.5 + yOffset} rx={p * 0.35} ry={p * 0.25} fill="#000" />
+      <ellipse key="left-eye" cx={-p * 0.8} cy={p * 0.5 + yOffset} rx={p * 0.45} ry={p * 0.55} fill="#2a2a2a" />,
+      <ellipse key="right-eye" cx={p * 0.8} cy={p * 0.5 + yOffset} rx={p * 0.45} ry={p * 0.55} fill="#2a2a2a" />,
+      <circle key="left-eye-highlight" cx={-p * 0.8} cy={p * 0.4 + yOffset} r={p * 0.15} fill="#fff" opacity={0.9} />,
+      <circle key="right-eye-highlight" cx={p * 0.8} cy={p * 0.4 + yOffset} r={p * 0.15} fill="#fff" opacity={0.9} />
     );
     
     // Simple nose (just a small mark)
@@ -512,7 +543,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
   const hasDiseases = npc.health && npc.health.currentDiseases && npc.health.currentDiseases.length > 0;
   
   return (
-    <g transform={`translate(${baseX}, ${baseY})`}>
+    <g transform={`translate(${baseX}, ${baseY})`} style={{ shapeRendering: 'geometricPrecision' }}>
       {/* Disease indicator - greenish circle around sick NPCs */}
       {hasDiseases && (
         <circle

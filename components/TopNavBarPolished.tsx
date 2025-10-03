@@ -18,7 +18,6 @@ import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { worldWeaverService } from '../services/worldWeaverService';
 import WorldWeaverModal from './WorldWeaverModal';
-import QuestsPanel from './QuestsPanel';
 import { findZoneForMapArea } from '../utils/mapAreaLookup';
 import { normalizeZoneName, normalizeRegionName } from '../utils/worldWeaverHelpers';
 import type { CulturalZone } from '../types/characterData';
@@ -28,7 +27,6 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { questService } from '../services/questService';
 import { themeService } from '../services/themeService';
 import { journalService } from '../services/journalService';
-import JournalViewport from './JournalViewport';
 
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
@@ -109,9 +107,13 @@ interface TopNavBarPolishedProps {
     characterDescription?: string;
     quest?: any;
   }) => void;
+  showJournal: boolean;
+  setShowJournal: (show: boolean) => void;
+  showQuestsPanel: boolean;
+  setShowQuestsPanel: (show: boolean) => void;
 }
 
-const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived }) => {
+const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel }) => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal } = useUI();
   const { currentMode } = useEventSystem();
   const { setControlledIconX, setControlledIconY } = usePlayer();
@@ -187,8 +189,6 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
     return () => clearInterval(updateInterval);
   }, [showAPITracker]);
-  const [showQuestsPanel, setShowQuestsPanel] = useState(false);
-  const [showJournal, setShowJournal] = useState(false);
   const [showGameModeTooltip, setShowGameModeTooltip] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
   
@@ -463,9 +463,12 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                 }
               `}</style>
               
-              <h1 className="font-press-start mr-8 text-lg sm:text-lg lg:text-lg bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-green-400 to-emerald-400 subtle-glow">
+              <a
+                href="/"
+                className="font-press-start mr-8 text-lg sm:text-lg lg:text-lg bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-green-400 to-emerald-400 subtle-glow hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.6)] transition-all duration-300 cursor-pointer no-underline"
+              >
                 HISTORY SIMULATOR
-              </h1>
+              </a>
               
               {/* Divider */}
               <div className="hidden sm:block h-6 w-px bg-slate-600/40" />
@@ -1156,15 +1159,6 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
         )}
       </nav>
 
-      {/* Journal Viewport */}
-      <JournalViewport
-        visible={showJournal}
-        onClose={() => setShowJournal(false)}
-        currentLocation={currentZone || 'Unknown Location'}
-        currentDate={gameDate ? `${gameDate.month}/${gameDate.day}/${gameDate.year}` : 'Unknown Date'}
-        currentCulturalZone={currentCulturalZone}
-      />
-
       {/* Modals */}
       <WorldWeaverModal
         isOpen={worldWeaverModalData.isOpen}
@@ -1180,30 +1174,6 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
         customEventsCount={worldWeaverModalData.customEventsCount}
         quest={worldWeaverModalData.quest}
         userPrompt={worldWeaverModalData.userPrompt}
-      />
-      
-      <QuestsPanel
-        isOpen={showQuestsPanel}
-        onClose={() => setShowQuestsPanel(false)}
-        onNavigateToQuest={(x, y) => {
-          console.log('Centering map on quest at:', x, y);
-          // Center the map view on the quest location WITHOUT moving the player
-          // We'll dispatch a custom event that MapDisplayOptimized can listen for
-          const centerEvent = new CustomEvent('centerMapOnLocation', {
-            detail: { x, y }
-          });
-          window.dispatchEvent(centerEvent);
-          setShowQuestsPanel(false);
-          // Show a notification that we're centering the view
-          const notification = document.createElement('div');
-          notification.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-[60] animate-in fade-in slide-in-from-top-4 duration-300';
-          notification.textContent = `Showing quest objective at (${x}, ${y})`;
-          document.body.appendChild(notification);
-          setTimeout(() => {
-            notification.classList.add('animate-out', 'fade-out', 'slide-out-to-top-4');
-            setTimeout(() => notification.remove(), 300);
-          }, 2000);
-        }}
       />
     </>
   );

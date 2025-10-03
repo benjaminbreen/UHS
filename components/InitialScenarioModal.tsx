@@ -15,7 +15,7 @@ import { shareableStateService } from '../services/shareableStateService';
 import { findZoneForMapArea } from '../services/zoneDetectionService';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { dialectContinuumService } from '../services/dialectContinuumService';
-// FACTION_DATA will be lazy-loaded for better performance
+import { FACTION_DATA } from '../constants/gameData/factions';
 import { FACTION_ICONS } from '../constants/gameData/factionIcons';
 import SimplePopulationChart from './charts/SimplePopulationChart';
 
@@ -341,8 +341,6 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const [isVisible, setIsVisible] = useState(false);
     const [contentVisible, setContentVisible] = useState(false);
     const [shouldRenderPortrait, setShouldRenderPortrait] = useState(false);
-    const [factionDataCache, setFactionDataCache] = useState<any>(null);
-    const [isFactionDataLoading, setIsFactionDataLoading] = useState(false);
 
     // Detect Safari for performance optimizations
     const isSafari = useMemo(() => {
@@ -367,53 +365,46 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
             setIsVisible(false);
             setContentVisible(false);
             setShouldRenderPortrait(false);
-            // Reset faction data cache when modal closes
-            setFactionDataCache(null);
-            setIsFactionDataLoading(false);
         }
     }, [isOpen, isSafari]);
     
     if (!isOpen) return null;
 
-    // Memoize expensive computations
-    const dateInfo = useMemo(() => parseDateString(String(gameDate.year)), [gameDate.year]);
-    const culturalZone = useMemo(() => mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone, [currentZone, dateInfo.year]);
-    const era = useMemo(() => dateInfo.era as HistoricalEra, [dateInfo.era]);
+    // Combine related computations into single memoized object
+    const scenarioData = useMemo(() => {
+        const dateInfo = parseDateString(String(gameDate.year));
+        const culturalZone = mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone;
+        const era = dateInfo.era as HistoricalEra;
+        const gameSeed = SeedManager.getInstance().getSeed();
 
-    // Lazy load faction data for better performance (especially on Safari)
-    useEffect(() => {
-        if (!currentZone || !currentRegion || !gameDate || factionDataCache) return;
+        return {
+            dateInfo,
+            culturalZone,
+            era,
+            gameSeed
+        };
+    }, [gameDate.year, currentZone]);
 
-        setIsFactionDataLoading(true);
+    // Get faction data directly (already imported at top of file)
+    const factionData = useMemo(() => {
+        try {
+            const result = FACTION_DATA[scenarioData.culturalZone]?.[currentRegion]?.[scenarioData.era];
 
-        // Dynamically import FACTION_DATA only when needed
-        import('../constants/gameData/factions').then((module) => {
-            try {
-                const dateInfo = parseDateString(gameDate.year.toString());
-                const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
-                const result = module.FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
+            console.log('InitialScenarioModal faction debug:', {
+                currentZone,
+                currentRegion,
+                culturalZone: scenarioData.culturalZone,
+                era: scenarioData.era,
+                factionData: result,
+                dominantPower: result?.dominantPower
+            });
 
-                console.log('InitialScenarioModal faction debug:', {
-                    currentZone,
-                    currentRegion,
-                    culturalZoneEnum,
-                    era: dateInfo.era,
-                    factionData: result,
-                    dominantPower: result?.dominantPower
-                });
-
-                setFactionDataCache(result);
-                setIsFactionDataLoading(false);
-            } catch (error) {
-                console.error('Error getting faction data in InitialScenarioModal:', error);
-                setFactionDataCache(null);
-                setIsFactionDataLoading(false);
-            }
-        });
-    }, [currentZone, currentRegion, gameDate, factionDataCache]);
-
-    // Use cached faction data
-    const factionData = factionDataCache;
+            return result;
+        } catch (error) {
+            console.error('Error getting faction data in InitialScenarioModal:', error);
+            return null;
+        }
+    }, [scenarioData.culturalZone, scenarioData.era, currentRegion, currentZone]);
 
     // Get dominant faction icon
     const { dominantFactionIcon: DominantFactionIcon } = useMemo(() => {
@@ -429,11 +420,6 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         };
     }, [factionData]);
 
-    // Get the current seed from SeedManager (memoized)
-    const gameSeed = useMemo(() => {
-        const seedManager = SeedManager.getInstance();
-        return seedManager.getSeed();
-    }, []);
     const [showShareLink, setShowShareLink] = React.useState(false);
     const [shareableURL, setShareableURL] = React.useState('');
     const [copiedToClipboard, setCopiedToClipboard] = React.useState(false);
@@ -478,7 +464,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     socialClass: playerCharacter.class || 'commoner',
                     health: playerCharacter.diseaseHealth?.overallHealthStatus || 'healthy'
                 },
-                mapSeed: gameSeed,
+                mapSeed: scenarioData.gameSeed,
                 scenarioType: 'procedural' as const,
                 version: '2.0', // Bump version to indicate improved format
                 _validated: true // Flag to indicate this state has been validated
@@ -491,7 +477,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
             // Also save to localStorage for recovery
             shareableStateService.saveStateToLocal(shareableState);
         }
-    }, [showShareLink, gameDate, localArea, currentZone, currentRegion, gameMode, playerCharacter, gameSeed]);
+    }, [showShareLink, gameDate, localArea, currentZone, currentRegion, gameMode, playerCharacter, scenarioData.gameSeed]);
     
     // Load historical context using regional history service
     const [historicalContext, setHistoricalContext] = useState<string>(
@@ -502,27 +488,27 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         const loadHistoricalContext = async () => {
             try {
                 const description = await regionalHistoryService.getHistoricalContext(
-                    culturalZone,
+                    scenarioData.culturalZone,
                     currentRegion,
                     gameDate.year,
-                    era
+                    scenarioData.era
                 );
                 setHistoricalContext(description);
             } catch (error) {
                 console.error('Error loading historical context:', error);
                 // Fallback to era-level description
-                const fallback = HISTORY_GUIDE_DATA[culturalZone]?.[era] ||
+                const fallback = HISTORY_GUIDE_DATA[scenarioData.culturalZone]?.[scenarioData.era] ||
                     "This is a time of great change and opportunity. The world is full of challenges and adventures waiting to be discovered.";
                 setHistoricalContext(fallback);
             }
         };
 
         loadHistoricalContext();
-    }, [culturalZone, currentRegion, gameDate.year, era]);
+    }, [scenarioData.culturalZone, currentRegion, gameDate.year, scenarioData.era]);
 
     const modeDescription = useMemo(() =>
-        getModeDescription(gameMode, era, culturalZone, playerCharacter),
-        [gameMode, era, culturalZone, playerCharacter]
+        getModeDescription(gameMode, scenarioData.era, scenarioData.culturalZone, playerCharacter),
+        [gameMode, scenarioData.era, scenarioData.culturalZone, playerCharacter]
     );
 
     return (
@@ -530,8 +516,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
             isVisible ? 'opacity-100' : 'opacity-0'
         }`}>
             <div className={`bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-700 dark:to-slate-900
-                border border-slate-300/50 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full
-                max-h-[90vh] md:max-h-[85vh] overflow-y-auto
+                border border-slate-300/50 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-6xl w-full
+                max-h-[95vh] overflow-y-auto
                 ${isSafari ? 'transition-opacity duration-700' : 'transition-all duration-700 transform'} ${
                     contentVisible
                         ? `opacity-100 ${!isSafari ? 'scale-100 translate-y-0' : ''}`
@@ -544,18 +530,14 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         <div className={`p-2 md:p-3 bg-gradient-to-br rounded-lg shrink-0 ${
                         gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-500 to-amber-600' : 'from-amber-500 to-amber-600'
                     }`}>
-                            {isFactionDataLoading ? (
-                                <Globe className="w-5 h-5 md:w-7 md:h-7 text-white animate-pulse" />
-                            ) : (
-                                <DominantFactionIcon className="w-5 h-5 md:w-7 md:h-7 text-white" />
-                            )}
+                            <DominantFactionIcon className="w-5 h-5 md:w-7 md:h-7 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 break-words">
                                 You are {playerCharacter.name}, a {playerCharacter.occupation || playerCharacter.profession || 'traveler'}, and the year is {formatYear(gameDate.year)}
                             </h2>
                             <p className="text-xs sm:text-sm md:text-lg text-slate-600 dark:text-slate-300 break-words">
-                                <span className="block sm:inline">{formatEra(era)} • {formatCulturalZone(culturalZone)}</span>
+                                <span className="block sm:inline">{formatEra(scenarioData.era)} • {formatCulturalZone(scenarioData.culturalZone)}</span>
                                 <span className="block sm:inline sm:ml-1 text-emerald-700 dark:text-emerald-400 font-medium">• {currentRegion}</span>
                                 <span className={`block sm:inline sm:ml-1 font-medium ${getSeasonColors(getSeasonFromDate(gameDate))}`}>• {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
                             </p>
@@ -569,7 +551,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     </button>
                 </div>
 
-                <div className="p-2 md:p-3 pb-4 md:pb-6">
+                <div className="p-2 md:p-3 pb-24 md:pb-6">
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-4 mb-4">
                         {/* Left Column - Main Content (3/5) */}
                         <div className="lg:col-span-3 space-y-2 md:space-y-3">
@@ -616,10 +598,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 {/* Portrait and Info Layout */}
                                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                                     {/* Portrait Column */}
-                                    <div className="flex-shrink-0 flex flex-col items-center sm:items-start w-24 md:w-32">
+                                    <div className="flex-shrink-0 flex flex-col items-center sm:items-start w-32 md:w-40">
                                         <div className="relative">
                                             <div
-                                                className="w-24 h-24 md:w-32 md:h-32 rounded-lg border-2 border-amber-400/50 shadow-lg overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 cursor-pointer hover:border-amber-400 transition-colors"
+                                                className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-amber-400/50 shadow-lg overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 cursor-pointer hover:border-amber-400 transition-colors"
                                                 onClick={() => {
                                                     if (shouldRenderPortrait) {
                                                         const expressions: Array<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'> = ['neutral', 'smile', 'frown', 'surprise', 'angry'];
@@ -634,14 +616,14 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                 {shouldRenderPortrait ? (
                                                     <ProceduralPortrait
                                                         character={playerCharacter}
-                                                        size={128}
+                                                        size={160}
                                                         expression={portraitExpression}
                                                         className="w-full h-full"
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
                                                         <div className="animate-pulse">
-                                                            <User className="w-12 h-12 text-slate-500" />
+                                                            <User className="w-16 h-16 text-slate-500" />
                                                         </div>
                                                     </div>
                                                 )}
@@ -866,7 +848,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             {/* Population Chart - Static SVG version for better performance */}
                             <SimplePopulationChart
                                 currentYear={gameDate.year}
-                                culturalZone={culturalZone.toString()}
+                                culturalZone={scenarioData.culturalZone.toString()}
                             />
 
                             {/* Mini Location Map */}
@@ -879,12 +861,12 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                              currentZone === 'Africa' ? 'africa' :
                                              currentZone === 'Oceania' ? 'oceania' : 'northAmerica'}
                                     region={currentRegion}
-                                    mapSeed={gameSeed}
+                                    mapSeed={scenarioData.gameSeed}
                                 />
                             </Suspense>
 
-                            {/* Start Button positioned under right column content */}
-                            <div className="mt-4">
+                            {/* Start Button - Desktop only (positioned under right column content) */}
+                            <div className="mt-4 hidden lg:block">
                                 <button
                                     onClick={() => {
                                         // Initialize dialect continuum if enabled
@@ -977,6 +959,38 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Mobile Sticky Bottom Bar */}
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 via-slate-900 to-slate-900/95 border-t border-slate-700 z-10">
+                    <button
+                        onClick={() => {
+                            // Initialize dialect continuum if enabled
+                            if (dialectContinuumEnabled) {
+                                dialectContinuumService.setEnabled(true);
+                                dialectContinuumService.initialize(localArea, { x: 0, y: 0 });
+                                dialectContinuumService.saveState();
+                            } else {
+                                dialectContinuumService.setEnabled(false);
+                            }
+                            onClose();
+                        }}
+                        className={`w-full px-4 py-3 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl text-base ${
+                            gameMode ? (
+                                gameMode.id === 'survival' ? 'bg-red-600 hover:bg-red-700' :
+                                gameMode.id === 'exploration' ? 'bg-blue-600 hover:bg-blue-700' :
+                                gameMode.id === 'commerce' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                                gameMode.id === 'scholarship' ? 'bg-purple-600 hover:bg-purple-700' :
+                                gameMode.id === 'leadership' ? 'bg-amber-600 hover:bg-amber-700' :
+                                gameMode.id === 'livelihood' ? 'bg-green-600 hover:bg-green-700' :
+                                gameMode.id === 'diplomacy' ? 'bg-cyan-600 hover:bg-cyan-700' :
+                                gameMode.id === 'legal' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                                'bg-amber-600 hover:bg-amber-700'
+                            ) : 'bg-amber-600 hover:bg-amber-700'
+                        }`}
+                    >
+                        Begin the Simulation
+                    </button>
                 </div>
 
             </div>

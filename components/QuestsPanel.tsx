@@ -392,12 +392,12 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
 
   return (
     <div className={`
-      fixed top-16 right-0 w-full max-w-lg z-[55]
-      bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 
+      fixed top-16 right-0 w-full max-w-lg z-[60]
+      bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95
       backdrop-blur-md shadow-2xl border-l border-slate-600 border-b border-slate-600
       transition-all duration-300 ease-out origin-top
-      ${isOpen 
-        ? 'translate-y-0 opacity-100 scale-y-100' 
+      ${isOpen
+        ? 'translate-y-0 opacity-100 scale-y-100'
         : '-translate-y-full opacity-0 scale-y-0'
       }
     `}>

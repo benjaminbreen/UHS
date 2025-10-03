@@ -60,6 +60,9 @@ interface SettingsPanelProps {
   currentYear?: number;
   onLoadGame?: (save: SavedGame) => void;
   currentGameState?: any;
+  contextualTooltipsEnabled: boolean;
+  onToggleContextualTooltips: (enabled: boolean) => void;
+  onResetTooltips: () => void;
 }
 
 const SettingsToggle: React.FC<{
@@ -110,6 +113,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onLoadGame,
   currentGameState,
   playerLocation,
+  contextualTooltipsEnabled,
+  onToggleContextualTooltips,
+  onResetTooltips,
 }) => {
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
@@ -738,6 +744,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   dialectContinuumService.saveState();
                 }}
               />
+              <SettingsToggle
+                id="contextualTooltipsToggle"
+                label="Contextual Tooltips"
+                description="Show helpful tooltips when you first encounter UI elements. Perfect for learning the interface."
+                isChecked={contextualTooltipsEnabled}
+                onToggle={() => onToggleContextualTooltips(!contextualTooltipsEnabled)}
+              />
+              {contextualTooltipsEnabled && (
+                <div className="ml-4 mt-2">
+                  <button
+                    onClick={onResetTooltips}
+                    className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors"
+                  >
+                    Reset all tooltips (show them again)
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 

@@ -24,6 +24,8 @@ interface CampModalProps {
   onExploreCampground: () => void;
   timeOfDay: number;
   gamelog?: GameLogEntry[];
+  onStudyStarsToggle?: (isActive: boolean) => void;
+  isStudyingStarsFromParent?: boolean;
 }
 
 const CampModal: React.FC<CampModalProps> = ({
@@ -35,7 +37,9 @@ const CampModal: React.FC<CampModalProps> = ({
   onRest,
   onExploreCampground,
   timeOfDay,
-  gamelog = []
+  gamelog = [],
+  onStudyStarsToggle,
+  isStudyingStarsFromParent = false
 }) => {
   const [campQuality, setCampQuality] = useState<CampQuality | null>(null);
   const [campEvents, setCampEvents] = useState<CampEvent[]>([]);
@@ -43,6 +47,22 @@ const CampModal: React.FC<CampModalProps> = ({
   const [isResting, setIsResting] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [showDream, setShowDream] = useState(false);
+  const [isStudyingStars, setIsStudyingStars] = useState(false);
+
+  // Sync with parent state
+  useEffect(() => {
+    setIsStudyingStars(isStudyingStarsFromParent);
+  }, [isStudyingStarsFromParent]);
+
+  // Reset studying stars state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsStudyingStars(false);
+      if (onStudyStarsToggle) {
+        onStudyStarsToggle(false);
+      }
+    }
+  }, [isOpen, onStudyStarsToggle]);
 
   useEffect(() => {
     if (isOpen && playerCharacter) {
@@ -128,7 +148,21 @@ const CampModal: React.FC<CampModalProps> = ({
     onClose();
   };
 
+  const handleStudyStarsToggle = () => {
+    const newState = !isStudyingStars;
+    setIsStudyingStars(newState);
+    if (onStudyStarsToggle) {
+      onStudyStarsToggle(newState);
+    }
+  };
+
   const handleEventClick = (eventId: string) => {
+    // Special handler for study stars event
+    if (eventId === 'study-stars') {
+      handleStudyStarsToggle();
+      return;
+    }
+
     setSelectedEvent(eventId);
     const event = campEvents.find(e => e.id === eventId);
     if (event) {
@@ -158,23 +192,28 @@ const CampModal: React.FC<CampModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Background overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-75" onClick={onClose} />
+      {/* Background overlay - hide when studying stars */}
+      <div
+        className={`absolute inset-0 bg-black transition-opacity duration-500 ${isStudyingStars ? 'bg-opacity-0' : 'bg-opacity-75'}`}
+        onClick={isStudyingStars ? undefined : onClose}
+      />
 
       {/* Modal content */}
       <div
-        className="relative w-full max-w-2xl mx-4 rounded-xl shadow-2xl overflow-hidden border border-gray-700"
+        className={`relative w-full max-w-2xl mx-4 rounded-xl shadow-2xl overflow-hidden border transition-all duration-500 ${
+          isStudyingStars ? 'border-transparent bg-transparent' : 'border-gray-700'
+        }`}
         style={{
-          backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+          backgroundImage: isStudyingStars ? undefined : (backgroundImage ? `url(${backgroundImage})` : undefined),
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        {/* Dark overlay for text readability - reduced opacity to show more background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" />
+        {/* Dark overlay for text readability - hide when studying stars */}
+        <div className={`absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70 transition-opacity duration-500 ${isStudyingStars ? 'opacity-0' : 'opacity-100'}`} />
 
         {/* Content */}
-        <div className="relative z-10 p-6">
+        <div className={`relative z-10 p-6 transition-opacity duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-3">

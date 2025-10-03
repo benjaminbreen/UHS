@@ -28,6 +28,32 @@ import FarmRightSidebar from './FarmRightSidebar';
 
 interface FarmPanelContainerProps extends FarmPanelProps {}
 
+// Helper: Get cultural zone color
+const getCulturalZoneColor = (zone: string): string => {
+  const colors: Record<string, string> = {
+    'EUROPEAN': 'text-blue-400',
+    'EAST_ASIAN': 'text-red-400',
+    'MENA': 'text-amber-400',
+    'NORTH_AMERICAN_PRE_COLUMBIAN': 'text-green-400',
+    'NORTH_AMERICAN_COLONIAL': 'text-cyan-400',
+    'OCEANIA': 'text-teal-400',
+    'SOUTH_ASIAN': 'text-orange-400',
+    'SOUTH_AMERICAN': 'text-lime-400',
+    'SUB_SAHARAN_AFRICAN': 'text-yellow-400',
+  };
+  return colors[zone] || 'text-slate-300';
+};
+
+// Helper: Format game date and time
+const formatGameDate = (gameDay: number, gameTimeHours: number): string => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = Math.floor((gameDay % 365) / 30);
+  const day = (gameDay % 30) + 1;
+  const hour = Math.floor(gameTimeHours % 24);
+  const minute = Math.floor(((gameTimeHours % 24) - hour) * 60);
+  return `${months[month]} ${day}, ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+};
+
 export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
@@ -57,6 +83,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
     era: farmStateHook.era,
     season: props.season,
     timeOfDay: farmStateHook.timeOfDay,
+    gameTimeHours: props.gameTimeHours,
     validCrops: farmFieldsHook.validCrops,
     useLlm: props.useLlm || false,
     onPlayerStateChange: props.onPlayerStateChange,
@@ -103,6 +130,23 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
       // Cleanup audio if needed
     };
   }, []);
+
+  // Handle work acceptance - switch to work tab and initialize session
+  const handleAcceptWork = React.useCallback((tasks: string[], payment: { meals?: boolean; lodging?: boolean; coins?: number }) => {
+    // Store the work contract (as per plan 1.2)
+    const farmKey = farmStateHook.farmState?.tileKey;
+    if (farmKey) {
+      const { acceptWorkContract } = require('../services/farmService');
+      acceptWorkContract(farmKey, tasks, payment);
+    }
+
+    // Initialize work session with first task
+    const firstTask = tasks[0] || 'Help around the farm';
+    farmLLMHook.initializeWorkSession(firstTask);
+
+    // Switch to work tab
+    setActiveTab('work');
+  }, [farmLLMHook, farmStateHook.farmState]);
 
   // Loading state
   if (farmStateHook.isLoading || !farmStateHook.farmState) {
@@ -184,13 +228,18 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
           <div className="bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 border-b border-slate-800/60">
             <div className="flex items-center justify-between">
               {/* Location and time on left */}
-              <div className="px-4 py-3 min-w-[200px]">
-                <div className="text-xs text-slate-400">{props.mapData.localArea || farmStateHook.culturalZone}</div>
+              <div className="px-4 py-3 min-w-[280px]">
+                <div className={`text-sm font-bold ${getCulturalZoneColor(farmStateHook.culturalZone)}`}>
+                  {props.mapData.localArea || farmStateHook.culturalZone}
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  {formatGameDate(props.currentGameDay, props.gameTimeHours)}
+                </div>
               </div>
 
               {/* Tab buttons */}
               <div className="flex items-center">
-                {(['overview', 'fields', 'work', 'family', 'trade', 'advisor'] as TabType[]).map((tab) => (
+                {(['overview', 'fields', 'work', 'household', 'trade', 'advisor'] as TabType[]).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -206,7 +255,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
               </div>
 
               {/* Empty space on right for symmetry */}
-              <div className="px-4 py-3 min-w-[200px]" />
+              <div className="px-4 py-3 min-w-[280px]" />
             </div>
           </div>
 
@@ -255,7 +304,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
               />
             )}
 
-            {activeTab === 'family' && (
+            {activeTab === 'household' && (
               <FarmFamilyTab
                 farmState={farmStateHook.farmState}
                 llmHooks={farmLLMHook}
@@ -294,18 +343,37 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
           season={props.season}
           year={farmStateHook.year}
           onProgressTime={props.onProgressTime}
+          farmState={farmStateHook.farmState}
+          plantAll={farmFieldsHook.plantAll}
+          waterAll={farmFieldsHook.waterAll}
+          harvestAll={farmFieldsHook.harvestAll}
         />
       </div>
 
       {/* NPCToast for head farmer */}
       {farmLLMHook.farmerToast && farmStateHook.headFarmer && activeTab === 'overview' && (
         <NPCToast
-          npc={farmStateHook.headFarmer as any}
+          character={{ ...farmStateHook.headFarmer, culturalZone: farmStateHook.culturalZone }}
           message={farmLLMHook.farmerToast.message}
           type={farmLLMHook.farmerToast.type}
+          persistent={true}
+          enableLLMChat={true}
+          isFarmContext={true}
+          gameTimeHours={props.gameTimeHours}
+          farmProsperity={farmStateHook.farmState?.economicStatus || 'humble'}
+          era={farmStateHook.era}
+          playerCharacter={props.playerCharacter}
+          mapData={props.mapData}
+          npcs={props.npcs}
+          onInitiateEncounter={farmCombatHook.handleInitiateEncounter}
+          onRequestWork={() => {
+            console.log('[FarmPanel] Work requested - switching to work tab');
+          }}
+          onRequestRest={(fee) => {
+            console.log('[FarmPanel] Rest requested for fee:', fee);
+          }}
+          onAcceptWork={handleAcceptWork}
           onClose={() => farmLLMHook.setFarmerToast(null)}
-          persistent={false}
-          enableLLMChat={false}
         />
       )}
     </div>

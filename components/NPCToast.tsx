@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { ProceduralPortrait } from './portraits';
-import { MessageSquare, AlertTriangle, Info, Sparkles, X, Send, Check, XIcon, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { MessageSquare, AlertTriangle, Info, Sparkles, X, Send, Check, XIcon, ThumbsUp, ThumbsDown, Sun, Moon, Sunset, Sunrise, Sword, Shield } from 'lucide-react';
 import { generateEncounterDialogue, generateFarmerDecision } from '../services/llmService';
 import { DialogueEntry, NpcEntity, HistoricalEra } from '../types';
 
@@ -502,29 +502,111 @@ const NPCToast: React.FC<NPCToastProps> = ({
         flex items-start gap-6 p-6 rounded-xl border-2 backdrop-blur-md shadow-2xl
         min-w-[500px] max-w-[700px] ${getTypeStyles()}
       `}>
-        {/* Portrait - Enhanced to 100x100px */}
-        <div className="flex-shrink-0">
-          <div className="w-24 h-24 rounded-full overflow-hidden border-3 border-slate-500 bg-slate-700 shadow-xl ring-2 ring-slate-600/50">
+        {/* Portrait - Enhanced to 80px with sentiment-based animations and weapon icons */}
+        <div className="flex-shrink-0 relative">
+          {/* Sentiment-based glow animation */}
+          <div className={`w-20 h-20 rounded-full overflow-hidden border-3 bg-slate-700 shadow-xl transition-all duration-500 ${
+            farmerSentiment < -50
+              ? 'border-red-500 ring-4 ring-red-500/50 animate-pulse'
+              : farmerSentiment > 50
+              ? 'border-green-500 ring-2 ring-green-500/30'
+              : 'border-slate-500 ring-2 ring-slate-600/50'
+          }`}>
             <ProceduralPortrait
               character={character}
-              size={96}
+              size={80}
               trackChanges={false}
             />
           </div>
+
+          {/* Weapon/threat indicator */}
+          {farmerDecisions?.threatenViolence && (
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-red-600 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-lg animate-bounce">
+              <Sword className="w-4 h-4 text-white" />
+            </div>
+          )}
+          {farmerDecisions?.askToLeave && !farmerDecisions?.threatenViolence && (
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-amber-600 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-lg">
+              <Shield className="w-4 h-4 text-white" />
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-3">
-            {getTypeIcon()}
-            <span className="font-bold text-white text-base">
-              {character.name || 'Farmer'}
-            </span>
-            <span className="text-sm text-gray-300">
-              {character.role || character.profession || 'Local Farmer'}
-            </span>
+          {/* Header with contextual indicators */}
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              {getTypeIcon()}
+              <span className="font-bold text-white text-base">
+                {character.name || 'Farmer'}
+              </span>
+              <span className="text-sm text-gray-300">
+                {character.role || character.profession || 'Local Farmer'}
+              </span>
+            </div>
+
+            {/* Contextual visual cues */}
+            {isFarmContext && (
+              <div className="flex items-center gap-2">
+                {/* Time of day indicator */}
+                {gameTimeHours !== undefined && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-slate-700/50 rounded-md border border-slate-600/50">
+                    {gameTimeHours >= 5 && gameTimeHours < 12 ? (
+                      <Sunrise className="w-3.5 h-3.5 text-amber-400" />
+                    ) : gameTimeHours >= 12 && gameTimeHours < 17 ? (
+                      <Sun className="w-3.5 h-3.5 text-yellow-400" />
+                    ) : gameTimeHours >= 17 && gameTimeHours < 20 ? (
+                      <Sunset className="w-3.5 h-3.5 text-orange-400" />
+                    ) : (
+                      <Moon className="w-3.5 h-3.5 text-blue-300" />
+                    )}
+                    <span className="text-xs text-slate-300">{gameTimeHours}:00</span>
+                  </div>
+                )}
+
+                {/* Threat level indicator */}
+                {farmerDecisions && (
+                  <div className={`px-2 py-1 rounded-md border text-xs font-semibold ${
+                    farmerDecisions.threatenViolence
+                      ? 'bg-red-900/50 border-red-500/50 text-red-200'
+                      : farmerDecisions.askToLeave
+                      ? 'bg-amber-900/50 border-amber-500/50 text-amber-200'
+                      : farmerDecisions.allowRest || farmerDecisions.allowWork
+                      ? 'bg-green-900/50 border-green-500/50 text-green-200'
+                      : 'bg-slate-700/50 border-slate-600/50 text-slate-300'
+                  }`}>
+                    {farmerDecisions.threatenViolence ? 'HOSTILE' :
+                     farmerDecisions.askToLeave ? 'SUSPICIOUS' :
+                     farmerDecisions.allowRest || farmerDecisions.allowWork ? 'WELCOMING' : 'NEUTRAL'}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Sentiment bar */}
+          {isFarmContext && farmerSentiment !== 0 && (
+            <div className="mb-3">
+              <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <span>Sentiment:</span>
+                <span className={farmerSentiment < 0 ? 'text-red-400' : 'text-green-400'}>
+                  {farmerSentiment > 0 ? '+' : ''}{farmerSentiment}
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    farmerSentiment < 0 ? 'bg-gradient-to-r from-red-600 to-red-400' : 'bg-gradient-to-r from-green-600 to-green-400'
+                  }`}
+                  style={{
+                    width: `${Math.abs(farmerSentiment)}%`,
+                    marginLeft: farmerSentiment < 0 ? `${100 - Math.abs(farmerSentiment)}%` : '0'
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Message - Larger text */}
           <div className="text-base text-gray-100 leading-relaxed mb-4 font-medium">
@@ -550,11 +632,12 @@ const NPCToast: React.FC<NPCToastProps> = ({
                           handleClose();
                         }}
                         disabled={isLoading}
-                        className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700
-                                 rounded-lg border border-blue-500 hover:from-blue-500 hover:to-blue-600
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700
+                                 rounded-lg border-2 border-blue-500 hover:from-blue-500 hover:to-blue-600
                                  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
-                                 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105"
                       >
+                        <Check className="w-4 h-4" />
                         Leave Peacefully
                       </button>
                       <button
@@ -583,11 +666,12 @@ const NPCToast: React.FC<NPCToastProps> = ({
                           if (onRefuse) onRefuse();
                         }}
                         disabled={isLoading}
-                        className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700
-                                 rounded-lg border border-rose-500 hover:from-rose-500 hover:to-rose-600
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700
+                                 rounded-lg border-2 border-red-500 hover:from-red-500 hover:to-red-600
                                  disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
-                                 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105 animate-pulse"
                       >
+                        <Sword className="w-4 h-4" />
                         Refuse to Leave
                       </button>
                     </>
@@ -604,12 +688,18 @@ const NPCToast: React.FC<NPCToastProps> = ({
                         onRequestRest(farmerDecisions.restFee);
                       }}
                       disabled={isLoading}
-                      className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-emerald-700
-                               rounded-lg border border-emerald-500 hover:from-emerald-500 hover:to-emerald-600
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-emerald-700
+                               rounded-lg border-2 border-emerald-500 hover:from-emerald-500 hover:to-emerald-600
                                disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
-                               shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                               shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105"
                     >
-                      Request Rest {farmerDecisions.restFee > 0 && `(${farmerDecisions.restFee} coins)`}
+                      <Moon className="w-4 h-4" />
+                      Request Rest
+                      {farmerDecisions.restFee > 0 && (
+                        <span className="ml-1 px-2 py-0.5 bg-emerald-800/50 rounded-full text-xs font-bold border border-emerald-600">
+                          {farmerDecisions.restFee} coins
+                        </span>
+                      )}
                     </button>
                   )}
 
@@ -636,12 +726,16 @@ const NPCToast: React.FC<NPCToastProps> = ({
                         onRequestWork();
                       }}
                       disabled={isLoading}
-                      className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-600 to-amber-700
-                               rounded-lg border border-amber-500 hover:from-amber-500 hover:to-amber-600
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-600 to-amber-700
+                               rounded-lg border-2 border-amber-500 hover:from-amber-500 hover:to-amber-600
                                disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
-                               shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                               shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105"
                     >
+                      <Sparkles className="w-4 h-4" />
                       Offer to Work
+                      <span className="ml-1 px-2 py-0.5 bg-amber-800/50 rounded-full text-xs font-bold border border-amber-600">
+                        Meals + Bed{farmProsperity === 'prosperous' ? ' + 5 coins' : ''}
+                      </span>
                     </button>
                   )}
 

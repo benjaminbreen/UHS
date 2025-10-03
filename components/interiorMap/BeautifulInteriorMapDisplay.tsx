@@ -62,14 +62,14 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     const [interiorData, setInteriorData] = useState<InteriorData | null>(null);
     const [hasBeenWarned, setHasBeenWarned] = useState(false);
     const [confrontedNpcs, setConfrontedNpcs] = useState<Set<string>>(new Set());
-    
+
     // Inline dialogue state (FF6-style)
     const [currentDialogue, setCurrentDialogue] = useState<{ text: string; speaker: string; npc: NpcEntity; visible: boolean } | null>(null);
     const [dialogueHistory, setDialogueHistory] = useState<{ speaker: string; text: string }[]>([]);
     const [dialogueGenerated, setDialogueGenerated] = useState<Set<string>>(new Set());
     const [playerInput, setPlayerInput] = useState('');
     const [isSubmittingInput, setIsSubmittingInput] = useState(false);
-    
+
     // Track if fortress commander dialogue has been triggered (prevent infinite loops)
     const hasFetchedFortressDialogue = useRef(false);
     
@@ -369,12 +369,36 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     useEffect(() => {
         const data = generateBeautifulInterior(config);
 
+        // Failsafe: ensure player spawns inside the room bounds
+        const entrance = data.layout.entrance;
+        const bounds = data.layout.totalBounds;
+        let spawnPosition = entrance;
+
+        // Check if entrance is outside bounds, use center of first public space instead
+        if (entrance.x < 0 || entrance.x >= bounds.width || entrance.y < 0 || entrance.y >= bounds.height) {
+            console.warn('⚠️ [BeautifulInteriorMapDisplay] Entrance outside bounds, finding safe spawn...');
+            const firstPublicSpace = data.layout.spaces.find(s => s.accessibility === 'public');
+            if (firstPublicSpace) {
+                spawnPosition = {
+                    x: firstPublicSpace.bounds.x + Math.floor(firstPublicSpace.bounds.width / 2),
+                    y: firstPublicSpace.bounds.y + Math.floor(firstPublicSpace.bounds.height / 2)
+                };
+            } else {
+                // Ultimate fallback: center of entire layout
+                spawnPosition = {
+                    x: Math.floor(bounds.width / 2),
+                    y: Math.floor(bounds.height / 2)
+                };
+            }
+        }
+
         console.log('🎨 [BeautifulInteriorMapDisplay] Interior rendering debug:', {
-            playerPos: data.layout.entrance,
+            originalEntrance: entrance,
+            actualSpawn: spawnPosition,
             npcCount: data.npcs?.length || 0,
             npcs: data.npcs?.map(n => ({ name: n.name, x: n.x, y: n.y, id: n.id })) || [],
             namedElite: data.namedElite ? { name: data.namedElite.name, x: data.namedElite.x, y: data.namedElite.y } : null,
-            layoutBounds: data.layout.totalBounds,
+            layoutBounds: bounds,
             spaces: data.layout.spaces.map(s => ({ id: s.id, bounds: s.bounds }))
         });
 
@@ -384,7 +408,8 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             guardNpcs: data.guardNpcs,
             npcs: data.npcs || []
         });
-        setPlayerPosition(data.layout.entrance);
+        setPlayerPosition(spawnPosition);
+
 
         // For fortress, automatically trigger commander dialogue on entry (only once)
         if (config.buildingType === 'fortress' && data.namedElite && mapData && !hasFetchedFortressDialogue.current) {
@@ -472,7 +497,16 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     }
     
     return (
-        <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
+        <div
+            className="absolute bg-black flex flex-col overflow-hidden z-40"
+            style={{
+                top: '0',
+                bottom: '0',
+                left: '0',
+                right: '0',
+                maxHeight: '100vh'
+            }}
+        >
             {/* Beautiful interior renderer - constrained container */}
             <div className="flex-1 relative overflow-hidden" style={{ minHeight: 0 }}>
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -492,7 +526,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 <div
                     className="ff6-dialogue-box"
                     style={{
-                        position: 'fixed',
+                        position: 'absolute',
                         top: '80px',
                         left: '50%',
                         transform: 'translateX(-50%)',
@@ -550,7 +584,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             {currentDialogue?.visible && (
                 <div
                     style={{
-                        position: 'fixed',
+                        position: 'absolute',
                         bottom: '20px',
                         left: '50%',
                         transform: 'translateX(-50%)',
@@ -625,36 +659,17 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 }
             `}</style>
             
-            {/* UI Overlay - fixed positioning */}
-            <div className="fixed top-4 left-4 bg-black bg-opacity-75 text-white p-4 rounded-lg border border-gray-600 max-w-[280px] z-50">
-                <h2 className="text-lg font-bold mb-2">{interiorData.layout.name}</h2>
-                <p className="text-sm text-gray-300 mb-2">{interiorData.layout.name}</p>
+            {/* UI Overlay - absolute positioning */}
+            <div className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-2 rounded-lg border border-gray-600 max-w-[200px] z-50">
+                <h2 className="text-lg font-bold mb-1">{interiorData.layout.name}</h2>
+
                 {interiorData.namedElite && (
                     <p className="text-sm text-yellow-400">
                         {interiorData.namedElite.name} is present
                     </p>
                 )}
                 <div className="text-xs text-gray-400 mt-2">
-                    <p>Click to interact with NPCs and objects</p>
-                    <p>ESC to exit</p>
-                </div>
-            </div>
-
-            {/* Exit button - fixed positioning, won't be blocked by dialogue */}
-            <button
-                onClick={onExit}
-                className="fixed top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg border border-red-400 transition-colors text-sm font-semibold z-[1001]"
-            >
-                Exit
-            </button>
-
-            {/* Status indicators - fixed positioning */}
-            <div className="fixed bottom-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-lg border border-gray-600 z-50">
-                <div className="text-sm">
-                    <p>Position: ({playerPosition.x}, {playerPosition.y})</p>
-                    <p>Class: {playerClass}</p>
-                    <p>Religion: {playerReligion}</p>
-                    <p>Reputation: {playerReputation}</p>
+                  
                 </div>
             </div>
         </div>

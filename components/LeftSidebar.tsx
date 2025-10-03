@@ -30,6 +30,7 @@ import { LazyPortrait } from './portraits';
 import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
 import { languageVisualizationService } from '../services/languageVisualizationService';
 import { LanguageFamilyTree } from './LanguageFamilyTree';
+import ContextualTooltip from './ui/ContextualTooltip';
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
@@ -120,7 +121,7 @@ const AnimalListItem = React.memo(
 
 /** NPC list item with ProceduralPortrait + compact badges */
 const NpcListItem = React.memo(
-  ({ npc, isSelected, onClick }: { npc: NpcEntity; isSelected: boolean; onClick: (npc: NpcEntity) => void }) => {
+  ({ npc, isSelected, isHighlighted, onClick }: { npc: NpcEntity; isSelected: boolean; isHighlighted?: boolean; onClick: (npc: NpcEntity) => void }) => {
     const Badge: React.FC<{ children: React.ReactNode; title?: string }> = ({ children, title }) => (
       <span
         title={title}
@@ -137,6 +138,8 @@ const NpcListItem = React.memo(
           "group w-full flex items-center gap-3 p-2.5 rounded-lg text-left border",
           isSelected
             ? "bg-blue-800/50 border-blue-400/50 text-white"
+            : isHighlighted
+            ? "bg-amber-700/30 border-amber-500/40 text-gray-100"
             : "bg-slate-800/30 hover:bg-slate-700/40 border-slate-700/40 text-gray-200"
         ].join(" ")}
       >
@@ -196,7 +199,8 @@ const LeftSidebar: React.FC<{
     setInfoModalTarget, infoModalTarget, useLlmForDescriptions,
     setIsMapDetailsModalOpen, setStructureModalTarget, setActivePoi,
     inMiningRoguelike,
-    setCityHistoricalModalData
+    setCityHistoricalModalData,
+    hasSeenTooltip, markTooltipSeen
   } = useUI();
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
@@ -208,6 +212,7 @@ const LeftSidebar: React.FC<{
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [npcQuery, setNpcQuery] = useState<string>('');
+  const [highlightedNpcId, setHighlightedNpcId] = useState<string | null>(null);
 
   // Language tree modal state
   const [showLanguageTree, setShowLanguageTree] = useState(false);
@@ -319,6 +324,29 @@ const LeftSidebar: React.FC<{
 
   useEffect(() => { try { localStorage.setItem(MAP_TAB_KEY, activeMapSubTab); } catch {} }, [activeMapSubTab]);
   useEffect(() => { try { localStorage.setItem(MAJOR_TAB_KEY, activeMajorTab); } catch {} }, [activeMajorTab]);
+
+  // Listen for NPC highlight events
+  useEffect(() => {
+    const handleNpcHighlight = (data: { npcId: string }) => {
+      setHighlightedNpcId(data.npcId);
+    };
+
+    const handleNpcHighlightClear = () => {
+      setHighlightedNpcId(null);
+    };
+
+    import('../services/eventBus').then(({ eventBus }) => {
+      eventBus.on('npc:highlight', handleNpcHighlight);
+      eventBus.on('npc:highlight:clear', handleNpcHighlightClear);
+    });
+
+    return () => {
+      import('../services/eventBus').then(({ eventBus }) => {
+        eventBus.off('npc:highlight', handleNpcHighlight);
+        eventBus.off('npc:highlight:clear', handleNpcHighlightClear);
+      });
+    };
+  }, []);
 
   // Auto-collapse when mining is active
   const [previousExpandState, setPreviousExpandState] = useState<boolean | null>(null);
@@ -931,20 +959,32 @@ const LeftSidebar: React.FC<{
 
           {/* Primary Sources Banner */}
           {sourceCount > 0 && (
-            <button
-              onClick={() => setActiveMajorTab('history')}
-              className="mt-4 w-full bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/40 rounded-lg p-2.5 flex items-center justify-between group transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs font-medium text-amber-300">
-                  {sourceCount} historical source{sourceCount !== 1 ? 's' : ''} available
+            <div className="relative mt-4">
+              <button
+                onClick={() => setActiveMajorTab('history')}
+                className="w-full bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/40 rounded-lg p-2.5 flex items-center justify-between group transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs font-medium text-amber-300">
+                    {sourceCount} historical source{sourceCount !== 1 ? 's' : ''} available
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-400/70 group-hover:text-amber-300 transition-colors">
+                  View →
                 </span>
-              </div>
-              <span className="text-[10px] text-amber-400/70 group-hover:text-amber-300 transition-colors">
-                View →
-              </span>
-            </button>
+              </button>
+              {!hasSeenTooltip('primarySourcesBanner') && (
+                <ContextualTooltip
+                  id="primarySourcesBanner"
+                  title="Primary Sources"
+                  message="These are actual historical documents from this era. Click to read them and add them to your journal for +1 XP (or +5 XP with annotations)!"
+                  position="right"
+                  onDismiss={() => markTooltipSeen('primarySourcesBanner')}
+                  autoDismissDelay={12000}
+                />
+              )}
+            </div>
           )}
         </div>
       );
@@ -1017,7 +1057,21 @@ const LeftSidebar: React.FC<{
                   key={npc.id}
                   npc={npc}
                   isSelected={selectedNpcId === npc.id}
-                  onClick={setInfoModalTarget}
+                  isHighlighted={highlightedNpcId === npc.id}
+                  onClick={(clickedNpc) => {
+                    // Center map on NPC and highlight them
+                    if (clickedNpc.x !== undefined && clickedNpc.y !== undefined) {
+                      // Center the camera on the NPC without moving the player
+                      window.dispatchEvent(new CustomEvent('centerMapOnLocation', {
+                        detail: { x: clickedNpc.x, y: clickedNpc.y }
+                      }));
+
+                      // Use eventBus to notify MapViewport to highlight this NPC
+                      import('../services/eventBus').then(({ eventBus }) => {
+                        eventBus.emit('npc:highlight', { npcId: clickedNpc.id });
+                      });
+                    }
+                  }}
                 />
               ))}
             </div>

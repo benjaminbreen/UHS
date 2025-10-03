@@ -68,9 +68,10 @@ interface MapViewportProps {
   isProcessingWorldWeaver?: boolean;
   onPlayerDeath?: (deathInfo: any) => void;
   className?: string;
+  isStudyingStars?: boolean;
 }
 
-const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, className }) => {
+const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, className, isStudyingStars = false }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage, setToastMessage,
@@ -1268,17 +1269,65 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                 hasInteriorData: !!interiorData
             });
             
+            // Helper to infer religion from cultural zone and era
+            const inferReligionFromLocation = (continent: string | undefined, zone: string, year: number): string => {
+                const zoneStr = zone?.toLowerCase() || '';
+                const contStr = continent?.toLowerCase() || '';
+
+                // MENA region
+                if (zoneStr.includes('mena') || zoneStr.includes('middle east') || contStr.includes('middle east')) {
+                    return year < 632 ? 'Christianity' : 'Islam';
+                }
+
+                // East Asia
+                if (zoneStr.includes('east_asia') || zoneStr.includes('east asia') || contStr.includes('asia')) {
+                    if (contStr.includes('japan')) return 'Buddhism'; // Could be Shinto too
+                    return year < 100 ? 'Traditional Chinese Religion' : 'Buddhism';
+                }
+
+                // South Asia
+                if (zoneStr.includes('south_asia') || zoneStr.includes('south asia') || contStr.includes('india')) {
+                    return year < 1200 ? 'Hinduism' : (Math.random() > 0.3 ? 'Hinduism' : 'Islam');
+                }
+
+                // Sub-Saharan Africa
+                if (zoneStr.includes('african') || zoneStr.includes('africa')) {
+                    return year < 700 ? 'Traditional African Religion' : (year < 1500 ? 'Islam' : 'Christianity');
+                }
+
+                // South America / Pre-Columbian
+                if (zoneStr.includes('south_american') || contStr.includes('south america')) {
+                    return year < 1500 ? 'Traditional Andean Religion' : 'Catholicism';
+                }
+
+                // North America Pre-Columbian
+                if (zoneStr.includes('north_american_pre_columbian')) {
+                    return 'Traditional Native American Religion';
+                }
+
+                // Europe / default
+                return 'Christianity';
+            };
+
             // Use beautiful interior system for palaces, holy places, and fortresses
             if (buildingType === 'palace' || buildingType === 'holy_place' || buildingType === 'temple' || buildingType === 'fortress') {
                 console.log('✨ [MapViewport] Using BEAUTIFUL interior system for:', buildingType);
                 // Find the original tile that was entered to get context
-                let contextTile = mapData?.tiles?.flat().find(tile => 
+                let contextTile = mapData?.tiles?.flat().find(tile =>
                     tile.structure?.id === interiorViewState.buildingId
                 );
-                
+
                 // If no context tile found, create a minimal fallback tile
                 if (!contextTile && mapData) {
                     console.log('⚠️ [MapViewport] No context tile found, creating fallback');
+
+                    // Infer religion intelligently from location instead of hardcoding Christianity
+                    const inferredReligion = buildingType === 'holy_place'
+                        ? inferReligionFromLocation(mapData.continent, currentZone, gameDate.year)
+                        : undefined;
+
+                    console.log('🔍 [MapViewport] Inferred religion for fallback:', inferredReligion, 'from zone:', currentZone, 'year:', gameDate.year);
+
                     contextTile = {
                         x: Math.floor(MAP_WIDTH_TILES / 2),
                         y: Math.floor(MAP_HEIGHT_TILES / 2),
@@ -1287,15 +1336,20 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         temperature: 20,
                         humidity: 50,
                         elevation: 0.5,
-                        holyPlaceReligion: buildingType === 'holy_place' ? 'Christianity' : undefined,
+                        holyPlaceReligion: inferredReligion,
                         structure: {
                             id: interiorViewState.buildingId,
                             type: buildingType as any,
-                            subtype: buildingType === 'palace' ? 'castle' : 
-                                     buildingType === 'holy_place' ? 'cathedral' : 
+                            subtype: buildingType === 'palace' ? 'castle' :
+                                     buildingType === 'holy_place' ? 'cathedral' :
                                      buildingType === 'fortress' ? 'fortress' : 'temple'
                         }
                     } as any;
+                } else if (contextTile && buildingType === 'holy_place' && !contextTile.holyPlaceReligion) {
+                    // Tile found but no religion set - infer it
+                    const inferredReligion = inferReligionFromLocation(mapData?.continent, currentZone, gameDate.year);
+                    console.log('🔍 [MapViewport] Context tile missing religion, inferring:', inferredReligion);
+                    contextTile.holyPlaceReligion = inferredReligion;
                 }
                 
                 if (contextTile && mapData && playerCharacter) {
@@ -1439,11 +1493,11 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                className={`w-full h-full flex flex-col relative transition-all`}
                style={{
                  zIndex: 10,
-                 opacity: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 1 : 0,
+                 opacity: isStudyingStars ? 0 : ((mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 1 : 0),
                  transform: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 'scale(1)' : 'scale(0.95)',
-                 transition: 'opacity 5s ease-out, transform 5s ease-out',
+                 transition: 'opacity 0.5s ease-out, transform 5s ease-out',
                  transitionDelay: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? '0s' : '0s',
-                 pointerEvents: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 'auto' : 'none'
+                 pointerEvents: isStudyingStars ? 'none' : ((mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 'auto' : 'none')
                }}
              >
               {/* POV Viewport - shows above map when toggled (only for standard map, not interior/special maps) */}
@@ -1708,8 +1762,12 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         showAmbientText={showPOVViewport}
                         inRuinRoguelike={inRuinRoguelike}
                         isRuinModalOpen={!!activeRuinModal}
+                        isGovernmentDistrictModalOpen={!!activeGovernmentModal}
+                        onExitGovernmentDistrict={() => setActiveGovernmentModal(null)}
                         isSpecialMap={isSpecialMap}
                         onExitSpecialMap={exitSpecialMap}
+                        isInteriorMode={viewMode === 'interior'}
+                        onExitInterior={handleExitInteriorView}
                         currentBiome={currentTileBiome}
                         climate={mapData?.climate}
                         culturalZone={currentCulturalZone}

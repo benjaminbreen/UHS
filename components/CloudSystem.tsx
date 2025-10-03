@@ -94,8 +94,8 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
     let cloudCount = 0;
     let mix: Cloud['type'][] = [];
 
-    // Safari: Reduce cloud count by 50% for performance
-    const cloudReduction = isSafari ? 0.5 : 1.0;
+    // Performance: Reduce cloud count - Safari 50%, all browsers 25%
+    const cloudReduction = isSafari ? 0.5 : 0.75;
 
     if (precip === 'rain' || precip === 'drizzle') {
       cloudCount = Math.floor((8 + Math.floor(intensity * 6) + (maybeStorm ? 3 : 0)) * cloudReduction);
@@ -121,6 +121,9 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
         mix = maybeStorm ? ['stratus', 'cumulonimbus', 'stratus'] : ['stratus', 'stratus', 'cumulus'];
       }
     }
+
+    // Cap at 12 clouds max for performance
+    cloudCount = Math.min(cloudCount, 12);
 
     const cfg: Record<Cloud['type'], { yBase: number; yRange: number; speedMul: number; opacity: [number, number]; scaleMul: number }> = {
       cirrus:       { yBase: height * 0.10, yRange: height * 0.12, speedMul: 1.12, opacity: [0.45, 0.75], scaleMul: 0.95 },
@@ -162,7 +165,7 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
     }
   }, [generateClouds]);
 
-  // Animation loop: DISABLE on Safari for performance
+  // Animation loop: DISABLE on Safari for performance, throttle for others
   useEffect(() => {
     // Skip animation entirely on Safari
     if (isSafari) {
@@ -179,26 +182,30 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
       return;
     }
 
-    // Regular animation for non-Safari browsers
+    // Throttled animation for non-Safari browsers (update every 3 frames ≈ 20fps)
+    let frameCount = 0;
     const animate = () => {
       if (!containerRef.current) {
         animationFrameRef.current = requestAnimationFrame(animate);
         return;
       }
 
-      cloudsRef.current = cloudsRef.current.map((cloud) => {
-        let x = cloud.x + cloud.speed * 0.22;
-        if (x > width + 240) x = -480;
-        return { ...cloud, x };
-      });
+      frameCount++;
+      if (frameCount % 3 === 0) {
+        cloudsRef.current = cloudsRef.current.map((cloud) => {
+          let x = cloud.x + cloud.speed * 0.66; // Compensate for throttling (3 frames worth)
+          if (x > width + 240) x = -480;
+          return { ...cloud, x };
+        });
 
-      const nodes = containerRef.current.querySelectorAll<HTMLDivElement>('[data-cloud-index]');
-      nodes.forEach((el) => {
-        const idx = Number(el.dataset.cloudIndex);
-        const c = cloudsRef.current[idx];
-        if (!c) return;
-        el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0)`;
-      });
+        const nodes = containerRef.current.querySelectorAll<HTMLDivElement>('[data-cloud-index]');
+        nodes.forEach((el) => {
+          const idx = Number(el.dataset.cloudIndex);
+          const c = cloudsRef.current[idx];
+          if (!c) return;
+          el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0)`;
+        });
+      }
 
       animationFrameRef.current = requestAnimationFrame(animate);
     };
@@ -211,16 +218,16 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
   const renderCloudSVG = (cloud: Cloud) => {
     const { base, shadow, highlight, blurBoost } = cloudColors;
 
-    // Safari: No blur filters for performance
+    // Performance: Simplified filters - blur only, no drop-shadow
     const filterStyle = isSafari
       ? 'none'
       : (() => {
           const blur =
-            cloud.type === 'cirrus' ? 3.2 * blurBoost :
-            cloud.type === 'stratus' ? 2.2 * blurBoost :
-            cloud.type === 'cumulonimbus' ? 0.9 * blurBoost :
-            1.2 * blurBoost;
-          return `blur(${blur}px) drop-shadow(0 2px 2px rgba(0,0,0,0.05))`;
+            cloud.type === 'cirrus' ? 2.0 * blurBoost :
+            cloud.type === 'stratus' ? 1.5 * blurBoost :
+            cloud.type === 'cumulonimbus' ? 0.5 * blurBoost :
+            0.8 * blurBoost;
+          return `blur(${blur}px)`;
         })();
 
     const thunder = (fx?.lightningProbability ?? 0) > 0.35 && cloud.type === 'cumulonimbus';
@@ -314,7 +321,7 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
             )}
 
             {(fx?.lightningProbability ?? 0) > 0.35 && (
-              <ellipse cx="150" cy="160" rx="105" ry="22" fill="rgba(255,255,255,0.08)" style={{ mixBlendMode: 'screen' }} />
+              <ellipse cx="150" cy="160" rx="105" ry="22" fill="rgba(255,255,255,0.12)" />
             )}
           </svg>
         );
@@ -346,10 +353,9 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
         <div
           className="absolute inset-0"
           style={{
-            background: 'repeating-linear-gradient(17deg, rgba(255,235,200,0.05), rgba(255,235,200,0.05) 20px, rgba(255,235,200,0) 60px)',
+            background: 'repeating-linear-gradient(17deg, rgba(255,235,200,0.06), rgba(255,235,200,0.06) 20px, rgba(255,235,200,0) 60px)',
             animation: 'rays-move 12s linear infinite',
-            filter: 'blur(1.2px)',
-            opacity: 0.5
+            opacity: 0.4
           }}
         />
       )}

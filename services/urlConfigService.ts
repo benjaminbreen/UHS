@@ -133,24 +133,30 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     return undefined;
   }
 
-  const culturalZoneMap: Record<string, CulturalZone> = {
+  const culturalZoneMap: Record<string, CulturalZone | 'RANDOM_AMERICAS' | 'RANDOM_ASIA' | 'RANDOM_WORLD'> = {
     'europe': 'EUROPEAN',
     'european': 'EUROPEAN',
     'mena': 'MENA',
     'middleeast': 'MENA',
+    'middleeastnorthafrica': 'MENA',
     'eastasia': 'EAST_ASIAN',
     'eastasian': 'EAST_ASIAN',
-    'asia': 'EAST_ASIAN',
+    'asia': 'RANDOM_ASIA', // Special case: randomly choose East or South Asia
     'southasia': 'SOUTH_ASIAN',
     'southasian': 'SOUTH_ASIAN',
     'india': 'SOUTH_ASIAN',
     'africa': 'SUB_SAHARAN_AFRICAN',
     'subsaharan': 'SUB_SAHARAN_AFRICAN',
+    'subsaharanafrica': 'SUB_SAHARAN_AFRICAN',
+    'subsaharanafr': 'SUB_SAHARAN_AFRICAN',
     'northamerica': 'NORTH_AMERICAN_PRE_COLUMBIAN',
-    'americas': 'NORTH_AMERICAN_PRE_COLUMBIAN',
+    'americas': 'RANDOM_AMERICAS', // Special case: randomly choose North or South America
     'southamerica': 'SOUTH_AMERICAN',
     'oceania': 'OCEANIA',
-    'pacific': 'OCEANIA'
+    'pacific': 'OCEANIA',
+    'world': 'RANDOM_WORLD', // Special case: randomly choose any cultural zone
+    'global': 'RANDOM_WORLD',
+    'anywhere': 'RANDOM_WORLD'
   };
 
   const regionMap: Record<string, Region> = {
@@ -178,6 +184,46 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     // Add more regions as needed
   };
 
+  // All cultural zones for RANDOM_WORLD
+  const ALL_CULTURAL_ZONES: CulturalZone[] = [
+    'EUROPEAN',
+    'EAST_ASIAN',
+    'SOUTH_ASIAN',
+    'MENA',
+    'SUB_SAHARAN_AFRICAN',
+    'NORTH_AMERICAN_PRE_COLUMBIAN',
+    'SOUTH_AMERICAN',
+    'OCEANIA'
+  ];
+
+  // Check for multi-zone format (e.g., "oceania+asia" or "europe+mena")
+  if (segment.includes('+')) {
+    const zones = segment.toLowerCase().split('+');
+    const validZones: CulturalZone[] = [];
+
+    for (const zoneStr of zones) {
+      const zone = culturalZoneMap[zoneStr.trim()];
+      if (zone) {
+        // Handle special random cases
+        if (zone === 'RANDOM_AMERICAS') {
+          validZones.push('NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN');
+        } else if (zone === 'RANDOM_ASIA') {
+          validZones.push('EAST_ASIAN', 'SOUTH_ASIAN');
+        } else if (zone === 'RANDOM_WORLD') {
+          validZones.push(...ALL_CULTURAL_ZONES);
+        } else {
+          validZones.push(zone as CulturalZone);
+        }
+      }
+    }
+
+    if (validZones.length > 0) {
+      // Randomly select one of the valid zones
+      const randomZone = validZones[Math.floor(Math.random() * validZones.length)];
+      return { culturalZone: randomZone };
+    }
+  }
+
   // Check for zone.region format
   if (segment.includes('.')) {
     const [zoneStr, regionStr] = segment.toLowerCase().split('.');
@@ -185,7 +231,7 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     const region = regionMap[regionStr];
 
     if (zone || region) {
-      return { culturalZone: zone, region };
+      return { culturalZone: zone as CulturalZone, region };
     }
   }
 
@@ -193,7 +239,26 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
   const lowerSegment = segment.toLowerCase();
   const zone = culturalZoneMap[lowerSegment];
   if (zone) {
-    return { culturalZone: zone };
+    // Handle special case: 'americas' should randomly choose North or South America
+    if (zone === 'RANDOM_AMERICAS') {
+      const randomAmericasZone = Math.random() < 0.5
+        ? 'NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone
+        : 'SOUTH_AMERICAN' as CulturalZone;
+      return { culturalZone: randomAmericasZone };
+    }
+    // Handle special case: 'asia' should randomly choose East or South Asia
+    if (zone === 'RANDOM_ASIA') {
+      const randomAsiaZone = Math.random() < 0.5
+        ? 'EAST_ASIAN' as CulturalZone
+        : 'SOUTH_ASIAN' as CulturalZone;
+      return { culturalZone: randomAsiaZone };
+    }
+    // Handle special case: 'world' should randomly choose any cultural zone
+    if (zone === 'RANDOM_WORLD') {
+      const randomWorldZone = ALL_CULTURAL_ZONES[Math.floor(Math.random() * ALL_CULTURAL_ZONES.length)];
+      return { culturalZone: randomWorldZone };
+    }
+    return { culturalZone: zone as CulturalZone };
   }
 
   // Check for just region (backward compatibility)
@@ -372,9 +437,15 @@ export function getExampleURLs(): string[] {
   return [
     '/1348/europe/survival',
     '/medieval/mena/exploration',
-    '/1492-1550/americas/empire',
+    '/1492-1550/americas/empire', // Randomly North or South America
     '/random/random/random/SEED1234',
-    '/1800-1900/asia.japan/cultural',
-    '/modern/africa/balanced'
+    '/1800-1900/asia/cultural', // Randomly East or South Asia
+    '/1600/oceania+asia/survival', // Randomly Oceania or Asia
+    '/1600/europe+mena/exploration', // Randomly Europe or MENA
+    '/1600-1800/world/survival', // Random year 1600-1800, anywhere in the world
+    '/medieval/world/exploration', // Medieval era, anywhere in the world
+    '/modern/africa/balanced',
+    '/1600/eastasia/scholarship', // Specifically East Asia
+    '/1600/southasia/commerce' // Specifically South Asia
   ];
 }

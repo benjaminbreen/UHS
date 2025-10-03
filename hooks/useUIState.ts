@@ -119,7 +119,7 @@ export interface VictoryDetails {
 
 export const useUIState = () => {
     // Consume contexts for state and setters
-    const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory } = usePlayer();
+    const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory, currentVessel } = usePlayer();
     const { localArea, mapData, currentMapArchetype, currentMapClimate, currentMapSeed, animals, npcs, terrainStructures, setNpcs, setAnimals, removeVegetation, updateMineralDeposit, addDugTile } = useMap();
     const {
         gameDate, setGameDate, formattedTime, addGameLogEntry, gameTimeHours, setGameTimeHours, gameTimeMinutes,
@@ -139,6 +139,7 @@ export const useUIState = () => {
     const [isWorldMapModalOpen, setIsWorldMapModalOpen] = useState<boolean>(false);
     const [isCharacterProfileModalOpen, setIsCharacterProfileModalOpen] = useState<boolean>(false);
     const [isMapDetailsModalOpen, setIsMapDetailsModalOpen] = useState<boolean>(false);
+    const [isCampModalOpen, setIsCampModalOpen] = useState<boolean>(false);
     
     // Context for narration
     const [recentNpc, setRecentNpc] = useState<NpcEntity | null>(null);
@@ -177,6 +178,44 @@ export const useUIState = () => {
         showMemoryUsage: true,
         logPerformanceMetrics: false
     });
+
+    // Tooltip tracking state - Load from localStorage
+    const [contextualTooltipsEnabled, setContextualTooltipsEnabled] = useState<boolean>(() => {
+        const saved = localStorage.getItem('contextualTooltipsEnabled');
+        return saved !== null ? JSON.parse(saved) : true; // Default: enabled
+    });
+
+    const [seenTooltips, setSeenTooltips] = useState<Set<string>>(() => {
+        const saved = localStorage.getItem('seenTooltips');
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+    });
+
+    // Persist tooltip settings to localStorage
+    useEffect(() => {
+        localStorage.setItem('contextualTooltipsEnabled', JSON.stringify(contextualTooltipsEnabled));
+    }, [contextualTooltipsEnabled]);
+
+    useEffect(() => {
+        localStorage.setItem('seenTooltips', JSON.stringify(Array.from(seenTooltips)));
+    }, [seenTooltips]);
+
+    // Tooltip handlers
+    const hasSeenTooltip = useCallback((tooltipId: string): boolean => {
+        return !contextualTooltipsEnabled || seenTooltips.has(tooltipId);
+    }, [contextualTooltipsEnabled, seenTooltips]);
+
+    const markTooltipSeen = useCallback((tooltipId: string) => {
+        setSeenTooltips(prev => new Set(prev).add(tooltipId));
+    }, []);
+
+    const resetAllTooltips = useCallback(() => {
+        setSeenTooltips(new Set());
+        localStorage.removeItem('seenTooltips');
+    }, []);
+
+    const toggleContextualTooltips = useCallback((enabled: boolean) => {
+        setContextualTooltipsEnabled(enabled);
+    }, []);
 
     // Left Sidebar
     const [isLeftSidebarExpanded, setIsLeftSidebarExpanded] = useState<boolean>(true);
@@ -275,10 +314,10 @@ export const useUIState = () => {
     const isAnyModalOpen = useMemo(() =>
         isSettingsModalOpen || isAboutModalOpen || isPauseModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
-        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData,
+        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen,
         [isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData]
+         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen]
     );
 
     // Handlers
@@ -1052,7 +1091,8 @@ export const useUIState = () => {
             playerX: controlledIconX,
             playerY: controlledIconY,
             mapData,
-            interiorContext
+            interiorContext,
+            currentVessel
         };
         
         // Check for voice loss from disease
@@ -1089,7 +1129,7 @@ export const useUIState = () => {
         } finally {
             setIsNarratorLoading(false);
         }
-    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter]);
+    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter, setGameTimeHours, setGameDate, formattedTime]);
 
     const handleEncounter = useCallback((target: EncounterableEntity) => {
         // If it's an NPC, ensure we get the latest version from the npcs array
@@ -1526,6 +1566,7 @@ export const useUIState = () => {
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
+        isCampModalOpen,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, panelNotificationItem,
         isRightSidebarVisible, setIsRightSidebarVisible,
         floatingTextMessages, containerPrompt,
@@ -1541,6 +1582,10 @@ export const useUIState = () => {
         containerModalData,
         cityHistoricalModalData,
 
+        // Tooltip state
+        contextualTooltipsEnabled,
+        hasSeenTooltip,
+
         // Handlers
         handleDevHover, handleCondenseTooltip, togglePinnedTooltip,
         setTileInfoModalProps, setInfoModalTarget, setStructureModalTarget, setActiveSettlementInfo,
@@ -1551,6 +1596,7 @@ export const useUIState = () => {
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
         closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
+        setIsCampModalOpen,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
         showFloatingText, removeFloatingText, showContainerPrompt, hideContainerPrompt,
         handleLooting, handleCloseLootModal, onTakeCoins,
@@ -1566,7 +1612,12 @@ export const useUIState = () => {
         setSelectedPrimarySource,
         diseaseContractedModalData,
         setDiseaseContractedModalData,
-        
+
+        // Tooltip handlers
+        markTooltipSeen,
+        resetAllTooltips,
+        toggleContextualTooltips,
+
         // Actions passed down from Player/Game contexts
         onUseSkill,
         onSend,

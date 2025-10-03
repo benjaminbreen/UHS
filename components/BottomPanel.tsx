@@ -37,8 +37,12 @@ interface BottomPanelProps {
     onExitMine?: () => void;
     isMarketplaceModalOpen?: boolean;
     onExitMarketplace?: () => void;
+    isGovernmentDistrictModalOpen?: boolean;
+    onExitGovernmentDistrict?: () => void;
     isSpecialMap?: boolean;
     onExitSpecialMap?: () => void;
+    isInteriorMode?: boolean;
+    onExitInterior?: () => void;
     currentBiome?: string;
     climate?: any;
     culturalZone?: string;
@@ -279,8 +283,12 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     onExitMine,
     isMarketplaceModalOpen = false,
     onExitMarketplace,
+    isGovernmentDistrictModalOpen = false,
+    onExitGovernmentDistrict,
     isSpecialMap = false,
     onExitSpecialMap,
+    isInteriorMode = false,
+    onExitInterior,
     currentBiome,
     climate,
     culturalZone,
@@ -879,6 +887,22 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                                 Try foraging for rare items (F key)
                             </p>
                         </div>
+                    ) : isSpecialMap || isGovernmentDistrictModalOpen || isInteriorMode ? (
+                        <div className="flex items-center justify-center">
+                            <ActionButton
+                                onClick={
+                                    isGovernmentDistrictModalOpen
+                                        ? (onExitGovernmentDistrict || (() => {}))
+                                        : isInteriorMode
+                                        ? (onExitInterior || (() => {}))
+                                        : (onExitSpecialMap || (() => {}))
+                                }
+                                icon="🚪"
+                                variant="red"
+                            >
+                                Exit
+                            </ActionButton>
+                        </div>
                     ) : (
                         <div className="text-slate-600 text-center">
                             <p className="text-sm font-medium">Use arrow keys to explore</p>
@@ -907,7 +931,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                  </div>
              </div>
         );
-    }, [playerCharacter, mapData, playerX, playerY, showAmbientText, previewBackgroundUrl, contextualMessage, weatherDisplay, weatherState, useFahrenheit, onToggleAmbientText, onEnterGovernmentDistrict, onEnterHolySite, onEnterPalace, onEnterRuin]);
+    }, [playerCharacter, mapData, playerX, playerY, showAmbientText, previewBackgroundUrl, contextualMessage, weatherDisplay, weatherState, useFahrenheit, onToggleAmbientText, onEnterGovernmentDistrict, onEnterHolySite, onEnterPalace, onEnterRuin, isSpecialMap, isGovernmentDistrictModalOpen, isInteriorMode, onExitSpecialMap, onExitGovernmentDistrict, onExitInterior]);
 
     return (
         <div className={getSafariOptimizedClassName("fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md shadow-2xl transition-all duration-500 ease-in-out border-t border-slate-700/50 overflow-hidden")}>

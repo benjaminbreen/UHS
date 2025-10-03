@@ -5,14 +5,19 @@
 
 import React from 'react';
 import { PlayerCharacter, Season } from '../../types';
+import { FarmState } from '../../services/farmService';
 import PlayerProfileCard from '../PlayerProfileCard';
-import { Timer, CalendarClock } from 'lucide-react';
+import { Timer, CalendarClock, Sprout, Droplets, Wheat } from 'lucide-react';
 
 interface FarmRightSidebarProps {
   playerCharacter: PlayerCharacter;
   season: Season;
   year: number;
   onProgressTime?: (months: number) => void;
+  farmState?: FarmState;
+  plantAll?: () => void;
+  waterAll?: () => void;
+  harvestAll?: () => void;
 }
 
 export const FarmRightSidebar: React.FC<FarmRightSidebarProps> = ({
@@ -20,8 +25,17 @@ export const FarmRightSidebar: React.FC<FarmRightSidebarProps> = ({
   season,
   year,
   onProgressTime,
+  farmState,
+  plantAll,
+  waterAll,
+  harvestAll,
 }) => {
   const PANEL_RIGHT_W = 340;
+
+  // Check if player is resident or head farmer
+  const isResident = farmState?.residencyStatus?.playerStatus === 'resident' ||
+                     farmState?.residencyStatus?.playerStatus === 'worker' ||
+                     farmState?.family.headOfHousehold === playerCharacter.name;
 
   return (
     <div
@@ -48,7 +62,7 @@ export const FarmRightSidebar: React.FC<FarmRightSidebarProps> = ({
         </div>
 
         {onProgressTime && (
-          <div className="space-y-2">
+          <div className="space-y-2 mb-4">
             <h4 className="text-sm font-semibold text-slate-300 mb-2">Progress Time</h4>
             <button
               onClick={() => onProgressTime(1)}
@@ -70,6 +84,34 @@ export const FarmRightSidebar: React.FC<FarmRightSidebarProps> = ({
             >
               <CalendarClock className="w-4 h-4 inline mr-2" />
               6 Months
+            </button>
+          </div>
+        )}
+
+        {/* Quick Actions - Only show if player is resident/worker */}
+        {isResident && plantAll && waterAll && harvestAll && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-slate-300 mb-2">Quick Actions</h4>
+            <button
+              onClick={plantAll}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700/80 hover:bg-emerald-600 text-white rounded-lg transition-all text-sm"
+            >
+              <Sprout className="w-4 h-4" />
+              Plant All
+            </button>
+            <button
+              onClick={waterAll}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-700/80 hover:bg-blue-600 text-white rounded-lg transition-all text-sm"
+            >
+              <Droplets className="w-4 h-4" />
+              Water All
+            </button>
+            <button
+              onClick={harvestAll}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-700/80 hover:bg-amber-600 text-white rounded-lg transition-all text-sm"
+            >
+              <Wheat className="w-4 h-4" />
+              Harvest All
             </button>
           </div>
         )}

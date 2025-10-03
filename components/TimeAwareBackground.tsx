@@ -21,10 +21,10 @@ const BASE_GRADIENT_COLORS = {
     DAWN: ['#2B3E5C', '#FFB6C1', '#FFE4B5'], // Darker blue at top through light pink to pale peach
     DAY: ['#4A90E2', '#87CEEB', '#E6F3FF'],   // Clear blue sky gradient
     DUSK: ['#1F2937', '#FF8C69', '#FFA07A'],   // Dark blue-gray at top through salmon to light salmon
-    TWILIGHT: ['#4B5C8A', '#2E3A5F', '#1a2644'], // Twilight blues
-    NIGHT: ['#050820', '#0d0d2a', '#101535'], // Darker deep space blues
-    MIDNIGHT: ['#000408', '#000d1a', '#001833'], // Extremely deep blues, almost black
-    PRE_DAWN: ['#1a1a3e', '#2d3561', '#4a5568'], // Gradual lightening
+    TWILIGHT: ['#1a1f3a', '#252f4f', '#3a4468'], // Darker twilight blues
+    NIGHT: ['#000205', '#020410', '#050820'], // Very dark, rich midnight blue-black
+    MIDNIGHT: ['#000000', '#000308', '#00050f'], // Almost pure black at top, deep space blue
+    PRE_DAWN: ['#0a0a1e', '#1a1a3e', '#2a2a4e'], // Very gradual lightening from deep night
 };
 
 // Season and climate modifiers

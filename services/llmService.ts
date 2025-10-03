@@ -19,6 +19,7 @@ import { loadTamedAnimals, TamedAnimal } from './animalTamingService';
 import { WeatherService, WeatherState, weatherService } from './weatherService';
 import { dialectContinuumService } from './dialectContinuumService';
 import { atmosphericContextService } from './atmosphericContextService';
+import { getCropNutrientEffects, evaluateCropRotation } from './cropNutrientService';
 
 // Cache for historical events to avoid regenerating them every dialogue
 interface HistoricalEventCache {
@@ -1108,11 +1109,11 @@ export async function generateLlmContents(entity: InteriorEntity, mapData: Inter
  */
 export async function generateDmResponse(playerQuery: string, context: PlayerContext): Promise<string> {
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-    const { playerCharacter, mapData, npcs, animals, terrainStructures, playerX, playerY, viewMode, interiorContext } = context;
+    const { playerCharacter, mapData, npcs, animals, terrainStructures, playerX, playerY, viewMode, interiorContext, currentVessel } = context;
 
     // Load tamed animals for accurate context
     const tamedAnimals = loadTamedAnimals();
-    
+
     // Build rich context string
     const nearbyNpcs = npcs?.filter(n => Math.hypot(n.x - playerX!, n.y - playerY!) < 10)
                            .map(n => `${n.name} (${n.role})`)
@@ -1123,9 +1124,9 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     const nearbyStructures = terrainStructures?.filter(s => Math.hypot(s.location[0] - playerX!, s.location[1] - playerY!) < 10)
                                         .map(s => s.name)
                                         .join(', ') || 'none';
-    
+
     // Build tamed animals context
-    const tamedAnimalsContext = tamedAnimals.length > 0 
+    const tamedAnimalsContext = tamedAnimals.length > 0
         ? `The player has ${tamedAnimals.length} tamed animal${tamedAnimals.length > 1 ? 's' : ''} following them: ${
             tamedAnimals.map(a => {
                 const animalData = ANIMAL_DATA[a.baseId];
@@ -1135,15 +1136,23 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         }.`
         : '';
 
+    // Build vessel context
+    const vesselContext = currentVessel
+        ? `The player is currently aboard their ${currentVessel.name.toLowerCase()}, navigating the waters. ${tamedAnimals.length > 0 ? `Their tamed companion(s) ${tamedAnimals.map(a => a.speciesName).join(', ')} ${tamedAnimals.length > 1 ? 'are' : 'is'} also on the vessel with them.` : ''}`
+        : '';
+
     // Build location context based on view mode
     let locationContext = '';
     if (viewMode === 'interior' && interiorContext) {
         locationContext = `The player is currently inside a ${interiorContext.buildingName || interiorContext.buildingType}, specifically in the ${interiorContext.currentSpace || 'main area'}. This is a ${interiorContext.layoutName || 'traditional'} layout${interiorContext.religion ? ` associated with ${interiorContext.religion}` : ''}${interiorContext.culturalZone ? ` from the ${interiorContext.culturalZone} cultural region` : ''}.`;
     } else {
-        locationContext = `The player is in a ${isStandardTile(context.currentTile) ? context.currentTile.biome : 'exterior'} landscape.`;
+        const currentTileBiome = isStandardTile(context.currentTile) ? context.currentTile.biome : 'exterior';
+        locationContext = vesselContext
+            ? `${vesselContext} The vessel is currently on ${currentTileBiome.toLowerCase()} water.`
+            : `The player is in a ${currentTileBiome} landscape.`;
     }
 
-    // Add enhanced environmental context
+    // Add enhanced environmental context - include immediate ring of tiles
     const surroundingTerrain = getSurroundingTerrain(mapData, playerX!, playerY!, 3);
     const weatherContext = getWeatherContext(mapData, context);
     const timeContext = getTimeContext(context);
@@ -1153,7 +1162,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         **Date & Location:** ${mapData?.timeSlice} in ${mapData?.localArea}, a region with a ${mapData?.climate} climate.
         **Current Time:** ${timeContext}
         **Immediate Position:** ${locationContext}
-        **Surrounding Terrain:** ${surroundingTerrain}
+        **Surrounding Terrain (nearby tiles):** ${surroundingTerrain}
         **Weather:** ${weatherContext}
         **Tamed Companions:** ${tamedAnimalsContext || 'No tamed animals currently following the player.'}
         **Nearby Entities:** NPCs: ${nearbyNpcs}. Animals: ${nearbyAnimals}. Structures: ${nearbyStructures}.
@@ -1175,10 +1184,12 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     const prompt = `
         You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query.
 
-        IMPORTANT ENVIRONMENTAL AWARENESS: Pay special attention to the Current Time, Surrounding Terrain and Weather sections.
-        Reference the specific time when relevant (e.g., "at this late hour", "in the dead of night", "as dawn breaks").
-        If the player is trapped (e.g., surrounded by cliffs or deep water), acknowledge this dire situation.
-        If weather is extreme (freezing, scorching, storms), incorporate its effects into your narration.
+        IMPORTANT ENVIRONMENTAL AWARENESS: Pay special attention to the Immediate Position, Current Time, Surrounding Terrain and Weather sections.
+        - If the player is on a vessel/ship/boat, ALWAYS mention this in your responses. They are navigating by water, not on foot.
+        - Reference the Surrounding Terrain section to describe what the player can see nearby (e.g., "wetlands to the north", "shore to the east").
+        - Reference the specific time when relevant (e.g., "at this late hour", "in the dead of night", "as dawn breaks").
+        - If the player is trapped (e.g., surrounded by cliffs or deep water), acknowledge this dire situation.
+        - If weather is extreme (freezing, scorching, storms), incorporate its effects into your narration.
 
         If a player asks about their character's backstory or life, invent something compelling, brutally realistic, remarkably authentic, and specific, not too long.
         If a query is purely didactic or educational - like "how can i learn more about this?" and the like, then go into "historian mode" where you simply offer high quality academic secondary source suggestions (peer reviewed books or articles) or references to scholars and scholarship that help understand the given setting.
@@ -1188,14 +1199,15 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
 
         **Game Context:**
         ${fullContext}
-        
+
         **Player's Query:** "${playerQuery}"
-       
+
         **Task:**
-        Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI. 
+        Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI.
         If the player asks you something that seems like they are toying with you or testing the nature of their world, Adopt the persona of the author Henry James. Respond with a complex, multi-clause sentence, focusing on introspection, consciousness, and the subtle nuances of perception - but sort of funny?
-         - If the player mentions "my pet", "my animal", "my companion" or asks about their tamed creatures, you MUST acknowledge and describe their specific tamed animals by name/species
+        - If the player mentions "my pet", "my animal", "my companion" or asks about their tamed creatures, you MUST acknowledge and describe their specific tamed animals by name/species
         - When the player uses "observe" or asks "what do I see", include their tamed animals in the description (e.g., "Your tamed hedgehog scurries beside you, sniffing curiously at the ground")
+        - CRITICAL: If the Immediate Position section mentions the player is on a vessel/ship, you MUST acknowledge this in your response. They are aboard their vessel, not standing on land.
 
     `;
     
@@ -2286,6 +2298,17 @@ export async function generateFarmerDecision(
     const isDangerous = isVeryLateNight || context.playerReputation < 20;
     const isThreatening = context.playerAppearance === 'armed' && isDangerous;
 
+    console.log('[generateFarmerDecision] Context:', {
+        timeOfDay: context.timeOfDay,
+        isNight: context.isNight,
+        isVeryLateNight,
+        isDangerous,
+        isThreatening,
+        playerAppearance: context.playerAppearance,
+        playerReputation: context.playerReputation,
+        farmProsperity: context.farmProsperity
+    });
+
     const prompt = `
         You are roleplaying as ${farmer.name}, a ${farmer.age || 35}-year-old farmer in ${context.location} during the ${context.era} era (historical period).
 
@@ -2308,19 +2331,28 @@ export async function generateFarmerDecision(
             '- Tribal/community protection is paramount'}
 
         DECISION LOGIC (BE REALISTIC AND HISTORICALLY ACCURATE):
-        1. If time is 23:00-4:00 AND player refuses to leave: You MUST threaten violence (this is life or death for you). However daytime is fine, greet player amiably during day.
-        2. If time is night (23:00-5:00) AND player is armed: Be hostile, assume they're a bandit or thief
-        3. If player has bad reputation (<20): Never allow them to stay, always suspicious
-        4. If player asks to rest during day AND reputation >50: Consider allowing for a fee (2-5 coins if humble, 5-10 if prosperous)
-        5. If player asks to work for lodging AND it's daytime: Consider if you need help (more likely if humble farm)
-        6. If player has been resting and asks to live on farm: Only if they've proven trustworthy (worked well, paid on time)
-        7. If player is badly injured (<30 health): Might show mercy even if slightly suspicious
+        **DAYTIME (6:00-19:00):**
+        - GREET PLAYER WARMLY AND HELPFULLY during normal hours (6:00-19:00)
+        - Be welcoming and open to conversation
+        - If player asks to work: Usually say YES (especially for humble farms that need help)
+        - If player asks to rest: Consider allowing for small fee or even free if they're polite
+        - action should be "welcome" or "conditional" during daytime unless player is extremely rude or threatening
 
-        IMPORTANT: Your response must be realistic. A real farmer in ${context.era} finding someone on their land at ${context.timeOfDay}:00 would react with:
-        ${isVeryLateNight && isThreatening ? 'IMMEDIATE VIOLENCE OR THREATS - This is a home invasion!' :
-        isVeryLateNight ? 'Extreme fear and aggression - demand they leave immediately or face consequences' :
-        context.isNight ? 'High suspicion and defensive posture - ready to fight or call for help' :
-        'Cautious curiosity if during day, but still protective of property'}
+        **NIGHT/LATE NIGHT (20:00-5:00):**
+        1. If time is 23:00-4:00 AND player refuses to leave: Threaten violence (home invasion scenario)
+        2. If time is night (20:00-5:00) AND player is armed: Be suspicious or hostile
+        3. If player has bad reputation (<20) at night: Never allow them to stay, always suspicious
+
+        **GENERAL:**
+        4. If player asks to work for lodging AND it's daytime (6:00-19:00): Almost always YES (farms need help!)
+        5. If player has been working and asks to live on farm: Only if they've proven trustworthy
+        6. If player is badly injured (<30 health): Show mercy even if slightly suspicious
+
+        IMPORTANT: IT IS CURRENTLY ${context.timeOfDay}:00.
+        ${!isVeryLateNight && !context.isNight ? '**THIS IS DAYTIME - BE FRIENDLY AND WELCOMING!** Farmers during working hours are generally helpful to travelers.' :
+        isVeryLateNight && isThreatening ? 'IMMEDIATE VIOLENCE OR THREATS - This is a home invasion!' :
+        isVeryLateNight ? 'Extreme fear and aggression - demand they leave immediately' :
+        'High suspicion at night - ready to fight or call for help'}
 
         Respond with realistic dialogue (1-3 sentences) that a farmer from this PRECISE place and time would actually say. Don't use "farmer-y" sounding dialect or expressions, but do stringently and profoundly evoke the actual character of this SPECIFIC farm in this SPECIFIC place.
 
@@ -3223,19 +3255,16 @@ export async function generateFarmWorkSimulation(
     livestock?: Array<{ type: string; health: number; productivity: number; lastFed: number }>
 ): Promise<FarmSimulationResult> {
 
-    const model = genAI.models.get("gemini-2.0-flash-exp");
-    if (!model) {
-        throw new Error("Model not available");
-    }
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     // Build livestock context
     const livestockContext = livestock && livestock.length > 0
         ? `\n- Livestock: ${livestock.map(l => `${l.type} (health: ${l.health}%, productivity: ${l.productivity}%, last fed ${currentFarmTime - l.lastFed}h ago)`).join(', ')}`
         : '';
 
-    // Build field context
+    // Build field context (use 1-based numbering to match UI)
     const fieldInfo = farmState.fields
-        .map((f: any) => `Field ${f.id}: ${f.crop !== 'none' ? `${f.crop} (health: ${f.health}%, moisture: ${f.moisture}%)` : 'fallow'}`)
+        .map((f: any) => `Field ${f.id + 1}: ${f.crop !== 'none' ? `${f.crop} (health: ${f.health}%, moisture: ${f.moisture}%)` : 'fallow'}`)
         .join(', ');
 
     // Build player state context
@@ -3244,6 +3273,15 @@ export async function generateFarmWorkSimulation(
 - Player Fatigue: ${playerCharacter.fatigue}/${playerCharacter.maxFatigue}
 - Player Skills: ${Object.entries(playerCharacter.skills || {}).map(([skill, level]) => `${skill} ${level}`).join(', ')}
 - Player Inventory: ${playerCharacter.inventory.map(i => i.name).slice(0, 10).join(', ')}${playerCharacter.inventory.length > 10 ? '...' : ''}`;
+
+    // Build contract tasks context (Phase 2.1)
+    const contractContext = farmState.residencyStatus?.currentContract
+        ? `
+ASSIGNED TASKS FOR TODAY:
+${farmState.residencyStatus.currentContract.tasksToday?.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n') || 'None'}
+
+The farmer expects you to complete these tasks. Mention them naturally if the player seems lost or asks what to do.
+` : '';
 
     // Generate affordances (what player CAN do)
     const affordances: string[] = [];
@@ -3281,6 +3319,153 @@ export async function generateFarmWorkSimulation(
         ? `\nTOOL REQUIREMENTS:\n${toolHints.map(h => `- ${h}`).join('\n')}`
         : '';
 
+    // Phase 4.1: Build crop rotation & soil fertility context
+    const soilContext = `
+SOIL FERTILITY & CROP ROTATION (CRITICAL FOR REALISM):
+${farmState.fields.map((f: any) => {
+        if (f.crop && f.crop !== 'none') {
+            const rotation = f.lastCrop ? evaluateCropRotation(f.crop, f.lastCrop, f.consecutiveSeasons) : null;
+            return `- Field ${f.id + 1} (${f.crop}): Soil N=${f.soilNitrogen}%, P=${f.soilPhosphorus}%, K=${f.soilPotassium}%
+  ${rotation && !rotation.isGood ? `⚠️ ROTATION WARNING: ${rotation.reason}` : ''}
+  ${f.consecutiveSeasons > 0 ? `Same crop ${f.consecutiveSeasons + 1} seasons in a row - soil exhaustion!` : ''}`;
+        }
+        return `- Field ${f.id + 1}: Fallow - Soil recovering (N=${f.soilNitrogen}%, P=${f.soilPhosphorus}%, K=${f.soilPotassium}%)`;
+    }).join('\n')}
+
+NUTRIENT DEPLETION RULES:
+- Grains (wheat, barley, rice, corn): Deplete nitrogen heavily (-15/season). Need legumes or fallow to recover.
+- Legumes (beans, peas, clover): RESTORE nitrogen (+30/season)! Plant after grains.
+- Root crops (turnips, potatoes): Deplete phosphorus heavily (-15/season)
+- Consecutive same crop: Each season adds -20% yield penalty. After 3 seasons, crops fail entirely.
+- Low nitrogen (<30%): Stunted growth, yellow leaves, poor yield
+- Low phosphorus (<30%): Weak roots, delayed maturity
+- Low potassium (<30%): Disease susceptibility, weak stems
+
+HISTORICAL ROTATION SYSTEMS:
+- Medieval European 3-field: Grain → Legume → Fallow (1 year each)
+- Asian intensive: Rice → Wheat → Green manure (beans/clover)
+- Mediterranean: Grain → Legume → Fallow with grazing
+`;
+
+    // Build crop-specific irrigation rules (Phase 2.2, use 1-based numbering)
+    const cropRules = `
+CROP-SPECIFIC IRRIGATION RULES (CRITICAL - FOLLOW EXACTLY):
+${farmState.fields.map((f: any) => {
+        if (f.crop === 'rice') {
+            return `- Field ${f.id + 1} (Rice): REQUIRES flooding. Rice paddies MUST be flooded during growing season. Current: ${f.moisture}`;
+        } else if (f.crop === 'wheat' || f.crop === 'barley' || f.crop === 'rye') {
+            return `- Field ${f.id + 1} (${f.crop}): DO NOT flood. Waterlogging causes root rot and crop death. Keep moist but not flooded. Current: ${f.moisture}`;
+        } else if (f.crop === 'none') {
+            return `- Field ${f.id + 1}: Fallow (can flood for preparation if planting rice next)`;
+        }
+        return `- Field ${f.id + 1} (${f.crop}): Check water needs carefully. Current: ${f.moisture}`;
+    }).join('\n')}
+
+MOISTURE MECHANICS:
+- "dry" → "moist": Normal watering (bucket, irrigation channel)
+- "moist" → "wet": Heavy watering or rain
+- "wet" → "flooded": Intentional flooding (rice paddies) OR overwatering damage (other crops)
+- Flooding wheat/barley = CROP DEATH (health drops to 0-20%)
+- Flooding rice = REQUIRED for growth (health increases)
+`;
+
+    // Phase 4.2: Weather context
+    const weatherContext = farmState.activeWeather
+        ? `
+⚠️ ACTIVE WEATHER EVENT (${farmState.activeWeather.daysRemaining} days remaining):
+Event: ${farmState.activeWeather.event} (Severity ${farmState.activeWeather.severity}/10)
+${farmState.activeWeather.description}
+
+WEATHER EFFECTS YOU MUST APPLY:
+${farmState.activeWeather.event === 'drought' ? `
+- All field moisture drops by 1-2 levels per day
+- Crops lose 5-10% health daily without watering
+- Mention cracked earth, wilting plants, desperate need for water
+` : ''}${farmState.activeWeather.event === 'heavy_rain' ? `
+- All fields become flooded automatically
+- Rice thrives (+10% health), wheat/barley drown (-30% health)
+- Mention mud, pooling water, farmer's concern about grain crops
+` : ''}${farmState.activeWeather.event === 'early_frost' ? `
+- Tender crops (vegetables, late grains) take 30-50% health damage
+- Root crops protected underground (no damage)
+- Mention icy crystals, blackened leaves, farmer's dismay
+` : ''}${farmState.activeWeather.event === 'heatwave' ? `
+- Crops need 2x watering to maintain moisture
+- Moisture depletes 2x faster
+- Player fatigue increases 50% faster (hard work in heat)
+- Mention oppressive heat, worker exhaustion, seeking shade
+` : ''}${farmState.activeWeather.event === 'hailstorm' ? `
+- All crops take 40-60% health damage
+- Grain stalks broken, leaves shredded
+- Immediate harvest needed or crops ruined entirely
+- Mention devastating ice, farmer's shock, ruined fields
+` : ''}
+` : `WEATHER: Normal ${season.toLowerCase()} conditions (no active events)`;
+
+    // Phase 4.3: Labor time requirements
+    const laborContext = `
+LABOR TIME REQUIREMENTS (REALISTIC FARMING IS SLOW):
+- Plowing a field: 4 hours (requires oxen/horse, or 8 hours by hand)
+- Planting a field: 2-3 hours (careful seed placement)
+- Watering manually (bucket): 1 hour per field (exhausting work)
+- Weeding a field: 1-2 hours (back-breaking labor)
+- Harvesting a field: 3-4 hours (cutting, bundling, transporting)
+- Flooding rice paddy: 0.5-1 hour (open irrigation gates)
+- Tending livestock: 0.5-1 hour (feeding, milking, cleaning)
+
+FAMILY HELP:
+- Player can ask family members to help (halves time, but they may refuse if busy)
+- Children can help with simple tasks (weeding, collecting eggs)
+- Elders offer advice but rarely do heavy labor
+- Hiring day laborers costs coins but speeds up work significantly
+
+WORK LIMITS:
+- Player can work 8-10 hours per day before exhaustion
+- Heavy labor (plowing, harvesting) increases fatigue faster
+- Heat/cold affects work speed and stamina
+`;
+
+    // Phase 4.4: Pest & disease mechanics
+    const pestDiseaseContext = `
+PEST & DISEASE MECHANICS (ACTIVE THREATS):
+${farmState.fields.map((f: any) => {
+        const warnings = [];
+        if (f.pestSeverity > 20) warnings.push(`🐛 Pest infestation (${f.pestSeverity}% severity) - spreading to adjacent fields`);
+        if (f.diseaseType !== 'none') warnings.push(`🦠 ${f.diseaseType} disease (${f.diseaseSeverity}% severity)`);
+        if (f.weedDensity > 30) warnings.push(`🌿 Heavy weeds (${f.weedDensity}%) - choking crops, -${Math.floor(f.weedDensity / 10)}% health per week`);
+        return warnings.length > 0 ? `- Field ${f.id + 1}: ${warnings.join(', ')}` : null;
+    }).filter(Boolean).join('\n') || '- No active pest/disease issues'}
+
+SPREAD MECHANICS:
+- Pests spread to adjacent fields (10% chance per day if severity >40%)
+- Wet conditions (flooded, heavy rain) → fungal diseases (blight, rust, rot)
+- Disease severity increases 5-15% per day if untreated
+- Weeds grow 10% per week, compete for nutrients/water
+
+TREATMENTS:
+- Hand-picking pests (1 hour, reduces severity by 20-40%)
+- Crop rotation prevents disease buildup
+- Weeding prevents competition (labor-intensive but necessary)
+- Flooding kills some pests but encourages fungal disease
+- Historical treatments: Wood ash, herbal sprays, companion planting
+`;
+
+    // Build family member context for narration (Phase 2.3)
+    const familyNarration = `
+FARM FAMILY (mention organically when relevant):
+${farmState.family.members.map((m: any) =>
+        `- ${m.name} (${m.age}yo ${m.gender}, ${m.role}${m.currentTask ? `, currently ${m.currentTask}` : ''})`
+    ).join('\n')}
+
+NARRATIVE GUIDELINES:
+- If player floods rice paddies, mention children playing in water (if children present)
+- If elder present (60+), they might offer advice when player makes mistakes or see weather coming
+- If multiple workers, show them working in background
+- Family can help with labor if asked (affects time required)
+- Keep family mentions brief (1 sentence max) but immersive
+- Don't force family mentions if they don't fit naturally
+`;
+
     const prompt = `You are a FARM WORK SIMULATOR. You simulate farm activities realistically, determine consequences, and report results in engaging second-person present tense narrative.
 
 YOU ARE NOT A CHARACTER. You are the game master/simulator that describes what happens when the player takes actions.
@@ -3289,7 +3474,15 @@ CONTEXT:
 - Time of Day: ${timeOfDay}, Season: ${season}
 - Farm Time: ${currentFarmTime}h (game hours since farm creation)
 - Fields: ${fieldInfo}${livestockContext}
-${playerStateContext}${affordanceList}${toolHintsList}
+${playerStateContext}${contractContext}${affordanceList}${toolHintsList}
+
+${weatherContext}
+
+${soilContext}
+${cropRules}
+${laborContext}
+${pestDiseaseContext}
+${familyNarration}
 
 PLAYER COMMAND: "${command}"
 
@@ -3300,6 +3493,11 @@ SIMULATION RULES:
 4. **Player Effects**: Actions affect player health/fatigue. Heavy work increases fatigue. Injuries decrease health. Success can add items to inventory.
 5. **Time Passage**: Most actions take time (0.5-3 hours). Complex tasks take longer.
 6. **Skill Checks**: Player skill levels affect success. Low-skill players make mistakes more often.
+7. **Field Selection Rules** (Phase 2.4):
+   - If command is ambiguous ("water the fields", "flood fields", "harvest crops"), ask which field in narrative
+   - List all relevant fields with current status: "Which field? Field 1 (wheat, half-grown, moist), Field 2 (rice, seedlings, dry)..."
+   - If player specifies field number ("field 2", "the rice field"), apply action to that field only
+   - IMPORTANT: When updating stateChanges.fields, use the ARRAY INDEX (0-based): Field 1 = index "0", Field 2 = index "1", etc.
 
 EXAMPLES OF GOOD NARRATION:
 - "You grab your bucket and approach the brown cow. She eyes you warily - it's been 18 hours since anyone fed her. As you try to position the bucket, she lashes out with a powerful kick, catching you square in the ribs! Pain explodes through your chest. You stagger back, gasping. That's going to leave a nasty bruise - you should probably head back to the farmhouse and rest."
@@ -3308,13 +3506,18 @@ EXAMPLES OF GOOD NARRATION:
 
 - "You reach for your hoe to plant the corn seeds, but your hands come up empty - you don't have a hoe! You'll need to get one from the tool shed or purchase one before you can plant anything."
 
+- "You look out across the fields, considering which one to flood. Field 1 has wheat - flooding that would be disastrous, the crop would drown within hours. Field 2 is planted with rice seedlings, which actually need flooding. Which field did you want to work on?"
+
+- "You open the irrigation channel to Field 2, and water rushes across the rice paddies. The field quickly floods to the perfect depth - about ankle-high. In the distance, you see the farmer's young daughter splashing gleefully through the flooded rice, chasing frogs. The rice seedlings look healthier already."
+  (Example JSON for this: { "narrative": "...", "stateChanges": { "fields": { "1": { "moisture": "flooded", "health": 75 } } } } because Field 2 = array index 1)
+
 OUTPUT FORMAT (JSON):
 Return a JSON object with:
 {
   "narrative": "Second-person present tense description of what happens (2-4 sentences)",
   "stateChanges": {
     "fields": {
-      "1": { "health": 85, "moisture": 60 }  // Only include fields that changed
+      "0": { "health": 85, "moisture": "moist" }  // ARRAY INDEX! Field 1 = "0", Field 2 = "1", etc. Only include fields that changed
     },
     "livestock": {
       "cow_1": { "health": 90, "lastFed": ${currentFarmTime} }  // Only include animals that changed
@@ -3341,15 +3544,22 @@ Return a JSON object with:
 IMPORTANT: Only include state changes that actually happened. If nothing changed in a category, omit that category entirely. Make consequences realistic and proportional to the action.`;
 
     try {
-        const result = await model.generateContent({
-            systemInstruction: "You are a farm work simulator. Output only valid JSON matching the specified format. Be realistic and consequential.",
-            contents: prompt
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                temperature: 0.8,
+                topP: 0.95
+            }
         });
 
-        const responseText = result.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const responseText = response.text.trim();
+
+        // Clean markdown code blocks if present (match codebase pattern)
+        const cleanedJson = responseText.replace(/```json\n?|```\n?/g, '').trim();
 
         // Parse JSON from response
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        const jsonMatch = cleanedJson.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             // Fallback if LLM doesn't return proper JSON
             return {

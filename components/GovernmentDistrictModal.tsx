@@ -842,94 +842,62 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
 
           {/* Title/Sub header pinned to bottom */}
-          <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-4 sm:pb-6 md:pb-7 text-white flex justify-between items-end">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 backdrop-blur-sm border-2 border-amber-500/40 shadow-lg">
-                <GiCapitol className="text-amber-300" size={22} />
+          <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-3 sm:pb-4 md:pb-5 text-white flex justify-between items-end">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 backdrop-blur-sm border-2 border-amber-500/40 shadow-lg">
+                <GiCapitol className="text-amber-300" size={18} />
               </div>
               <div>
                 <p
-                  className="text-xs sm:text-sm font-bold uppercase tracking-widest text-amber-300/90 mb-1"
+                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-amber-300/90 mb-0.5"
                   style={{ textShadow: '1px 1px 3px #000' }}
                 >
                   {governmentInfo.type} • {displayDate}
                 </p>
                 <h2
-                  className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent"
+                  className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent"
                   style={{ textShadow: '0 0 30px rgba(251,191,36,0.45)' }}
                 >
                   {structure.name}
                 </h2>
                 <p
-                  className="text-sm sm:text-base capitalize text-amber-100/90 mt-1 flex items-center gap-2"
+                  className="text-xs sm:text-sm capitalize text-amber-100/90 mt-0.5 flex items-center gap-1.5"
                   style={{ textShadow: '1px 1px 2px #000' }}
                 >
-                  <FaLandmark className="text-amber-300" /> Government District • {currentLocation}
+                  <FaLandmark className="text-amber-300" size={12} /> Government District • {currentLocation}
                 </p>
               </div>
             </div>
 
             {/* Tabs (right-aligned on large; full-width below) */}
-            <div className="hidden md:flex gap-2 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-3 border border-amber-700/30">
+            <div className="hidden md:flex gap-1.5 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
               {(['overview', 'buildings', 'archives'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-2 rounded-md font-semibold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
                     activeTab === tab
                       ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
                       : 'text-amber-300/80 hover:text-amber-200 hover:bg-slate-800/50'
                   }`}
                 >
-                  {tab === 'overview' && <span className="inline-flex items-center gap-2"><FaLandmark /> Overview</span>}
-                  {tab === 'buildings' && <span className="inline-flex items-center gap-2"><FaMapMarkedAlt /> Buildings</span>}
-                  {tab === 'archives' && <span className="inline-flex items-center gap-2"><GiScrollQuill /> Archives</span>}
+                  {tab === 'overview' && <span className="inline-flex items-center gap-1.5"><FaLandmark size={12} /> Overview</span>}
+                  {tab === 'buildings' && <span className="inline-flex items-center gap-1.5"><FaMapMarkedAlt size={12} /> Buildings</span>}
+                  {tab === 'archives' && <span className="inline-flex items-center gap-1.5"><GiScrollQuill size={12} /> Archives</span>}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Allegiance/Faction badge — moved to top-right overlay over the banner */}
-          {dominantFaction && (
-            <div
-              className="absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center gap-3 bg-black/55 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-2.5 border-2 cursor-pointer hover:bg-black/70 transition-all z-20"
-              style={{ borderColor: getFactionData(dominantFaction.name).color }}
-              title="Dominant faction / allegiance"
-            >
-              {(() => {
-                const fd = getFactionData(dominantFaction.name);
-                const Icon = fd.icon;
-                return (
-                  <>
-                    <div
-                      className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full"
-                      style={{ backgroundColor: `${fd.color}33` }}
-                    >
-                      <Icon size={22} style={{ color: fd.color }} />
-                    </div>
-                    <div className="flex flex-col items-start leading-tight">
-                      <span className="text-[10px] sm:text-xs text-slate-300 uppercase tracking-wider">Allegiance</span>
-                      <span
-                        className="text-sm sm:text-base font-bold font-cinzel"
-                        style={{ color: fd.color, textShadow: '2px 2px 4px #000' }}
-                      >
-                        {dominantFaction.name}
-                      </span>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
 
           {/* Mobile tabs (overlay, below badge) */}
-          <div className="md:hidden absolute left-0 right-0 bottom-0 px-3 pb-3">
-            <div className="flex gap-2 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-3 border border-amber-700/30">
+          <div className="md:hidden absolute left-0 right-0 bottom-0 px-3 pb-2">
+            <div className="flex gap-1.5 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
               {(['overview', 'buildings', 'archives'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 text-xs px-2 py-2 rounded-md font-semibold transition-all ${
+                  className={`flex-1 text-[11px] px-2 py-1.5 rounded-md font-semibold transition-all ${
                     activeTab === tab
                       ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
                       : 'text-amber-300/80 hover:text-amber-200 hover:bg-slate-800/50'
@@ -1106,12 +1074,6 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                   {/* Quick Actions */}
                   <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
                     <div className="space-y-2">
-                      <button
-                        className="w-full px-3 py-2 bg-slate-700/50 hover:bg-slate-600/60 text-slate-200 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
-                        onClick={() => console.log('Request audience')}
-                      >
-                        <GiThroneKing size={16} /> Request Audience
-                      </button>
                       <button
                         className="w-full px-3 py-2 bg-slate-700/50 hover:bg-slate-600/60 text-slate-200 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
                         onClick={() => setActiveTab('archives')}
@@ -1307,25 +1269,6 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
           )}
         </div>
 
-        {/* Footer — slimmer on small screens, consistent border */}
-        <footer className="mt-auto p-3 sm:p-4 border-t border-slate-700 bg-slate-900/50 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="text-[11px] sm:text-xs text-slate-400">
-              {displayDate} • {mapData?.mapAreaName || currentLocation}
-            </div>
-            {dominantFaction?.context && (
-              <div className="text-[11px] sm:text-xs text-slate-400 italic border-l border-slate-600 pl-4">
-                "{dominantFaction.context}"
-              </div>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="ff-action-button px-4 sm:px-6 py-2 text-xs sm:text-sm"
-          >
-            Close
-          </button>
-        </footer>
       </div>
     </div>
   );

@@ -48,19 +48,109 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
     setExpandedCard(prev => prev === cardId ? null : cardId);
   };
 
+  // Normalize crop key for lookup (case-insensitive)
+  const getCropData = (cropKey: string) => {
+    console.log('[FarmOverviewTab] Getting crop data for:', cropKey);
+
+    if (!cropKey || cropKey === 'none') {
+      console.log('[FarmOverviewTab] Crop key is none or empty');
+      return null;
+    }
+
+    // Try exact match first
+    if (CROP_DATA[cropKey]) {
+      console.log('[FarmOverviewTab] Found exact match for:', cropKey);
+      return CROP_DATA[cropKey];
+    }
+
+    // Try lowercase
+    const lowerKey = cropKey.toLowerCase();
+    if (CROP_DATA[lowerKey]) {
+      console.log('[FarmOverviewTab] Found lowercase match for:', lowerKey);
+      return CROP_DATA[lowerKey];
+    }
+
+    // Try removing spaces and lowercase
+    const normalizedKey = cropKey.toLowerCase().replace(/\s+/g, '');
+    const normalizedMatch = Object.entries(CROP_DATA).find(([key]) =>
+      key.toLowerCase().replace(/\s+/g, '') === normalizedKey
+    );
+
+    if (normalizedMatch) {
+      console.log('[FarmOverviewTab] Found normalized match:', normalizedMatch[0]);
+      return normalizedMatch[1];
+    }
+
+    // Try matching against farmTypes (e.g., "Apple Orchard" -> find crop with farmTypes containing "Apple Orchard")
+    console.log('[FarmOverviewTab] Trying farmTypes reverse lookup for:', cropKey);
+    const farmTypeMatch = Object.entries(CROP_DATA).find(([_, cropInfo]) =>
+      cropInfo.farmTypes?.some(farmType =>
+        farmType.toLowerCase() === cropKey.toLowerCase() ||
+        farmType.toLowerCase().replace(/\s+/g, '') === normalizedKey
+      )
+    );
+
+    if (farmTypeMatch) {
+      console.log('[FarmOverviewTab] Found via farmTypes match:', farmTypeMatch[0], 'for farmType:', cropKey);
+      return farmTypeMatch[1];
+    }
+
+    console.log('[FarmOverviewTab] No match found for:', cropKey);
+    return null;
+  };
+
+  const primaryCropData = getCropData(primaryCrop);
+  console.log('[FarmOverviewTab] primaryCrop:', primaryCrop, 'primaryCropData:', primaryCropData);
+
+  // Generate farm description
+  const farmDescription = React.useMemo(() => {
+    if (primaryCrop === 'none') return '';
+
+    const prosperityAdj = prosperityInfo.label.toLowerCase();
+    const cropName = primaryCropData?.name.toLowerCase() || primaryCrop.toLowerCase();
+    const farmType = primaryCropData?.farmTypes?.[0] || `${cropName} farm`;
+    const householdSize = farmState.family.members.length;
+
+    // Get other planted crops
+    const plantedCrops = farmState.fields
+      .filter(f => f.cropType && f.cropType !== 'none' && f.cropType !== primaryCrop)
+      .map(f => getCropData(f.cropType)?.name.toLowerCase() || f.cropType.toLowerCase());
+
+    // Remove duplicates
+    const uniqueCrops = Array.from(new Set(plantedCrops));
+
+    if (uniqueCrops.length === 0) {
+      // Single crop farm - include household size
+      return `A ${prosperityAdj} ${farmType.toLowerCase()} tended by ${householdSize} ${householdSize === 1 ? 'person' : 'people'}.`;
+    } else if (uniqueCrops.length === 1) {
+      return `A ${prosperityAdj} ${farmType.toLowerCase()} with ${uniqueCrops[0]} fields.`;
+    } else if (uniqueCrops.length === 2) {
+      return `A ${prosperityAdj} ${farmType.toLowerCase()} with ${uniqueCrops[0]} and ${uniqueCrops[1]} fields.`;
+    } else {
+      return `A ${prosperityAdj} ${farmType.toLowerCase()} with ${uniqueCrops[0]}, ${uniqueCrops[1]}, and ${uniqueCrops.length - 2} other ${uniqueCrops.length - 2 === 1 ? 'crop' : 'crops'}.`;
+    }
+  }, [primaryCrop, primaryCropData, prosperityInfo, farmState.fields, farmState.family.members.length]);
+
   return (
     <div className="animate-fadeIn space-y-3 max-w-7xl mx-auto">
       {/* Farm Info Card - Static, Information-Rich */}
       <div className="w-full bg-slate-700/40 border border-slate-500/50 rounded-lg p-5">
         {/* Compact Single Row Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-baseline gap-4">
+          <div className="flex items-baseline gap-4 flex-1">
             <h2 className="text-3xl font-bold text-slate-50 tracking-tight">{dynamicFarmName}</h2>
             <div className="flex items-center gap-2">
               <span className="text-xl font-semibold text-slate-300">{Math.abs(year)} {year < 0 ? 'BCE' : 'CE'}</span>
               <span className="text-slate-600">|</span>
               <span className="text-base font-medium text-blue-400 capitalize">{season}</span>
             </div>
+            {/* Farm Description - Right of season */}
+            {farmDescription && (
+              <>
+                <span className="text-slate-600">·</span>
+                <p className="text-sm text-slate-400 italic">{farmDescription}</p>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
@@ -73,48 +163,54 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
           </div>
         </div>
 
-        {/* Last Year Performance - Compressed with Expand */}
+        {/* Last Year Performance - Enhanced Typography */}
         {farmState.lastYearData && (
-          <div className="bg-slate-800/30 rounded-lg p-2.5 border border-slate-600/30">
+          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-600/30">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-lg">{farmState.lastYearData.profit >= 0 ? '📈' : '📉'}</span>
+              <div className="flex items-center gap-4">
+                <span className="text-3xl">{farmState.lastYearData.profit >= 0 ? '📈' : '📉'}</span>
                 <div>
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wide">Last Year</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Last Year's Profit</div>
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-sm font-bold ${farmState.lastYearData.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {farmState.lastYearData.profit >= 0 ? '+' : ''}{farmState.lastYearData.profit}¢
+                    <span className={`text-2xl font-bold ${farmState.lastYearData.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {farmState.lastYearData.profit >= 0 ? '+' : ''}{farmState.lastYearData.profit}
                     </span>
-                    <span className="text-xs text-slate-400">net</span>
+                    <span className="text-base text-slate-400">coins</span>
                   </div>
                 </div>
-                <div className="text-xs text-slate-400">
-                  <span className="text-slate-300">{farmState.lastYearData.totalHarvest}u</span> {farmState.lastYearData.cropsMostGrown}
+                <div className="ml-3 pl-3 border-l border-slate-600">
+                  <div className="text-xs text-slate-500 mb-0.5">Primary Harvest</div>
+                  <div className="text-sm">
+                    <span className="text-slate-200 font-semibold">{farmState.lastYearData.totalHarvest}</span>
+                    <span className="text-slate-400 ml-1">units</span>
+                    <span className="text-slate-500 mx-1">·</span>
+                    <span className="text-slate-300">{farmState.lastYearData.cropsMostGrown}</span>
+                  </div>
                 </div>
               </div>
               <button
                 onClick={() => toggleCard('last_year')}
-                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-slate-700/30 transition-colors"
               >
-                {expandedCard === 'last_year' ? 'Less' : 'Details'}
+                {expandedCard === 'last_year' ? 'Hide Details' : 'Show Details'}
                 <span className={`transform transition-transform ${expandedCard === 'last_year' ? 'rotate-180' : ''}`}>▼</span>
               </button>
             </div>
 
             {/* Expanded Details */}
             {expandedCard === 'last_year' && (
-              <div className="mt-3 pt-3 border-t border-slate-600/30 grid grid-cols-3 gap-2">
-                <div className="bg-slate-700/30 rounded px-2 py-1.5">
-                  <div className="text-[9px] text-slate-500 mb-0.5">Revenue</div>
-                  <div className="text-xs text-emerald-400 font-semibold">{farmState.lastYearData.revenue}¢</div>
+              <div className="mt-4 pt-4 border-t border-slate-600/30 grid grid-cols-3 gap-3">
+                <div className="bg-slate-700/30 rounded-lg px-3 py-2.5">
+                  <div className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Revenue</div>
+                  <div className="text-base text-emerald-400 font-bold">{farmState.lastYearData.revenue} <span className="text-xs text-emerald-400/60">coins</span></div>
                 </div>
-                <div className="bg-slate-700/30 rounded px-2 py-1.5">
-                  <div className="text-[9px] text-slate-500 mb-0.5">Expenses</div>
-                  <div className="text-xs text-red-400/70 font-semibold">{farmState.lastYearData.expenses}¢</div>
+                <div className="bg-slate-700/30 rounded-lg px-3 py-2.5">
+                  <div className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Expenses</div>
+                  <div className="text-base text-red-400 font-bold">{farmState.lastYearData.expenses} <span className="text-xs text-red-400/60">coins</span></div>
                 </div>
-                <div className="bg-slate-700/30 rounded px-2 py-1.5">
-                  <div className="text-[9px] text-slate-500 mb-0.5">Margin</div>
-                  <div className="text-xs text-slate-300 font-semibold">
+                <div className="bg-slate-700/30 rounded-lg px-3 py-2.5">
+                  <div className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Profit Margin</div>
+                  <div className="text-base text-slate-200 font-bold">
                     {Math.round((farmState.lastYearData.profit / farmState.lastYearData.revenue) * 100)}%
                   </div>
                 </div>
@@ -137,59 +233,61 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
         )}
       </div>
 
-      {/* Expandable Info Cards Grid */}
+      {/* Compact Info Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Primary Crop Card */}
+        {/* Primary Crop Card - Compact */}
         <button
           onClick={() => toggleCard('crop')}
-          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-5 border border-slate-500/40 transition-all text-left"
+          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-4 border border-slate-500/40 transition-all text-left"
         >
           {primaryCrop !== 'none' ? (
             <>
-              <div className="flex items-start justify-between mb-4">
-                <div className="text-xs text-slate-500 uppercase tracking-wide">Primary Crop</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <span className="text-3xl">{CROP_EMOJIS[primaryCrop] || CROP_EMOJIS[primaryCrop.toLowerCase()] || '🌱'}</span>
+                  <div className="flex-1">
+                    <div className="text-xs text-slate-500 uppercase tracking-wide">Primary Crop</div>
+                    <div className="text-base font-bold text-emerald-400 capitalize">
+                      {primaryCropData?.name || primaryCrop}
+                    </div>
+                  </div>
+                </div>
                 <div className={`transform transition-transform text-slate-500 ${expandedCard === 'crop' ? 'rotate-180' : ''}`}>
                   <span className="text-sm">▼</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-4xl">{CROP_EMOJIS[primaryCrop] || '🌱'}</span>
-                <div className="flex-1">
-                  <div className="text-lg font-bold text-emerald-400 capitalize mb-1">
-                    {CROP_DATA[primaryCrop]?.name || primaryCrop}
-                  </div>
-                  {!CROP_DATA[primaryCrop] && (
-                    <p className="text-sm text-slate-400">Cultivation info not yet available</p>
-                  )}
-                </div>
-              </div>
+              {!primaryCropData && !expandedCard && (
+                <p className="text-xs text-slate-400 italic">Cultivation info not yet available</p>
+              )}
 
-              {CROP_DATA[primaryCrop] && (
+              {primaryCropData && (
                 <>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-3">{CROP_DATA[primaryCrop].description}</p>
-
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="bg-slate-800/40 rounded px-2.5 py-2 border border-slate-700/30">
-                      <div className="text-[10px] text-slate-500 mb-0.5">Best Planting</div>
-                      <div className="text-xs text-slate-200 font-medium">{formatPlantingSeason(CROP_DATA[primaryCrop].bestPlantingMonths)}</div>
+                  {/* Compact info row with larger, more readable text */}
+                  <div className="flex items-center gap-4 text-sm mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400">Planting:</span>
+                      <span className="text-slate-100 font-semibold">{formatPlantingSeason(primaryCropData.bestPlantingMonths)}</span>
                     </div>
-                    <div className="bg-slate-800/40 rounded px-2.5 py-2 border border-slate-700/30">
-                      <div className="text-[10px] text-slate-500 mb-0.5">Growth Time</div>
-                      <div className="text-xs text-slate-200 font-medium">{CROP_DATA[primaryCrop].growthDays} days</div>
+                    <span className="text-slate-600">•</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400">Growth:</span>
+                      <span className="text-slate-100 font-semibold">{primaryCropData.growthDays}d</span>
+                    </div>
+                    <span className="text-slate-600">•</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400">Price:</span>
+                      <span className="text-emerald-400 font-bold">{primaryCropData.basePrice} coins/u</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between bg-emerald-900/15 rounded px-3 py-2 border border-emerald-700/30">
-                    <span className="text-xs text-slate-400">Base Market Price</span>
-                    <span className="text-sm font-semibold text-emerald-400">{CROP_DATA[primaryCrop].basePrice}¢/unit</span>
-                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed">{primaryCropData.description}</p>
 
-                  {expandedCard === 'crop' && CROP_DATA[primaryCrop].tip && (
+                  {expandedCard === 'crop' && primaryCropData.tip && (
                     <div className="mt-3 pt-3 border-t border-slate-700/30" onClick={(e) => e.stopPropagation()}>
                       <div className="bg-blue-900/10 border border-blue-700/20 rounded p-3">
                         <div className="text-[10px] text-blue-400 uppercase tracking-wide mb-1.5 font-semibold">💡 Cultivation Tip</div>
-                        <p className="text-xs text-slate-300 leading-relaxed">{CROP_DATA[primaryCrop].tip}</p>
+                        <p className="text-xs text-slate-300 leading-relaxed">{primaryCropData.tip}</p>
                       </div>
                     </div>
                   )}
@@ -207,30 +305,32 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
           )}
         </button>
 
-        {/* Livestock Card */}
+        {/* Livestock Card - Ultra Compact */}
         <button
           onClick={() => toggleCard('livestock')}
-          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-5 border border-slate-500/40 transition-all text-left"
+          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-4 border border-slate-500/40 transition-all text-left"
         >
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-slate-500 uppercase tracking-wide">Livestock</div>
             <div className={`transform transition-transform text-slate-500 ${expandedCard === 'livestock' ? 'rotate-180' : ''}`}>
               <span className="text-sm">▼</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {farmState.livestock.slice(0, 3).map((animal, idx) => (
-              <div key={idx} className="text-center">
-                <div className="text-2xl mb-1">
+          <div className="flex items-center justify-around gap-2">
+            {farmState.livestock.slice(0, 4).map((animal, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-3xl">
                   {animal.type === 'chickens' ? '🐔' :
                    animal.type === 'cattle' ? '🐄' :
                    animal.type === 'horses' ? '🐴' :
                    animal.type === 'pigs' ? '🐷' :
                    animal.type === 'sheep' ? '🐑' : '🐾'}
+                </span>
+                <div>
+                  <div className="text-base font-bold text-slate-100">{animal.count}</div>
+                  <div className="text-[10px] text-slate-400 capitalize leading-tight">{animal.type}</div>
                 </div>
-                <div className="text-lg font-bold text-slate-200">{animal.count}</div>
-                <div className="text-[10px] text-slate-400 capitalize">{animal.type}</div>
               </div>
             ))}
           </div>
@@ -262,34 +362,6 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
             </div>
           )}
         </button>
-      </div>
-
-      {/* Quick Actions Panel */}
-      <div className="bg-slate-700/30 border border-slate-600/40 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-slate-200 mb-3">Quick Actions</h3>
-        <div className="flex gap-3">
-          <button
-            onClick={plantAll}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700/80 hover:bg-emerald-600 text-white rounded-lg transition-all"
-          >
-            <Sprout className="w-4 h-4" />
-            Plant All
-          </button>
-          <button
-            onClick={waterAll}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-700/80 hover:bg-blue-600 text-white rounded-lg transition-all"
-          >
-            <Droplets className="w-4 h-4" />
-            Water All
-          </button>
-          <button
-            onClick={harvestAll}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-700/80 hover:bg-amber-600 text-white rounded-lg transition-all"
-          >
-            <Wheat className="w-4 h-4" />
-            Harvest All
-          </button>
-        </div>
       </div>
 
       {/* CSS Animations */}

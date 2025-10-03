@@ -351,14 +351,145 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
   const starVisibility = clamp(starVisibilityBase * (1 - cloudIntensity * 0.9), 0, 1);
   const starSeed = Math.floor((gameMonth + 1) * 1000 + gameDay * 17);
 
+  /* -------------------- Named Historical Stars (with precession) -------------------- */
+  const namedStars = useMemo(() => {
+    if (starVisibility <= 0) return [];
+
+    // Simple precession: Earth's axis precesses ~26,000 years, so adjust positions by year
+    const yearsSince2000 = gameYear - 2000;
+    const precessionDegrees = (yearsSince2000 / 26000) * 360; // Full circle = 26k years
+
+    // Historical stars with celestial coordinates (simplified RA/Dec → screen x/y)
+    // Format: { name, brightness (0-1), approx x% (0-100), y% (0-50, top half), era, description }
+    const stars = [
+      // Navigation & Pole Stars
+      { name: 'Polaris', brightness: 0.75, x: 50, y: 8, era: 500, desc: 'North Star (after 500 CE)' },
+      { name: 'Vega', brightness: 1.0, x: 68, y: 18, era: -12000, desc: 'Ancient Pole Star' },
+      { name: 'Canopus', brightness: 0.95, x: 42, y: 52, era: -3000, desc: 'Southern Navigator' },
+      { name: 'Arcturus', brightness: 0.9, x: 58, y: 22, era: -10000, desc: 'Bear Guardian' },
+
+      // Mythological & Calendrical
+      { name: 'Sirius', brightness: 1.0, x: 38, y: 38, era: -3000, desc: 'Dog Star, Egyptian Calendar' },
+      { name: 'Betelgeuse', brightness: 0.85, x: 44, y: 28, era: -5000, desc: 'Orion\'s Shoulder' },
+      { name: 'Rigel', brightness: 0.88, x: 40, y: 36, era: -5000, desc: 'Orion\'s Foot' },
+      { name: 'Aldebaran', brightness: 0.8, x: 35, y: 32, era: -3000, desc: 'Bull\'s Eye' },
+      { name: 'Antares', brightness: 0.82, x: 55, y: 42, era: -2000, desc: 'Rival of Mars' },
+
+      // Constellation Anchors
+      { name: 'Pleiades', brightness: 0.7, x: 32, y: 30, era: -10000, desc: 'Seven Sisters' },
+      { name: 'Acrux', brightness: 0.75, x: 62, y: 58, era: -5000, desc: 'Southern Cross' },
+      { name: 'Deneb', brightness: 0.78, x: 72, y: 16, era: -3000, desc: 'Swan\'s Tail' },
+      { name: 'Altair', brightness: 0.76, x: 65, y: 26, era: -2000, desc: 'Eagle Star' },
+      { name: 'Fomalhaut', brightness: 0.74, x: 48, y: 46, era: -2000, desc: 'Autumn Star' },
+      { name: 'Regulus', brightness: 0.77, x: 52, y: 32, era: -2000, desc: 'Little King, Lion\'s Heart' },
+    ];
+
+    // Apply simple precession rotation (rotate around north pole)
+    const precessionRad = (precessionDegrees * Math.PI) / 180;
+
+    return stars.map(star => {
+      // Only show Polaris after ~500 CE (before that it wasn't the pole star)
+      if (star.name === 'Polaris' && gameYear < 500) return null;
+
+      // Vega was pole star ~12,000 BCE
+      if (star.name === 'Vega' && gameYear > -10000 && gameYear < 500) {
+        // Not prominent as "pole star" during this era
+        star.brightness *= 0.7;
+        star.desc = 'Bright Star';
+      }
+
+      // Apply precession (simplified 2D rotation around center)
+      const centerX = 50;
+      const centerY = 25;
+      const dx = star.x - centerX;
+      const dy = star.y - centerY;
+      const rotatedX = centerX + (dx * Math.cos(precessionRad) - dy * Math.sin(precessionRad));
+      const rotatedY = centerY + (dx * Math.sin(precessionRad) + dy * Math.cos(precessionRad));
+
+      // Convert % to pixels
+      const x = (rotatedX / 100) * width;
+      const y = (rotatedY / 50) * height;
+
+      // Don't show if below horizon
+      if (y > height * 0.5) return null;
+
+      // Astronomically accurate star colors based on spectral type
+      let starColor = '#FFFFFF'; // Default white
+      let glowColor = '#FFFFFF';
+
+      if (star.name === 'Betelgeuse' || star.name === 'Antares') {
+        // Red supergiants (cool, M-type)
+        starColor = '#FF6347'; // Deep red-orange
+        glowColor = '#FF8C69';
+      } else if (star.name === 'Aldebaran') {
+        // Orange giant (K-type)
+        starColor = '#FFA347';
+        glowColor = '#FFB366';
+      } else if (star.name === 'Arcturus') {
+        // Orange giant (K-type)
+        starColor = '#FFB347';
+        glowColor = '#FFC466';
+      } else if (star.name === 'Rigel') {
+        // Blue supergiant (B-type, hottest visible)
+        starColor = '#9BB0FF'; // Cool blue
+        glowColor = '#ADBFFF';
+      } else if (star.name === 'Sirius' || star.name === 'Vega') {
+        // White main sequence (A-type, hot)
+        starColor = '#F0F8FF'; // Bright blue-white
+        glowColor = '#FFFFFF';
+      } else if (star.name === 'Canopus' || star.name === 'Deneb') {
+        // White supergiants (F-type)
+        starColor = '#FFFACD'; // Pale yellow-white
+        glowColor = '#FFFEF0';
+      } else if (star.name === 'Regulus' || star.name === 'Altair') {
+        // Blue-white (B-A type)
+        starColor = '#E0F0FF';
+        glowColor = '#F0F8FF';
+      } else if (star.name === 'Fomalhaut') {
+        // White (A-type)
+        starColor = '#F8F8FF';
+        glowColor = '#FFFFFF';
+      } else if (star.name === 'Polaris') {
+        // Yellow supergiant (F-type)
+        starColor = '#FFF9E3';
+        glowColor = '#FFFEF5';
+      } else if (star.name === 'Pleiades') {
+        // Hot blue cluster (B-type)
+        starColor = '#CAD7FF';
+        glowColor = '#E0E7FF';
+      } else {
+        // Generic white/yellow
+        starColor = '#FFF5E1';
+        glowColor = '#FFFEF0';
+      }
+
+      return {
+        name: star.name,
+        x,
+        y,
+        size: 1 + star.brightness * 1, // 1-2px (50% smaller than before, distinct from planets)
+        brightness: star.brightness,
+        description: star.desc,
+        color: starColor,
+        glow: glowColor
+      };
+    }).filter(Boolean) as { name: string; x: number; y: number; size: number; brightness: number; description: string; color: string; glow: string }[];
+  }, [starVisibility, gameYear, width, height]);
+
   // Moon and planet hover states (moved outside conditional rendering to fix React hooks)
   const [isMoonHovered, setIsMoonHovered] = React.useState(false);
   const [planetHoverStates, setPlanetHoverStates] = React.useState<boolean[]>([]);
+  const [namedStarHoverStates, setNamedStarHoverStates] = React.useState<boolean[]>([]);
 
   // Initialize planet hover states when planetPositions change
   React.useEffect(() => {
     setPlanetHoverStates(new Array(planetPositions.length).fill(false));
   }, [planetPositions.length]);
+
+  // Initialize named star hover states
+  React.useEffect(() => {
+    setNamedStarHoverStates(new Array(namedStars.length).fill(false));
+  }, [namedStars.length]);
 
   const stars = useMemo(() => {
     if (starVisibility <= 0) return [];
@@ -1376,6 +1507,167 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
                     {p.description}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* ----------------------------- NAMED STARS ---------------------------- */}
+      {starVisibility > 0 && namedStars.map((star, i) => {
+        const isHovered = namedStarHoverStates[i] || false;
+        const setIsHovered = (hovered: boolean) => {
+          setNamedStarHoverStates(prev => {
+            const newStates = [...prev];
+            newStates[i] = hovered;
+            return newStates;
+          });
+        };
+
+        return (
+          <div
+            key={`named-star-${star.name}-${i}`}
+            className="absolute"
+            style={{
+              left: `${star.x}px`,
+              top: `${star.y}px`,
+              transform: 'translate(-50%, -50%)',
+              opacity: starVisibility * star.brightness,
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+              zIndex: 1
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            {/* Outer glow (brightness-scaled) */}
+            <div
+              aria-hidden
+              style={{
+                width: `${star.size * 10 * star.brightness}px`,
+                height: `${star.size * 10 * star.brightness}px`,
+                background: `radial-gradient(circle, ${colorWithAlpha(star.glow, 0.4 * star.brightness)} 0%, ${colorWithAlpha(star.glow, 0.1 * star.brightness)} 50%, transparent 80%)`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                filter: 'blur(3px)',
+                position: 'absolute'
+              }}
+            />
+
+            {/* Star rays (4-pointed cross pattern) */}
+            <div
+              aria-hidden
+              style={{
+                width: `${star.size * 8}px`,
+                height: `${star.size * 8}px`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                position: 'absolute'
+              }}
+            >
+              {/* Horizontal ray */}
+              <div style={{
+                position: 'absolute',
+                left: '0',
+                top: '50%',
+                width: '100%',
+                height: '1px',
+                background: `linear-gradient(90deg, transparent, ${colorWithAlpha(star.color, 0.8)} 50%, transparent)`,
+                boxShadow: `0 0 ${star.size * 2}px ${colorWithAlpha(star.glow, 0.6)}`,
+                transform: 'translateY(-50%)'
+              }} />
+              {/* Vertical ray */}
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '0',
+                width: '1px',
+                height: '100%',
+                background: `linear-gradient(180deg, transparent, ${colorWithAlpha(star.color, 0.8)} 50%, transparent)`,
+                boxShadow: `0 0 ${star.size * 2}px ${colorWithAlpha(star.glow, 0.6)}`,
+                transform: 'translateX(-50%)'
+              }} />
+              {/* Diagonal ray 1 */}
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                width: `${Math.sqrt(2) * 100}%`,
+                height: '1px',
+                background: `linear-gradient(90deg, transparent, ${colorWithAlpha(star.color, 0.5)} 50%, transparent)`,
+                boxShadow: `0 0 ${star.size}px ${colorWithAlpha(star.glow, 0.4)}`,
+                transform: 'translate(-50%, -50%) rotate(45deg)',
+                opacity: 0.7
+              }} />
+              {/* Diagonal ray 2 */}
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                width: `${Math.sqrt(2) * 100}%`,
+                height: '1px',
+                background: `linear-gradient(90deg, transparent, ${colorWithAlpha(star.color, 0.5)} 50%, transparent)`,
+                boxShadow: `0 0 ${star.size}px ${colorWithAlpha(star.glow, 0.4)}`,
+                transform: 'translate(-50%, -50%) rotate(-45deg)',
+                opacity: 0.7
+              }} />
+            </div>
+
+            {/* Star core (small point) */}
+            <div
+              aria-hidden
+              style={{
+                width: `${star.size * 3}px`,
+                height: `${star.size * 3}px`,
+                borderRadius: '50%',
+                background: `radial-gradient(circle at 35% 35%, ${star.color}, ${colorWithAlpha(star.color, 0.85)})`,
+                boxShadow: `0 0 ${star.size * 6 * star.brightness}px ${colorWithAlpha(star.glow, 0.8 * star.brightness)}, 0 0 ${star.size * 3}px ${colorWithAlpha(star.color, 0.9)}, inset 0 0 ${star.size}px ${colorWithAlpha('#FFFFFF', 0.4)}`,
+                position: 'relative',
+                filter: `brightness(${1 + star.brightness * 0.2})`
+              }}
+            />
+
+            {/* Hover label */}
+            {isHovered && (
+              <div
+                className="absolute"
+                style={{
+                  bottom: `${-star.size * 8}px`,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(0, 0, 0, 0.95)',
+                  color: star.color,
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap',
+                  textShadow: `0 0 8px ${star.glow}, 0 0 4px ${star.color}`,
+                  border: `1.5px solid ${colorWithAlpha(star.glow, 0.5)}`,
+                  boxShadow: `0 0 12px ${colorWithAlpha(star.glow, 0.3)}, inset 0 0 8px ${colorWithAlpha(star.glow, 0.1)}`,
+                  zIndex: 1000,
+                  pointerEvents: 'none'
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: star.color,
+                    boxShadow: `0 0 6px ${star.glow}`
+                  }} />
+                  {star.name}
+                </div>
+                <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '3px', color: '#E0E0E0' }}>
+                  {star.description}
+                </div>
               </div>
             )}
           </div>

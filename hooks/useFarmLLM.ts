@@ -14,6 +14,7 @@ import {
   Season,
   DialogueEntry,
   TimeOfDay,
+  NpcEntity,
 } from '../types';
 import { FarmState, FarmFamilyMember, updateFarmState } from '../services/farmService';
 import {
@@ -21,6 +22,7 @@ import {
   generateHistoricalSummary,
   generateFarmDetails as llmGenerateFarmDetails,
   generateFarmWorkSimulation,
+  generateFarmerDecision,
 } from '../services/llmService';
 import { FarmerToast, WorkHistoryEntry } from '../components/farm/types';
 
@@ -33,6 +35,7 @@ interface UseFarmLLMOptions {
   era: HistoricalEra;
   season: Season;
   timeOfDay: TimeOfDay;
+  gameTimeHours: number;
   validCrops: string[];
   useLlm: boolean;
   onPlayerStateChange?: (changes: any) => void;
@@ -84,6 +87,7 @@ interface UseFarmLLMReturn {
   farmActionLog: Array<{ action: string; timeElapsed: number }>;
   setFarmActionLog: (log: Array<{ action: string; timeElapsed: number }>) => void;
   handleFarmWorkCommand: (command: string) => Promise<void>;
+  initializeWorkSession: (task: string) => void;
 }
 
 export function useFarmLLM({
@@ -95,6 +99,7 @@ export function useFarmLLM({
   era,
   season,
   timeOfDay,
+  gameTimeHours,
   validCrops,
   useLlm,
   onPlayerStateChange,
@@ -145,6 +150,84 @@ export function useFarmLLM({
       ]);
     }
   }, [era, season, culturalZone, farmWorkHistory.length]);
+
+  // Generate initial farmer greeting using LLM-driven context awareness
+  useEffect(() => {
+    if (!useLlm || !farmState || !playerCharacter || farmerToast) return; // Only run once when all deps are ready
+
+    const generateInitialGreeting = async () => {
+      const headFarmer = farmState.family.members.find(m => m.role === 'Farmer' && m.age >= 30) ||
+                        farmState.family.members.find(m => m.role === 'Farmer') ||
+                        farmState.family.members[0];
+
+      if (!headFarmer) return;
+
+      // Convert head farmer to NPC entity for LLM call
+      const farmerNpc: NpcEntity = {
+        id: `farmer-${headFarmer.id || Date.now()}`,
+        name: headFarmer.name || 'Farmer',
+        type: 'npc' as const,
+        x: 0,
+        y: 0,
+        health: headFarmer.health || 80,
+        maxHealth: headFarmer.maxHealth || 100,
+        age: headFarmer.age || 35,
+        gender: headFarmer.gender || 'male',
+        culturalZone: culturalZone,
+        occupation: 'farmer',
+        personality: headFarmer.personality || ['hardworking', 'practical', 'cautious'],
+        memory: {
+          conversationSummaries: [],
+          opinionOfPlayer: 50
+        }
+      } as NpcEntity;
+
+      // Calculate time-based context - USE GAME TIME, NOT REAL TIME!
+      const gameHour = Math.floor(gameTimeHours % 24);
+      const isNight = gameHour >= 20 || gameHour <= 5;
+      const playerAppearance = playerCharacter.equipment?.weapon ? 'armed' :
+                              playerCharacter.inventory?.some((i: any) => i.value > 50) ? 'wealthy' :
+                              playerCharacter.health < 30 ? 'injured' : 'peaceful';
+
+      console.log('[useFarmLLM] Generating initial farmer greeting with game time:', gameHour, 'isNight:', isNight);
+
+      try {
+        const farmerResponse = await generateFarmerDecision(
+          farmerNpc,
+          '', // Empty input - this is initial greeting
+          {
+            timeOfDay: gameHour,
+            playerReputation: playerCharacter.reputation || 50,
+            playerAppearance,
+            farmProsperity: farmState.economicStatus,
+            era: era,
+            location: mapData?.localArea || mapData?.continent || 'countryside',
+            playerHealth: playerCharacter.health || 100,
+            isNight,
+          }
+        );
+
+        // Set initial farmer toast based on LLM response
+        const toastType = farmerResponse.action === 'hostile' ? 'warning' :
+                         farmerResponse.action === 'suspicious' ? 'admonition' :
+                         farmerResponse.action === 'conditional' ? 'quest' : 'greeting';
+
+        setFarmerToast({
+          message: farmerResponse.dialogue,
+          type: toastType
+        });
+      } catch (error) {
+        console.error('Failed to generate initial farmer greeting:', error);
+        // Fallback to simple greeting
+        setFarmerToast({
+          message: `Welcome to our farm. I'm ${headFarmer.name}.`,
+          type: 'greeting'
+        });
+      }
+    };
+
+    generateInitialGreeting();
+  }, [useLlm, farmState, playerCharacter, culturalZone, era, mapData, farmerToast]); // Run once when all dependencies are available
 
   // Generate contextual farmer message
   const generateFarmerMessage = useCallback(() => {
@@ -475,6 +558,40 @@ export function useFarmLLM({
     ]
   );
 
+  // Initialize work session with farmer's assigned task
+  const initializeWorkSession = useCallback((task: string) => {
+    const headFarmer = farmState?.family.members.find(m => m.role === 'Farmer' && m.age >= 30) ||
+                      farmState?.family.members.find(m => m.role === 'Farmer') ||
+                      farmState?.family.members[0];
+
+    const intro: WorkHistoryEntry = {
+      type: 'narrator',
+      text: `${headFarmer?.name || 'The farmer'} leads you to the fields. "${task}," they say, gesturing toward the work ahead. The ${season.toLowerCase()} sun hangs in the ${timeOfDay.toLowerCase()} sky. What will you do?`
+    };
+
+    setFarmWorkHistory([intro]);
+    setHoursWorkedToday(0);
+    setCurrentFarmTime(new Date().getHours());
+  }, [farmState, season, timeOfDay]);
+
+  // Phase 3.4: State persistence for work sessions
+  useEffect(() => {
+    if (farmWorkHistory.length > 1 && farmState?.tileKey) {
+      // Don't save just intro message
+      const sessionKey = `farm-work-${farmState.tileKey}`;
+      try {
+        localStorage.setItem(sessionKey, JSON.stringify({
+          history: farmWorkHistory.slice(-20), // Keep last 20 messages
+          hoursWorked: hoursWorkedToday,
+          actionLog: farmActionLog.slice(-10), // Keep last 10 actions
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        console.warn('Failed to persist farm work session:', e);
+      }
+    }
+  }, [farmWorkHistory, hoursWorkedToday, farmActionLog, farmState?.tileKey]);
+
   return {
     // Family chat
     selectedMember,
@@ -521,5 +638,6 @@ export function useFarmLLM({
     farmActionLog,
     setFarmActionLog,
     handleFarmWorkCommand,
+    initializeWorkSession,
   };
 }

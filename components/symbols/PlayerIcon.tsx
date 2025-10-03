@@ -10,6 +10,16 @@ interface PlayerIconProps {
   character: PlayerCharacter;
 }
 
+// Helper function to adjust color brightness
+const adjustColorBrightness = (color: string, percent: number): string => {
+  const num = parseInt(color.replace("#",""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+  return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+};
+
 const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) => {
   // Detect Safari for performance optimizations
   const isSafari = useMemo(() => {
@@ -129,7 +139,8 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
       transform={`translate(${x}, ${y})`}
       style={{
         transition: 'transform 0.0s ease-out',
-        willChange: 'transform'
+        willChange: 'transform',
+        shapeRendering: 'geometricPrecision'
       }}
     >
       <defs>
@@ -354,17 +365,17 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
             {/* Top of head - curved */}
             <rect x="-1.5" y="-4.8" width="3" height="0.3" fill={skinColor} />
             <rect x="-2" y="-4.5" width="4" height="0.5" fill={skinColor} />
-            {/* Main head */}
-            <rect x="-2.5" y="-4" width="5" height="3.5" fill={skinColor} />
+            {/* Main head with rounded corners */}
+            <rect x="-2.5" y="-4" width="5" height="3.5" fill={skinColor} rx="0.8" />
             {/* Chin area - narrower for rounded bottom */}
             <rect x="-2" y="-0.5" width="4" height="0.5" fill={skinColor} />
             <rect x="-1.5" y="0" width="3" height="0.3" fill={skinColor} />
             
-            {/* Eyes */}
-            <rect x="-1.5" y="-3.5" width="0.8" height="0.8" fill="#000" />
-            <rect x="0.7" y="-3.5" width="0.8" height="0.8" fill="#000" />
-            <rect x="-1.3" y="-3.3" width="0.3" height="0.3" fill="#fff" />
-            <rect x="0.9" y="-3.3" width="0.3" height="0.3" fill="#fff" />
+            {/* Eyes - improved with ellipses and highlights */}
+            <ellipse cx="-1.1" cy="-3.1" rx="0.5" ry="0.6" fill="#2a2a2a" />
+            <ellipse cx="1.1" cy="-3.1" rx="0.5" ry="0.6" fill="#2a2a2a" />
+            <circle cx="-1.1" cy="-3.2" r="0.15" fill="#fff" opacity="0.9" /> {/* Highlight */}
+            <circle cx="1.1" cy="-3.2" r="0.15" fill="#fff" opacity="0.9" />
             
             {/* Nose - simple indication */}
             <rect x="-0.2" y="-2.5" width="0.4" height="0.6" fill={skinColor} style={{filter: 'brightness(0.9)'}} />
@@ -376,22 +387,31 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
             {/* Render bare skin if no garment, otherwise use clothing color */}
             <rect x={-bodyWidth/2 + 0.3} y="0.3" width={bodyWidth - 0.6} height="0.3" fill={isNaked ? skinColor : clothingColor} />
             <rect x={-bodyWidth/2} y="0.6" width={bodyWidth} height={bodyHeight - 0.6} fill={isNaked ? skinColor : clothingColor} />
+            {/* Subtle shading for depth */}
+            <rect x={-bodyWidth/2} y="0.6" width={bodyWidth * 0.35} height={bodyHeight - 0.6}
+                  fill="rgba(255,255,255,0.12)" /> {/* Left highlight */}
+            <rect x={bodyWidth/2 - bodyWidth * 0.25} y="1" width={bodyWidth * 0.25} height={bodyHeight - 1.4}
+                  fill="rgba(0,0,0,0.12)" /> {/* Right shadow */}
             
             {/* Arms - show full arm if naked, otherwise show sleeves */}
             {/* Left arm */}
-            <rect x="-4.2" y="0.6" width="1.4" height="1.8" fill={isNaked ? skinColor : clothingColor} /> {/* Upper arm/Sleeve */}
-            <rect x="-4" y="2.4" width="1.2" height="1.6" fill={skinColor} /> {/* Forearm */}
+            <rect x="-4.2" y="0.6" width="1.4" height="1.8" fill={isNaked ? skinColor : clothingColor} rx="0.3" /> {/* Upper arm/Sleeve */}
+            <rect x="-4.3" y="0.6" width="0.5" height="1.8" fill="rgba(255,255,255,0.1)" /> {/* Arm highlight */}
+            <rect x="-4" y="2.4" width="1.2" height="1.6" fill={skinColor} rx="0.3" /> {/* Forearm */}
             {/* Right arm */}
-            <rect x="2.8" y="0.6" width="1.4" height="1.8" fill={isNaked ? skinColor : clothingColor} /> {/* Upper arm/Sleeve */}
-            <rect x="2.8" y="2.4" width="1.2" height="1.6" fill={skinColor} /> {/* Forearm */}
+            <rect x="2.8" y="0.6" width="1.4" height="1.8" fill={isNaked ? skinColor : clothingColor} rx="0.3" /> {/* Upper arm/Sleeve */}
+            <rect x="3.7" y="0.6" width="0.4" height="1.8" fill="rgba(0,0,0,0.1)" /> {/* Arm shadow */}
+            <rect x="2.8" y="2.4" width="1.2" height="1.6" fill={skinColor} rx="0.3" /> {/* Forearm */}
             
             {/* Hands - connected to forearms */}
             <rect x="-4" y="4" width="1.2" height="1" fill={skinColor} />
             <rect x="2.8" y="4" width="1.2" height="1" fill={skinColor} />
             
             {/* Legs */}
-            <rect x="-1.5" y="4" width="1.3" height="5" fill={secondaryColor} />
-            <rect x="0.2" y="4" width="1.3" height="5" fill={secondaryColor} />
+            <rect x="-1.5" y="4" width="1.3" height="5" fill={secondaryColor} rx="0.3" />
+            <rect x="-1.5" y="4" width="0.4" height="5" fill="rgba(255,255,255,0.1)" /> {/* Left leg highlight */}
+            <rect x="0.2" y="4" width="1.3" height="5" fill={secondaryColor} rx="0.3" />
+            <rect x="1.1" y="4" width="0.4" height="5" fill="rgba(0,0,0,0.1)" /> {/* Right leg shadow */}
             
             {/* Feet */}
             <rect x="-1.8" y="9" width="1.8" height="1.2" fill="#654321" />

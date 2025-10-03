@@ -29,6 +29,7 @@ import { themeService } from './services/themeService';
 import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
 import TransitionOverlay from './components/TransitionOverlay';
+import StudyStarsOverlay from './components/StudyStarsOverlay';
 import QuestNotificationToast from './components/QuestNotification';
 import StatusWarningToast from './components/ui/StatusWarningToast';
 import ContainerPrompt from './components/ContainerPrompt';
@@ -47,6 +48,8 @@ import { SavedGame } from './services/saveGameService';
 import FloatingText from './components/ui/FloatingText';
 import GameSetupScreen from './components/GameSetupScreen';
 import { LoadingSkeleton } from './components/LoadingSkeleton';
+import JournalViewport from './components/JournalViewport';
+import QuestsPanel from './components/QuestsPanel';
 
 // Lazy load heavy modals that are used infrequently
 const EventModal = lazy(() => import('./components/EventModal').then(m => ({ default: m.EventModal })));
@@ -278,10 +281,59 @@ const AppContent: React.FC = () => {
         setDiseaseProgressionQueue(prev => [...prev, ...events]);
     }, []);
 
-    // Camp modal state
-    const [showCampModal, setShowCampModal] = React.useState(false);
-    const [showPlayerTooltip, setShowPlayerTooltip] = React.useState(false);
-    const [playerTooltipPos, setPlayerTooltipPos] = React.useState({ x: 0, y: 0 });
+    // Get hooks FIRST before defining callbacks that depend on them
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast } = useUI();
+    const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY } = usePlayer();
+    const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog } = useGame();
+
+    // Camp modal handlers (defined AFTER hooks)
+    const handleRest = React.useCallback((healingPercent: number, fatiguePercent: number) => {
+        if (!playerCharacter || !gameDate) return;
+
+        // Apply healing
+        const healAmount = Math.floor(playerCharacter.maxHealth * (healingPercent / 100));
+        const newHealth = Math.min(playerCharacter.health + healAmount, playerCharacter.maxHealth);
+
+        // Apply fatigue restoration
+        const restoreAmount = Math.floor(playerCharacter.maxFatigue * (fatiguePercent / 100));
+        const newFatigue = Math.max(playerCharacter.fatigue - restoreAmount, 0);
+
+        setPlayerCharacter({
+            ...playerCharacter,
+            health: newHealth,
+            fatigue: newFatigue
+        });
+
+        // Advance time to dawn (6 AM next day)
+        const nextDay = new Date(gameDate.year, gameDate.month - 1, gameDate.day + 1);
+        setGameDate({
+            year: nextDay.getFullYear(),
+            month: nextDay.getMonth() + 1,
+            day: nextDay.getDate()
+        });
+        setGameTimeHours(6);
+
+        showToast('You wake feeling refreshed at dawn.');
+    }, [playerCharacter, setPlayerCharacter, gameDate, setGameDate, setGameTimeHours, showToast]);
+
+    const handleExploreCampground = React.useCallback(() => {
+        console.log('[App] Explore campground - feature not yet implemented');
+        showToast('Campground exploration coming soon!');
+        setIsCampModalOpen(false);
+    }, [setIsCampModalOpen, showToast]);
+
+    // Study stars mode state
+    const [isStudyingStars, setIsStudyingStars] = React.useState(false);
+
+    const handleStudyStarsToggle = React.useCallback((isActive: boolean) => {
+        setIsStudyingStars(isActive);
+    }, []);
+
+    const handleReturnToCamp = React.useCallback(() => {
+        setIsStudyingStars(false);
+        // This will trigger the callback in CampModal to sync its state
+        handleStudyStarsToggle(false);
+    }, [handleStudyStarsToggle]);
 
     useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning);
 
@@ -294,10 +346,6 @@ const AppContent: React.FC = () => {
             setDiseaseProgressionQueue(prev => prev.slice(1));
         }
     }, [diseaseProgressionQueue, showDiseaseProgressionModal, currentDiseaseProgression]);
-
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen } = useUI();
-    const { playerCharacter } = usePlayer();
-    const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime } = useGame();
     const mapContext = useMap();
     const { localArea, mapData, currentMapSeed, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, isSpecialMap, isEnteringSpecialMap } = mapContext;
     
@@ -317,7 +365,11 @@ const AppContent: React.FC = () => {
         quest?: any;
     } | null>(null);
     const [showTransitionOverlay, setShowTransitionOverlay] = React.useState(false); // Full-screen overlay state
-    
+
+    // Journal and Quests panel state
+    const [showJournal, setShowJournal] = React.useState(false);
+    const [showQuestsPanel, setShowQuestsPanel] = React.useState(false);
+
     // Use a ref to ensure we only generate once from URL
     const hasGeneratedFromURLRef = React.useRef(false);
     
@@ -527,14 +579,23 @@ const AppContent: React.FC = () => {
                     targetRegion = urlConfig.geography?.region || '';
                 }
 
-                characterSpec = urlConfig.dateRange ? { year: urlConfig.dateRange.startYear } : undefined;
+                // Generate random year within the date range
+                let selectedYear: number | undefined;
+                if (urlConfig.dateRange) {
+                    const { startYear, endYear } = urlConfig.dateRange;
+                    selectedYear = startYear === endYear
+                        ? startYear
+                        : Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
+                }
 
-                console.log('[App] Legacy URL world generation - Zone:', targetZone, 'Region:', targetRegion, 'MapArea:', mapArea);
+                characterSpec = selectedYear ? { year: selectedYear } : undefined;
+
+                console.log('[App] Legacy URL world generation - Zone:', targetZone, 'Region:', targetRegion, 'MapArea:', mapArea, 'Year:', selectedYear);
 
                 // If we have a specific map area, use onStartNewWorldAtLocation
                 if (mapArea && typeof onStartNewWorldAtLocation === 'function') {
                     console.log('[App] Using map area from URL:', mapArea);
-                    onStartNewWorldAtLocation(targetZone, mapArea, characterSpec, urlConfig.dateRange?.startYear);
+                    onStartNewWorldAtLocation(targetZone, mapArea, characterSpec, selectedYear);
                 } else {
                     // Use onStartNewWorldAtZoneRegion for legacy URLs without map area
                     console.log('[App] Generating random location in zone:', targetZone, 'region:', targetRegion || '(any)');
@@ -766,7 +827,7 @@ const AppContent: React.FC = () => {
             currentValue={statusWarning.currentValue}
             maxValue={statusWarning.maxValue}
             onClose={() => setStatusWarning(null)}
-            onMakeCamp={() => setShowCampModal(true)}
+            onMakeCamp={() => setIsCampModalOpen(true)}
             duration={statusWarning.severity === 'critical' ? 0 : statusWarning.severity === 'danger' ? 8000 : 5000}
           />
         )}
@@ -778,12 +839,16 @@ const AppContent: React.FC = () => {
           onClose={hideContainerPrompt}
         />
         
-        <div className="relative z-10 flex flex-col h-full">
+        <div className="relative flex flex-col h-full">
             {/* Desktop Navigation */}
-            {!isMobile && <div className={isSafariBrowser ? `safari-fade-in ${uiVisible ? 'visible' : ''}` : 'animate-fade-in'}>
+            {!isMobile && <div className={`${isSafariBrowser ? `safari-fade-in ${uiVisible ? 'visible' : ''}` : 'animate-fade-in'} transition-opacity duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 <TopNavBarPolished
                     onWorldWeaverLoadingChange={setIsProcessingWorldWeaver}
                     onWorldWeaverDataReceived={setWorldWeaverData}
+                    showJournal={showJournal}
+                    setShowJournal={setShowJournal}
+                    showQuestsPanel={showQuestsPanel}
+                    setShowQuestsPanel={setShowQuestsPanel}
                 />
             </div>}
             
@@ -846,7 +911,7 @@ const AppContent: React.FC = () => {
                 </button>
                 
                 {/* Left Sidebar with mobile overlay and slide animation */}
-                <div className={`${mobileMenuOpen === 'left' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full`}>
+                <div className={`${mobileMenuOpen === 'left' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-opacity duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     {mobileMenuOpen === 'left' && (
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
                     )}
@@ -873,12 +938,13 @@ const AppContent: React.FC = () => {
                     mapVisible={mapVisible}
                     isProcessingWorldWeaver={isProcessingWorldWeaver}
                     onPlayerDeath={handleDeath}
-                    className={isSafariBrowser ? `safari-fade-in-scale ${uiVisible ? 'visible' : ''}` : 'animate-fade-in-scale delay-200'}
+                    className={`${isSafariBrowser ? `safari-fade-in-scale ${uiVisible ? 'visible' : ''}` : 'animate-fade-in-scale delay-200'}`}
+                    isStudyingStars={isStudyingStars}
                 />
                 
                 {/* Right Sidebar with mobile overlay and slide animation */}
                 {isRightSidebarVisible && (
-                    <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-300`}>
+                    <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                         {mobileMenuOpen === 'right' && (
                             <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
                         )}
@@ -897,6 +963,14 @@ const AppContent: React.FC = () => {
         <TransitionOverlay
           isVisible={showTransitionOverlay}
           isProcessing={isProcessingWorldWeaver}
+        />
+        <StudyStarsOverlay
+          isVisible={isStudyingStars}
+          gameTimeHours={gameTimeHours}
+          gameDate={gameDate}
+          climate={mapData?.climate}
+          season={mapData?.season}
+          onReturnToCamp={handleReturnToCamp}
         />
         <DebugOverlay />
         {isTestModeEnabled && debugSettings.showFPS && !debugSettings.logPerformanceMetrics && (
@@ -1088,6 +1162,58 @@ const AppContent: React.FC = () => {
 
         {/* Tooltip Portal Container - Renders tooltips above all other UI elements */}
         <div id="tooltip-portal" className="pointer-events-none fixed inset-0 z-[9999]" />
+
+        {/* Camp Modal */}
+        {isCampModalOpen && playerCharacter && mapData && controlledIconX !== null && controlledIconY !== null && (
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <CampModal
+              isOpen={isCampModalOpen}
+              onClose={() => setIsCampModalOpen(false)}
+              playerCharacter={playerCharacter}
+              currentBiome={mapData.tiles[controlledIconY]?.[controlledIconX]?.biome || 'GRASSLAND' as any}
+              mapData={mapData}
+              onRest={handleRest}
+              onExploreCampground={handleExploreCampground}
+              timeOfDay={gameTimeHours}
+              gamelog={gameLog}
+              onStudyStarsToggle={handleStudyStarsToggle}
+              isStudyingStarsFromParent={isStudyingStars}
+            />
+          </Suspense>
+        )}
+
+        {/* Journal Viewport - rendered at App level for proper z-index */}
+        <JournalViewport
+          visible={showJournal}
+          onClose={() => setShowJournal(false)}
+          currentLocation={currentZone || 'Unknown Location'}
+          currentDate={gameDate ? `${gameDate.month}/${gameDate.day}/${gameDate.year}` : 'Unknown Date'}
+          currentCulturalZone={playerCharacter?.culturalZone}
+        />
+
+        {/* Quests Panel - rendered at App level for proper z-index */}
+        <QuestsPanel
+          isOpen={showQuestsPanel}
+          onClose={() => setShowQuestsPanel(false)}
+          onNavigateToQuest={(x, y) => {
+            console.log('Centering map on quest at:', x, y);
+            // Center the map view on the quest location WITHOUT moving the player
+            const centerEvent = new CustomEvent('centerMapOnLocation', {
+              detail: { x, y }
+            });
+            window.dispatchEvent(centerEvent);
+            setShowQuestsPanel(false);
+            // Show a notification that we're centering the view
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-[60] animate-in fade-in slide-in-from-top-4 duration-300';
+            notification.textContent = `Showing quest objective at (${x}, ${y})`;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+              notification.classList.add('animate-out', 'fade-out', 'slide-out-to-top-4');
+              setTimeout(() => notification.remove(), 300);
+            }, 2000);
+          }}
+        />
       </div>
     );
 };

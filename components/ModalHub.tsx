@@ -99,7 +99,8 @@ const ModalHub: React.FC = () => {
         containerModalData, setContainerModalData, showToast,
         selectedPrimarySource, setSelectedPrimarySource,
         diseaseContractedModalData, setDiseaseContractedModalData,
-        cityHistoricalModalData, setCityHistoricalModalData
+        cityHistoricalModalData, setCityHistoricalModalData,
+        contextualTooltipsEnabled, toggleContextualTooltips, resetAllTooltips
     } = useUI();
 
     const {
@@ -245,29 +246,32 @@ const ModalHub: React.FC = () => {
                     <DevBuildingModeModal isOpen={isDevBuildingModeOpen} onClose={() => setIsDevBuildingModeOpen(false)} />
                 </Suspense>
             )}
-            {isSettingsModalOpen && ( 
-                <SettingsPanel 
-                    isOpen={isSettingsModalOpen} 
-                    onClose={() => setIsSettingsModalOpen(false)} 
-                    currentSeed={initialGameSeed} 
-                    onSeedChange={handleSeedChangeFromSettings} 
-                    showDevTooltip={showDevTooltip} 
-                    onToggleDevTooltip={() => setShowDevTooltip(p => !p)} 
-                    useLlmForDescriptions={useLlmForDescriptions} 
-                    onToggleLlmForDescriptions={() => setUseLlmForDescriptions(p => !p)} 
-                    useLlmForCharacter={useLlmForCharacter} 
-                    onToggleLlmForCharacter={() => setUseLlmForCharacter(p => !p)} 
-                    isTestModeEnabled={isTestModeEnabled} 
-                    onToggleTestMode={() => setIsTestModeEnabled(p => !p)} 
-                    isDevBuildingModeOpen={isDevBuildingModeOpen} 
-                    onToggleDevBuildingMode={() => setIsDevBuildingModeOpen(p => !p)} 
-                    playerCharacter={playerCharacter} 
-                    mapData={mapData} 
-                    currentZone={currentZone} 
+            {isSettingsModalOpen && (
+                <SettingsPanel
+                    isOpen={isSettingsModalOpen}
+                    onClose={() => setIsSettingsModalOpen(false)}
+                    currentSeed={initialGameSeed}
+                    onSeedChange={handleSeedChangeFromSettings}
+                    showDevTooltip={showDevTooltip}
+                    onToggleDevTooltip={() => setShowDevTooltip(p => !p)}
+                    useLlmForDescriptions={useLlmForDescriptions}
+                    onToggleLlmForDescriptions={() => setUseLlmForDescriptions(p => !p)}
+                    useLlmForCharacter={useLlmForCharacter}
+                    onToggleLlmForCharacter={() => setUseLlmForCharacter(p => !p)}
+                    isTestModeEnabled={isTestModeEnabled}
+                    onToggleTestMode={() => setIsTestModeEnabled(p => !p)}
+                    isDevBuildingModeOpen={isDevBuildingModeOpen}
+                    onToggleDevBuildingMode={() => setIsDevBuildingModeOpen(p => !p)}
+                    playerCharacter={playerCharacter}
+                    mapData={mapData}
+                    currentZone={currentZone}
                     currentYear={gameDate.year}
                     onLoadGame={handleLoadGame}
                     currentGameState={currentGameState}
-                /> 
+                    contextualTooltipsEnabled={contextualTooltipsEnabled}
+                    onToggleContextualTooltips={toggleContextualTooltips}
+                    onResetTooltips={resetAllTooltips}
+                />
             )}
             {isWorldMapModalOpen && (
                 <Suspense fallback={

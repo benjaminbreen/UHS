@@ -31,6 +31,7 @@ export interface PlayerContext {
     gameDate?: GameDate;
     gameTime?: { hours: number; minutes: number };
     season?: string;
+    currentVessel?: Item | null;
     // Interior context information
     interiorContext?: {
         buildingType: string;

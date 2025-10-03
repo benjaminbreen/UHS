@@ -423,6 +423,100 @@ export const BUDDHIST_TEMPLE_LAYOUT: BuildingLayout = {
     ]
 };
 
+// HINDU TEMPLE - Open courtyard with multiple shrines (Mandapa style)
+export const HINDU_TEMPLE_LAYOUT: BuildingLayout = {
+    name: 'Hindu Temple',
+    totalBounds: { width: 26, height: 22 },
+    entrance: { x: 13, y: 20 },
+    backgroundPattern: 'stone_carved',
+    ambientLighting: { color: '#FFF8DC', intensity: 0.6 },
+    spaces: [
+        // Main hall (Mandapa)
+        {
+            id: 'mandapa',
+            name: 'Mandapa (Prayer Hall)',
+            type: 'room',
+            bounds: { x: 5, y: 10, width: 16, height: 10 },
+            floorType: 'marble',
+            wallHeight: 5,
+            lightingSources: [
+                { type: 'candle', position: { x: 8, y: 14 }, intensity: 0.4, color: '#FFD700' },
+                { type: 'candle', position: { x: 18, y: 14 }, intensity: 0.4, color: '#FFD700' },
+                { type: 'candle', position: { x: 8, y: 16 }, intensity: 0.4, color: '#FFD700' },
+                { type: 'candle', position: { x: 18, y: 16 }, intensity: 0.4, color: '#FFD700' },
+                { type: 'window', position: { x: 13, y: 10 }, intensity: 0.7, color: '#FFA500' }
+            ],
+            furniture: [
+                { type: 'column', position: { x: 8, y: 12 } },
+                { type: 'column', position: { x: 18, y: 12 } },
+                { type: 'column', position: { x: 8, y: 18 } },
+                { type: 'column', position: { x: 18, y: 18 } },
+                { type: 'rug', position: { x: 11, y: 15 } },
+                { type: 'rug', position: { x: 15, y: 15 } }
+            ],
+            accessibility: 'public'
+        },
+        // Main shrine (Garbhagriha - sanctum sanctorum)
+        {
+            id: 'garbhagriha',
+            name: 'Garbhagriha (Inner Sanctum)',
+            type: 'altar',
+            bounds: { x: 11, y: 4, width: 4, height: 6 },
+            floorType: 'marble',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'altar_glow', position: { x: 13, y: 7 }, intensity: 1.0, color: '#FF6347' },
+                { type: 'candle', position: { x: 12, y: 6 }, intensity: 0.5, color: '#FFD700' },
+                { type: 'candle', position: { x: 14, y: 6 }, intensity: 0.5, color: '#FFD700' },
+                { type: 'candle', position: { x: 12, y: 8 }, intensity: 0.5, color: '#FFD700' },
+                { type: 'candle', position: { x: 14, y: 8 }, intensity: 0.5, color: '#FFD700' }
+            ],
+            furniture: [
+                { type: 'altar', position: { x: 13, y: 7 } },
+                { type: 'statue', position: { x: 13, y: 6 } }, // Main deity
+                { type: 'planter', position: { x: 12, y: 9 } }, // Offerings
+                { type: 'planter', position: { x: 14, y: 9 } }
+            ],
+            accessibility: 'sacred',
+            requiredReligion: 'Hinduism'
+        },
+        // Side shrine 1 (for secondary deity)
+        {
+            id: 'side_shrine_1',
+            name: 'Side Shrine',
+            type: 'altar',
+            bounds: { x: 3, y: 6, width: 3, height: 4 },
+            floorType: 'stone',
+            wallHeight: 3,
+            lightingSources: [
+                { type: 'candle', position: { x: 4, y: 8 }, intensity: 0.4, color: '#FFD700' }
+            ],
+            furniture: [
+                { type: 'altar', position: { x: 4, y: 8 } },
+                { type: 'statue', position: { x: 4, y: 7 } }
+            ],
+            accessibility: 'public'
+        },
+        // Side shrine 2
+        {
+            id: 'side_shrine_2',
+            name: 'Side Shrine',
+            type: 'altar',
+            bounds: { x: 20, y: 6, width: 3, height: 4 },
+            floorType: 'stone',
+            wallHeight: 3,
+            lightingSources: [
+                { type: 'candle', position: { x: 22, y: 8 }, intensity: 0.4, color: '#FFD700' }
+            ],
+            furniture: [
+                { type: 'altar', position: { x: 22, y: 8 } },
+                { type: 'statue', position: { x: 22, y: 7 } }
+            ],
+            accessibility: 'public'
+        }
+    ]
+};
+
 // SYNAGOGUE - Rectangular with bimah
 export const SYNAGOGUE_LAYOUT: BuildingLayout = {
     name: 'Synagogue',
@@ -811,10 +905,48 @@ export function selectBuildingLayout(
             console.log('⛪ Selected: CHURCH_LAYOUT (religion fallback)');
             return CHURCH_LAYOUT;
         }
-        
-        console.log('❓ [ArchitecturalLayouts] No specific religion matched, falling back to default');
+
+        // Hindu/Hinduism
+        if (lowerReligion.includes('hindu')) {
+            console.log('🕉️ Selected: HINDU_TEMPLE_LAYOUT (religion fallback)');
+            return HINDU_TEMPLE_LAYOUT;
+        }
+
+        // Traditional/Indigenous religions - use cultural zone to determine appropriate layout
+        if (lowerReligion.includes('traditional') || lowerReligion.includes('indigenous') || lowerReligion.includes('native')) {
+            console.log('🌍 [ArchitecturalLayouts] Traditional religion detected, using cultural zone for layout');
+            // Fall through to cultural zone logic below
+        } else {
+            console.log('❓ [ArchitecturalLayouts] No specific religion matched, using cultural zone fallback');
+        }
+
+        // Smart cultural zone fallbacks when no religion matched
+        const lowerZone = (culturalZone || '').toLowerCase();
+
+        if (lowerZone.includes('mena') || lowerZone.includes('middle')) {
+            console.log('🕌 Selected: MOSQUE_LAYOUT (cultural zone fallback)');
+            return MOSQUE_LAYOUT;
+        }
+        if (lowerZone.includes('east_asia') || lowerZone.includes('asia')) {
+            console.log('🏯 Selected: BUDDHIST_TEMPLE_LAYOUT (cultural zone fallback)');
+            return BUDDHIST_TEMPLE_LAYOUT;
+        }
+        if (lowerZone.includes('south_asia')) {
+            console.log('🕉️ Selected: HINDU_TEMPLE_LAYOUT (cultural zone fallback)');
+            return HINDU_TEMPLE_LAYOUT;
+        }
+        if (lowerZone.includes('african') || lowerZone.includes('africa')) {
+            // African traditional shrines - use mosque for Islamic regions, simple temple otherwise
+            if (era && era !== 'PREHISTORY' && era !== 'ANTIQUITY') {
+                console.log('🕌 Selected: MOSQUE_LAYOUT (African Islamic fallback)');
+                return MOSQUE_LAYOUT;
+            }
+            console.log('🏛️ Selected: BUDDHIST_TEMPLE_LAYOUT (African traditional fallback)');
+            return BUDDHIST_TEMPLE_LAYOUT; // Generic sacred space
+        }
     }
-    
-    // Default fallback
+
+    // Final fallback - default to Christianity only for unspecified/European zones
+    console.log('⛪ Selected: CHURCH_LAYOUT (final fallback)');
     return CHURCH_LAYOUT;
 }

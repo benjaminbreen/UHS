@@ -75,8 +75,8 @@ const SimplePopulationChart: React.FC<SimplePopulationChartProps> = ({ currentYe
 
   const { pathD, width, height, padding, playerX, playerY, playerPop, percentLivedAfter } = useMemo(() => {
     const w = 280;
-    const h = 180;
-    const p = 25;
+    const h = 140;
+    const p = 20;
     const minYear = -5000;
     const maxYear = 2025;
     const maxP = 8500;

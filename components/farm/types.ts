@@ -56,7 +56,7 @@ export interface PlayerStateChanges {
 // TAB TYPES
 // ============================================================================
 
-export type TabType = 'overview' | 'fields' | 'work' | 'family' | 'trade' | 'advisor';
+export type TabType = 'overview' | 'fields' | 'work' | 'household' | 'trade' | 'advisor';
 
 // ============================================================================
 // FARM CONTEXT VALUE
@@ -172,6 +172,16 @@ export const CROP_EMOJIS: Record<string, string> = {
   tobacco: '🍂',
   sugarcane: '🎋',
   sugar: '🎋',
+  apples: '🍎',
+  apple: '🍎',
+  pears: '🍐',
+  pear: '🍐',
+  plums: '🍑',
+  plum: '🍑',
+  cherries: '🍒',
+  cherry: '🍒',
+  dates: '🌴',
+  date: '🌴',
 };
 
 // ============================================================================

@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NarrationMessage } from '../types';
+import { useMap } from '../contexts/MapContext';
+import { usePlayer } from '../contexts/PlayerContext';
 
 interface NarrationPanelProps {
   narrationHistory: NarrationMessage[];
@@ -7,6 +9,7 @@ interface NarrationPanelProps {
   onPlayerInputChange: (value: string) => void;
   onSend: () => void;
   isLoading: boolean;
+  onOpenCampModal?: () => void;
 }
 
 type TextSize = 'sm' | 'md' | 'lg';
@@ -33,10 +36,18 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
   playerInput,
   onPlayerInputChange,
   onSend,
-  isLoading
+  isLoading,
+  onOpenCampModal
 }) => {
+  const { localArea, mapData, culturalZone } = useMap();
+  const { playerCharacter } = usePlayer();
+
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [showQuickCommandsDueToWarning, setShowQuickCommandsDueToWarning] = useState(false);
+  const [contextualSuggestion, setContextualSuggestion] = useState<{ tip: string; prompts: string[] } | null>(null);
+  const [lastSuggestionTime, setLastSuggestionTime] = useState<number>(0);
   const logRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const gearRef = useRef<HTMLButtonElement>(null);
@@ -67,6 +78,92 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [narrationHistory, isLoading, settings.autoScroll]);
 
+  // Detect rest warning and show quick commands
+  useEffect(() => {
+    const lastMessage = narrationHistory[narrationHistory.length - 1];
+    if (lastMessage?.sender === 'narrator' &&
+        lastMessage.text.includes('should rest when you have a chance')) {
+      setShowQuickCommandsDueToWarning(true);
+      // Auto-hide after 30 seconds
+      const timeout = setTimeout(() => {
+        setShowQuickCommandsDueToWarning(false);
+      }, 30000);
+      return () => clearTimeout(timeout);
+    }
+  }, [narrationHistory]);
+
+  // Generate contextual suggestions when narrator is empty - max once per minute
+  useEffect(() => {
+    // Only show if narrator history is minimal (just the initial placeholder)
+    const isNarratorEmpty = narrationHistory.length <= 1 ||
+      (narrationHistory.length === 1 && narrationHistory[0].sender === 'narrator-special');
+
+    if (!isNarratorEmpty) {
+      setContextualSuggestion(null);
+      return;
+    }
+
+    // Rate limiting: max once per minute
+    const now = Date.now();
+    if (now - lastSuggestionTime < 60000) return;
+
+    // Generate contextual tip and prompts based on game state
+    const tips = [
+      'Try exploring your surroundings to discover what this place has to offer.',
+      'Use the narrator to ask questions about your environment and the people around you.',
+      'Your actions shape the story - experiment with different approaches.',
+      'Check your inventory to see what resources you have available.'
+    ];
+
+    const prompts: string[] = [];
+
+    // Location-based prompts
+    if (localArea) {
+      const areaLower = localArea.toLowerCase();
+      if (areaLower.includes('market') || areaLower.includes('bazaar')) {
+        prompts.push('What goods are being sold here?', 'Look for a merchant to trade with');
+      } else if (areaLower.includes('temple') || areaLower.includes('shrine') || areaLower.includes('church')) {
+        prompts.push('Ask about local religious customs', 'Speak with a priest or monk');
+      } else if (areaLower.includes('harbor') || areaLower.includes('port') || areaLower.includes('dock')) {
+        prompts.push('Look for ships heading to distant lands', 'Ask sailors about their travels');
+      } else if (areaLower.includes('palace') || areaLower.includes('court')) {
+        prompts.push('Inquire about the ruler of this land', 'Observe court protocols');
+      } else if (areaLower.includes('tavern') || areaLower.includes('inn')) {
+        prompts.push('Listen to local gossip', 'Ask the innkeeper about recent events');
+      }
+    }
+
+    // Profession-based prompts
+    if (playerCharacter?.profession) {
+      const professionLower = playerCharacter.profession.toLowerCase();
+      if (professionLower.includes('merchant') || professionLower.includes('trader')) {
+        prompts.push('Seek out profitable trade opportunities');
+      } else if (professionLower.includes('scholar') || professionLower.includes('scribe')) {
+        prompts.push('Search for books or documents to study');
+      } else if (professionLower.includes('guard') || professionLower.includes('soldier')) {
+        prompts.push('Look for work protecting caravans or estates');
+      }
+    }
+
+    // Generic fallback prompts
+    if (prompts.length < 3) {
+      const generic = [
+        'What do I see?',
+        'Look for someone to talk to',
+        'Search for useful items or resources',
+        'Ask about local customs and culture'
+      ];
+      prompts.push(...generic.slice(0, 3 - prompts.length));
+    }
+
+    // Pick a random tip and up to 3 prompts
+    const randomTip = tips[Math.floor(Math.random() * tips.length)];
+    const selectedPrompts = prompts.slice(0, 3);
+
+    setContextualSuggestion({ tip: randomTip, prompts: selectedPrompts });
+    setLastSuggestionTime(now);
+  }, [narrationHistory, localArea, playerCharacter, lastSuggestionTime]);
+
   const isPlaceholderVisible =
     narrationHistory.length === 1 && narrationHistory[0].sender === 'narrator-special';
 
@@ -84,11 +181,16 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
     return Array.from(picks).slice(0, 4);
   }, [narrationHistory]);
 
-  const sendQuick = (q: string) => {
+  const sendQuick = useCallback((q: string) => {
     if (isLoading) return;
+    // Set the input text first
     onPlayerInputChange(q);
-    setTimeout(() => onSend(), 0);
-  };
+    // Use requestAnimationFrame to ensure React has completed its render cycle
+    // This guarantees onSend will see the updated playerInput value
+    requestAnimationFrame(() => {
+      onSend();
+    });
+  }, [isLoading, onPlayerInputChange, onSend]);
 
   const textSizeClass =
     settings.textSize === 'sm'
@@ -193,9 +295,38 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
       >
         {isPlaceholderVisible ? (
           <div className="text-gray-400 italic text-center h-full flex items-center justify-center">
-            <div className="max-w-xs">
-              <div className="text-4xl mb-4 opacity-60">💭</div>
-              <p className="leading-relaxed">{narrationHistory[0].text}</p>
+            <div className="max-w-xs space-y-4">
+              {/* Contextual suggestions - only appears once per minute when narrator is empty */}
+              {contextualSuggestion && (
+                <div className="p-3 bg-slate-800/40 border border-slate-600/30 rounded-lg text-left
+                               animate-in fade-in slide-in-from-bottom-3 duration-700">
+                  <p className="text-xs text-blue-300 font-semibold mb-2">
+                    Tip
+                  </p>
+                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                    {contextualSuggestion.tip}
+                  </p>
+
+                  <p className="text-xs text-purple-300 font-semibold mb-2">
+                    Try asking...
+                  </p>
+                  <div className="space-y-1.5">
+                    {contextualSuggestion.prompts.map((prompt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => sendQuick(prompt)}
+                        disabled={isLoading}
+                        className="w-full text-left px-2.5 py-1.5 text-xs text-slate-200
+                                  bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600/40
+                                  rounded transition-all disabled:opacity-50 hover:border-purple-500/40
+                                  hover:text-white"
+                      >
+                        "{prompt}"
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -243,15 +374,33 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         )}
       </div>
 
-      {/* Time Control Buttons */}
-      {settings.showQuickReplies && !isPlaceholderVisible && (
-        <div className="flex-shrink-0 px-3 py-2 border-t border-slate-600/30 bg-slate-800/50">
+      {/* Quick Command Buttons - Only show when input is focused OR rest warning appears */}
+      {settings.showQuickReplies && (isInputFocused || showQuickCommandsDueToWarning) && (
+        <div className="flex-shrink-0 px-3 py-2 border-t border-slate-600/30 bg-slate-800/50
+                        animate-in slide-in-from-bottom-2 duration-300">
           <p className="text-xs text-slate-400 font-semibold mb-2 flex items-center gap-1">
-            <span>⏱️</span> Quick Time Commands
+            <span>⚡</span> Quick Commands
+            {showQuickCommandsDueToWarning && (
+              <span className="text-[10px] text-amber-400 animate-pulse ml-1">(suggested)</span>
+            )}
           </p>
           <div className="flex flex-wrap gap-1.5">
             <button
-              onClick={() => sendQuick('rest for 1 hour')}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input blur
+                sendQuick('look around');
+              }}
+              disabled={isLoading}
+              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
+                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+            >
+              Look Around
+            </button>
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input blur
+                sendQuick('rest for 1 hour');
+              }}
               disabled={isLoading}
               className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
                         border border-slate-600/50 rounded transition-colors disabled:opacity-50"
@@ -259,7 +408,10 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               Rest 1h
             </button>
             <button
-              onClick={() => sendQuick('rest until dawn')}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input blur
+                sendQuick('rest until dawn');
+              }}
               disabled={isLoading}
               className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
                         border border-slate-600/50 rounded transition-colors disabled:opacity-50"
@@ -267,7 +419,14 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               Until Dawn
             </button>
             <button
-              onClick={() => sendQuick('camp for the night')}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input blur
+                if (onOpenCampModal) {
+                  onOpenCampModal();
+                } else {
+                  sendQuick('camp for the night');
+                }
+              }}
               disabled={isLoading}
               className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
                         border border-slate-600/50 rounded transition-colors disabled:opacity-50"
@@ -275,7 +434,10 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               Camp 8h
             </button>
             <button
-              onClick={() => sendQuick('wait for 3 hours')}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input blur
+                sendQuick('wait for 3 hours');
+              }}
               disabled={isLoading}
               className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
                         border border-slate-600/50 rounded transition-colors disabled:opacity-50"
@@ -283,7 +445,10 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               Wait 3h
             </button>
             <button
-              onClick={() => sendQuick('skip 1 day')}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input blur
+                sendQuick('skip 1 day');
+              }}
               disabled={isLoading}
               className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
                         border border-slate-600/50 rounded transition-colors disabled:opacity-50"
@@ -305,6 +470,8 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
           value={playerInput}
           onChange={(e) => onPlayerInputChange(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !isLoading && onSend()}
+          onFocus={() => setIsInputFocused(true)}
+          onBlur={() => setIsInputFocused(false)}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

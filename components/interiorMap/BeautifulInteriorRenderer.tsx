@@ -587,8 +587,8 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
             className="w-full h-full"
             style={{
                 background: `radial-gradient(ellipse at center, ${layout.ambientLighting.color} 0%, rgba(0,0,0,0.8) 100%)`,
-                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
-                maxHeight: '100%'
+                maxHeight: '100%',
+                maxWidth: '100%'
             }}
         >
             <defs>

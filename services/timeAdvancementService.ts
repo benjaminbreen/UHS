@@ -4,7 +4,7 @@
  */
 
 import { PlayerCharacter, ClimateType, Season, BiomeType } from '../types';
-import { minigameLLMService } from './minigameLLMService';
+import { GoogleGenAI } from "@google/genai";
 
 export interface TimeAdvancementRequest {
   duration: number; // in hours
@@ -64,7 +64,17 @@ class TimeAdvancementService {
     const resourceChanges = this.calculateResourceChanges(request, hours, playerCharacter);
 
     // Generate LLM summary of what happened
-    const summary = await this.generateSummary(request, hours, days, events, playerCharacter);
+    const summary = await this.generateSummary(
+      request,
+      hours,
+      days,
+      events,
+      playerCharacter,
+      currentHour,
+      currentDay,
+      currentMonth,
+      currentYear
+    );
 
     return {
       hoursPassed: hours,
@@ -385,7 +395,11 @@ class TimeAdvancementService {
     hours: number,
     days: number,
     events: TimeEvent[],
-    playerCharacter: PlayerCharacter
+    playerCharacter: PlayerCharacter,
+    currentHour: number,
+    currentDay: number,
+    currentMonth: number,
+    currentYear: number
   ): Promise<string> {
     // Build event descriptions for LLM
     const eventDescriptions = events.map(e => {
@@ -399,19 +413,37 @@ class TimeAdvancementService {
       ? `${days} day${days > 1 ? 's' : ''}`
       : `${hours} hour${hours > 1 ? 's' : ''}`;
 
-    const prompt = `You are the narrator of a historical simulation game. The player has advanced time by ${durationDesc} while ${request.activity || 'waiting'}.
+    // Get time of day description
+    const timeOfDayDesc = currentHour < 6 ? 'night' : currentHour < 12 ? 'morning' : currentHour < 18 ? 'afternoon' : 'evening';
 
-Events that occurred:
-${eventDescriptions || 'No significant events occurred.'}
+    // Format biome for readability
+    const biomeDesc = request.location?.biome.toLowerCase().replace(/_/g, ' ') || 'unknown location';
 
-Write a brief, atmospheric 2-3 sentence summary of this time period from the narrator's perspective. Focus on the most interesting or significant events. Keep it concise and evocative. Use past tense.`;
+    const prompt = `You are the narrator of a historical simulation game set in ${currentYear < 0 ? Math.abs(currentYear) + ' BCE' : currentYear + ' CE'}.
+
+PLAYER: ${playerCharacter.name}, ${playerCharacter.profession || 'traveler'}
+LOCATION: ${biomeDesc}
+CLIMATE: ${request.location?.climate || 'temperate'}
+SEASON: ${request.location?.season || 'unknown'}
+TIME: ${timeOfDayDesc}
+
+The player has advanced time by ${durationDesc} while ${request.activity || 'waiting'}.
+
+${events.length > 0 ? `Events that occurred:\n${eventDescriptions}` : 'No significant events occurred.'}
+
+Write a brief 2-3 sentence summary from the narrator's perspective. Reference the ACTUAL location (${biomeDesc}) and context. Keep it concise, evocative, and accurate to the setting. Use past tense.`;
 
     try {
-      const summary = await minigameLLMService.quickResponse(prompt, {
-        temperature: 0.8,
-        maxTokens: 150
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-lite',
+        contents: prompt,
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 150
+        }
       });
-      return summary.trim();
+      return response.text.trim();
     } catch (error) {
       console.error('[TimeAdvancement] LLM summary failed:', error);
       // Fallback summary

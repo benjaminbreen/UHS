@@ -11,7 +11,7 @@
  * - Real-time field updates from LLM state changes
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Season } from '../../types';
 import { FarmState, FarmFamilyMember } from '../../services/farmService';
 import { CROP_EMOJIS } from './types';
@@ -65,6 +65,86 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
 
   const { validCrops } = fieldHooks;
 
+  // Phase 3.3: Enhanced narrative formatting
+  const formatMessage = (text: string): JSX.Element => {
+    let formatted = text;
+
+    // Highlight field references (Field 1, Field 2, etc.)
+    formatted = formatted.replace(/Field (\d+)/g,
+      '<span class="px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded font-semibold">Field $1</span>');
+
+    // Highlight family member names
+    farmState.family.members.forEach(member => {
+      const regex = new RegExp(`\\b${member.name}\\b`, 'g');
+      formatted = formatted.replace(regex,
+        `<span class="text-blue-400 font-medium">${member.name}</span>`);
+    });
+
+    // Highlight crop types
+    Object.keys(CROP_EMOJIS).forEach(crop => {
+      const regex = new RegExp(`\\b${crop}\\b`, 'gi');
+      formatted = formatted.replace(regex,
+        `<span class="text-green-400">${crop}</span>`);
+    });
+
+    // Highlight warnings/dangers
+    formatted = formatted.replace(/\b(waterlogged|damage|damaged|failed|rot|died|death|injury|injured|hurt|pain)\b/gi,
+      '<span class="text-red-400 font-semibold">$1</span>');
+
+    // Highlight success/positive outcomes
+    formatted = formatted.replace(/\b(success|successful|perfectly|excellent|thriving|healthy|abundant)\b/gi,
+      '<span class="text-green-400 font-semibold">$1</span>');
+
+    return <div dangerouslySetInnerHTML={{ __html: formatted }} className="leading-relaxed" />;
+  };
+
+  // Phase 3.2: Animated state transitions
+  const prevFieldsRef = useRef(farmState.fields);
+
+  useEffect(() => {
+    const prev = prevFieldsRef.current;
+
+    farmState.fields.forEach((field, idx) => {
+      const oldField = prev[idx];
+
+      if (oldField) {
+        // Detect moisture change
+        if (oldField.moisture !== field.moisture) {
+          const fieldEl = document.querySelector(`[data-field="${idx}"]`);
+          if (fieldEl) {
+            fieldEl.classList.add('scale-110', 'ring-2', 'ring-blue-400');
+            setTimeout(() => {
+              fieldEl.classList.remove('scale-110', 'ring-2', 'ring-blue-400');
+            }, 1000);
+          }
+        }
+
+        // Detect health change (crop damage/improvement)
+        if (oldField.health !== field.health) {
+          const fieldEl = document.querySelector(`[data-field="${idx}"]`);
+          if (fieldEl) {
+            const healthDiff = field.health - oldField.health;
+            if (healthDiff < 0) {
+              // Damage - red flash
+              fieldEl.classList.add('ring-2', 'ring-red-500', 'animate-pulse');
+              setTimeout(() => {
+                fieldEl.classList.remove('ring-2', 'ring-red-500', 'animate-pulse');
+              }, 1500);
+            } else {
+              // Improvement - green flash
+              fieldEl.classList.add('ring-2', 'ring-green-400');
+              setTimeout(() => {
+                fieldEl.classList.remove('ring-2', 'ring-green-400');
+              }, 1000);
+            }
+          }
+        }
+      }
+    });
+
+    prevFieldsRef.current = farmState.fields;
+  }, [farmState.fields]);
+
   return (
     <div className="animate-fadeIn flex gap-4 h-full">
       {/* Left Sidebar - Field Status & Action Log */}
@@ -93,15 +173,49 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
                   const healthColor = field.health > 70 ? 'text-green-400' :
                                      field.health > 40 ? 'text-yellow-400' :
                                      'text-red-400';
+
+                  // Phase 3.1: Moisture overlay effects
+                  const moistureOverlay = field.moisture === 'flooded'
+                    ? 'bg-blue-400/30 animate-pulse'
+                    : field.moisture === 'wet'
+                    ? 'bg-blue-400/10'
+                    : '';
+
                   return (
                     <div
                       key={idx}
-                      className="bg-slate-800/40 rounded p-2 text-center border border-slate-700/40"
+                      data-field={idx}
+                      className="relative bg-slate-800/40 rounded p-2 text-center border border-slate-700/40 transition-all duration-500"
                     >
-                      <div className="text-2xl mb-1">{cropEmoji}</div>
-                      <div className="text-[9px] text-slate-500">Field {idx + 1}</div>
-                      <div className={`text-[9px] font-medium ${healthColor}`}>
-                        {field.crop ? `${field.health}%` : 'Empty'}
+                      {/* Moisture visual effect overlay */}
+                      {moistureOverlay && (
+                        <div className={`absolute inset-0 ${moistureOverlay} rounded z-0 pointer-events-none`} />
+                      )}
+
+                      {/* Content */}
+                      <div className="relative z-10">
+                        <div className="text-2xl mb-1">{cropEmoji}</div>
+
+                        {/* Moisture indicator dots (Phase 3.1) */}
+                        <div className="flex gap-0.5 justify-center mb-1">
+                          {['dry', 'moist', 'wet', 'flooded'].map((level, i) => {
+                            const moistureLevels = ['dry', 'moist', 'wet', 'flooded'];
+                            const currentIndex = moistureLevels.indexOf(field.moisture);
+                            return (
+                              <div
+                                key={i}
+                                className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
+                                  currentIndex >= i ? 'bg-blue-400' : 'bg-slate-600'
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+
+                        <div className="text-[9px] text-slate-500">Field {idx + 1}</div>
+                        <div className={`text-[9px] font-medium ${healthColor}`}>
+                          {field.crop ? `${field.health}%` : 'Empty'}
+                        </div>
                       </div>
                     </div>
                   );
@@ -210,7 +324,12 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
               <div className="text-xs text-slate-500 mb-1">
                 {entry.type === 'player' ? 'You' : 'Narrator'}
               </div>
-              <div className="text-sm text-slate-200">{entry.text}</div>
+              {/* Phase 3.3: Apply formatting to narrator messages */}
+              {entry.type === 'narrator' ? (
+                <div className="text-sm text-slate-200">{formatMessage(entry.text)}</div>
+              ) : (
+                <div className="text-sm text-slate-200">{entry.text}</div>
+              )}
             </div>
           ))}
           {isFarmWorkProcessing && (
