@@ -26,26 +26,26 @@ interface GenericFactionTemplate {
 const GENERIC_FACTION_TEMPLATES = {
   // Nomadic/Steppe peoples
   steppe: {
-    [HistoricalEra.PREHISTORY]: [
+    PREHISTORY: [
       { name: 'Hunter-Gatherer Bands', type: 'primary', description: 'Small mobile groups following seasonal migrations.' },
       { name: 'Rival Clans', type: 'rebel', description: 'Competing groups vying for hunting territories.' }
     ],
-    [HistoricalEra.ANTIQUITY]: [
+    ANTIQUITY: [
       { name: 'Nomadic Confederations', type: 'primary', description: 'Horse-riding peoples organized under war leaders.' },
       { name: 'Settled Villages', type: 'secondary', description: 'Agricultural communities at oasis points.' },
       { name: 'Raider Warbands', type: 'rebel', description: 'Independent warrior groups conducting raids.' }
     ],
-    [HistoricalEra.MEDIEVAL]: [
+    MEDIEVAL: [
       { name: 'Khanate', type: 'primary', description: 'Organized nomadic state under a supreme khan.' },
       { name: 'Tributary Tribes', type: 'secondary', description: 'Allied nomadic groups paying tribute.' },
       { name: 'Breakaway Hordes', type: 'rebel', description: 'Rebellious tribal groups seeking independence.' }
     ],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+    RENAISSANCE_EARLY_MODERN: [
       { name: 'Nomadic Remnants', type: 'primary', description: 'Traditional herders adapting to settled neighbors.' },
       { name: 'Trading Posts', type: 'secondary', description: 'Permanent settlements facilitating trade.' },
       { name: 'Brigand Bands', type: 'rebel', description: 'Outlaws preying on caravan routes.' }
     ],
-    [HistoricalEra.MODERN_ERA]: [
+    MODERN_ERA: [
       { name: 'Modern State', type: 'primary', description: 'Contemporary national government.' },
       { name: 'Regional Authorities', type: 'secondary', description: 'Local administrative divisions.' },
       { name: 'Separatist Groups', type: 'rebel', description: 'Ethnic or political independence movements.' }
@@ -54,26 +54,26 @@ const GENERIC_FACTION_TEMPLATES = {
 
   // Desert peoples
   desert: {
-    [HistoricalEra.PREHISTORY]: [
+    PREHISTORY: [
       { name: 'Desert Nomads', type: 'primary', description: 'Hardy peoples adapted to arid survival.' },
       { name: 'Oasis Dwellers', type: 'secondary', description: 'Small communities around water sources.' }
     ],
-    [HistoricalEra.ANTIQUITY]: [
+    ANTIQUITY: [
       { name: 'Bedouin Tribes', type: 'primary', description: 'Mobile desert peoples controlling trade routes.' },
       { name: 'Oasis City-States', type: 'secondary', description: 'Wealthy trading centers in fertile areas.' },
       { name: 'Desert Raiders', type: 'rebel', description: 'Fierce warriors living by plunder.' }
     ],
-    [HistoricalEra.MEDIEVAL]: [
+    MEDIEVAL: [
       { name: 'Tribal Confederation', type: 'primary', description: 'United desert clans under traditional leadership.' },
       { name: 'Merchant Guilds', type: 'secondary', description: 'Wealthy traders dominating commerce.' },
       { name: 'Zealot Sects', type: 'rebel', description: 'Religious movements challenging authority.' }
     ],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+    RENAISSANCE_EARLY_MODERN: [
       { name: 'Desert Emirates', type: 'primary', description: 'Traditional rulers adapting to global trade.' },
       { name: 'Colonial Outposts', type: 'secondary', description: 'Foreign powers establishing presence.' },
       { name: 'Resistance Fighters', type: 'rebel', description: 'Local groups opposing foreign control.' }
     ],
-    [HistoricalEra.MODERN_ERA]: [
+    MODERN_ERA: [
       { name: 'National Government', type: 'primary', description: 'Modern state with oil or mineral wealth.' },
       { name: 'Tribal Councils', type: 'secondary', description: 'Traditional authorities with local influence.' },
       { name: 'Extremist Groups', type: 'rebel', description: 'Radical organizations opposing modernization.' }
@@ -82,26 +82,26 @@ const GENERIC_FACTION_TEMPLATES = {
 
   // Forest/jungle peoples
   forest: {
-    [HistoricalEra.PREHISTORY]: [
+    PREHISTORY: [
       { name: 'Forest Hunters', type: 'primary', description: 'Skilled woodsmen living in harmony with nature.' },
       { name: 'Competing Bands', type: 'rebel', description: 'Rival groups fighting over territory.' }
     ],
-    [HistoricalEra.ANTIQUITY]: [
+    ANTIQUITY: [
       { name: 'Woodland Tribes', type: 'primary', description: 'Organized forest peoples with shamanic traditions.' },
       { name: 'River Trading Posts', type: 'secondary', description: 'Communities controlling waterway commerce.' },
       { name: 'Wild Clans', type: 'rebel', description: 'Fierce forest dwellers resisting outsiders.' }
     ],
-    [HistoricalEra.MEDIEVAL]: [
+    MEDIEVAL: [
       { name: 'Forest Kingdoms', type: 'primary', description: 'Sophisticated societies hidden in deep woods.' },
       { name: 'Logging Settlements', type: 'secondary', description: 'Communities exploiting forest resources.' },
       { name: 'Bandit Gangs', type: 'rebel', description: 'Outlaws using forest cover for raids.' }
     ],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+    RENAISSANCE_EARLY_MODERN: [
       { name: 'Colonial Administration', type: 'primary', description: 'Foreign powers extracting resources.' },
       { name: 'Native Communities', type: 'secondary', description: 'Indigenous peoples maintaining traditions.' },
       { name: 'Freedom Fighters', type: 'rebel', description: 'Resistance movements fighting colonialism.' }
     ],
-    [HistoricalEra.MODERN_ERA]: [
+    MODERN_ERA: [
       { name: 'National Forest Service', type: 'primary', description: 'Government agencies managing resources.' },
       { name: 'Indigenous Groups', type: 'secondary', description: 'Native peoples with recognized rights.' },
       { name: 'Guerrilla Movements', type: 'rebel', description: 'Armed groups using terrain advantages.' }
@@ -110,26 +110,26 @@ const GENERIC_FACTION_TEMPLATES = {
 
   // Coastal/island peoples
   coastal: {
-    [HistoricalEra.PREHISTORY]: [
+    PREHISTORY: [
       { name: 'Coastal Foragers', type: 'primary', description: 'Sea-peoples living from ocean bounty.' },
       { name: 'Inland Tribes', type: 'secondary', description: 'Land-based groups trading with coast dwellers.' }
     ],
-    [HistoricalEra.ANTIQUITY]: [
+    ANTIQUITY: [
       { name: 'Maritime Confederation', type: 'primary', description: 'Sea-faring peoples united by trade.' },
       { name: 'Fishing Villages', type: 'secondary', description: 'Coastal communities harvesting the sea.' },
       { name: 'Pirate Fleets', type: 'rebel', description: 'Raiders terrorizing merchant shipping.' }
     ],
-    [HistoricalEra.MEDIEVAL]: [
+    MEDIEVAL: [
       { name: 'Merchant Republic', type: 'primary', description: 'Wealthy trading cities dominating seas.' },
       { name: 'Island Principalities', type: 'secondary', description: 'Small island rulers maintaining autonomy.' },
       { name: 'Corsair Brotherhoods', type: 'rebel', description: 'Organized piracy with hidden bases.' }
     ],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+    RENAISSANCE_EARLY_MODERN: [
       { name: 'Colonial Trading Company', type: 'primary', description: 'Commercial enterprises with government backing.' },
       { name: 'Local Chieftains', type: 'secondary', description: 'Traditional rulers adapting to trade.' },
       { name: 'Smuggling Syndicates', type: 'rebel', description: 'Criminal networks avoiding taxes.' }
     ],
-    [HistoricalEra.MODERN_ERA]: [
+    MODERN_ERA: [
       { name: 'Maritime Nation', type: 'primary', description: 'Modern state with strong naval traditions.' },
       { name: 'Port Authorities', type: 'secondary', description: 'Commercial bodies managing trade.' },
       { name: 'Organized Crime', type: 'rebel', description: 'Criminal syndicates exploiting shipping.' }
@@ -138,26 +138,26 @@ const GENERIC_FACTION_TEMPLATES = {
 
   // Mountain peoples
   mountain: {
-    [HistoricalEra.PREHISTORY]: [
+    PREHISTORY: [
       { name: 'Highland Clans', type: 'primary', description: 'Hardy mountain folk adapted to harsh terrain.' },
       { name: 'Valley Settlements', type: 'secondary', description: 'Communities in sheltered lowlands.' }
     ],
-    [HistoricalEra.ANTIQUITY]: [
+    ANTIQUITY: [
       { name: 'Mountain Kingdoms', type: 'primary', description: 'Independent peoples controlling alpine passes.' },
       { name: 'Mining Communities', type: 'secondary', description: 'Settlements extracting mineral wealth.' },
       { name: 'Highland Raiders', type: 'rebel', description: 'Warriors using terrain for guerrilla warfare.' }
     ],
-    [HistoricalEra.MEDIEVAL]: [
+    MEDIEVAL: [
       { name: 'Alpine Confederations', type: 'primary', description: 'Mountain cantons united for defense.' },
       { name: 'Monastic Orders', type: 'secondary', description: 'Religious communities in remote locations.' },
       { name: 'Outlaw Bands', type: 'rebel', description: 'Brigands hiding in mountain strongholds.' }
     ],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+    RENAISSANCE_EARLY_MODERN: [
       { name: 'Mountain Republic', type: 'primary', description: 'Independent highland state maintaining autonomy.' },
       { name: 'Trading Guilds', type: 'secondary', description: 'Merchants controlling mountain passes.' },
       { name: 'Separatist Militias', type: 'rebel', description: 'Armed groups seeking independence.' }
     ],
-    [HistoricalEra.MODERN_ERA]: [
+    MODERN_ERA: [
       { name: 'Regional Government', type: 'primary', description: 'Autonomous highland administration.' },
       { name: 'Tourism Industry', type: 'secondary', description: 'Commercial interests exploiting scenery.' },
       { name: 'Isolationist Movements', type: 'rebel', description: 'Groups opposing outside influence.' }
@@ -166,26 +166,26 @@ const GENERIC_FACTION_TEMPLATES = {
 
   // River/agricultural peoples
   agricultural: {
-    [HistoricalEra.PREHISTORY]: [
+    PREHISTORY: [
       { name: 'Farming Villages', type: 'primary', description: 'Early agricultural communities along fertile rivers.' },
       { name: 'Herder Tribes', type: 'secondary', description: 'Pastoral peoples in surrounding areas.' }
     ],
-    [HistoricalEra.ANTIQUITY]: [
+    ANTIQUITY: [
       { name: 'River Valley Kingdoms', type: 'primary', description: 'Organized states controlling fertile lands.' },
       { name: 'Tributary Cities', type: 'secondary', description: 'Urban centers paying homage to kings.' },
       { name: 'Barbarian Invaders', type: 'rebel', description: 'Outside groups threatening civilization.' }
     ],
-    [HistoricalEra.MEDIEVAL]: [
+    MEDIEVAL: [
       { name: 'Feudal Lords', type: 'primary', description: 'Noble houses controlling agricultural lands.' },
       { name: 'Peasant Communities', type: 'secondary', description: 'Village communes working the soil.' },
       { name: 'Peasant Rebels', type: 'rebel', description: 'Uprising against feudal oppression.' }
     ],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+    RENAISSANCE_EARLY_MODERN: [
       { name: 'Agricultural Empire', type: 'primary', description: 'Centralized state based on farming wealth.' },
       { name: 'Merchant Classes', type: 'secondary', description: 'Urban traders and artisans.' },
       { name: 'Religious Sects', type: 'rebel', description: 'Movements challenging established order.' }
     ],
-    [HistoricalEra.MODERN_ERA]: [
+    MODERN_ERA: [
       { name: 'Agricultural Republic', type: 'primary', description: 'Democratic state with farming base.' },
       { name: 'Corporate Farms', type: 'secondary', description: 'Industrial agriculture enterprises.' },
       { name: 'Populist Movements', type: 'rebel', description: 'Rural groups opposing urbanization.' }
