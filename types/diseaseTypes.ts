@@ -2,7 +2,7 @@
  * types/diseaseTypes.ts - Type definitions for the historical disease system
  */
 
-import { HistoricalEra } from './ambiance';
+import { HistoricalEra } from './enums';
 import { CulturalZone } from './characterData';
 import { GameDate } from './index';
 

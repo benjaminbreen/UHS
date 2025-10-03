@@ -3,7 +3,7 @@
  * Generic fallback faction system for regions without specific historical faction data.
  * Provides culturally appropriate default factions based on geography, climate, and era.
  */
-import { HistoricalEra } from '../../../types/ambiance';
+import { HistoricalEra } from '../../../types/enums';
 import { ClimateType } from '../../../types/biomes/climate';
 import { MapArchetype } from '../../../types/core/map';
 import { FactionFile } from './types';

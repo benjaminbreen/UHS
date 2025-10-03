@@ -2,7 +2,7 @@
  * constants/gameData/beliefs.ts - Comprehensive belief systems and worldviews for procedural NPC generation
  */
 
-import { HistoricalEra } from '../../types/ambiance';
+import { HistoricalEra } from '../../types/enums';
 import { CulturalZone } from '../../types/characterData';
 import { PersonalBelief, Ideology } from '../../types/knowledge';
 
