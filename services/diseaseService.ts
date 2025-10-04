@@ -24,12 +24,20 @@ let diseaseModule: any = null;
 let diseaseModulePromise: Promise<any> | null = null;
 
 const ensureDiseaseModule = () => {
-  if (!diseaseModulePromise && !diseaseModule) {
+  if (diseaseModule) {
+    return diseaseModule;
+  }
+
+  // If module hasn't been loaded yet and no promise exists, start loading
+  if (!diseaseModulePromise) {
     diseaseModulePromise = import('../constants/gameData/diseases').then(module => {
       diseaseModule = module;
+      diseaseModulePromise = null; // Clear promise after loading
       return module;
     });
   }
+
+  // Return the module if it's already loaded, or null if still loading
   return diseaseModule;
 };
 
@@ -41,7 +49,8 @@ class DiseaseService {
   private proximityCheckRadius = 1.0; // tiles
 
   constructor() {
-    this.initializeDiseaseCache();
+    // Don't initialize disease cache in constructor to avoid circular dependency issues
+    // Cache will be initialized lazily on first access
   }
 
   public static getInstance(): DiseaseService {
@@ -52,10 +61,14 @@ class DiseaseService {
   }
 
   private initializeDiseaseCache(): void {
-    ensureDiseaseModule();
-    (diseaseModule?.DISEASE_DATABASE?.diseases || []).forEach(disease => {
-      this.diseaseCache.set(disease.id, disease);
-    });
+    if (this.diseaseCache.size > 0) return; // Already initialized
+
+    const module = ensureDiseaseModule();
+    if (module) {
+      (module?.DISEASE_DATABASE?.diseases || []).forEach(disease => {
+        this.diseaseCache.set(disease.id, disease);
+      });
+    }
   }
 
   /**

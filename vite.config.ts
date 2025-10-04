@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
 
     build: {
       target: 'es2020',
-      minify: 'esbuild',
+      minify: false, // Temporarily disable minification to debug
       cssCodeSplit: true,
 
       rollupOptions: {
@@ -34,6 +34,11 @@ export default defineConfig(({ mode }) => {
             // CRITICAL: Keep enums.ts separate to avoid circular dependency issues
             if (id.includes('/types/enums.ts')) {
               return 'types-enums';
+            }
+
+            // CRITICAL: Keep dimensions.ts separate to avoid TILE_SIZE_PX initialization issues
+            if (id.includes('/constants/mapGeneration/dimensions.ts')) {
+              return 'constants-dimensions';
             }
 
             // Vendor chunks - group by library
