@@ -225,17 +225,8 @@ export interface RoomDefinition {
   timeRestriction?: 'day' | 'night' | 'dawn' | 'dusk' | 'any';
 }
 
-export enum ProfessionCategory {
-  NOBILITY = 'nobility',      // Knight, Duke, Baron, etc.
-  CLERGY = 'clergy',          // Priest, Monk, Bishop, Imam, etc.
-  MILITARY = 'military',      // Soldier, Guard, Captain, etc.
-  MERCHANT = 'merchant',      // Any merchant types
-  SCHOLAR = 'scholar',        // Scholar, Philosopher, Teacher, etc.
-  ARTISAN = 'artisan',        // Craftsman, Artist, etc.
-  SERVANT = 'servant',        // Servant, Butler, Maid, etc.
-  COMMONER = 'commoner',      // General public
-  OFFICIAL = 'official'       // Bureaucrat, Magistrate, etc.
-}
+// Re-export ProfessionCategory from enums.ts (zero-dependency file)
+export { ProfessionCategory } from './enums';
 
 /**
  * Extended MapData for special maps

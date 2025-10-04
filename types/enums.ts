@@ -212,3 +212,15 @@ export enum SpecialMapArchetype {
   ARENA = 'ARENA',
   EXHIBITION = 'EXHIBITION',
 }
+
+export enum ProfessionCategory {
+  NOBILITY = 'nobility',
+  CLERGY = 'clergy',
+  MILITARY = 'military',
+  MERCHANT = 'merchant',
+  SCHOLAR = 'scholar',
+  ARTISAN = 'artisan',
+  SERVANT = 'servant',
+  COMMONER = 'commoner',
+  OFFICIAL = 'official',
+}
