@@ -8,40 +8,8 @@ import { MapData, BiomeType, CulturalZone, HistoricalEra, ClimateType } from './
 /**
  * Types of special map archetypes
  */
-export enum SpecialMapArchetype {
-  // Simplified archetypes (new system)
-  ESTATES = 'ESTATES',
-  GOVERNMENT = 'GOVERNMENT',
-  ARENA_THEATER = 'ARENA_THEATER',
-  UNIVERSITY_MONASTERY = 'UNIVERSITY_MONASTERY',
-  MARKET_EXHIBITION = 'MARKET_EXHIBITION',
-  OPEN_FIELD = 'OPEN_FIELD',
-  CAMPGROUND = 'CAMPGROUND',
-  RESTAURANT_INN = 'RESTAURANT_INN',
-  VESSEL = 'VESSEL',
-  PLAYER_HOME = 'PLAYER_HOME',
-  FORTRESS_COMMANDER_CHAMBER = 'FORTRESS_COMMANDER_CHAMBER',
-  WORKSHOP = 'WORKSHOP',
-  
-  // NEW: Historically accurate government archetypes
-  TRIBAL_COUNCIL = 'TRIBAL_COUNCIL',
-  COURT_CHAMBER = 'COURT_CHAMBER',
-  TOWN_HALL = 'TOWN_HALL',
-  ASSEMBLY_HALL = 'ASSEMBLY_HALL',
-  ADMINISTRATIVE_COMPLEX = 'ADMINISTRATIVE_COMPLEX',
-  COLONIAL_ADMINISTRATION = 'COLONIAL_ADMINISTRATION',
-  
-  // Legacy archetypes (will be mapped to new ones)
-  PALACE_COMPLEX = 'PALACE_COMPLEX',
-  MARKET_BAZAAR = 'MARKET_BAZAAR',
-  GOVERNMENT_FORUM = 'GOVERNMENT_FORUM',
-  MILITARY_FORTRESS = 'MILITARY_FORTRESS',
-  SACRED_COMPLEX = 'SACRED_COMPLEX',
-  UNIVERSITY = 'UNIVERSITY',
-  THEATER = 'THEATER',
-  ARENA = 'ARENA',
-  EXHIBITION = 'EXHIBITION'
-}
+// Re-export SpecialMapArchetype from enums.ts (zero-dependency file)
+export { SpecialMapArchetype } from './enums';
 
 /**
  * New architectural biome types for special maps
