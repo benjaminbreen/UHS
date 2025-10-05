@@ -12,11 +12,13 @@ interface FarmFamilyTabProps {
   llmHooks: any;
   combatHooks: any;
   useLlm: boolean;
+  highlightedMemberId?: string | null;
 }
 
 export const FarmFamilyTab: React.FC<FarmFamilyTabProps> = ({
   farmState,
   llmHooks,
+  highlightedMemberId,
 }) => {
   return (
     <div className="animate-fadeIn space-y-6">
@@ -27,6 +29,8 @@ export const FarmFamilyTab: React.FC<FarmFamilyTabProps> = ({
           const healthPct = (member.health / Math.max(1, member.maxHealth)) * 100;
           const energyPct = ((member.maxFatigue - member.fatigue) / Math.max(1, member.maxFatigue)) * 100;
 
+          const isHighlighted = highlightedMemberId === member.id;
+
           return (
             <button
               key={member.id}
@@ -35,6 +39,10 @@ export const FarmFamilyTab: React.FC<FarmFamilyTabProps> = ({
                 llmHooks.selectedMember?.id === member.id
                   ? 'border-amber-400 shadow-amber-900/20 scale-[1.01]'
                   : 'border-slate-800 hover:border-slate-700'
+              } ${
+                isHighlighted
+                  ? 'bg-yellow-200/20 animate-pulse ring-2 ring-yellow-400 border-yellow-400'
+                  : ''
               }`}
             >
               <div className="flex items-start gap-4">
@@ -54,11 +62,20 @@ export const FarmFamilyTab: React.FC<FarmFamilyTabProps> = ({
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-1">
                     <h4 className="text-white font-bold">{member.name}</h4>
                     <div className="text-xs text-slate-400">
-                      {member.age} yrs • {member.role}
+                      {member.age} yrs
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {member.relationshipToHead && (
+                      <span className="px-2 py-0.5 bg-amber-900/30 text-amber-400 border border-amber-600/30 rounded-md font-medium">
+                        {member.relationshipToHead}
+                      </span>
+                    )}
+                    <span className="text-slate-500">•</span>
+                    <span className="text-slate-400">{member.role}</span>
                   </div>
 
                   <div className="mt-2">
@@ -112,7 +129,9 @@ export const FarmFamilyTab: React.FC<FarmFamilyTabProps> = ({
                 <div className="text-xs text-slate-400 mb-1">
                   {entry.speaker === 'player' ? 'You' : llmHooks.selectedMember.name}
                 </div>
-                <div className="text-sm text-slate-200">{entry.text}</div>
+                <div className="text-sm text-slate-200">
+                  {typeof entry.text === 'string' ? entry.text : entry.text?.text || JSON.stringify(entry.text)}
+                </div>
               </div>
             ))}
           </div>

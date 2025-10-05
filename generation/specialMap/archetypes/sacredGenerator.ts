@@ -911,30 +911,585 @@ function generateGenericSacred(
   });
 }
 
-// Placeholder functions for other cultural zones (to be implemented)
+/**
+ * Renaissance Cathedral - elaborate architecture with side chapels, high dome, ornate decoration
+ */
 function generateRenaissanceCathedral(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement elaborate Renaissance cathedral with frescoes, organ, side chapels
-  generateMedievalChurch(tiles, size, centerX, centerY, config, interactionZones);
+  // Elaborate marble flooring with mosaic patterns
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_MARBLE);
+
+  // Add decorative mosaic border
+  for (let x = 0; x < size.width; x++) {
+    tiles[0][x].biome = BiomeType.FLOOR_MOSAIC_BORDER;
+    tiles[size.height - 1][x].biome = BiomeType.FLOOR_MOSAIC_BORDER;
+  }
+  for (let y = 0; y < size.height; y++) {
+    tiles[y][0].biome = BiomeType.FLOOR_MOSAIC_BORDER;
+    tiles[y][size.width - 1].biome = BiomeType.FLOOR_MOSAIC_BORDER;
+  }
+
+  // Large central mosaic medallion
+  const mosaicRadius = 3;
+  for (let dy = -mosaicRadius; dy <= mosaicRadius; dy++) {
+    for (let dx = -mosaicRadius; dx <= mosaicRadius; dx++) {
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const x = centerX + dx;
+      const y = centerY + dy;
+      if (dist <= mosaicRadius && x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        if (dist < 1) {
+          tiles[y][x].biome = BiomeType.FLOOR_MOSAIC_CENTER;
+        } else {
+          tiles[y][x].biome = BiomeType.FLOOR_MOSAIC;
+        }
+      }
+    }
+  }
+
+  // Back wall with large windows
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: true,
+    windowSpacing: 3
+  });
+
+  // Grand nave with colonnade
+  const naveWidth = Math.min(10, size.width - 8);
+  const naveX = centerX - Math.floor(naveWidth / 2);
+
+  // Double rows of massive columns forming nave
+  for (let y = 4; y < size.height - 4; y += 4) {
+    placePillar(tiles, naveX + 1, y, 'white_marble', config.specificYear || 1500);
+    placePillar(tiles, naveX + naveWidth - 2, y, 'white_marble', config.specificYear || 1500);
+  }
+
+  // High altar with elaborate setup
+  const altarY = 4;
+  tiles[altarY][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
+  tiles[altarY][centerX].isBlocking = true;
+
+  // Altar surrounded by candelabras
+  tiles[altarY + 1][centerX - 2].overlayObject = { type: OverlayObjectType.CANDELABRA, rotation: 0 };
+  tiles[altarY + 1][centerX + 2].overlayObject = { type: OverlayObjectType.CANDELABRA, rotation: 0 };
+  tiles[altarY - 1][centerX - 1].overlayObject = { type: OverlayObjectType.CANDELABRA, rotation: 0 };
+  tiles[altarY - 1][centerX + 1].overlayObject = { type: OverlayObjectType.CANDELABRA, rotation: 0 };
+
+  // Side chapels along the walls (transepts)
+  const chapelY = Math.floor(size.height * 0.4);
+
+  // Left chapel
+  const leftChapelX = 2;
+  fillArea(tiles, leftChapelX, chapelY - 2, 4, 5, BiomeType.FLOOR_TILE);
+  tiles[chapelY][leftChapelX + 1].overlayObject = { type: OverlayObjectType.SHRINE, rotation: 0 };
+  tiles[chapelY + 1][leftChapelX + 2].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+
+  // Right chapel
+  const rightChapelX = size.width - 6;
+  fillArea(tiles, rightChapelX, chapelY - 2, 4, 5, BiomeType.FLOOR_TILE);
+  tiles[chapelY][rightChapelX + 2].overlayObject = { type: OverlayObjectType.SHRINE, rotation: 0 };
+  tiles[chapelY + 1][rightChapelX + 1].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+
+  // Confessional booths in side chapels
+  tiles[chapelY - 1][leftChapelX].overlayObject = { type: OverlayObjectType.BOOTH_BACK, rotation: 0 };
+  tiles[chapelY][leftChapelX].overlayObject = { type: OverlayObjectType.BOOTH_FRONT, rotation: 0 };
+
+  // Organ position (represented by large bookshelf structure)
+  const organY = 2;
+  for (let x = centerX - 2; x <= centerX + 2; x++) {
+    tiles[organY][x].overlayObject = { type: OverlayObjectType.BOOKSHELF, rotation: 0 };
+    tiles[organY][x].isBlocking = true;
+  }
+
+  // Elaborate wooden pews in the nave
+  for (let y = size.height - Math.floor(size.height * 0.6); y < size.height - 4; y += 3) {
+    // Left pews
+    for (let x = naveX + 2; x < centerX - 2; x++) {
+      if (y >= 0 && y < size.height && !tiles[y][x].overlayObject) {
+        tiles[y][x].overlayObject = { type: OverlayObjectType.BENCH_EAST_WEST, rotation: 0 };
+        break; // One bench per row
+      }
+    }
+    // Right pews
+    for (let x = centerX + 3; x < naveX + naveWidth - 2; x++) {
+      if (y >= 0 && y < size.height && !tiles[y][x].overlayObject) {
+        tiles[y][x].overlayObject = { type: OverlayObjectType.BENCH_EAST_WEST, rotation: 0 };
+        break;
+      }
+    }
+  }
+
+  // Pulpit
+  tiles[Math.floor(size.height * 0.5)][naveX + 2].overlayObject = { type: OverlayObjectType.PODIUM, rotation: 0 };
+  tiles[Math.floor(size.height * 0.5)][naveX + 2].isBlocking = true;
+
+  // Baptismal font
+  tiles[size.height - 5][centerX - 4].overlayObject = { type: OverlayObjectType.BASIN, rotation: 0 };
+
+  // Treasury chests in sacristy areas
+  tiles[3][2].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+  tiles[3][size.width - 3].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+
+  interactionZones.push({
+    id: 'high_altar',
+    bounds: { x: centerX - 3, y: altarY - 2, width: 7, height: 6 },
+    type: 'religious',
+    interactions: ['pray', 'take_communion', 'admire_art', 'light_candle']
+  });
+
+  interactionZones.push({
+    id: 'side_chapels',
+    bounds: { x: 2, y: chapelY - 2, width: size.width - 4, height: 5 },
+    type: 'religious',
+    interactions: ['pray', 'light_votive_candle', 'confess']
+  });
 }
 
+/**
+ * Modern Church - contemporary design with simple lines, open floor plan
+ */
 function generateModernChurch(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement modern church with contemporary design
-  generateMedievalChurch(tiles, size, centerX, centerY, config, interactionZones);
+  // Modern tile flooring with clean pattern
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_TILE);
+
+  // Checkered accent pattern
+  for (let y = 0; y < size.height; y++) {
+    for (let x = 0; x < size.width; x++) {
+      if ((x + y) % 4 === 0) {
+        tiles[y][x].biome = BiomeType.FLOOR_CHECKERED;
+      }
+    }
+  }
+
+  // Simple back wall with large windows for natural light
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: true,
+    windowSpacing: 2  // Many windows for modern design
+  });
+
+  // Open floor plan - no colonnade, just open space
+  const sanctuaryWidth = Math.min(12, size.width - 4);
+  const sanctuaryX = centerX - Math.floor(sanctuaryWidth / 2);
+
+  // Simple modern altar
+  const altarY = 5;
+  tiles[altarY][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
+  tiles[altarY][centerX].isBlocking = true;
+
+  // Modern podium/lectern for preaching
+  tiles[altarY + 2][centerX + 3].overlayObject = { type: OverlayObjectType.PODIUM, rotation: 0 };
+  tiles[altarY + 2][centerX + 3].isBlocking = true;
+
+  // Simple table for communion
+  tiles[altarY][centerX - 3].overlayObject = { type: OverlayObjectType.TABLE, rotation: 0 };
+
+  // Modern chairs instead of pews (more flexible seating)
+  for (let y = Math.floor(size.height * 0.4); y < size.height - 4; y += 2) {
+    for (let x = sanctuaryX + 1; x < sanctuaryX + sanctuaryWidth - 1; x += 3) {
+      if (!tiles[y][x].overlayObject && x !== centerX && x !== centerX - 1 && x !== centerX + 1) {
+        tiles[y][x].overlayObject = { type: OverlayObjectType.CHAIR, rotation: 0 };
+      }
+    }
+  }
+
+  // Welcome desk near entrance
+  tiles[size.height - 4][centerX - 4].overlayObject = { type: OverlayObjectType.DESK_FACING_SOUTH, rotation: 0 };
+
+  // Coffee/fellowship area (cabinets for supplies)
+  tiles[size.height - 3][2].overlayObject = { type: OverlayObjectType.CABINET, rotation: 0 };
+  tiles[size.height - 3][3].overlayObject = { type: OverlayObjectType.CABINET, rotation: 0 };
+
+  // Bookshelf for free literature
+  tiles[size.height - 4][size.width - 3].overlayObject = { type: OverlayObjectType.BOOKSHELF, rotation: 0 };
+
+  // Modern lighting
+  for (let y = 6; y < size.height - 6; y += 6) {
+    for (let x = 4; x < size.width - 4; x += 6) {
+      if (!tiles[y][x].overlayObject) {
+        tiles[y][x].overlayObject = { type: OverlayObjectType.HANGING_LANTERN, rotation: 0 };
+      }
+    }
+  }
+
+  // Prayer room/quiet area in corner
+  const prayerX = 2;
+  const prayerY = 3;
+  fillArea(tiles, prayerX, prayerY, 4, 4, BiomeType.CARPET);
+  tiles[prayerY + 1][prayerX + 1].overlayObject = { type: OverlayObjectType.CUSHION, rotation: 0 };
+  tiles[prayerY + 2][prayerX + 2].overlayObject = { type: OverlayObjectType.CUSHION, rotation: 0 };
+
+  // Nursery/children's area in opposite corner
+  const nurseryX = size.width - 6;
+  const nurseryY = 3;
+  fillArea(tiles, nurseryX, nurseryY, 4, 4, BiomeType.CARPET);
+
+  interactionZones.push({
+    id: 'sanctuary',
+    bounds: { x: sanctuaryX, y: altarY - 2, width: sanctuaryWidth, height: 8 },
+    type: 'religious',
+    interactions: ['pray', 'worship', 'take_communion']
+  });
+
+  interactionZones.push({
+    id: 'fellowship_area',
+    bounds: { x: 2, y: size.height - 5, width: size.width - 4, height: 4 },
+    type: 'social',
+    interactions: ['fellowship', 'get_coffee', 'take_literature']
+  });
 }
 
+/**
+ * Ancient MENA Temple - Mesopotamian/Egyptian/Persian temple architecture
+ */
 function generateAncientMENATemple(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement ancient Mesopotamian/Egyptian/Persian temples
-  generateIslamicMosque(tiles, size, centerX, centerY, config, interactionZones);
+  // Stone floor base (sandstone for desert temples)
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_STONE);
+
+  // Sacred inner sanctum with elevated floor
+  const sanctumWidth = Math.min(8, size.width - 8);
+  const sanctumHeight = Math.min(6, size.height - 8);
+  const sanctumX = centerX - Math.floor(sanctumWidth / 2);
+  const sanctumY = 3;
+  fillArea(tiles, sanctumX, sanctumY, sanctumWidth, sanctumHeight, BiomeType.FLOOR_TILE);
+
+  // Hypostyle hall - massive columns throughout
+  const year = config.specificYear || -500;
+
+  // Outer colonnade forming perimeter
+  for (let x = 3; x < size.width - 3; x += 4) {
+    placePillar(tiles, x, 2, 'sandstone', year);
+    if (size.height - 3 >= 0) placePillar(tiles, x, size.height - 3, 'sandstone', year);
+  }
+  for (let y = 6; y < size.height - 6; y += 4) {
+    placePillar(tiles, 3, y, 'sandstone', year);
+    placePillar(tiles, size.width - 4, y, 'sandstone', year);
+  }
+
+  // Inner colonnade leading to sanctum
+  for (let y = sanctumY + sanctumHeight + 2; y < size.height - 4; y += 3) {
+    placePillar(tiles, centerX - 4, y, 'sandstone', year);
+    placePillar(tiles, centerX + 4, y, 'sandstone', year);
+  }
+
+  // Back wall (typically solid in ancient temples)
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: false,
+    windowSpacing: 0
+  });
+
+  // Cult statue of deity in sanctum
+  tiles[sanctumY + 2][centerX].overlayObject = { type: OverlayObjectType.STATUE, rotation: 0 };
+  tiles[sanctumY + 2][centerX].isBlocking = true;
+
+  // Altar before the deity statue
+  tiles[sanctumY + 4][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
+  tiles[sanctumY + 4][centerX].isBlocking = true;
+
+  // Offering tables on both sides
+  tiles[sanctumY + 3][sanctumX + 1].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+  tiles[sanctumY + 3][sanctumX + sanctumWidth - 2].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+
+  // Sacred eternal flames in braziers
+  tiles[sanctumY + 5][centerX - 2].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+  tiles[sanctumY + 5][centerX + 2].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+
+  // Treasury chests for temple wealth
+  tiles[sanctumY + 1][sanctumX + 1].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+  tiles[sanctumY + 1][sanctumX + sanctumWidth - 2].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+
+  // Incense burners along approach
+  for (let y = sanctumY + sanctumHeight + 3; y < size.height - 5; y += 4) {
+    tiles[y][centerX - 2].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+    tiles[y][centerX + 2].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+  }
+
+  // Priestly benches along walls for ritual attendants
+  for (let x = 5; x < size.width - 5; x += 4) {
+    if (x !== centerX && x !== centerX - 1 && x !== centerX + 1) {
+      tiles[size.height - 5][x].overlayObject = { type: OverlayObjectType.BENCH, rotation: 0 };
+    }
+  }
+
+  // Sacred pool/basin for ritual purification
+  tiles[size.height - 4][centerX].overlayObject = { type: OverlayObjectType.BASIN, rotation: 0 };
+
+  // Ritual tables for sacrifices in forecourt
+  tiles[sanctumY + sanctumHeight + 5][centerX - 3].overlayObject = { type: OverlayObjectType.TABLE, rotation: 0 };
+  tiles[sanctumY + sanctumHeight + 5][centerX + 3].overlayObject = { type: OverlayObjectType.TABLE, rotation: 0 };
+
+  // Storage for ritual implements
+  tiles[2][2].overlayObject = { type: OverlayObjectType.CABINET, rotation: 0 };
+  tiles[2][size.width - 3].overlayObject = { type: OverlayObjectType.CABINET, rotation: 0 };
+
+  interactionZones.push({
+    id: 'inner_sanctum',
+    bounds: { x: sanctumX - 1, y: sanctumY, width: sanctumWidth + 2, height: sanctumHeight },
+    type: 'religious',
+    interactions: ['pray_to_deity', 'make_offering', 'seek_oracle']
+  });
+
+  interactionZones.push({
+    id: 'ritual_court',
+    bounds: { x: centerX - 5, y: sanctumY + sanctumHeight, width: 11, height: size.height - sanctumY - sanctumHeight - 6 },
+    type: 'ritual',
+    interactions: ['perform_sacrifice', 'ritual_purification', 'consult_priests']
+  });
 }
 
+/**
+ * Zoroastrian Fire Temple - centered on sacred eternal flame
+ */
 function generateZoroastrianTemple(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement fire temple with sacred flames
-  generateIslamicMosque(tiles, size, centerX, centerY, config, interactionZones);
+  // Stone floor throughout
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_STONE);
+
+  // Central fire chamber with elevated platform
+  const chamberRadius = 4;
+  for (let dy = -chamberRadius; dy <= chamberRadius; dy++) {
+    for (let dx = -chamberRadius; dx <= chamberRadius; dx++) {
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const x = centerX + dx;
+      const y = centerY + dy;
+      if (dist <= chamberRadius && x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        tiles[y][x].biome = BiomeType.FLOOR_TILE;
+      }
+    }
+  }
+
+  // Back wall
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: false,  // Fire temples are typically enclosed
+    windowSpacing: 0
+  });
+
+  // Sacred eternal fire at center - THE MOST IMPORTANT ELEMENT
+  tiles[centerY][centerX].overlayObject = { type: OverlayObjectType.FIRE_PIT, rotation: 0 };
+  tiles[centerY][centerX].isBlocking = true;
+
+  // Four pillars around the sacred fire (representing the four elements)
+  const pillarDist = 3;
+  const year = config.specificYear || 500;
+  placePillar(tiles, centerX - pillarDist, centerY - pillarDist, 'stone', year);
+  placePillar(tiles, centerX + pillarDist, centerY - pillarDist, 'stone', year);
+  placePillar(tiles, centerX - pillarDist, centerY + pillarDist, 'stone', year);
+  placePillar(tiles, centerX + pillarDist, centerY + pillarDist, 'stone', year);
+
+  // Outer circle of columns forming the temple perimeter
+  const outerRadius = Math.min(size.width, size.height) / 2 - 3;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const x = Math.floor(centerX + Math.cos(angle) * outerRadius);
+    const y = Math.floor(centerY + Math.sin(angle) * outerRadius);
+    if (x >= 2 && x < size.width - 2 && y >= 2 && y < size.height - 2) {
+      placePillar(tiles, x, y, 'stone', year);
+    }
+  }
+
+  // Braziers for additional sacred fires at cardinal directions
+  const firePositions = [
+    { x: centerX, y: centerY - 5 },      // North
+    { x: centerX + 5, y: centerY },      // East
+    { x: centerX, y: centerY + 5 },      // South
+    { x: centerX - 5, y: centerY }       // West
+  ];
+
+  firePositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+    }
+  });
+
+  // Prayer mats (cushions) arranged in concentric circles for worshippers
+  const prayerRadius = 7;
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+    const x = Math.floor(centerX + Math.cos(angle) * prayerRadius);
+    const y = Math.floor(centerY + Math.sin(angle) * prayerRadius);
+    if (x >= 0 && x < size.width && y >= 0 && y < size.height && !tiles[y][x].overlayObject) {
+      tiles[y][x].overlayObject = { type: OverlayObjectType.CUSHION, rotation: 0 };
+    }
+  }
+
+  // Altar for offerings near the sacred fire
+  if (centerY - 2 >= 0) {
+    tiles[centerY - 2][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
+  }
+
+  // Offering tables at intermediate positions
+  if (centerX - 2 >= 0 && centerY + 3 < size.height) {
+    tiles[centerY + 3][centerX - 2].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+  }
+  if (centerX + 2 < size.width && centerY + 3 < size.height) {
+    tiles[centerY + 3][centerX + 2].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+  }
+
+  // Sacred texts storage (bookshelves for Avesta)
+  if (size.height - 3 >= 0) {
+    tiles[size.height - 3][2].overlayObject = { type: OverlayObjectType.BOOKSHELF, rotation: 0 };
+    tiles[size.height - 3][size.width - 3].overlayObject = { type: OverlayObjectType.BOOKSHELF, rotation: 0 };
+  }
+
+  // Purification basin near entrance
+  if (size.height - 4 >= 0) {
+    tiles[size.height - 4][centerX].overlayObject = { type: OverlayObjectType.BASIN, rotation: 0 };
+  }
+
+  // Priest's implements storage
+  tiles[2][2].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+  tiles[2][size.width - 3].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+
+  // Additional braziers along the walls for illumination
+  for (let x = 5; x < size.width - 5; x += 5) {
+    if (2 < size.height && !tiles[2][x].overlayObject) {
+      tiles[2][x].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+    }
+  }
+
+  interactionZones.push({
+    id: 'sacred_fire',
+    bounds: { x: centerX - 2, y: centerY - 2, width: 5, height: 5 },
+    type: 'religious',
+    interactions: ['tend_sacred_fire', 'pray_to_ahura_mazda', 'make_offering']
+  });
+
+  interactionZones.push({
+    id: 'prayer_area',
+    bounds: { x: centerX - 8, y: centerY - 8, width: 17, height: 17 },
+    type: 'religious',
+    interactions: ['pray', 'meditate', 'recite_mantras']
+  });
 }
 
+/**
+ * Buddhist Temple Complex - pagoda-style architecture with meditation hall
+ */
 function generateBuddhistTempleComplex(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement pagoda-style Buddhist temple with meditation hall
-  generateShintoShrine(tiles, size, centerX, centerY, config, interactionZones);
+  // Wooden floor throughout (traditional East Asian temple construction)
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_WOOD);
+
+  // Back wall
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: true,
+    windowSpacing: 4
+  });
+
+  // Main hall with Buddha statue
+  const hallWidth = Math.min(10, size.width - 6);
+  const hallHeight = Math.min(8, size.height - 8);
+  const hallX = centerX - Math.floor(hallWidth / 2);
+  const hallY = 3;
+
+  // Elevated platform for Buddha hall
+  fillArea(tiles, hallX, hallY, hallWidth, hallHeight, BiomeType.FLOOR_TILE);
+
+  // Large Buddha statue at center back
+  tiles[hallY + 2][centerX].overlayObject = { type: OverlayObjectType.STATUE, rotation: 0 };
+  tiles[hallY + 2][centerX].isBlocking = true;
+
+  // Altar before Buddha
+  tiles[hallY + 4][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
+
+  // Offering tables with incense and flowers
+  tiles[hallY + 3][centerX - 2].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+  tiles[hallY + 3][centerX + 2].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+
+  // Additional bodhisattva statues flanking the main Buddha
+  tiles[hallY + 2][hallX + 1].overlayObject = { type: OverlayObjectType.STATUE, rotation: 0 };
+  tiles[hallY + 2][hallX + hallWidth - 2].overlayObject = { type: OverlayObjectType.STATUE, rotation: 0 };
+
+  // Tiered pagoda represented by stacked pillars at corners
+  const year = config.specificYear || 800;
+  placePillar(tiles, hallX, hallY, 'wood', year);
+  placePillar(tiles, hallX + hallWidth - 1, hallY, 'wood', year);
+  placePillar(tiles, hallX, hallY + hallHeight - 1, 'wood', year);
+  placePillar(tiles, hallX + hallWidth - 1, hallY + hallHeight - 1, 'wood', year);
+
+  // Paper lanterns hanging throughout
+  for (let y = hallY + 2; y < hallY + hallHeight - 2; y += 3) {
+    for (let x = hallX + 2; x < hallX + hallWidth - 2; x += 4) {
+      if (!tiles[y][x].overlayObject) {
+        tiles[y][x].overlayObject = { type: OverlayObjectType.PAPER_LANTERN, rotation: 0 };
+      }
+    }
+  }
+
+  // Meditation hall (separate area with cushions)
+  const meditationY = hallY + hallHeight + 2;
+  const meditationWidth = hallWidth - 4;
+  const meditationX = centerX - Math.floor(meditationWidth / 2);
+
+  // Meditation cushions in orderly rows
+  for (let y = meditationY; y < meditationY + 5; y += 2) {
+    for (let x = meditationX; x < meditationX + meditationWidth; x += 2) {
+      if (y < size.height && !tiles[y][x].overlayObject) {
+        tiles[y][x].overlayObject = { type: OverlayObjectType.CUSHION, rotation: 0 };
+      }
+    }
+  }
+
+  // Incense burners (braziers) around meditation area
+  if (meditationY < size.height) {
+    tiles[meditationY][meditationX - 1].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+    tiles[meditationY][meditationX + meditationWidth].overlayObject = { type: OverlayObjectType.BRAZIER, rotation: 0 };
+  }
+
+  // Drum tower (barrel as drum)
+  tiles[hallY][hallX - 2].overlayObject = { type: OverlayObjectType.BARREL, rotation: 0 };
+  tiles[hallY][hallX - 2].isBlocking = true;
+
+  // Bell tower (hanging lantern representing bell)
+  tiles[hallY][hallX + hallWidth + 1].overlayObject = { type: OverlayObjectType.HANGING_LANTERN, rotation: 0 };
+
+  // Sutra library (bookshelves)
+  tiles[hallY + 1][hallX + 1].overlayObject = { type: OverlayObjectType.BOOKSHELF, rotation: 0 };
+  tiles[hallY + 1][hallX + hallWidth - 2].overlayObject = { type: OverlayObjectType.BOOKSHELF, rotation: 0 };
+
+  // Prayer wheels (represented by columns with decorative intent)
+  const prayerWheelPositions = [
+    { x: hallX - 2, y: hallY + 4 },
+    { x: hallX + hallWidth + 1, y: hallY + 4 }
+  ];
+  prayerWheelPositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.PILLAR, rotation: 0 };
+    }
+  });
+
+  // Donation box (chest)
+  tiles[hallY + hallHeight - 2][centerX].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+
+  // Garden courtyard with fountain
+  if (size.height - 5 >= 0) {
+    tiles[size.height - 5][centerX].overlayObject = { type: OverlayObjectType.FOUNTAIN, rotation: 0 };
+  }
+
+  // Stone lanterns (pillars) flanking approach
+  if (size.height - 6 >= 0) {
+    placePillar(tiles, centerX - 3, size.height - 6, 'stone', year);
+    placePillar(tiles, centerX + 3, size.height - 6, 'stone', year);
+  }
+
+  // Vases with flowers
+  tiles[hallY + 5][hallX + 2].overlayObject = { type: OverlayObjectType.VASE, rotation: 0 };
+  tiles[hallY + 5][hallX + hallWidth - 3].overlayObject = { type: OverlayObjectType.VASE, rotation: 0 };
+
+  // Monks' benches along walls
+  for (let x = hallX + 1; x < hallX + hallWidth - 1; x += 3) {
+    if (hallY + hallHeight < size.height && !tiles[hallY + hallHeight][x].overlayObject) {
+      tiles[hallY + hallHeight][x].overlayObject = { type: OverlayObjectType.BENCH, rotation: 0 };
+    }
+  }
+
+  interactionZones.push({
+    id: 'buddha_hall',
+    bounds: { x: hallX, y: hallY, width: hallWidth, height: hallHeight },
+    type: 'religious',
+    interactions: ['pray_to_buddha', 'make_offering', 'light_incense', 'chant_sutras']
+  });
+
+  interactionZones.push({
+    id: 'meditation_hall',
+    bounds: { x: meditationX - 2, y: meditationY - 1, width: meditationWidth + 4, height: 7 },
+    type: 'religious',
+    interactions: ['meditate', 'practice_mindfulness', 'study_dharma']
+  });
 }
 
 function generateSouthAsianSacred(tiles: Tile[][], size: { width: number, height: number }, config: SpecialMapConfig, interactionZones: InteractionZone[], rooms: RoomDefinition[], noise: ValueNoise) {
@@ -1337,17 +1892,473 @@ function generateOceanicSacred(tiles: Tile[][], size: { width: number, height: n
   });
 }
 
+/**
+ * Medicine Wheel - Plains Indian sacred circle with four directions
+ */
 function generateMedicineWheel(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement Plains Indian medicine wheel ceremony
-  generatePlatformMound(tiles, size, centerX, centerY, config, interactionZones);
+  console.log(`[SacredGenerator] Generating Medicine Wheel for Plains sacred site`);
+
+  // Prairie grassland base
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.PRAIRIE);
+
+  // Central stone cairn
+  const cairnRadius = 2;
+  for (let dy = -cairnRadius; dy <= cairnRadius; dy++) {
+    for (let dx = -cairnRadius; dx <= cairnRadius; dx++) {
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const x = centerX + dx;
+      const y = centerY + dy;
+      if (dist <= cairnRadius && x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        tiles[y][x].biome = BiomeType.FLOOR_STONE;
+      }
+    }
+  }
+
+  // Sacred fire at center
+  tiles[centerY][centerX].overlayObject = { type: OverlayObjectType.FIRE_PIT, rotation: 0 };
+  tiles[centerY][centerX].isBlocking = true;
+
+  // 28 stone spokes radiating outward (representing lunar month)
+  const wheelRadius = Math.min(size.width, size.height) / 2 - 2;
+  const numSpokes = 28;
+
+  for (let i = 0; i < numSpokes; i++) {
+    const angle = (i / numSpokes) * Math.PI * 2;
+    // Draw spoke from center outward
+    for (let r = cairnRadius + 1; r < wheelRadius; r++) {
+      const x = Math.floor(centerX + Math.cos(angle) * r);
+      const y = Math.floor(centerY + Math.sin(angle) * r);
+      if (x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        tiles[y][x].biome = BiomeType.FLOOR_STONE;
+      }
+    }
+  }
+
+  // Outer circle of stones
+  for (let i = 0; i < 32; i++) {
+    const angle = (i / 32) * Math.PI * 2;
+    const x = Math.floor(centerX + Math.cos(angle) * wheelRadius);
+    const y = Math.floor(centerY + Math.sin(angle) * wheelRadius);
+    if (x >= 0 && x < size.width && y >= 0 && y < size.height) {
+      tiles[y][x].biome = BiomeType.FLOOR_STONE;
+      tiles[y][x].overlayObject = { type: OverlayObjectType.PILLAR, rotation: 0 };
+    }
+  }
+
+  // Four cardinal direction markers (larger stones/pillars)
+  const cardinalDist = wheelRadius + 2;
+  const cardinalDirections = [
+    { x: centerX, y: centerY - cardinalDist, name: 'north' },      // North
+    { x: centerX + cardinalDist, y: centerY, name: 'east' },       // East
+    { x: centerX, y: centerY + cardinalDist, name: 'south' },      // South
+    { x: centerX - cardinalDist, y: centerY, name: 'west' }        // West
+  ];
+
+  cardinalDirections.forEach(dir => {
+    if (dir.x >= 0 && dir.x < size.width && dir.y >= 0 && dir.y < size.height) {
+      const year = config.specificYear || 1000;
+      placePillar(tiles, dir.x, dir.y, 'stone', year);
+      // Offering table at each direction
+      const offsetX = dir.x === centerX ? dir.x : (dir.x > centerX ? dir.x - 1 : dir.x + 1);
+      const offsetY = dir.y === centerY ? dir.y : (dir.y > centerY ? dir.y - 1 : dir.y + 1);
+      if (offsetX >= 0 && offsetX < size.width && offsetY >= 0 && offsetY < size.height && !tiles[offsetY][offsetX].overlayObject) {
+        tiles[offsetY][offsetX].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+      }
+    }
+  });
+
+  // Sacred bundles at intermediate directions (NE, SE, SW, NW)
+  const intermediateDist = Math.floor(wheelRadius * 0.7);
+  const intermediateDirections = [
+    { x: centerX + intermediateDist, y: centerY - intermediateDist },  // NE
+    { x: centerX + intermediateDist, y: centerY + intermediateDist },  // SE
+    { x: centerX - intermediateDist, y: centerY + intermediateDist },  // SW
+    { x: centerX - intermediateDist, y: centerY - intermediateDist }   // NW
+  ];
+
+  intermediateDirections.forEach(dir => {
+    if (dir.x >= 0 && dir.x < size.width && dir.y >= 0 && dir.y < size.height) {
+      tiles[dir.y][dir.x].overlayObject = { type: OverlayObjectType.SHRINE, rotation: 0 };
+    }
+  });
+
+  // Prayer stations (cushions) in the four quadrants
+  const prayerPositions = [
+    { x: centerX - 3, y: centerY - 3 },
+    { x: centerX + 3, y: centerY - 3 },
+    { x: centerX + 3, y: centerY + 3 },
+    { x: centerX - 3, y: centerY + 3 }
+  ];
+
+  prayerPositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.CUSHION, rotation: 0 };
+    }
+  });
+
+  // Torches at cardinal points for night ceremonies
+  if (centerY - wheelRadius - 1 >= 0) {
+    tiles[centerY - wheelRadius - 1][centerX].overlayObject = { type: OverlayObjectType.TORCH, rotation: 0 };
+  }
+  if (centerY + wheelRadius + 1 < size.height) {
+    tiles[centerY + wheelRadius + 1][centerX].overlayObject = { type: OverlayObjectType.TORCH, rotation: 0 };
+  }
+  if (centerX - wheelRadius - 1 >= 0) {
+    tiles[centerY][centerX - wheelRadius - 1].overlayObject = { type: OverlayObjectType.TORCH, rotation: 0 };
+  }
+  if (centerX + wheelRadius + 1 < size.width) {
+    tiles[centerY][centerX + wheelRadius + 1].overlayObject = { type: OverlayObjectType.TORCH, rotation: 0 };
+  }
+
+  interactionZones.push({
+    id: 'medicine_wheel',
+    bounds: { x: centerX - wheelRadius - 3, y: centerY - wheelRadius - 3, width: (wheelRadius * 2) + 6, height: (wheelRadius * 2) + 6 },
+    type: 'religious',
+    interactions: ['vision_quest', 'pray_to_spirits', 'make_offering', 'seek_guidance']
+  });
+
+  interactionZones.push({
+    id: 'central_fire',
+    bounds: { x: centerX - 3, y: centerY - 3, width: 7, height: 7 },
+    type: 'ritual',
+    interactions: ['tend_sacred_fire', 'smoke_ceremony', 'drum_prayer']
+  });
 }
 
+/**
+ * Kiva - Pueblo underground ceremonial chamber (circular sunken room)
+ */
 function generateKiva(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement Pueblo underground ceremonial chamber
-  generatePlatformMound(tiles, size, centerX, centerY, config, interactionZones);
+  console.log(`[SacredGenerator] Generating Kiva for Pueblo sacred site`);
+
+  // Desert sand/dirt floor around the kiva
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_EARTH);
+
+  // Circular kiva chamber (sunken floor represented by different tile type)
+  const kivaRadius = Math.min(6, Math.floor(Math.min(size.width, size.height) / 3));
+  for (let dy = -kivaRadius; dy <= kivaRadius; dy++) {
+    for (let dx = -kivaRadius; dx <= kivaRadius; dx++) {
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const x = centerX + dx;
+      const y = centerY + dy;
+      if (dist <= kivaRadius && x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        // Sunken chamber floor
+        tiles[y][x].biome = BiomeType.FLOOR_STONE;
+      }
+    }
+  }
+
+  // Sipapu (spiritual hole to underworld) at center
+  tiles[centerY][centerX].overlayObject = { type: OverlayObjectType.BASIN, rotation: 0 }; // Represents hole
+  tiles[centerY][centerX].isBlocking = false; // Can walk over it
+
+  // Sacred fire pit slightly offset from center
+  tiles[centerY - 1][centerX].overlayObject = { type: OverlayObjectType.FIRE_PIT, rotation: 0 };
+  tiles[centerY - 1][centerX].isBlocking = true;
+
+  // Six roof support pillars forming hexagon (typical kiva architecture)
+  const pillarDist = kivaRadius - 1;
+  const year = config.specificYear || 1100;
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const x = Math.floor(centerX + Math.cos(angle) * pillarDist);
+    const y = Math.floor(centerY + Math.sin(angle) * pillarDist);
+    if (x >= 0 && x < size.width && y >= 0 && y < size.height) {
+      placePillar(tiles, x, y, 'wood', year);
+    }
+  }
+
+  // Bench seating along circular wall (banquette)
+  const benchRadius = kivaRadius - 0.5;
+  for (let i = 0; i < 16; i++) {
+    const angle = (i / 16) * Math.PI * 2;
+    const x = Math.floor(centerX + Math.cos(angle) * benchRadius);
+    const y = Math.floor(centerY + Math.sin(angle) * benchRadius);
+    if (x >= 0 && x < size.width && y >= 0 && y < size.height && !tiles[y][x].overlayObject) {
+      tiles[y][x].overlayObject = { type: OverlayObjectType.BENCH, rotation: 0 };
+    }
+  }
+
+  // Ladder entrance (represented by path leading down)
+  const ladderY = centerY + kivaRadius + 1;
+  for (let y = ladderY; y < Math.min(ladderY + 3, size.height); y++) {
+    tiles[y][centerX].biome = BiomeType.PATH;
+    tiles[y][centerX - 1].biome = BiomeType.PATH;
+    tiles[y][centerX + 1].biome = BiomeType.PATH;
+  }
+
+  // Deflector stone between fire and sipapu
+  if (centerY + 1 < size.height) {
+    tiles[centerY + 1][centerX].overlayObject = { type: OverlayObjectType.PILLAR, rotation: 0 };
+  }
+
+  // Ventilation shaft (represented by opening on one side)
+  const ventX = centerX + kivaRadius;
+  const ventY = centerY;
+  if (ventX < size.width) {
+    tiles[ventY][ventX].biome = BiomeType.PATH;
+    if (ventX + 1 < size.width) tiles[ventY][ventX + 1].biome = BiomeType.PATH;
+  }
+
+  // Sacred objects storage niches in walls (chests)
+  const nichePositions = [
+    { x: centerX - kivaRadius + 1, y: centerY - 2 },
+    { x: centerX + kivaRadius - 1, y: centerY + 2 }
+  ];
+  nichePositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+    }
+  });
+
+  // Ceremonial drums (barrels)
+  const drumPositions = [
+    { x: centerX - 3, y: centerY - 3 },
+    { x: centerX + 3, y: centerY - 3 }
+  ];
+  drumPositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.BARREL, rotation: 0 };
+    }
+  });
+
+  // Prayer altar on north side
+  if (centerY - kivaRadius + 2 >= 0) {
+    tiles[centerY - kivaRadius + 2][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
+  }
+
+  // Offering tables
+  const offeringPositions = [
+    { x: centerX - 2, y: centerY + 2 },
+    { x: centerX + 2, y: centerY + 2 }
+  ];
+  offeringPositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+    }
+  });
+
+  // Sacred masks and fetishes (shrines) at cardinal directions
+  const shrinePositions = [
+    { x: centerX, y: centerY - kivaRadius + 1 },     // North
+    { x: centerX + kivaRadius - 1, y: centerY },     // East
+    { x: centerX, y: centerY + kivaRadius - 1 },     // South
+    { x: centerX - kivaRadius + 1, y: centerY }      // West
+  ];
+  shrinePositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.SHRINE, rotation: 0 };
+    }
+  });
+
+  // Torches for illumination
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const torchDist = kivaRadius - 2;
+    const x = Math.floor(centerX + Math.cos(angle) * torchDist);
+    const y = Math.floor(centerY + Math.sin(angle) * torchDist);
+    if (x >= 0 && x < size.width && y >= 0 && y < size.height && !tiles[y][x].overlayObject) {
+      tiles[y][x].overlayObject = { type: OverlayObjectType.TORCH, rotation: 0 };
+    }
+  }
+
+  interactionZones.push({
+    id: 'kiva_chamber',
+    bounds: { x: centerX - kivaRadius - 1, y: centerY - kivaRadius - 1, width: (kivaRadius * 2) + 2, height: (kivaRadius * 2) + 2 },
+    type: 'religious',
+    interactions: ['ceremony', 'pray_to_kachinas', 'tribal_council', 'initiation_rite']
+  });
+
+  interactionZones.push({
+    id: 'sipapu',
+    bounds: { x: centerX - 1, y: centerY - 1, width: 3, height: 3 },
+    type: 'ritual',
+    interactions: ['commune_with_spirits', 'journey_to_underworld', 'ancestral_prayer']
+  });
 }
 
+/**
+ * Longhouse - Woodland Indian ceremonial and community gathering space
+ */
 function generateLonghouse(tiles: Tile[][], size: { width: number, height: number }, centerX: number, centerY: number, config: SpecialMapConfig, interactionZones: InteractionZone[]) {
-  // TODO: Implement Woodland Indian longhouse ceremonies
-  generatePlatformMound(tiles, size, centerX, centerY, config, interactionZones);
+  console.log(`[SacredGenerator] Generating Longhouse for Woodland sacred site`);
+
+  // Dirt floor throughout (typical of longhouses)
+  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_EARTH);
+
+  // Longhouse is rectangular, running north-south
+  const longhouseWidth = Math.min(8, size.width - 4);
+  const longhouseLength = Math.min(size.height - 4, Math.floor(longhouseWidth * 2.5)); // Traditionally 2-3x longer than wide
+  const longhouseX = centerX - Math.floor(longhouseWidth / 2);
+  const longhouseY = Math.floor((size.height - longhouseLength) / 2);
+
+  // Bark floor inside longhouse
+  fillArea(tiles, longhouseX, longhouseY, longhouseWidth, longhouseLength, BiomeType.FLOOR_WOOD);
+
+  // Central corridor with fire pits
+  const numFirePits = Math.min(3, Math.floor(longhouseLength / 8));
+  const firePitSpacing = Math.floor(longhouseLength / (numFirePits + 1));
+
+  for (let i = 1; i <= numFirePits; i++) {
+    const fireY = longhouseY + (i * firePitSpacing);
+    if (fireY >= 0 && fireY < size.height) {
+      tiles[fireY][centerX].overlayObject = { type: OverlayObjectType.FIRE_PIT, rotation: 0 };
+      tiles[fireY][centerX].isBlocking = true;
+    }
+  }
+
+  // Support posts along the sides (wooden pillars)
+  const year = config.specificYear || 1400;
+  for (let y = longhouseY + 2; y < longhouseY + longhouseLength - 2; y += 4) {
+    placePillar(tiles, longhouseX + 1, y, 'wood', year);
+    placePillar(tiles, longhouseX + longhouseWidth - 2, y, 'wood', year);
+  }
+
+  // Sleeping platforms/benches along walls
+  for (let y = longhouseY + 3; y < longhouseY + longhouseLength - 3; y += 3) {
+    // Left side sleeping platforms
+    if (!tiles[y][longhouseX + 1].overlayObject) {
+      tiles[y][longhouseX + 1].overlayObject = { type: OverlayObjectType.BENCH_EAST_WEST, rotation: 0 };
+    }
+    // Right side sleeping platforms
+    if (!tiles[y][longhouseX + longhouseWidth - 2].overlayObject) {
+      tiles[y][longhouseX + longhouseWidth - 2].overlayObject = { type: OverlayObjectType.BENCH_EAST_WEST, rotation: 0 };
+    }
+  }
+
+  // Storage areas (chests and barrels) along walls
+  const storagePositions = [
+    { x: longhouseX + 1, y: longhouseY + 1 },
+    { x: longhouseX + longhouseWidth - 2, y: longhouseY + 1 },
+    { x: longhouseX + 1, y: longhouseY + longhouseLength - 2 },
+    { x: longhouseX + longhouseWidth - 2, y: longhouseY + longhouseLength - 2 }
+  ];
+
+  storagePositions.forEach((pos, index) => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      if (index % 2 === 0) {
+        tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.CHEST, rotation: 0 };
+      } else {
+        tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.BARREL, rotation: 0 };
+      }
+    }
+  });
+
+  // Council area at north end with seating circle
+  const councilY = longhouseY + 2;
+  const councilSeats = [
+    { x: centerX - 2, y: councilY },
+    { x: centerX + 2, y: councilY },
+    { x: centerX - 3, y: councilY + 1 },
+    { x: centerX + 3, y: councilY + 1 },
+    { x: centerX - 2, y: councilY + 2 },
+    { x: centerX + 2, y: councilY + 2 }
+  ];
+
+  councilSeats.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.CUSHION, rotation: 0 };
+    }
+  });
+
+  // Elder's seat (throne) at head of council
+  if (councilY - 1 >= 0 && !tiles[councilY - 1][centerX].overlayObject) {
+    tiles[councilY - 1][centerX].overlayObject = { type: OverlayObjectType.THRONE, rotation: 0 };
+    tiles[councilY - 1][centerX].isBlocking = true;
+  }
+
+  // Ceremonial altar at south end
+  const altarY = longhouseY + longhouseLength - 3;
+  if (altarY >= 0 && altarY < size.height) {
+    tiles[altarY][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
+    tiles[altarY][centerX].isBlocking = true;
+  }
+
+  // Sacred bundles and medicine objects (shrines) near altar
+  const sacredPositions = [
+    { x: centerX - 2, y: altarY },
+    { x: centerX + 2, y: altarY }
+  ];
+
+  sacredPositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.SHRINE, rotation: 0 };
+    }
+  });
+
+  // Offering tables
+  if (altarY + 1 < size.height) {
+    tiles[altarY + 1][centerX - 1].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+    tiles[altarY + 1][centerX + 1].overlayObject = { type: OverlayObjectType.OFFERING_TABLE, rotation: 0 };
+  }
+
+  // Ceremonial drums (barrels as drums)
+  const drumPositions = [
+    { x: longhouseX + 2, y: longhouseY + Math.floor(longhouseLength / 2) },
+    { x: longhouseX + longhouseWidth - 3, y: longhouseY + Math.floor(longhouseLength / 2) }
+  ];
+
+  drumPositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.BARREL, rotation: 0 };
+    }
+  });
+
+  // Cooking/food preparation area near middle fire
+  const cookingY = longhouseY + Math.floor(longhouseLength / 2);
+  const cookingPositions = [
+    { x: longhouseX + 2, y: cookingY - 1 },
+    { x: longhouseX + longhouseWidth - 3, y: cookingY - 1 }
+  ];
+
+  cookingPositions.forEach(pos => {
+    if (pos.x >= 0 && pos.x < size.width && pos.y >= 0 && pos.y < size.height && !tiles[pos.y][pos.x].overlayObject) {
+      tiles[pos.y][pos.x].overlayObject = { type: OverlayObjectType.TABLE, rotation: 0 };
+    }
+  });
+
+  // Torches for lighting along central corridor
+  for (let y = longhouseY + 4; y < longhouseY + longhouseLength - 4; y += 6) {
+    if (!tiles[y][centerX - 1].overlayObject) {
+      tiles[y][centerX - 1].overlayObject = { type: OverlayObjectType.TORCH, rotation: 0 };
+    }
+    if (!tiles[y][centerX + 1].overlayObject) {
+      tiles[y][centerX + 1].overlayObject = { type: OverlayObjectType.TORCH, rotation: 0 };
+    }
+  }
+
+  // Entrances at both ends (represented by paths)
+  // North entrance
+  for (let x = centerX - 1; x <= centerX + 1; x++) {
+    if (longhouseY - 1 >= 0) {
+      tiles[longhouseY - 1][x].biome = BiomeType.PATH;
+    }
+  }
+  // South entrance
+  for (let x = centerX - 1; x <= centerX + 1; x++) {
+    if (longhouseY + longhouseLength < size.height) {
+      tiles[longhouseY + longhouseLength][x].biome = BiomeType.PATH;
+    }
+  }
+
+  interactionZones.push({
+    id: 'council_fire',
+    bounds: { x: centerX - 4, y: councilY - 2, width: 9, height: 6 },
+    type: 'social',
+    interactions: ['attend_council', 'speak_to_elders', 'hear_stories', 'settle_disputes']
+  });
+
+  interactionZones.push({
+    id: 'ceremonial_area',
+    bounds: { x: centerX - 3, y: altarY - 2, width: 7, height: 5 },
+    type: 'religious',
+    interactions: ['ceremony', 'seasonal_ritual', 'healing_ceremony', 'initiation']
+  });
+
+  interactionZones.push({
+    id: 'communal_fires',
+    bounds: { x: longhouseX, y: longhouseY, width: longhouseWidth, height: longhouseLength },
+    type: 'social',
+    interactions: ['share_meal', 'tell_stories', 'craft', 'socialize']
+  });
 }

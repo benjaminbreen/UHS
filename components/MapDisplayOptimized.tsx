@@ -30,6 +30,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
 import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol, LavaSymbolCSS, MountainSymbol, SnowSymbol, BridgeSymbol } from './symbols';
+import RailroadStationSymbol from './symbols/RailroadStationSymbol';
 import DugEarthSymbol from './symbols/DugEarthSymbol';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
@@ -275,6 +276,7 @@ interface MapDisplayOptimizedProps {
   isSpecialMap?: boolean;
   guardAlerts?: Map<string, 'detecting' | 'warning' | 'pursuing'>;
   onContainerClick?: (x: number, y: number, tile: Tile) => void;
+  onStationClick?: (tile: Tile) => void;
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
@@ -317,7 +319,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   onMapEdgeCrossing,
   isSpecialMap = false,
   guardAlerts,
-  onContainerClick
+  onContainerClick,
+  onStationClick
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -2315,37 +2318,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             )}
 
             {/* Old paths layer removed - now rendered after terrain features */}
-
-            {/* Animated trains on railroads */}
-            {(() => {
-              const { era } = parseDateString(mapData?.timeSlice || '1650');
-              const hasRailroads = pathObjects?.some(p => p.type === PathType.RAILROAD);
-              
-              if ((era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA) && hasRailroads) {
-                // Find all railroad paths
-                const railroads = pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
-                
-                // Spawn 1-2 trains randomly on different railroads
-                const numTrains = Math.min(railroads.length, 1 + (Math.random() > 0.7 ? 1 : 0));
-                const selectedRailroads = railroads
-                  .sort(() => Math.random() - 0.5)
-                  .slice(0, numTrains);
-                
-                return (
-                  <g className="trains-layer">
-                    {selectedRailroads.map((railroad, idx) => (
-                      <TrainSymbol
-                        key={`train-${railroad.id}-${idx}`}
-                        pathData={railroad.svgD}
-                        speed={0.015 + Math.random() * 0.01} // Variable speed
-                        numCars={undefined} // Will be randomized
-                      />
-                    ))}
-                  </g>
-                );
-              }
-              return null;
-            })()}
+            {/* Trains moved to render AFTER railroad tracks layer for proper z-index */}
 
             {/* Vegetation layer - MOVED TO AFTER ROADS/PATHS */}
             
@@ -2401,6 +2374,48 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     }
                     const industrialCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
                     elements.push(<IndustrialDistrictSymbol key={`industrial-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={industrialEra} culturalStyle={industrialCulturalStyle} />);
+                  } else if(tile.biome === BiomeType.RAILROAD_STATION) {
+                    // Railroad station symbol - clickable
+                    const { era: stationEra } = parseDateString(formattedDate);
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+                    const stationCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
+                    elements.push(
+                      <g
+                        key={`station-${tile.x}-${tile.y}`}
+                        onClick={() => onStationClick && onStationClick(tile)}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredTile(tile);
+                            setHoveredTileCoords({ x: e.clientX, y: e.clientY });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredTile(null);
+                          setHoveredTileCoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <RailroadStationSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} era={stationEra} culturalStyle={stationCulturalStyle} seed={tileSeed} />
+                        {hoveredTile === tile && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="#60A5FA"
+                            strokeWidth="2"
+                            opacity="0.8"
+                            rx="3"
+                            pointerEvents="none"
+                          />
+                        )}
+                      </g>
+                    );
                   } else if(tile.biome === BiomeType.FARMLAND) {
                     elements.push(
                       <g
@@ -2500,7 +2515,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 const isWaterPath = isStreamPath || isWaterColoredPath;
                 const crossesWater = !isWaterPath && pathCrossesWater(path.svgD, tiles);
                 
-                // Special rendering for modern roads and railroads
+                // Special rendering for modern roads (RAILROADS MOVED TO SEPARATE LAYER ABOVE BUILDINGS)
                 if (path.type === PathType.MODERN_ROAD) {
                   return (
                     <g key={path.id}>
@@ -2528,31 +2543,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     </g>
                   );
                 } else if (path.type === PathType.RAILROAD) {
-                  return (
-                    <g key={path.id}>
-                      {/* Rail bed */}
-                      <path
-                        d={path.svgD}
-                        stroke="#3a3a3a"
-                        strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={path.opacity * 0.5}
-                        strokeLinecap="square"
-                        strokeLinejoin="miter"
-                      />
-                      {/* Rails (dashed to simulate ties) */}
-                      <path
-                        d={path.svgD}
-                        stroke={path.strokeColor}
-                        strokeWidth={path.strokeWidth * 0.7 * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={path.opacity}
-                        strokeLinecap="square"
-                        strokeLinejoin="miter"
-                        strokeDasharray={`${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.05}`}
-                      />
-                    </g>
-                  );
+                  // Skip railroads here - they're rendered in a separate layer above buildings
+                  return null;
                 }
                 
                 // Default rendering for regular roads and paths with simple bridges
@@ -2613,7 +2605,85 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 );
               })}
             </g>
-            
+
+            {/* Railroads layer - rendered BELOW buildings, above terrain */}
+            {(() => {
+              const railroads = pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
+              if (railroads.length === 0) return null;
+
+              return (
+                <g className="railroads-layer" style={{ pointerEvents: 'none' }}>
+                  {railroads.map((path) => (
+                    <path
+                      key={path.id}
+                      d={path.svgD}
+                      stroke={path.strokeColor}
+                      strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                      fill="none"
+                      opacity={path.opacity}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray={path.strokeDasharray}
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  ))}
+                </g>
+              );
+            })()}
+
+            {/* Railroad signal lights at junctions */}
+            {mapData?.railroadJunctions && mapData.railroadJunctions.length > 0 && (() => {
+              const RailroadSignalLight = React.lazy(() => import('./symbols/RailroadSignalLight'));
+
+              return (
+                <g className="railroad-signals-layer" style={{ pointerEvents: 'none' }}>
+                  {mapData.railroadJunctions.map((junction, idx) => {
+                    const pixelX = junction.x * TILE_SIZE_PX;
+                    const pixelY = junction.y * TILE_SIZE_PX;
+                    const junctionSeed = junction.x * 31 + junction.y * 37;
+
+                    return (
+                      <React.Suspense key={`signal-${idx}`} fallback={null}>
+                        <RailroadSignalLight
+                          x={pixelX}
+                          y={pixelY}
+                          size={TILE_SIZE_PX}
+                          seed={junctionSeed}
+                        />
+                      </React.Suspense>
+                    );
+                  })}
+                </g>
+              );
+            })()}
+
+            {/* Animated trains on railroads - ABOVE tracks */}
+            {(() => {
+              const { era } = parseDateString(mapData?.timeSlice || '1650');
+              const railroads = pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
+
+              if ((era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA) && railroads.length > 0) {
+                // Select 1-2 trains on longest railroads
+                const sortedRailroads = [...railroads].sort((a, b) => b.svgD.length - a.svgD.length);
+                const numTrains = Math.min(sortedRailroads.length, 2);
+                const selectedRailroads = sortedRailroads.slice(0, numTrains);
+
+                return (
+                  <g className="trains-layer">
+                    {selectedRailroads.map((railroad, idx) => (
+                      <TrainSymbol
+                        key={`train-${railroad.id}`}
+                        pathData={railroad.svgD}
+                        speed={0.03} // Slower, smoother movement
+                        numCars={2}
+                      />
+                    ))}
+                  </g>
+                );
+              }
+              return null;
+            })()}
+
             {/* Bridges - render after roads but before other structures */}
             {shouldRenderDetailedSymbols && terrainStructures && (
               <g id="bridges-layer">

@@ -22,6 +22,8 @@ export interface EdgeTileInfo {
   isLand: boolean;
   biome: BiomeType;
   altitude: number;
+  hasRailroad?: boolean; // True if railroad crosses this edge tile
+  railroadDirection?: 'N' | 'S' | 'E' | 'W' | 'NE' | 'NW' | 'SE' | 'SW'; // Direction railroad is heading
 }
 
 /**
@@ -113,6 +115,14 @@ export interface MapData {
   npcs?: NpcEntity[];
   vegetation?: VegetationEntity[];
   marketplaces?: MarketplaceInfo[]; // NEW
+  railroadJunctions?: Array<{x: number; y: number}>; // Railroad signal light positions
+  trains?: Array<{
+    id: string;
+    path: Array<{x: number; y: number}>; // Route coordinates
+    currentProgress: number; // 0-1 along path
+    speed: number; // Tiles per second
+    direction: 1 | -1; // Forward or backward
+  }>;
 
   // Time and weather properties for NPC context
   timeOfDay?: TimeOfDay;

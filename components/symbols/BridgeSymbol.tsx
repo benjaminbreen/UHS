@@ -31,9 +31,9 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     
-    // Bridge dimensions - match road width more closely
-    const bridgeWidth = TILE_SIZE_PX * width * 0.4; // Reduced from 0.8 to 0.4
-    const bridgeLength = length * 0.9; // Slightly shorter to not overhang
+    // Bridge dimensions - much thinner for better clarity
+    const bridgeWidth = TILE_SIZE_PX * width * 0.25; // Reduced to 0.25 for narrow footbridge look
+    const bridgeLength = length * 0.95; // Slightly shorter to not overhang
     
     // Use pixel coordinates directly (no multiplication needed)
     const centerStartX = startX;
@@ -71,25 +71,18 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
     
     return (
       <g transform={`translate(${centerStartX}, ${centerStartY}) rotate(${angle})`}>
-        {/* Shadow under bridge - matches road shadow style */}
-        <line
-          x1={0}
-          y1={bridgeWidth / 2 + 1}
-          x2={bridgeLength}
-          y2={bridgeWidth / 2 + 1}
-          stroke="rgba(0, 0, 0, 0.3)"
-          strokeWidth="2"
-        />
+        {/* Enhanced shadow under bridge for better depth */}
         <rect
-          x={0}
-          y={-bridgeWidth / 2 + 1}
+          x={1}
+          y={-bridgeWidth / 2 + 2}
           width={bridgeLength}
           height={bridgeWidth}
           fill={color.shadow}
-          opacity="0.2"
+          opacity="0.4"
+          rx="1"
         />
         
-        {/* Bridge deck */}
+        {/* Bridge deck with stronger outline */}
         <rect
           x={0}
           y={-bridgeWidth / 2}
@@ -97,7 +90,18 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
           height={bridgeWidth}
           fill={color.deck}
           stroke={color.support}
-          strokeWidth="0.5"
+          strokeWidth="1.5"
+          rx="0.5"
+        />
+
+        {/* Center highlight line for better definition */}
+        <line
+          x1={0}
+          y1={0}
+          x2={bridgeLength}
+          y2={0}
+          stroke="rgba(255, 255, 255, 0.15)"
+          strokeWidth="1"
         />
         
         {/* Wood textures based on style */}
@@ -119,18 +123,18 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
         )}
         
         {type === 'wooden' && style === 'plank' && (
-          // Medieval plank bridge
+          // Medieval plank bridge - enhanced visibility
           <>
-            {Array.from({ length: Math.floor(bridgeLength / 8) }, (_, i) => (
+            {Array.from({ length: Math.floor(bridgeLength / 6) }, (_, i) => (
               <line
                 key={`plank-${i}`}
-                x1={i * 8}
+                x1={i * 6}
                 y1={-bridgeWidth / 2}
-                x2={i * 8}
+                x2={i * 6}
                 y2={bridgeWidth / 2}
                 stroke={color.support}
-                strokeWidth="0.3"
-                opacity="0.4"
+                strokeWidth="1"
+                opacity="0.6"
               />
             ))}
           </>
@@ -263,45 +267,101 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
           </>
         )}
         
-        {/* Modern concrete styles */}
+        {/* Modern concrete styles - enhanced visibility */}
         {type === 'modern' && (
           <>
-            {/* Clean modern look */}
+            {/* Lighter concrete with better contrast */}
             <rect
               x={0}
-              y={-bridgeWidth / 2 - 1}
+              y={-bridgeWidth / 2}
               width={bridgeLength}
-              height={bridgeWidth + 2}
-              fill="#C0C0C0"
-              stroke="#909090"
-              strokeWidth="0.5"
+              height={bridgeWidth}
+              fill="#D8D8D8"
+              stroke="#A0A0A0"
+              strokeWidth="1.5"
+              rx="0.5"
             />
+
+            {/* Concrete panel lines (expansion joints) */}
+            {Array.from({ length: Math.floor(bridgeLength / 15) }, (_, i) => (
+              <line
+                key={`joint-${i}`}
+                x1={i * 15}
+                y1={-bridgeWidth / 2}
+                x2={i * 15}
+                y2={bridgeWidth / 2}
+                stroke="#B0B0B0"
+                strokeWidth="1"
+                opacity="0.5"
+              />
+            ))}
+
+            {/* Edge lines for road surface */}
+            <line
+              x1={0}
+              y1={-bridgeWidth / 2 + 2}
+              x2={bridgeLength}
+              y2={-bridgeWidth / 2 + 2}
+              stroke="#F0F0F0"
+              strokeWidth="1.5"
+            />
+            <line
+              x1={0}
+              y1={bridgeWidth / 2 - 2}
+              x2={bridgeLength}
+              y2={bridgeWidth / 2 - 2}
+              stroke="#F0F0F0"
+              strokeWidth="1.5"
+            />
+
+            {/* Center line marking */}
+            <line
+              x1={0}
+              y1={0}
+              x2={bridgeLength}
+              y2={0}
+              stroke="#FFD700"
+              strokeWidth="1.5"
+              strokeDasharray="8,8"
+              opacity="0.8"
+            />
+
             {style === 'highway' && (
-              // Highway markings
+              // Additional highway markings
               <>
                 <line
                   x1={0}
-                  y1={0}
+                  y1={-bridgeWidth / 4}
                   x2={bridgeLength}
-                  y2={0}
-                  stroke="yellow"
+                  y2={-bridgeWidth / 4}
+                  stroke="#FFFFFF"
                   strokeWidth="1"
-                  strokeDasharray="10,10"
-                  opacity="0.6"
+                  strokeDasharray="12,8"
+                  opacity="0.7"
+                />
+                <line
+                  x1={0}
+                  y1={bridgeWidth / 4}
+                  x2={bridgeLength}
+                  y2={bridgeWidth / 4}
+                  stroke="#FFFFFF"
+                  strokeWidth="1"
+                  strokeDasharray="12,8"
+                  opacity="0.7"
                 />
               </>
             )}
           </>
         )}
         
-        {/* Railings - thinner for better proportions */}
+        {/* Enhanced railings for better visibility */}
         <line
           x1={0}
           y1={-bridgeWidth / 2}
           x2={bridgeLength}
           y2={-bridgeWidth / 2}
           stroke={color.rail}
-          strokeWidth="1"
+          strokeWidth="2"
         />
         <line
           x1={0}
@@ -309,28 +369,49 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
           x2={bridgeLength}
           y2={bridgeWidth / 2}
           stroke={color.rail}
+          strokeWidth="2"
+        />
+
+        {/* Outer edge highlight for railings */}
+        <line
+          x1={0}
+          y1={-bridgeWidth / 2 - 1}
+          x2={bridgeLength}
+          y2={-bridgeWidth / 2 - 1}
+          stroke="rgba(0, 0, 0, 0.3)"
+          strokeWidth="1"
+        />
+        <line
+          x1={0}
+          y1={bridgeWidth / 2 + 1}
+          x2={bridgeLength}
+          y2={bridgeWidth / 2 + 1}
+          stroke="rgba(0, 0, 0, 0.3)"
           strokeWidth="1"
         />
         
-        {/* Railing posts - smaller and spaced for 3-tile bridges */}
-        {Array.from({ length: 3 }, (_, i) => (
-          <g key={`post-${i}`}>
-            <rect
-              x={i * (bridgeLength / 2) - 0.5}
-              y={-bridgeWidth / 2 - 2}
-              width="1"
-              height="4"
-              fill={color.rail}
-            />
-            <rect
-              x={i * (bridgeLength / 2) - 0.5}
-              y={bridgeWidth / 2 - 2}
-              width="1"
-              height="4"
-              fill={color.rail}
-            />
-          </g>
-        ))}
+        {/* More visible railing posts */}
+        {Array.from({ length: Math.max(3, Math.floor(bridgeLength / 20)) }, (_, i) => {
+          const spacing = bridgeLength / (Math.max(3, Math.floor(bridgeLength / 20)) - 1);
+          return (
+            <g key={`post-${i}`}>
+              <rect
+                x={i * spacing - 1}
+                y={-bridgeWidth / 2 - 3}
+                width="2"
+                height="6"
+                fill={color.rail}
+              />
+              <rect
+                x={i * spacing - 1}
+                y={bridgeWidth / 2 - 3}
+                width="2"
+                height="6"
+                fill={color.rail}
+              />
+            </g>
+          );
+        })}
         
         {/* Support pillars for longer bridges */}
         {bridgeLength > TILE_SIZE_PX * 2 && (

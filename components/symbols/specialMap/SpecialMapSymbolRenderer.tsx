@@ -89,6 +89,11 @@ import OvenBrickSymbol from '../workshop/OvenBrickSymbol';
 import SpinningWheelSymbol from '../workshop/SpinningWheelSymbol';
 import LoomSymbol from '../workshop/LoomSymbol';
 import WorkbenchSymbol from '../workshop/WorkbenchSymbol';
+import ShelfSymbol from '../architecture/specialMap/ShelfSymbol';
+
+// Import environmental symbols
+import RoadSymbol from '../RoadSymbol';
+import DeciduousTreeSymbol from '../DeciduousTreeSymbol';
 
 interface SpecialMapSymbolRendererProps {
   x: number;
@@ -176,7 +181,10 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         
       case BiomeType.BOOKSHELF:
         return <BookshelfSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
-        
+
+      case BiomeType.SHELF:
+        return <ShelfSymbol culturalZone={culturalZone as string} era={year || 1500} hasItems={true} />;
+
       case BiomeType.DESK:
         return <DeskSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
         
@@ -488,6 +496,13 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
 
       case BiomeType.WORKBENCH:
         return <WorkbenchSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={year || 1500} hasTools={true} />;
+
+      // Environmental elements in special maps
+      case BiomeType.ROAD:
+        return <RoadSymbol x={x} y={y} size={size} />;
+
+      case BiomeType.TREE:
+        return <DeciduousTreeSymbol x={x} y={y} size={size} />;
 
       default:
         // Return null for biomes that don't need special symbols

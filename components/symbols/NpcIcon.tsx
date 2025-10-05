@@ -5,6 +5,7 @@ interface NpcIconProps {
   npc: NpcEntity;
   size: number;
   tileSize: number;
+  isInteriorMap?: boolean; // Flag to scale up for interior maps
 }
 
 // Helper function to adjust color brightness
@@ -17,7 +18,7 @@ const adjustColorBrightness = (color: string, percent: number): string => {
   return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 };
 
-const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => {
+const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInteriorMap = false }) => {
   const { direction, walkFrame, gender } = npc;
 
   if (!npc.appearance) {
@@ -114,8 +115,11 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
   const AVG_NPC_HEIGHT_CM = isFemale ? 165 : 175;
   // Clamp the scaling factor to a reasonable range (e.g., 0.8x to 1.3x) to prevent extreme sizes.
   const heightScale = Math.min(Math.max(height / AVG_NPC_HEIGHT_CM, 0.8), 1.3);
-  
-  const actualSize = size * heightScale;
+
+  // Base size multiplier - make NPC icons 7-9px tall (slightly larger than original 6-8px)
+  const BASE_SCALE = 1.1; // 1.1x makes 6-8px become ~7-9px
+
+  const actualSize = size * heightScale * BASE_SCALE;
   const p = actualSize / 24;
 
   const walkSpeed = 0.09;
@@ -542,8 +546,11 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
   // Check if NPC has a disease
   const hasDiseases = npc.health && npc.health.currentDiseases && npc.health.currentDiseases.length > 0;
   
+  // Scale factor for interior maps - make icons 3x larger ONLY in interior maps (matching PlayerIcon)
+  const ICON_SCALE = isInteriorMap ? 3 : 1;
+
   return (
-    <g transform={`translate(${baseX}, ${baseY})`} style={{ shapeRendering: 'geometricPrecision' }}>
+    <g transform={`translate(${baseX}, ${baseY}) scale(${ICON_SCALE})`} style={{ shapeRendering: 'geometricPrecision' }}>
       {/* Disease indicator - greenish circle around sick NPCs */}
       {hasDiseases && (
         <circle

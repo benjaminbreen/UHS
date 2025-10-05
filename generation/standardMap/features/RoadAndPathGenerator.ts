@@ -16,8 +16,9 @@ const PATH_STROKE_COLOR = '#a67b5b';
 // Modern asphalt
 const MODERN_ROAD_COLOR = '#2a2a2a';
 const MODERN_CENTER_HILITE = 'rgba(255,255,255,0.14)';
-// Rail
-const RAILROAD_COLOR = '#4a4a4a';
+// Rail - SimCity/Cities Skylines style thin lines
+const RAILROAD_COLOR = '#4a4a4a'; // Dark gray steel
+const RAILROAD_SHADOW_COLOR = 'rgba(0,0,0,0.3)'; // Subtle shadow for depth
 
 // Width hierarchy
 const MAJOR_ROAD_WIDTH        = TILE_SIZE_PX * 0.25;
@@ -25,12 +26,12 @@ const ROAD_STROKE_WIDTH_BASE  = TILE_SIZE_PX * 0.20;
 const MINOR_ROAD_WIDTH        = TILE_SIZE_PX * 0.12;
 const PATH_STROKE_WIDTH_BASE  = TILE_SIZE_PX * 0.08;
 const MODERN_ROAD_WIDTH       = TILE_SIZE_PX * 0.30;
-const RAILROAD_WIDTH          = TILE_SIZE_PX * 0.15;
+const RAILROAD_WIDTH          = TILE_SIZE_PX * 0.05; // Very thin line like SimCity
 
 const ROAD_OPACITY            = 0.95;
 const PATH_OPACITY            = 0.75;
 const MODERN_ROAD_OPACITY     = 0.95;
-const RAILROAD_OPACITY        = 0.85;
+const RAILROAD_OPACITY        = 0.9; // Slightly transparent
 
 // Bridge deck (timber/stone)
 const BRIDGE_DECK_COLOR       = '#cbb79a';
@@ -309,6 +310,137 @@ function getClusterBounds(cluster: Tile[]) {
 }
 
 function svgFromRow(points: Point[]): string { return svgQuadratic(points); }
+
+/* ------------------------- Railroad Edge Utilities ------------------------- */
+
+/**
+ * Record railroad crossings at map edges for cross-map continuity
+ */
+function recordRailroadEdges(mapData: MapData): void {
+  if (!mapData.pathObjects || !mapData.edgeData) return;
+
+  const railroads = mapData.pathObjects.filter(p => p.type === PathType.RAILROAD);
+  if (railroads.length === 0) return;
+
+  const edgeData = mapData.edgeData;
+
+  // Helper to check if a point is near a map edge
+  const isNearEdge = (x: number, y: number, edge: 'north' | 'south' | 'east' | 'west'): boolean => {
+    const tolerance = TILE_SIZE_PX * 2; // Within 2 tiles of edge
+    switch (edge) {
+      case 'north': return y <= tolerance;
+      case 'south': return y >= (MAP_HEIGHT_TILES - 1) * TILE_SIZE_PX - tolerance;
+      case 'east': return x >= (MAP_WIDTH_TILES - 1) * TILE_SIZE_PX - tolerance;
+      case 'west': return x <= tolerance;
+    }
+  };
+
+  // Helper to extract direction from SVG path at a point
+  const getDirectionAtPoint = (svgPath: string, edge: 'north' | 'south' | 'east' | 'west'): 'N' | 'S' | 'E' | 'W' | 'NE' | 'NW' | 'SE' | 'SW' => {
+    // Simple heuristic: check if path crosses edge horizontally or vertically
+    // For now, use edge to determine primary direction
+    if (edge === 'north') return 'N';
+    if (edge === 'south') return 'S';
+    if (edge === 'east') return 'E';
+    if (edge === 'west') return 'W';
+    return 'N';
+  };
+
+  // Scan each railroad path for edge crossings
+  for (const railroad of railroads) {
+    const pathStr = railroad.svgD;
+
+    // Extract coordinates from SVG path (parse M and L commands)
+    const coordMatches = pathStr.matchAll(/([ML])\s*([\d.]+)\s+([\d.]+)/g);
+    const points: Point[] = [];
+    for (const match of coordMatches) {
+      points.push({ x: parseFloat(match[2]), y: parseFloat(match[3]) });
+    }
+
+    // Check each point against edges
+    for (const point of points) {
+      const tileX = Math.floor(point.x / TILE_SIZE_PX);
+      const tileY = Math.floor(point.y / TILE_SIZE_PX);
+
+      // North edge (y = 0)
+      if (tileY === 0 && edgeData.north && edgeData.north[tileX]) {
+        edgeData.north[tileX].hasRailroad = true;
+        edgeData.north[tileX].railroadDirection = getDirectionAtPoint(pathStr, 'north');
+      }
+
+      // South edge (y = MAP_HEIGHT_TILES - 1)
+      if (tileY === MAP_HEIGHT_TILES - 1 && edgeData.south && edgeData.south[tileX]) {
+        edgeData.south[tileX].hasRailroad = true;
+        edgeData.south[tileX].railroadDirection = getDirectionAtPoint(pathStr, 'south');
+      }
+
+      // East edge (x = MAP_WIDTH_TILES - 1)
+      if (tileX === MAP_WIDTH_TILES - 1 && edgeData.east && edgeData.east[tileY]) {
+        edgeData.east[tileY].hasRailroad = true;
+        edgeData.east[tileY].railroadDirection = getDirectionAtPoint(pathStr, 'east');
+      }
+
+      // West edge (x = 0)
+      if (tileX === 0 && edgeData.west && edgeData.west[tileY]) {
+        edgeData.west[tileY].hasRailroad = true;
+        edgeData.west[tileY].railroadDirection = getDirectionAtPoint(pathStr, 'west');
+      }
+    }
+  }
+
+  console.log('[RoadGen] Recorded railroad edge data for cross-map continuity');
+}
+
+/**
+ * Find railroad continuation points from neighboring map edges
+ */
+function findRailroadContinuationPoints(neighboringEdges: any): Point[] {
+  const continuationPoints: Point[] = [];
+
+  if (!neighboringEdges) return continuationPoints;
+
+  // Check north edge for railroads coming from the north
+  if (neighboringEdges.north) {
+    neighboringEdges.north.forEach((tile: any, x: number) => {
+      if (tile.hasRailroad) {
+        continuationPoints.push({ x, y: 0 });
+      }
+    });
+  }
+
+  // Check south edge for railroads coming from the south
+  if (neighboringEdges.south) {
+    neighboringEdges.south.forEach((tile: any, x: number) => {
+      if (tile.hasRailroad) {
+        continuationPoints.push({ x, y: MAP_HEIGHT_TILES - 1 });
+      }
+    });
+  }
+
+  // Check east edge for railroads coming from the east
+  if (neighboringEdges.east) {
+    neighboringEdges.east.forEach((tile: any, y: number) => {
+      if (tile.hasRailroad) {
+        continuationPoints.push({ x: MAP_WIDTH_TILES - 1, y });
+      }
+    });
+  }
+
+  // Check west edge for railroads coming from the west
+  if (neighboringEdges.west) {
+    neighboringEdges.west.forEach((tile: any, y: number) => {
+      if (tile.hasRailroad) {
+        continuationPoints.push({ x: 0, y });
+      }
+    });
+  }
+
+  if (continuationPoints.length > 0) {
+    console.log(`[RoadGen] Found ${continuationPoints.length} railroad continuation points from neighboring maps`);
+  }
+
+  return continuationPoints;
+}
 
 /* ------------------------------- Main export -------------------------------- */
 
@@ -767,51 +899,558 @@ const useUrbanGrids = false;
   }
 
   /* ------------------------- Railroads (industrial/modern) ------------------------- */
-  // Fix: Use correct enum values and ensure railroads appear
   if (hasRailroads) {
     console.log(`[RoadGen] Generating railroads for era ${era} (year ${year})`);
-    // Ensure every city has railroads - connect to industrial districts and other cities
-    const industrialDistricts = tiles.flat().filter(t => 
-      t.biome === BiomeType.GOVERNMENT_DISTRICT || 
-      t.structures?.some(s => s.structureType === 'factory' || s.structureType === 'mill')
-    );
-    const railTargets = [...factories, ...mills, ...lumber, ...industrialDistricts];
-    
-    // Ensure at least one railroad per city
-    for (const city of urban) {
-      // Find nearby industrial targets or other cities
-      let targets = railTargets
-        .map((t) => ({ t, d: euclid(city, t) }))
-        .filter((o) => o.d < 60) // Increased range
-        .sort((a, b) => a.d - b.d);
-      
-      // If no industrial nearby, connect to nearest other city
-      if (targets.length === 0) {
-        const otherCities = urban.filter(c => c !== city);
-        if (otherCities.length > 0) {
-          const nearest = otherCities
-            .map(c => ({ t: c, d: euclid(city, c) }))
-            .sort((a, b) => a.d - b.d)[0];
-          targets = [nearest];
+
+    // STEP 1: Find railroad continuation points from neighboring maps
+    const railroadContinuations = findRailroadContinuationPoints(mapData.neighboringEdges);
+
+    // STEP 2: Connect continuation points across the map (cross-map trunk lines)
+    if (railroadContinuations.length > 0) {
+      console.log(`[RoadGen] Connecting ${railroadContinuations.length} cross-map railroad continuations`);
+
+      for (let i = 0; i < railroadContinuations.length; i++) {
+        const entryPoint = railroadContinuations[i];
+
+        // Find exit point: either opposite edge or nearest other continuation point
+        let exitPoint: Point | null = null;
+
+        if (railroadContinuations.length > 1) {
+          // Connect to another continuation point
+          const otherPoints = railroadContinuations.filter((_, idx) => idx !== i);
+          const nearest = otherPoints.reduce((best, curr) => {
+            const distCurr = Math.hypot(curr.x - entryPoint.x, curr.y - entryPoint.y);
+            const distBest = best ? Math.hypot(best.x - entryPoint.x, best.y - entryPoint.y) : Infinity;
+            return distCurr < distBest ? curr : best;
+          }, null as Point | null);
+          exitPoint = nearest;
+        } else {
+          // Single continuation: route to opposite edge or nearest city
+          if (entryPoint.y === 0) exitPoint = { x: entryPoint.x, y: MAP_HEIGHT_TILES - 1 };
+          else if (entryPoint.y === MAP_HEIGHT_TILES - 1) exitPoint = { x: entryPoint.x, y: 0 };
+          else if (entryPoint.x === 0) exitPoint = { x: MAP_WIDTH_TILES - 1, y: entryPoint.y };
+          else if (entryPoint.x === MAP_WIDTH_TILES - 1) exitPoint = { x: 0, y: entryPoint.y };
+        }
+
+        if (exitPoint) {
+          const entryTile = tiles[entryPoint.y][entryPoint.x];
+          const exitTile = tiles[exitPoint.y][exitPoint.x];
+          const path = aStarSnapToNetwork(entryTile, exitTile, PathType.RAILROAD, tiles, onNetwork);
+
+          if (path) {
+            const pts = centersFromTiles(path);
+            const d = svgQuadratic(pts);
+
+            // Shadow + railroad line
+            mapData.pathObjects!.push({
+              id: `rail-shadow-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH + TILE_SIZE_PX * 0.02, strokeColor: RAILROAD_SHADOW_COLOR, opacity: 0.3,
+            } as any);
+            mapData.pathObjects!.push({
+              id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH, strokeColor: RAILROAD_COLOR, opacity: RAILROAD_OPACITY,
+            } as any);
+          }
         }
       }
-      
-      // Take up to 2 connections
-      const connections = targets.slice(0, 2);
-      for (const n of connections) {
-        const path = aStarSnapToNetwork(city, n.t, PathType.RAILROAD, tiles, onNetwork);
-        if (!path) continue;
-        let pts = centersFromTiles(path); // rail = straight
+    }
+
+    // STEP 3: Generate map-spanning trunk lines
+    const railroadNetwork = Array.from({ length: MAP_HEIGHT_TILES }, () => Array(MAP_WIDTH_TILES).fill(false));
+
+    // Sort cities by population to find major hubs
+    const sortedCities = [...urban].sort((a, b) => (b.population || 0) - (a.population || 0));
+
+    // Create trunk lines connecting major cities across the entire map
+    if (sortedCities.length >= 2) {
+      // Connect the 2-3 largest cities with trunk lines
+      const majorHubs = sortedCities.slice(0, Math.min(3, sortedCities.length));
+
+      for (let i = 0; i < majorHubs.length - 1; i++) {
+        const start = majorHubs[i];
+        const end = majorHubs[i + 1];
+
+        // Create long trunk line between major hubs
+        const path = aStarSnapToNetwork(start, end, PathType.RAILROAD, tiles, railroadNetwork);
+        if (!path || path.length < 5) continue;
+
+        // Stamp this trunk line into railroad network
+        for (const tile of path) railroadNetwork[tile.y][tile.x] = true;
+
+        let pts = centersFromTiles(path);
         const d = svgQuadratic(pts);
+
+        // Simple 2-layer railroad: brown ties + black rails
+        // 1. Brown wooden ties (dashed)
         mapData.pathObjects!.push({
-          id: `rail-shadow-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-          strokeWidth: RAILROAD_WIDTH + TILE_SIZE_PX * 0.04, strokeColor: ROAD_SHADOW, opacity: 0.85,
+          id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+          strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
+          strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`, // Sleepers
         } as any);
+
+        // 2. Black steel rails on top
         mapData.pathObjects!.push({
           id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-          strokeWidth: RAILROAD_WIDTH, strokeColor: RAILROAD_COLOR, opacity: RAILROAD_OPACITY,
+          strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
         } as any);
+
+        console.log(`[RoadGen] Created trunk line: ${path.length} tiles from ${start.cityName || 'City'} to ${end.cityName || 'City'}`);
+      }
+
+      // Add branch lines from smaller cities to nearest trunk
+      const industrialDistricts = tiles.flat().filter(t =>
+        t.biome === BiomeType.GOVERNMENT_DISTRICT ||
+        t.structures?.some(s => s.structureType === 'factory' || s.structureType === 'mill')
+      );
+      const branchTargets = [...factories, ...mills, ...lumber, ...industrialDistricts];
+
+      // Connect remaining cities to the railroad network
+      for (const city of sortedCities.slice(3)) {
+        // Find nearest point on existing railroad network
+        let nearestRailTile: Tile | null = null;
+        let minDist = Infinity;
+
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+          for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+            if (railroadNetwork[y][x]) {
+              const dist = euclid(city, tiles[y][x]);
+              if (dist < minDist && dist < 40) {
+                minDist = dist;
+                nearestRailTile = tiles[y][x];
+              }
+            }
+          }
+        }
+
+        if (nearestRailTile) {
+          const path = aStarSnapToNetwork(city, nearestRailTile, PathType.RAILROAD, tiles, railroadNetwork);
+          if (path && path.length >= 3) {
+            for (const tile of path) railroadNetwork[tile.y][tile.x] = true;
+
+            let pts = centersFromTiles(path);
+            const d = svgQuadratic(pts);
+
+            mapData.pathObjects!.push({
+              id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
+              strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+            } as any);
+
+            mapData.pathObjects!.push({
+              id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+            } as any);
+          }
+        }
       }
     }
+
+    // Add railroad stations at cities that have rail connections
+    // Limit: Max 2 stations per map, separated by at least 20 tiles
+    const MIN_STATION_SEPARATION = 20;
+    const MAX_STATIONS = 2;
+    const stationCandidates: Tile[] = [];
+
+    // Find all cities with nearby railroads using the railroad network
+    for (const city of urban) {
+      let hasNearbyRail = false;
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          const nx = city.x + dx, ny = city.y + dy;
+          if (inBounds(nx, ny) && railroadNetwork[ny][nx]) {
+            hasNearbyRail = true;
+            break;
+          }
+        }
+        if (hasNearbyRail) break;
+      }
+
+      if (hasNearbyRail) {
+        stationCandidates.push(city);
+      }
+    }
+
+    // Sort candidates by population (prefer larger cities)
+    stationCandidates.sort((a, b) => (b.population || 0) - (a.population || 0));
+
+    // Select stations with minimum separation requirement
+    const selectedStations: Tile[] = [];
+    for (const candidate of stationCandidates) {
+      if (selectedStations.length >= MAX_STATIONS) break;
+
+      // Check if this candidate is far enough from all selected stations
+      const isFarEnough = selectedStations.every(station => {
+        const distance = Math.hypot(candidate.x - station.x, candidate.y - station.y);
+        return distance >= MIN_STATION_SEPARATION;
+      });
+
+      if (isFarEnough || selectedStations.length === 0) {
+        selectedStations.push(candidate);
+        candidate.biome = BiomeType.RAILROAD_STATION as any;
+      }
+    }
+
+    console.log(`[RoadGen] Created ${selectedStations.length} railroad stations (max ${MAX_STATIONS}, min separation ${MIN_STATION_SEPARATION} tiles)`);
+
+    // STEP 3.5: Extend railroads to map edges (ALWAYS!)
+    // Find all railroad endpoints and extend them to nearest map edge
+    const extendRailroadToEdge = (startTile: Tile, railNetwork: boolean[][]): void => {
+      // Determine which edge is nearest
+      const distanceToEdges = {
+        north: startTile.y,
+        south: MAP_HEIGHT_TILES - 1 - startTile.y,
+        east: MAP_WIDTH_TILES - 1 - startTile.x,
+        west: startTile.x
+      };
+
+      // Sort edges by distance and try each until we find a valid path
+      const sortedEdges = Object.entries(distanceToEdges)
+        .sort((a, b) => a[1] - b[1])
+        .map(([edge]) => edge as 'north' | 'south' | 'east' | 'west');
+
+      for (const edge of sortedEdges) {
+        // Calculate target edge point
+        let edgeX = startTile.x;
+        let edgeY = startTile.y;
+
+        switch (edge) {
+          case 'north': edgeY = 0; break;
+          case 'south': edgeY = MAP_HEIGHT_TILES - 1; break;
+          case 'east': edgeX = MAP_WIDTH_TILES - 1; break;
+          case 'west': edgeX = 0; break;
+        }
+
+        // Don't try to extend if already at edge
+        if (edgeX === startTile.x && edgeY === startTile.y) continue;
+
+        const edgeTile = tiles[edgeY][edgeX];
+        const extensionPath = aStarSnapToNetwork(startTile, edgeTile, PathType.RAILROAD, tiles, railNetwork);
+
+        if (extensionPath && extensionPath.length >= 3) {
+          // Stamp extension into railroad network
+          for (const tile of extensionPath) railNetwork[tile.y][tile.x] = true;
+
+          let pts = centersFromTiles(extensionPath);
+
+          // CRITICAL FIX: ALWAYS extend past the TARGET edge, regardless of where path actually ends
+          // This ensures visual edge crossing even if A* didn't quite reach the edge tile
+          const lastPoint = pts[pts.length - 1];
+
+          // Force extension in the direction of the target edge
+          switch (edge) {
+            case 'north':
+              // Always extend north past y=0
+              pts.push({ x: lastPoint.x, y: -TILE_SIZE_PX * 0.5 });
+              break;
+            case 'south':
+              // Always extend south past y=MAP_HEIGHT-1
+              pts.push({ x: lastPoint.x, y: (MAP_HEIGHT_TILES - 0.5) * TILE_SIZE_PX });
+              break;
+            case 'east':
+              // Always extend east past x=MAP_WIDTH-1
+              pts.push({ x: (MAP_WIDTH_TILES - 0.5) * TILE_SIZE_PX, y: lastPoint.y });
+              break;
+            case 'west':
+              // Always extend west past x=0
+              pts.push({ x: -TILE_SIZE_PX * 0.5, y: lastPoint.y });
+              break;
+          }
+
+          const d = svgQuadratic(pts);
+
+          // Render railroad extension
+          mapData.pathObjects!.push({
+            id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+            strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
+            strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+          } as any);
+
+          mapData.pathObjects!.push({
+            id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+            strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+          } as any);
+
+          console.log(`[RoadGen] Extended railroad ${extensionPath.length} tiles to ${edge} edge`);
+          return; // Successfully extended, don't try other edges
+        }
+      }
+    };
+
+    // Extend trunk lines to edges
+    if (sortedCities.length >= 2) {
+      const majorHubs = sortedCities.slice(0, Math.min(3, sortedCities.length));
+
+      // Extend from each major hub to an edge
+      for (const hub of majorHubs) {
+        extendRailroadToEdge(hub, railroadNetwork);
+      }
+    }
+
+    // STEP 3.6: Industrial railroad logic (post-1880)
+    // If map has mills/mines/factories after 1880, create railroad lines to map edge
+    const currentYear = mapData.timeSlice ? parseInt(mapData.timeSlice.split(',')[0]) : 1500;
+
+    if (currentYear >= 1880) {
+      const industrialBuildings = [...mills, ...mines, ...factories, ...lumber];
+
+      if (industrialBuildings.length > 0) {
+        console.log(`[RoadGen] Post-1880 map with ${industrialBuildings.length} industrial buildings - creating industrial railroads`);
+
+        // Strategy: Create cross-map trunk lines that pass through industrial sites
+        // Group industrial buildings by horizontal/vertical proximity
+        const horizontalCandidates = industrialBuildings.filter(b => {
+          const midY = MAP_HEIGHT_TILES / 2;
+          return Math.abs(b.y - midY) < MAP_HEIGHT_TILES / 3;
+        });
+
+        const verticalCandidates = industrialBuildings.filter(b => {
+          const midX = MAP_WIDTH_TILES / 2;
+          return Math.abs(b.x - midX) < MAP_WIDTH_TILES / 3;
+        });
+
+        // Create horizontal cross-map line if we have horizontally-aligned buildings
+        if (horizontalCandidates.length > 0) {
+          const avgY = Math.floor(horizontalCandidates.reduce((sum, b) => sum + b.y, 0) / horizontalCandidates.length);
+          const westEdge = tiles[avgY][0];
+          const eastEdge = tiles[avgY][MAP_WIDTH_TILES - 1];
+
+          const horizontalPath = aStarSnapToNetwork(westEdge, eastEdge, PathType.RAILROAD, tiles, railroadNetwork);
+
+          if (horizontalPath && horizontalPath.length >= 10) {
+            for (const tile of horizontalPath) railroadNetwork[tile.y][tile.x] = true;
+
+            let pts = centersFromTiles(horizontalPath);
+
+            // Extend past BOTH edges (west and east)
+            const firstPoint = pts[0];
+            const lastPoint = pts[pts.length - 1];
+
+            // Prepend extension to west edge
+            pts.unshift({ x: -TILE_SIZE_PX * 0.5, y: firstPoint.y });
+
+            // Append extension to east edge
+            pts.push({ x: (MAP_WIDTH_TILES - 0.5) * TILE_SIZE_PX, y: lastPoint.y });
+
+            const d = svgQuadratic(pts);
+
+            mapData.pathObjects!.push({
+              id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
+              strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+            } as any);
+
+            mapData.pathObjects!.push({
+              id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+            } as any);
+
+            console.log(`[RoadGen] Created horizontal cross-map industrial railroad: ${horizontalPath.length} tiles`);
+          }
+        }
+
+        // Create vertical cross-map line if we have vertically-aligned buildings
+        if (verticalCandidates.length > 0) {
+          const avgX = Math.floor(verticalCandidates.reduce((sum, b) => sum + b.x, 0) / verticalCandidates.length);
+          const northEdge = tiles[0][avgX];
+          const southEdge = tiles[MAP_HEIGHT_TILES - 1][avgX];
+
+          const verticalPath = aStarSnapToNetwork(northEdge, southEdge, PathType.RAILROAD, tiles, railroadNetwork);
+
+          if (verticalPath && verticalPath.length >= 10) {
+            for (const tile of verticalPath) railroadNetwork[tile.y][tile.x] = true;
+
+            let pts = centersFromTiles(verticalPath);
+
+            // Extend past BOTH edges (north and south)
+            const firstPoint = pts[0];
+            const lastPoint = pts[pts.length - 1];
+
+            // Prepend extension to north edge
+            pts.unshift({ x: firstPoint.x, y: -TILE_SIZE_PX * 0.5 });
+
+            // Append extension to south edge
+            pts.push({ x: lastPoint.x, y: (MAP_HEIGHT_TILES - 0.5) * TILE_SIZE_PX });
+
+            const d = svgQuadratic(pts);
+
+            mapData.pathObjects!.push({
+              id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
+              strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+            } as any);
+
+            mapData.pathObjects!.push({
+              id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+            } as any);
+
+            console.log(`[RoadGen] Created vertical cross-map industrial railroad: ${verticalPath.length} tiles`);
+          }
+        }
+
+        // CRITICAL: Connect ALL industrial buildings to railroads, not just isolated ones
+        for (const building of industrialBuildings) {
+          // Check if building is already ON or immediately adjacent to a railroad (within 2 tiles)
+          let nearRailroad = false;
+          for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+              const nx = building.x + dx, ny = building.y + dy;
+              if (inBounds(nx, ny) && railroadNetwork[ny][nx]) {
+                nearRailroad = true;
+                break;
+              }
+            }
+            if (nearRailroad) break;
+          }
+
+          // If NOT already connected to railroad network, create spur line
+          if (!nearRailroad) {
+            // Find nearest railroad tile
+            let nearestRailTile: Tile | null = null;
+            let minDist = Infinity;
+
+            for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+              for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+                if (railroadNetwork[y][x]) {
+                  const dist = Math.hypot(building.x - x, building.y - y);
+                  if (dist < minDist) {
+                    minDist = dist;
+                    nearestRailTile = tiles[y][x];
+                  }
+                }
+              }
+            }
+
+            // If there's no existing railroad network at all, connect to edge
+            if (!nearestRailTile || minDist > 30) {
+              extendRailroadToEdge(building, railroadNetwork);
+            } else {
+              // Create spur line to existing railroad
+              const spurPath = aStarSnapToNetwork(building, nearestRailTile, PathType.RAILROAD, tiles, railroadNetwork);
+
+              if (spurPath && spurPath.length >= 2) {
+                for (const tile of spurPath) railroadNetwork[tile.y][tile.x] = true;
+
+                const pts = centersFromTiles(spurPath);
+                const d = svgQuadratic(pts);
+
+                mapData.pathObjects!.push({
+                  id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+                  strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
+                  strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+                } as any);
+
+                mapData.pathObjects!.push({
+                  id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+                  strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+                } as any);
+
+                console.log(`[RoadGen] Connected industrial building at (${building.x}, ${building.y}) to railroad network`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // STEP 4: Detect railroad junctions for signal lights
+    mapData.railroadJunctions = [];
+    const junctionCandidates = new Map<string, number>(); // key -> count
+
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        if (!railroadNetwork[y][x]) continue;
+
+        // Count adjacent railroad tiles
+        let adjacentCount = 0;
+        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+        for (const [dx, dy] of directions) {
+          const nx = x + dx, ny = y + dy;
+          if (inBounds(nx, ny) && railroadNetwork[ny][nx]) {
+            adjacentCount++;
+          }
+        }
+
+        // Junction = 3+ adjacent railroad tiles (T-junction or cross)
+        if (adjacentCount >= 3) {
+          junctionCandidates.set(`${x},${y}`, adjacentCount);
+        }
+      }
+    }
+
+    // Add junctions with some spacing (min 10 tiles apart)
+    const MIN_JUNCTION_SEPARATION = 10;
+    for (const [key, _] of junctionCandidates) {
+      const [x, y] = key.split(',').map(Number);
+
+      // Check if too close to existing junction
+      const tooClose = mapData.railroadJunctions.some(j => {
+        const dist = Math.hypot(j.x - x, j.y - y);
+        return dist < MIN_JUNCTION_SEPARATION;
+      });
+
+      if (!tooClose) {
+        mapData.railroadJunctions.push({ x, y });
+      }
+    }
+
+    console.log(`[RoadGen] Detected ${mapData.railroadJunctions.length} railroad junctions for signal lights`);
+
+    // STEP 5: Generate trains on railroad routes
+    mapData.trains = [];
+
+    // Create trains on trunk lines (1-2 trains per major route)
+    if (sortedCities.length >= 2) {
+      const majorHubs = sortedCities.slice(0, Math.min(3, sortedCities.length));
+
+      for (let i = 0; i < majorHubs.length - 1; i++) {
+        const start = majorHubs[i];
+        const end = majorHubs[i + 1];
+
+        // Find railroad path between these hubs
+        const trainPath: Array<{x: number; y: number}> = [];
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+          for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+            if (railroadNetwork[y][x]) {
+              // Check if this tile is on the route between start and end
+              const distToStart = Math.hypot(x - start.x, y - start.y);
+              const distToEnd = Math.hypot(x - end.x, y - end.y);
+              const directDist = Math.hypot(end.x - start.x, end.y - start.y);
+
+              // If tile is roughly on the line between start and end
+              if (Math.abs(distToStart + distToEnd - directDist) < 5) {
+                trainPath.push({ x, y });
+              }
+            }
+          }
+        }
+
+        // Sort path by distance from start
+        trainPath.sort((a, b) => {
+          const distA = Math.hypot(a.x - start.x, a.y - start.y);
+          const distB = Math.hypot(b.x - start.x, b.y - start.y);
+          return distA - distB;
+        });
+
+        if (trainPath.length > 10) {
+          mapData.trains.push({
+            id: `train-${i}`,
+            path: trainPath,
+            currentProgress: Math.random(), // Random starting position
+            speed: 0.5, // 0.5 tiles per second
+            direction: 1
+          });
+        }
+      }
+    }
+
+    console.log(`[RoadGen] Created ${mapData.trains.length} trains on railroad routes`);
+
+    // Count total railroad path objects for performance monitoring
+    const railroadPaths = mapData.pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
+    console.log(`[RoadGen] ⚡ Total railroad path objects: ${railroadPaths.length} (${railroadPaths.length / 2} railroad segments)`);
+
+    // STEP 6: Record railroad edge data for neighboring maps
+    recordRailroadEdges(mapData);
   }
 }

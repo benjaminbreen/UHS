@@ -14,9 +14,17 @@ interface TranslatableWordProps {
 const TranslatableWord: React.FC<TranslatableWordProps> = ({ word, translation, language }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // Don't render if no translation is available
+  // Still show dotted underline even without translation
   if (!translation) {
-    return <em>{word}</em>;
+    return (
+      <em
+        className="border-b border-dotted border-blue-400/40 cursor-help not-italic"
+        style={{ fontStyle: 'italic' }}
+        title="Translation unavailable"
+      >
+        {word}
+      </em>
+    );
   }
 
   return (

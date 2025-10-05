@@ -80,7 +80,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         setActiveMiningModal, setActivePoi, debugSettings,
         poiToastData, setPoiToastData,
         handleCompanionClick, handlePlayerClick, handleNewAreaEntry, setContainerModalData,
-        onUseSkill
+        onUseSkill,
+        handleStationClick
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
@@ -207,6 +208,10 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     const [guardsAlreadyWarned, setGuardsAlreadyWarned] = useState<Set<string>>(new Set());
     const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
 
+    // Container interaction state
+    const [isOnContainer, setIsOnContainer] = useState(false);
+    const [currentContainerTile, setCurrentContainerTile] = useState<Tile | null>(null);
+
     // ALL REMAINING HOOKS must be called before early return
     // Track current room in special maps (safe to call with null values)
     const specialMapData = isSpecialMap && mapData ? mapData as SpecialMapData : null;
@@ -299,7 +304,42 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
             eventBus.off('reputation:changed', handleReputationChanged);
         };
     }, []);
-    
+
+    // Container opening function (reusable for both E key and button click)
+    const openContainer = useCallback((x: number, y: number, tile: Tile) => {
+        Promise.all([
+            import('../services/specialMapContainerService'),
+            import('../services/containerCacheService'),
+            import('../types/core/tile')
+        ]).then(([containerService, cacheService, tileTypes]) => {
+            const { generateSpecialMapContainerContents } = containerService;
+            const { getCachedContents, cacheContents } = cacheService;
+
+            const mapId = 'special_map';
+            let containerContents = getCachedContents(mapId, x, y);
+
+            if (!containerContents) {
+                containerContents = generateSpecialMapContainerContents(
+                    mapData?.specialMapArchetype || 'GOVERNMENT_FORUM',
+                    tile.overlayObject!.type,
+                    mapData?.culturalZone || 'EUROPEAN',
+                    mapData?.era || 'MEDIEVAL',
+                    (tile as any).roomType,
+                    (tile as any).roomPrivacy || 'public'
+                );
+                cacheContents(mapId, x, y, containerContents);
+            }
+
+            setContainerModalData({
+                containerType: tile.overlayObject!.type,
+                contents: containerContents,
+                position: { x, y },
+                isAnimating: true,
+                mapId
+            });
+        });
+    }, [mapData, setContainerModalData]);
+
     // Keyboard handler for container interaction
     useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
@@ -319,43 +359,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         const isContainer = containerTypes.some(type => overlayType.includes(type));
 
                         if (isContainer) {
-                            // Trigger the container click handler
-                            const onContainerClick = (x: number, y: number, tile: any) => {
-                                // Use the same logic as the click handler in MapViewport
-                                Promise.all([
-                                    import('../services/specialMapContainerService'),
-                                    import('../services/containerCacheService'),
-                                    import('../types/core/tile')
-                                ]).then(([containerService, cacheService, tileTypes]) => {
-                                    const { generateSpecialMapContainerContents } = containerService;
-                                    const { getCachedContents, cacheContents } = cacheService;
-
-                                    const mapId = 'special_map';
-                                    let containerContents = getCachedContents(mapId, x, y);
-
-                                    if (!containerContents) {
-                                        containerContents = generateSpecialMapContainerContents(
-                                            mapData?.specialMapArchetype || 'GOVERNMENT_FORUM',
-                                            tile.overlayObject.type,
-                                            mapData?.culturalZone || 'EUROPEAN',
-                                            mapData?.era || 'MEDIEVAL',
-                                            tile.roomType,
-                                            tile.roomPrivacy || 'public'
-                                        );
-                                        cacheContents(mapId, x, y, containerContents);
-                                    }
-
-                                    setContainerModalData({
-                                        containerType: tile.overlayObject.type,
-                                        contents: containerContents,
-                                        position: { x, y },
-                                        isAnimating: true,
-                                        mapId
-                                    });
-                                });
-                            };
-
-                            onContainerClick(controlledIconX, controlledIconY, currentTile);
+                            // Use the reusable openContainer function
+                            openContainer(controlledIconX, controlledIconY, currentTile);
                         }
                     }
                 }
@@ -364,7 +369,33 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [isSpecialMap, mapData, controlledIconX, controlledIconY, setContainerModalData]);
+    }, [isSpecialMap, mapData, controlledIconX, controlledIconY, openContainer]);
+
+    // Detect if player is standing on a container (for UI button)
+    useEffect(() => {
+        if (isSpecialMap && mapData?.tiles && controlledIconX !== null && controlledIconY !== null) {
+            const currentTile = mapData.tiles[controlledIconY]?.[controlledIconX];
+
+            if (currentTile?.overlayObject) {
+                const containerTypes = [
+                    'CHEST', 'BARREL', 'CRATE', 'CABINET', 'BOOKSHELF',
+                    'WEAPON_RACK', 'ARMOR_STAND', 'TANSU', 'SPICE_CABINET'
+                ];
+
+                const overlayType = String(currentTile.overlayObject.type);
+                const isContainer = containerTypes.some(type => overlayType.includes(type));
+
+                setIsOnContainer(isContainer);
+                setCurrentContainerTile(isContainer ? currentTile : null);
+            } else {
+                setIsOnContainer(false);
+                setCurrentContainerTile(null);
+            }
+        } else {
+            setIsOnContainer(false);
+            setCurrentContainerTile(null);
+        }
+    }, [isSpecialMap, mapData, controlledIconX, controlledIconY]);
 
     // Item collection hook for special maps
     useSpecialMapItemCollection({
@@ -444,17 +475,34 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     // Function to progress time by months
     const handleProgressTime = useCallback((months: number) => {
         if (!gameDate) return;
-        
+
         let newMonth = gameDate.month + months;
         let newYear = gameDate.year;
-        
+
         while (newMonth > 12) {
             newMonth -= 12;
             newYear += 1;
         }
-        
+
         setGameDate({ ...gameDate, month: newMonth, year: newYear });
-    }, [gameDate, setGameDate]);
+
+        // Age the player character based on months passed
+        if (playerCharacter) {
+            const yearsToAdd = Math.floor(months / 12);
+            const monthsRemainder = months % 12;
+
+            // Add fractional age for months (e.g., 6 months = 0.5 years)
+            const ageIncrease = yearsToAdd + (monthsRemainder / 12);
+
+            if (ageIncrease > 0) {
+                const newAge = playerCharacter.age + ageIncrease;
+                setPlayerCharacter({
+                    ...playerCharacter,
+                    age: Math.floor(newAge * 100) / 100 // Round to 2 decimal places
+                });
+            }
+        }
+    }, [gameDate, setGameDate, playerCharacter, setPlayerCharacter]);
     
     // Function to show work event
     const handleShowWorkEvent = useCallback((event: any) => {
@@ -1256,6 +1304,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                             }
                         });
                     }}
+                    onStationClick={handleStationClick}
                 />
             );
         }
@@ -1751,6 +1800,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                             // For now, trigger building entry - palace modal needs implementation
                             onEnterBuilding(tile, mapData);
                         }}
+                        onEnterRailroadStation={handleStationClick}
                         toastMessage={toastMessage}
                         season={season}
                         timeOfDay={currentTimeOfDay}
@@ -1766,6 +1816,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         onExitGovernmentDistrict={() => setActiveGovernmentModal(null)}
                         isSpecialMap={isSpecialMap}
                         onExitSpecialMap={exitSpecialMap}
+                        isOnContainer={isOnContainer}
+                        onOpenContainer={isOnContainer && currentContainerTile && controlledIconX !== null && controlledIconY !== null ? () => openContainer(controlledIconX, controlledIconY, currentContainerTile) : undefined}
                         isInteriorMode={viewMode === 'interior'}
                         onExitInterior={handleExitInteriorView}
                         currentBiome={currentTileBiome}

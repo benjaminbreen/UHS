@@ -31,6 +31,7 @@ import { FloatingTextMessage } from '../components/ui/FloatingText';
 import gameSoundsService from '../services/gameSoundsService';
 import { getDaysInMonth } from '../utils/dateUtils';
 import { TimeAdvancementRequest } from '../services/timeAdvancementService';
+import { railroadNetworkService } from '../services/railroadNetworkService';
 
 /**
  * Parse time advancement commands from player input
@@ -155,7 +156,11 @@ export const useUIState = () => {
         disease: any;
         isOpen: boolean;
     } | null>(null);
-    
+    const [railroadStationModalData, setRailroadStationModalData] = useState<{
+        station: any;
+        connectedStations: any[];
+    } | null>(null);
+
     // Dev Tooltip
     const [hoveredDevData, setHoveredDevData] = useState<DevTooltipDisplayData | null>(null);
     const [pinnedDevData, setPinnedDevData] = useState<DevTooltipDisplayData | null>(null);
@@ -1410,6 +1415,17 @@ export const useUIState = () => {
         }]);
     }, [playerCharacter, mapData, currentZone, localArea, currentTimeOfDay, setNarrationHistory]);
 
+    const handleStationClick = useCallback((tile: Tile) => {
+        const station = railroadNetworkService.findStationAt(tile.x, tile.y);
+        if (station) {
+            const connections = railroadNetworkService.getConnectionsWithDetails(station);
+            setRailroadStationModalData({
+                station,
+                connectedStations: connections
+            });
+        }
+    }, []);
+
     const handleCombatVictory = useCallback((opponent: EncounterableEntity) => {
         const xpGained = 10 * (opponent.stats.level || 1);
         let itemsGained: Item[] = [];
@@ -1612,6 +1628,9 @@ export const useUIState = () => {
         setSelectedPrimarySource,
         diseaseContractedModalData,
         setDiseaseContractedModalData,
+        railroadStationModalData,
+        setRailroadStationModalData,
+        handleStationClick,
 
         // Tooltip handlers
         markTooltipSeen,

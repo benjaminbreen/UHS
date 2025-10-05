@@ -342,11 +342,18 @@ function createMENARestaurant(
   // Low tables with full multi-tile setup
   if (width > 10) {
     placeMultiTileTable(tiles, startX + 2, startY + 3, 3, 'horizontal', 'brass');
+    addTableSettings(tiles, startX + 2, startY + 3, 3, 'horizontal', config.culturalZone || 'MENA', era);
+
     placeMultiTileTable(tiles, startX + width - 5, startY + 3, 3, 'horizontal', 'brass');
+    addTableSettings(tiles, startX + width - 5, startY + 3, 3, 'horizontal', config.culturalZone || 'MENA', era);
+
     placeMultiTileTable(tiles, startX + 2, startY + height - 4, 3, 'horizontal', 'brass');
+    addTableSettings(tiles, startX + 2, startY + height - 4, 3, 'horizontal', config.culturalZone || 'MENA', era);
+
     placeMultiTileTable(tiles, startX + width - 5, startY + height - 4, 3, 'horizontal', 'brass');
+    addTableSettings(tiles, startX + width - 5, startY + height - 4, 3, 'horizontal', config.culturalZone || 'MENA', era);
   }
-  
+
   // Cushions for seating
   placeSeatingAroundTable(tiles, startX + 2, startY + 3, 3, 'horizontal', 'cushion');
   placeSeatingAroundTable(tiles, startX + width - 5, startY + 3, 3, 'horizontal', 'cushion');
@@ -443,13 +450,19 @@ function createSouthAsianRestaurant(
   
   // Low tables
   placeMultiTileTable(tiles, startX + 2, startY + 4, 4, 'horizontal', 'teak');
+  addTableSettings(tiles, startX + 2, startY + 4, 4, 'horizontal', config.culturalZone || 'SOUTH_ASIAN', era);
+
   placeMultiTileTable(tiles, startX + width - 6, startY + 4, 4, 'horizontal', 'teak');
-  
+  addTableSettings(tiles, startX + width - 6, startY + 4, 4, 'horizontal', config.culturalZone || 'SOUTH_ASIAN', era);
+
   if (height > 8) {
     placeMultiTileTable(tiles, startX + 2, startY + height - 4, 4, 'horizontal', 'teak');
+    addTableSettings(tiles, startX + 2, startY + height - 4, 4, 'horizontal', config.culturalZone || 'SOUTH_ASIAN', era);
+
     placeMultiTileTable(tiles, startX + width - 6, startY + height - 4, 4, 'horizontal', 'teak');
+    addTableSettings(tiles, startX + width - 6, startY + height - 4, 4, 'horizontal', config.culturalZone || 'SOUTH_ASIAN', era);
   }
-  
+
   // Floor cushions for seating
   placeSeatingAroundTable(tiles, startX + 2, startY + 4, 4, 'horizontal', 'cushion');
   placeSeatingAroundTable(tiles, startX + width - 6, startY + 4, 4, 'horizontal', 'cushion');
@@ -543,19 +556,26 @@ function createEastAsianRestaurant(
   // Multiple low tables in organized rows
   const tableY1 = startY + 3;
   const tableY2 = startY + 6;
-  
+
   placeMultiTileTable(tiles, startX + 2, tableY1, 3, 'horizontal', 'lacquered_wood');
+  addTableSettings(tiles, startX + 2, tableY1, 3, 'horizontal', config.culturalZone || 'EAST_ASIAN', era);
+
   placeMultiTileTable(tiles, startX + 6, tableY1, 3, 'horizontal', 'lacquered_wood');
-  
+  addTableSettings(tiles, startX + 6, tableY1, 3, 'horizontal', config.culturalZone || 'EAST_ASIAN', era);
+
   if (width > 12) {
     placeMultiTileTable(tiles, startX + 10, tableY1, 3, 'horizontal', 'lacquered_wood');
+    addTableSettings(tiles, startX + 10, tableY1, 3, 'horizontal', config.culturalZone || 'EAST_ASIAN', era);
   }
-  
+
   if (height > 8) {
     placeMultiTileTable(tiles, startX + 2, tableY2, 3, 'horizontal', 'lacquered_wood');
+    addTableSettings(tiles, startX + 2, tableY2, 3, 'horizontal', config.culturalZone || 'EAST_ASIAN', era);
+
     placeMultiTileTable(tiles, startX + 6, tableY2, 3, 'horizontal', 'lacquered_wood');
+    addTableSettings(tiles, startX + 6, tableY2, 3, 'horizontal', config.culturalZone || 'EAST_ASIAN', era);
   }
-  
+
   // Floor cushions
   placeSeatingAroundTable(tiles, startX + 2, tableY1, 3, 'horizontal', 'cushion');
   placeSeatingAroundTable(tiles, startX + 6, tableY1, 3, 'horizontal', 'cushion');
@@ -757,25 +777,36 @@ function createEuropeanTavern(
   
   // Dining area with smart table placement
   const isLargeTavern = width > 12 && height > 12;
-  
+  const tableY1 = startY + 4;
+  const tableY2 = startY + height - 6;
+  const tableLength1 = Math.min(10, width - 4);
+  const tableLength2 = Math.min(5, width - 6);
+
   if (isLargeTavern) {
     // Large tavern - use banquet tables
-    placeBanquetTable(tiles, startX + 2, startY + 4, Math.min(10, width - 4), 2, 'oak');
-    placeBanquetTable(tiles, startX + 2, startY + height - 6, Math.min(10, width - 4), 2, 'oak');
+    placeBanquetTable(tiles, startX + 2, tableY1, tableLength1, 2, 'oak');
+    // TODO: addTableSettings for banquet tables (need multi-row support)
+
+    placeBanquetTable(tiles, startX + 2, tableY2, tableLength1, 2, 'oak');
   } else if (width > 8) {
     // Medium tavern - use regular long tables
-    placeMultiTileTable(tiles, startX + 2, startY + 3, Math.min(5, width - 6), 'horizontal', 'oak');
-    placeMultiTileTable(tiles, startX + 2, startY + height - 4, Math.min(5, width - 6), 'horizontal', 'oak');
+    placeMultiTileTable(tiles, startX + 2, startY + 3, tableLength2, 'horizontal', 'oak');
+    addTableSettings(tiles, startX + 2, startY + 3, tableLength2, 'horizontal', config.culturalZone || 'EUROPEAN', era);
+
+    placeMultiTileTable(tiles, startX + 2, startY + height - 4, tableLength2, 'horizontal', 'oak');
+    addTableSettings(tiles, startX + 2, startY + height - 4, tableLength2, 'horizontal', config.culturalZone || 'EUROPEAN', era);
   }
-  
+
   // Benches along tables - use directional placement for better orientation
-  for (let x = startX + 2; x < startX + Math.min(7, width - 4); x++) {
-    placeBenchWithOrientation(tiles, x, tableY1 - 1, width, height, config.culturalZone || 'EUROPEAN', 'oak');
-    placeBenchWithOrientation(tiles, x, tableY1 + 1, width, height, config.culturalZone || 'EUROPEAN', 'oak');
-    
-    if (tableY2 > tableY1 + 2) {
-      placeBenchWithOrientation(tiles, x, tableY2 - 1, width, height, config.culturalZone || 'EUROPEAN', 'oak');
-      placeBenchWithOrientation(tiles, x, tableY2 + 1, width, height, config.culturalZone || 'EUROPEAN', 'oak');
+  if (width > 8) {
+    for (let x = startX + 2; x < startX + Math.min(7, width - 4); x++) {
+      placeBenchWithOrientation(tiles, x, startY + 2, width, height, config.culturalZone || 'EUROPEAN', 'oak');
+      placeBenchWithOrientation(tiles, x, startY + 4, width, height, config.culturalZone || 'EUROPEAN', 'oak');
+
+      if (height > 8) {
+        placeBenchWithOrientation(tiles, x, startY + height - 5, width, height, config.culturalZone || 'EUROPEAN', 'oak');
+        placeBenchWithOrientation(tiles, x, startY + height - 3, width, height, config.culturalZone || 'EUROPEAN', 'oak');
+      }
     }
   }
   
@@ -859,6 +890,111 @@ function createEuropeanTavern(
     type: 'public',
     accessLevel: 'public'
   });
+}
+
+/**
+ * Add food and drink items to table (as overlays on the table tiles)
+ */
+function addTableSettings(
+  tiles: Tile[][],
+  tableX: number,
+  tableY: number,
+  tableLength: number,
+  orientation: 'horizontal' | 'vertical',
+  culturalZone: string,
+  era: number
+): void {
+  // Determine appropriate food/drink based on culture and era
+  const foodItems = getFoodItemsForCulture(culturalZone, era);
+
+  // Add items to some table positions (not all - looks more natural)
+  if (orientation === 'horizontal') {
+    for (let i = 0; i < tableLength; i++) {
+      if (Math.random() > 0.4) { // 60% chance of item on each position
+        const item = foodItems[Math.floor(Math.random() * foodItems.length)];
+        if (tiles[tableY] && tiles[tableY][tableX + i] && tiles[tableY][tableX + i].overlayObject) {
+          // Add secondary overlay for tabletop items
+          tiles[tableY][tableX + i].secondaryOverlay = {
+            type: item,
+            rotation: 0,
+            material: 'ceramic'
+          };
+        }
+      }
+    }
+  } else {
+    for (let i = 0; i < tableLength; i++) {
+      if (Math.random() > 0.4) {
+        const item = foodItems[Math.floor(Math.random() * foodItems.length)];
+        if (tiles[tableY + i] && tiles[tableY + i][tableX] && tiles[tableY + i][tableX].overlayObject) {
+          tiles[tableY + i][tableX].secondaryOverlay = {
+            type: item,
+            rotation: 0,
+            material: 'ceramic'
+          };
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Get culturally appropriate food/drink items
+ */
+function getFoodItemsForCulture(culturalZone: string, era: number): OverlayObjectType[] {
+  if (culturalZone === 'EAST_ASIAN') {
+    return [
+      OverlayObjectType.RICE_BOWL,
+      OverlayObjectType.TEA_POT,
+      OverlayObjectType.SAKE_BOTTLE,
+      OverlayObjectType.BOWL_WITH_FOOD,
+      OverlayObjectType.CHOPSTICKS,
+      OverlayObjectType.FISH_PLATTER
+    ];
+  } else if (culturalZone === 'SOUTH_ASIAN') {
+    return [
+      OverlayObjectType.PLATE_WITH_FOOD,
+      OverlayObjectType.BOWL_WITH_FOOD,
+      OverlayObjectType.RICE_BOWL,
+      OverlayObjectType.FRUIT_BOWL,
+      OverlayObjectType.MUG
+    ];
+  } else if (culturalZone === 'MENA') {
+    return [
+      OverlayObjectType.PLATE_WITH_FOOD,
+      OverlayObjectType.BREAD_LOAF,
+      OverlayObjectType.FRUIT_BOWL,
+      OverlayObjectType.TEA_POT,
+      OverlayObjectType.GOBLET
+    ];
+  } else if (culturalZone === 'NORTH_AMERICAN' && era >= 1900) {
+    return [
+      OverlayObjectType.PLATE_WITH_FOOD,
+      OverlayObjectType.MUG,
+      OverlayObjectType.CUTLERY,
+      OverlayObjectType.WINE_BOTTLE // Use wine bottle as condiment placeholder
+    ];
+  } else {
+    // European/default
+    const items: OverlayObjectType[] = [
+      OverlayObjectType.PLATE_WITH_FOOD,
+      OverlayObjectType.GOBLET,
+      OverlayObjectType.MUG,
+      OverlayObjectType.BREAD_LOAF,
+      OverlayObjectType.CHEESE_WHEEL,
+      OverlayObjectType.CUTLERY
+    ];
+
+    if (era >= 1200) {
+      items.push(OverlayObjectType.WINE_BOTTLE);
+    }
+    if (era < 1900) {
+      items.push(OverlayObjectType.ROASTED_MEAT);
+      items.push(OverlayObjectType.CANDLE_STICK);
+    }
+
+    return items;
+  }
 }
 
 /**

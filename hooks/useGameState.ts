@@ -30,7 +30,6 @@ const getInitialDate = (): GameDate => {
             if (dateSegment.includes('-')) {
                 const [start] = dateSegment.split('-').map(s => parseInt(s));
                 if (!isNaN(start)) {
-                    console.log('[GameState] Using year from URL:', start);
                     const month = Math.floor(Math.random() * 12) + 1;
                     const day = Math.floor(Math.random() * 28) + 1;
                     return { year: start, month, day };
@@ -38,7 +37,6 @@ const getInitialDate = (): GameDate => {
             } else {
                 const year = parseInt(dateSegment);
                 if (!isNaN(year)) {
-                    console.log('[GameState] Using year from URL:', year);
                     const month = Math.floor(Math.random() * 12) + 1;
                     const day = Math.floor(Math.random() * 28) + 1;
                     return { year, month, day };

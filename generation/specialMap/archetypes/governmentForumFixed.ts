@@ -406,7 +406,7 @@ function createMainChamber(
     }
   } else if (centralFeature === 'firepit') {
     // Central fire for tribal councils
-    tiles[platformY + 1][podiumX].biome = BiomeType.FIREPIT;
+    tiles[platformY + 1][podiumX].biome = BiomeType.FIRE_PIT;
     // Add seating stones around fire
     for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
       const fx = podiumX + Math.round(Math.cos(angle) * 2);

@@ -24,6 +24,7 @@ interface BottomPanelProps {
     onEnterGovernmentDistrict?: (tile: Tile) => void;
     onEnterHolySite?: (tile: Tile) => void;
     onEnterPalace?: (tile: Tile) => void;
+    onEnterRailroadStation?: (tile: Tile) => void;
     toastMessage: string | null;
     season?: Season;
     timeOfDay?: TimeOfDay;
@@ -41,6 +42,8 @@ interface BottomPanelProps {
     onExitGovernmentDistrict?: () => void;
     isSpecialMap?: boolean;
     onExitSpecialMap?: () => void;
+    isOnContainer?: boolean;
+    onOpenContainer?: () => void;
     isInteriorMode?: boolean;
     onExitInterior?: () => void;
     currentBiome?: string;
@@ -270,6 +273,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     onEnterGovernmentDistrict,
     onEnterHolySite,
     onEnterPalace,
+    onEnterRailroadStation,
     toastMessage,
     season = 'summer',
     timeOfDay = 'Day',
@@ -287,6 +291,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     onExitGovernmentDistrict,
     isSpecialMap = false,
     onExitSpecialMap,
+    isOnContainer = false,
+    onOpenContainer,
     isInteriorMode = false,
     onExitInterior,
     currentBiome,
@@ -528,6 +534,11 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     />
 
                     <div className="flex items-center gap-6">
+                        {isOnContainer && onOpenContainer && (
+                            <ActionButton onClick={onOpenContainer} icon="📦" variant="blue">
+                                Open Container
+                            </ActionButton>
+                        )}
                         <ActionButton onClick={onExitSpecialMap || (() => {})} icon="🚪" variant="red">
                             Exit to Map
                         </ActionButton>
@@ -543,16 +554,16 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         }
         
         if (!actionableTile) return null;
-        
+
         const { type, tile, structure } = actionableTile;
-        
+
         let buttonText = 'Explore';
         let buttonIcon = '🧭';
         let onClickAction = () => {};
         let helperText = "Investigate your surroundings.";
         let contextualInfo: React.ReactNode = null;
         let locationIcon = '📍';
-        
+
         const biomeName = tile.biome.replace(/_/g, ' ');
 
         switch (type) {
@@ -580,6 +591,20 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     <LocationDisplay
                         title="City Center"
                         subtitle={`Population: ${tile.population?.toLocaleString() || 'Unknown'}`}
+                        icon={locationIcon}
+                    />
+                );
+                break;
+            case 'railroad_station':
+                buttonText = 'Buy Ticket';
+                buttonIcon = '🚂';
+                locationIcon = '🚂';
+                onClickAction = () => onEnterRailroadStation?.(tile);
+                helperText = "Purchase a train ticket to fast travel to connected railroad stations.";
+                contextualInfo = (
+                    <LocationDisplay
+                        title="Railroad Station"
+                        subtitle={tile.cityName || 'Station'}
                         icon={locationIcon}
                     />
                 );
@@ -709,7 +734,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                 </div>
             </div>
         );
-    }, [inMiningRoguelike, isSpecialMap, actionableTile, inRuinRoguelike, isRuinModalOpen, isMarketplaceModalOpen, onExitMine, onExitSpecialMap, onEnterFarm, onEnterCity, onEnterMarketplace, onExitMarketplace, onEnterRuin, onExitRuin, onEnterBuilding, onEnterFishingHut]);
+    }, [inMiningRoguelike, isSpecialMap, actionableTile, inRuinRoguelike, isRuinModalOpen, isMarketplaceModalOpen, onExitMine, onExitSpecialMap, onEnterFarm, onEnterCity, onEnterMarketplace, onExitMarketplace, onEnterRuin, onExitRuin, onEnterBuilding, onEnterFishingHut, isOnContainer, onOpenContainer]);
 
     const renderDefaultContent = useMemo(() => {
         const currentTile = playerCharacter && mapData && playerX !== null && playerY !== null
@@ -888,7 +913,12 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                             </p>
                         </div>
                     ) : isSpecialMap || isGovernmentDistrictModalOpen || isInteriorMode ? (
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-4">
+                            {isOnContainer && onOpenContainer && (
+                                <ActionButton onClick={onOpenContainer} icon="📦" variant="blue">
+                                    Open Container
+                                </ActionButton>
+                            )}
                             <ActionButton
                                 onClick={
                                     isGovernmentDistrictModalOpen
@@ -931,7 +961,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                  </div>
              </div>
         );
-    }, [playerCharacter, mapData, playerX, playerY, showAmbientText, previewBackgroundUrl, contextualMessage, weatherDisplay, weatherState, useFahrenheit, onToggleAmbientText, onEnterGovernmentDistrict, onEnterHolySite, onEnterPalace, onEnterRuin, isSpecialMap, isGovernmentDistrictModalOpen, isInteriorMode, onExitSpecialMap, onExitGovernmentDistrict, onExitInterior]);
+    }, [playerCharacter, mapData, playerX, playerY, showAmbientText, previewBackgroundUrl, contextualMessage, weatherDisplay, weatherState, useFahrenheit, onToggleAmbientText, onEnterGovernmentDistrict, onEnterHolySite, onEnterPalace, onEnterRuin, isSpecialMap, isGovernmentDistrictModalOpen, isInteriorMode, onExitSpecialMap, onExitGovernmentDistrict, onExitInterior, isOnContainer, onOpenContainer]);
 
     return (
         <div className={getSafariOptimizedClassName("fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md shadow-2xl transition-all duration-500 ease-in-out border-t border-slate-700/50 overflow-hidden")}>

@@ -44,7 +44,7 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.SALT_FLATS]: '#f5f5f5',    // Off-white
   [BiomeType.HOT_SPRINGS]: '#778899',   // Bluish-Grayish base for ground (water will be different)
   [BiomeType.RUINS]: '#777777',        // Neutral Grey for stone ruins, symbol will vary
-  [BiomeType.ESTUARY]: '#87CEFA', // Placeholder, will be blended dynamically
+  [BiomeType.ESTUARY]: '#4595d6', // Placeholder, will be blended dynamically
   [BiomeType.FRESHWATER_LAKE]: '#2e5a9a', // Slightly lighter deep blue for base
   [BiomeType.CLIFF]: '#A08C7D', // Stony grey-brown for cliffs
   [BiomeType.PALACE]: '#c0b0ff', // A light, royal purple/lavender
@@ -191,6 +191,26 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.SUMMONING_CIRCLE]: '#4b0082', // Indigo summoning
   [BiomeType.ALCHEMY_LAB]: '#9370db', // Medium purple alchemy
   [BiomeType.ENCHANTING_TABLE]: '#9400d3', // Violet enchanting
+
+  // Workshop Equipment
+  [BiomeType.ANVIL]: '#4A4A4A', // Dark iron/steel anvil
+  [BiomeType.OVEN_BRICK]: '#8B4513', // Brick oven brown
+  [BiomeType.SPINNING_WHEEL]: '#8B7355', // Wood spinning wheel
+  [BiomeType.LOOM]: '#6D4C41', // Dark wood loom
+  [BiomeType.WORKBENCH]: '#A1887F', // Light wood workbench
+  [BiomeType.SHELF]: '#8D6E63', // Wood shelf
+
+  // Additional Special Map Architecture (missing entries)
+  [BiomeType.BASIN]: '#A0C8D8', // Water basin light blue
+  [BiomeType.DIRT]: '#8B7355', // Brown dirt
+  [BiomeType.ENTRANCE_PORTAL]: '#8A7F6F', // Stone portal gray
+  [BiomeType.FILING_CABINET]: '#6D5D4B', // Office wood brown
+  [BiomeType.GUARD_POST]: '#696969', // Guard post dark gray
+  [BiomeType.PATH]: '#9C8F7A', // Dirt/stone path
+  [BiomeType.STAIRS_UP]: '#A09080', // Stone stairs
+  [BiomeType.TOILET]: '#E8E8E8', // White porcelain
+  [BiomeType.TREE]: '#2F4F2F', // Dark green tree
+  [BiomeType.WALL_WINDOW]: '#87CEEB', // Sky blue window
 };
 
 // Helper to make a color slightly darker/richer

@@ -8,6 +8,7 @@ interface PlayerIconProps {
   x: number;
   y: number;
   character: PlayerCharacter;
+  isInteriorMap?: boolean; // Flag to scale up for interior maps
 }
 
 // Helper function to adjust color brightness
@@ -20,7 +21,7 @@ const adjustColorBrightness = (color: string, percent: number): string => {
   return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 };
 
-const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) => {
+const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character, isInteriorMap = false }) => {
   // Detect Safari for performance optimizations
   const isSafari = useMemo(() => {
     return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -134,9 +135,15 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
   const bodyWidth = isBroad ? 6.0 : 5.6;
   const bodyHeight = isBroad ? 4.4 : 5.2;
 
+  // Base size multiplier - make player icon 10px tall (NPCs are 7-9px)
+  const BASE_SCALE = 1.25; // 1.25x makes the ~8px icon become ~10px
+
+  // Scale factor for interior maps - make icons 3x larger ONLY in interior maps
+  const ICON_SCALE = (isInteriorMap ? 3 : 1) * BASE_SCALE;
+
   return (
     <g
-      transform={`translate(${x}, ${y})`}
+      transform={`translate(${x}, ${y}) scale(${ICON_SCALE})`}
       style={{
         transition: 'transform 0.0s ease-out',
         willChange: 'transform',

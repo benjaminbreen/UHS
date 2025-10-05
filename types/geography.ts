@@ -11,6 +11,7 @@ export type AdjacencyDirection = 'N' | 'S' | 'E' | 'W';
 export interface LiminalSequence {
     destination: string; // The name of the destination MapAreaDefinition
     sequence: MapArchetype[]; // The sequence of map archetypes to traverse
+    originArea?: string; // OPTIONAL: The origin area (for generating reverse sequences)
 }
 
 /**

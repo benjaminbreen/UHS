@@ -53,6 +53,7 @@ const PrimarySourceModal = lazy(() => import('./PrimarySourceModal').then(module
 const NpcConfrontationModal = lazy(() => import('./NpcConfrontationModal'));
 const DiseaseContractedModal = lazy(() => import('./DiseaseContractedModal'));
 const CityHistoricalModal = lazy(() => import('./CityHistoricalModal').then(module => ({ default: module.CityHistoricalModal })));
+const RailroadStationModal = lazy(() => import('./RailroadStationModal'));
 import { processNpcReactions, ItemCollectionEvent } from '../services/npcAwarenessService';
 import { updateCachedContents } from '../services/containerCacheService';
 import { useState } from 'react';
@@ -100,6 +101,7 @@ const ModalHub: React.FC = () => {
         selectedPrimarySource, setSelectedPrimarySource,
         diseaseContractedModalData, setDiseaseContractedModalData,
         cityHistoricalModalData, setCityHistoricalModalData,
+        railroadStationModalData, setRailroadStationModalData,
         contextualTooltipsEnabled, toggleContextualTooltips, resetAllTooltips
     } = useUI();
 
@@ -111,11 +113,12 @@ const ModalHub: React.FC = () => {
     const {
         playerCharacter, onCharacterUpdate, isEnhancing,
         handleCharacterGeneration, handleEquipItem, handleUnequipItem,
-        handleDropItem, handleConsumeItem, onUseCombatItem
+        handleDropItem, handleConsumeItem, onUseCombatItem,
+        setControlledIconX, setControlledIconY
     } = usePlayer();
 
     
-    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay } = useGame();
+    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay, setGameDate, setGameTimeHours } = useGame();
 
     // Initialize entity health service when map changes
     useEffect(() => {
@@ -836,6 +839,72 @@ const ModalHub: React.FC = () => {
                         cityName={cityHistoricalModalData.cityName}
                         cityDescription={cityHistoricalModalData.cityDescription}
                         nearbyNpcs={npcs}
+                    />
+                </Suspense>
+            )}
+
+            {/* Railroad Station Modal */}
+            {railroadStationModalData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <RailroadStationModal
+                        isOpen={true}
+                        onClose={() => setRailroadStationModalData(null)}
+                        stationName={railroadStationModalData.station.name}
+                        connectedStations={railroadStationModalData.connectedStations.map(conn => ({
+                            name: conn.station.name,
+                            x: conn.station.x,
+                            y: conn.station.y,
+                            distance: conn.distance,
+                            travelTime: conn.travelTime,
+                            fare: conn.fare
+                        }))}
+                        playerMoney={playerCharacter?.money || 0}
+                        currentTime={gameTimeHours}
+                        onFastTravel={(destination) => {
+                            if (!playerCharacter || !gameDate) return;
+
+                            // 1. Deduct fare from player money
+                            if (playerCharacter.money < destination.fare) {
+                                showToast(`Insufficient funds! Ticket costs ${destination.fare} coins.`);
+                                return;
+                            }
+
+                            const updatedCharacter = {
+                                ...playerCharacter,
+                                money: playerCharacter.money - destination.fare
+                            };
+                            onCharacterUpdate(updatedCharacter);
+
+                            // 2. Move player to destination coordinates
+                            setControlledIconX(destination.x);
+                            setControlledIconY(destination.y);
+
+                            // 3. Advance game time
+                            const newHours = gameTimeHours + destination.travelTime;
+                            const daysToAdd = Math.floor(newHours / 24);
+                            const finalHours = newHours % 24;
+
+                            // Update hours
+                            setGameTimeHours(finalHours);
+
+                            // If we crossed into new days, update the date
+                            if (daysToAdd > 0 && gameDate) {
+                                const newDate = new Date(gameDate);
+                                newDate.setDate(newDate.getDate() + daysToAdd);
+                                setGameDate(newDate);
+                            }
+
+                            // 4. Close modal and notify user
+                            setRailroadStationModalData(null);
+                            showToast(`Arrived at ${destination.name} after ${destination.travelTime} hours of travel!`);
+
+                            console.log('[ModalHub] Fast travel completed:', {
+                                destination: destination.name,
+                                fare: destination.fare,
+                                travelTime: destination.travelTime,
+                                newMoney: updatedCharacter.money
+                            });
+                        }}
                     />
                 </Suspense>
             )}

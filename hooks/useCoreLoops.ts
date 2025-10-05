@@ -76,6 +76,7 @@ const useCoreLoops = (
     formattedTime,
     setNarrationHistory,
     narrationHistory,
+    liminalTravelState,
   } = useGame();
 
   const {
@@ -1256,6 +1257,8 @@ const useCoreLoops = (
         setActionableTile({ type: 'marketplace', tile: currentTile });
       } else if (currentTile.biome === BiomeType.RUINS) {
         setActionableTile({ type: 'ruin', tile: currentTile });
+      } else if (currentTile.biome === BiomeType.RAILROAD_STATION) {
+        setActionableTile({ type: 'railroad_station', tile: currentTile });
       } else if (isUrbanTile) {
         setActionableTile({ type: 'city', tile: currentTile });
       } else if (isBuildingTile) {
@@ -1502,7 +1505,9 @@ useEffect(() => {
         // Normal map edge transitions
         if (newLogicalX < 0) {
           // Get destination for proper logging
-          const nextMapResult = getNextMapArea(localArea, 'W');
+          // Use original liminal key if in liminal space, otherwise use localArea
+          const lookupKey = liminalTravelState?.key || localArea;
+          const nextMapResult = getNextMapArea(lookupKey, 'W');
           const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
                             nextMapResult.type === 'liminal' ? nextMapResult.destination :
                             'Unknown destination';
@@ -1522,7 +1527,9 @@ useEffect(() => {
         }
         if (newLogicalX >= MAP_WIDTH_TILES) {
           // Get destination for proper logging
-          const nextMapResult = getNextMapArea(localArea, 'E');
+          // Use original liminal key if in liminal space, otherwise use localArea
+          const lookupKey = liminalTravelState?.key || localArea;
+          const nextMapResult = getNextMapArea(lookupKey, 'E');
           const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
                             nextMapResult.type === 'liminal' ? nextMapResult.destination :
                             'Unknown destination';
@@ -1542,7 +1549,9 @@ useEffect(() => {
         }
         if (newLogicalY < 0) {
           // Get destination for proper logging
-          const nextMapResult = getNextMapArea(localArea, 'N');
+          // Use original liminal key if in liminal space, otherwise use localArea
+          const lookupKey = liminalTravelState?.key || localArea;
+          const nextMapResult = getNextMapArea(lookupKey, 'N');
           const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
                             nextMapResult.type === 'liminal' ? nextMapResult.destination :
                             'Unknown destination';
@@ -1562,7 +1571,9 @@ useEffect(() => {
         }
         if (newLogicalY >= MAP_HEIGHT_TILES) {
           // Get destination for proper logging
-          const nextMapResult = getNextMapArea(localArea, 'S');
+          // Use original liminal key if in liminal space, otherwise use localArea
+          const lookupKey = liminalTravelState?.key || localArea;
+          const nextMapResult = getNextMapArea(lookupKey, 'S');
           const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
                             nextMapResult.type === 'liminal' ? nextMapResult.destination :
                             'Unknown destination';

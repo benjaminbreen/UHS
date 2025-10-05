@@ -42,6 +42,7 @@ export interface FarmFamilyMember {
   diseaseHealth?: {
     currentDiseases: Array<{ disease: { name: string; severity: string } }>;
   };
+  relationshipToHead?: string; // e.g., "Spouse", "Son", "Daughter", "Nephew", "Field Hand", "Cousin", etc.
 }
 
 export interface FarmFamily {
@@ -108,6 +109,14 @@ export interface LastYearData {
   crisisEvents: string[]; // Other crises (pests, disease, etc.)
 }
 
+export interface CurrentSeasonData {
+  revenue: number; // Current season revenue
+  expenses: number; // Current season expenses
+  harvestCount: number; // Number of harvests this season
+  cropsSold: Record<string, number>; // Track what's been sold
+  expenseLog: Array<{ type: string; amount: number; date: number }>; // Track expenses
+}
+
 export interface FarmState {
   tileKey: string; // `${x},${y}` for unique identification
   family: FarmFamily;
@@ -136,6 +145,7 @@ export interface FarmState {
   farmName?: string; // Custom farm name
   farmDescription?: string; // Farm description
   lastYearData?: LastYearData; // Previous season's performance
+  currentSeasonData?: CurrentSeasonData; // Current season tracking
 
   // Phase 4.2: Weather tracking
   activeWeather?: {
@@ -366,6 +376,14 @@ export function getFarmState(
     },
     // Generate last year's data
     lastYearData: generateLastYearData(primaryCrop, economicStatus, prosperityLevel, numFields, noise),
+    // Initialize current season tracking
+    currentSeasonData: {
+      revenue: 0,
+      expenses: 0,
+      harvestCount: 0,
+      cropsSold: {},
+      expenseLog: []
+    },
     // Generate custom farm name and description
     farmName: undefined, // Will be generated in component with proper naming
     farmDescription: undefined // Will be generated in component if LLM is enabled
@@ -555,18 +573,19 @@ function generateFarmFamily(
   
   // Head of household
   const headAge = 35 + Math.floor(noise.random() * 20);
+  const headGender = noise.random() > 0.7 ? 'Female' : 'Male'; // Occasionally female head of household
   members.push({
     id: `farmer_${tile.x}_${tile.y}_0`,
     name: headName,
     age: headAge,
     role: 'Farmer',
-    gender: 'Male',
+    gender: headGender,
     health: 80 + Math.floor(noise.random() * 20),
     maxHealth: 100,
     fatigue: 20 + Math.floor(noise.random() * 30),
     maxFatigue: 100,
     skills: [
-      { 
+      {
         name: FARM_SKILLS[Math.floor(noise.random() * FARM_SKILLS.length)].name,
         level: 'expert',
         description: FARM_SKILLS[Math.floor(noise.random() * FARM_SKILLS.length)].description
@@ -576,46 +595,91 @@ function generateFarmFamily(
       FARM_TRAITS[Math.floor(noise.random() * 5)], // Positive trait likely
       noise.random() > 0.7 ? FARM_TRAITS[5 + Math.floor(noise.random() * 4)] : FARM_TRAITS[9 + Math.floor(noise.random() * 3)]
     ].filter(Boolean),
-    appearance: generateAppearance('Male', headAge, noise, culturalZone, year, era)
+    appearance: generateAppearance(headGender, headAge, noise, culturalZone, year, era),
+    relationshipToHead: 'Head of Household'
   });
   
-  // Spouse
-  const spouseName = generateNpcName('Female', culturalZone, region, year, noise);
-  const spouseAge = 30 + Math.floor(noise.random() * 20);
-  members.push({
-    id: `farmer_${tile.x}_${tile.y}_1`,
-    name: spouseName,
-    age: spouseAge,
-    role: 'Farmer',
-    gender: 'Female',
-    health: 75 + Math.floor(noise.random() * 25),
-    maxHealth: 100,
-    fatigue: 25 + Math.floor(noise.random() * 30),
-    maxFatigue: 100,
-    skills: [
-      { 
-        name: FARM_SKILLS[Math.floor(noise.random() * FARM_SKILLS.length)].name,
-        level: noise.random() > 0.5 ? 'expert' : 'skilled',
-        description: FARM_SKILLS[Math.floor(noise.random() * FARM_SKILLS.length)].description
-      }
-    ],
-    traits: [
-      FARM_TRAITS[Math.floor(noise.random() * 5)],
-      noise.random() > 0.8 ? FARM_TRAITS[5 + Math.floor(noise.random() * 4)] : null
-    ].filter(Boolean),
-    appearance: generateAppearance('Female', spouseAge, noise, culturalZone, year, era)
-  });
+  // Spouse (80% chance of having a spouse)
+  const hasSpouse = noise.random() > 0.2;
+  if (hasSpouse) {
+    const spouseGender = headGender === 'Male' ? 'Female' : 'Male';
+    const spouseName = generateNpcName(spouseGender, culturalZone, region, year, noise);
+    const spouseAge = headAge - 5 + Math.floor(noise.random() * 10);
+    members.push({
+      id: `farmer_${tile.x}_${tile.y}_1`,
+      name: spouseName,
+      age: spouseAge,
+      role: 'Farmer',
+      gender: spouseGender,
+      health: 75 + Math.floor(noise.random() * 25),
+      maxHealth: 100,
+      fatigue: 25 + Math.floor(noise.random() * 30),
+      maxFatigue: 100,
+      skills: [
+        {
+          name: FARM_SKILLS[Math.floor(noise.random() * FARM_SKILLS.length)].name,
+          level: noise.random() > 0.5 ? 'expert' : 'skilled',
+          description: FARM_SKILLS[Math.floor(noise.random() * FARM_SKILLS.length)].description
+        }
+      ],
+      traits: [
+        FARM_TRAITS[Math.floor(noise.random() * 5)],
+        noise.random() > 0.8 ? FARM_TRAITS[5 + Math.floor(noise.random() * 4)] : null
+      ].filter(Boolean),
+      appearance: generateAppearance(spouseGender, spouseAge, noise, culturalZone, year, era),
+      relationshipToHead: headGender === 'Male' ? 'Wife' : 'Husband'
+    });
+  }
   
-  // Children/laborers
-  const numChildren = 2 + Math.floor(noise.random() * 4);
-  for (let i = 0; i < numChildren; i++) {
-    const age = 8 + Math.floor(noise.random() * 20);
-    const gender = noise.random() > 0.5 ? 'Male' : 'Female';
-    const childName = generateNpcName(gender, culturalZone, region, year, noise);
-    
+  // Children/laborers/extended family
+  const numMembers = 2 + Math.floor(noise.random() * 4);
+  const relationshipPool = [
+    'Son', 'Daughter', 'Son', 'Daughter', // Children most common
+    'Nephew', 'Niece', 'Cousin', 'Adopted Son', 'Adopted Daughter',
+    'Brother', 'Sister', 'Uncle', 'Aunt', 'Grandfather', 'Grandmother',
+    'Field Hand', 'Apprentice', 'Ward'
+  ];
+
+  for (let i = 0; i < numMembers; i++) {
+    // Pick relationship type
+    const relationIndex = Math.floor(noise.random() * relationshipPool.length);
+    let relationship = relationshipPool[relationIndex];
+
+    // Determine age and gender based on relationship
+    let age: number;
+    let gender: 'Male' | 'Female';
+
+    if (relationship.includes('Son') || relationship.includes('Nephew') || relationship.includes('Brother') || relationship.includes('Uncle') || relationship.includes('Grandfather')) {
+      gender = 'Male';
+    } else if (relationship.includes('Daughter') || relationship.includes('Niece') || relationship.includes('Sister') || relationship.includes('Aunt') || relationship.includes('Grandmother')) {
+      gender = 'Female';
+    } else if (relationship === 'Cousin' || relationship === 'Field Hand' || relationship === 'Apprentice' || relationship === 'Ward') {
+      gender = noise.random() > 0.5 ? 'Male' : 'Female';
+      // Adjust relationship for gender
+      if (relationship === 'Cousin' && gender === 'Male') relationship = 'Cousin (m)';
+      if (relationship === 'Cousin' && gender === 'Female') relationship = 'Cousin (f)';
+    } else {
+      gender = noise.random() > 0.5 ? 'Male' : 'Female';
+    }
+
+    // Age based on relationship
+    if (relationship.includes('Grandfather') || relationship.includes('Grandmother') || relationship.includes('Elder')) {
+      age = 60 + Math.floor(noise.random() * 20);
+    } else if (relationship.includes('Uncle') || relationship.includes('Aunt') || relationship.includes('Brother') || relationship.includes('Sister')) {
+      age = 25 + Math.floor(noise.random() * 20);
+    } else if (relationship.includes('Son') || relationship.includes('Daughter') || relationship.includes('Adopted')) {
+      age = 5 + Math.floor(noise.random() * 20);
+    } else if (relationship.includes('Nephew') || relationship.includes('Niece') || relationship.includes('Cousin')) {
+      age = 10 + Math.floor(noise.random() * 25);
+    } else {
+      age = 18 + Math.floor(noise.random() * 25); // Field hands, apprentices, wards
+    }
+
+    const memberName = generateNpcName(gender, culturalZone, region, year, noise);
+
     members.push({
       id: `farmer_${tile.x}_${tile.y}_${i + 2}`,
-      name: childName,
+      name: memberName,
       age,
       role: age < 16 ? 'Child' : age > 60 ? 'Elder' : 'Laborer',
       gender,
@@ -633,7 +697,8 @@ function generateFarmFamily(
         age > 50 ? { name: 'Experienced', type: 'positive' as const, description: 'Years of farming wisdom' } :
         FARM_TRAITS[Math.floor(noise.random() * FARM_TRAITS.length)]
       ].filter(Boolean),
-      appearance: generateAppearance(gender, age, noise, culturalZone, year, era)
+      appearance: generateAppearance(gender, age, noise, culturalZone, year, era),
+      relationshipToHead: relationship
     });
   }
   

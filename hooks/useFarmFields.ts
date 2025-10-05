@@ -5,7 +5,7 @@
  * Phase 2 of Farm Panel refactoring - extracts field management logic
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Season, CulturalZone, HistoricalEra } from '../types';
 import { FarmState, updateFarmState, getValidCrops } from '../services/farmService';
 import { FieldPlan, ResourceAllocation } from '../components/farm/types';
@@ -16,6 +16,7 @@ interface UseFarmFieldsOptions {
   culturalZone: CulturalZone;
   era: HistoricalEra;
   season: Season;
+  currentGameDay?: number;
 }
 
 interface UseFarmFieldsReturn {
@@ -65,6 +66,7 @@ export function useFarmFields({
   culturalZone,
   era,
   season,
+  currentGameDay,
 }: UseFarmFieldsOptions): UseFarmFieldsReturn {
   // Field selection
   const [selectedField, setSelectedField] = useState<number | null>(null);
@@ -94,6 +96,94 @@ export function useFarmFields({
     () => getValidCrops({ culturalZone, era, season }),
     [culturalZone, era, season]
   );
+
+  // Track last processed day to avoid infinite loop
+  const lastProcessedDayRef = useRef<number | null>(null);
+
+  // Livestock health decay and disease spread effect - runs when game day changes
+  useEffect(() => {
+    if (!farmState || !currentGameDay) return;
+
+    // Only process if day actually changed
+    if (lastProcessedDayRef.current === currentGameDay) return;
+    lastProcessedDayRef.current = currentGameDay;
+
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    let needsUpdate = false;
+
+    // Handle livestock health decay
+    const updatedLivestock = farmState.livestock.map(animal => {
+      // Check if animal hasn't been fed in 2+ days
+      const daysSinceLastFed = (now - animal.lastFed) / oneDayMs;
+
+      if (daysSinceLastFed >= 2) {
+        needsUpdate = true;
+        // Decrease health by 5% per day after 2 days unfed
+        const healthDecay = Math.floor((daysSinceLastFed - 2) * 5);
+        const newHealth = Math.max(0, animal.health - healthDecay);
+
+        // Also decrease productivity when hungry
+        const productivityDecay = Math.floor((daysSinceLastFed - 2) * 3);
+        const newProductivity = Math.max(0, animal.productivity - productivityDecay);
+
+        return {
+          ...animal,
+          health: newHealth,
+          productivity: newProductivity,
+        };
+      }
+
+      return animal;
+    });
+
+    // Handle disease spread across fields
+    const updatedFields = farmState.fields.map((field, idx) => {
+      let newField = { ...field };
+
+      // Check for disease spread from adjacent fields
+      const adjacentIndices = [idx - 1, idx + 1]; // Simple left/right adjacency
+      const hasDiseasedNeighbor = adjacentIndices.some(adjIdx => {
+        const adjField = farmState.fields[adjIdx];
+        return adjField && adjField.diseaseSeverity > 50;
+      });
+
+      // 10% chance to spread from diseased neighbor
+      if (hasDiseasedNeighbor && Math.random() < 0.1) {
+        needsUpdate = true;
+        newField.diseaseSeverity = Math.min(100, newField.diseaseSeverity + 20);
+        // Set disease type if not already diseased
+        if (newField.diseaseType === 'none') {
+          const diseaseTypes = ['fungal_blight', 'rust', 'wilt', 'rot'] as const;
+          newField.diseaseType = diseaseTypes[Math.floor(Math.random() * diseaseTypes.length)];
+        }
+      }
+
+      // If disease reaches 85+, crop dies
+      if (newField.diseaseSeverity >= 85 && newField.crop) {
+        needsUpdate = true;
+        newField.crop = null;
+        newField.growthStage = 'fallow';
+        newField.daysToHarvest = 0;
+        newField.health = 0;
+        // Reset disease after crop death
+        newField.diseaseSeverity = 0;
+        newField.diseaseType = 'none';
+      }
+
+      return newField;
+    });
+
+    if (needsUpdate) {
+      const updatedState = {
+        ...farmState,
+        livestock: updatedLivestock,
+        fields: updatedFields,
+      };
+      setFarmState(updatedState);
+      updateFarmState(farmState.tileKey, updatedState);
+    }
+  }, [currentGameDay, farmState, setFarmState]);
 
   // Persist fields to farm state
   const persistFields = useCallback(
@@ -133,9 +223,13 @@ export function useFarmFields({
   const waterAll = useCallback(() => {
     if (!farmState?.fields) return;
 
+    // Check for drought - watering is less effective during drought
+    const isDrought = farmState.activeWeather?.event === 'drought';
+    const targetMoisture = isDrought ? 'moist' : 'wet';
+
     const updatedFields = farmState.fields.map(field => ({
       ...field,
-      moisture: 'wet' as const,
+      moisture: targetMoisture as const,
       lastWatered: Date.now(),
     }));
 
@@ -146,10 +240,16 @@ export function useFarmFields({
   const harvestAll = useCallback(() => {
     if (!farmState?.fields) return;
 
+    // Check for heavy rain - harvests spoil 30% faster
+    const isHeavyRain = farmState.activeWeather?.event === 'heavy_rain';
+    const spoilageRate = isHeavyRain ? 0.7 : 1.0; // 30% reduction in heavy rain
+
     const updatedFields = farmState.fields.map(field => {
       if (field.crop && field.growthStage === 'mature') {
-        // Add to harvest ledger
-        const harvestQty = Math.floor(10 + Math.random() * 15);
+        // Calculate harvest quantity with weather penalty
+        const baseHarvestQty = Math.floor(10 + Math.random() * 15);
+        const harvestQty = Math.floor(baseHarvestQty * spoilageRate);
+
         addHarvestToLedger(field.crop, harvestQty);
 
         return {
@@ -164,6 +264,76 @@ export function useFarmFields({
 
     persistFields(updatedFields);
   }, [farmState, persistFields, addHarvestToLedger]);
+
+  // Feed all livestock
+  const feedLivestock = useCallback(() => {
+    if (!farmState) return;
+
+    const currentDay = Date.now(); // Using timestamp as game day equivalent
+    const updatedLivestock = farmState.livestock.map(animal => ({
+      ...animal,
+      lastFed: currentDay,
+      health: Math.min(100, animal.health + 5), // Slight health boost from feeding
+    }));
+
+    const updatedState = {
+      ...farmState,
+      livestock: updatedLivestock,
+    };
+
+    setFarmState(updatedState);
+    updateFarmState(farmState.tileKey, updatedState);
+  }, [farmState, setFarmState]);
+
+  // Progress time on fields - called when time advances
+  const progressFieldTime = useCallback((monthsPassed: number) => {
+    if (!farmState?.fields) return;
+
+    const daysPassed = monthsPassed * 30; // Approximate days per month
+
+    const updatedFields = farmState.fields.map(field => {
+      let newField = { ...field };
+
+      // Update growing crops
+      if (field.crop && (field.growthStage === 'planted' || field.growthStage === 'growing')) {
+        newField.daysToHarvest = Math.max(0, field.daysToHarvest - daysPassed);
+
+        // Update growth stage based on days remaining
+        if (newField.daysToHarvest === 0) {
+          newField.growthStage = 'mature';
+        } else if (field.growthStage === 'planted' && daysPassed >= 3) {
+          newField.growthStage = 'growing';
+        }
+      }
+
+      // Moisture decay over time
+      if (daysPassed >= 7) {
+        // After a week, moisture decreases one level
+        const moistureLevels: Array<'dry' | 'moist' | 'wet' | 'flooded'> = ['dry', 'moist', 'wet', 'flooded'];
+        const currentIndex = moistureLevels.indexOf(field.moisture);
+        const decaySteps = Math.floor(daysPassed / 7);
+        const newIndex = Math.max(0, currentIndex - decaySteps);
+        newField.moisture = moistureLevels[newIndex];
+      }
+
+      // Soil nutrient depletion for growing crops
+      if (field.crop && field.growthStage === 'growing') {
+        newField.soilNitrogen = Math.max(0, field.soilNitrogen - (daysPassed * 0.5));
+        newField.soilPhosphorus = Math.max(0, field.soilPhosphorus - (daysPassed * 0.3));
+        newField.soilPotassium = Math.max(0, field.soilPotassium - (daysPassed * 0.2));
+      }
+
+      return newField;
+    });
+
+    const updatedState = {
+      ...farmState,
+      fields: updatedFields,
+    };
+
+    setFarmState(updatedState);
+    updateFarmState(farmState.tileKey, updatedState);
+  }, [farmState, setFarmState]);
 
   // Handle field action
   const handleFieldAction = useCallback(
@@ -221,6 +391,17 @@ export function useFarmFields({
             crop: null,
             growthStage: 'fallow' as const,
             daysToHarvest: 0,
+          };
+          break;
+
+        case 'treat':
+          // Treat disease - reduces disease severity by 40%
+          updatedFields[fieldId] = {
+            ...field,
+            diseaseSeverity: Math.max(0, field.diseaseSeverity - 40),
+            diseaseType: field.diseaseSeverity <= 40 ? 'none' : field.diseaseType,
+            // Also reduce pest severity slightly
+            pestSeverity: Math.max(0, field.pestSeverity - 20),
           };
           break;
       }
@@ -292,6 +473,12 @@ export function useFarmFields({
     harvestAll,
     handleFieldAction,
     persistFields,
+
+    // Livestock actions
+    feedLivestock,
+
+    // Time progression
+    progressFieldTime,
 
     // Resource allocation
     handleResourceAllocation,

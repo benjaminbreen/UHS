@@ -47,6 +47,8 @@ import { DiseaseProgressionEvent } from './services/diseaseNotificationService';
 import { SavedGame } from './services/saveGameService';
 import FloatingText from './components/ui/FloatingText';
 import GameSetupScreen from './components/GameSetupScreen';
+import RailroadStationModal from './components/RailroadStationModal';
+import { railroadNetworkService } from './services/railroadNetworkService';
 import { LoadingSkeleton } from './components/LoadingSkeleton';
 import JournalViewport from './components/JournalViewport';
 import QuestsPanel from './components/QuestsPanel';

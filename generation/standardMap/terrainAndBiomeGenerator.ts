@@ -1283,9 +1283,10 @@ export function generateInlandCliffs(tiles: Tile[][], featurePlacementNoise: Val
       }
 
       // Cliff continuity: existing cliffs tend to extend along geological features
+      // Reduced continuity to prevent circular blob formations (especially on straits)
       if (hasAdjacentCliff && !protectedBiomes.has(tile.biome) && tile.altitude > ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX) {
-        const continuityChance = tile.altitude > ALTITUDE_LEVELS.HILLS_START ? 0.65 : 0.4;
-        if (featurePlacementNoise.random() < continuityChance && maxAltitudeDrop > 0.15) {
+        const continuityChance = tile.altitude > ALTITUDE_LEVELS.HILLS_START ? 0.35 : 0.20;
+        if (featurePlacementNoise.random() < continuityChance && maxAltitudeDrop > 0.20) {
           tile.biome = BiomeType.CLIFF;
         }
       }

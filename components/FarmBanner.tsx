@@ -17,6 +17,20 @@ import { HistoricalEra, CulturalZone, ClimateType, Season, TimeOfDay, BiomeType 
 export type Condition = 'humble' | 'prosperous';
 export type CropType = string;
 
+interface FarmAnimal {
+  type: string;
+  count: number;
+}
+
+interface FarmHouseholdMember {
+  id: string;
+  name: string;
+  age: number;
+  role: 'Farmer' | 'Laborer' | 'Child' | 'Elder';
+  gender: 'Male' | 'Female';
+  currentTask?: 'planting' | 'watering' | 'harvesting' | 'feeding' | 'repairs' | 'resting' | 'ill';
+}
+
 interface FarmBannerProps {
   era: HistoricalEra;
   culturalZone: CulturalZone;
@@ -32,6 +46,9 @@ interface FarmBannerProps {
   farmerName?: string;
   currentBiome?: BiomeType;  // The biome where the farm is located
   surroundingBiomes?: BiomeType[];  // Biomes in the surrounding area
+  livestock?: FarmAnimal[];  // Actual farm animals to render
+  householdMembers?: FarmHouseholdMember[];  // Actual household members to render
+  onCharacterClick?: (memberId: string) => void;  // Callback when character is clicked
 }
 
 /* -------------------------------------------------------------------------- */
@@ -51,12 +68,14 @@ class RNG {
 
 const clamp = (v: number, a = 0, b = 255) => Math.max(a, Math.min(b, v));
 const hexToRgb = (hex: string) => {
+  if (!hex || typeof hex !== 'string') return { r: 128, g: 128, b: 128 }; // Default gray if invalid
   const n = hex.replace('#', '');
   return { r: parseInt(n.slice(0, 2), 16), g: parseInt(n.slice(2, 4), 16), b: parseInt(n.slice(4, 6), 16) };
 };
 const rgbToHex = (r: number, g: number, b: number) =>
   `#${clamp(r).toString(16).padStart(2, '0')}${clamp(g).toString(16).padStart(2, '0')}${clamp(b).toString(16).padStart(2, '0')}`;
 const shade = (hex: string, pct: number) => {
+  if (!hex || typeof hex !== 'string') return '#808080'; // Default gray if invalid
   const { r, g, b } = hexToRgb(hex);
   const f = (v: number) => (pct >= 0 ? v + (255 - v) * pct / 100 : v + v * pct / 100);
   return rgbToHex(Math.round(f(r)), Math.round(f(g)), Math.round(f(b)));
@@ -66,6 +85,172 @@ const mix = (a: string, b: string, t: number) => {
   const A = hexToRgb(a), B = hexToRgb(b);
   return rgbToHex(A.r + (B.r - A.r) * t, A.g + (B.g - A.g) * t, A.b + (B.b - A.b) * t);
 };
+
+/* -------------------------------------------------------------------------- */
+/* Color Palette System                                                       */
+/* -------------------------------------------------------------------------- */
+
+// Material colors - building components and natural materials
+const MATERIAL_COLORS = {
+  // Wood variants
+  wood_dark: '#5b3a24',
+  wood_medium: '#7b4f2a',
+  wood_light: '#8b7356',
+  wood_beam: '#654321',
+  wood_weathered: '#6f4426',
+  wood_oak: '#6f4b2e',
+  wood_pine: '#7a5a2a',
+
+  // Stone and masonry
+  stone_gray: '#8a8a8a',
+  stone_dark: '#696969',
+  stone_foundation: '#5b5b5b',
+  adobe: '#ead9c5',
+  adobe_shadow: '#c8b4a0',
+  adobe_detail: '#d6c4b0',
+  brick_red: '#8b4513',
+
+  // Metals
+  metal_iron: '#a1a1aa',
+  metal_steel: '#b7bcc4',
+  metal_shine: '#e5e7eb',
+  metal_bronze: '#cd7f32',
+  metal_dark: '#8a909b',
+
+  // Roofing
+  thatch_light: '#d7b46b',
+  thatch_dark: '#c4a05c',
+  thatch_straw: '#caa56a',
+  tiles_red: '#bf3a3a',
+  tiles_dark: '#a83232',
+  tiles_ridge: '#7a2020',
+
+  // Fabric and textiles
+  fabric_blue: '#87CEEB',
+  fabric_blue_dark: '#6495ED',
+  fabric_navy: '#4682B4',
+  fabric_pink: '#FFB6C1',
+  fabric_white: '#F5F5F5',
+  fabric_cream: '#f4e6d9',
+
+  // Earth tones
+  dirt_dark: '#2c1b12',
+  dirt_medium: '#3d2618',
+  dirt_light: '#8B7355',
+  mud: '#5a3f2a',
+  sand: '#d4a574',
+  clay: '#b78c44',
+
+  // Animal materials
+  bone: '#e8dcc8',
+} as const;
+
+// Plant and crop colors
+const PLANT_COLORS = {
+  // Greens - foliage and crops
+  green_spring: '#90EE90',
+  green_light: '#98FB98',
+  green_medium: '#3CB371',
+  green_deep: '#228B22',
+  green_forest: '#2F682F',
+  green_olive: '#556B2F',
+  green_sage: '#8FBC8F',
+  green_lime: '#9ACD32',
+
+  // Grain crops
+  wheat_gold: '#DAA520',
+  wheat_ripe: '#F5DEB3',
+  barley_tan: '#D2691E',
+  barley_light: '#DEB887',
+  rye_brown: '#8B7355',
+  rye_dark: '#A0826D',
+  oat_cream: '#F5E6D3',
+  oat_tan: '#E5D4B1',
+  grain_golden: '#d1b24a',
+  grain_harvest: '#FFD700',
+
+  // Fruits and flowers
+  apple_red: '#DC143C',
+  apple_dark: '#B22222',
+  grape_purple: '#4B0082',
+  grape_light: '#6B0AA3',
+  orange: '#FF8C00',
+  blossom_pink: '#FFB6C1',
+  blossom_white: '#FFC0CB',
+  blossom_pale: '#FFF0F5',
+  flower_yellow: '#F0E68C',
+
+  // Cotton
+  cotton_white: '#FFFFFF',
+  cotton_cream: '#FFFAF0',
+  cotton_boll: '#8B4513',
+
+  // Autumn foliage
+  autumn_orange: '#FF8C00',
+  autumn_gold: '#FFD700',
+  autumn_red: '#DC143C',
+  autumn_brown: '#8B4513',
+  autumn_rust: '#CD853F',
+  leaf_fall: '#D2691E',
+
+  // Tree colors
+  tree_trunk: '#5d3b24',
+  tree_bark: '#6e4c2a',
+  pine_green: '#2f4a2f',
+  pine_snow: '#4a5d4a',
+} as const;
+
+// Animal colors
+const ANIMAL_COLORS = {
+  chicken_white: '#FFFFFF',
+  chicken_light: '#F5F5F5',
+  chicken_beak: '#FF4500',
+  cat_gray: '#4A4A4A',
+  cat_eye: '#FFD700',
+  dog_brown: '#8B4513',
+  dog_ear: '#654321',
+  dog_nose: '#2F2F2F',
+  cow_brown: '#6B4423',
+  cow_white: '#E8E0D5',
+  goat_tan: '#C9A66B',
+  goat_white: '#F5F1E8',
+  sheep_white: '#F0ECE3',
+  sheep_gray: '#B0A89F',
+  horse_brown: '#5D3A1A',
+  horse_black: '#2B2624',
+  pig_pink: '#E5B8B0',
+  shadow_light: '#000000', // Used with opacity
+} as const;
+
+// Character and clothing colors
+const CHARACTER_COLORS = {
+  skin_light: '#f1c7a5',
+  skin_medium: '#d4a574',
+  skin_tan: '#c89968',
+  clothing_farmer: '#7b4f2a',
+  clothing_worker: '#6f5a3f',
+  clothing_peasant: '#8b7356',
+  clothing_dark: '#3b3b3b',
+  hat_straw: '#5a3b1f',
+  hat_felt: '#2c1b12',
+} as const;
+
+// Water and weather
+const WATER_WEATHER_COLORS = {
+  water_blue: '#66b6ff',
+  water_light: '#7ac0ff',
+  water_deep: '#6aa8df',
+  water_frozen: '#bfd6f0',
+  water_shimmer: '#6fbfff',
+  rain_drop: '#6B9BD1',
+  snow_white: '#ffffff',
+  fog_mist: '#ffffff',
+  dust_tan: '#d4a574',
+  firefly_glow: '#ffe890',
+  pollen_yellow: '#FFFFE0',
+} as const;
+
+// Sky gradients are kept separate as they're already well-organized in TIME_PAL
 
 /* -------------------------------------------------------------------------- */
 /* Palettes                                                                   */
@@ -150,8 +335,13 @@ const variantFrom = (era: HistoricalEra, zone: CulturalZone) => {
 
 type GrowthStage = 'seedling' | 'vegetative' | 'fruiting' | 'harvest' | 'fallow' | 'flooded' | 'blossom' | 'ripening' | 'plowing' | 'dormant';
 const growthFor = (cropType: CropType, season: Season, climate: ClimateType): GrowthStage => {
+  // Guard against invalid inputs
+  if (!cropType || typeof cropType !== 'string') return 'plowing';
+  if (!climate || typeof climate !== 'string') return 'vegetative'; // Default growth stage if climate undefined
+  if (!season || typeof season !== 'string') return 'vegetative';
+
   const c = cropType.toLowerCase();
-  
+
   // Tropical and semitropical climates have year-round growing seasons
   if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
     if (c.includes('rice')) return 'flooded'; // Always flooded in tropical
@@ -266,8 +456,24 @@ const growthFor = (cropType: CropType, season: Season, climate: ClimateType): Gr
 /* Component                                                                  */
 /* -------------------------------------------------------------------------- */
 
-interface FarmCharacter { id: string; x: number; y: number; type: 'farmer' | 'worker' | 'animal'; direction: 1 | -1; speed: number; }
-interface Particle { id: string; x: number; y: number; vx: number; vy: number; kind: 'snow' | 'rain' | 'leaf' | 'dust' | 'firefly'; }
+interface FarmCharacter {
+  id: string;
+  x: number;
+  y: number;
+  type: 'farmer' | 'worker' | 'animal';
+  direction: 1 | -1;
+  speed: number;
+  idleAnimation?: 'none' | 'stretching' | 'tool_use' | 'wiping_brow';
+  idlePhase?: number;
+  gender?: 'Male' | 'Female';
+  age?: number;
+  role?: 'Farmer' | 'Laborer' | 'Child' | 'Elder';
+  // Child-specific play behavior
+  playMode?: 'running' | 'playing' | 'chasing' | 'none';
+  playTarget?: { x: number; y: number; radius: number };
+  playPhase?: number;
+}
+interface Particle { id: string; x: number; y: number; vx: number; vy: number; kind: 'snow' | 'rain' | 'leaf' | 'dust' | 'firefly' | 'splash'; life?: number; }
 
 const FarmBanner: React.FC<FarmBannerProps> = ({
   era,
@@ -283,14 +489,94 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
   farmName,
   farmerName,
   currentBiome = BiomeType.GRASSLAND,
-  surroundingBiomes = []
+  surroundingBiomes = [],
+  livestock,
+  householdMembers,
+  onCharacterClick
 }) => {
+  /* Hover tooltip state */
+  const [hoveredCharacter, setHoveredCharacter] = useState<string | null>(null);
   /* Derived settings */
   const rng = useMemo(() => new RNG(seed), [seed]);
   const T = TIME_PAL[(timeOfDay as keyof typeof TIME_PAL) in TIME_PAL ? timeOfDay as keyof typeof TIME_PAL : 'Midday'];
   const S = getSeasonPalette(season, climate);
   const variant = useMemo(() => variantFrom(era, culturalZone), [era, culturalZone]);
   const stage = useMemo(() => growthFor(cropType, season, climate), [cropType, season, climate]);
+
+  /* Season-Climate Matrix - Single source of truth for all seasonal logic */
+  const seasonalState = useMemo(() => {
+    // Season flags
+    const isSpring = season === 'spring';
+    const isSummer = season === 'summer';
+    const isAutumn = season === 'fall';
+    const isWinter = season === 'winter';
+
+    // Climate flags
+    const isTropical = climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL;
+    const isArid = climate === ClimateType.ARID;
+    const isMediterranean = climate === ClimateType.MEDITERRANEAN;
+    const isCold = climate === ClimateType.COLD;
+    const isTemperate = climate === ClimateType.TEMPERATE;
+
+    // Combined climate-season states
+    const isColdWinter = isWinter && isCold;
+    const isMildWinter = isWinter && (isMediterranean || isTemperate);
+    const isTropicalWet = isTropical && isSummer;
+    const isHotSummer = isSummer && (isArid || isMediterranean);
+
+    // Weather conditions
+    const shouldSnow = isColdWinter;
+    const shouldRain = (isWinter && isMediterranean) ||
+                      (isSpring && !isArid && !isTropical) ||
+                      (isTropicalWet && rng.next() < 0.3);
+    const shouldHaveDust = isArid && (isSummer || isAutumn);
+    const shouldHaveFireflies = isSummer && timeOfDay === 'Dusk' && !isArid && !isCold;
+    const shouldShowPuddles = shouldRain && !isArid;
+
+    // Visual effects
+    const shouldHideLaundry = timeOfDay === 'Night' || shouldRain;
+    const shouldShowMist = timeOfDay === 'Dawn' || timeOfDay === 'Night';
+    const shouldShowHeatShimmer = timeOfDay === 'Midday' && !isCold;
+
+    // Seasonal particles
+    const shouldShowPollen = isSpring;
+    const shouldShowFallingLeaves = isAutumn;
+
+    return {
+      // Season flags
+      isSpring,
+      isSummer,
+      isAutumn,
+      isWinter,
+
+      // Climate flags
+      isTropical,
+      isArid,
+      isMediterranean,
+      isCold,
+      isTemperate,
+
+      // Combined states
+      isColdWinter,
+      isMildWinter,
+      isTropicalWet,
+      isHotSummer,
+
+      // Weather
+      shouldSnow,
+      shouldRain,
+      shouldHaveDust,
+      shouldHaveFireflies,
+      shouldShowPuddles,
+
+      // Visual effects
+      shouldHideLaundry,
+      shouldShowMist,
+      shouldShowHeatShimmer,
+      shouldShowPollen,
+      shouldShowFallingLeaves,
+    };
+  }, [season, climate, timeOfDay, rng]);
 
   const HORIZON_Y = Math.round(height * 0.46);
   const GROUND_Y  = Math.round(height * 0.62);
@@ -321,39 +607,142 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
   const shadowOffset = { x: Math.cos(sunAngle) * 3, y: Math.sin(sunAngle) * 2 };
 
   /* ----------------------- Characters (ground-clamped) --------------------- */
-  const [characters, setCharacters] = useState<FarmCharacter[]>([]);
-  useEffect(() => {
+  // Helper: Determine how many workers should be in fields based on time/season
+  const getFieldWorkerCount = (time: string, season: Season): number => {
+    // Night: 0 workers
+    if (time === 'Night') return 0;
+    // Dawn/Dusk: 1-2 workers
+    if (time === 'Dawn' || time === 'Dusk') return Math.random() > 0.5 ? 1 : 2;
+    // Winter: reduced workforce (0-2)
+    if (season === 'winter') return Math.floor(Math.random() * 3); // 0, 1, or 2
+    // Peak times (Day/Midday in growing seasons): 2-4 workers
+    return Math.min(4, 2 + Math.floor(Math.random() * 3)); // 2, 3, or 4
+  };
+
+  // Calculate base character positions using useMemo (no setState!)
+  const baseCharacters = useMemo(() => {
     const rr = new RNG(seed + 33);
     const ground = GROUND_Y + 10;
-    const arr: FarmCharacter[] = [{ id: 'farmer', x: width * 0.28, y: ground, type: 'farmer', direction: 1, speed: 0.22 }];
-    if (condition === 'prosperous') {
-      arr.push({ id: 'worker-0', x: rr.range(190, width - 240), y: ground, type: 'worker', direction: rr.next() > 0.5 ? 1 : -1, speed: 0.2 });
-      arr.push({ id: 'worker-1', x: rr.range(220, width - 260), y: ground, type: 'worker', direction: rr.next() > 0.5 ? 1 : -1, speed: 0.22 });
-    }
-    // a grazing animal near the lane
-    arr.push({ id: 'animal-0', x: rr.range(140, width - 200), y: ground + 12, type: 'animal', direction: rr.next() > 0.5 ? 1 : -1, speed: 0.1 });
-    setCharacters(arr);
-  }, [seed, width, GROUND_Y, condition]);
+    const idleAnimations: ('none' | 'stretching' | 'tool_use' | 'wiping_brow')[] = ['none', 'stretching', 'tool_use', 'wiping_brow'];
+    const randomIdle = () => idleAnimations[Math.floor(rr.next() * idleAnimations.length)];
 
-  useEffect(() => {
-    setCharacters(prev => prev.map(c => {
-      let x = c.x + c.speed * c.direction;
-      let d = c.direction;
-      if (x <= 40 || x >= width - 40) { d *= -1; x = c.x + c.speed * d; }
-      return { ...c, x, direction: d }; // keep y static
-    }));
-  }, [tick, width]);
+    const arr: FarmCharacter[] = [];
+
+    // Determine how many workers should be in the fields
+    const maxFieldWorkers = getFieldWorkerCount(timeOfDay, season);
+
+    // If householdMembers data is provided, intelligently select who should be working
+    if (householdMembers && householdMembers.length > 0) {
+      // Prioritize adults for field work, then children
+      const adults = householdMembers.filter(m => m.role === 'Farmer' || m.role === 'Laborer');
+      const children = householdMembers.filter(m => m.role === 'Child');
+      const elders = householdMembers.filter(m => m.role === 'Elder');
+
+      // Select workers based on max count
+      const workersToShow = adults.slice(0, maxFieldWorkers);
+
+      // Add 1-2 children if it's daytime and not winter (playing near farmstead)
+      const showChildren = (timeOfDay === 'Day' || timeOfDay === 'Midday') && season !== 'winter';
+      const childrenToShow = showChildren ? children.slice(0, Math.min(2, children.length)) : [];
+
+      // Combine workers and children
+      const peopleToShow = [...workersToShow, ...childrenToShow];
+
+      peopleToShow.forEach((member, index) => {
+        // Determine character type based on role
+        const charType: 'farmer' | 'worker' =
+          member.role === 'Farmer' || member.role === 'Elder' ? 'farmer' : 'worker';
+
+        // Position characters across the scene with better spacing
+        const baseX = width * 0.25 + (index * 120);
+        const xOffset = rr.range(-30, 30);
+
+        // Children get special play behaviors
+        const isChild = member.role === 'Child';
+        const playModes: ('running' | 'playing' | 'chasing' | 'none')[] = ['running', 'playing', 'chasing', 'none'];
+        const childPlayMode = isChild ? playModes[rr.int(0, playModes.length - 1)] : 'none';
+
+        // Create play target circle for running children
+        let playTarget = undefined;
+        if (childPlayMode === 'running') {
+          playTarget = {
+            x: baseX + xOffset,
+            y: ground,
+            radius: rr.range(40, 70) // Circle radius for running around
+          };
+        } else if (childPlayMode === 'chasing') {
+          // Target will be the first animal position
+          playTarget = { x: 0, y: 0, radius: 20 }; // Will update to animal position later
+        }
+
+        arr.push({
+          id: member.id,
+          x: baseX + xOffset,
+          y: ground,
+          type: charType,
+          direction: rr.next() > 0.5 ? 1 : -1,
+          speed: member.role === 'Child' ? 0.4 : member.role === 'Elder' ? 0.15 : 0.2, // Children faster
+          idleAnimation: isChild ? 'none' : randomIdle(), // Children don't use adult idle animations
+          idlePhase: rr.range(0, Math.PI * 2),
+          gender: member.gender,
+          age: member.age,
+          role: member.role,
+          playMode: childPlayMode,
+          playTarget: playTarget,
+          playPhase: rr.range(0, Math.PI * 2)
+        });
+      });
+    } else {
+      // Fallback to old hardcoded system if no household data
+      arr.push({
+        id: 'farmer',
+        x: width * 0.28,
+        y: ground,
+        type: 'farmer',
+        direction: 1,
+        speed: 0.22,
+        idleAnimation: randomIdle(),
+        idlePhase: rr.range(0, Math.PI * 2)
+      });
+      if (condition === 'prosperous') {
+        arr.push({
+          id: 'worker-0',
+          x: rr.range(190, width - 240),
+          y: ground,
+          type: 'worker',
+          direction: rr.next() > 0.5 ? 1 : -1,
+          speed: 0.2,
+          idleAnimation: randomIdle(),
+          idlePhase: rr.range(0, Math.PI * 2)
+        });
+        arr.push({
+          id: 'worker-1',
+          x: rr.range(220, width - 260),
+          y: ground,
+          type: 'worker',
+          direction: rr.next() > 0.5 ? 1 : -1,
+          speed: 0.22,
+          idleAnimation: randomIdle(),
+          idlePhase: rr.range(0, Math.PI * 2)
+        });
+      }
+    }
+
+    // a grazing animal near the lane (always add one for visual interest)
+    arr.push({ id: 'animal-0', x: rr.range(140, width - 200), y: ground + 12, type: 'animal', direction: rr.next() > 0.5 ? 1 : -1, speed: 0.1 });
+    return arr;
+  }, [seed, width, GROUND_Y, condition, householdMembers, timeOfDay, season]);
+
+  // Render characters directly without state - let CSS handle animation
+  // No need for animatedCharacters state that changes every tick
 
   /* ----------------------------- Stable Weather --------------------------- */
   const particlesRef = useRef<Particle[]>([]);
-  // Snow only in cold climates and cold-temperate winters
-  const wantSnow   = season === 'winter' && climate === ClimateType.COLD;
-  // Mediterranean winters get rain instead of snow, tropical/semitropical have minimal weather variation
-  const wantRain   = (season === 'winter' && climate === ClimateType.MEDITERRANEAN) ||
-                     (season === 'spring' && climate !== ClimateType.ARID && climate !== ClimateType.TROPICAL && climate !== ClimateType.SEMITROPICAL) ||
-                     (season === 'summer' && climate === ClimateType.TROPICAL && rng.next() < 0.3); // Tropical occasional rain
-  const wantDust   = climate === ClimateType.ARID && (season === 'summer' || season === 'fall');
-  const wantFirefly= (season === 'summer' && timeOfDay === 'Dusk' && climate !== ClimateType.ARID && climate !== ClimateType.COLD);
+  // Use seasonalState for all weather conditions
+  const wantSnow   = seasonalState.shouldSnow;
+  const wantRain   = seasonalState.shouldRain;
+  const wantDust   = seasonalState.shouldHaveDust;
+  const wantFirefly= seasonalState.shouldHaveFireflies;
 
   useEffect(() => {
     const rr = new RNG(seed + 99); const ps: Particle[] = [];
@@ -377,10 +766,48 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   useEffect(() => {
     const ps = particlesRef.current;
+    const newSplashes: Particle[] = [];
+
     for (let i = 0; i < ps.length; i++) {
-      const p = ps[i]; p.x += p.vx; p.y += p.vy;
+      const p = ps[i];
+
+      // Update splash particles - fade out over time
+      if (p.kind === 'splash') {
+        if (p.life !== undefined) {
+          p.life -= 1;
+          if (p.life <= 0) {
+            ps.splice(i, 1);
+            i--;
+            continue;
+          }
+        }
+      }
+
+      p.x += p.vx; p.y += p.vy;
+
       if (p.kind === 'snow' || p.kind === 'rain') {
-        if (p.y > height || p.x < -40 || p.x > width + 40) { p.x = (p.x + width) % width; p.y = rng.range(0, 20); }
+        // Check if rain/snow hit the ground
+        if (p.y > GROUND_Y + 10) {
+          // Create splash effect for rain
+          if (p.kind === 'rain' && rng.next() > 0.7) {
+            newSplashes.push({
+              id: `splash-${tick}-${i}`,
+              x: p.x,
+              y: GROUND_Y + 10,
+              vx: rng.range(-0.5, 0.5),
+              vy: rng.range(-1, -0.3),
+              kind: 'splash',
+              life: 8
+            });
+          }
+          // Reset particle to top
+          p.x = (p.x + width) % width;
+          p.y = rng.range(0, 20);
+        }
+        if (p.x < -40 || p.x > width + 40) {
+          p.x = (p.x + width) % width;
+          p.y = rng.range(0, 20);
+        }
       } else if (p.kind === 'dust') {
         if (p.x > width + 10) { p.x = -10; p.y = rng.range(GROUND_Y - 6, GROUND_Y + 40); }
       } else if (p.kind === 'firefly') {
@@ -388,6 +815,11 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         if (p.y < GROUND_Y - 10) p.vy = Math.abs(p.vy);
         if (p.y > height - 10) p.vy = -Math.abs(p.vy);
       }
+    }
+
+    // Add new splash particles
+    if (newSplashes.length > 0) {
+      particlesRef.current.push(...newSplashes);
     }
   }, [tick, width, height, GROUND_Y, rng]);
 
@@ -726,7 +1158,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         
         if (feature.type === 'mountain') {
           // Jagged mountain peaks
-          const mtColor = season === 'winter' || climate === ClimateType.COLD ? '#e0e4ef' : '#6b5d5d';
+          const mtColor = seasonalState.isWinter || seasonalState.isCold ? '#e0e4ef' : '#6b5d5d';
           const points = [];
           const peaks = 5 + Math.floor(feature.jaggedness * 5);
           const peakRng = new RNG(seed + i * 100); // Stable randomness per mountain
@@ -746,15 +1178,22 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         }
         
         if (feature.type === 'tree') {
-          // Dense forest background
+          // Dense forest background with wind sway
           const trunk = climate === ClimateType.TROPICAL ? shade(S.tree, -8) : shade(S.tree, -12);
           const foliage = climate === ClimateType.TROPICAL ? shade(S.tree, 10) : S.tree;
+
+          // Wind sway effect - coordinated wave motion
+          const windSway = Math.sin((slowTick * 0.08) + (feature.x * 0.02)) * (wantRain ? 3 : wantSnow ? 1.5 : 1);
+          const topLean = windSway * 1.5; // Top sways more
+
           return (
             <g key={`tree-${i}`} opacity={0.85}>
+              {/* Trunk stays stable */}
               <rect x={feature.x} y={HORIZON_Y - feature.h} width={3} height={feature.h} fill={trunk} />
-              <ellipse cx={feature.x + 1.5} cy={HORIZON_Y - feature.h} rx={feature.w/2} ry={feature.h/3} fill={foliage} />
+              {/* Foliage sways with wind */}
+              <ellipse cx={feature.x + 1.5 + topLean} cy={HORIZON_Y - feature.h} rx={feature.w/2} ry={feature.h/3} fill={foliage} />
               {feature.variant === 1 && (
-                <ellipse cx={feature.x + 1.5} cy={HORIZON_Y - feature.h + 5} rx={feature.w/2 - 1} ry={feature.h/4} fill={shade(foliage, -8)} />
+                <ellipse cx={feature.x + 1.5 + topLean * 0.7} cy={HORIZON_Y - feature.h + 5} rx={feature.w/2 - 1} ry={feature.h/4} fill={shade(foliage, -8)} />
               )}
             </g>
           );
@@ -762,14 +1201,14 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         
         if (feature.type === 'pine') {
           // Snow-covered pines
-          const pineColor = season === 'winter' ? '#4a5d4a' : '#2f4a2f';
+          const pineColor = seasonalState.isWinter ? '#4a5d4a' : '#2f4a2f';
           const snowColor = '#ffffff';
           return (
             <g key={`pine-${i}`} opacity={0.9}>
-              <polygon points={`${feature.x},${HORIZON_Y - feature.h} ${feature.x - feature.w/2},${HORIZON_Y} ${feature.x + feature.w/2},${HORIZON_Y}`} 
+              <polygon points={`${feature.x},${HORIZON_Y - feature.h} ${feature.x - feature.w/2},${HORIZON_Y} ${feature.x + feature.w/2},${HORIZON_Y}`}
                 fill={pineColor} />
-              {season === 'winter' && (
-                <polygon points={`${feature.x},${HORIZON_Y - feature.h} ${feature.x - feature.w/3},${HORIZON_Y - feature.h/2} ${feature.x + feature.w/3},${HORIZON_Y - feature.h/2}`} 
+              {seasonalState.isWinter && (
+                <polygon points={`${feature.x},${HORIZON_Y - feature.h} ${feature.x - feature.w/3},${HORIZON_Y - feature.h/2} ${feature.x + feature.w/3},${HORIZON_Y - feature.h/2}`}
                   fill={snowColor} opacity={0.8} />
               )}
             </g>
@@ -867,6 +1306,31 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
       {/* Ground with subtle vertical gradient + dither */}
       <rect x={0} y={HORIZON_Y} width={width} height={height - HORIZON_Y} fill={S.ground} />
       <rect x={0} y={HORIZON_Y} width={width} height={height - HORIZON_Y} fill={`url(#dither-dark-${seed})`} />
+
+      {/* Wind-blown grass tufts */}
+      <g opacity={0.4}>
+        {Array.from({ length: 30 }).map((_, i) => {
+          const grassRng = new RNG(seed + 777 + i);
+          const gx = grassRng.range(20, width - 20);
+          const gy = GROUND_Y + grassRng.range(0, 40);
+          const windLean = Math.sin((slowTick * 0.1) + (gx * 0.03)) * (wantRain ? 2 : 1);
+
+          return (
+            <g key={`grass-${i}`}>
+              {/* Grass blade leaning with wind */}
+              <line
+                x1={gx}
+                y1={gy}
+                x2={gx + windLean}
+                y2={gy - grassRng.range(2, 4)}
+                stroke={shade(S.grass, -15)}
+                strokeWidth={0.5}
+              />
+            </g>
+          );
+        })}
+      </g>
+
       {/* Lane to right */}
       <rect x={pathRect.x - 8} y={GROUND_Y + 4} width={width - (pathRect.x - 8)} height={6} fill={S.path} opacity={0.6} />
       <g opacity={0.45}>
@@ -904,31 +1368,31 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
       {/* Cabbages */}
       {[0, 1, 2].map(i => (
         <g key={`cabbage-${i}`}>
-          <circle cx={5 + i * 8} cy={6} r={2} fill="#90EE90" />
-          <circle cx={5 + i * 8} cy={6} r={1} fill="#3CB371" />
+          <circle cx={5 + i * 8} cy={6} r={2} fill={PLANT_COLORS.green_spring} />
+          <circle cx={5 + i * 8} cy={6} r={1} fill={PLANT_COLORS.green_medium} />
         </g>
       ))}
 
       {/* Tomatoes on stakes */}
       {[0, 1].map(i => (
         <g key={`tomato-${i}`}>
-          <rect x={7 + i * 10} y={10} width={1} height={6} fill="#8B4513" />
+          <rect x={7 + i * 10} y={10} width={1} height={6} fill={MATERIAL_COLORS.wood_beam} />
           <circle cx={7 + i * 10} cy={12} r={1} fill="#FF6347" />
-          <circle cx={8 + i * 10} cy={14} r={1} fill="#FF4500" />
+          <circle cx={8 + i * 10} cy={14} r={1} fill={ANIMAL_COLORS.chicken_beak} />
         </g>
       ))}
 
       {/* Herbs */}
       {[0, 1, 2, 3].map(i => (
-        <rect key={`herb-${i}`} x={20 + i * 2} y={8 + (i % 2) * 4} width={1} height={2} fill="#228B22" />
+        <rect key={`herb-${i}`} x={20 + i * 2} y={8 + (i % 2) * 4} width={1} height={2} fill={PLANT_COLORS.green_deep} />
       ))}
 
       {/* Scarecrow */}
       <g transform={`translate(15, -8)`}>
-        <rect x={0} y={0} width={1} height={8} fill="#8B4513" />
-        <rect x={-2} y={2} width={5} height={1} fill="#8B4513" />
-        <rect x={-1} y={0} width={3} height={2} fill="#D2691E" />
-        <rect x={0} y={-1} width={1} height={1} fill="#8B7355" />
+        <rect x={0} y={0} width={1} height={8} fill={MATERIAL_COLORS.wood_beam} />
+        <rect x={-2} y={2} width={5} height={1} fill={MATERIAL_COLORS.wood_beam} />
+        <rect x={-1} y={0} width={3} height={2} fill={PLANT_COLORS.barley_tan} />
+        <rect x={0} y={-1} width={1} height={1} fill={MATERIAL_COLORS.dirt_light} />
       </g>
     </g>
   );
@@ -937,9 +1401,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   const LaundryLine = useMemo(() => {
     // Hide laundry at night or during rain (based on season/climate)
-    const isRainy = (season === 'winter' && climate === ClimateType.MEDITERRANEAN) ||
-                    (season === 'summer' && climate === ClimateType.TROPICAL);
-    if (timeOfDay === 'Night' || isRainy) return null;
+    if (seasonalState.shouldHideLaundry) return null;
 
     const cx = Math.round(width * 0.18);
     const lineY = GROUND_Y - 35;
@@ -948,29 +1410,29 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     return (
       <g>
         {/* Line */}
-        <rect x={cx + 70} y={lineY} width={60} height={1} fill="#8B7355" />
+        <rect x={cx + 70} y={lineY} width={60} height={1} fill={MATERIAL_COLORS.dirt_light} />
 
         {/* Clothes */}
         <g transform={`translate(${cx + 80}, ${lineY})`}>
           {/* Shirt */}
-          <rect x={0 + sway * 0.5} y={1} width={8} height={10} fill="#87CEEB" />
-          <rect x={2 + sway * 0.5} y={1} width={4} height={2} fill="#6495ED" />
+          <rect x={0 + sway * 0.5} y={1} width={8} height={10} fill={MATERIAL_COLORS.fabric_blue} />
+          <rect x={2 + sway * 0.5} y={1} width={4} height={2} fill={MATERIAL_COLORS.fabric_blue_dark} />
         </g>
 
         <g transform={`translate(${cx + 95}, ${lineY})`}>
           {/* Pants */}
-          <rect x={0 + sway * 0.7} y={1} width={3} height={12} fill="#4682B4" />
-          <rect x={3 + sway * 0.7} y={1} width={3} height={12} fill="#4682B4" />
+          <rect x={0 + sway * 0.7} y={1} width={3} height={12} fill={MATERIAL_COLORS.fabric_navy} />
+          <rect x={3 + sway * 0.7} y={1} width={3} height={12} fill={MATERIAL_COLORS.fabric_navy} />
         </g>
 
         <g transform={`translate(${cx + 110}, ${lineY})`}>
           {/* Dress */}
-          <rect x={0 + sway} y={1} width={6} height={8} fill="#FFB6C1" />
-          <polygon points={`${0 + sway},${9} ${3 + sway},${13} ${6 + sway},${9}`} fill="#FFB6C1" />
+          <rect x={0 + sway} y={1} width={6} height={8} fill={MATERIAL_COLORS.fabric_pink} />
+          <polygon points={`${0 + sway},${9} ${3 + sway},${13} ${6 + sway},${9}`} fill={MATERIAL_COLORS.fabric_pink} />
         </g>
       </g>
     );
-  }, [width, GROUND_Y, timeOfDay, season, climate, slowTick]);
+  }, [width, GROUND_Y, seasonalState, slowTick]);
 
   /* ------------------------------ Farmstead ------------------------------- */
 
@@ -992,50 +1454,203 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
       <rect x={x} y={y} width={w} height={h} fill="#fff" opacity={0.1} />
     );
 
+    // Chimney smoke renderer - animated, season/time-aware
+    const renderSmoke = (chimneyX: number, chimneyY: number) => {
+      // More smoke in cold weather, at dawn/dusk/night
+      const { isWinter, isCold } = seasonalState;
+      const isColdTime = timeOfDay === 'Dawn' || timeOfDay === 'Dusk' || timeOfDay === 'Night';
+      const shouldHaveSmoke = isWinter || isCold || isColdTime;
+
+      if (!shouldHaveSmoke) return null;
+
+      // More smoke puffs in winter
+      const puffCount = isWinter ? 5 : 3;
+      const baseOpacity = isWinter ? 0.4 : 0.25;
+
+      return (
+        <g opacity={0.9}>
+          {Array.from({ length: puffCount }).map((_, i) => {
+            const rise = i * 8;
+            const drift = Math.sin((slowTick * 0.05) + i) * (4 + i * 2);
+            const size = 3 + i * 1.5;
+            const opacity = baseOpacity * (1 - i * 0.15);
+            const wobble = Math.sin((slowTick * 0.08) + i * 0.5) * 1.5;
+
+            return (
+              <ellipse
+                key={i}
+                cx={chimneyX + drift + wobble}
+                cy={chimneyY - rise}
+                rx={size}
+                ry={size * 0.8}
+                fill="#e8e8e8"
+                opacity={opacity}
+              />
+            );
+          })}
+        </g>
+      );
+    };
+
+    // Window glow for night time - warm candlelight
+    const renderWindowGlow = (x: number, y: number, w: number, h: number) => {
+      const isNight = timeOfDay === 'Night' || timeOfDay === 'Dusk';
+      if (!isNight) return null;
+
+      const flicker = 0.85 + Math.sin(slowTick * 0.15) * 0.1 + Math.sin(slowTick * 0.23) * 0.05;
+
+      return (
+        <g>
+          {/* Warm glow from inside */}
+          <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4} fill="#ffb347" opacity={0.6 * flicker} />
+          {/* Brighter center */}
+          <rect x={x + w/3} y={y + h/3} width={w/3} height={h/3} fill="#ffd700" opacity={0.4 * flicker} />
+          {/* Glow spill outside */}
+          <rect x={x - 1} y={y - 1} width={w + 2} height={h + 2} fill="#ffb347" opacity={0.15 * flicker} />
+        </g>
+      );
+    };
+
+    // Door details - handle, knocker, weathering
+    const renderDoorDetails = (doorX: number, doorY: number, doorW: number, doorH: number, style: 'medieval' | 'modern' | 'asian' | 'mena') => {
+      switch (style) {
+        case 'medieval':
+          return (
+            <g>
+              {/* Iron hinges */}
+              <rect x={doorX + 2} y={doorY + 4} width={4} height={1} fill="#3d3d3d" />
+              <rect x={doorX + 2} y={doorY + doorH - 6} width={4} height={1} fill="#3d3d3d" />
+              {/* Door handle */}
+              <circle cx={doorX + doorW - 4} cy={doorY + doorH/2} r={1.5} fill="#b8860b" />
+              {/* Wood grain */}
+              <rect x={doorX + doorW/3} y={doorY + 2} width={1} height={doorH - 4} fill="#1a0f08" opacity={0.3} />
+              <rect x={doorX + 2*doorW/3} y={doorY + 2} width={1} height={doorH - 4} fill="#1a0f08" opacity={0.3} />
+            </g>
+          );
+        case 'modern':
+          return (
+            <g>
+              {/* Modern door knob */}
+              <circle cx={doorX + doorW - 3} cy={doorY + doorH/2} r={2} fill="#c0c0c0" />
+              <circle cx={doorX + doorW - 3} cy={doorY + doorH/2} r={1} fill="#888" />
+              {/* Door panels */}
+              <rect x={doorX + 3} y={doorY + 3} width={doorW - 6} height={doorH/2 - 4} fill="#000" opacity={0.1} />
+              <rect x={doorX + 3} y={doorY + doorH/2 + 1} width={doorW - 6} height={doorH/2 - 4} fill="#000" opacity={0.1} />
+            </g>
+          );
+        default:
+          return null;
+      }
+    };
+
+    // Seasonal decorations
+    const renderSeasonalDecor = (x: number, y: number, variant: string) => {
+      const { isAutumn, isWinter, isSpring } = seasonalState;
+
+      if (isAutumn && (variant === 'medieval_euro' || variant === 'frontier')) {
+        // Harvest wreath on door
+        return (
+          <g>
+            <circle cx={x} cy={y} r={4} fill={PLANT_COLORS.autumn_rust} opacity={0.8} />
+            <circle cx={x} cy={y} r={3} fill={PLANT_COLORS.wheat_gold} opacity={0.6} />
+            <rect x={x - 1} y={y + 4} width={2} height={3} fill="#8B4513" /> {/* Ribbon */}
+          </g>
+        );
+      }
+
+      if (isWinter && variant === 'nordic') {
+        // Icicles on roof edge
+        return (
+          <g>
+            <polygon points={`${x},${y} ${x - 1},${y + 4} ${x + 1},${y + 4}`} fill="#d4f1f9" opacity={0.8} />
+            <polygon points={`${x + 6},${y} ${x + 5},${y + 5} ${x + 7},${y + 5}`} fill="#d4f1f9" opacity={0.8} />
+            <polygon points={`${x + 12},${y} ${x + 11},${y + 3} ${x + 13},${y + 3}`} fill="#d4f1f9" opacity={0.8} />
+          </g>
+        );
+      }
+
+      if (isSpring && variant === 'east_asian') {
+        // Cherry blossom branch
+        return (
+          <g>
+            {[0, 6, 12].map((offset, i) => (
+              <circle key={i} cx={x + offset} cy={y - i} r={1.5} fill="#FFB7C5" opacity={0.8} />
+            ))}
+          </g>
+        );
+      }
+
+      return null;
+    };
+
     switch (variant) {
       case 'medieval_euro':
         return (
           <g>
             {shadow(cx - 50, by, 100, 40)}
             {/* Main structure with timber frame */}
-            <rect x={cx - 50} y={by} width={100} height={40} fill="#8b5e3b" />
+            <rect x={cx - 50} y={by} width={100} height={40} fill={MATERIAL_COLORS.wood_weathered} />
             {highlight(cx - 50, by, 100, 2)} {/* Top edge highlight */}
 
             {/* Thatched roof with layered texture */}
-            <polygon points={`${cx - 58},${by} ${cx},${by - 26} ${cx + 58},${by}`} fill="#d7b46b" />
-            <polygon points={`${cx - 54},${by - 2} ${cx},${by - 22} ${cx + 54},${by - 2}`} fill="#c4a05c" opacity={0.6} />
+            <polygon points={`${cx - 58},${by} ${cx},${by - 26} ${cx + 58},${by}`} fill={MATERIAL_COLORS.thatch_light} />
+            <polygon points={`${cx - 54},${by - 2} ${cx},${by - 22} ${cx + 54},${by - 2}`} fill={MATERIAL_COLORS.thatch_dark} opacity={0.6} />
             {/* Roof ridge beam */}
-            <rect x={cx - 2} y={by - 26} width={4} height={2} fill="#5b3a24" />
+            <rect x={cx - 2} y={by - 26} width={4} height={2} fill={MATERIAL_COLORS.wood_dark} />
+            {/* Roof thatch texture lines */}
+            <rect x={cx - 48} y={by - 18} width={96} height={1} fill={MATERIAL_COLORS.thatch_dark} opacity={0.3} />
+            <rect x={cx - 44} y={by - 14} width={88} height={1} fill={MATERIAL_COLORS.thatch_dark} opacity={0.3} />
+            <rect x={cx - 40} y={by - 10} width={80} height={1} fill={MATERIAL_COLORS.thatch_dark} opacity={0.3} />
 
             {/* Timber frame details */}
-            <rect x={cx - 50} y={by + 12} width={100} height={2} fill="#5b3a24" />
-            <rect x={cx - 1} y={by} width={2} height={40} fill="#5b3a24" />
-            <rect x={cx - 25} y={by} width={2} height={40} fill="#5b3a24" />
-            <rect x={cx + 23} y={by} width={2} height={40} fill="#5b3a24" />
+            <rect x={cx - 50} y={by + 12} width={100} height={2} fill={MATERIAL_COLORS.wood_dark} />
+            <rect x={cx - 1} y={by} width={2} height={40} fill={MATERIAL_COLORS.wood_dark} />
+            <rect x={cx - 25} y={by} width={2} height={40} fill={MATERIAL_COLORS.wood_dark} />
+            <rect x={cx + 23} y={by} width={2} height={40} fill={MATERIAL_COLORS.wood_dark} />
+            {/* Diagonal timber braces */}
+            <line x1={cx - 25} y1={by + 14} x2={cx - 13} y2={by + 24} stroke={MATERIAL_COLORS.wood_dark} strokeWidth="1.5" />
+            <line x1={cx + 23} y1={by + 14} x2={cx + 13} y2={by + 24} stroke={MATERIAL_COLORS.wood_dark} strokeWidth="1.5" />
 
-            {/* Door with depth */}
-            <rect x={cx - 10} y={by + 18} width={20} height={20} fill="#2c1b12" />
-            <rect x={cx - 8} y={by + 20} width={16} height={16} fill="#3d2618" /> {/* Inner door */}
+            {/* Door with depth and details */}
+            <rect x={cx - 10} y={by + 18} width={20} height={20} fill={MATERIAL_COLORS.dirt_dark} />
+            <rect x={cx - 8} y={by + 20} width={16} height={16} fill={MATERIAL_COLORS.dirt_medium} /> {/* Inner door */}
             <rect x={cx - 1} y={by + 28} width={2} height={8} fill="#1a0f08" /> {/* Door crack */}
+            {renderDoorDetails(cx - 8, by + 20, 16, 16, 'medieval')}
+            {/* Harvest wreath in autumn */}
+            {renderSeasonalDecor(cx, by + 25, 'medieval_euro')}
 
             {/* Windows with shutters and glass effect */}
             <rect x={cx - 34} y={by + 8} width={12} height={8} fill="#4a5c6b" />
             <rect x={cx - 32} y={by + 10} width={8} height={4} fill="#6ea7d6" opacity={0.8} />
-            <rect x={cx - 34} y={by + 8} width={2} height={8} fill="#5b3a24" /> {/* Shutter */}
+            {renderWindowGlow(cx - 32, by + 10, 8, 4)}
+            <rect x={cx - 34} y={by + 8} width={2} height={8} fill={MATERIAL_COLORS.wood_dark} /> {/* Shutter */}
+            {/* Window panes */}
+            <rect x={cx - 32} y={by + 10} width={8} height={1} fill="#4a5c6b" opacity={0.5} />
+            <rect x={cx - 28} y={by + 10} width={1} height={4} fill="#4a5c6b" opacity={0.5} />
 
             <rect x={cx + 22} y={by + 8} width={12} height={8} fill="#4a5c6b" />
             <rect x={cx + 24} y={by + 10} width={8} height={4} fill="#6ea7d6" opacity={0.8} />
-            <rect x={cx + 32} y={by + 8} width={2} height={8} fill="#5b3a24" /> {/* Shutter */}
+            {renderWindowGlow(cx + 24, by + 10, 8, 4)}
+            <rect x={cx + 32} y={by + 8} width={2} height={8} fill={MATERIAL_COLORS.wood_dark} /> {/* Shutter */}
+            {/* Window panes */}
+            <rect x={cx + 24} y={by + 10} width={8} height={1} fill="#4a5c6b" opacity={0.5} />
+            <rect x={cx + 28} y={by + 10} width={1} height={4} fill="#4a5c6b" opacity={0.5} />
 
             {/* Detailed hayricks with texture */}
-            <rect x={cx + 78} y={by + 16} width={10} height={8} fill="#caa56a" />
+            <rect x={cx + 78} y={by + 16} width={10} height={8} fill={MATERIAL_COLORS.thatch_straw} />
             <rect x={cx + 78} y={by + 14} width={10} height={2} fill="#d4b57a" /> {/* Top layer */}
-            <rect x={cx + 92} y={by + 18} width={10} height={8} fill="#caa56a" />
+            <rect x={cx + 92} y={by + 18} width={10} height={8} fill={MATERIAL_COLORS.thatch_straw} />
             <rect x={cx + 92} y={by + 16} width={10} height={2} fill="#d4b57a" /> {/* Top layer */}
 
-            {/* Small details: chimney */}
+            {/* Chimney with detailed brickwork */}
             <rect x={cx + 35} y={by - 20} width={6} height={12} fill="#7a5e4a" />
-            <rect x={cx + 35} y={by - 22} width={6} height={2} fill="#5b3a24" />
+            <rect x={cx + 35} y={by - 22} width={6} height={2} fill={MATERIAL_COLORS.wood_dark} />
+            {/* Brick texture */}
+            <rect x={cx + 35} y={by - 18} width={6} height={1} fill="#5d3a2a" opacity={0.4} />
+            <rect x={cx + 35} y={by - 14} width={6} height={1} fill="#5d3a2a" opacity={0.4} />
+            <rect x={cx + 35} y={by - 10} width={6} height={1} fill="#5d3a2a" opacity={0.4} />
+            {/* Chimney smoke */}
+            {renderSmoke(cx + 38, by - 22)}
           </g>
         );
       case 'industrial_euro':
@@ -1043,14 +1658,44 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         return (
           <g>
             {shadow(cx - 56, by + 2, 112, 34)}
-            <rect x={cx - 56} y={by + 2} width={112} height={34} fill="#8b7356" />
+            {/* Main house with planks */}
+            <rect x={cx - 56} y={by + 2} width={112} height={34} fill={MATERIAL_COLORS.wood_light} />
             <rect x={cx - 56} y={by} width={112} height={2} fill="#6e5f4a" />
-            <rect x={cx - 10} y={by + 16} width={20} height={20} fill="#2c1b12" />
-            {/* silo */}
-            <rect x={cx + 80} y={by - 12} width={18} height={48} fill="#b7bcc4" />
-            <rect x={cx + 80} y={by - 14} width={18} height={2} fill="#8a909b" />
-            {/* porch awning */}
+            {/* Wood plank lines */}
+            {Array.from({ length: 8 }).map((_, i) => (
+              <rect key={i} x={cx - 56} y={by + 2 + i * 4} width={112} height={1} fill="#5d4a35" opacity={0.2} />
+            ))}
+
+            {/* Door with modern details */}
+            <rect x={cx - 10} y={by + 16} width={20} height={20} fill={MATERIAL_COLORS.dirt_dark} />
+            <rect x={cx - 8} y={by + 18} width={16} height={16} fill={MATERIAL_COLORS.dirt_medium} />
+            {renderDoorDetails(cx - 8, by + 18, 16, 16, 'modern')}
+
+            {/* Windows with glass reflection */}
+            <rect x={cx - 40} y={by + 10} width={10} height={8} fill="#3a4a5a" />
+            <rect x={cx - 38} y={by + 12} width={6} height={4} fill="#7ea7d6" opacity={0.7} />
+            {renderWindowGlow(cx - 38, by + 12, 6, 4)}
+
+            <rect x={cx + 30} y={by + 10} width={10} height={8} fill="#3a4a5a" />
+            <rect x={cx + 32} y={by + 12} width={6} height={4} fill="#7ea7d6" opacity={0.7} />
+            {renderWindowGlow(cx + 32, by + 12, 6, 4)}
+
+            {/* Silo with metal bands */}
+            <rect x={cx + 80} y={by - 12} width={18} height={48} fill={MATERIAL_COLORS.metal_steel} />
+            <rect x={cx + 80} y={by - 14} width={18} height={2} fill={MATERIAL_COLORS.metal_dark} />
+            {/* Metal bands */}
+            <rect x={cx + 79} y={by} width={20} height={1.5} fill={MATERIAL_COLORS.metal_dark} opacity={0.6} />
+            <rect x={cx + 79} y={by + 12} width={20} height={1.5} fill={MATERIAL_COLORS.metal_dark} opacity={0.6} />
+            <rect x={cx + 79} y={by + 24} width={20} height={1.5} fill={MATERIAL_COLORS.metal_dark} opacity={0.6} />
+
+            {/* Porch awning with support posts */}
             <rect x={cx - 24} y={by + 12} width={48} height={4} fill="#705940" />
+            <rect x={cx - 22} y={by + 16} width={2} height={20} fill="#5d4a35" />
+            <rect x={cx + 20} y={by + 16} width={2} height={20} fill="#5d4a35" />
+
+            {/* Chimney */}
+            <rect x={cx - 30} y={by - 8} width={6} height={10} fill="#7a5e4a" />
+            {renderSmoke(cx - 27, by - 8)}
           </g>
         );
       case 'mena':
@@ -1058,28 +1703,30 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
           <g>
             {shadow(cx - 46, by + 8, 92, 26)}
             {/* Adobe/mud brick structure with texture */}
-            <rect x={cx - 46} y={by + 8} width={92} height={26} fill="#ead9c5" />
-            <rect x={cx - 46} y={by + 6} width={92} height={2} fill="#c8b4a0" />
+            <rect x={cx - 46} y={by + 8} width={92} height={26} fill={MATERIAL_COLORS.adobe} />
+            <rect x={cx - 46} y={by + 6} width={92} height={2} fill={MATERIAL_COLORS.adobe_shadow} />
             {highlight(cx - 46, by + 8, 92, 2)} {/* Top edge highlight */}
 
             {/* Texture details on walls */}
-            <rect x={cx - 30} y={by + 14} width={4} height={4} fill="#d6c4b0" opacity={0.5} />
-            <rect x={cx + 10} y={by + 20} width={4} height={4} fill="#d6c4b0" opacity={0.5} />
-            <rect x={cx + 28} y={by + 16} width={4} height={4} fill="#d6c4b0" opacity={0.5} />
+            <rect x={cx - 30} y={by + 14} width={4} height={4} fill={MATERIAL_COLORS.adobe_detail} opacity={0.5} />
+            <rect x={cx + 10} y={by + 20} width={4} height={4} fill={MATERIAL_COLORS.adobe_detail} opacity={0.5} />
+            <rect x={cx + 28} y={by + 16} width={4} height={4} fill={MATERIAL_COLORS.adobe_detail} opacity={0.5} />
 
             {/* Arched doorway */}
             <rect x={cx - 12} y={by + 12} width={24} height={18} fill="#a0826d" />
             <path d={`M ${cx - 12} ${by + 12} Q ${cx} ${by + 8} ${cx + 12} ${by + 12}`} fill="#a0826d" />
-            <rect x={cx - 10} y={by + 14} width={20} height={16} fill="#3d2618" /> {/* Inner doorway */}
+            <rect x={cx - 10} y={by + 14} width={20} height={16} fill={MATERIAL_COLORS.dirt_medium} /> {/* Inner doorway */}
             <rect x={cx - 12} y={by + 12} width={24} height={2} fill="#8b6a55" />
 
             {/* Decorative window with mashrabiya pattern */}
             <rect x={cx - 36} y={by + 12} width={8} height={6} fill="#8b6a55" />
+            {renderWindowGlow(cx - 36, by + 12, 8, 6)}
             <rect x={cx - 35} y={by + 13} width={2} height={4} fill="#d6c4b0" opacity={0.6} />
             <rect x={cx - 32} y={by + 13} width={2} height={4} fill="#d6c4b0" opacity={0.6} />
             <rect x={cx - 29} y={by + 13} width={2} height={4} fill="#d6c4b0" opacity={0.6} />
 
             <rect x={cx + 28} y={by + 12} width={8} height={6} fill="#8b6a55" />
+            {renderWindowGlow(cx + 28, by + 12, 8, 6)}
             <rect x={cx + 29} y={by + 13} width={2} height={4} fill="#d6c4b0" opacity={0.6} />
             <rect x={cx + 32} y={by + 13} width={2} height={4} fill="#d6c4b0" opacity={0.6} />
             <rect x={cx + 35} y={by + 13} width={2} height={4} fill="#d6c4b0" opacity={0.6} />
@@ -1137,14 +1784,19 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
             <rect x={cx - 2} y={by + 18} width={1} height={12} fill="#2c1b12" />
             <rect x={cx + 2} y={by + 18} width={1} height={12} fill="#2c1b12" />
 
-            {/* Paper windows */}
+            {/* Paper windows with night glow */}
             <rect x={cx - 36} y={by + 12} width={10} height={8} fill="#3d2618" />
             <rect x={cx - 34} y={by + 14} width={6} height={4} fill="#f4e6d9" opacity={0.7} />
+            {renderWindowGlow(cx - 34, by + 14, 6, 4)}
             <rect x={cx - 31} y={by + 12} width={1} height={8} fill="#2c1b12" />
 
             <rect x={cx + 26} y={by + 12} width={10} height={8} fill="#3d2618" />
             <rect x={cx + 28} y={by + 14} width={6} height={4} fill="#f4e6d9" opacity={0.7} />
+            {renderWindowGlow(cx + 28, by + 14, 6, 4)}
             <rect x={cx + 31} y={by + 12} width={1} height={8} fill="#2c1b12" />
+
+            {/* Spring cherry blossoms */}
+            {renderSeasonalDecor(cx - 40, by + 4, 'east_asian')}
 
             {/* Detailed drying racks with items */}
             <rect x={cx + 66} y={by + 14} width={24} height={2} fill="#6a3e1c" />
@@ -1167,11 +1819,38 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         return (
           <g>
             {shadow(cx - 52, by + 4, 104, 30)}
+            {/* Log cabin walls */}
             <rect x={cx - 52} y={by + 4} width={104} height={30} fill="#6f4426" />
+            {/* Log texture - horizontal lines */}
+            {Array.from({ length: 7 }).map((_, i) => (
+              <rect key={i} x={cx - 52} y={by + 4 + i * 4} width={104} height={1.5} fill="#5a371c" opacity={0.5} />
+            ))}
+            {/* Steep roof */}
             <polygon points={`${cx - 58},${by + 4} ${cx},${by - 10} ${cx + 58},${by + 4}`} fill="#5a371c" />
-            {/* drying rails */}
+            {/* Winter icicles */}
+            {renderSeasonalDecor(cx - 50, by + 4, 'nordic')}
+
+            {/* Small window */}
+            <rect x={cx - 30} y={by + 12} width={8} height={6} fill="#3a2618" />
+            <rect x={cx - 28} y={by + 14} width={4} height={2} fill="#6ea7d6" opacity={0.6} />
+            {renderWindowGlow(cx - 28, by + 14, 4, 2)}
+
+            {/* Door */}
+            <rect x={cx - 8} y={by + 16} width={16} height={16} fill="#4a2f1a" />
+            <rect x={cx - 6} y={by + 18} width={12} height={12} fill="#5d3b24" />
+            {/* Door cross-bracing */}
+            <line x1={cx - 6} y1={by + 18} x2={cx + 6} y2={by + 30} stroke="#4a2f1a" strokeWidth="1.5" />
+            <line x1={cx + 6} y1={by + 18} x2={cx - 6} y2={by + 30} stroke="#4a2f1a" strokeWidth="1.5" />
+
+            {/* Drying rails with items */}
             <rect x={cx + 74} y={by + 10} width={18} height={2} fill="#7b4f2a" />
             <rect x={cx + 74} y={by + 14} width={18} height={2} fill="#7b4f2a" />
+            <rect x={cx + 76} y={by + 8} width={3} height={4} fill="#c4a05c" opacity={0.7} />
+            <rect x={cx + 82} y={by + 8} width={3} height={4} fill="#b89060" opacity={0.7} />
+
+            {/* Chimney */}
+            <rect x={cx + 20} y={by - 6} width={6} height={10} fill="#6a4a2a" />
+            {renderSmoke(cx + 23, by - 6)}
           </g>
         );
       default: // modern
@@ -1260,12 +1939,76 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   /* --------------------------- Crop Renderers ----------------------------- */
 
+  // Unified crop configuration system
+  type CropType = 'field' | 'tall_row' | 'orchard' | 'trellis' | 'cotton' | 'rice';
+
+  interface CropConfig {
+    type: CropType;
+    primaryColor: string;
+    accentColor: string;
+    stemColor?: string;
+    trunkColor?: string;
+    hasCornEars?: boolean;
+    hasSugarSegments?: boolean;
+    fruitColor?: string;
+    blossomColor?: string;
+    bollColor?: string;
+  }
+
+  const CROP_CONFIGS: Record<string, CropConfig> = {
+    // Grains - field type
+    wheat: { type: 'field', primaryColor: PLANT_COLORS.wheat_gold, accentColor: PLANT_COLORS.wheat_ripe },
+    barley: { type: 'field', primaryColor: PLANT_COLORS.barley_tan, accentColor: PLANT_COLORS.barley_light },
+    rye: { type: 'field', primaryColor: PLANT_COLORS.rye_brown, accentColor: PLANT_COLORS.rye_dark },
+    oat: { type: 'field', primaryColor: PLANT_COLORS.oat_cream, accentColor: PLANT_COLORS.oat_tan },
+    sorghum: { type: 'field', primaryColor: PLANT_COLORS.autumn_brown, accentColor: '#A0522D' },
+    millet: { type: 'field', primaryColor: PLANT_COLORS.grain_harvest, accentColor: '#FFC125' },
+
+    // Vegetables - field type
+    potato: { type: 'field', primaryColor: MATERIAL_COLORS.dirt_light, accentColor: '#CDB79E' },
+    carrot: { type: 'field', primaryColor: PLANT_COLORS.green_deep, accentColor: PLANT_COLORS.orange },
+    cabbage: { type: 'field', primaryColor: PLANT_COLORS.green_medium, accentColor: PLANT_COLORS.green_spring },
+    flax: { type: 'field', primaryColor: '#87CEEB', accentColor: '#B0E0E6' },
+
+    // Tall row crops
+    corn: { type: 'tall_row', primaryColor: PLANT_COLORS.green_olive, accentColor: PLANT_COLORS.green_sage, hasCornEars: true },
+    maize: { type: 'tall_row', primaryColor: PLANT_COLORS.green_olive, accentColor: PLANT_COLORS.green_sage, hasCornEars: true },
+    sugar: { type: 'tall_row', primaryColor: '#7FBF7F', accentColor: '#5F9F5F', hasSugarSegments: true },
+    cane: { type: 'tall_row', primaryColor: '#7FBF7F', accentColor: '#5F9F5F', hasSugarSegments: true },
+    bean: { type: 'tall_row', primaryColor: PLANT_COLORS.green_olive, accentColor: PLANT_COLORS.green_olive },
+    pea: { type: 'tall_row', primaryColor: PLANT_COLORS.green_sage, accentColor: PLANT_COLORS.green_light },
+    tobacco: { type: 'tall_row', primaryColor: MATERIAL_COLORS.dirt_light, accentColor: '#705848' },
+    hemp: { type: 'tall_row', primaryColor: PLANT_COLORS.green_olive, accentColor: PLANT_COLORS.green_sage },
+
+    // Orchards
+    apple: { type: 'orchard', primaryColor: shade(S.tree, 0), accentColor: shade(S.tree, -10), trunkColor: '#5d3b24', fruitColor: PLANT_COLORS.apple_red, blossomColor: '#FFB6C1' },
+    orchard: { type: 'orchard', primaryColor: shade(S.tree, 0), accentColor: shade(S.tree, -10), trunkColor: '#5d3b24', fruitColor: PLANT_COLORS.apple_red, blossomColor: '#FFB6C1' },
+    olive: { type: 'orchard', primaryColor: S.tree, accentColor: shade(S.tree, -10), trunkColor: '#6f4b2e', fruitColor: '#556B2F', blossomColor: null },
+
+    // Trellis
+    vineyard: { type: 'trellis', primaryColor: '#228B22', accentColor: '#4B0082', stemColor: '#8B7355', blossomColor: '#F0E68C' },
+    grape: { type: 'trellis', primaryColor: '#228B22', accentColor: '#4B0082', stemColor: '#8B7355', blossomColor: '#F0E68C' },
+
+    // Cotton
+    cotton: { type: 'cotton', primaryColor: S.grass, accentColor: '#FFFFFF', bollColor: '#FFFAF0', blossomColor: '#FFB6C1' },
+
+    // Rice
+    rice: { type: 'rice', primaryColor: shade(S.grass, 6), accentColor: '#d1b24a' },
+    paddy: { type: 'rice', primaryColor: shade(S.grass, 6), accentColor: '#d1b24a' },
+  };
+
+  const getCropConfig = (cropName: string): CropConfig => {
+    const c = cropName.toLowerCase();
+    for (const [key, config] of Object.entries(CROP_CONFIGS)) {
+      if (c.includes(key)) return config;
+    }
+    // Default field crop
+    return { type: 'field', primaryColor: shade(S.grass, 8), accentColor: shade(S.grass, -12) };
+  };
+
   const renderGenericField = (primary: string, accent: string) => {
-    // Enhanced with season-aware rendering
-    const isWinter = season === 'winter';
-    const isSpring = season === 'spring';
-    const isSummer = season === 'summer';
-    const isAutumn = season === 'fall';
+    // Enhanced with season-aware rendering - use seasonalState
+    const { isWinter, isSpring, isSummer, isAutumn } = seasonalState;
 
     // Season-specific color adjustments
     const seasonalPrimary = isWinter ? shade(primary, -30) :
@@ -1280,14 +2023,52 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
     return (
       <g>
+        {/* Enhanced furrow lines - visible row patterns */}
+        {furrowRows.map((row, ri) => {
+          if (row.length === 0) return null;
+          const rowY = row[0].y;
+          const furrowDarkness = stage === 'plowing' ? -25 : stage === 'seedling' ? -18 : -12;
+
+          return (
+            <g key={`furrow-${ri}`}>
+              {/* Dark furrow line */}
+              <rect
+                x={60}
+                y={rowY + 1}
+                width={width - 120}
+                height={1.5}
+                fill={shade(S.ground, furrowDarkness)}
+                opacity={0.6}
+              />
+              {/* Highlight on furrow ridge */}
+              {stage !== 'plowing' && (
+                <rect
+                  x={60}
+                  y={rowY - 1}
+                  width={width - 120}
+                  height={0.5}
+                  fill={shade(S.ground, 8)}
+                  opacity={0.3}
+                />
+              )}
+            </g>
+          );
+        })}
+
         {furrowRows.map((row, ri) => (
           <g key={ri}>
             {row.map((p, pi) => {
+              // Enhanced wind coordination - wave effect across the field
+              const windPhase = (p.x * 0.03 + slowTick * 0.5 + ri * 0.3);
               const wind = (stage === 'vegetative' || stage === 'harvest' || stage === 'ripening') ?
-                          Math.sin((p.x + slowTick) * 0.02) * (isAutumn ? 0.8 : 0.5) : 0;
-              const variation = 0.8 + (((pi * 7 + ri * 13) % 10) / 20);
+                          Math.sin(windPhase) * (isAutumn ? 1.2 : 0.7) : 0;
 
-              // Season-adjusted heights
+              // More varied height variation using multiple factors
+              const baseVariation = 0.75 + (((pi * 7 + ri * 13) % 10) / 15);
+              const microVariation = 0.95 + Math.sin(pi * 2.3 + ri * 1.7) * 0.1;
+              const variation = baseVariation * microVariation;
+
+              // Season-adjusted heights with more variety
               const h = stage === 'plowing' ? 0 :
                        stage === 'seedling' ? (isSpring ? 2 : 3) * variation :
                        stage === 'vegetative' ? (isSummer ? 8 : 6) * variation :
@@ -1296,11 +2077,28 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
                        stage === 'dormant' ? 3 * variation :
                        stage === 'fallow' ? 1 : 2 * variation;
 
-              // Seasonal color variation
-              const colorVariation = isAutumn && stage === 'harvest' ?
-                                   (pi % 2 === 0 ? '#D2691E' : pi % 3 === 0 ? '#DAA520' : seasonalPrimary) :
-                                   (pi % 3 === 0 ? shade(seasonalPrimary, -5) :
-                                    pi % 5 === 0 ? shade(seasonalPrimary, 5) : seasonalPrimary);
+              // Enhanced harvest state visual progression
+              let colorVariation = seasonalPrimary;
+
+              if (stage === 'ripening') {
+                // Gradual transition from green to gold during ripening
+                const ripenProgress = (pi % 5) / 5; // 0 to 0.8 based on position
+                const greenTint = shade(seasonalPrimary, -10);
+                const goldTint = shade(seasonalAccent, -15);
+                colorVariation = ripenProgress > 0.6 ? goldTint :
+                                ripenProgress > 0.3 ? shade(greenTint, 15) : greenTint;
+              } else if (stage === 'harvest') {
+                // Full golden fields with some variation
+                if (isAutumn) {
+                  colorVariation = pi % 2 === 0 ? '#D2691E' : pi % 3 === 0 ? '#DAA520' : seasonalAccent;
+                } else {
+                  colorVariation = pi % 3 === 0 ? shade(seasonalAccent, 10) : seasonalAccent;
+                }
+              } else {
+                // Normal growth stages - subtle color variation
+                colorVariation = pi % 3 === 0 ? shade(seasonalPrimary, -5) :
+                                pi % 5 === 0 ? shade(seasonalPrimary, 5) : seasonalPrimary;
+              }
 
               return (
                 <g key={pi} transform={`translate(${Math.round(p.x)}, ${Math.round(p.y)})`}>
@@ -1330,11 +2128,29 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
                     </>
                   )}
 
-                  {/* Ripening grain heads */}
+                  {/* Ripening grain heads - progressive development */}
                   {stage === 'ripening' && (
                     <>
-                      <rect x={-2 + wind} y={-h - 1} width={4} height={2} fill={shade(seasonalAccent, -10)} />
-                      <rect x={-1 + wind} y={-h - 2} width={2} height={1} fill={seasonalAccent} />
+                      {/* Grain head size varies by position - simulating progressive ripening */}
+                      {pi % 3 === 0 ? (
+                        // Early ripening - smaller heads
+                        <>
+                          <rect x={-1 + wind} y={-h - 1} width={2} height={1} fill={shade(seasonalAccent, -20)} />
+                          <rect x={-1 + wind} y={-h - 2} width={2} height={1} fill={shade(seasonalAccent, -15)} opacity={0.8} />
+                        </>
+                      ) : pi % 3 === 1 ? (
+                        // Mid ripening - medium heads
+                        <>
+                          <rect x={-2 + wind} y={-h - 1} width={4} height={2} fill={shade(seasonalAccent, -10)} />
+                          <rect x={-1 + wind} y={-h - 2} width={2} height={1} fill={shade(seasonalAccent, -5)} />
+                        </>
+                      ) : (
+                        // Late ripening - full heads (almost harvest ready)
+                        <>
+                          <rect x={-2 + wind} y={-h - 2} width={4} height={3} fill={seasonalAccent} />
+                          <rect x={-1 + wind} y={-h - 3} width={2} height={1} fill={shade(seasonalAccent, 15)} />
+                        </>
+                      )}
                     </>
                   )}
 
@@ -1371,10 +2187,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   const renderVineyard = () => {
     const { posts, left, right, rows, startY, spacing } = trellisPosts;
-    const isSpring = season === 'spring';
-    const isSummer = season === 'summer';
-    const isAutumn = season === 'fall';
-    const isWinter = season === 'winter';
+    const { isSpring, isSummer, isAutumn, isWinter } = seasonalState;
 
     return (
       <g>
@@ -1453,39 +2266,42 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     );
   };
 
-  const renderOliveGrove = () => (
-    <g>
-      {orchardGrid.map((n, i) => {
-        const trunk = '#6f4b2e';
-        const leafy = stage === 'fallow' ? shade(S.tree, -24) : S.tree;
-        return (
-          <g key={i}>
-            <rect x={n.x} y={n.y - 8} width={2} height={8} fill={trunk} />
-            <rect x={n.x - 6} y={n.y - 12} width={6} height={4} fill={shade(leafy, -10)} />
-            <rect x={n.x - 1} y={n.y - 13} width={8} height={5} fill={leafy} />
-            <rect x={n.x - 4} y={n.y - 9} width={10} height={4} fill={shade(leafy, -14)} />
-          </g>
-        );
-      })}
-    </g>
-  );
+  // Unified orchard renderer - handles apples, olives, and other tree crops
+  const renderOrchard = (config: CropConfig) => {
+    const { isSpring, isSummer, isAutumn, isWinter } = seasonalState;
+    const isOlive = cropType.toLowerCase().includes('olive');
 
-  const renderAppleOrchard = () => {
-    const isSpring = season === 'spring';
-    const isSummer = season === 'summer';
-    const isAutumn = season === 'fall';
-    const isWinter = season === 'winter';
+    // Olives are evergreen, simplified rendering
+    if (isOlive) {
+      return (
+        <g>
+          {orchardGrid.map((n, i) => {
+            const trunk = config.trunkColor || '#6f4b2e';
+            const leafy = stage === 'fallow' ? shade(config.primaryColor, -24) : config.primaryColor;
+            return (
+              <g key={i}>
+                <rect x={n.x} y={n.y - 8} width={2} height={8} fill={trunk} />
+                <rect x={n.x - 6} y={n.y - 12} width={6} height={4} fill={shade(leafy, -10)} />
+                <rect x={n.x - 1} y={n.y - 13} width={8} height={5} fill={leafy} />
+                <rect x={n.x - 4} y={n.y - 9} width={10} height={4} fill={shade(leafy, -14)} />
+              </g>
+            );
+          })}
+        </g>
+      );
+    }
 
+    // Deciduous fruit trees (apples, pears, etc.)
     return (
       <g>
         {orchardGrid.map((n, i) => {
-          const trunk = '#5d3b24';
+          const trunk = config.trunkColor || '#5d3b24';
           // Seasonal leaf colors
           const leafColor = isWinter ? null : // No leaves in winter
                           isSpring ? '#90EE90' : // Light green new growth
-                          isSummer ? shade(S.tree, 0) : // Full green
+                          isSummer ? config.primaryColor : // Full green
                           isAutumn ? (i % 3 === 0 ? '#FF8C00' : i % 2 === 0 ? '#FFD700' : '#DC143C') : // Fall colors
-                          shade(S.tree, 0);
+                          config.primaryColor;
 
           return (
             <g key={i}>
@@ -1501,14 +2317,14 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
               )}
 
               {/* Spring blossoms */}
-              {stage === 'blossom' && isSpring && (
+              {stage === 'blossom' && isSpring && config.blossomColor && (
                 <>
                   {/* Blossom clusters */}
-                  <rect x={n.x - 5} y={n.y - 14} width={2} height={2} fill="#FFB6C1" />
-                  <rect x={n.x - 1} y={n.y - 15} width={3} height={2} fill="#FFC0CB" />
-                  <rect x={n.x + 3} y={n.y - 13} width={2} height={2} fill="#FFB6C1" />
-                  <rect x={n.x - 3} y={n.y - 11} width={2} height={2} fill="#FFC0CB" />
-                  <rect x={n.x + 2} y={n.y - 10} width={2} height={2} fill="#FFB6C1" />
+                  <rect x={n.x - 5} y={n.y - 14} width={2} height={2} fill={config.blossomColor} />
+                  <rect x={n.x - 1} y={n.y - 15} width={3} height={2} fill={shade(config.blossomColor, 5)} />
+                  <rect x={n.x + 3} y={n.y - 13} width={2} height={2} fill={config.blossomColor} />
+                  <rect x={n.x - 3} y={n.y - 11} width={2} height={2} fill={shade(config.blossomColor, 5)} />
+                  <rect x={n.x + 2} y={n.y - 10} width={2} height={2} fill={config.blossomColor} />
                   {/* Some early leaves */}
                   <rect x={n.x - 4} y={n.y - 12} width={3} height={2} fill="#98FB98" />
                   <rect x={n.x + 1} y={n.y - 11} width={3} height={2} fill="#98FB98" />
@@ -1519,26 +2335,26 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
               {leafColor && stage !== 'blossom' && stage !== 'dormant' && (
                 <>
                   <rect x={n.x - 6} y={n.y - 15} width={14} height={6} fill={leafColor} />
-                  <rect x={n.x - 7} y={n.y - 12} width={16} height={5} fill={shade(leafColor, -10)} />
-                  <rect x={n.x - 5} y={n.y - 9} width={12} height={3} fill={shade(leafColor, -15)} />
+                  <rect x={n.x - 7} y={n.y - 12} width={16} height={5} fill={config.accentColor} />
+                  <rect x={n.x - 5} y={n.y - 9} width={12} height={3} fill={shade(config.accentColor, -5)} />
                 </>
               )}
 
               {/* Fruits */}
-              {stage === 'fruiting' && isSummer && (
+              {stage === 'fruiting' && isSummer && config.fruitColor && (
                 <>
-                  {/* Green developing apples */}
+                  {/* Green developing fruits */}
                   <rect x={n.x - 3} y={n.y - 10} width={2} height={2} fill="#90EE90" />
                   <rect x={n.x + 2} y={n.y - 9} width={2} height={2} fill="#90EE90" />
                 </>
               )}
-              {stage === 'harvest' && isAutumn && (
+              {stage === 'harvest' && isAutumn && config.fruitColor && (
                 <>
-                  {/* Ripe red apples */}
-                  <rect x={n.x - 3} y={n.y - 10} width={2} height={2} fill="#DC143C" />
-                  <rect x={n.x + 2} y={n.y - 9} width={2} height={2} fill="#B22222" />
-                  <rect x={n.x} y={n.y - 11} width={2} height={2} fill="#DC143C" />
-                  <rect x={n.x - 5} y={n.y - 8} width={2} height={2} fill="#B22222" />
+                  {/* Ripe fruits */}
+                  <rect x={n.x - 3} y={n.y - 10} width={2} height={2} fill={config.fruitColor} />
+                  <rect x={n.x + 2} y={n.y - 9} width={2} height={2} fill={shade(config.fruitColor, -10)} />
+                  <rect x={n.x} y={n.y - 11} width={2} height={2} fill={config.fruitColor} />
+                  <rect x={n.x - 5} y={n.y - 8} width={2} height={2} fill={shade(config.fruitColor, -10)} />
                 </>
               )}
 
@@ -1556,9 +2372,9 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     );
   };
 
-  const renderTallRowCrops = (stem = '#90EE90', tip = '#3CB371', cropName = 'corn') => {
-    const isCorn = cropName.toLowerCase().includes('corn') || cropName.toLowerCase().includes('maize');
-    const isSugarCane = cropName.toLowerCase().includes('sugar') || cropName.toLowerCase().includes('cane');
+  const renderTallRowCrops = (stem = '#90EE90', tip = '#3CB371', cropName = 'corn', hasCornEars = false, hasSugarSegments = false) => {
+    const isCorn = hasCornEars || cropName.toLowerCase().includes('corn') || cropName.toLowerCase().includes('maize');
+    const isSugarCane = hasSugarSegments || cropName.toLowerCase().includes('sugar') || cropName.toLowerCase().includes('cane');
 
     return (
       <g>
@@ -1617,10 +2433,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
   };
 
   const renderCottonField = () => {
-    const isSpring = season === 'spring';
-    const isSummer = season === 'summer';
-    const isAutumn = season === 'fall';
-    const isWinter = season === 'winter';
+    const { isSpring, isSummer, isAutumn, isWinter } = seasonalState;
 
     return (
       <g>
@@ -1724,41 +2537,36 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     </g>
   );
 
-  const renderCropSwitch = () => {
-    const c = cropType.toLowerCase();
+  // Unified crop renderer - routes to appropriate renderer based on config
+  const renderCrop = () => {
+    const config = getCropConfig(cropType);
 
-    // Enhanced crop-specific rendering with distinct visuals
-    if (c.includes('vineyard') || c.includes('grape')) return renderVineyard();
-    if (c.includes('olive')) return renderOliveGrove();
-    if (c.includes('apple') || c.includes('orchard')) return renderAppleOrchard();
-    if (c.includes('cotton')) return renderCottonField();
-    if (c.includes('rice') || c.includes('paddy')) return renderRicePaddies();
+    switch (config.type) {
+      case 'field':
+        return renderGenericField(config.primaryColor, config.accentColor);
 
-    // Tall crops with specific colors and features
-    if (c.includes('sugar') || c.includes('cane')) return renderTallRowCrops('#7FBF7F', '#5F9F5F', c);
-    if (c.includes('corn') || c.includes('maize')) return renderTallRowCrops('#6B8E23', '#8FBC8F', c);
+      case 'tall_row':
+        return renderTallRowCrops(config.primaryColor, config.accentColor, cropType, config.hasCornEars, config.hasSugarSegments);
 
-    // Grains with distinct golden/tan colors
-    if (c.includes('wheat')) return renderGenericField('#DAA520', '#F5DEB3'); // Golden wheat
-    if (c.includes('barley')) return renderGenericField('#D2691E', '#DEB887'); // Tan barley
-    if (c.includes('rye')) return renderGenericField('#8B7355', '#A0826D'); // Darker rye
-    if (c.includes('oat')) return renderGenericField('#F5E6D3', '#E5D4B1'); // Light oats
-    if (c.includes('sorghum')) return renderGenericField('#8B4513', '#A0522D'); // Reddish
-    if (c.includes('millet')) return renderGenericField('#FFD700', '#FFC125'); // Yellow
+      case 'orchard':
+        return renderOrchard(config);
 
-    // Vegetables and other crops
-    if (c.includes('potato')) return renderGenericField('#8B7D6B', '#CDB79E');
-    if (c.includes('carrot')) return renderGenericField('#228B22', '#FF8C00');
-    if (c.includes('cabbage')) return renderGenericField('#3CB371', '#90EE90');
-    if (c.includes('bean')) return renderTallRowCrops('#556B2F', '#6B8E23', c);
-    if (c.includes('pea')) return renderTallRowCrops('#8FBC8F', '#98FB98', c);
-    if (c.includes('tobacco')) return renderTallRowCrops('#8B7D6B', '#705848', c);
-    if (c.includes('hemp')) return renderTallRowCrops('#556B2F', '#8FBC8F', c);
-    if (c.includes('flax')) return renderGenericField('#87CEEB', '#B0E0E6');
+      case 'trellis':
+        return renderVineyard();
 
-    // Default green field
-    return renderGenericField(shade(S.grass, 8), shade(S.grass, -12));
+      case 'cotton':
+        return renderCottonField();
+
+      case 'rice':
+        return renderRicePaddies();
+
+      default:
+        return renderGenericField(config.primaryColor, config.accentColor);
+    }
   };
+
+  // Legacy function for backwards compatibility
+  const renderCropSwitch = renderCrop;
 
   /* ---------------------------- Farm Animals ------------------------------ */
 
@@ -1766,126 +2574,479 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     const rng = new RNG(seed + 555);
     const animalList = [];
 
-    // Chickens in the yard area (not on roof!)
-    for (let i = 0; i < 3; i++) {
-      animalList.push({
-        type: 'chicken',
-        x: farmsteadRect.x + farmsteadRect.w + 10 + rng.int(-5, 20), // Move to yard side
-        y: GROUND_Y - 2,
-        phase: rng.range(0, Math.PI * 2)
-      });
-    }
+    // Use actual livestock data if provided, otherwise use defaults
+    const livestockData = livestock || [
+      { type: 'chicken', count: 3 },
+      { type: 'cat', count: 1 },
+      { type: 'dog', count: 1 }
+    ];
 
-    // Cat on porch area (not floating)
-    animalList.push({
-      type: 'cat',
-      x: farmsteadRect.x + 40,
-      y: GROUND_Y - 2, // Put on ground level
-      phase: 0
-    });
+    livestockData.forEach((animal) => {
+      const animalType = animal.type.toLowerCase();
 
-    // Dog near door
-    animalList.push({
-      type: 'dog',
-      x: farmsteadRect.x + 60,
-      y: GROUND_Y - 3,
-      phase: 0
+      // Map common animal names to renderable types
+      const renderType = animalType.includes('chicken') || animalType.includes('hen') || animalType.includes('rooster') ? 'chicken' :
+                         animalType.includes('cow') || animalType.includes('cattle') || animalType.includes('ox') ? 'cow' :
+                         animalType.includes('pig') || animalType.includes('hog') ? 'pig' :
+                         animalType.includes('sheep') ? 'sheep' :
+                         animalType.includes('goat') ? 'goat' :
+                         animalType.includes('horse') ? 'horse' :
+                         animalType.includes('cat') ? 'cat' :
+                         animalType.includes('dog') ? 'dog' : 'chicken'; // fallback
+
+      const count = Math.min(animal.count, 8); // Max 8 of each type to avoid clutter
+
+      // Chickens cluster in groups
+      const isChicken = renderType === 'chicken';
+      const clusterRadius = isChicken ? 20 : 0;
+
+      // Some animals get babies
+      const hasBabies = (renderType === 'cow' || renderType === 'goat' || renderType === 'sheep') && count > 1;
+
+      for (let i = 0; i < count; i++) {
+        const isBaby = hasBabies && i < Math.floor(count * 0.3); // 30% are babies
+
+        // Chickens cluster tightly, others spread out
+        const xOffset = isChicken ? rng.int(-clusterRadius, clusterRadius) : rng.int(-10, 30);
+        const yOffset = isChicken ? rng.int(-5, 5) : 0;
+        const spacing = isChicken ? i * 8 : i * 15;
+
+        animalList.push({
+          id: `${renderType}-${animalList.length}`, // Unique ID using array length
+          type: renderType,
+          x: farmsteadRect.x + farmsteadRect.w + 10 + spacing + xOffset,
+          y: GROUND_Y - (renderType === 'cow' ? 8 : renderType === 'horse' ? 10 : 2) + yOffset,
+          phase: rng.range(0, Math.PI * 2),
+          behavior: rng.next() > 0.5 ? 'idle' : 'active',
+          isBaby: isBaby,
+          motherIndex: isBaby && i > 0 ? i - 1 : undefined
+        });
+      }
     });
 
     return animalList;
-  }, [seed, farmsteadRect, GROUND_Y]);
+  }, [seed, farmsteadRect, GROUND_Y, livestock]);
 
   const drawAnimal = (animal: any) => {
-    const wobble = Math.sin(slowTick * 0.05 + animal.phase);
+    const scale = animal.isBaby ? 0.7 : 1.0;
 
+    // Simple chicken - minimal SNES style
     if (animal.type === 'chicken') {
-      const peckCycle = Math.sin(slowTick * 0.08 + animal.phase);
-      const pecking = peckCycle > 0.6;
-      const bobbing = Math.sin(slowTick * 0.12 + animal.phase) * 0.5;
+      const pecking = Math.sin(slowTick * 0.1 + animal.phase) > 0.6;
       return (
-        <g key={`${animal.type}-${animal.x}`} transform={`translate(${animal.x}, ${animal.y + bobbing})`}>
+        <g key={animal.id} transform={`translate(${animal.x}, ${animal.y}) scale(${scale})`}>
           <ellipse cx={0} cy={1} rx={2} ry={1} fill="#000" opacity={0.2} />
-          {/* Body */}
-          <ellipse cx={0} cy={pecking ? 0 : -1} rx={2} ry={2} fill="#FFFFFF" />
-          {/* Head */}
-          <circle cx={1} cy={pecking ? -1 : -2} r={1} fill="#FFFFFF" />
-          {/* Beak */}
-          <rect x={2} y={pecking ? -1 : -2} width={1} height={1} fill="#FF4500" />
-          {/* Wing detail */}
-          <ellipse cx={0} cy={pecking ? 0 : -1} rx={1} ry={1} fill="#F5F5F5" />
-          {/* Pecking at ground food */}
-          {pecking && <rect x={0} y={1} width={1} height={1} fill="#DAA520" />}
+          <ellipse cx={0} cy={pecking ? 0 : -1} rx={2} ry={2} fill="#FFF" />
+          <circle cx={1} cy={pecking ? -1 : -2} r={1} fill="#FFF" />
+          <rect x={2} y={pecking ? -1 : -2} width={1} height={1} fill="#F44" />
         </g>
       );
     }
 
-    if (animal.type === 'cat') {
-      const sleeping = timeOfDay === 'Day' || timeOfDay === 'Midday';
+    // Simple cow
+    if (animal.type === 'cow') {
       return (
-        <g key={`${animal.type}-${animal.x}`} transform={`translate(${animal.x}, ${animal.y})`}>
-          <ellipse cx={0} cy={2} rx={3} ry={1} fill="#000" opacity={0.15} />
-          <rect x={-2} y={0} width={4} height={2} fill="#4A4A4A" />
-          {sleeping ? (
-            <rect x={-3} y={0} width={1} height={1} fill="#4A4A4A" /> // Curled tail
-          ) : (
-            <>
-              <rect x={2} y={-1} width={2} height={1} fill="#4A4A4A" /> // Tail up
-              <rect x={-2} y={-1} width={2} height={1} fill="#FFD700" opacity={0.5} /> // Eyes
-            </>
-          )}
-        </g>
-      );
-    }
-
-    if (animal.type === 'dog') {
-      const tailWag = Math.sin(slowTick * 0.25) * 1.2;
-      const breathing = Math.sin(slowTick * 0.15) * 0.2;
-      return (
-        <g key={`${animal.type}-${animal.x}`} transform={`translate(${animal.x}, ${animal.y})`}>
+        <g key={animal.id} transform={`translate(${animal.x}, ${animal.y}) scale(${scale})`}>
           <ellipse cx={0} cy={2} rx={4} ry={1.5} fill="#000" opacity={0.15} />
-          {/* Body */}
-          <ellipse cx={0} cy={-1 + breathing} rx={3} ry={2} fill="#8B4513" />
-          {/* Head */}
-          <ellipse cx={-2} cy={-1} rx={1.5} ry={1.5} fill="#8B4513" />
-          {/* Ears */}
-          <ellipse cx={-3} cy={-2} rx={0.5} ry={1} fill="#654321" />
-          <ellipse cx={-1} cy={-2} rx={0.5} ry={1} fill="#654321" />
-          {/* Nose */}
-          <rect x={-4} y={-1} width={1} height={1} fill="#2F2F2F" />
-          {/* Wagging tail with arc motion */}
-          <path d={`M 2 0 Q ${3 + tailWag} ${-1 + Math.abs(tailWag)} ${2 + tailWag} ${-2}`}
-            stroke="#654321" strokeWidth="2" fill="none" />
-          {/* Eyes (alert) */}
-          <circle cx={-2.5} cy={-1.5} r={0.3} fill="#2F2F2F" />
-          <circle cx={-1.5} cy={-1.5} r={0.3} fill="#2F2F2F" />
+          <ellipse cx={0} cy={-1} rx={4} ry={3} fill="#8B4513" />
+          <ellipse cx={-3} cy={-1} rx={2} ry={1.5} fill="#8B4513" />
+          <rect x={-4} y={-2} width={1} height={2} fill="#DDD" />
+          <ellipse cx={-1} cy={-2} rx={1} ry={0.8} fill="#654321" />
         </g>
       );
     }
+
+    // Simple horse
+    if (animal.type === 'horse') {
+      return (
+        <g key={animal.id} transform={`translate(${animal.x}, ${animal.y}) scale(${scale})`}>
+          <ellipse cx={0} cy={2} rx={5} ry={1.5} fill="#000" opacity={0.15} />
+          <ellipse cx={0} cy={0} rx={5} ry={4} fill="#654321" />
+          <ellipse cx={-4} cy={-3} rx={2} ry={2} fill="#654321" />
+          <rect x={-5} y={-2} width={2} height={3} fill="#654321" />
+        </g>
+      );
+    }
+
+    // Simple sheep
+    if (animal.type === 'sheep') {
+      return (
+        <g key={animal.id} transform={`translate(${animal.x}, ${animal.y}) scale(${scale})`}>
+          <ellipse cx={0} cy={2} rx={3} ry={1} fill="#000" opacity={0.15} />
+          <ellipse cx={0} cy={0} rx={3} ry={2.5} fill="#EEE" />
+          <ellipse cx={-2} cy={-1} rx={1.5} ry={1.5} fill="#888" />
+        </g>
+      );
+    }
+
+    // Simple goat
+    if (animal.type === 'goat') {
+      return (
+        <g key={animal.id} transform={`translate(${animal.x}, ${animal.y}) scale(${scale})`}>
+          <ellipse cx={0} cy={2} rx={3} ry={1} fill="#000" opacity={0.15} />
+          <ellipse cx={0} cy={0} rx={3} ry={2} fill="#A0826D" />
+          <ellipse cx={-2.5} cy={-1} rx={1.3} ry={1.3} fill="#A0826D" />
+          {!animal.isBaby && <rect x={-3.5} y={-2} width={0.5} height={1.5} fill="#CCC" />}
+        </g>
+      );
+    }
+
+    // Simple pig
+    if (animal.type === 'pig') {
+      return (
+        <g key={animal.id} transform={`translate(${animal.x}, ${animal.y}) scale(${scale})`}>
+          <ellipse cx={0} cy={1.5} rx={3} ry={1} fill="#000" opacity={0.15} />
+          <ellipse cx={0} cy={0} rx={3} ry={2} fill="#FFB6C1" />
+          <ellipse cx={-2.5} cy={0} rx={1.5} ry={1.2} fill="#FFB6C1" />
+          <circle cx={-3.5} cy={0} r={0.7} fill="#FFA0B0" />
+        </g>
+      );
+    }
+
+    // Default for cat/dog or unknown
+    return (
+      <g key={animal.id} transform={`translate(${animal.x}, ${animal.y}) scale(${scale})`}>
+        <ellipse cx={0} cy={1} rx={2.5} ry={1.5} fill="#888" />
+      </g>
+    );
   };
+
 
   /* -------------------------- Characters (pixel) -------------------------- */
 
   const drawCharacter = (c: FarmCharacter) => {
-    const body = c.type === 'farmer' ? '#7b4f2a' : (c.type === 'worker' ? '#6f5a3f' : '#8b7356');
-    const head = '#f1c7a5';
+    // Calculate animation inline (no state updates!)
+    const oscillation = Math.sin(tick * 0.02 + (c.idlePhase || 0)) * 30;
+    const animatedX = c.x + oscillation;
+    const direction = oscillation > 0 ? 1 : -1;
+    const isFemale = c.gender === 'Female';
+    const body = c.type === 'farmer' ? CHARACTER_COLORS.clothing_farmer :
+                 (c.type === 'worker' ? CHARACTER_COLORS.clothing_worker : CHARACTER_COLORS.clothing_peasant);
+    const head = CHARACTER_COLORS.skin_light;
+
+    // Age-based scaling and positioning
+    let characterScale = 1.0;
+    let yOffset = 0; // Vertical offset to keep feet on ground
+
+    if (c.role === 'Child') {
+      characterScale = 0.7; // Children are smaller
+      yOffset = 2; // Lift up slightly to keep feet at ground level
+    } else if (c.role === 'Elder') {
+      characterScale = 0.9; // Elderly slightly smaller/hunched
+      yOffset = 1;
+    }
+
+    // Weather-based clothing and behavior
+    const isRaining = seasonalState.shouldRain;
+    const isSnowing = seasonalState.shouldSnow;
+    const isHotSummer = season === 'summer' && (climate === ClimateType.TROPICAL || climate === ClimateType.ARID);
+
+    // Weather gear flags
+    const wearCloak = isRaining || isSnowing;
+    const wearHood = isRaining;
+    const bundledUp = isSnowing;
+
     // Animate leg position based on movement - subtle walk cycle
     const walkCycle = Math.abs(Math.sin(c.x * 0.08)) > 0.5 ? 0 : 1;
     const isMoving = Math.abs(c.speed) > 0.01;
     const legOffset = isMoving ? walkCycle : 0;
 
+    // Idle animation calculations
+    const idlePhase = c.idlePhase || 0;
+    const idleWave = Math.sin((slowTick * 0.05) + idlePhase);
+    // Hot weather makes wiping brow more frequent
+    const idleThreshold = (isHotSummer && c.idleAnimation === 'wiping_brow') ? 0.5 : 0.7;
+    const isIdleActive = idleWave > idleThreshold;
+
+    // Tool/equipment based on character type
+    const hasTool = c.type === 'farmer' || c.type === 'worker';
+    const toolType = c.type === 'farmer' ? 'hoe' : 'rake';
+
+    // Arm positions for different idle animations
+    let leftArmY = -5;
+    let leftArmX = -3;
+    let rightArmY = -5;
+    let rightArmX = 3;
+    let toolVisible = false;
+    let toolX = 0;
+    let toolY = 0;
+    let headOffsetY = 0;
+
+    // Elderly characters have a slight hunch
+    if (c.role === 'Elder') {
+      headOffsetY = 0.5;
+    }
+
+    if (!isMoving && c.idleAnimation && isIdleActive) {
+      if (c.idleAnimation === 'stretching') {
+        // Arms raised above head
+        leftArmY = -10;
+        leftArmX = -2;
+        rightArmY = -10;
+        rightArmX = 2;
+        headOffsetY = -0.5;
+      } else if (c.idleAnimation === 'tool_use' && hasTool) {
+        // Holding tool diagonally
+        toolVisible = true;
+        rightArmY = -4;
+        rightArmX = 4;
+        toolX = 5;
+        toolY = -3;
+      } else if (c.idleAnimation === 'wiping_brow') {
+        // Hand to forehead
+        rightArmY = -8;
+        rightArmX = 0;
+      }
+    } else if (hasTool && !isMoving) {
+      // Default: tool resting on ground
+      toolVisible = true;
+      rightArmY = -3;
+      rightArmX = 3;
+      toolX = 4;
+      toolY = 0;
+    }
+
+    // Find the household member data for this character
+    const memberData = householdMembers?.find(m => m.id === c.id);
+    const characterName = memberData?.name || 'Farm Worker';
+    const isHovered = hoveredCharacter === c.id;
+
     return (
-      <g key={c.id} transform={`translate(${Math.round(c.x)}, ${Math.round(c.y)})`}>
-        {/* Shadow directly at feet as ellipse */}
-        <ellipse cx={0} cy={0} rx={3} ry={1} fill="#000" opacity={0.22} />
-        {/* Animated legs with walk cycle */}
-        <rect x={-2} y={-2 - legOffset} width={1} height={3} fill="#3b3b3b" />
-        <rect x={1}  y={-2 - (legOffset === 0 ? 1 : 0)} width={1} height={3} fill="#3b3b3b" />
-        {/* Body */}
-        <rect x={-2} y={-6} width={5} height={5} fill={body} />
-        {/* Head */}
-        <rect x={-1} y={-8} width={3} height={2} fill={head} />
-        {/* Hat for farmer */}
-        {c.type === 'farmer' && <rect x={-1} y={-9} width={3} height={1} fill="#5a3b1f" />}
+      <g key={c.id} transform={`translate(${Math.round(animatedX)}, ${Math.round(c.y - yOffset)})`}>
+        {/* Interactive character group with hover/click */}
+        <g
+          onMouseEnter={() => setHoveredCharacter(c.id)}
+          onMouseLeave={() => setHoveredCharacter(null)}
+          onClick={() => memberData && onCharacterClick?.(c.id)}
+          style={{ cursor: memberData ? 'pointer' : 'default' }}
+        >
+          {/* Invisible hit area for mouse events */}
+          <rect
+            x={-10}
+            y={-20}
+            width={20}
+            height={25}
+            fill="transparent"
+            style={{ pointerEvents: 'all' }}
+          />
+
+          {/* Shadow directly at feet as ellipse - scale with character */}
+          <ellipse cx={0} cy={yOffset} rx={3 * characterScale} ry={1} fill={ANIMAL_COLORS.shadow_light} opacity={0.22} style={{ pointerEvents: 'none' }} />
+
+        {/* Character sprite group with age-based scaling */}
+        <g transform={`scale(${characterScale})`} style={{ pointerEvents: 'none' }}>
+
+        {isFemale ? (
+          /* Female character sprite - more realistic proportions */
+          <>
+            {/* Legs (hidden under dress but show feet) */}
+            <rect x={-2} y={-1} width={1} height={2} fill={CHARACTER_COLORS.clothing_dark} />
+            <rect x={1} y={-1} width={1} height={2} fill={CHARACTER_COLORS.clothing_dark} />
+
+            {/* Dress/skirt - A-line shape with waist definition */}
+            <path
+              d={`M -2 -6 L -3 -1 L 3 -1 L 2 -6 Z`}
+              fill={body}
+            />
+            {/* Bodice/upper body - slightly narrower shoulders */}
+            <rect x={-1.5} y={-8} width={3.5} height={3} fill={shade(body, -0.1)} />
+
+            {/* Arms - slightly thinner for women */}
+            <rect x={leftArmX} y={leftArmY} width={0.8} height={3} fill={CHARACTER_COLORS.skin_light} />
+            <rect x={rightArmX} y={rightArmY} width={0.8} height={3} fill={CHARACTER_COLORS.skin_light} />
+
+            {/* Head - slightly rounder */}
+            <ellipse cx={0.5} cy={-8 + headOffsetY} rx={1.8} ry={2} fill={head} />
+
+            {/* Eyes - more visible */}
+            <rect x={-0.5} y={-8.5 + headOffsetY} width={0.5} height={0.5} fill={CHARACTER_COLORS.clothing_dark} />
+            <rect x={1} y={-8.5 + headOffsetY} width={0.5} height={0.5} fill={CHARACTER_COLORS.clothing_dark} />
+
+            {/* Hair - longer and more styled */}
+            {c.role === 'Child' ? (
+              /* Children have simpler hairstyles */
+              <>
+                <rect x={-2} y={-9 + headOffsetY} width={5} height={1} fill={shade(CHARACTER_COLORS.clothing_dark, 0.2)} />
+                <rect x={-2} y={-8 + headOffsetY} width={1} height={1.5} fill={shade(CHARACTER_COLORS.clothing_dark, 0.2)} />
+                <rect x={2} y={-8 + headOffsetY} width={1} height={1.5} fill={shade(CHARACTER_COLORS.clothing_dark, 0.2)} />
+              </>
+            ) : c.role === 'Elder' ? (
+              /* Elders have graying hair in bun */
+              <>
+                <rect x={-2} y={-9 + headOffsetY} width={5} height={1} fill={'#909090'} />
+                <ellipse cx={1} cy={-9.5 + headOffsetY} rx={1.5} ry={1} fill={'#909090'} />
+              </>
+            ) : (
+              /* Adult women have longer flowing hair */
+              <>
+                <rect x={-2} y={-9 + headOffsetY} width={5} height={1} fill={CHARACTER_COLORS.clothing_dark} />
+                <rect x={-2} y={-8 + headOffsetY} width={1} height={2.5} fill={CHARACTER_COLORS.clothing_dark} />
+                <rect x={2.5} y={-8 + headOffsetY} width={1} height={2.5} fill={CHARACTER_COLORS.clothing_dark} />
+              </>
+            )}
+
+            {/* Headscarf/bonnet for farmer women */}
+            {c.type === 'farmer' && c.role !== 'Child' && (
+              <>
+                <rect x={-2} y={-10 + headOffsetY} width={5.5} height={1.5} fill={shade(body, 0.2)} />
+                <path d={`M -2 -9 L -2.5 -7 L -1.5 -7 Z`} fill={shade(body, 0.15)} />
+                <path d={`M 2.5 -9 L 2 -7 L 3 -7 Z`} fill={shade(body, 0.15)} />
+              </>
+            )}
+          </>
+        ) : (
+          /* Male character sprite - broader shoulders, stronger features */
+          <>
+            {/* Animated legs with walk cycle */}
+            <rect x={-2} y={-2 - legOffset} width={1.5} height={3} fill={CHARACTER_COLORS.clothing_dark} />
+            <rect x={0.5}  y={-2 - (legOffset === 0 ? 1 : 0)} width={1.5} height={3} fill={CHARACTER_COLORS.clothing_dark} />
+
+            {/* Body - broader for men */}
+            <rect x={-2.5} y={-6} width={5.5} height={5} fill={body} />
+
+            {/* Arms - slightly thicker */}
+            <rect x={leftArmX} y={leftArmY} width={1.2} height={3} fill={CHARACTER_COLORS.skin_light} />
+            <rect x={rightArmX} y={rightArmY} width={1.2} height={3} fill={CHARACTER_COLORS.skin_light} />
+
+            {/* Head - more square/angular */}
+            <rect x={-1.5} y={-8.5 + headOffsetY} width={3.5} height={2.5} fill={head} />
+
+            {/* Eyes */}
+            <rect x={-0.5} y={-8 + headOffsetY} width={0.5} height={0.5} fill={CHARACTER_COLORS.clothing_dark} />
+            <rect x={1} y={-8 + headOffsetY} width={0.5} height={0.5} fill={CHARACTER_COLORS.clothing_dark} />
+
+            {/* Hair/facial features based on age */}
+            {c.role === 'Child' ? (
+              /* Children have messy short hair */
+              <rect x={-1.5} y={-9 + headOffsetY} width={3.5} height={1} fill={shade(CHARACTER_COLORS.clothing_dark, 0.2)} />
+            ) : c.role === 'Elder' ? (
+              /* Elders have graying receding hair and beard */
+              <>
+                <rect x={-1} y={-9 + headOffsetY} width={2.5} height={0.8} fill={'#909090'} />
+                <rect x={-1} y={-7 + headOffsetY} width={2.5} height={1} fill={'#d0d0d0'} />
+              </>
+            ) : (
+              /* Adult men have fuller hair */
+              <rect x={-1.5} y={-9 + headOffsetY} width={3.5} height={1} fill={CHARACTER_COLORS.clothing_dark} />
+            )}
+
+            {/* Hat for farmer (not children) */}
+            {c.type === 'farmer' && c.role !== 'Child' && (
+              <>
+                <rect x={-2} y={-10 + headOffsetY} width={4.5} height={1} fill={CHARACTER_COLORS.hat_straw} />
+                <rect x={-2.5} y={-9.5 + headOffsetY} width={5.5} height={0.5} fill={shade(CHARACTER_COLORS.hat_straw, -0.2)} />
+              </>
+            )}
+          </>
+        )}
+
+        {/* Weather Gear - Rendered after character body */}
+        {wearCloak && (
+          <g>
+            {/* Cloak draped over shoulders */}
+            <path
+              d={`M -3 -7 L -4 -2 L -3 -1 L -2 -3 L -2 -7 Z`}
+              fill={shade(body, -0.3)}
+              opacity={0.7}
+            />
+            <path
+              d={`M 3 -7 L 4 -2 L 3 -1 L 2 -3 L 2 -7 Z`}
+              fill={shade(body, -0.3)}
+              opacity={0.7}
+            />
+          </g>
+        )}
+
+        {wearHood && !bundledUp && (
+          <g>
+            {/* Hood covering head */}
+            <path
+              d={`M -2 -10 L -3 -8 L -1 -8 L -2 -10 Z`}
+              fill={shade(body, -0.2)}
+            />
+            <path
+              d={`M 2 -10 L 3 -8 L 1 -8 L 2 -10 Z`}
+              fill={shade(body, -0.2)}
+            />
+            <rect x={-2} y={-10 + headOffsetY} width={5} height={2} fill={shade(body, -0.2)} />
+          </g>
+        )}
+
+        {bundledUp && (
+          <g>
+            {/* Thick winter cloak and scarf */}
+            <rect x={-3} y={-7} width={7} height={6} fill={shade(body, -0.4)} opacity={0.8} />
+            {/* Scarf around neck */}
+            <rect x={-2} y={-7} width={5} height={2} fill={shade(body, 0.3)} />
+          </g>
+        )}
+
+        {/* Breath puff in cold weather */}
+        {isSnowing && isMoving && Math.sin(slowTick * 0.3 + (c.idlePhase || 0)) > 0.5 && (
+          <ellipse
+            cx={c.direction * 2}
+            cy={-8 + headOffsetY}
+            rx={2}
+            ry={1}
+            fill="#ffffff"
+            opacity={0.4}
+          />
+        )}
+
+        {/* Tool/Equipment */}
+        {toolVisible && (
+          <g>
+            {toolType === 'hoe' && (
+              <>
+                {/* Hoe handle */}
+                <line x1={toolX} y1={toolY} x2={toolX} y2={toolY - 8} stroke={MATERIAL_COLORS.wood_medium} strokeWidth="1" />
+                {/* Hoe blade */}
+                <rect x={toolX - 2} y={toolY - 9} width={4} height={1} fill={MATERIAL_COLORS.metal_iron} />
+              </>
+            )}
+            {toolType === 'rake' && (
+              <>
+                {/* Rake handle */}
+                <line x1={toolX} y1={toolY} x2={toolX} y2={toolY - 8} stroke={MATERIAL_COLORS.wood_medium} strokeWidth="1" />
+                {/* Rake tines */}
+                <line x1={toolX - 2} y1={toolY - 8} x2={toolX + 2} y2={toolY - 8} stroke={MATERIAL_COLORS.metal_iron} strokeWidth="1" />
+                <line x1={toolX - 2} y1={toolY - 8} x2={toolX - 2} y2={toolY - 9} stroke={MATERIAL_COLORS.metal_iron} strokeWidth="0.5" />
+                <line x1={toolX} y1={toolY - 8} x2={toolX} y2={toolY - 9} stroke={MATERIAL_COLORS.metal_iron} strokeWidth="0.5" />
+                <line x1={toolX + 2} y1={toolY - 8} x2={toolX + 2} y2={toolY - 9} stroke={MATERIAL_COLORS.metal_iron} strokeWidth="0.5" />
+              </>
+            )}
+          </g>
+        )}
+        </g> {/* End of scaled character sprite group */}
+        </g> {/* End of interactive group */}
+
+        {/* Hover Tooltip */}
+        {isHovered && (
+          <g>
+            {/* Tooltip background */}
+            <rect
+              x={-25}
+              y={-35}
+              width={50}
+              height={16}
+              fill="#2c2c2c"
+              opacity={0.92}
+              rx={3}
+            />
+            {/* Tooltip text */}
+            <text
+              x={0}
+              y={-24}
+              fill="#fff"
+              fontSize={10}
+              fontWeight="500"
+              textAnchor="middle"
+              style={{ pointerEvents: 'none' }}
+            >
+              {characterName}
+            </text>
+          </g>
+        )}
       </g>
     );
   };
@@ -1921,7 +3082,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     const particles = [];
     const rng = new RNG(seed + Math.floor(slowTick / 50)); // Use slowTick for gentler movement
 
-    if (season === 'spring') {
+    if (seasonalState.shouldShowPollen) {
       // Floating pollen particles
       for (let i = 0; i < 12; i++) {
         const baseX = (i * 80 + seed * 3) % width;
@@ -1931,16 +3092,16 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
           x: baseX + driftX,
           y: HORIZON_Y + 20 + (i % 3) * 15 + driftY,
           size: 1.5,
-          color: '#FFFFE0',
+          color: WATER_WEATHER_COLORS.pollen_yellow,
           opacity: 0.4 + Math.sin(slowTick * 0.08 + i) * 0.15
         });
       }
-    } else if (season === 'fall') {
+    } else if (seasonalState.shouldShowFallingLeaves) {
       // Gently falling leaves
       for (let i = 0; i < 6; i++) {
         const leafX = ((i * 120 + slowTick * 0.8) % (width + 40)) - 20;
         const leafY = HORIZON_Y + 10 + (slowTick * 0.6 + i * 20) % 80;
-        const colors = ['#CD853F', '#D2691E', '#8B4513', '#A0522D', '#DEB887'];
+        const colors = [PLANT_COLORS.autumn_rust, PLANT_COLORS.leaf_fall, PLANT_COLORS.autumn_brown, '#A0522D', '#DEB887'];
         const sway = Math.sin(slowTick * 0.04 + i) * 12;
         particles.push({
           x: leafX + sway,
@@ -1956,7 +3117,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     return (
       <g opacity={0.7}>
         {particles.map((p, i) => (
-          season === 'spring' ? (
+          seasonalState.shouldShowPollen ? (
             <circle key={i} cx={p.x} cy={p.y} r={p.size} fill={p.color} opacity={p.opacity} />
           ) : (
             <g key={i} transform={`translate(${p.x}, ${p.y}) rotate(${p.rotation})`}>
@@ -1967,16 +3128,126 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         ))}
       </g>
     );
-  }, [season, slowTick, seed, width, HORIZON_Y]);
+  }, [seasonalState, slowTick, seed, width, HORIZON_Y]);
 
   /* ------------------------------ Weather layer --------------------------- */
 
   // Rain puddles for Mediterranean winters and wet seasons
-  const showPuddles = (season === 'winter' && climate === ClimateType.MEDITERRANEAN) ||
-                      (wantRain && climate !== ClimateType.ARID);
+  const showPuddles = seasonalState.shouldShowPuddles;
 
   const Weather = (
     <g>
+      {/* Fog/Mist layers for dawn, dusk, and wet conditions */}
+      {(timeOfDay === 'Dawn' || timeOfDay === 'Dusk' || seasonalState.shouldShowMist) && (
+        <g>
+          {/* Multi-layer fog effect - bottom to top */}
+          <rect
+            x={0}
+            y={GROUND_Y + 15}
+            width={width}
+            height={40}
+            fill="#e8f0f5"
+            opacity={0.15 + Math.sin(slowTick * 0.03) * 0.05}
+          />
+          <rect
+            x={0}
+            y={GROUND_Y - 10}
+            width={width}
+            height={30}
+            fill="#d8e4ec"
+            opacity={0.12 + Math.sin(slowTick * 0.04 + 1) * 0.04}
+          />
+          <rect
+            x={0}
+            y={HORIZON_Y + 20}
+            width={width}
+            height={50}
+            fill="#c8d8e4"
+            opacity={0.08 + Math.sin(slowTick * 0.05 + 2) * 0.03}
+          />
+
+          {/* Mist wisps - floating horizontal bands */}
+          {Array.from({ length: 4 }).map((_, i) => {
+            const wispY = GROUND_Y - 15 + i * 20;
+            const wispDrift = Math.sin((slowTick * 0.06) + i * 1.5) * 15;
+            return (
+              <ellipse
+                key={`mist-${i}`}
+                cx={width / 2 + wispDrift}
+                cy={wispY}
+                rx={width * 0.4}
+                ry={8}
+                fill="#e0ecf4"
+                opacity={0.1 + Math.sin(slowTick * 0.04 + i) * 0.05}
+              />
+            );
+          })}
+        </g>
+      )}
+
+      {/* Snow accumulation on roofs and ground */}
+      {wantSnow && (
+        <g>
+          {/* Snow on farmstead roof */}
+          <g opacity={0.9}>
+            {/* Medieval/Nordic style roof snow */}
+            {(farmsteadVariant === 'medieval_euro' || farmsteadVariant === 'nordic' || farmsteadVariant === 'steppe') && (
+              <>
+                {/* Snow layer on roof peak */}
+                <polygon
+                  points={`${farmsteadRect.x + 8},${farmsteadRect.y} ${farmsteadRect.x + farmsteadRect.w / 2},${farmsteadRect.y - 25} ${farmsteadRect.x + farmsteadRect.w - 8},${farmsteadRect.y}`}
+                  fill={WATER_WEATHER_COLORS.snow_white}
+                  opacity={0.85}
+                />
+                {/* Icicles on roof edge */}
+                {Array.from({ length: 8 }).map((_, i) => {
+                  const icicleX = farmsteadRect.x + 15 + i * 12;
+                  const icicleLength = 3 + (i % 3);
+                  return (
+                    <polygon
+                      key={`icicle-${i}`}
+                      points={`${icicleX},${farmsteadRect.y} ${icicleX - 1},${farmsteadRect.y + icicleLength} ${icicleX + 1},${farmsteadRect.y + icicleLength}`}
+                      fill="#d4f1f9"
+                      opacity={0.8}
+                    />
+                  );
+                })}
+              </>
+            )}
+          </g>
+
+          {/* Snow drifts on ground */}
+          <g opacity={0.7}>
+            {Array.from({ length: 6 }).map((_, i) => {
+              const driftX = rng.range(80, width - 120);
+              const driftY = GROUND_Y + rng.range(12, 25);
+              const driftW = rng.range(25, 45);
+              return (
+                <ellipse
+                  key={`drift-${i}`}
+                  cx={driftX}
+                  cy={driftY}
+                  rx={driftW}
+                  ry={rng.range(2, 4)}
+                  fill={WATER_WEATHER_COLORS.snow_white}
+                  opacity={0.75}
+                />
+              );
+            })}
+          </g>
+
+          {/* Snow layer on ground */}
+          <rect
+            x={0}
+            y={GROUND_Y + 10}
+            width={width}
+            height={3}
+            fill={WATER_WEATHER_COLORS.snow_white}
+            opacity={0.3}
+          />
+        </g>
+      )}
+
       {/* Rain puddles on ground */}
       {showPuddles && (
         <g opacity={0.4}>
@@ -1995,12 +3266,23 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
       
       {particlesRef.current.map(p => {
         switch (p.kind) {
-          case 'rain':   return <line key={p.id} x1={p.x} y1={p.y - 6} x2={p.x - 3} y2={p.y} stroke="#6B9BD1" strokeWidth={1} opacity={0.6} />;
-          case 'snow':   return <rect key={p.id} x={p.x} y={p.y} width={1} height={1} fill="#fff" opacity={0.85} />;
+          case 'rain':   return <line key={p.id} x1={p.x} y1={p.y - 6} x2={p.x - 3} y2={p.y} stroke={WATER_WEATHER_COLORS.rain_drop} strokeWidth={1} opacity={0.6} />;
+          case 'snow':   return <rect key={p.id} x={p.x} y={p.y} width={1} height={1} fill={WATER_WEATHER_COLORS.snow_white} opacity={0.85} />;
           case 'dust':   return <rect key={p.id} x={p.x} y={p.y} width={2} height={1} fill={shade(S.ground, 10)} opacity={0.35} />;
+          case 'splash': {
+            // Animated splash effect - small expanding circle that fades
+            const splashSize = (8 - (p.life || 0)) * 0.4;
+            const splashOpacity = (p.life || 0) / 8 * 0.4;
+            return (
+              <g key={p.id}>
+                <circle cx={p.x} cy={p.y} r={splashSize} fill="none" stroke={WATER_WEATHER_COLORS.rain_drop} strokeWidth={0.5} opacity={splashOpacity} />
+                <circle cx={p.x} cy={p.y} r={splashSize * 0.5} fill={WATER_WEATHER_COLORS.rain_drop} opacity={splashOpacity * 0.5} />
+              </g>
+            );
+          }
           case 'firefly':{
             const pulse = (Math.sin((slowTick + Number(p.id.slice(1)) * 8) * 0.06) + 1) * 0.3 + 0.2;
-            return <rect key={p.id} x={p.x} y={p.y} width={1} height={1} fill="#ffe890" opacity={pulse} />;
+            return <rect key={p.id} x={p.x} y={p.y} width={1} height={1} fill={WATER_WEATHER_COLORS.firefly_glow} opacity={pulse} />;
           }
         }
       })}
@@ -2029,6 +3311,9 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
       {/* Garden plot */}
       {GardenPlot}
 
+      {/* Farm animals - render BEFORE farmstead so they appear behind it */}
+      {animals.map(drawAnimal)}
+
       {/* Farmstead & accessory (defines a real clearing) */}
       {Farmstead}
       {MillOrWell}
@@ -2039,11 +3324,8 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
       {/* Crops (static geometry; no flicker) */}
       {renderCropSwitch()}
 
-      {/* Farm animals */}
-      {animals.map(drawAnimal)}
-
       {/* People (ground-clamped) */}
-      {characters.map(drawCharacter)}
+      {baseCharacters.map(drawCharacter)}
 
       {/* Optional banner label near lane (subtle, non-intrusive) */}
       {farmName && (

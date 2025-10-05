@@ -626,7 +626,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'hittite_citadel', name: 'Hittite Citadel', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'The fortified royal citadel of the Hittite Empire at Hattusa.', districtType: 'imperial_fortress', symbolType: 'FeudalHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'byzantine_sacred_palace', name: 'Sacred Palace of Constantinople', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The vast imperial palace complex of the Byzantine Emperors.', districtType: 'imperial_palace', symbolType: 'FeudalHallSymbol', priority: 10 },
+      { id: 'byzantine_sacred_palace', name: 'Sacred Palace of Constantinople', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The vast imperial palace complex of the Byzantine Emperors, blending secular and sacred power.', districtType: 'imperial_palace', symbolType: 'FeudalHallSymbol', priority: 10 },
       { id: 'seljuk_caravanserai', name: 'Sultan\'s Caravanserai', archetype: SpecialMapArchetype.MARKET_BAZAAR, description: 'A grand, fortified caravanserai used by the Seljuk Sultan for administration and trade control.', districtType: 'trade_administration', symbolType: 'CaliphCourtSymbol', priority: 7 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
@@ -737,7 +737,10 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
   },
   "Himalayas and Northeast": {
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'tibetan_dzong', name: 'Dzong Fortress', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'A fortress serving as the religious, military, and administrative center of a district in Tibet or Bhutan.', districtType: 'fortress_monastery', symbolType: 'MandateHallSymbol', priority: 10 }
+      { id: 'tibetan_dzong', name: 'Dzong Fortress', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'A fortress serving as the religious, military, and administrative center of a district in Tibet or Bhutan.', districtType: 'fortress_monastery', symbolType: 'MandateHallSymbol', priority: 10 }
+    ],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+      { id: 'potala_palace', name: 'Potala Palace', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The winter palace of the Dalai Lama, serving as spiritual and political center of Tibet.', districtType: 'theocratic_palace', symbolType: 'MandateHallSymbol', priority: 10 }
     ]
   },
   "Sri Lanka": {
@@ -856,16 +859,18 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
   },
   "West China and Tibet": {
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'tibetan_kashag', name: 'Kashag Council', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The governing council of Tibet under the Dalai Lamas, located in Lhasa.', districtType: 'theocratic_council', symbolType: 'MandateHallSymbol', priority: 10 }
+      { id: 'tibetan_kashag', name: 'Kashag Council', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The governing council of Tibet under the Dalai Lamas, located in Lhasa.', districtType: 'theocratic_council', symbolType: 'MandateHallSymbol', priority: 10 }
     ]
   },
   "Japan": {
     [HistoricalEra.ANTIQUITY]: [
-      { id: 'kofun_chieftain_residence', name: 'Yamato Chieftain\'s Residence', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The palatial residence of a powerful clan chieftain during the Kofun period.', districtType: 'clan_palace', symbolType: 'MandateHallSymbol', priority: 10 }
+      { id: 'kofun_chieftain_residence', name: 'Yamato Chieftain\'s Residence', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The palatial residence of a powerful clan chieftain during the Kofun period.', districtType: 'clan_palace', symbolType: 'MandateHallSymbol', priority: 10 },
+      { id: 'grand_shrine_office', name: 'Grand Shrine Office', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Administrative office of a major Shinto shrine with political influence over the region.', districtType: 'shrine_government', symbolType: 'MandateHallSymbol', priority: 7 }
     ],
     [HistoricalEra.MEDIEVAL]: [
       { id: 'heian_imperial_court', name: 'Heian Imperial Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The refined imperial court of the Heian period in Kyoto, a center of high culture and cloistered rule.', districtType: 'imperial_court', symbolType: 'MandateHallSymbol', priority: 10 },
-      { id: 'kamakura_shogunate_hq', name: 'Kamakura Shogunate HQ', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'The military and administrative headquarters of the Kamakura Shogunate.', districtType: 'shogunate_government', symbolType: 'MandateHallSymbol', priority: 9 }
+      { id: 'kamakura_shogunate_hq', name: 'Kamakura Shogunate HQ', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'The military and administrative headquarters of the Kamakura Shogunate.', districtType: 'shogunate_government', symbolType: 'MandateHallSymbol', priority: 9 },
+      { id: 'zen_monastery_admin', name: 'Zen Monastery', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Major Zen temple complex serving as center of learning and political counsel to the shogunate.', districtType: 'monastic_administration', symbolType: 'MandateHallSymbol', priority: 6 }
     ]
   },
   "Korea": {
@@ -899,7 +904,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'askiyas_court', name: 'Askia\'s Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The imperial court of the Askia dynasty of the Songhai Empire in Gao.', districtType: 'imperial_court', symbolType: 'AfricanChiefdomSymbol', priority: 10 },
-      { id: 'sokoto_caliphate_diwan', name: 'Sokoto Caliphate Diwan', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The administrative council of the Sokoto Caliphate, a major Islamic state governed by Sharia.', districtType: 'caliphate_admin', symbolType: 'CaliphCourtSymbol', priority: 8 }
+      { id: 'sokoto_caliphate_diwan', name: 'Sokoto Caliphate Diwan', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The administrative council of the Sokoto Caliphate, a major Islamic state governed by Sharia.', districtType: 'caliphate_admin', symbolType: 'CaliphCourtSymbol', priority: 8 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'french_cercle_hq', name: 'Cercle Headquarters', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'The administrative headquarters of a French colonial "Cercle" in French West Africa.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }],
     [HistoricalEra.MODERN_ERA]: [{ id: 'palais_presidentiel', name: 'Palais Présidentiel', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The presidential palace of a modern Sahelian republic.', districtType: 'presidential_palace', symbolType: 'AdminCenterSymbol', priority: 10 }],
@@ -907,7 +912,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
   },
   "Upper Guinea": {
     [HistoricalEra.MEDIEVAL]: [{ id: 'jolof_lamanes_court', name: 'Lamanes\' Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The court of the Lamanes, the rulers of the Jolof Empire.', districtType: 'royal_court', symbolType: 'AfricanChiefdomSymbol', priority: 10 }],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'futa_djallon_almamy_court', name: 'Almamy\'s Court', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The court of the Almamy, the theocratic ruler of the Imamate of Futa Jallon.', districtType: 'theocratic_council', symbolType: 'CaliphCourtSymbol', priority: 10 }],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'futa_djallon_almamy_court', name: 'Almamy\'s Court', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The court of the Almamy, the theocratic ruler of the Imamate of Futa Jallon.', districtType: 'theocratic_council', symbolType: 'CaliphCourtSymbol', priority: 10 }],
     [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'sierra_leone_governors_house', name: 'Governor\'s House, Freetown', archetype: SpecialMapArchetype.COLONIAL_ADMINISTRATION, description: 'The seat of the British colonial Governor of Sierra Leone.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }]
   },
   "Lower Guinea and Congo Basin": {
@@ -1479,6 +1484,24 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
         districtType: 'municipal_center',
         symbolType: 'TownHallSymbol',
         priority: 8
+      },
+      {
+        id: 'bishops_palace',
+        name: 'Bishop\'s Palace',
+        archetype: SpecialMapArchetype.SACRED_COMPLEX,
+        description: 'The administrative seat of a bishop, governing both spiritual and temporal affairs of the diocese.',
+        districtType: 'ecclesiastical_admin',
+        symbolType: 'FeudalHallSymbol',
+        priority: 7
+      },
+      {
+        id: 'abbey_chapter_house',
+        name: 'Abbey Chapter House',
+        archetype: SpecialMapArchetype.SACRED_COMPLEX,
+        description: 'Monastic center of learning and local governance, where abbots exercise feudal authority.',
+        districtType: 'monastic_administration',
+        symbolType: 'FeudalHallSymbol',
+        priority: 6
       }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
@@ -1490,6 +1513,24 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
         districtType: 'royal_court',
         symbolType: 'TownHallSymbol',
         priority: 10
+      },
+      {
+        id: 'archbishops_palace',
+        name: 'Archbishop\'s Palace',
+        archetype: SpecialMapArchetype.SACRED_COMPLEX,
+        description: 'The administrative seat of an archbishop, wielding vast ecclesiastical and political power.',
+        districtType: 'ecclesiastical_government',
+        symbolType: 'FeudalHallSymbol',
+        priority: 7
+      },
+      {
+        id: 'vatican_curia',
+        name: 'Papal Curia',
+        archetype: SpecialMapArchetype.SACRED_COMPLEX,
+        description: 'The administrative center of the Catholic Church, where cardinals and papal officials govern Christendom.',
+        districtType: 'papal_administration',
+        symbolType: 'FeudalHallSymbol',
+        priority: 6
       }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [

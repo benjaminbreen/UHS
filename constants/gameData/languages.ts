@@ -180,8 +180,8 @@ export const LANGUAGES: Record<string, LanguageData> = {
     nativeName: 'Lingua Latina',
     family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
     script: 'Latin',
-    period: [-753, 600],
-    regions: ['Rome', 'Italy', 'Roman Empire', 'Gaul', 'Hispania', 'Britannia'],
+    period: [-753, 1500],
+    regions: ['Rome', 'Italy', 'Roman Empire', 'Gaul', 'Hispania', 'Britannia', 'Europe', 'Christendom'],
     culturalZones: ['EUROPEAN' as CulturalZone],
     successors: ['VULGAR_LATIN', 'ITALIAN', 'FRENCH', 'SPANISH', 'PORTUGUESE', 'ROMANIAN'],
     greetings: {
@@ -191,7 +191,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       no: 'Non',
       thanks: 'Gratias tibi',
     },
-    llmPrompt: 'Emulate the syntax and style of Classical Latin prose (e.g., Cicero). Use a subject-object-verb (SOV) word order as a baseline, but allow flexibility for emphasis. Fully utilize the complex system of noun declensions and verb conjugations to show relationships between words. Maintain a formal, educated, and somewhat stoic register.',
+    llmPrompt: 'Emulate Latin appropriate to the time period. For dates before 200 CE, use Classical Latin (Cicero/Caesar style) with full case system and complex periodic sentences in SOV word order. For 200-600 CE, use Late/Vulgar Latin with simplified case system, more fixed SVO order, and Christian vocabulary (ecclesia, baptisma, sanctus). For 600-1500 CE, use Medieval Latin with ecclesiastical vocabulary, simpler syntax, and scholastic philosophical terms (esse, substantia, universalia). Always maintain formal register but adapt complexity to era.',
     historicalContext: 'The language of Rome evolved into the Romance languages (Spanish, French, Italian, Portuguese, Romanian) and remained the lingua franca of Western scholarship until the 18th century.',
   },
 
@@ -222,9 +222,9 @@ export const LANGUAGES: Record<string, LanguageData> = {
     nativeName: 'Ἑλληνικά',
     family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
     script: 'Greek',
-    period: [-800, -300], // Archaic to end of Classical period
-    regions: ['Greece', 'Athens', 'Sparta', 'Macedonia', 'Asia Minor', 'Alexandria'],
-    culturalZones: ['EUROPEAN' as CulturalZone],
+    period: [-800, 300], // Archaic through Hellenistic period
+    regions: ['Greece', 'Athens', 'Sparta', 'Macedonia', 'Asia Minor', 'Alexandria', 'Magna Graecia'],
+    culturalZones: ['EUROPEAN' as CulturalZone, 'MENA' as CulturalZone],
     successors: ['KOINE_GREEK', 'BYZANTINE_GREEK', 'MODERN_GREEK'],
     greetings: {
       hello: 'Χαῖρε',
@@ -233,7 +233,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       no: 'Οὔ',
       thanks: 'Εὐχαριστῶ',
     },
-    llmPrompt: 'Adopt the Attic dialect of the Classical period. Word order is very flexible due to inflection, but default to SVO. Use a rich vocabulary suitable for philosophical, political, or rhetorical discourse. Employ particles (e.g., μέν, δέ, γάρ) to create logical, flowing connections between clauses and sentences.',
+    llmPrompt: 'Adopt the Attic dialect of the Classical period (for dates before 0 CE) or Koine Greek for Hellenistic period (after 300 BCE). Word order is very flexible due to inflection, but default to SVO. For Classical period, use rich vocabulary suitable for philosophical, political, or rhetorical discourse. For Koine period, use simpler, more international Greek with reduced use of optative mood. Employ particles (e.g., μέν, δέ, γάρ) to create logical, flowing connections between clauses and sentences.',
     historicalContext: 'The language of Socrates, Plato, and Aristotle, Ancient Greek shaped Western philosophy, science, and democracy, leaving thousands of words in modern languages.',
   },
 
@@ -345,8 +345,8 @@ export const LANGUAGES: Record<string, LanguageData> = {
     nativeName: 'संस्कृतम्',
     family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
     script: 'Devanagari',
-    period: [-1500, 1000],
-    regions: ['India', 'Ganges Valley', 'Indus Valley'],
+    period: [-1500, 2025], // Extends to present as liturgical language
+    regions: ['India', 'Ganges Valley', 'Indus Valley', 'Southeast Asia', 'Tibet'],
     culturalZones: ['SOUTH_ASIAN' as CulturalZone],
     successors: ['PRAKRITS', 'HINDI', 'BENGALI', 'MARATHI'],
     greetings: {
@@ -356,7 +356,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       no: 'Na',
       thanks: 'Dhanyavādaḥ',
     },
-    llmPrompt: 'Emulate Classical Sanskrit. The syntax is extremely flexible due to a rich case system, but SOV is the neutral default. Use complex compound nouns (sandhi) where appropriate. The tone should be precise, elegant, and capable of conveying complex philosophical, religious, and literary ideas with great nuance.',
+    llmPrompt: 'Emulate Sanskrit appropriate to the time period. For dates before 500 BCE, use Vedic Sanskrit with archaic ritual terminology and hymnic style. For 500 BCE to 1400 CE, use Classical Sanskrit with Paninian grammatical precision, elaborate compound words, and philosophical vocabulary. For 1400 CE onward, use Late Sanskrit with Buddhist and Tantric terminology, simpler compounds, and increased vernacular influence. SOV word order is default across all periods. Maintain elevated, scholarly register.',
     historicalContext: 'The sacred language of Hinduism and Buddhism, Sanskrit influenced all languages of India and Southeast Asia, remaining a liturgical language to this day.',
   },
 
@@ -389,11 +389,11 @@ export const LANGUAGES: Record<string, LanguageData> = {
     nativeName: '文言文',
     family: LANGUAGE_FAMILIES.SINO_TIBETAN,
     script: 'Chinese characters',
-    period: [-500, 200], // More focused period for the spoken language
-    regions: ['China', 'Yellow River', 'Yangtze River'],
+    period: [-500, 1900], // Literary language used until 20th century vernacular movement
+    regions: ['China', 'Yellow River', 'Yangtze River', 'Korea', 'Japan', 'Vietnam'],
     culturalZones: ['EAST_ASIAN' as CulturalZone],
     predecessors: ['OLD_CHINESE'],
-    successors: ['MIDDLE_CHINESE'],
+    successors: ['MIDDLE_CHINESE', 'MANDARIN'],
     description: 'The literary language of ancient China, distinct from later spoken vernaculars.',
     greetings: {
       hello: '安',
@@ -402,7 +402,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       no: '否',
       thanks: '謝',
     },
-    llmPrompt: 'Emulate the concise, isolating, and often ambiguous style of Warring States and Han Dynasty texts. Word order is strict SVO. Omit subjects and objects where context allows. Use parallelism and balanced phrases. The tone should be formal, scholarly, and aphoristic, reflecting Confucian or Daoist philosophical underpinnings.',
+    llmPrompt: 'Emulate the concise, isolating, and often ambiguous style of classical Chinese texts. Word order is strict SVO. Omit subjects and objects where context allows. Use parallelism and balanced phrases. For early periods (before 200 CE), follow Warring States/Han style with philosophical aphorisms. For medieval periods (200-1400 CE), incorporate Buddhist terminology and Tang poetry conventions. For late imperial periods (1400-1900 CE), use more elaborate bureaucratic and examination essay style. Tone should be formal, scholarly, and literary throughout.',
     historicalContext: 'The literary language of Confucius and classical Chinese literature remained the written standard across East Asia for 2000+ years until the 20th century.',
   },
 
@@ -999,9 +999,9 @@ export const LANGUAGES: Record<string, LanguageData> = {
     nativeName: 'العربية الفصحى',
     family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
     script: 'Arabic',
-    period: [600, 1200], // Peak period
-    regions: ['Arabia', 'Middle East', 'North Africa', 'Andalusia'],
-    culturalZones: ['MENA' as CulturalZone],
+    period: [600, 2025], // Liturgical language remains in use
+    regions: ['Arabia', 'Middle East', 'North Africa', 'Andalusia', 'Persia', 'Central Asia', 'South Asia', 'Southeast Asia'],
+    culturalZones: ['MENA' as CulturalZone, 'SOUTH_ASIAN' as CulturalZone, 'SUB_SAHARAN_AFRICAN' as CulturalZone],
     predecessors: ['OLD_ARABIC'],
     successors: ['MODERN_STANDARD_ARABIC', 'ARABIC_DIALECTS'],
     greetings: {
@@ -1011,7 +1011,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
       no: 'Lā',
       thanks: 'Shukran',
     },
-    llmPrompt: 'Emulate the language of the Quran and early Islamic poetry. This is a highly inflected language with a rich case system (I\'rab). Syntax is typically VSO. Employ complex verb forms and noun patterns derived from triconsonantal roots. The tone should be formal, eloquent, and capable of intricate poetic and legal expression.',
+    llmPrompt: 'Emulate Classical Arabic appropriate to the era. For early Islamic period (600-900 CE), use the elevated language of Quranic revelation and early poetry with full case endings (i\'rab). For medieval period (900-1500 CE), incorporate philosophical and scientific terminology from the Islamic Golden Age. For Ottoman/Safavid period (1500-1800 CE), blend with Turkish and Persian administrative vocabulary. For modern liturgical use (1800+), maintain conservative Quranic register. VSO syntax throughout. Employ complex verb forms and triconsonantal root patterns. Tone should be formal, eloquent, and capable of intricate poetic and legal expression.',
     historicalContext: 'The language of the Quran and classical Islamic scholarship, Classical Arabic unified the Arab world and became the liturgical language of Islam worldwide.',
   },
 
@@ -2870,7 +2870,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     family: LANGUAGE_FAMILIES.NIGER_CONGO,
     script: 'Latin',
     period: [1000, 2024],
-    regions: ['West Africa', 'Nigeria', 'Benin', 'Yorubaland'],
+    regions: ['West Africa', 'Nigeria', 'Benin', 'Yorubaland', 'Lagos', 'Ibadan', 'Oyo'],
     culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
     greetings: {
       hello: 'Ẹ kú àárọ̀',
@@ -2880,6 +2880,107 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Ẹ ṣé',
     },
     llmPrompt: 'Emulate Yoruba speech patterns. This is a tonal language; while you cannot speak, word choice should reflect this (e.g., be mindful of minimal pairs distinguished by tone). Syntax is strictly Subject-Verb-Object (SVO). A key stylistic feature is the frequent use of proverbs and aphorisms to convey wisdom and make points indirectly.',
+    historicalContext: 'The language of the Yoruba kingdoms and Oyo Empire, Yoruba culture profoundly influenced West African art, religion, and philosophy, spreading to the Americas through the slave trade.',
+  },
+
+  HAUSA: {
+    id: 'HAUSA',
+    name: 'Hausa',
+    nativeName: 'Harshen Hausa',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: ['Ajami (Arabic)', 'Latin (Boko)'],
+    period: [700, 2025],
+    regions: ['Sokoto', 'Kano', 'Katsina', 'Zaria', 'Northern Nigeria', 'Niger', 'Sahel', 'Lake Chad', 'Hausaland'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Sannu',
+      goodbye: 'Sai an jima',
+      yes: 'I',
+      no: 'Aʼa',
+      thanks: 'Na gode',
+    },
+    llmPrompt: 'Emulate Hausa, the major lingua franca of West Africa. Afro-Asiatic language with SVO word order. Use ejective consonants (ɓ, ɗ, ƙ). Three-tone system (high, low, falling). Heavy Arabic loanwords for Islamic concepts (salla for prayer, malam for teacher, alheri for blessing). Use gender marking (masculine/plural -ū, feminine/plural -ā endings). Reference trade terminology (salt→gishiri, gold→zinariya, kola nuts→goro) and Islamic scholarship. Employ respectful address forms (mai gida for household head, sarki for king).',
+    historicalContext: 'The major language of West African trade and Islamic scholarship since the 8th century, Hausa united merchants across the Sahel through its role in trans-Saharan commerce.',
+  },
+
+  IGBO: {
+    id: 'IGBO',
+    name: 'Igbo',
+    nativeName: 'Asụsụ Igbo',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Latin', 'Nsibidi (traditional)'],
+    period: [1000, 2025],
+    regions: ['Igboland', 'Eastern Nigeria', 'Niger Delta', 'Enugu', 'Onitsha', 'Aba', 'Calabar'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Kedu',
+      goodbye: 'Ka ọ dị',
+      yes: 'Ee',
+      no: 'Mba',
+      thanks: 'Daalụ',
+    },
+    llmPrompt: 'Emulate Igbo language. This is a tonal language with high and low tones creating meaning. SVO word order. Use serial verb constructions (multiple verbs in sequence). Employ agglutination with extensive prefixes. Include proverbs and metaphorical speech (ilu). Reference clan and village identity strongly. Use respectful titles (nna for father/elder, nne for mother/elder woman, nwa for child/young person). Incorporate terms for traditional governance (obi for palace, eze for king, nze na ozo for titled men).',
+    historicalContext: 'The language of the Igbo people and the ancient Nri Kingdom, Igbo culture emphasized decentralized governance and produced the sophisticated Nsibidi writing system.',
+  },
+
+  AKAN: {
+    id: 'AKAN',
+    name: 'Akan (Twi)',
+    nativeName: 'Akan / Twi',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: 'Latin',
+    period: [1000, 2025],
+    regions: ['Gold Coast', 'Ashanti', 'Ghana', 'Kumasi', 'Accra', 'Ivory Coast'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Maakye',
+      goodbye: 'Nante yie',
+      yes: 'Aane',
+      no: 'Daabi',
+      thanks: 'Meda wo ase',
+    },
+    llmPrompt: 'Emulate Akan/Twi language of the Ashanti Empire. SVO word order with serial verb constructions. Tonal language with high, mid, and low tones. Use extensive proverbs (ɛbɛ) embedded in speech to convey wisdom and authority. Reference the Golden Stool (Sika Dwa), royal traditions, and matrilineal kinship. Include vocabulary for gold trade (sika→gold, sikadwa→golden stool), kente cloth patterns, and traditional governance (Asantehene→Ashanti king, ohene→chief, ohemaa→queen mother). Employ respectful address and ceremonial language for elders and royalty.',
+    historicalContext: 'The language of the powerful Ashanti Empire and Akan peoples, Twi became the dominant language of the Gold Coast through trade in gold, kola nuts, and enslaved people.',
+  },
+
+  WOLOF: {
+    id: 'WOLOF',
+    name: 'Wolof',
+    nativeName: 'Wolof',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Arabic (Wolofal)', 'Latin'],
+    period: [1200, 2025],
+    regions: ['Senegal', 'Gambia', 'Mauritania', 'Senegambia', 'Dakar', 'Saint-Louis'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Salaam aleekum',
+      goodbye: 'Mangi dem',
+      yes: 'Waaw',
+      no: 'Déedéet',
+      thanks: 'Jërejëf',
+    },
+    llmPrompt: 'Emulate Wolof language of Senegambia. SVO word order. Use noun class system with singular/plural class markers. Blend Islamic Arabic loanwords (alxamdu lilaay→thanks be to God, juma→Friday) with indigenous Wolof terms. Reference coastal trade, fishing culture (géej→sea, puñ→fish), and peanut agriculture. Include griot oral tradition terminology (gewel→griot, taasu→spoken word poetry). Employ hierarchical address forms reflecting caste system (géer→freeborn, ñeeño→artisan, jaam→slave class). Use reduplication for emphasis.',
+    historicalContext: 'The language of the Wolof kingdoms and Senegambian coast, Wolof became the lingua franca of Senegal, blending Islamic and indigenous African traditions.',
+  },
+
+  FULA: {
+    id: 'FULA',
+    name: 'Fula (Fulfulde)',
+    nativeName: 'Fulfulde',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Ajami (Arabic)', 'Latin', 'ADLaM'],
+    period: [1000, 2025],
+    regions: ['Sahel', 'Fouta Djallon', 'Macina', 'Sokoto', 'Adamawa', 'Senegal River', 'West Africa', 'Central Africa'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Jam waali',
+      goodbye: 'Ɗuum ɓalli',
+      yes: 'Eey',
+      no: 'Alaa',
+      thanks: 'A jaaraama',
+    },
+    llmPrompt: 'Emulate Fulfulde language of the nomadic Fula/Fulani people. SOV word order. Complex noun class system with 20+ classes marked by suffixes. Use pastoral vocabulary extensively (nagge→cow, pullo→Fula person/herder, mbalu→donkey, fedde→pasture). Include Islamic terminology from jihad movements (jihaad→holy war, almaami→religious leader). Reference nomadic culture, cattle-keeping (jom nagge→cattle owner), seasonal migration (transhumance). Employ elaborate greetings and blessings. Use diminutives and augmentatives through noun class changes. Include proverbs about wisdom, patience, and nomadic life.',
+    historicalContext: 'The language of the pastoral Fula people spread across the Sahel from Senegal to Sudan through nomadic migration, Islamic jihad movements, and the Sokoto Caliphate.',
   },
 
   AMHARIC: {
@@ -2899,6 +3000,106 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'አመሰግናለሁ',
     },
     llmPrompt: 'Emulate Amharic grammar. This is a Semitic language with a Subject-Object-Verb (SOV) word order, which is unusual for the family. Use postpositions rather than prepositions. The verb system is complex, based on triconsonantal roots. The tone should be suitable for the formal language of the Ethiopian imperial court and the Orthodox Church.',
+  },
+
+  MANDINKA: {
+    id: 'MANDINKA',
+    name: 'Mandinka',
+    nativeName: 'Manding',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Latin', 'Arabic (Ajami)', 'N\'Ko'],
+    period: [1000, 2025],
+    regions: ['Mali Empire', 'Gambia', 'Guinea', 'Senegal', 'Upper Niger', 'Mande'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'I ni baara',
+      goodbye: 'Fo tuma',
+      yes: 'Haa',
+      no: 'Hani',
+      thanks: 'A baaraka',
+    },
+    llmPrompt: 'Emulate Mandinka language of the Mali Empire. SOV word order. Use extensive griot oral tradition references (jeli→griot, kora→harp, fasa→praise song). Include Islamic terminology blended with indigenous concepts. Reference the epic of Sundiata Keita. Use serial verb constructions. Include vocabulary for gold trade (sanoo→gold), kola nuts (woro), and trans-Saharan commerce. Employ respectful titles (mansa→king, fama→chief, konate/keita→royal clans). Use proverbs extensively as markers of wisdom.',
+    historicalContext: 'The language of the Mali Empire under Sundiata Keita and Mansa Musa, Mandinka spread across West Africa through trade, Islam, and the griot oral tradition.',
+  },
+
+  BAMBARA: {
+    id: 'BAMBARA',
+    name: 'Bambara',
+    nativeName: 'Bamanankan',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Latin', 'N\'Ko'],
+    period: [1000, 2025],
+    regions: ['Mali', 'Bamako', 'Upper Niger', 'Segou'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'I ni ce',
+      goodbye: 'Kan bɛn',
+      yes: 'Ɔwɔ',
+      no: 'Ayi',
+      thanks: 'I ni ce',
+    },
+    llmPrompt: 'Emulate Bambara language, closely related to Mandinka. SOV word order. Use postpositions rather than prepositions. Employ serial verb constructions extensively. Include agricultural vocabulary (sènè→farming, kɔnɔ→rice field, bagan→peanut). Reference animist traditions and secret societies (komo→ritual society, jo→spirit). Use tonal distinctions to create meaning. Include proverbs and indirect speech patterns.',
+    historicalContext: 'The language of the Bambara kingdoms of Segou and Kaarta, Bambara became the lingua franca of Mali, blending Islamic and traditional African spiritual practices.',
+  },
+
+  SONGHAI: {
+    id: 'SONGHAI',
+    name: 'Songhai',
+    nativeName: 'Soŋay',
+    family: LANGUAGE_FAMILIES.NILO_SAHARAN,
+    script: ['Latin', 'Arabic (Ajami)'],
+    period: [700, 2025],
+    regions: ['Songhai Empire', 'Gao', 'Timbuktu', 'Niger River', 'Mali'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Mataani',
+      goodbye: 'Bani',
+      yes: 'Wey',
+      no: 'Babu',
+      thanks: 'Fofo',
+    },
+    llmPrompt: 'Emulate Songhai language of the Songhai Empire. SOV word order. Use aspectual verb system (perfective/imperfective). Include Islamic scholarly terminology from Timbuktu\'s universities (sankore→university, waliyyu→saint, ulema→scholars). Reference Niger River fishing and boat culture (habu→canoe, issa→fish). Use vocabulary for trans-Saharan salt and gold trade. Include titles for Askia dynasty rulers. Employ respectful forms and elaborate greetings.',
+    historicalContext: 'The language of the Songhai Empire and Timbuktu\'s golden age, Songhai linked Islamic scholarship with Niger River trade networks from the 7th to 16th centuries.',
+  },
+
+  EDO: {
+    id: 'EDO',
+    name: 'Edo',
+    nativeName: 'Ẹ̀dó',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: 'Latin',
+    period: [1000, 2025],
+    regions: ['Benin Kingdom', 'Edo State', 'Southern Nigeria', 'Benin City'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Ẹdo ọghọ',
+      goodbye: 'Ọdẹ',
+      yes: 'Ẹẹ',
+      no: 'Ọọ',
+      thanks: 'Ọsẹ',
+    },
+    llmPrompt: 'Emulate Edo language of the Benin Kingdom. SVO word order. Use tonal system with high, mid, and low tones. Reference the elaborate royal court of the Oba and bronze/ivory art traditions (oba→king, iyoba→queen mother, eguae→palace). Include vocabulary for guilds (igun→bronze casters guild). Use respectful address for royalty and elders. Reference the sophisticated political system and diplomatic protocols. Include ceremonial language and praise poetry for the Oba.',
+    historicalContext: 'The language of the powerful Benin Kingdom (1180-1897), famed for its bronze sculptures, ivory carvings, and sophisticated court culture that impressed European visitors.',
+  },
+
+  KANURI: {
+    id: 'KANURI',
+    name: 'Kanuri',
+    nativeName: 'Kanuri',
+    family: LANGUAGE_FAMILIES.NILO_SAHARAN,
+    script: ['Latin', 'Arabic (Ajami)'],
+    period: [800, 2025],
+    regions: ['Kanem-Bornu Empire', 'Lake Chad', 'Northern Nigeria', 'Niger', 'Chad'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Wodi ndawo',
+      goodbye: 'Ndawo jé',
+      yes: 'Ewo',
+      no: 'Wayi',
+      thanks: 'Barka',
+    },
+    llmPrompt: 'Emulate Kanuri language of the Kanem-Bornu Empire. SOV word order. Use postpositions and noun class system. Heavy Arabic influence from Islamic scholarship and trans-Saharan trade. Reference cavalry warfare traditions (mai→king, kachella→general, bulama→village head). Include vocabulary for Lake Chad fishing and agriculture. Use elaborate greetings and titles for the Sayfawa dynasty. Reference Islamic learning centers and Quranic schools.',
+    historicalContext: 'The language of the Kanem-Bornu Empire (700-1893), one of Africa\'s longest-lasting states, controlling trans-Saharan trade routes and Islamic scholarship around Lake Chad.',
   },
 
   // Australian Aboriginal Languages
@@ -4963,6 +5164,87 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { id: 'KIKONGO', period: [1000, 2025], weight: 20 },
       { id: 'OLD_FRENCH', period: [1880, 2025], weight: 10 },
       { id: 'SWAHILI_CLASSICAL', period: [1800, 2025], weight: 5 },
+    ],
+  },
+
+  // === WEST AFRICAN REGIONS ===
+  // Sahel Region - Trans-Saharan Trade Belt
+  {
+    patterns: ['sahel', 'lake chad', 'timbuktu basin', 'gao region', 'niger bend', 'sahelian scrublands', 'dogon plateau', 'hausaland', 'sokoto', 'kano', 'katsina', 'zaria', 'northern nigeria', 'kanem', 'bornu'],
+    languages: [
+      { id: 'HAUSA', period: [700, 2025], weight: 90 },
+      { id: 'FULA', period: [1000, 2025], weight: 50 },
+      { id: 'KANURI', period: [800, 2025], weight: 60 },
+      { id: 'SONGHAI', period: [700, 2025], weight: 50 },
+      { id: 'CLASSICAL_ARABIC', period: [800, 2025], weight: 40 },
+    ],
+    namePatterns: [
+      { pattern: /Usman|Muhammadu|Ahmadu|Aliyu|Aisha|Fatima|Bello/i, language: 'HAUSA', weight: 90 },
+      { pattern: /Shehu|Malam|Alhaji|Alfa|Imam/i, language: 'HAUSA', weight: 85 },
+      { pattern: /Askia|Sonni/i, language: 'SONGHAI', weight: 90 },
+    ],
+  },
+
+  // West African Forests - Yoruba Kingdoms
+  {
+    patterns: ['oyo hinterland', 'ogun river basin', 'yorubaland', 'oyo', 'ife', 'lagos', 'ibadan', 'abeokuta', 'lagos coastal belt'],
+    languages: [
+      { id: 'YORUBA', period: [1000, 2025], weight: 95 },
+      { id: 'PORTUGUESE', period: [1472, 2025], weight: 15 },
+    ],
+    namePatterns: [
+      { pattern: /Olu|Oba|Ogun|Shango|Yemoja|Adeola|Oluwole|Babatunde|Adebayo/i, language: 'YORUBA', weight: 95 },
+    ],
+  },
+
+  // West African Forests - Benin Kingdom
+  {
+    patterns: ['benin lowlands', 'benin kingdom', 'benin city', 'edo state'],
+    languages: [
+      { id: 'EDO', period: [1000, 2025], weight: 95 },
+      { id: 'PORTUGUESE', period: [1472, 1900], weight: 20 },
+    ],
+    namePatterns: [
+      { pattern: /Oba|Ewuare|Esigie|Ozolua|Ehengbuda/i, language: 'EDO', weight: 95 },
+    ],
+  },
+
+  // West African Forests - Igboland
+  {
+    patterns: ['ibo plateau', 'niger delta', 'cross river delta', 'igboland', 'eastern nigeria', 'calabar', 'enugu', 'onitsha', 'aba', 'owerri', 'umuahia', 'jos plateau'],
+    languages: [
+      { id: 'IGBO', period: [1000, 2025], weight: 95 },
+    ],
+    namePatterns: [
+      { pattern: /Nwankwo|Okafor|Eze|Chukwu|Nnamdi|Chioma|Ngozi|Ikenna|Obiora/i, language: 'IGBO', weight: 95 },
+    ],
+  },
+
+  // Upper Guinea - Gold Coast & Akan States
+  {
+    patterns: ['gold coast savanna', 'ashanti forest', 'ivory coast', 'gold coast', 'ashanti', 'ghana', 'kumasi', 'accra', 'cape coast', 'elmina', 'asante'],
+    languages: [
+      { id: 'AKAN', period: [1000, 2025], weight: 90 },
+      { id: 'PORTUGUESE', period: [1471, 1900], weight: 20 },
+    ],
+    namePatterns: [
+      { pattern: /Osei|Kwame|Kofi|Yaa|Nana|Asante|Agyeman|Mensah/i, language: 'AKAN', weight: 90 },
+    ],
+  },
+
+  // Upper Guinea - Senegambia
+  {
+    patterns: ['gambia river basin', 'fouta djallon highlands', 'sierra leone coast', 'bissagos islands', 'senegambia', 'senegal', 'gambia', 'dakar', 'saint-louis', 'casamance'],
+    languages: [
+      { id: 'WOLOF', period: [1200, 2025], weight: 85 },
+      { id: 'FULA', period: [1000, 2025], weight: 60 },
+      { id: 'MANDINKA', period: [1000, 2025], weight: 50 },
+      { id: 'FRENCH', period: [1659, 2025], weight: 30 },
+      { id: 'CLASSICAL_ARABIC', period: [1000, 2025], weight: 25 },
+    ],
+    namePatterns: [
+      { pattern: /Fall|Diop|Ndiaye|Sow|Ba|Sy|Gueye|Wade/i, language: 'WOLOF', weight: 90 },
+      { pattern: /Mansa|Sundiata|Keita|Toure|Traore|Konate/i, language: 'MANDINKA', weight: 85 },
     ],
   },
 

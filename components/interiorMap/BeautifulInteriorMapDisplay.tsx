@@ -63,6 +63,12 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     const [hasBeenWarned, setHasBeenWarned] = useState(false);
     const [confrontedNpcs, setConfrontedNpcs] = useState<Set<string>>(new Set());
 
+    // Zoom and pan state
+    const [scale, setScale] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
     // Inline dialogue state (FF6-style)
     const [currentDialogue, setCurrentDialogue] = useState<{ text: string; speaker: string; npc: NpcEntity; visible: boolean } | null>(null);
     const [dialogueHistory, setDialogueHistory] = useState<{ speaker: string; text: string }[]>([]);
@@ -507,17 +513,65 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 maxHeight: '100vh'
             }}
         >
-            {/* Beautiful interior renderer - constrained container */}
+            {/* Beautiful interior renderer - constrained container with pan/zoom */}
             <div className="flex-1 relative overflow-hidden" style={{ minHeight: 0 }}>
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div
+                    className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                    onMouseDown={(e) => {
+                        setIsDragging(true);
+                        setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+                    }}
+                    onMouseMove={(e) => {
+                        if (isDragging) {
+                            setPanOffset({
+                                x: e.clientX - dragStart.x,
+                                y: e.clientY - dragStart.y
+                            });
+                        }
+                    }}
+                    onMouseUp={() => setIsDragging(false)}
+                    onMouseLeave={() => setIsDragging(false)}
+                    style={{
+                        transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+                        transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                    }}
+                >
                     <BeautifulInteriorRenderer
                         layout={interiorData.layout}
                         playerPosition={playerPosition}
                         playerCharacter={playerCharacter}
                         npcs={interiorData.npcs}
-                        scale={1}
+                        scale={scale}
                         onNpcClick={onNpcClick}
                     />
+                </div>
+
+                {/* Zoom controls */}
+                <div className="absolute top-4 right-4 flex flex-col gap-2 z-50">
+                    <button
+                        onClick={() => setScale(prev => Math.min(prev + 0.25, 3))}
+                        className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 font-bold"
+                        title="Zoom In"
+                    >
+                        +
+                    </button>
+                    <button
+                        onClick={() => setScale(prev => Math.max(prev - 0.25, 0.5))}
+                        className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 font-bold"
+                        title="Zoom Out"
+                    >
+                        −
+                    </button>
+                    <button
+                        onClick={() => {
+                            setScale(1);
+                            setPanOffset({ x: 0, y: 0 });
+                        }}
+                        className="bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded border border-gray-600 text-xs"
+                        title="Reset View"
+                    >
+                        Reset
+                    </button>
                 </div>
             </div>
 

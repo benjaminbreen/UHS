@@ -22,6 +22,8 @@ import gameSoundsService from '../services/gameSoundsService';
 import citySoundsService from '../services/citySoundsService';
 import { urbanTileRegistry } from '../services/urbanTileRegistryService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
+import { shouldTriggerEncounter, rollForLiminalEncounter, type LiminalEncounter } from '../services/liminalEncounterService';
+import { railroadNetworkService } from '../services/railroadNetworkService';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -118,6 +120,7 @@ interface useMapStateProps {
         setCurrentRegion: React.Dispatch<React.SetStateAction<string>>;
         onMapConfigDateChange: (newDate: Partial<GameDate>) => void;
     };
+    onLiminalEncounter?: (encounter: LiminalEncounter) => void;
 }
 
 export const useMapState = (props: useMapStateProps) => {
@@ -285,6 +288,13 @@ export const useMapState = (props: useMapStateProps) => {
                 urbanTileCount,
                 specialFeatureCount,
             });
+        }
+    }, [mapData]);
+
+    // Initialize railroad network when map data changes
+    useEffect(() => {
+        if (mapData) {
+            railroadNetworkService.initialize(mapData);
         }
     }, [mapData]);
 
@@ -785,6 +795,18 @@ export const useMapState = (props: useMapStateProps) => {
                     });
                     // Keep the liminal area name (e.g., "Arabian Desert")
                     setLocalArea(getLiminalAreaName(gameState.liminalTravelState.key));
+
+                    // Check for random encounter
+                    if (shouldTriggerEncounter()) {
+                        const encounter = rollForLiminalEncounter(nextArchetype);
+                        if (encounter) {
+                            console.log(`[Liminal Encounter] ${encounter.title}: ${encounter.message}`);
+                            // Notify parent component about encounter (will be handled in useCoreLoops)
+                            if (props.onLiminalEncounter) {
+                                props.onLiminalEncounter(encounter);
+                            }
+                        }
+                    }
                 }
             } else if (direction === getOppositeDirection(originDirection)) {
                 // Moving backwards through sequence
@@ -807,8 +829,18 @@ export const useMapState = (props: useMapStateProps) => {
                     setLocalArea(getLiminalAreaName(gameState.liminalTravelState.key));
                 }
             } else {
-                // Invalid direction in liminal space
-                console.warn(`[Liminal Travel] Invalid direction ${direction} in liminal space. Can only move ${originDirection} or ${getOppositeDirection(originDirection)}.`);
+                // Perpendicular movement in liminal space - exit the sequence
+                console.log(`[Liminal Travel] Moving perpendicular to sequence (${direction}). Exiting liminal travel.`);
+
+                // Exit liminal travel and return to origin area
+                // Player tried to go sideways during a liminal journey, which breaks the sequence
+                setGameState.setLiminalTravelState(null);
+                setLocalArea(originArea);
+
+                // Log the interruption
+                console.warn(`[Liminal Travel] Journey interrupted. Returning to ${originArea}`);
+
+                // Don't continue with map generation - force return to origin
                 return;
             }
         } else {
@@ -860,7 +892,7 @@ export const useMapState = (props: useMapStateProps) => {
             }
             
             setCurrentWorldCoords({ x: targetWorldX, y: targetWorldY });
-            setPlayerState.setPendingIconTransitionInfo({ targetWorldX, targetWorldY, entryX, entryY, mode: playerState.playerMode });
+            setPlayerState.setPendingIconTransitionInfo({ direction, targetWorldX, targetWorldY, entryX, entryY, mode: playerState.playerMode });
         }
 
     }, [currentWorldCoords, playerState.playerMode, gameState.liminalTravelState, playerState.pendingIconTransitionInfo, localArea, setPlayerState, setGameState, _selectRandomMapArea]);

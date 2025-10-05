@@ -10,6 +10,9 @@ interface SimplePopulationChartProps {
   culturalZone?: string;
 }
 
+// Detect Safari
+const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 // Simplified historical population data [year, population in millions]
 const POPULATION_DATA: [number, number][] = [
   [-5000, 5], [-3000, 14], [-1000, 50], [1, 200], [500, 206],
@@ -109,88 +112,86 @@ const SimplePopulationChart: React.FC<SimplePopulationChartProps> = ({ currentYe
     return { pathD: path, width: w, height: h, padding: p, playerX, playerY, playerPop, percentLivedAfter };
   }, [currentYear]);
 
+  const cardClass = isSafari
+    ? "bg-slate-800 rounded-xl p-4 border border-slate-700"
+    : "bg-slate-800/70 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50";
+
+  const chartBgClass = isSafari
+    ? "relative bg-slate-900 rounded-lg p-3"
+    : "relative bg-slate-900/50 rounded-lg p-3";
+
   return (
-    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
-      <h3 className="text-xs font-semibold text-slate-300 mb-2">Your Place in History</h3>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-auto"
-        style={{ minHeight: '180px' }}
-      >
-        {/* Darker background to match location map */}
-        <rect x="0" y="0" width={width} height={height} fill="#1e293b" rx="4" />
-
-        {/* Grid lines - subtle */}
-        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#334155" strokeWidth="1" opacity="0.5" />
-        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#334155" strokeWidth="1" opacity="0.5" />
-
-        {/* Population curve */}
-        <path
-          d={pathD}
-          fill="url(#populationGradient)"
-          stroke="#60a5fa"
-          strokeWidth="1.5"
-        />
-
-        {/* Gradient definition - softer blues */}
-        <defs>
-          <linearGradient id="populationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.1" />
-          </linearGradient>
-        </defs>
-
-        {/* Player position marker */}
-        <line
-          x1={playerX}
-          y1={padding}
-          x2={playerX}
-          y2={height - padding}
-          stroke="#ef4444"
-          strokeWidth="2"
-          strokeDasharray="3 3"
-        />
-        <circle
-          cx={playerX}
-          cy={playerY}
-          r="5"
-          fill="#ef4444"
-          stroke="#fecaca"
-          strokeWidth="2"
-        />
-
-        {/* Axis labels */}
-        <text x={padding} y={height - 8} fill="#94a3b8" fontSize="9" textAnchor="start">
-          5000 BCE
-        </text>
-        <text x={width - padding} y={height - 8} fill="#94a3b8" fontSize="9" textAnchor="end">
-          2025 CE
-        </text>
-
-        {/* Year label above player marker */}
-        <text
-          x={playerX}
-          y={padding - 8}
-          fill="#ef4444"
-          fontSize="10"
-          fontWeight="600"
-          textAnchor="middle"
+    <div className={cardClass}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-slate-200">Your Place in History</h3>
+        <span className="text-sm font-semibold text-slate-300">Population: ~{Math.round(playerPop)} million</span>
+      </div>
+      <div className={chartBgClass}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="w-full h-auto"
+          style={{ minHeight: '160px' }}
         >
-          {currentYear < 0 ? `${Math.abs(currentYear)} BC` : `${currentYear} CE`}
-        </text>
+          {/* Grid lines - subtle slate */}
+          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#475569" strokeWidth="1" />
+          <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#475569" strokeWidth="1" />
 
-        {/* Population text in the negative space (middle-left) */}
-        <text
-          x={width * 0.35}
-          y={height * 0.45}
-          fill="#e2e8f0"
-          fontSize="11"
-          fontWeight="500"
-          textAnchor="middle"
-        >
-          Population: ~{Math.round(playerPop)}M
-        </text>
-      </svg>
+          {/* Population curve - muted slate and amber */}
+          <path
+            d={pathD}
+            fill="url(#populationGradient)"
+            stroke="#64748b"
+            strokeWidth="1.5"
+          />
+
+          {/* Gradient definition - muted slate tones */}
+          <defs>
+            <linearGradient id="populationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#64748b" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#334155" stopOpacity="0.05" />
+            </linearGradient>
+          </defs>
+
+          {/* Player position marker - amber */}
+          <line
+            x1={playerX}
+            y1={padding}
+            x2={playerX}
+            y2={height - padding}
+            stroke="#f59e0b"
+            strokeWidth="2"
+            strokeDasharray="4 4"
+          />
+          <circle
+            cx={playerX}
+            cy={playerY}
+            r="5"
+            fill="#f59e0b"
+            stroke="#fbbf24"
+            strokeWidth="2"
+          />
+
+          {/* Axis labels */}
+          <text x={padding} y={height - 5} fill="#94a3b8" fontSize="9" textAnchor="start">
+            5000 BCE
+          </text>
+          <text x={width - padding} y={height - 5} fill="#94a3b8" fontSize="9" textAnchor="end">
+            2025 CE
+          </text>
+
+          {/* Year label above player marker */}
+          <text
+            x={playerX}
+            y={padding - 6}
+            fill="#f59e0b"
+            fontSize="10"
+            fontWeight="600"
+            textAnchor="middle"
+          >
+            {currentYear < 0 ? `${Math.abs(currentYear)} BC` : `${currentYear} CE`}
+          </text>
+        </svg>
+      </div>
       <p className="text-xs text-slate-400 mt-2 text-center">
         {percentLivedAfter}% of all humans lived after you
       </p>

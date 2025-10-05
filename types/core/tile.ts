@@ -108,6 +108,7 @@ export interface Tile {
   
   // NEW: Overlay system for furniture and objects
   overlayObject?: OverlayObject; // Object that overlays this tile (chair, table, etc.)
+  secondaryOverlay?: OverlayObject; // Secondary overlay for items on furniture (e.g., food on tables)
   isBlocking?: boolean; // Whether this tile blocks movement (can be from overlay or base biome)
   
   // Collectible item system for special maps
@@ -333,5 +334,23 @@ export enum OverlayObjectType {
   BATH_MODERN = 'BATH_MODERN',
   BATH_CLAWFOOT = 'BATH_CLAWFOOT',
   SHOWER = 'SHOWER',
-  CHAMBER_POT = 'CHAMBER_POT'
+  CHAMBER_POT = 'CHAMBER_POT',
+
+  // Food & Drink Items (for table settings)
+  PLATE_WITH_FOOD = 'PLATE_WITH_FOOD',
+  BOWL_WITH_FOOD = 'BOWL_WITH_FOOD',
+  GOBLET = 'GOBLET',
+  MUG = 'MUG',
+  WINE_BOTTLE = 'WINE_BOTTLE',
+  SAKE_BOTTLE = 'SAKE_BOTTLE',
+  TEA_POT = 'TEA_POT',
+  BREAD_LOAF = 'BREAD_LOAF',
+  CHEESE_WHEEL = 'CHEESE_WHEEL',
+  FRUIT_BOWL = 'FRUIT_BOWL',
+  ROASTED_MEAT = 'ROASTED_MEAT',
+  FISH_PLATTER = 'FISH_PLATTER',
+  RICE_BOWL = 'RICE_BOWL',
+  CHOPSTICKS = 'CHOPSTICKS',
+  CUTLERY = 'CUTLERY',
+  CANDLE_STICK = 'CANDLE_STICK'
 }

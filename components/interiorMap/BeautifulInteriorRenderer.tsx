@@ -16,8 +16,8 @@ interface BeautifulInteriorRendererProps {
     onNpcClick?: (npc: NpcEntity) => void;
 }
 
-const TILE_SIZE = 24;
-const WALL_HEIGHT_3D = 12;
+const TILE_SIZE = 32; // Increased from 24 for larger, more intimate scale
+const WALL_HEIGHT_3D = 16; // Proportionally increased wall height
 
 // Beautiful floor patterns
 const FloorPatterns = {
@@ -569,8 +569,9 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
         const padding = TILE_SIZE * 2;
         const viewBoxX = -padding;
         const viewBoxY = -padding;
-        const viewBoxWidth = (layout.totalBounds.width * TILE_SIZE * scale) + (padding * 2);
-        const viewBoxHeight = (layout.totalBounds.height * TILE_SIZE * scale) + (padding * 2);
+        // Divide by scale to zoom in (smaller viewBox = closer view)
+        const viewBoxWidth = (layout.totalBounds.width * TILE_SIZE / scale) + (padding * 2);
+        const viewBoxHeight = (layout.totalBounds.height * TILE_SIZE / scale) + (padding * 2);
 
         return {
             viewBox: `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`,
@@ -668,18 +669,19 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
                 count={12}
             />
 
-            {/* Player character */}
+            {/* Player character - no scale transform (viewBox handles zoom) */}
             {playerCharacter && (
                 <g transform={`translate(${playerPosition.x * TILE_SIZE * scale}, ${playerPosition.y * TILE_SIZE * scale})`}>
                     <PlayerIcon
                         character={playerCharacter}
                         x={0}
                         y={0}
+                        isInteriorMap={true}
                     />
                 </g>
             )}
-            
-            {/* NPCs - using proper sprite rendering */}
+
+            {/* NPCs - no scale transform (viewBox handles zoom) */}
             {npcs.map((npc, idx) => {
                 // Debug NPC position
                 if (isNaN(npc.x) || isNaN(npc.y)) {
@@ -696,8 +698,9 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
                     >
                         <NpcIcon
                             npc={npc}
-                            size={TILE_SIZE * scale}
-                            tileSize={TILE_SIZE * scale}
+                            size={TILE_SIZE}
+                            tileSize={TILE_SIZE}
+                            isInteriorMap={true}
                         />
                     </g>
                 );

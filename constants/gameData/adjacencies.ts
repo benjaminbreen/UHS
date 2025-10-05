@@ -108,11 +108,11 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // Greece and Aegean
   "Athens Basin": { N: "Thessalian Plain", S: "Peloponnesian Hills", E: "Delos Archipelago", W: "Pindus Mountains" },
-  "Peloponnesian Hills": { N: "Athens Basin", S: "Crete", E: "Cilician Plain" },
-  "Crete": { N: "Peloponnesian Hills", E: "Cilician Plain", S: "Alexandria Coast" },
-  "Delos Archipelago": { W: "Athens Basin", E: "Cilician Plain", N: "Thessalian Plain" },
-  "Mount Olympus": { S: "Thessalian Plain", N: "Thracian Plain" },
-  "Thessalian Plain": { N: "Mount Olympus", S: "Athens Basin", E: "Delos Archipelago" },
+  "Peloponnesian Hills": { N: "Athens Basin", S: "Crete", E: "Cilician Plain", W: "Aegean Sea" },
+  "Crete": { N: "Peloponnesian Hills", E: "Cilician Plain", S: "Alexandria Coast", W: "Aegean Sea" },
+  "Delos Archipelago": { W: "Athens Basin", E: "Cilician Plain", N: "Thessalian Plain", S: "Aegean Sea" },
+  "Mount Olympus": { S: "Thessalian Plain", N: "Thracian Plain", E: "Vardar Valley", W: "Pindus Mountains" },
+  "Thessalian Plain": { N: "Mount Olympus", S: "Athens Basin", E: "Delos Archipelago", W: "Pindus Mountains" },
 
   // === MISSING EUROPEAN REGIONS ===
   "Galicia": { N: "Bay of Biscay", S: "Lisbon Coast", E: "Toledo Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
@@ -491,12 +491,12 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Nile Delta": { N: "Alexandria Coast", E: "Jerusalem Hills", W: "Alexandria Coast", S: "Thebes Valley" },
   "Aswan Cataracts": { N: "Thebes Valley", E: "Eastern Desert Wadis", S: "Nubian Desert" },
   "Faiyum Oasis": { E: "Thebes Valley", N: "Alexandria Coast", S: "Nubian Desert", W: "Tripolitania" },
-  "Eastern Desert Wadis": { W: "Thebes Valley", E: "Red Sea Coast", N: "Alexandria Coast" },
-  "Alexandria Coast": { S: "Nile Delta", N: "LIMINAL_MEDITERRANEAN_ISLANDS", E: "Jerusalem Hills", W: "Cyrenaica Coast" },
-  
+  "Eastern Desert Wadis": { W: "Thebes Valley", E: "Eastern Desert Highlands", N: "Alexandria Coast" },
+  // Alexandria Coast definition moved to consolidated block below (line 568)
+
   // Nubian Corridor
   "Nubian Desert": { N: "Thebes Valley", S: "Bayuda Desert", E: "Eastern Desert Highlands", W: "Saharan Heart" },
-  "Bayuda Desert": { N: "Nubian Desert", S: "Ethiopian Highlands", E: "Ethiopian Highlands", W: "Lake Chad" },
+  "Bayuda Desert": { N: "Nubian Desert", S: "Ethiopian Highlands", E: "Wadi Hammamat", W: "LIMINAL_SAHARA_CROSSING_EAST_WEST" },
 
   // Levant
   "Jerusalem Hills": { N: "Galilee Basin", S: "Dead Sea Shore", E: "Tigris–Euphrates Confluence", W: "Alexandria Coast" },
@@ -540,7 +540,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 "Empty Quarter": { N: "Najd Plateau", S: "Dhofar Hills", E: "LIMINAL_ARABIAN_DESERT", W: "Najd Plateau" },
 "Dhofar Hills": { N: "Empty Quarter", S: "LIMINAL_ARABIAN_SEA_TO_SOUTH_ASIA", E: "Shiraz Valley", W: "Hadhramaut Valley" },
 "Hadhramaut Valley": { N: "Empty Quarter", S: "LIMINAL_ARABIAN_SEA_TO_SOUTH_ASIA", E: "Shiraz Valley", W: "Dhofar Hills" },
-"Red Sea Coast": { N: "Eastern Desert Wadis", S: "Red Sea Shore", E: "Hejaz Mountains", W: "Sudanese Red Sea" },
+// Red Sea Coast definition moved to consolidated block below (line 610)
 
 // --- === ADDITIONAL MENA REGIONS ===
 "Khorasan": { N: "Samarkand Region", S: "Isfahan Basin", E: "Balkh Plains", W: "Dasht-e Kavir" },
@@ -552,7 +552,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 "Zagros Highlands": { N: "Caspian Foothills", S: "Shiraz Valley", E: "Isfahan Basin", W: "Khuzestan Plain" },
 "Caspian Foothills": { N: "LIMINAL_CASPIAN_SEA_TO_EUROPE", S: "Alborz Mountains", E: "Harappa Basin", W: "Tbilisi Valley" },
 "Dasht-e Kavir": { N: "Alborz Mountains", S: "Shiraz Valley", E: "Harappa Basin", W: "Khorasan" },
-"Shiraz Valley": { N: "Isfahan Basin", S: "Zagros Highlands", E: "Thar Desert Margin", W: "Zagros Highlands" },
+"Shiraz Valley": { N: "Isfahan Basin", S: "Zagros Highlands", E: "Isfahan Basin", W: "Zagros Highlands" },
 "Alborz Mountains": { N: "Caspian Foothills", E: "Harappa Basin", W: "Tbilisi Valley", S: "Isfahan Basin" },
 
 // --- Caucasus
@@ -622,11 +622,11 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // === SUB SAHARAN AFRICA ===
   // Sahel
-  "Timbuktu Basin": { N: "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH", S: "Niger Bend", E: "Gao Region", W: "Fouta Djallon Highlands" },
-  "Lake Chad": { N: "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH", S: "Ubangi Basin", E: "LIMINAL_SAHARA_CROSSING_EAST_WEST", W: "Gao Region" },
+  "Timbuktu Basin": { N: "LIMINAL_SAHARA_CROSSING_SOUTH_NORTH", S: "Niger Bend", E: "Gao Region", W: "Fouta Djallon Highlands" },
+  "Lake Chad": { N: "LIMINAL_SAHARA_CROSSING_SOUTH_NORTH", S: "Ubangi Basin", E: "LIMINAL_SAHARA_CROSSING_WEST_EAST", W: "Gao Region" },
   "Niger Bend": { N: "Timbuktu Basin", S: "Ashanti Forest", E: "Dogon Plateau", W: "Fouta Djallon Highlands" },
   "Gao Region": { N: "Tripolitania", S: "Dogon Plateau", W: "Timbuktu Basin", E: "Lake Chad" },
-  "Sahelian Scrublands": { N: "Atlas Mountains", S: "Ibo Plateau", E: "Lake Chad", W: "LIMINAL_SAHARA_CROSSING_EAST_WEST" },
+  "Sahelian Scrublands": { N: "Atlas Mountains", S: "Ibo Plateau", E: "LIMINAL_SAHARA_CROSSING_EAST_WEST", W: "LIMINAL_SAHARA_CROSSING_WEST_EAST" },
   "Dogon Plateau": { N: "Gao Region", S: "Ashanti Forest", W: "Niger Bend", E: "Sahelian Scrublands" },
 
   // Upper Guinea
@@ -652,7 +652,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Danakil Depression": { N: "Red Sea Shore", S: "Ethiopian Highlands", E: "Somali Steppe", W: "Ethiopian Highlands" },
   "Rift Valley Lakes": { N: "Ethiopian Highlands", S: "Serengeti Plain", E: "Somali Steppe", W: "Bangui Highlands" },
   "Harar Plateau": { N: "Danakil Depression", S: "Rift Valley Lakes", W: "Ethiopian Highlands", E: "Somali Steppe" },
-  "Red Sea Shore": { S: "Danakil Depression", N: "Sudanese Red Sea", E: "LIMINAL_ARABIAN_SEA_TO_MENA" },
+  // Red Sea Shore definition in consolidated block above (line 604)
   "Somali Steppe": { N: "Danakil Depression", S: "Serengeti Plain", W: "Harar Plateau", E: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA" },
 
   // East African Rift
@@ -691,9 +691,9 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Highlands of Madagascar": { N: "Antananarivo Region", S: "Mahafaly Plateau", E: "Mozambique Channel Coast", W: "Zambezi Floodplain" },
   "Antananarivo Region": { S: "Highlands of Madagascar", E: "Mozambique Channel Coast", W: "Zambezi Floodplain" },
   "Mozambique Channel Coast": { W: "Highlands of Madagascar", E: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA", N: "Antananarivo Region" },
-  "Comoros Archipelago": { E: "Highlands of Madagascar", W: "Zambezi Floodplain", S: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA", N: "Red Sea Shore", },
+  "Comoros Archipelago": { E: "Mozambique Channel Coast", W: "Zambezi Floodplain", S: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA", N: "LIMINAL_INDIAN_OCEAN_TO_AFRICA" },
   "Mascarene Islands": { W: "Highlands of Madagascar", E: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA", N: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA" },
-  "Mahafaly Plateau": { N: "Highlands of Madagascar", E: "Mozambique Channel Coast", W: "Cape Coast" },
+  "Mahafaly Plateau": { N: "Highlands of Madagascar", S: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA", E: "Mozambique Channel Coast", W: "Mozambique Channel Coast" },
 
   // === SOUTH ASIA ===
   // Indus Valley
@@ -868,144 +868,169 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
   // Adriatic to Mediterranean (through strait of Otranto)
   "LIMINAL_ADRIATIC_TO_MEDITERRANEAN": {
     destination: "Aegean Sea",
+    originArea: "Adriatic Sea",
     sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // English Channel and North Sea (short crossings - 1 ocean map)
-  "LIMINAL_CHANNEL_CROSSING": { 
-    destination: "Normandy", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_CHANNEL_CROSSING": {
+    destination: "Normandy",
+    originArea: "English Channel",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_NORTH_SEA_TO_BRITAIN": { 
-    destination: "Thames Estuary", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  
-  // Black Sea (regional sea - 1 ocean map)
-  "LIMINAL_BLACK_SEA_TO_EUROPE": { 
-    destination: "Thracian Plain", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_NORTH_SEA_TO_BRITAIN": {
+    destination: "Thames Estuary",
+    originArea: "North Sea",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
-   "LIMINAL_CASPIAN_SEA_TO_EUROPE": { 
-    destination: "Volga Bend", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  // Black Sea (regional sea - 1 ocean map)
+  "LIMINAL_BLACK_SEA_TO_EUROPE": {
+    destination: "Thracian Plain",
+    originArea: "Pontic Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  
+
+   "LIMINAL_CASPIAN_SEA_TO_EUROPE": {
+    destination: "Volga Bend",
+    originArea: "Caspian Foothills",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
+  },
+
   // Bay of Bengal (regional crossing - 1 ocean map)
-  "LIMINAL_BAY_OF_BENGAL_TO_SOUTHEAST_ASIA": { 
-    destination: "Irrawaddy Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_BAY_OF_BENGAL_TO_SOUTHEAST_ASIA": {
+    destination: "Irrawaddy Valley",
+    originArea: "Bengal Delta",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // === MEDIUM SEAS ===
   // Arabian Sea and Red Sea (medium crossings - 2 ocean maps)
-  "LIMINAL_ARABIAN_SEA_TO_MENA": { 
-    destination: "Hadhramaut Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_ARABIAN_SEA_TO_MENA": {
+    destination: "Hadhramaut Valley",
+    originArea: "Red Sea Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_ARABIAN_SEA_TO_AFRICA": { 
-    destination: "Red Sea Shore", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_ARABIAN_SEA_TO_AFRICA": {
+    destination: "Red Sea Shore",
+    originArea: "Arabian Sea",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // Tasman Sea (medium crossing - 2 ocean maps)
-  "LIMINAL_TASMAN_TO_NEW_ZEALAND": { 
-    destination: "Canterbury Plains", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_TASMAN_TO_NEW_ZEALAND": {
+    destination: "Canterbury Plains",
+    originArea: "Sydney Basin",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_TASMAN_TO_AUSTRALIA": { 
-    destination: "Sydney Basin", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_TASMAN_TO_AUSTRALIA": {
+    destination: "Sydney Basin",
+    originArea: "Wellington Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  
+
   // Bering Sea (medium crossing - 2 ocean maps)
-  "LIMINAL_BERING_SEA_TO_NORTH_AMERICA": { 
-    destination: "Yukon River Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_BERING_SEA_TO_NORTH_AMERICA": {
+    destination: "Yukon River Valley",
+    originArea: "Kamchatka Peninsula",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_BERING_SEA_TO_ASIA": { 
-    destination: "Kamchatka Peninsula", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_BERING_SEA_TO_ASIA": {
+    destination: "Kamchatka Peninsula",
+    originArea: "Bering Strait",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // === LARGE OCEAN REGIONS ===
   // South China Sea (large regional crossing - 3 ocean maps)
-  "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA": { 
-    destination: "Daintree Rainforest", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA": {
+    destination: "Daintree Rainforest",
+    originArea: "Hainan Island",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // North Atlantic crossings (large - 4 ocean maps)
-  "LIMINAL_ATLANTIC_TO_AMERICAS": { 
-    destination: "Chesapeake Bay", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_ATLANTIC_TO_AMERICAS": {
+    destination: "Chesapeake Bay",
+    originArea: "Lisbon Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_ATLANTIC_TO_EUROPE": { 
-    destination: "Lisbon Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_ATLANTIC_TO_EUROPE": {
+    destination: "Lisbon Coast",
+    originArea: "Chesapeake Bay",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  
+
   // North Atlantic - Arctic routes (large - 4 ocean maps)
-  "LIMINAL_NORTH_ATLANTIC_TO_EUROPE": { 
-    destination: "Norwegian Fjords", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_NORTH_ATLANTIC_TO_EUROPE": {
+    destination: "Norwegian Fjords",
+    originArea: "Iceland",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
   
-  // Caribbean connections (medium-large - 3 ocean maps)  
-  "LIMINAL_CARIBBEAN_TO_EUROPE": { 
-    destination: "Lisbon Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  // Caribbean connections (medium-large - 3 ocean maps)
+  "LIMINAL_CARIBBEAN_TO_EUROPE": {
+    destination: "Lisbon Coast",
+    originArea: "Greater Antilles",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // Indian Ocean crossings (medium-large - 3-4 ocean maps)
-  "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA": { 
-    destination: "Malabar Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA": {
+    destination: "Malabar Coast",
+    originArea: "Cape Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_INDIAN_OCEAN_TO_AFRICA": { 
-    destination: "Cape Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_INDIAN_OCEAN_TO_AFRICA": {
+    destination: "Cape Coast",
+    originArea: "Malabar Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_INDIAN_OCEAN_TO_OCEANIA": { 
-    destination: "Swan Coastal Plain", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_INDIAN_OCEAN_TO_OCEANIA": {
+    destination: "Swan Coastal Plain",
+    originArea: "Malabar Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // Atlantic Africa to Americas (medium - 3 ocean maps)
-  "LIMINAL_ATLANTIC_TO_AFRICA": { 
-    destination: "Sierra Leone Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_ATLANTIC_TO_AFRICA": {
+    destination: "Sierra Leone Coast",
+    originArea: "Recôncavo Basin",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // Pacific Island connections (large - 4 ocean maps)
-  "LIMINAL_PACIFIC_TO_POLYNESIA": { 
-    destination: "Society Islands", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_PACIFIC_TO_POLYNESIA": {
+    destination: "Society Islands",
+    originArea: "Chilean Coast",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
 
   // === VAST OCEAN CROSSINGS WITH ISLANDS ===
   // Pacific Ocean - largest ocean with island chains for resting
-  "LIMINAL_PACIFIC_TO_EAST_ASIA": { 
-    destination: "Kamchatka Peninsula", 
+  "LIMINAL_PACIFIC_TO_EAST_ASIA": {
+    destination: "Kamchatka Peninsula",
+    originArea: "Puget Sound",
     sequence: [
-      MapArchetype.SHOALS, 
-      MapArchetype.OPEN_OCEAN, 
-      MapArchetype.OPEN_OCEAN, 
+      MapArchetype.SHOALS,
+      MapArchetype.OPEN_OCEAN,
+      MapArchetype.OPEN_OCEAN,
       MapArchetype.ISLAND,  // Midway atoll
-      MapArchetype.OPEN_OCEAN, 
-      MapArchetype.OPEN_OCEAN, 
+      MapArchetype.OPEN_OCEAN,
+      MapArchetype.OPEN_OCEAN,
       MapArchetype.ISLAND,  // Wake Island
-      MapArchetype.OPEN_OCEAN, 
+      MapArchetype.OPEN_OCEAN,
       MapArchetype.SHOALS
-    ] 
+    ]
   },
-  "LIMINAL_PACIFIC_TO_NORTH_AMERICA": { 
-    destination: "Columbia River Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_PACIFIC_TO_NORTH_AMERICA": {
+    destination: "Columbia River Valley",
+    originArea: "Kamchatka Peninsula",
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS]
   },
-  "LIMINAL_PACIFIC_TO_OCEANIA": { 
-    destination: "Sydney Basin", 
+  "LIMINAL_PACIFIC_TO_OCEANIA": {
+    destination: "Sydney Basin",
+    originArea: "Chilean Coast", 
     sequence: [
       MapArchetype.SHOALS, 
       MapArchetype.OPEN_OCEAN, 
@@ -1056,19 +1081,21 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
 
   // === DESERT CROSSINGS WITH OASES ===
   // Sahara Desert - vast empty desert with rare oases
-  "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH": { 
-    destination: "Timbuktu Basin", 
+  "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH": {
+    destination: "Timbuktu Basin",
+    originArea: "Tripolitania",
     sequence: [
-      MapArchetype.DESERT, 
-      MapArchetype.DESERT, 
-      MapArchetype.OASIS,  // Critical rest point
-      MapArchetype.DESERT, 
+      MapArchetype.DESERT,
+      MapArchetype.DESERT,
+      MapArchetype.DESERT,  // Critical rest point (oases generated within DESERT archetype)
+      MapArchetype.DESERT,
       MapArchetype.DESERT
-    ] 
+    ]
   },
-  "LIMINAL_SAHARA_CROSSING_EAST_WEST": { 
-    destination: "Lake Chad", 
-    sequence: [MapArchetype.ALL_LAND, MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.ALL_LAND] 
+  "LIMINAL_SAHARA_CROSSING_EAST_WEST": {
+    destination: "Lake Chad",
+    originArea: "Sahelian Scrublands",
+    sequence: [MapArchetype.ALL_LAND, MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.ALL_LAND]
   },
   
   // Arabian Desert crossings
@@ -1107,10 +1134,10 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
     destination: "Samarkand Region",
     sequence: [
       MapArchetype.DESERT,
-      MapArchetype.OASIS,
+      MapArchetype.DESERT,  // Oases generated within DESERT archetype
       MapArchetype.DESERT,
       MapArchetype.ALL_LAND,  // Mountain pass
-      MapArchetype.RIVER_VALLEY,
+      MapArchetype.RIVER_PORT,  // River valley with settlements
       MapArchetype.ALL_LAND
     ]
   },
@@ -1119,12 +1146,12 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
   "LIMINAL_TRANS_SIBERIAN": {
     destination: "Eastern Siberia",
     sequence: [
-      MapArchetype.FOREST,
+      MapArchetype.ALL_LAND,  // Forest biome generated on ALL_LAND
       MapArchetype.ALL_LAND,
-      MapArchetype.FOREST,
-      MapArchetype.RIVER_VALLEY,
+      MapArchetype.ALL_LAND,  // Forest biome generated on ALL_LAND
+      MapArchetype.RIVER_PORT,  // River valley with settlements
       MapArchetype.ALL_LAND,
-      MapArchetype.FOREST
+      MapArchetype.ALL_LAND  // Forest biome generated on ALL_LAND
     ]
   },
   
@@ -1252,12 +1279,12 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
   "LIMINAL_AMAZON_DESCENT": {
     destination: "Amazon Delta",
     sequence: [
-      MapArchetype.RIVER_VALLEY,
-      MapArchetype.JUNGLE,
-      MapArchetype.RIVER_VALLEY,
-      MapArchetype.JUNGLE,
-      MapArchetype.RIVER_VALLEY,
-      MapArchetype.COASTAL_WETLAND
+      MapArchetype.RIVER_PORT,  // River valley with settlements
+      MapArchetype.ALL_LAND,  // Jungle biome generated on ALL_LAND
+      MapArchetype.RIVER_PORT,
+      MapArchetype.ALL_LAND,  // Jungle biome generated on ALL_LAND
+      MapArchetype.RIVER_PORT,
+      MapArchetype.SWAMP  // Coastal wetlands
     ]
   },
   
@@ -1269,7 +1296,7 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
       MapArchetype.ALL_LAND,  // High altitude
       MapArchetype.DESERT,  // Cold desert plateau
       MapArchetype.ALL_LAND,  // More mountains
-      MapArchetype.RIVER_VALLEY  // Descent
+      MapArchetype.RIVER_PORT  // Descent into valley with settlements
     ]
   },
   
@@ -1314,3 +1341,39 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
     ]
   }
 };
+
+/**
+ * Auto-generate reverse liminal sequences for bidirectional travel
+ * For each liminal sequence, creates a reverse version if originArea is specified
+ */
+function generateReverseLiminalSequences(): Record<string, LiminalSequence> {
+  const reverseSequences: Record<string, LiminalSequence> = {};
+
+  for (const [key, sequence] of Object.entries(LIMINAL_SEQUENCES)) {
+    if (sequence.originArea) {
+      // Generate reverse key (e.g., LIMINAL_SAHARA_CROSSING_NORTH_SOUTH -> LIMINAL_SAHARA_CROSSING_SOUTH_NORTH)
+      const reverseKey = key.replace(/_NORTH_SOUTH$/, '_SOUTH_NORTH')
+                            .replace(/_SOUTH_NORTH$/, '_NORTH_SOUTH')
+                            .replace(/_EAST_WEST$/, '_WEST_EAST')
+                            .replace(/_WEST_EAST$/, '_EAST_WEST')
+                            .replace(/_TO_(.+)$/, '_FROM_$1'); // Generic pattern
+
+      // Don't create reverse if it would have the same key
+      if (reverseKey !== key) {
+        reverseSequences[reverseKey] = {
+          destination: sequence.originArea,
+          sequence: [...sequence.sequence].reverse(),
+          originArea: sequence.destination
+        };
+      }
+    }
+  }
+
+  return reverseSequences;
+}
+
+// Merge reverse sequences into LIMINAL_SEQUENCES
+const REVERSE_LIMINAL_SEQUENCES = generateReverseLiminalSequences();
+Object.assign(LIMINAL_SEQUENCES, REVERSE_LIMINAL_SEQUENCES);
+
+console.log(`[Liminal] Generated ${Object.keys(REVERSE_LIMINAL_SEQUENCES).length} reverse liminal sequences`);

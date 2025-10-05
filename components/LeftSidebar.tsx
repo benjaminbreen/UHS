@@ -31,6 +31,7 @@ import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
 import { languageVisualizationService } from '../services/languageVisualizationService';
 import { LanguageFamilyTree } from './LanguageFamilyTree';
 import ContextualTooltip from './ui/ContextualTooltip';
+import LiminalProgressBar from './LiminalProgressBar';
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
@@ -204,7 +205,7 @@ const LeftSidebar: React.FC<{
   } = useUI();
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
-  const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, currentZone, currentRegion } = useGame();
+  const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, currentZone, currentRegion, liminalTravelState } = useGame();
   const { character: playerCharacter } = usePlayer();
 
   const [activeMajorTab, setActiveMajorTab] = useState<MajorTab>('map');
@@ -1176,6 +1177,9 @@ const LeftSidebar: React.FC<{
               </div>
             </div>
           </div>
+
+          {/* Liminal Progress Bar - only shows during liminal travel */}
+          <LiminalProgressBar liminalTravelState={liminalTravelState} />
 
           {/* Major tabs */}
           <div className="flex mb-2 bg-slate-800 border border-slate-600/60 rounded-xl p-1 gap-1">

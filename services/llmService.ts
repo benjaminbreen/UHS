@@ -1028,9 +1028,13 @@ export async function generateEncounterDialogue(
                 if (historicalLanguage) {
                     language = historicalLanguage.name;
 
-                    // Translate foreign words
+                    // Translate foreign words WITH CONTEXT
                     try {
-                        translations = await translateForeignWords(foreignWords, historicalLanguage.name);
+                        translations = await translateForeignWords(
+                            foreignWords,
+                            historicalLanguage.name,
+                            npcText  // Pass full dialogue for context
+                        );
                         console.log(`[Dialect Continuum] Translated ${foreignWords.length} words:`, translations);
                     } catch (error) {
                         console.error('[Dialect Continuum] Translation failed:', error);
@@ -3590,7 +3594,8 @@ IMPORTANT: Only include state changes that actually happened. If nothing changed
  */
 export async function translateForeignWords(
     words: string[],
-    nativeLanguage: string
+    nativeLanguage: string,
+    fullDialogue?: string
 ): Promise<Record<string, string>> {
     if (words.length === 0) return {};
 
@@ -3603,7 +3608,22 @@ export async function translateForeignWords(
     try {
         const genAI = new GoogleGenAI({ apiKey });
 
-        const prompt = `Translate these ${nativeLanguage} words to English. Respond ONLY with valid JSON in this exact format:
+        const prompt = fullDialogue
+            ? `The following ${nativeLanguage} words appear in this sentence:
+"${fullDialogue}"
+
+Translate each word based on how it is used in this specific context. Respond ONLY with valid JSON in this exact format:
+{"word1": "translation1", "word2": "translation2"}
+
+Words to translate: ${JSON.stringify(words)}
+
+Rules:
+1. Keep translations concise (1-3 words maximum)
+2. Translate based on the contextual meaning in the sentence above
+3. If a word appears to be a proper noun, translate its meaning if it has one
+4. Return ONLY the JSON object, no other text
+5. Use lowercase for translations unless it's a proper noun`
+            : `Translate these ${nativeLanguage} words to English. Respond ONLY with valid JSON in this exact format:
 {"word1": "translation1", "word2": "translation2"}
 
 Words to translate: ${JSON.stringify(words)}

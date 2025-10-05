@@ -25,6 +25,7 @@ import FarmFamilyTab from './FarmFamilyTab';
 import FarmTradeTab from './FarmTradeTab';
 import FarmAdvisorTab from './FarmAdvisorTab';
 import FarmRightSidebar from './FarmRightSidebar';
+import FarmCalendarModal from './FarmCalendarModal';
 
 interface FarmPanelContainerProps extends FarmPanelProps {}
 
@@ -57,6 +58,16 @@ const formatGameDate = (gameDay: number, gameTimeHours: number): string => {
 export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
+
+  // Handle character click from FarmBanner
+  const handleCharacterClick = (memberId: string) => {
+    setActiveTab('household');
+    setHighlightedMemberId(memberId);
+    // Auto-clear highlight after 3 seconds
+    setTimeout(() => setHighlightedMemberId(null), 3000);
+  };
 
   // Initialize custom hooks
   const farmStateHook = useFarmState({
@@ -72,6 +83,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
     culturalZone: farmStateHook.culturalZone,
     era: farmStateHook.era,
     season: props.season,
+    currentGameDay: props.currentGameDay,
   });
 
   const farmLLMHook = useFarmLLM({
@@ -202,6 +214,16 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
               farmerName={farmStateHook.headFarmer?.name || farmStateHook.farmState.family.headOfHousehold}
               width={farmStateHook.centerWidth}
               height={192}
+              livestock={farmStateHook.farmState.livestock}
+              householdMembers={farmStateHook.farmState.family.members.map(member => ({
+                id: member.id,
+                name: member.name,
+                age: member.age,
+                role: member.role,
+                gender: member.gender,
+                currentTask: member.currentTask
+              }))}
+              onCharacterClick={handleCharacterClick}
             />
             <div className="absolute top-3 right-3 flex items-center gap-2">
               {props.useLlm && (
@@ -310,6 +332,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
                 llmHooks={farmLLMHook}
                 combatHooks={farmCombatHook}
                 useLlm={props.useLlm || false}
+                highlightedMemberId={highlightedMemberId}
               />
             )}
 
@@ -347,8 +370,22 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
           plantAll={farmFieldsHook.plantAll}
           waterAll={farmFieldsHook.waterAll}
           harvestAll={farmFieldsHook.harvestAll}
+          feedLivestock={farmFieldsHook.feedLivestock}
+          progressFieldTime={farmFieldsHook.progressFieldTime}
+          onOpenCalendar={() => setShowCalendar(true)}
         />
       </div>
+
+      {/* Farm Calendar Modal - Render at root level for full screen */}
+      {showCalendar && farmStateHook.farmState && (
+        <FarmCalendarModal
+          farmState={farmStateHook.farmState}
+          season={props.season}
+          year={farmStateHook.year}
+          validCrops={farmFieldsHook.validCrops}
+          onClose={() => setShowCalendar(false)}
+        />
+      )}
 
       {/* NPCToast for head farmer */}
       {farmLLMHook.farmerToast && farmStateHook.headFarmer && activeTab === 'overview' && (

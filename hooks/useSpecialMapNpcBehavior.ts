@@ -103,6 +103,16 @@ export function useSpecialMapNpcBehavior(
   const npcStates = useRef<Map<string, NpcBehaviorState>>(new Map());
   const playerActions = useRef<string[]>([]);
   const updateInterval = useRef<NodeJS.Timeout>();
+  const npcsRef = useRef<NpcEntity[]>(npcs);
+  const tilesRef = useRef<Tile[][]>(tiles);
+  const playerRef = useRef<PlayerCharacter>(player);
+
+  // Keep refs up to date
+  useEffect(() => {
+    npcsRef.current = npcs;
+    tilesRef.current = tiles;
+    playerRef.current = player;
+  }, [npcs, tiles, player]);
 
   // Track player actions for NPC reactions
   useEffect(() => {
@@ -121,7 +131,7 @@ export function useSpecialMapNpcBehavior(
   }, []);
 
   // Apply behavior state to NPC entity using update accumulator
-  const applyBehaviorToNpc = useCallback((npc: NpcEntity, state: NpcBehaviorState, npcs: NpcEntity[], player: PlayerCharacter, updateAccumulator: NpcUpdateAccumulator) => {
+  const applyBehaviorToNpc = useCallback((npc: NpcEntity, state: NpcBehaviorState, updateAccumulator: NpcUpdateAccumulator) => {
     // Handle dialogue updates
     if (npc.dialogue && state.currentDialogue) {
       const newDialogue = [state.currentDialogue, ...npc.dialogue.slice(1)];
@@ -136,8 +146,8 @@ export function useSpecialMapNpcBehavior(
       const dy = Math.sign(state.targetLocation.y - npc.y);
 
       // Check if target location is walkable
-      if (tiles && tiles[npc.y + dy] && tiles[npc.y + dy][npc.x + dx]) {
-        const targetTile = tiles[npc.y + dy][npc.x + dx];
+      if (tilesRef.current && tilesRef.current[npc.y + dy] && tilesRef.current[npc.y + dy][npc.x + dx]) {
+        const targetTile = tilesRef.current[npc.y + dy][npc.x + dx];
         const targetX = npc.x + dx;
         const targetY = npc.y + dy;
 
@@ -155,14 +165,14 @@ export function useSpecialMapNpcBehavior(
         );
 
         // Check for other NPC collisions
-        const hasNpcCollision = npcs.some(otherNpc =>
+        const hasNpcCollision = npcsRef.current.some(otherNpc =>
           otherNpc.id !== npc.id &&
           otherNpc.x === targetX &&
           otherNpc.y === targetY
         );
 
         // Check if player is at the target location
-        const hasPlayerCollision = player.x === targetX && player.y === targetY;
+        const hasPlayerCollision = playerRef.current.x === targetX && playerRef.current.y === targetY;
 
         // Special handling for guards - they can enter player tile to confront
         if (hasPlayerCollision && isGuardType(npc)) {
@@ -212,33 +222,33 @@ export function useSpecialMapNpcBehavior(
         }
       }
     }
-  }, [tiles, npcs, player, mapData]);
+  }, [mapData]);
 
   // Update NPC behavior based on context
   const updateNpcBehavior = useCallback((npc: NpcEntity) => {
-    if (!mapArchetype || !tiles || !tiles[npc.y] || !tiles[npc.y][npc.x]) return;
-    
+    if (!mapArchetype || !tilesRef.current || !tilesRef.current[npc.y] || !tilesRef.current[npc.y][npc.x]) return;
+
     // Check if player position is valid
-    if (player.x === undefined || player.y === undefined) {
-      console.log(`[Guard Detection] Player position undefined - x: ${player.x}, y: ${player.y}`);
+    if (playerRef.current.x === undefined || playerRef.current.y === undefined) {
+      console.log(`[Guard Detection] Player position undefined - x: ${playerRef.current.x}, y: ${playerRef.current.y}`);
       return;
     }
 
-    const tile = tiles[npc.y][npc.x];
-    const distanceToPlayer = Math.abs(player.x - npc.x) + Math.abs(player.y - npc.y);
+    const tile = tilesRef.current[npc.y][npc.x];
+    const distanceToPlayer = Math.abs(playerRef.current.x - npc.x) + Math.abs(playerRef.current.y - npc.y);
     const playerNearby = distanceToPlayer <= 5;
     
     // Check if this is a guard and if player is in detection range
     if (isGuardType(npc)) {
       const alertRadius = getGuardAlertRadius(npc, mapArchetype);
-      
+
       // Determine if player is in a restricted area
       // For special maps, consider the center area and certain rooms as restricted
-      const mapWidth = tiles[0]?.length || 0;
-      const mapHeight = tiles.length || 0;
+      const mapWidth = tilesRef.current[0]?.length || 0;
+      const mapHeight = tilesRef.current.length || 0;
       const centerX = Math.floor(mapWidth / 2);
       const centerY = Math.floor(mapHeight / 2);
-      
+
       // Check if player is in restricted zone (center third of the map or near important areas)
       const isInRestrictedArea = (() => {
         // Define restricted zones based on map archetype
@@ -248,28 +258,28 @@ export function useSpecialMapNpcBehavior(
           const outerBoundaryX = mapWidth * 0.65;
           const innerBoundaryY = mapHeight * 0.35;
           const outerBoundaryY = mapHeight * 0.65;
-          
-          return player.x >= innerBoundaryX && player.x <= outerBoundaryX &&
-                 player.y >= innerBoundaryY && player.y <= outerBoundaryY;
+
+          return playerRef.current.x >= innerBoundaryX && playerRef.current.x <= outerBoundaryX &&
+                 playerRef.current.y >= innerBoundaryY && playerRef.current.y <= outerBoundaryY;
         } else if (mapArchetype === 'SACRED') {
           // Altar area is typically in the center-back
           const altarAreaY = mapHeight * 0.2; // Top 20% of map
           const altarAreaX1 = mapWidth * 0.3;
           const altarAreaX2 = mapWidth * 0.7;
 
-          return (player.y <= altarAreaY && player.x >= altarAreaX1 && player.x <= altarAreaX2) ||
-                 (Math.abs(player.x - centerX) <= 5 && Math.abs(player.y - centerY) <= 5);
+          return (playerRef.current.y <= altarAreaY && playerRef.current.x >= altarAreaX1 && playerRef.current.x <= altarAreaX2) ||
+                 (Math.abs(playerRef.current.x - centerX) <= 5 && Math.abs(playerRef.current.y - centerY) <= 5);
         } else if (mapArchetype === 'FORTRESS_COMMANDER_CHAMBER') {
           // For fortress chambers, commander is at top center (y=1), not map center
           // Only restrict area immediately around the commander's throne
           const commanderX = centerX; // Still centered horizontally
           const commanderY = 1; // Commander sits at top of chamber
-          return Math.abs(player.x - commanderX) <= 2 && Math.abs(player.y - commanderY) <= 2;
+          return Math.abs(playerRef.current.x - commanderX) <= 2 && Math.abs(playerRef.current.y - commanderY) <= 2;
         } else {
           // For other maps, check if close to center
           // Use a reasonable radius that doesn't cover entire small maps
           const restrictedRadius = Math.min(8, Math.floor(Math.min(mapWidth, mapHeight) * 0.3));
-          return Math.abs(player.x - centerX) <= restrictedRadius && Math.abs(player.y - centerY) <= restrictedRadius;
+          return Math.abs(playerRef.current.x - centerX) <= restrictedRadius && Math.abs(playerRef.current.y - centerY) <= restrictedRadius;
         }
       })();
       
@@ -322,11 +332,11 @@ export function useSpecialMapNpcBehavior(
     // Override activity for guards who detected the player in restricted areas
     if (isGuardType(npc)) {
       const alertRadius = getGuardAlertRadius(npc, mapArchetype);
-      const mapWidth = tiles[0]?.length || 0;
-      const mapHeight = tiles.length || 0;
+      const mapWidth = tilesRef.current[0]?.length || 0;
+      const mapHeight = tilesRef.current.length || 0;
       const centerX = Math.floor(mapWidth / 2);
       const centerY = Math.floor(mapHeight / 2);
-      
+
       // Check if player is in restricted zone (same logic as above)
       const isInRestrictedArea = (() => {
         if (mapArchetype === 'ESTATES' || mapArchetype === 'GOVERNMENT_FORUM') {
@@ -334,24 +344,24 @@ export function useSpecialMapNpcBehavior(
           const outerBoundaryX = mapWidth * 0.65;
           const innerBoundaryY = mapHeight * 0.35;
           const outerBoundaryY = mapHeight * 0.65;
-          return player.x >= innerBoundaryX && player.x <= outerBoundaryX &&
-                 player.y >= innerBoundaryY && player.y <= outerBoundaryY;
+          return playerRef.current.x >= innerBoundaryX && playerRef.current.x <= outerBoundaryX &&
+                 playerRef.current.y >= innerBoundaryY && playerRef.current.y <= outerBoundaryY;
         } else if (mapArchetype === 'SACRED') {
           const altarAreaY = mapHeight * 0.2;
           const altarAreaX1 = mapWidth * 0.3;
           const altarAreaX2 = mapWidth * 0.7;
-          return (player.y <= altarAreaY && player.x >= altarAreaX1 && player.x <= altarAreaX2) ||
-                 (Math.abs(player.x - centerX) <= 5 && Math.abs(player.y - centerY) <= 5);
+          return (playerRef.current.y <= altarAreaY && playerRef.current.x >= altarAreaX1 && playerRef.current.x <= altarAreaX2) ||
+                 (Math.abs(playerRef.current.x - centerX) <= 5 && Math.abs(playerRef.current.y - centerY) <= 5);
         } else {
-          return Math.abs(player.x - centerX) <= 8 && Math.abs(player.y - centerY) <= 8;
+          return Math.abs(playerRef.current.x - centerX) <= 8 && Math.abs(playerRef.current.y - centerY) <= 8;
         }
       })();
-      
+
       // Only pursue if player is in restricted area AND within detection range
       if (isInRestrictedArea && distanceToPlayer <= alertRadius) {
         activity = {
           action: 'pursuing_player',
-          location: { x: player.x, y: player.y }, // Move toward player
+          location: { x: playerRef.current.x, y: playerRef.current.y }, // Move toward player
           duration: 1,
           interruptible: false,
           dialogue: 'Stop right there! This area is restricted!'
@@ -362,7 +372,7 @@ export function useSpecialMapNpcBehavior(
     // Determine attitude toward player
     const attitude = specialMapNpcBehaviorService.determineNpcAttitude(
       npc,
-      player,
+      playerRef.current,
       mapArchetype,
       playerActions.current
     );
@@ -405,7 +415,7 @@ export function useSpecialMapNpcBehavior(
     npcStates.current.set(npc.id, currentState);
 
     // Note: NPC updates are now handled in the main update loop with batching
-  }, [mapArchetype, tiles, player, timeOfDay, weather, era, culturalZone, npcs]);
+  }, [mapArchetype, timeOfDay, weather, era, culturalZone, mapData]);
 
   // Apply visual/behavioral effects based on mood
   const applyMoodEffects = useCallback((npc: NpcEntity, mood: NpcMood) => {
@@ -533,10 +543,6 @@ export function useSpecialMapNpcBehavior(
     return blockingBiomes.includes(biome);
   };
 
-  // Store npcs in a ref to avoid re-running effect on every NPC update
-  const npcsRef = useRef(npcs);
-  npcsRef.current = npcs;
-
   // Main update loop with batched state updates
   useEffect(() => {
     // Only log when we actually have a special map and NPCs to avoid spam
@@ -559,7 +565,7 @@ export function useSpecialMapNpcBehavior(
       currentNpcs.forEach(npc => {
         const state = npcStates.current.get(npc.id);
         if (state) {
-          applyBehaviorToNpc(npc, state, currentNpcs, player, updateAccumulator);
+          applyBehaviorToNpc(npc, state, updateAccumulator);
         }
       });
 
@@ -580,7 +586,7 @@ export function useSpecialMapNpcBehavior(
         clearInterval(updateInterval.current);
       }
     };
-  }, [mapArchetype, updateNpcBehavior, applyBehaviorToNpc, player]);
+  }, [mapArchetype, updateNpcBehavior, applyBehaviorToNpc]);
 
   // Get behavior state for a specific NPC
   const getNpcBehaviorState = useCallback((npcId: string): NpcBehaviorState | undefined => {
@@ -605,11 +611,11 @@ export function useSpecialMapNpcBehavior(
 
   // Force update a specific NPC
   const forceUpdateNpc = useCallback((npcId: string) => {
-    const npc = npcs.find(n => n.id === npcId);
+    const npc = npcsRef.current.find(n => n.id === npcId);
     if (npc) {
       updateNpcBehavior(npc);
     }
-  }, [npcs, updateNpcBehavior]);
+  }, [updateNpcBehavior]);
 
   // Player performs action that affects NPCs
   const playerPerformAction = useCallback((action: string) => {
@@ -618,13 +624,13 @@ export function useSpecialMapNpcBehavior(
     // Immediately update nearby NPCs with batched updates
     const updateAccumulator = new NpcUpdateAccumulator();
 
-    npcs.forEach(npc => {
-      const distance = Math.abs(player.x - npc.x) + Math.abs(player.y - npc.y);
+    npcsRef.current.forEach(npc => {
+      const distance = Math.abs(playerRef.current.x - npc.x) + Math.abs(playerRef.current.y - npc.y);
       if (distance <= 5) {
         updateNpcBehavior(npc);
         const state = npcStates.current.get(npc.id);
         if (state) {
-          applyBehaviorToNpc(npc, state, npcs, player, updateAccumulator);
+          applyBehaviorToNpc(npc, state, updateAccumulator);
         }
       }
     });
@@ -633,7 +639,7 @@ export function useSpecialMapNpcBehavior(
     if (updateAccumulator.hasUpdates()) {
       updateNpcs(prevNpcs => updateAccumulator.applyUpdates(prevNpcs));
     }
-  }, [npcs, player, updateNpcBehavior, applyBehaviorToNpc]);
+  }, [updateNpcBehavior, applyBehaviorToNpc, updateNpcs]);
 
   return {
     getNpcBehaviorState,

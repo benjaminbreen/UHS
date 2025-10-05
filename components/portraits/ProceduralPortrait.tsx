@@ -612,6 +612,13 @@ const parseHairstyle = (
     }
   }, [temporaryExpression, onExpressionComplete]);
 
+  // Debug: Log expression changes
+  useEffect(() => {
+    if (temporaryExpression) {
+      console.log('[ProceduralPortrait] Expression changed to:', temporaryExpression);
+    }
+  }, [temporaryExpression]);
+
 
   // ---------- Blink / Gaze Animation (unchanged) ----------
   const [blinkProgress, setBlinkProgress] = useState(0);
@@ -1312,6 +1319,16 @@ const renderHead = useMemo(() => {
         );
       }
     }
+
+    // Subsurface scattering and rim lighting on ear edge - light from left
+    if (earT > 0.2 && earT < 0.8) {
+      const scatterColor = createSubsurfaceScattering(earBaseColor, 0.4);
+      const rimLight = createHighlight(earBaseColor, 1.15);
+      elements.push(
+        <rect key={`ear-l-scatter-${i}`} x={earX - 1} y={earY} width="1" height="1" fill={scatterColor} opacity="0.5" className="pixel" />,
+        <rect key={`ear-l-rim-${i}`} x={earX - 2} y={earY} width="1" height="1" fill={rimLight} opacity="0.3" className="pixel" />
+      );
+    }
   }
 
   // Right ear - mirror of left
@@ -1353,6 +1370,14 @@ const renderHead = useMemo(() => {
           <rect key={`ear-r-canal-${i}`} x={earX} y={earY} width="1" height="1" fill={createRuddyEarColor(skinShadow)} opacity="0.8" className="pixel" />
         );
       }
+    }
+
+    // Right ear gets less scattering (it's in shadow, light from left)
+    if (earT > 0.2 && earT < 0.8) {
+      const scatterColor = createSubsurfaceScattering(earBaseColor, 0.25); // Less intense on right
+      elements.push(
+        <rect key={`ear-r-scatter-${i}`} x={earX + earWidth} y={earY} width="1" height="1" fill={scatterColor} opacity="0.3" className="pixel" />
+      );
     }
   }
 
@@ -1443,6 +1468,9 @@ const renderHead = useMemo(() => {
   } else if (affect === 'angry' || affect === 'furious') {
     // Red when angry
     cheekFlush = mix(actualSkinTone, '#FF4444', 0.2);
+  } else if (exprIsSmileFamily || exprIsExcited) {
+    // Rosy cheeks when smiling or excited
+    cheekFlush = mix(actualSkinTone, '#FFB6C1', 0.15);
   } else if (healthPercent > 0.9 && fatiguePercent < 0.3) {
     // Healthy glow when in good condition
     cheekFlush = mix(actualSkinTone, '#FFB6C1', 0.1);
@@ -1651,6 +1679,18 @@ if (hairLen === 'bald') return;
             col = layer === 0 ? naturalHairShadow :
                  layer === 1 ? naturalBaseHair :
                  naturalHairHighlight;
+          }
+
+          // Directional lighting - add highlights to left side (light from left)
+          const distFromLeft = x - left;
+          const distFromRight = right - x;
+          const isLeftSide = distFromLeft < 3;
+          const isRightSide = distFromRight < 3;
+
+          if (isLeftSide && p > 0.5) {
+            col = naturalHairHighlight; // Brighter on left (lit side)
+          } else if (isRightSide) {
+            col = naturalHairShadow; // Darker on right (shadow side)
           }
 
           // Add subtle transparency for edge layers to create softer look
@@ -2578,13 +2618,77 @@ if (defaultCapStyles.has(hairStyle)) {
       );
     }
 
-    // Simple eyebrows - single line per eyebrow
+    // Expression-aware eyebrows with position and shape variations
     const browColor = hasGrayHair ? 'rgb(169,169,169)' : baseHair;
-    const browY = eyeY - 3;
-    elements.push(
-      <rect key="brow-l" x={leftEyeX - 1} y={browY} width="5" height="1" fill={browColor} className="pixel" />,
-      <rect key="brow-r" x={rightEyeX - 1} y={browY} width="5" height="1" fill={browColor} className="pixel" />
-    );
+    const browShadow = createShadow(browColor, 0.8);
+
+    // Base position
+    let browYLeft = eyeY - 3;
+    let browYRight = eyeY - 3;
+
+    // Expression-based vertical offsets
+    if (exprIsSurprised) {
+      browYLeft -= 2;  // Raise both eyebrows significantly
+      browYRight -= 2;
+    } else if (exprIsScowl || exprIsAnnoyed || exprIsDetermined) {
+      browYLeft -= 1;  // Lower/furrow eyebrows
+      browYRight -= 1;
+    } else if (exprIsSkeptical) {
+      browYRight -= 2;  // Raise only right eyebrow (skeptical look)
+    } else if (exprIsConcern || exprIsSad) {
+      browYLeft -= 1;  // Slight raise for concern/sadness
+      browYRight -= 1;
+    } else if (exprIsSmileFamily || exprIsExcited) {
+      browYLeft -= 0.5;  // Very slight raise for positive emotions
+      browYRight -= 0.5;
+    }
+
+    // Render eyebrows with shape variations based on expression
+    if (exprIsScowl || exprIsAnnoyed) {
+      // Angled down toward center (furrowed/angry)
+      // Left eyebrow: inner lower, outer higher
+      elements.push(
+        <rect key="brow-l-inner" x={leftEyeX - 1} y={browYLeft + 1} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-l-mid" x={leftEyeX + 1} y={browYLeft} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-l-outer" x={leftEyeX + 3} y={browYLeft - 1} width="1" height="1" fill={browShadow} className="pixel" />
+      );
+      // Right eyebrow: inner lower, outer higher
+      elements.push(
+        <rect key="brow-r-inner" x={rightEyeX + 2} y={browYRight + 1} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-r-mid" x={rightEyeX} y={browYRight} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-r-outer" x={rightEyeX - 1} y={browYRight - 1} width="1" height="1" fill={browShadow} className="pixel" />
+      );
+    } else if (exprIsSad || exprIsConcern) {
+      // Arched upward in middle (sad/concerned)
+      // Inner higher, middle lower, outer medium
+      elements.push(
+        <rect key="brow-l-inner" x={leftEyeX - 1} y={browYLeft - 1} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-l-mid" x={leftEyeX + 1} y={browYLeft} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-l-outer" x={leftEyeX + 3} y={browYLeft} width="1" height="1" fill={browShadow} className="pixel" />
+      );
+      elements.push(
+        <rect key="brow-r-inner" x={rightEyeX + 2} y={browYRight - 1} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-r-mid" x={rightEyeX} y={browYRight} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-r-outer" x={rightEyeX - 1} y={browYRight} width="1" height="1" fill={browShadow} className="pixel" />
+      );
+    } else if (exprIsSkeptical) {
+      // Left eyebrow normal, right eyebrow raised
+      elements.push(
+        <rect key="brow-l" x={leftEyeX - 1} y={eyeY - 3} width="5" height="1" fill={browColor} className="pixel" />
+      );
+      // Right eyebrow raised with slight arch
+      elements.push(
+        <rect key="brow-r-inner" x={rightEyeX + 2} y={browYRight - 1} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-r-mid" x={rightEyeX} y={browYRight - 2} width="2" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-r-outer" x={rightEyeX - 1} y={browYRight - 1} width="1" height="1" fill={browShadow} className="pixel" />
+      );
+    } else {
+      // Default straight eyebrows (neutral, smile, surprise, etc.)
+      elements.push(
+        <rect key="brow-l" x={leftEyeX - 1} y={browYLeft} width="5" height="1" fill={browColor} className="pixel" />,
+        <rect key="brow-r" x={rightEyeX - 1} y={browYRight} width="5" height="1" fill={browColor} className="pixel" />
+      );
+    }
 
     // Blinking eyelids - cover eyes when blinking
     if (blinkProgress > 0) {
@@ -2653,12 +2757,16 @@ if (defaultCapStyles.has(hairStyle)) {
     const noseLen = Math.min(maxLenToPhiltrum, Math.round((5 + (long ? 2 : 0) + (isOld ? 1 : 0)) * lengthMul));
     const noseWidth = Math.max(3, Math.round((declared === 'broad' ? 4 : 3) * widthMul));
 
-    // Nose bridge highlights
+    // Nose bridge highlights - consistent with left-side rim lighting
+    // Subtle highlight on LEFT side of nose bridge (light from left)
     for (let i = 0; i < Math.max(1, noseLen - 2); i++) {
+      const highlightIntensity = i < 2 ? 1.08 : 1.03; // Subtle, not bright white
       elements.push(
-        <rect key={`nbh-${i}`} x={noseX + 1} y={noseStartY - 1 + i} width="1" height="1" fill={i < 2 ? skinHighlight : skinMidtone} className="pixel" />
+        <rect key={`nbh-${i}`} x={noseX} y={noseStartY - 1 + i} width="1" height="1"
+          fill={createHighlight(skinTone, highlightIntensity)} className="pixel" />
       );
     }
+
     if (bump) {
       elements.push(
         <rect key="bump-1" x={noseX + 1} y={noseStartY + Math.floor(noseLen / 3)} width="2" height="1" fill={skinTone} className="pixel" />
@@ -2669,14 +2777,17 @@ if (defaultCapStyles.has(hairStyle)) {
       <rect key="nose-body" x={noseX} y={noseStartY} width={Math.max(1, noseWidth - 1)} height={noseLen} fill={skinTone} className="pixel" />
     );
 
-    // Side shadows for nose
+    // Side shadows/highlights for nose - consistent directional lighting
     elements.push(
-      <rect key="nose-side-l" x={noseX - 1} y={noseStartY + 1} width="1" height={Math.max(1, noseLen - 1)} fill={skinShadow} className="pixel" />,
-      <rect key="nose-side-r" x={noseX + noseWidth - 1} y={noseStartY + 1} width="1" height={Math.max(1, noseLen - 2)} fill={skinHighlight} className="pixel" />
+      <rect key="nose-side-l" x={noseX - 1} y={noseStartY + 1} width="1" height={Math.max(1, noseLen - 1)}
+        fill={createHighlight(skinTone, 1.05)} className="pixel" />, // Left side gets subtle highlight
+      <rect key="nose-side-r" x={noseX + noseWidth} y={noseStartY + 1} width="1" height={Math.max(1, noseLen - 2)}
+        fill={skinShadow} className="pixel" /> // Right side gets shadow (moved 1px right)
     );
 
     const tipY = noseStartY + noseLen - 1;
-    const tipHL = skinBrightHighlight;
+    // Make nose tip as bright as the left-side highlights for consistency
+    const tipHL = createHighlight(skinTone, 1.15);
 
     if (isIll) {
       elements.push(
@@ -2687,8 +2798,15 @@ if (defaultCapStyles.has(hairStyle)) {
 
     elements.push(
       <rect key="nose-tip" x={noseX + Math.floor(noseWidth / 2) - 1} y={tipY} width="2" height="1" fill={isIll ? "rgba(255, 180, 180, 0.8)" : tipHL} className="pixel" />,
-      // Additional highlight pixel for more rounded nose tip
-      <rect key="nose-tip-extra" x={noseX + Math.floor(noseWidth / 2) + 1} y={tipY} width="1" height="1" fill={skinHighlight} opacity="0.8" className="pixel" />
+      // Additional bright highlight pixel for prominent nose tip
+      <rect key="nose-tip-extra" x={noseX + Math.floor(noseWidth / 2)} y={tipY} width="1" height="1" fill={skinBrightHighlight} className="pixel" />
+    );
+
+    // Subsurface scattering on nose tip (light passing through thin skin)
+    const noseTipScatter = createSubsurfaceScattering(actualSkinTone, 0.35);
+    elements.push(
+      <rect key="nose-tip-scatter-l" x={noseX} y={tipY} width="1" height="1" fill={noseTipScatter} opacity="0.4" className="pixel" />,
+      <rect key="nose-tip-scatter-r" x={noseX + noseWidth - 1} y={tipY} width="1" height="1" fill={noseTipScatter} opacity="0.4" className="pixel" />
     );
 
     const nostrilY = Math.min(tipY + 1, mouthY - 2);
@@ -2711,8 +2829,8 @@ if (defaultCapStyles.has(hairStyle)) {
     );
 
     // Add sophisticated color-aware shadow directly under the nose (philtrum area)
-    const underNoseShadow = createShadow(actualSkinTone, 0.85);  // Darker, more visible shadow
-    const underNoseDeepShadow = createShadow(actualSkinTone, 0.78); // Even darker for center
+    const underNoseShadow = createShadow(actualSkinTone, 0.75);  // Darker shadow (matching lip shadow)
+    const underNoseDeepShadow = createShadow(actualSkinTone, 0.65); // Even darker for center
 
     // Gradient shadow under nose - darker in center, lighter at edges
     for (let dx = 0; dx < noseWidth - 1; dx++) {
@@ -2820,9 +2938,13 @@ if (defaultCapStyles.has(hairStyle)) {
             const rightLift = Math.round(1.5 * (t > 0 ? t : 0));
             return (t < -0.6 ? 0 : t < -0.2 ? 0 : t < 0.2 ? 0 : 1) - rightLift;
           }
-          return Math.round(-1.2 * (1 - Math.abs(t)));
+          // Wider/bigger smile for excited
+          const smileDepth = exprIsExcited ? -1.5 : -1.2;
+          return Math.round(smileDepth * (1 - Math.abs(t)));
         case 2:
-          return Math.round(1.2 * (1 - Math.abs(t)));
+          // More pronounced frown for scowl/annoyed
+          const frownDepth = (exprIsScowl || exprIsAnnoyed) ? 1.5 : 1.2;
+          return Math.round(frownDepth * (1 - Math.abs(t)));
         case 4:
           return (Math.abs(dx) <= 1) ? 0 : (Math.abs(dx) === halfW ? 0 : 0);
         default:
@@ -2840,6 +2962,37 @@ if (defaultCapStyles.has(hairStyle)) {
     // Use lighter shadows for more natural lip colors
     const upperLipColor = createShadow(lipColor, isFemale ? 0.95 : 0.98);
     const lowerLipColor = lipColor;  // No shadow for lower lip - use base color
+
+    // SURPRISE: Render open mouth (O-shape)
+    if (exprIsSurprised) {
+      const mouthOpenColor = '#1a0a0a'; // Dark mouth cavity
+      const teethColor = '#F5F5DC'; // Beige/off-white teeth
+
+      // Render oval-shaped open mouth
+      px(0, 0, mouthOpenColor);
+      px(-1, 0, mouthOpenColor);
+      px(1, 0, mouthOpenColor);
+      px(0, 1, mouthOpenColor);
+      px(-1, 1, mouthOpenColor);
+      px(1, 1, mouthOpenColor);
+      px(0, 2, mouthOpenColor);
+
+      // Upper teeth showing
+      px(-1, 0, teethColor);
+      px(0, 0, teethColor);
+      px(1, 0, teethColor);
+
+      // Lips around the opening
+      px(-2, 0, upperLipColor);
+      px(2, 0, upperLipColor);
+      px(-2, 1, lowerLipColor);
+      px(2, 1, lowerLipColor);
+      px(-1, 2, lowerLipColor);
+      px(0, 2, lowerLipColor);
+      px(1, 2, lowerLipColor);
+
+      return <g key="mouth">{elements}</g>;
+    }
 
     // Enhanced lip rendering with better definition
     for (let dx = -halfW; dx <= halfW; dx++) {
@@ -2925,10 +3078,10 @@ if (defaultCapStyles.has(hairStyle)) {
 
     // Add sophisticated color-aware shadow under the lower lip with gradient
     const lipBottomY = lipShape === 'full' || lipShape === 'bow' || isYoung ? 3 : 2;
-    const underLipShadowLight = createShadow(actualSkinTone, 0.88);  // Light edge shadow
-    const underLipShadowMedium = createShadow(actualSkinTone, 0.78); // Medium shadow
-    const underLipShadowDark = createShadow(actualSkinTone, 0.68); // Dark center shadow
-    const underLipShadowDeepest = createShadow(actualSkinTone, 0.58); // Very dark center
+    const underLipShadowLight = createShadow(actualSkinTone, 0.82);  // Light edge shadow (darker)
+    const underLipShadowMedium = createShadow(actualSkinTone, 0.72); // Medium shadow (darker)
+    const underLipShadowDark = createShadow(actualSkinTone, 0.62); // Dark center shadow (darker)
+    const underLipShadowDeepest = createShadow(actualSkinTone, 0.52); // Very dark center (darker)
 
     // Gradient shadow - darkest in center where lip casts most shadow
     for (let dx = -halfW; dx <= halfW; dx++) {
@@ -3313,16 +3466,16 @@ if (defaultCapStyles.has(hairStyle)) {
   // ----- BODY / CLOTHING -----
   const renderBody = useMemo(() => {
     const elements: JSX.Element[] = [];
-    const neckY = headY + headDim.height;
-    const neckHeight = 5;
+    const neckY = headY + headDim.height - 1;  // Overlap with jaw by 1 pixel for seamless connection
+    const neckHeight = 6;  // Increased to compensate for overlap
     const bodyStartY = neckY + neckHeight;
     const bodyHeight = 64 - bodyStartY;
 
-    const neckWidth = Math.floor(headDim.width * 0.55);
+    const neckWidth = Math.floor(headDim.width * 0.65);
     for (let y = 0; y < neckHeight; y++) {
       // More gradual neck widening for smoother shoulder transition
       const progressToShoulder = y / neckHeight;
-      const nw = Math.floor(neckWidth + (bodyDim.shoulderWidth * 0.7 - neckWidth) * Math.pow(progressToShoulder, 1.5));
+      const nw = Math.floor(neckWidth + (bodyDim.shoulderWidth * 0.7 - neckWidth) * Math.pow(progressToShoulder, 2.5));
       const nx = headX + Math.floor((headDim.width - nw) / 2);
 
       for (let x = 0; x < nw; x++) {
@@ -5946,9 +6099,9 @@ if (defaultCapStyles.has(hairStyle)) {
         const lipBottomY = mouthY + 3;
         const lipWidth = appearanceWithDefaults.lipShape === 'wide' ? 4 : 3;
 
-        // Create a warm shadow that's darker than skin but not lip-colored
-        const underLipShadow = createShadow(actualSkinTone, 0.88);  // Darker shadow
-        const underLipMidtone = createShadow(actualSkinTone, 0.93);  // Lighter edge shadow
+        // Create a warm shadow that's darker than skin but not lip-colored (matching nose shadow intensity)
+        const underLipShadow = createShadow(actualSkinTone, 0.75);  // Darker shadow (closer to nose shadow)
+        const underLipMidtone = createShadow(actualSkinTone, 0.85);  // Lighter edge shadow
 
         for (let dx = -lipWidth; dx <= lipWidth; dx++) {
           // Gradient shadow - darker in center where lip casts shadow

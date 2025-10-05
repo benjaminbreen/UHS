@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
-import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link, ChevronDown, ChevronUp, Copy, Check, Share2, RefreshCw, QrCode } from 'lucide-react';
 import ProceduralPortrait from './portraits/ProceduralPortrait';
 import { GameDate, HistoricalEra, CulturalZone } from '../types';
 import { PlayerCharacter } from '../types/playerCharacter';
@@ -347,6 +347,15 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     }, []);
 
+    // Safari-optimized class names (no transparencies/backdrop-blur)
+    const cardClass = isSafari
+        ? "bg-slate-800 rounded-xl p-4 border border-slate-700"
+        : "bg-slate-800/70 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50";
+
+    const modalBgClass = isSafari
+        ? "bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl"
+        : "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl";
+
     useEffect(() => {
         if (isOpen) {
             // Start the fade-in animation sequence
@@ -426,7 +435,9 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const [dialectContinuumEnabled, setDialectContinuumEnabled] = React.useState(true);
     const [showModeDetails, setShowModeDetails] = React.useState(false);
     const [showCharacterDetails, setShowCharacterDetails] = React.useState(false);
-    const [portraitExpression, setPortraitExpression] = React.useState<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'>('neutral');
+    const [portraitExpression, setPortraitExpression] = React.useState<'neutral' | 'smile' | 'surprise' | 'scowl' | 'annoyed'>('neutral');
+    const [showBottomSheet, setShowBottomSheet] = React.useState(false);
+    const [expandedContext, setExpandedContext] = React.useState(false);
     
     // Generate shareable URL when requested
     React.useEffect(() => {
@@ -511,113 +522,155 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         [gameMode, scenarioData.era, scenarioData.culturalZone, playerCharacter]
     );
 
+    // Handle native share if available
+    const handleNativeShare = async () => {
+        if (navigator.share && shareableURL) {
+            try {
+                await navigator.share({
+                    title: 'Universal History Simulator',
+                    text: `Play as ${playerCharacter.name}, a ${playerCharacter.occupation || playerCharacter.profession} in ${formatYear(gameDate.year)}`,
+                    url: shareableURL
+                });
+            } catch (err) {
+                // User cancelled or share failed
+                console.log('Share cancelled or failed:', err);
+            }
+        }
+    };
+
     return (
-        <div className={`fixed inset-0 bg-slate-400/60 dark:bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 pb-8 md:pb-4 transition-opacity duration-500 ${
+        <div className={`fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 pb-7 md:pb-3 transition-opacity duration-500 ${
             isVisible ? 'opacity-100' : 'opacity-0'
         }`}>
-            <div className={`bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-700 dark:to-slate-900
-                border border-slate-300/50 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-6xl w-full
-                max-h-[95vh] overflow-y-auto
+            <div className={`${modalBgClass} max-w-7xl w-full
+                max-h-[95vh] overflow-hidden flex flex-col
                 ${isSafari ? 'transition-opacity duration-700' : 'transition-all duration-700 transform'} ${
                     contentVisible
                         ? `opacity-100 ${!isSafari ? 'scale-100 translate-y-0' : ''}`
                         : `opacity-0 ${!isSafari ? 'scale-95 translate-y-4' : ''}`
                 }`}>
-                
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-5 border-b border-slate-300/50 dark:border-slate-700/50">
-                    <div className="flex items-start sm:items-center gap-2 md:gap-4 w-full sm:w-auto">
-                        <div className={`p-2 md:p-3 bg-gradient-to-br rounded-lg shrink-0 ${
-                        gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-500 to-amber-600' : 'from-amber-500 to-amber-600'
-                    }`}>
-                            <DominantFactionIcon className="w-5 h-5 md:w-7 md:h-7 text-white" />
+
+                {/* Sticky Header with gradient */}
+                <div className={`sticky top-0 z-20 bg-gradient-to-r ${
+                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-600 to-amber-700' : 'from-amber-600 to-amber-700'
+                } border-b ${isSafari ? 'border-amber-800' : 'border-white/20 backdrop-blur-sm'}`}>
+                    <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-white/20 rounded-lg">
+                                <DominantFactionIcon className="w-7 h-7 text-white" />
+                            </div>
+                            <div className="text-white">
+                                <div className="text-sm font-medium opacity-90">
+                                    {formatYear(gameDate.year)} • {formatEra(scenarioData.era)} • <span className="font-bold">{currentRegion}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 break-words">
-                                You are {playerCharacter.name}, a {playerCharacter.occupation || playerCharacter.profession || 'traveler'}, and the year is {formatYear(gameDate.year)}
-                            </h2>
-                            <p className="text-xs sm:text-sm md:text-lg text-slate-600 dark:text-slate-300 break-words">
-                                <span className="block sm:inline">{formatEra(scenarioData.era)} • {formatCulturalZone(scenarioData.culturalZone)}</span>
-                                <span className="block sm:inline sm:ml-1 text-emerald-700 dark:text-emerald-400 font-medium">• {currentRegion}</span>
-                                <span className={`block sm:inline sm:ml-1 font-medium ${getSeasonColors(getSeasonFromDate(gameDate))}`}>• {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
-                            </p>
+                        <div className="flex items-center gap-2">
+                            {/* Desktop Share Button */}
+                            <button
+                                onClick={() => setShowShareLink(!showShareLink)}
+                                className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors"
+                            >
+                                <Share2 className="w-4 h-4" />
+                                <span className="text-sm">Share</span>
+                            </button>
+                            <button
+                                onClick={onClose}
+                                className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className={getSafariOptimizedClassName("absolute top-3 right-3 p-1.5 md:p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors")}
-                    >
-                        <X className="w-5 h-5 md:w-6 md:h-6" />
-                    </button>
                 </div>
 
-                <div className="p-2 md:p-3 pb-24 md:pb-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-4 mb-4">
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 pb-32 md:pb-6">
+
+                    {/* Hero Section */}
+                    <div className="mb-6 text-center md:text-left">
+                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+                            You are <span className="text-amber-400">{playerCharacter.name}</span>
+                        </h1>
+                        <p className="text-xl text-slate-300">
+                            A <span className="text-emerald-400">{playerCharacter.occupation || playerCharacter.profession || 'traveler'}</span> in the <span className={getSeasonColors(getSeasonFromDate(gameDate)) + ' font-semibold'}>{getSeasonFromDate(gameDate)}</span> of {formatYear(gameDate.year)}
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                         {/* Left Column - Main Content (3/5) */}
-                        <div className="lg:col-span-3 space-y-2 md:space-y-3">
+                        <div className="lg:col-span-3 space-y-4">
                             {/* Historical Context */}
-                            <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 border border-slate-700/30">
-                                <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
-                                    <Globe className="w-5 h-5 md:w-6 md:h-6 text-blue-400 shrink-0" />
-                                    <h3 className="text-base md:text-xl font-semibold text-blue-600 dark:text-blue-400 break-words">
-                                        It is <span className={getSeasonColors(getSeasonFromDate(gameDate))}>{getSeasonFromDate(gameDate)}</span> in the {localArea}
+                            <div className={cardClass}>
+                                <div className="flex items-center gap-3 mb-3">
+                                    <Globe className="w-6 h-6 text-blue-400 shrink-0" />
+                                    <h3 className="text-lg font-semibold text-blue-400">
+                                        The {localArea}
                                     </h3>
                                 </div>
-                                <p className="text-slate-300 leading-relaxed text-sm md:text-base">
-                                    {isProcessingWorldWeaver ? (
-                                        <span className="flex items-center gap-2 text-green-400">
-                                            <span className="inline-block w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
-                                            WorldWeaver is creating your custom scenario...
-                                        </span>
-                                    ) : (
-                                        worldWeaverData?.settingDescription || historicalContext
+                                <div className="relative">
+                                    <p className={`text-slate-300 leading-relaxed text-base transition-all duration-300 ${
+                                        expandedContext ? '' : 'line-clamp-3'
+                                    }`}>
+                                        {isProcessingWorldWeaver ? (
+                                            <span className="flex items-center gap-2 text-green-400">
+                                                <span className="inline-block w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
+                                                WorldWeaver is creating your custom scenario...
+                                            </span>
+                                        ) : (
+                                            worldWeaverData?.settingDescription || historicalContext
+                                        )}
+                                    </p>
+                                    {!isProcessingWorldWeaver && (worldWeaverData?.settingDescription || historicalContext).length > 150 && (
+                                        <button
+                                            onClick={() => setExpandedContext(!expandedContext)}
+                                            className="text-blue-400 hover:text-blue-300 text-sm mt-2 flex items-center gap-1 transition-colors"
+                                        >
+                                            <span>{expandedContext ? 'Read less' : 'Read more'}</span>
+                                            <ChevronDown className={`w-4 h-4 transition-transform ${expandedContext ? 'rotate-180' : ''}`} />
+                                        </button>
                                     )}
-                                </p>
+                                </div>
                             </div>
 
                             {/* Character Info */}
-                            <div className="bg-slate-800/50 rounded-lg p-2 md:p-4 border border-slate-700/30">
-                                <div className="flex items-center justify-between mb-2 md:mb-3">
+                            <div className={cardClass}>
+                                <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
-                                        <User className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
-                                        <h3 className="text-sm md:text-lg font-semibold text-green-600 dark:text-green-400">Your Character</h3>
+                                        <User className="w-5 h-5 text-green-400" />
+                                        <h3 className="text-lg font-semibold text-green-400">Your Character</h3>
                                     </div>
                                     <button
                                         onClick={() => setShowCharacterDetails(!showCharacterDetails)}
-                                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-full text-xs transition-colors"
                                     >
-                                        More Info
-                                        {showCharacterDetails ? (
-                                            <ChevronUp className="w-3 h-3" />
-                                        ) : (
-                                            <ChevronDown className="w-3 h-3" />
-                                        )}
+                                        <span>{showCharacterDetails ? 'Less Info' : 'More Info'}</span>
+                                        <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showCharacterDetails ? 'rotate-180' : ''}`} />
                                     </button>
                                 </div>
 
                                 {/* Portrait and Info Layout */}
-                                <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                                <div className="flex flex-col sm:flex-row gap-4">
                                     {/* Portrait Column */}
-                                    <div className="flex-shrink-0 flex flex-col items-center sm:items-start w-32 md:w-40">
-                                        <div className="relative">
-                                            <div
-                                                className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-amber-400/50 shadow-lg overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 cursor-pointer hover:border-amber-400 transition-colors"
-                                                onClick={() => {
-                                                    if (shouldRenderPortrait) {
-                                                        const expressions: Array<'neutral' | 'smile' | 'frown' | 'surprise' | 'angry'> = ['neutral', 'smile', 'frown', 'surprise', 'angry'];
-                                                        const currentIndex = expressions.indexOf(portraitExpression);
-                                                        const filteredExpressions = expressions.filter((_, i) => i !== currentIndex);
-                                                        const newExpression = filteredExpressions[Math.floor(Math.random() * filteredExpressions.length)];
-                                                        setPortraitExpression(newExpression);
-                                                    }
-                                                }}
-                                                title={shouldRenderPortrait ? "Click to change expression" : "Loading portrait..."}
-                                            >
+                                    <div className="flex-shrink-0 w-40">
+                                        <div className="relative cursor-pointer"
+                                            onClick={() => {
+                                                if (shouldRenderPortrait) {
+                                                    const expressions: Array<'neutral' | 'smile' | 'surprise' | 'scowl' | 'annoyed'> = ['neutral', 'smile', 'surprise', 'scowl', 'annoyed'];
+                                                    const currentIndex = expressions.indexOf(portraitExpression);
+                                                    const filteredExpressions = expressions.filter((_, i) => i !== currentIndex);
+                                                    const newExpression = filteredExpressions[Math.floor(Math.random() * filteredExpressions.length)];
+                                                    setPortraitExpression(newExpression);
+                                                }
+                                            }}
+                                            title="Click to change expression"
+                                        >
+                                            <div className="w-40 h-40 rounded-xl border-2 border-amber-400/50 overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 transition-all hover:border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.4)]">
                                                 {shouldRenderPortrait ? (
                                                     <ProceduralPortrait
                                                         character={playerCharacter}
                                                         size={160}
-                                                        expression={portraitExpression}
+                                                        temporaryExpression={portraitExpression === 'neutral' ? null : portraitExpression}
                                                         className="w-full h-full"
                                                     />
                                                 ) : (
@@ -628,12 +681,15 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-amber-400/30 to-amber-600/30 blur-sm -z-10" />
+                                        </div>
+                                        {/* Expression indicator - directly under portrait */}
+                                        <div className="text-center mt-2 text-xs text-slate-400">
+                                            Expression: <span className="text-amber-400 capitalize">{portraitExpression}</span>
                                         </div>
 
                                         {/* Health Status below portrait */}
                                         {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
-                                            <div className="mt-2 p-2 bg-red-900/20 border border-red-600/30 rounded w-full text-center">
+                                            <div className="mt-2 p-2 bg-red-900/20 border border-red-600/30 rounded text-center">
                                                 <span className="text-red-400 text-xs font-medium block mb-1">HEALTH</span>
                                                 {playerCharacter.diseaseHealth.currentDiseases.map((disease, idx) => {
                                                     const isCritical = disease.disease.mortalityRate > 0.3 || disease.severity > 0.7;
@@ -650,7 +706,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         {(() => {
                                             const attributeSentence = generateAttributeSentence(playerCharacter);
                                             return attributeSentence ? (
-                                                <div className="mt-2 p-2 bg-slate-800/30 rounded text-center w-full">
+                                                <div className="mt-2 p-2 bg-slate-800/30 rounded text-center">
                                                     <p className="text-slate-300 text-xs italic break-words leading-relaxed">
                                                         {attributeSentence}
                                                     </p>
@@ -660,23 +716,19 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                     </div>
 
                                     {/* Character Info Column */}
-                                    <div className="flex-grow space-y-2">
-                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="flex-1 space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1">Name</span>
-                                                <span className="text-white font-medium break-words">
-                                                    {playerCharacter.name}
-                                                </span>
+                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Name</div>
+                                                <div className="text-white font-medium">{playerCharacter.name}</div>
                                             </div>
                                             <div>
-                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1">Occupation</span>
-                                                <span className="text-white font-medium break-words">
-                                                    {playerCharacter.occupation || playerCharacter.profession || 'Unknown'}
-                                                </span>
+                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Occupation</div>
+                                                <div className="text-white font-medium">{playerCharacter.occupation || playerCharacter.profession || 'Unknown'}</div>
                                             </div>
                                             <div>
-                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1">Social Class</span>
-                                                <span className="text-white font-medium break-words">
+                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Social Class</div>
+                                                <div className="text-white font-medium">
                                                     {playerCharacter.class ?
                                                         playerCharacter.class
                                                             .replace(/_/g, ' ')
@@ -684,71 +736,71 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                                                             .join(' ')
                                                         : 'Common'}
-                                                </span>
+                                                </div>
                                             </div>
                                             <div>
-                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                                                     <MapPin className="w-3 h-3" />
                                                     Region
-                                                </span>
-                                                <span className="text-emerald-400 font-medium break-words">{currentRegion}</span>
+                                                </div>
+                                                <div className="text-emerald-400 font-bold">{currentRegion}</div>
                                             </div>
                                         </div>
 
                                         {/* Character Description - WorldWeaver or Standard */}
                                         {isProcessingWorldWeaver ? (
-                                            <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
-                                                <p className="text-green-400 text-xs md:text-sm flex items-center gap-2">
+                                            <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                                <p className="text-green-400 text-sm flex items-center gap-2">
                                                     <span className="inline-block w-3 h-3 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
                                                     Creating character background...
                                                 </p>
                                             </div>
                                         ) : worldWeaverData?.characterDescription ? (
-                                            <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
-                                                <p className="text-slate-300 text-xs md:text-sm italic">
+                                            <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                                <p className="text-slate-300 text-sm italic">
                                                     {worldWeaverData.characterDescription}
                                                 </p>
                                             </div>
                                         ) : (
                                             <>
                                                 {/* Brief Character Description */}
-                                                <div className="mt-3 p-2 bg-slate-700/30 rounded border border-slate-600/30">
-                                                    <p className="text-slate-300 text-xs md:text-sm italic">
+                                                <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                                    <p className="text-slate-300 text-sm italic">
                                                         {extractPersonalityTrait(playerCharacter)}
                                                     </p>
                                                 </div>
 
                                                 {/* Prized Possession */}
-                                                <div className="mt-1 p-2 bg-slate-700/30 rounded border border-slate-600/30">
-                                                    <div className="flex items-center gap-1 mb-1">
-                                                        <Trophy className="w-3 h-3 text-amber-400" />
-                                                        <span className="text-amber-400 text-xs font-medium">PRIZED POSSESSION:</span>
+                                                <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Trophy className="w-4 h-4 text-amber-400" />
+                                                        <span className="text-amber-400 text-xs font-medium uppercase">Prized Possession</span>
                                                     </div>
-                                                    <p className="text-slate-300 text-xs md:text-sm">
+                                                    <p className="text-slate-300 text-sm">
                                                         {getPrizedPossession(playerCharacter)}
                                                     </p>
                                                 </div>
                                             </>
                                         )}
 
+                                    </div>
+                                </div>
 
-                                        {/* Expandable Character Details */}
-                                        {showCharacterDetails && (
-                                            <div className="mt-2 p-2 bg-slate-700/30 rounded border border-slate-600/30 space-y-2">
-                                                <div>
-                                                    <span className="text-blue-400 text-xs font-medium block mb-1">FULL BACKGROUND:</span>
-                                                    <p className="text-slate-300 text-xs leading-relaxed whitespace-pre-wrap">
-                                                        {playerCharacter.backstory || 'No detailed background available.'}
-                                                    </p>
-                                                </div>
-                                                {playerCharacter.religion && (
-                                                    <div>
-                                                        <span className="text-blue-400 text-xs font-medium block mb-1">RELIGION:</span>
-                                                        <p className="text-slate-300 text-xs">
-                                                            {playerCharacter.religion}
-                                                        </p>
-                                                    </div>
-                                                )}
+                                {/* Expandable Character Details - Full width across panel */}
+                                <div className={`overflow-hidden transition-all duration-300 ease-out ${
+                                    showCharacterDetails ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                }`}>
+                                    <div className="pt-4 border-t border-slate-700/50 space-y-3">
+                                        <div>
+                                            <div className="text-blue-400 text-xs font-medium mb-2">FULL BACKGROUND</div>
+                                            <p className="text-slate-300 text-sm leading-relaxed">
+                                                {playerCharacter.backstory || 'No detailed background available.'}
+                                            </p>
+                                        </div>
+                                        {playerCharacter.religion && (
+                                            <div>
+                                                <div className="text-blue-400 text-xs font-medium mb-2">RELIGION</div>
+                                                <p className="text-slate-300 text-sm">{playerCharacter.religion}</p>
                                             </div>
                                         )}
                                     </div>
@@ -756,46 +808,44 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
 
                     {/* Game Mode & Mission */}
-                    <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 border border-slate-700/30">
-                        <div className="space-y-1 md:space-y-2">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 md:gap-3">
-                                    <Crown className={`w-4 h-4 md:w-5 md:h-5 shrink-0 ${
-                                        gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-400' : 'text-amber-400'
-                                    }`} />
-                                    <span className={`font-semibold text-sm md:text-base ${
-                                        gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-600 dark:text-amber-400' : 'text-amber-600 dark:text-amber-400'
-                                    }`}>
-                                        {gameMode ? gameMode.name : 'Game Mode: Selecting...'}
-                                    </span>
-                                </div>
-                                {gameMode && (
-                                    <button
-                                        onClick={() => setShowModeDetails(!showModeDetails)}
-                                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
-                                    >
-                                        More Info
-                                        {showModeDetails ? (
-                                            <ChevronUp className="w-3 h-3" />
-                                        ) : (
-                                            <ChevronDown className="w-3 h-3" />
-                                        )}
-                                    </button>
-                                )}
+                    <div className={cardClass}>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                <Crown className={`w-5 h-5 shrink-0 ${
+                                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-400' : 'text-amber-400'
+                                }`} />
+                                <h3 className={`font-semibold text-base ${
+                                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-400' : 'text-amber-400'
+                                }`}>
+                                    {gameMode ? gameMode.name : 'Game Mode: Selecting...'}
+                                </h3>
                             </div>
-                            <p className="text-slate-300 leading-relaxed text-xs md:text-sm">
-                                {gameMode ? modeDescription : 'Your game mode is being determined based on your character\'s background and skills. This will shape your adventure and goals.'}
-                            </p>
+                            {gameMode && (
+                                <button
+                                    onClick={() => setShowModeDetails(!showModeDetails)}
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-full text-xs transition-colors"
+                                >
+                                    <span>{showModeDetails ? 'Less Info' : 'More Info'}</span>
+                                    <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showModeDetails ? 'rotate-180' : ''}`} />
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-slate-300 leading-relaxed text-sm">
+                            {gameMode ? modeDescription : 'Your game mode is being determined based on your character\'s background and skills. This will shape your adventure and goals.'}
+                        </p>
 
-                            {/* Collapsible Mode Details */}
-                            {gameMode && showModeDetails && (
-                                <div className="mt-2 p-2 bg-slate-700/30 rounded border border-slate-600/30 space-y-1">
+                        {/* Expandable Mode Details - with smooth animation */}
+                        {gameMode && (
+                            <div className={`overflow-hidden transition-all duration-300 ease-out ${
+                                showModeDetails ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                            }`}>
+                                <div className="pt-4 border-t border-slate-700/50 space-y-3">
                                     {gameMode.victoryConditions.length > 0 && (
                                         <div>
-                                            <span className="text-xs font-medium text-green-400 block mb-1">Victory Conditions:</span>
-                                            <ul className="text-xs text-slate-300 space-y-1">
+                                            <div className="text-green-400 text-xs font-medium mb-2">VICTORY CONDITIONS</div>
+                                            <ul className="space-y-1">
                                                 {gameMode.victoryConditions.map((condition, idx) => (
-                                                    <li key={idx} className="flex items-start gap-1">
+                                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
                                                         <span className="text-green-400 mt-0.5">•</span>
                                                         <span>{condition.description}</span>
                                                     </li>
@@ -806,10 +856,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                                     {gameMode.challenges && gameMode.challenges.length > 0 && (
                                         <div>
-                                            <span className="text-xs font-medium text-orange-400 block mb-1">Key Challenges:</span>
-                                            <ul className="text-xs text-slate-300 space-y-1">
+                                            <div className="text-orange-400 text-xs font-medium mb-2">KEY CHALLENGES</div>
+                                            <ul className="space-y-1">
                                                 {gameMode.challenges.slice(0, 3).map((challenge, idx) => (
-                                                    <li key={idx} className="flex items-start gap-1">
+                                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
                                                         <span className="text-orange-400 mt-0.5">•</span>
                                                         <span>{challenge}</span>
                                                     </li>
@@ -818,23 +868,23 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         </div>
                                     )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Settings Section */}
-                    <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
-                        <h4 className="text-xs font-medium text-slate-400 mb-2">Settings</h4>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                    <div className={cardClass}>
+                        <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Settings</h4>
+                        <label className="flex items-start gap-3 cursor-pointer group">
                             <input
                                 type="checkbox"
                                 checked={dialectContinuumEnabled}
                                 onChange={(e) => setDialectContinuumEnabled(e.target.checked)}
-                                className="w-3 h-3 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-1"
+                                className="w-4 h-4 mt-0.5 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
                             />
                             <div className="flex-1">
-                                <span className="text-xs font-medium text-blue-400">Enable Dialect Continuum</span>
-                                <p className="text-xs text-slate-400 mt-0.5">
+                                <div className="text-sm font-medium text-blue-400 group-hover:text-blue-300 transition-colors">Enable Dialect Continuum</div>
+                                <p className="text-xs text-slate-400 mt-1">
                                     Gradually introduces foreign languages as you travel.
                                 </p>
                             </div>
@@ -865,11 +915,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 />
                             </Suspense>
 
-                            {/* Start Button - Desktop only (positioned under right column content) */}
-                            <div className="mt-4 hidden lg:block">
+                            {/* Desktop Action Buttons */}
+                            <div className="hidden lg:block space-y-3">
                                 <button
                                     onClick={() => {
-                                        // Initialize dialect continuum if enabled
                                         if (dialectContinuumEnabled) {
                                             dialectContinuumService.setEnabled(true);
                                             dialectContinuumService.initialize(localArea, { x: 0, y: 0 });
@@ -879,64 +928,49 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         }
                                         onClose();
                                     }}
-                                    className={`w-full px-4 py-3 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl text-sm md:text-base ${
-                                        gameMode ? (
-                                            gameMode.id === 'survival' ? 'bg-red-600 hover:bg-red-700' :
-                                            gameMode.id === 'exploration' ? 'bg-blue-600 hover:bg-blue-700' :
-                                            gameMode.id === 'commerce' ? 'bg-yellow-600 hover:bg-yellow-700' :
-                                            gameMode.id === 'scholarship' ? 'bg-purple-600 hover:bg-purple-700' :
-                                            gameMode.id === 'leadership' ? 'bg-amber-600 hover:bg-amber-700' :
-                                            gameMode.id === 'livelihood' ? 'bg-green-600 hover:bg-green-700' :
-                                            gameMode.id === 'diplomacy' ? 'bg-cyan-600 hover:bg-cyan-700' :
-                                            gameMode.id === 'legal' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                                            'bg-amber-600 hover:bg-amber-700'
-                                        ) : 'bg-amber-600 hover:bg-amber-700'
+                                    className={`w-full px-6 py-4 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all text-lg ${
+                                        gameMode ? `bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'} hover:${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'from-amber-700 to-amber-800'}` : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
                                     }`}
                                 >
                                     Begin the Simulation
                                 </button>
 
-                                {/* Share Button */}
                                 <button
                                     onClick={() => {
                                         setShowShareLink(!showShareLink);
                                         setCopiedToClipboard(false);
                                     }}
-                                    className={`w-full mt-2 px-4 py-2 bg-slate-700 hover:bg-slate-600
-                                               text-slate-200 font-medium rounded-lg transition-colors
-                                               flex items-center justify-center gap-2 text-sm md:text-base`}
+                                    className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <Link className="w-4 h-4" />
-                                    {showShareLink ? 'Hide Share Link' : 'Share This Scenario'}
+                                    <Share2 className="w-5 h-5" />
+                                    <span>{showShareLink ? 'Hide Share Options' : 'Share This Scenario'}</span>
                                 </button>
 
-                                {/* Share URL Display */}
-                                {showShareLink && shareableURL && (
-                                    <div className="mt-3 p-3 bg-slate-800/80 rounded-lg border border-slate-600/50 animate-fade-in">
-                                        <label className="text-xs font-medium text-slate-400 block mb-2">
-                                            Share this URL to recreate this exact scenario:
-                                        </label>
+                                {/* Share Options (Desktop) */}
+                                <div className={`overflow-hidden transition-all duration-300 ease-out ${
+                                    showShareLink ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                }`}>
+                                    <div className="p-4 bg-slate-800/80 rounded-xl border border-slate-600/50 space-y-3">
+                                        <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Share this scenario:</div>
+
+                                        {/* URL Copy */}
                                         <div className="flex gap-2">
                                             <input
                                                 type="text"
                                                 value={shareableURL}
                                                 readOnly
-                                                className="flex-1 px-3 py-2 bg-slate-900 text-slate-200 text-xs md:text-sm
-                                                          rounded border border-slate-600 font-mono focus:outline-none
-                                                          focus:ring-2 focus:ring-blue-500"
+                                                className="flex-1 px-3 py-2 bg-slate-900 text-slate-200 text-sm rounded border border-slate-600 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 onClick={(e) => e.currentTarget.select()}
                                             />
                                             <button
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(shareableURL);
                                                     setCopiedToClipboard(true);
-                                                    // Reset after 2 seconds
-                                                    setTimeout(() => setCopiedToClipboard(false), 2000);
+                                                    setTimeout(() => setCopiedToClipboard(false), 3000);
                                                 }}
-                                                className={`px-4 py-2 rounded transition-all flex items-center gap-2 text-sm
-                                                    ${copiedToClipboard
-                                                        ? 'bg-green-600 text-white'
-                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                                                className={`px-4 py-2 rounded transition-colors flex items-center gap-2 ${
+                                                    copiedToClipboard ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                }`}
                                             >
                                                 {copiedToClipboard ? (
                                                     <>
@@ -951,47 +985,125 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                 )}
                                             </button>
                                         </div>
-                                        <p className="text-xs text-slate-400 mt-2">
+
+                                        <div className="text-xs text-slate-400">
                                             This link preserves: character, location, date, game mode, and map seed
-                                        </p>
+                                        </div>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Mobile Sticky Bottom Bar */}
-                <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 via-slate-900 to-slate-900/95 border-t border-slate-700 z-10">
-                    <button
-                        onClick={() => {
-                            // Initialize dialect continuum if enabled
-                            if (dialectContinuumEnabled) {
-                                dialectContinuumService.setEnabled(true);
-                                dialectContinuumService.initialize(localArea, { x: 0, y: 0 });
-                                dialectContinuumService.saveState();
-                            } else {
-                                dialectContinuumService.setEnabled(false);
-                            }
-                            onClose();
-                        }}
-                        className={`w-full px-4 py-3 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl text-base ${
-                            gameMode ? (
-                                gameMode.id === 'survival' ? 'bg-red-600 hover:bg-red-700' :
-                                gameMode.id === 'exploration' ? 'bg-blue-600 hover:bg-blue-700' :
-                                gameMode.id === 'commerce' ? 'bg-yellow-600 hover:bg-yellow-700' :
-                                gameMode.id === 'scholarship' ? 'bg-purple-600 hover:bg-purple-700' :
-                                gameMode.id === 'leadership' ? 'bg-amber-600 hover:bg-amber-700' :
-                                gameMode.id === 'livelihood' ? 'bg-green-600 hover:bg-green-700' :
-                                gameMode.id === 'diplomacy' ? 'bg-cyan-600 hover:bg-cyan-700' :
-                                gameMode.id === 'legal' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                                'bg-amber-600 hover:bg-amber-700'
-                            ) : 'bg-amber-600 hover:bg-amber-700'
-                        }`}
-                    >
-                        Begin the Simulation
-                    </button>
+                {/* Mobile Bottom Bar with safe area support */}
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 via-slate-900 to-slate-900/95 border-t border-slate-700 z-20 p-4"
+                    style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                    <div className="space-y-2">
+                        <button
+                            onClick={() => {
+                                if (dialectContinuumEnabled) {
+                                    dialectContinuumService.setEnabled(true);
+                                    dialectContinuumService.initialize(localArea, { x: 0, y: 0 });
+                                    dialectContinuumService.saveState();
+                                } else {
+                                    dialectContinuumService.setEnabled(false);
+                                }
+                                onClose();
+                            }}
+                            className={`w-full px-6 py-4 text-white font-bold rounded-xl shadow-lg text-lg ${
+                                gameMode ? `bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'}` : 'bg-gradient-to-r from-amber-600 to-amber-700'
+                            }`}
+                        >
+                            Begin the Simulation
+                        </button>
+                        <button
+                            onClick={() => setShowBottomSheet(true)}
+                            className="w-full px-6 py-3 bg-slate-700 active:bg-slate-600 text-slate-200 font-medium rounded-xl flex items-center justify-center gap-2"
+                        >
+                            <Share2 className="w-5 h-5" />
+                            Share This Scenario
+                        </button>
+                    </div>
                 </div>
+
+                {/* Mobile Bottom Sheet */}
+                {showBottomSheet && (
+                    <>
+                        {/* Backdrop */}
+                        <div
+                            className="lg:hidden fixed inset-0 bg-black/60 z-40"
+                            onClick={() => setShowBottomSheet(false)}
+                        />
+
+                        {/* Bottom Sheet */}
+                        <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out"
+                            style={{
+                                transform: showBottomSheet ? 'translateY(0)' : 'translateY(100%)',
+                                paddingBottom: 'env(safe-area-inset-bottom, 1rem)'
+                            }}>
+                            <div className="bg-slate-900 rounded-t-3xl border-t border-slate-700 shadow-2xl">
+                                {/* Handle */}
+                                <div className="flex justify-center pt-3 pb-2">
+                                    <div className="w-12 h-1.5 bg-slate-600 rounded-full" />
+                                </div>
+
+                                {/* Content */}
+                                <div className="p-6">
+                                    <h3 className="text-lg font-semibold text-white mb-4">Share Scenario</h3>
+
+                                    {/* Native Share Button */}
+                                    {navigator.share && (
+                                        <button
+                                            onClick={() => {
+                                                handleNativeShare();
+                                                setShowBottomSheet(false);
+                                            }}
+                                            className="w-full px-6 py-3 bg-blue-600 active:bg-blue-700 text-white font-medium rounded-xl flex items-center justify-center gap-2 mb-3"
+                                        >
+                                            <Share2 className="w-5 h-5" />
+                                            Share via...
+                                        </button>
+                                    )}
+
+                                    {/* Copy Link */}
+                                    <button
+                                        onClick={() => {
+                                            if (shareableURL) {
+                                                navigator.clipboard.writeText(shareableURL);
+                                                setCopiedToClipboard(true);
+                                                setTimeout(() => {
+                                                    setCopiedToClipboard(false);
+                                                    setShowBottomSheet(false);
+                                                }, 2000);
+                                            }
+                                        }}
+                                        className="w-full px-6 py-3 bg-slate-700 active:bg-slate-600 text-white font-medium rounded-xl flex items-center justify-center gap-2"
+                                    >
+                                        {copiedToClipboard ? (
+                                            <>
+                                                <Check className="w-5 h-5" />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="w-5 h-5" />
+                                                Copy Link
+                                            </>
+                                        )}
+                                    </button>
+
+                                    <button
+                                        onClick={() => setShowBottomSheet(false)}
+                                        className="w-full mt-3 px-6 py-3 text-slate-400 font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
 
             </div>
         </div>

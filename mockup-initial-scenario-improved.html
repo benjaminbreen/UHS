@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InitialScenarioModal - Improved Design</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                max-height: 0;
+                opacity: 0;
+            }
+            to {
+                max-height: 500px;
+                opacity: 1;
+            }
+        }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .animate-shimmer {
+            animation: shimmer 2s infinite;
+            background: linear-gradient(to right, #334155 4%, #475569 25%, #334155 36%);
+            background-size: 1000px 100%;
+        }
+
+        .expand-enter {
+            animation: slideDown 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        .season-summer {
+            background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-effect {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .portrait-glow {
+            box-shadow: 0 0 40px rgba(251, 191, 36, 0.4);
+        }
+
+        /* Mobile bottom sheet */
+        .bottom-sheet {
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .bottom-sheet.open {
+            transform: translateY(0);
+        }
+
+        /* Smooth height transition */
+        .transition-max-height {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        /* QR Code placeholder */
+        .qr-code {
+            background:
+                linear-gradient(90deg, #fff 10%, transparent 10%),
+                linear-gradient(#fff 10%, transparent 10%);
+            background-size: 10px 10px;
+            background-position: 0 0, 5px 5px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 p-4">
+
+<!-- Modal Backdrop -->
+<div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+
+    <!-- Modal Container -->
+    <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden flex flex-col animate-fade-in-up">
+
+        <!-- Sticky Header (Compact on scroll) -->
+        <div class="sticky top-0 z-20 bg-gradient-to-r from-amber-600 to-amber-700 border-b border-amber-500/30 transition-all duration-300">
+            <div class="flex items-center justify-between p-4">
+                <div class="flex items-center gap-3">
+                    <!-- Faction Icon -->
+                    <div class="p-2 bg-white/20 rounded-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </div>
+
+                    <!-- Breadcrumb -->
+                    <div class="text-white">
+                        <div class="text-sm font-medium opacity-90">2771 BCE • Ancient World • Nile Valley</div>
+                    </div>
+                </div>
+
+                <!-- Header Actions -->
+                <div class="flex items-center gap-2">
+                    <!-- Share Button (Desktop) -->
+                    <button onclick="toggleShare()" class="hidden md:flex items-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        <span class="text-sm">Share</span>
+                    </button>
+
+                    <!-- Close Button -->
+                    <button class="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-6 pb-32 md:pb-6">
+
+            <!-- Hero Section -->
+            <div class="mb-6 text-center md:text-left">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">
+                    You are <span class="text-amber-400">Arsinos</span>
+                </h1>
+                <p class="text-xl text-slate-300">
+                    A <span class="text-emerald-400">Shepherd</span> in the <span class="season-summer font-semibold">Summer</span> of 2771 BCE
+                </p>
+            </div>
+
+            <!-- Main Grid Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+                <!-- Left Column (3/5) -->
+                <div class="lg:col-span-3 space-y-4">
+
+                    <!-- Historical Context Card -->
+                    <div class="glass-effect rounded-xl p-4 border border-slate-700/50">
+                        <div class="flex items-center gap-3 mb-3">
+                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <h3 class="text-lg font-semibold text-blue-400">The Nile Valley</h3>
+                        </div>
+                        <div id="historical-context" class="relative">
+                            <p class="text-slate-300 leading-relaxed text-sm line-clamp-2" id="context-text">
+                                The Early Dynastic period unifies Egypt under pharaonic rule. The first pyramids are built at Saqqara. Hieroglyphic writing develops into a sophisticated system. Trade routes connect the Nile to distant lands.
+                            </p>
+                            <button onclick="toggleContext()" class="text-blue-400 hover:text-blue-300 text-sm mt-2 flex items-center gap-1 transition-colors">
+                                <span id="context-toggle">Read more</span>
+                                <svg id="context-chevron" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Character Card -->
+                    <div class="glass-effect rounded-xl p-4 border border-slate-700/50">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-green-400">Your Character</h3>
+                            </div>
+                            <button onclick="toggleCharacterDetails()" class="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-full text-xs transition-colors">
+                                <span id="char-details-text">More Info</span>
+                                <svg id="char-details-chevron" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <!-- Portrait -->
+                            <div class="flex-shrink-0">
+                                <div class="relative group cursor-pointer" onclick="changeExpression()">
+                                    <div class="w-40 h-40 rounded-xl border-2 border-amber-400/50 portrait-glow overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 transition-all group-hover:border-amber-400">
+                                        <!-- Portrait placeholder - would be ProceduralPortrait -->
+                                        <div class="w-full h-full bg-gradient-to-br from-amber-900 to-amber-950 flex items-center justify-center">
+                                            <svg class="w-24 h-24 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <!-- Interaction hint -->
+                                    <div class="absolute inset-0 rounded-xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div class="text-white text-sm flex items-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                            Change expression
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Current expression -->
+                                <div class="text-center mt-2 text-xs text-slate-400">
+                                    Expression: <span class="text-amber-400" id="current-expression">Neutral</span>
+                                </div>
+                            </div>
+
+                            <!-- Character Info -->
+                            <div class="flex-1 space-y-3">
+                                <!-- Quick Stats Grid -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">Name</div>
+                                        <div class="text-white font-medium">Arsinos</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">Occupation</div>
+                                        <div class="text-white font-medium">Shepherd</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">Social Class</div>
+                                        <div class="text-white font-medium">Commoner</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            Region
+                                        </div>
+                                        <div class="text-emerald-400 font-medium">Nile Valley</div>
+                                    </div>
+                                </div>
+
+                                <!-- Personality Trait -->
+                                <div class="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                    <p class="text-slate-300 text-sm italic">
+                                        You are unusually tall, an insomniac, and a skilled healer.
+                                    </p>
+                                </div>
+
+                                <!-- Prized Possession -->
+                                <div class="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                                        </svg>
+                                        <span class="text-amber-400 text-xs font-medium uppercase">Prized Possession</span>
+                                    </div>
+                                    <p class="text-slate-300 text-sm">
+                                        Well-made Tan Woven Grass Wool Cloak
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Expandable Details -->
+                        <div id="character-details" class="max-h-0 opacity-0 overflow-hidden transition-max-height">
+                            <div class="mt-4 pt-4 border-t border-slate-700/50 space-y-3">
+                                <div>
+                                    <div class="text-blue-400 text-xs font-medium mb-2">FULL BACKGROUND</div>
+                                    <p class="text-slate-300 text-sm leading-relaxed">
+                                        Born to a family of shepherds in the fertile Nile Valley, you have spent your life tending flocks under the Egyptian sun. Your unusual height makes you stand out among your peers, and your reputation as a healer has brought many to seek your counsel. Sleep rarely comes easily to you, and you often spend nights watching the stars wheel overhead, contemplating the mysteries of the gods and the changing seasons.
+                                    </p>
+                                </div>
+                                <div>
+                                    <div class="text-blue-400 text-xs font-medium mb-2">RELIGION</div>
+                                    <p class="text-slate-300 text-sm">Follows Sunni Islam.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game Mode Card -->
+                    <div class="glass-effect rounded-xl p-4 border border-slate-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-yellow-400">Commerce Mode</h3>
+                            </div>
+                            <button onclick="toggleModeDetails()" class="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-full text-xs transition-colors">
+                                <span id="mode-details-text">More Info</span>
+                                <svg id="mode-details-chevron" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            Working as a Shepherd, you seek to build wealth through trade and business ventures.
+                        </p>
+
+                        <!-- Expandable Mode Details -->
+                        <div id="mode-details" class="max-h-0 opacity-0 overflow-hidden transition-max-height">
+                            <div class="mt-4 pt-4 border-t border-slate-700/50 space-y-3">
+                                <div>
+                                    <div class="text-green-400 text-xs font-medium mb-2">VICTORY CONDITIONS</div>
+                                    <ul class="space-y-1">
+                                        <li class="flex items-start gap-2 text-sm text-slate-300">
+                                            <span class="text-green-400 mt-0.5">•</span>
+                                            <span>Accumulate 10,000 gold pieces in wealth</span>
+                                        </li>
+                                        <li class="flex items-start gap-2 text-sm text-slate-300">
+                                            <span class="text-green-400 mt-0.5">•</span>
+                                            <span>Establish trade routes in 5 different regions</span>
+                                        </li>
+                                        <li class="flex items-start gap-2 text-sm text-slate-300">
+                                            <span class="text-green-400 mt-0.5">•</span>
+                                            <span>Build a merchant guild or trading company</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <div class="text-orange-400 text-xs font-medium mb-2">KEY CHALLENGES</div>
+                                    <ul class="space-y-1">
+                                        <li class="flex items-start gap-2 text-sm text-slate-300">
+                                            <span class="text-orange-400 mt-0.5">•</span>
+                                            <span>Bandits and pirates threaten trade caravans</span>
+                                        </li>
+                                        <li class="flex items-start gap-2 text-sm text-slate-300">
+                                            <span class="text-orange-400 mt-0.5">•</span>
+                                            <span>Seasonal floods disrupt supply chains</span>
+                                        </li>
+                                        <li class="flex items-start gap-2 text-sm text-slate-300">
+                                            <span class="text-orange-400 mt-0.5">•</span>
+                                            <span>Competing merchants seek to undercut you</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Card -->
+                    <div class="glass-effect rounded-xl p-4 border border-slate-700/50">
+                        <h4 class="text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Settings</h4>
+                        <label class="flex items-start gap-3 cursor-pointer group">
+                            <input type="checkbox" checked class="w-4 h-4 mt-0.5 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2">
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-blue-400 group-hover:text-blue-300 transition-colors">Enable Dialect Continuum</div>
+                                <p class="text-xs text-slate-400 mt-1">
+                                    Gradually introduces foreign languages as you travel.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+
+                </div>
+
+                <!-- Right Column (2/5) - Charts & Actions -->
+                <div class="lg:col-span-2 space-y-4">
+
+                    <!-- Population Chart -->
+                    <div class="glass-effect rounded-xl p-4 border border-slate-700/50">
+                        <h3 class="text-sm font-semibold text-slate-300 mb-3">Your Place in History</h3>
+                        <div class="relative h-48 bg-slate-900/50 rounded-lg p-3">
+                            <!-- Simplified chart visualization -->
+                            <div class="absolute inset-0 p-3">
+                                <svg viewBox="0 0 400 160" class="w-full h-full">
+                                    <!-- Grid lines -->
+                                    <line x1="40" y1="140" x2="360" y2="140" stroke="#475569" stroke-width="1"/>
+                                    <line x1="40" y1="20" x2="40" y2="140" stroke="#475569" stroke-width="1"/>
+
+                                    <!-- Population curve -->
+                                    <path d="M 40 135 Q 100 130, 120 128 Q 140 125, 160 120 Q 200 100, 240 60 Q 280 20, 360 15"
+                                          fill="none" stroke="#60a5fa" stroke-width="2"/>
+
+                                    <!-- Current year marker -->
+                                    <circle cx="50" cy="133" r="5" fill="#f59e0b"/>
+                                    <text x="50" y="155" fill="#f59e0b" font-size="10" text-anchor="middle">2771 BC</text>
+
+                                    <!-- Labels -->
+                                    <text x="360" y="30" fill="#94a3b8" font-size="10" text-anchor="end">2025 CE</text>
+                                    <text x="200" y="75" fill="#94a3b8" font-size="12" text-anchor="middle">Population: ~18M</text>
+                                    <text x="200" y="95" fill="#64748b" font-size="10" text-anchor="middle">89.9% of all humans lived after you</text>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mini Location Map -->
+                    <div class="glass-effect rounded-xl p-4 border border-slate-700/50">
+                        <h3 class="text-sm font-semibold text-slate-300 mb-3">Your Location: Nile Valley</h3>
+                        <div class="relative h-64 bg-slate-900/50 rounded-lg overflow-hidden">
+                            <!-- Simplified map placeholder -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center text-slate-500">
+                                    <svg class="w-20 h-20 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                                    </svg>
+                                    <div class="text-sm">North Africa Region</div>
+                                    <div class="text-xs mt-1">Seed: DV032DBK</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Action Buttons -->
+                    <div class="hidden lg:block space-y-3">
+                        <button class="w-full px-6 py-4 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all text-lg">
+                            Begin the Simulation
+                        </button>
+
+                        <button onclick="toggleShare()" class="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                            </svg>
+                            <span id="share-toggle-text">Share This Scenario</span>
+                        </button>
+
+                        <!-- Share Options (Desktop) -->
+                        <div id="share-section" class="max-h-0 opacity-0 overflow-hidden transition-max-height">
+                            <div class="p-4 bg-slate-800/80 rounded-xl border border-slate-600/50 space-y-3">
+                                <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Share this scenario:</div>
+
+                                <!-- URL Copy -->
+                                <div class="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value="https://uhs.game/2771/nile-valley/commerce?state=eyJ2IjoxLCJ5IjoyNzcy..."
+                                        readonly
+                                        class="flex-1 px-3 py-2 bg-slate-900 text-slate-200 text-sm rounded border border-slate-600 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onclick="this.select()"
+                                    />
+                                    <button onclick="copyLink()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                        <span id="copy-text">Copy</span>
+                                    </button>
+                                </div>
+
+                                <!-- QR Code Option -->
+                                <div class="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg">
+                                    <div class="w-16 h-16 bg-white qr-code rounded"></div>
+                                    <div class="flex-1">
+                                        <div class="text-sm text-slate-300 font-medium">Scan QR Code</div>
+                                        <div class="text-xs text-slate-400 mt-0.5">Open on mobile device</div>
+                                    </div>
+                                </div>
+
+                                <div class="text-xs text-slate-400">
+                                    This link preserves: character, location, date, game mode, and map seed
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Bottom Bar -->
+        <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 via-slate-900 to-slate-900/95 border-t border-slate-700 z-20 p-4" style="padding-bottom: env(safe-area-inset-bottom, 1rem);">
+            <div class="space-y-2">
+                <button class="w-full px-6 py-4 bg-gradient-to-r from-yellow-600 to-yellow-700 active:from-yellow-700 active:to-yellow-800 text-white font-bold rounded-xl shadow-lg text-lg">
+                    Begin the Simulation
+                </button>
+                <button onclick="openBottomSheet()" class="w-full px-6 py-3 bg-slate-700 active:bg-slate-600 text-slate-200 font-medium rounded-xl flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                    </svg>
+                    Share This Scenario
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Mobile Bottom Sheet -->
+<div id="bottom-sheet" class="lg:hidden fixed inset-x-0 bottom-0 z-50 bottom-sheet">
+    <div class="bg-slate-900 rounded-t-3xl border-t border-slate-700 shadow-2xl" style="padding-bottom: env(safe-area-inset-bottom, 1rem);">
+        <!-- Handle -->
+        <div class="flex justify-center pt-3 pb-2">
+            <div class="w-12 h-1.5 bg-slate-600 rounded-full"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-white mb-4">Share Scenario</h3>
+
+            <!-- Native Share Button -->
+            <button onclick="nativeShare()" class="w-full px-6 py-3 bg-blue-600 active:bg-blue-700 text-white font-medium rounded-xl flex items-center justify-center gap-2 mb-3">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Share via...
+            </button>
+
+            <!-- QR Code -->
+            <div class="flex items-center gap-4 p-4 bg-slate-800 rounded-xl mb-3">
+                <div class="w-20 h-20 bg-white qr-code rounded flex-shrink-0"></div>
+                <div class="flex-1">
+                    <div class="text-sm text-slate-300 font-medium">Scan QR Code</div>
+                    <div class="text-xs text-slate-400 mt-1">Share with nearby devices</div>
+                </div>
+            </div>
+
+            <!-- Copy Link -->
+            <button onclick="copyLinkMobile()" class="w-full px-6 py-3 bg-slate-700 active:bg-slate-600 text-white font-medium rounded-xl flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                <span id="copy-mobile-text">Copy Link</span>
+            </button>
+
+            <button onclick="closeBottomSheet()" class="w-full mt-3 px-6 py-3 text-slate-400 font-medium">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Sheet Backdrop -->
+<div id="sheet-backdrop" class="lg:hidden fixed inset-0 bg-black/60 z-40 hidden" onclick="closeBottomSheet()"></div>
+
+<script>
+    // Expression cycling
+    const expressions = ['Neutral', 'Smile', 'Surprise', 'Scowl', 'Annoyed'];
+    let currentExpressionIndex = 0;
+
+    function changeExpression() {
+        currentExpressionIndex = (currentExpressionIndex + 1) % expressions.length;
+        document.getElementById('current-expression').textContent = expressions[currentExpressionIndex];
+    }
+
+    // Toggle functions
+    function toggleContext() {
+        const text = document.getElementById('context-text');
+        const toggle = document.getElementById('context-toggle');
+        const chevron = document.getElementById('context-chevron');
+
+        if (text.classList.contains('line-clamp-2')) {
+            text.classList.remove('line-clamp-2');
+            toggle.textContent = 'Read less';
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            text.classList.add('line-clamp-2');
+            toggle.textContent = 'Read more';
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function toggleCharacterDetails() {
+        const details = document.getElementById('character-details');
+        const text = document.getElementById('char-details-text');
+        const chevron = document.getElementById('char-details-chevron');
+
+        if (details.classList.contains('max-h-0')) {
+            details.classList.remove('max-h-0', 'opacity-0');
+            details.classList.add('max-h-96', 'opacity-100');
+            text.textContent = 'Less Info';
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            details.classList.add('max-h-0', 'opacity-0');
+            details.classList.remove('max-h-96', 'opacity-100');
+            text.textContent = 'More Info';
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function toggleModeDetails() {
+        const details = document.getElementById('mode-details');
+        const text = document.getElementById('mode-details-text');
+        const chevron = document.getElementById('mode-details-chevron');
+
+        if (details.classList.contains('max-h-0')) {
+            details.classList.remove('max-h-0', 'opacity-0');
+            details.classList.add('max-h-96', 'opacity-100');
+            text.textContent = 'Less Info';
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            details.classList.add('max-h-0', 'opacity-0');
+            details.classList.remove('max-h-96', 'opacity-100');
+            text.textContent = 'More Info';
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function toggleShare() {
+        const section = document.getElementById('share-section');
+        const text = document.getElementById('share-toggle-text');
+
+        if (section.classList.contains('max-h-0')) {
+            section.classList.remove('max-h-0', 'opacity-0');
+            section.classList.add('max-h-96', 'opacity-100');
+            text.textContent = 'Hide Share Options';
+        } else {
+            section.classList.add('max-h-0', 'opacity-0');
+            section.classList.remove('max-h-96', 'opacity-100');
+            text.textContent = 'Share This Scenario';
+        }
+    }
+
+    function copyLink() {
+        const copyBtn = document.getElementById('copy-text');
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+            copyBtn.textContent = 'Copy';
+        }, 2000);
+    }
+
+    function copyLinkMobile() {
+        const copyBtn = document.getElementById('copy-mobile-text');
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+            copyBtn.textContent = 'Copy Link';
+        }, 2000);
+    }
+
+    // Bottom sheet
+    function openBottomSheet() {
+        document.getElementById('bottom-sheet').classList.add('open');
+        document.getElementById('sheet-backdrop').classList.remove('hidden');
+    }
+
+    function closeBottomSheet() {
+        document.getElementById('bottom-sheet').classList.remove('open');
+        document.getElementById('sheet-backdrop').classList.add('hidden');
+    }
+
+    function nativeShare() {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Universal History Simulator',
+                text: 'Play as Arsinos, a Shepherd in 2771 BCE',
+                url: 'https://uhs.game/2771/nile-valley/commerce?state=eyJ2IjoxLCJ5IjoyNzcy...'
+            });
+        } else {
+            alert('Share API not supported on this browser');
+        }
+    }
+</script>
+
+</body>
+</html>

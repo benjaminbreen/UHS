@@ -2913,26 +2913,9 @@ const CombatModal: React.FC<CombatModalProps> = ({
       tile = mapData?.tiles?.[playerY]?.[playerX];
     }
 
-    console.log('[CombatModal] Debug biome detection:', {
-      combatantPos: { x: combatantX, y: combatantY },
-      playerPos: { x: playerX, y: playerY },
-      usingTile: tile ? 'found' : 'not found',
-      tile: tile ? {
-        x: tile.x,
-        y: tile.y,
-        biome: tile.biome,
-        isLand: tile.isLand,
-        altitude: tile.altitude
-      } : 'no tile found',
-      mapDataExists: !!mapData,
-      tilesExists: !!mapData?.tiles
-    });
-
     if (tile?.biome) {
-      console.log('[CombatModal] Using biome:', tile.biome);
       return tile.biome;
     }
-    console.log('[CombatModal] Using fallback: GRASSLAND');
     return 'GRASSLAND'; // default fallback
   };
 

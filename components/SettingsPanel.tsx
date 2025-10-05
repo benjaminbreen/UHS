@@ -36,6 +36,7 @@ import TradeNetworkGlobe from './TradeNetworkGlobe';
 import CityMapGlobe from './CityMapGlobe';
 import HexWorldMap from './HexWorldMap';
 import HexWorldGlobe from './HexWorldGlobe';
+import RailroadTestPanel from './RailroadTestPanel';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -162,6 +163,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showIconTestPanel, setShowIconTestPanel] = useState(false);
   const [showPrimarySourcesDevPanel, setShowPrimarySourcesDevPanel] = useState(false);
   const [showMiningTestPanel, setShowMiningTestPanel] = useState(false);
+  const [showRailroadTestPanel, setShowRailroadTestPanel] = useState(false);
   const [showTestSuite, setShowTestSuite] = useState(false);
   const [showFactoryBannerTest, setShowFactoryBannerTest] = useState(false);
   const [testInventory, setTestInventory] = useState<any[]>([]);
@@ -980,6 +982,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       ⛏️ Mining
                     </button>
                     <button
+                      onClick={() => setShowRailroadTestPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors flex items-center space-x-1"
+                    >
+                      <span>🚂</span>
+                      <span>Railroads</span>
+                    </button>
+                    <button
                       onClick={() => setShowFactoryBannerTest(true)}
                       className="px-3 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
                     >
@@ -1318,6 +1327,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           />
         </div>
       )}
+
+      {/* Railroad Test Panel */}
+      <RailroadTestPanel
+        isOpen={showRailroadTestPanel}
+        onClose={() => setShowRailroadTestPanel(false)}
+      />
 
       {/* City Timeline Visualization Modal */}
       {showCityTimeline && (

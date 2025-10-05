@@ -181,15 +181,39 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
                     ? 'bg-blue-400/10'
                     : '';
 
+                  // Weather overlay effects
+                  const weatherOverlay = farmState.activeWeather?.event === 'drought'
+                    ? 'bg-orange-400/20'
+                    : farmState.activeWeather?.event === 'heavy_rain'
+                    ? 'bg-blue-500/30 animate-pulse'
+                    : farmState.activeWeather?.event === 'early_frost'
+                    ? 'bg-cyan-400/20'
+                    : '';
+
+                  // Disease overlay effects
+                  const isDiseased = field.diseaseSeverity > 50;
+                  const diseaseOverlay = isDiseased ? 'bg-red-500/20 animate-pulse' : '';
+                  const diseaseBorder = isDiseased ? 'border-red-500' : '';
+
                   return (
                     <div
                       key={idx}
                       data-field={idx}
-                      className="relative bg-slate-800/40 rounded p-2 text-center border border-slate-700/40 transition-all duration-500"
+                      className={`relative bg-slate-800/40 rounded p-2 text-center border transition-all duration-500 ${diseaseBorder || 'border-slate-700/40'}`}
                     >
                       {/* Moisture visual effect overlay */}
                       {moistureOverlay && (
                         <div className={`absolute inset-0 ${moistureOverlay} rounded z-0 pointer-events-none`} />
+                      )}
+
+                      {/* Weather visual effect overlay */}
+                      {weatherOverlay && (
+                        <div className={`absolute inset-0 ${weatherOverlay} rounded z-0 pointer-events-none`} />
+                      )}
+
+                      {/* Disease visual effect overlay */}
+                      {diseaseOverlay && (
+                        <div className={`absolute inset-0 ${diseaseOverlay} rounded z-0 pointer-events-none`} />
                       )}
 
                       {/* Content */}

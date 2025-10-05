@@ -78,6 +78,8 @@ export function generateWorkshop(
   const wealthLevel = (config as any).wealthLevel || 'modest';
   const settlementType = (config as any).settlementType || 'town';
 
+  console.log('[Workshop Generator] businessType:', businessType, 'era:', era, 'population:', population, 'wealthLevel:', wealthLevel);
+
   // Generate workshop interior based on business type, culture, and era
   createWorkshopInterior(tiles, buildingLeft, buildingTop, buildingWidth, buildingHeight, config, era, businessType, interactionZones, rooms, population, wealthLevel, settlementType);
 
@@ -228,7 +230,7 @@ function createSmithyWorkshop(
   // Primary forge placement
   const forgeX = startX + Math.floor(width / 2);
   const forgeY = startY + 2;
-  tiles[forgeY][forgeX].biome = BiomeType.FIREPIT;
+  tiles[forgeY][forgeX].biome = BiomeType.FIRE_PIT;
 
   interactionZones.push({
     id: 'forge',
