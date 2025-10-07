@@ -59,6 +59,7 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.PLAZA]: '#c8b88b', // Light stone/brick color for plazas
   [BiomeType.HARBOR_DISTRICT]: '#7090a0', // Blue-gray for harbor areas
   [BiomeType.INDUSTRIAL_DISTRICT]: '#8a7060', // Brown-gray for industrial zones
+  [BiomeType.RAILROAD_STATION]: '#9a8a7a', // Gray-brown platform for railroad stations
   // Additional biomes for completeness
   [BiomeType.ICE]: '#e5e7eb', // Light gray-white for ice
   [BiomeType.SAND_DUNES]: '#fbbf24', // Sandy yellow
@@ -79,6 +80,7 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   // Architectural biomes for special maps
   [BiomeType.WALL]: '#4a4a4a', // Dark stone gray
   [BiomeType.WALL_GATE]: '#6b4423', // Brown wood gate
+  [BiomeType.WALL_LOW]: '#7a7a7a', // Lighter gray for low walls (stone)
   [BiomeType.WALL_BACK]: '#5a5a5a', // Back wall stone (slightly lighter for depth)
   [BiomeType.WALL_BACK_WINDOW]: '#5a5a5a', // Back wall with window
   [BiomeType.WALL_BACK_DOOR]: '#5a5a5a', // Back wall with door

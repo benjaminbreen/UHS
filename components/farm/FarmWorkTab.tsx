@@ -36,6 +36,7 @@ interface FarmWorkTabProps {
     hoursWorkedToday: number;
     farmActionLog: Array<{ action: string; timeElapsed: number }>;
     handleFarmWorkCommand: (command: string) => Promise<void>;
+    currentFarmTime: number;
   };
   fieldHooks: {
     validCrops: string[];
@@ -52,6 +53,7 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
   useLlm,
 }) => {
   const [isFieldsCollapsed, setIsFieldsCollapsed] = useState(false);
+  const [isLivestockCollapsed, setIsLivestockCollapsed] = useState(false);
 
   const {
     farmWorkHistory,
@@ -98,7 +100,7 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
     return <div dangerouslySetInnerHTML={{ __html: formatted }} className="leading-relaxed" />;
   };
 
-  // Phase 3.2: Animated state transitions
+  // Phase 3.2: Animated state transitions for fields
   const prevFieldsRef = useRef(farmState.fields);
 
   useEffect(() => {
@@ -145,10 +147,72 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
     prevFieldsRef.current = farmState.fields;
   }, [farmState.fields]);
 
+  // Animated state transitions for livestock
+  const prevLivestockRef = useRef(farmState.livestock);
+
+  useEffect(() => {
+    const prev = prevLivestockRef.current || [];
+    const current = farmState.livestock || [];
+
+    current.forEach((animal, idx) => {
+      const oldAnimal = prev[idx];
+
+      if (oldAnimal) {
+        const animalEl = document.querySelector(`[data-livestock="${idx}"]`);
+
+        // Detect feeding (lastFed changed)
+        if (oldAnimal.lastFed !== animal.lastFed) {
+          if (animalEl) {
+            animalEl.classList.add('scale-105', 'ring-2', 'ring-green-400');
+            setTimeout(() => {
+              animalEl.classList.remove('scale-105', 'ring-2', 'ring-green-400');
+            }, 1200);
+          }
+        }
+
+        // Detect health change
+        if (oldAnimal.health !== animal.health) {
+          if (animalEl) {
+            const healthDiff = animal.health - oldAnimal.health;
+            if (healthDiff > 0) {
+              // Health improved - green pulse
+              animalEl.classList.add('ring-2', 'ring-emerald-400');
+              setTimeout(() => {
+                animalEl.classList.remove('ring-2', 'ring-emerald-400');
+              }, 1000);
+            } else {
+              // Health decreased - red pulse
+              animalEl.classList.add('ring-2', 'ring-red-500', 'animate-pulse');
+              setTimeout(() => {
+                animalEl.classList.remove('ring-2', 'ring-red-500', 'animate-pulse');
+              }, 1500);
+            }
+          }
+        }
+
+        // Detect productivity change
+        if (oldAnimal.productivity !== animal.productivity) {
+          if (animalEl) {
+            const prodDiff = animal.productivity - oldAnimal.productivity;
+            if (prodDiff > 0) {
+              // Productivity improved - amber glow
+              animalEl.classList.add('ring-2', 'ring-amber-400');
+              setTimeout(() => {
+                animalEl.classList.remove('ring-2', 'ring-amber-400');
+              }, 800);
+            }
+          }
+        }
+      }
+    });
+
+    prevLivestockRef.current = current;
+  }, [farmState.livestock]);
+
   return (
     <div className="animate-fadeIn flex gap-4 h-full">
-      {/* Left Sidebar - Field Status & Action Log */}
-      <div className="w-64 flex flex-col gap-4">
+      {/* Left Sidebar - Field Status, Livestock & Action Log (wider for better visibility) */}
+      <div className="w-96 flex flex-col gap-4">
         {/* Compact Field Display */}
         <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 overflow-hidden">
           <button
@@ -249,54 +313,106 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
           )}
         </div>
 
-        {/* Available Resources (Crops in Spring/Winter, Tools in Summer/Fall) */}
-        <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60">
-          <h4 className="text-xs font-semibold text-amber-400 mb-2 uppercase tracking-wide">
-            {season === 'Spring' || season === 'Winter' ? 'Available Crops' : 'Available Tools'}
-          </h4>
-          <div className="space-y-1">
-            {season === 'Spring' || season === 'Winter' ? (
-              // Show crop counts
-              validCrops.slice(0, 6).map((crop) => {
-                const emoji = CROP_EMOJIS[crop] || '🌱';
-                return (
-                  <div key={crop} className="flex items-center justify-between text-[10px] text-slate-300">
-                    <span className="flex items-center gap-1">
-                      <span>{emoji}</span>
-                      <span className="capitalize">{crop}</span>
-                    </span>
-                    <span className="text-slate-500">Available</span>
+        {/* Livestock Section */}
+        {farmState.livestock && farmState.livestock.length > 0 && (
+          <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 overflow-hidden">
+            <button
+              onClick={() => setIsLivestockCollapsed(!isLivestockCollapsed)}
+              className="w-full flex items-center justify-between p-3 hover:bg-slate-800/40 transition-colors"
+            >
+              <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
+                Livestock
+              </h4>
+              {isLivestockCollapsed ? (
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              ) : (
+                <ChevronUp className="w-4 h-4 text-slate-400" />
+              )}
+            </button>
+
+            {!isLivestockCollapsed && (
+              <div className="p-3 pt-0 space-y-2">
+                {farmState.livestock.map((animal, idx) => {
+                  const healthColor = animal.health > 70 ? 'text-green-400' :
+                                     animal.health > 40 ? 'text-yellow-400' :
+                                     'text-red-400';
+
+                  const productivityColor = animal.productivity > 70 ? 'text-emerald-400' :
+                                           animal.productivity > 40 ? 'text-yellow-400' :
+                                           'text-orange-400';
+
+                  // Animal emojis
+                  const animalEmojis: Record<string, string> = {
+                    'chickens': '🐔',
+                    'cattle': '🐄',
+                    'pigs': '🐷',
+                    'sheep': '🐑',
+                    'goats': '🐐',
+                    'horses': '🐴',
+                    'ducks': '🦆',
+                    'geese': '🦢',
+                  };
+
+                  const emoji = animalEmojis[animal.type] || '🐾';
+
+                  // Days since fed - use game time hours, not real-world timestamp
+                  // animal.lastFed is game time hours since farm creation
+                  const daysSinceFed = animal.lastFed !== undefined && animal.lastFed !== null
+                    ? Math.floor((llmHooks.currentFarmTime - animal.lastFed) / 24) // Convert hours to days
+                    : null;
+
+                  const fedStatus = daysSinceFed === null ? 'Never fed' :
+                                   daysSinceFed === 0 ? 'Fed today' :
+                                   daysSinceFed === 1 ? 'Fed yesterday' :
+                                   daysSinceFed > 100 ? 'Starving!' :
+                                   `${daysSinceFed} days unfed`;
+                  const fedColor = daysSinceFed === null || daysSinceFed === 0 ? 'text-green-400' :
+                                  daysSinceFed === 1 ? 'text-yellow-400' :
+                                  'text-red-400';
+
+                  return (
+                    <div
+                      key={idx}
+                      data-livestock={idx}
+                      className="bg-slate-800/40 rounded-lg p-2 border border-slate-700/40 transition-all duration-300"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">{emoji}</span>
+                        <div className="flex-1">
+                          <div className="text-xs font-semibold text-slate-200 capitalize">
+                            {animal.type}
+                          </div>
+                          <div className={`text-[9px] ${fedColor}`}>
+                            {fedStatus}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400">Health</span>
+                          <span className={healthColor}>{animal.health}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400">Productivity</span>
+                          <span className={productivityColor}>{animal.productivity}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="mt-2 pt-2 border-t border-slate-700/40">
+                  <div className="text-[9px] text-slate-500 italic text-center">
+                    Try: "feed the {farmState.livestock[0]?.type}", "check on animals"
                   </div>
-                );
-              })
-            ) : (
-              // Show tools for tending fields in Summer/Fall
-              <>
-                <div className="flex items-center justify-between text-[10px] text-slate-300">
-                  <span className="flex items-center gap-1">
-                    <Droplets className="w-3 h-3" />
-                    <span>Water bucket</span>
-                  </span>
-                  <span className="text-slate-500">Ready</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-300">
-                  <span className="flex items-center gap-1">
-                    <Pickaxe className="w-3 h-3" />
-                    <span>Hoe</span>
-                  </span>
-                  <span className="text-slate-500">Ready</span>
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-300">
-                  <span className="flex items-center gap-1">
-                    <Wheat className="w-3 h-3" />
-                    <span>Scythe</span>
-                  </span>
-                  <span className="text-slate-500">Ready</span>
-                </div>
-              </>
+              </div>
             )}
           </div>
-        </div>
+        )}
+
+        {/* Available Resources moved to right sidebar */}
 
         {/* Action Log */}
         <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60 flex-1">
@@ -325,14 +441,88 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/60 mb-4">
-          <h3 className="text-lg font-semibold text-amber-400 mb-2 flex items-center gap-2">
-            <Sprout className="w-5 h-5" />
-            A Day's Farm Work
-          </h3>
-          <p className="text-xs text-slate-400">
-            Enter commands to work the farm. Be specific! ({hoursWorkedToday.toFixed(1)} hours worked today)
-          </p>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-amber-400 flex items-center gap-2">
+              <Sprout className="w-5 h-5" />
+              A Day's Farm Work
+            </h3>
+            <p className="text-xs text-slate-400">
+              Enter commands to work the farm. Be specific! ({hoursWorkedToday.toFixed(1)} hours worked today)
+            </p>
+          </div>
         </div>
+
+        {/* Contract Status Banner (if player has a contract) */}
+        {farmState.residencyStatus?.currentContract && (
+          <div className="bg-amber-900/20 border border-amber-600/30 rounded-xl p-3 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="text-xs text-amber-400 font-semibold uppercase tracking-wide">
+                    {farmState.residencyStatus.currentContract.type} Contract
+                  </div>
+                  {farmState.residencyStatus.currentContract.tasksToday &&
+                   farmState.residencyStatus.currentContract.tasksToday.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {farmState.residencyStatus.currentContract.tasksToday.map((task, idx) => {
+                        // Check if task is urgent
+                        const isUrgent = task.startsWith('[URGENT]');
+                        const displayTask = isUrgent ? task.replace('[URGENT] ', '') : task;
+
+                        // Check if task is completed based on action log
+                        const isCompleted = farmActionLog.some(log =>
+                          log.action.toLowerCase().includes(displayTask.toLowerCase().split(' ')[0]) ||
+                          (displayTask.toLowerCase().includes('harvest') && log.action.toLowerCase().includes('harvest')) ||
+                          (displayTask.toLowerCase().includes('livestock') && log.action.toLowerCase().includes('feed')) ||
+                          (displayTask.toLowerCase().includes('barn') && log.action.toLowerCase().includes('repair'))
+                        );
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 ${
+                              isCompleted
+                                ? 'text-green-400 bg-green-900/30 border-green-600/30 line-through'
+                                : isUrgent
+                                ? 'text-red-300 bg-red-900/40 border-red-500/50 animate-pulse font-bold'
+                                : 'text-slate-200 bg-amber-900/30 border-amber-600/30'
+                            }`}
+                          >
+                            {isCompleted && <span className="text-green-400 text-xs">✓</span>}
+                            {isUrgent && !isCompleted && <span className="text-red-400 text-xs">⚠</span>}
+                            {displayTask}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-300 mt-1">
+                  {farmState.residencyStatus.currentContract.payment.coins ? `${farmState.residencyStatus.currentContract.payment.coins} coins` : ''}
+                  {farmState.residencyStatus.currentContract.payment.lodging && (farmState.residencyStatus.currentContract.payment.coins ? ' + ' : '') + 'lodging'}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] text-slate-400 uppercase mb-0.5">Trust</div>
+                <div className="flex items-center gap-1">
+                  <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${
+                        (farmState.residencyStatus.trustLevel || 0) > 70 ? 'bg-green-400' :
+                        (farmState.residencyStatus.trustLevel || 0) > 40 ? 'bg-yellow-400' :
+                        'bg-red-400'
+                      }`}
+                      style={{ width: `${farmState.residencyStatus.trustLevel || 0}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-sky-400">
+                    {farmState.residencyStatus.trustLevel || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Conversation History */}
         <div className="flex-1 bg-slate-900/30 rounded-xl p-4 border border-slate-800/60 overflow-y-auto mb-4 space-y-3">

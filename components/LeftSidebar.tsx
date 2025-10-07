@@ -25,6 +25,7 @@ import { MAP_ARCHETYPE_DESCRIPTIONS, FACTION_DATA, STRUCTURE_BLUEPRINTS, METALS 
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
+import { getDisplayZone } from '../utils/zoneDisplayUtils';
 import { primarySourceService } from '../services/primarySourceService';
 import { LazyPortrait } from './portraits';
 import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
@@ -32,6 +33,7 @@ import { languageVisualizationService } from '../services/languageVisualizationS
 import { LanguageFamilyTree } from './LanguageFamilyTree';
 import ContextualTooltip from './ui/ContextualTooltip';
 import LiminalProgressBar from './LiminalProgressBar';
+import LifeEventsCalendarModal from './LifeEventsCalendarModal';
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
@@ -206,7 +208,7 @@ const LeftSidebar: React.FC<{
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
   const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, currentZone, currentRegion, liminalTravelState } = useGame();
-  const { character: playerCharacter } = usePlayer();
+  const { playerCharacter } = usePlayer();
 
   const [activeMajorTab, setActiveMajorTab] = useState<MajorTab>('map');
   const [sourceCount, setSourceCount] = useState<number>(0);
@@ -218,6 +220,8 @@ const LeftSidebar: React.FC<{
   // Language tree modal state
   const [showLanguageTree, setShowLanguageTree] = useState(false);
   const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
+  // Life events calendar state
+  const [showLifeEventsCalendar, setShowLifeEventsCalendar] = useState(false);
   const resizeStartX = useRef<number>(0);
   const resizeStartWidth = useRef<number>(getDefaultSidebarWidth());
 
@@ -548,22 +552,20 @@ const LeftSidebar: React.FC<{
           {/* Strategic Lenses - Redesigned */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">STRATEGIC LENSES</span>
-              <span className="text-[10px] text-slate-500">6</span>
-            </div>
-            {activeLens !== 'none' && (
-              <div className="mb-2 p-2 bg-amber-900/20 border border-amber-500/30 rounded-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-amber-300">Active: {lensDefs.find(l => l.id === activeLens)?.name}</span>
+              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">STRATEGIC LENSES</span>
+              <div className="flex items-center gap-2">
+                {activeLens !== 'none' && (
                   <button
                     onClick={() => setActiveLens('none' as LensMode)}
-                    className="text-xs px-2 py-0.5 rounded bg-red-600/30 hover:bg-red-600/40 text-red-200"
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-red-600/30 hover:bg-red-600/40 text-red-200 border border-red-500/40"
+                    title="Clear active lens"
                   >
                     Clear
                   </button>
-                </div>
+                )}
+                <span className="text-[10px] text-slate-400">6</span>
               </div>
-            )}
+            </div>
             <div className="grid grid-cols-3 gap-1.5">
               {lensDefs.map(lens => {
                 const active = activeLens === lens.id;
@@ -591,13 +593,13 @@ const LeftSidebar: React.FC<{
           {/* Terrain Composition */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">TERRAIN COMPOSITION</span>
-              <span className="text-[10px] text-slate-500">{biomeStats.distribution.length}</span>
+              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">TERRAIN COMPOSITION</span>
+              <span className="text-[10px] text-slate-400">{biomeStats.distribution.length}</span>
             </div>
             <div className="space-y-1">
               {biomeStats.distribution.map(({ biome, percent }) => (
                 <div key={biome} className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-300 flex-1 truncate">
+                  <span className="text-[11px] text-slate-200 flex-1 truncate">
                     {biome.replace(/_/g, ' ').toLowerCase()}
                   </span>
                   <div className="flex items-center gap-1">
@@ -607,7 +609,7 @@ const LeftSidebar: React.FC<{
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 w-8 text-right">{percent}%</span>
+                    <span className="text-[10px] text-slate-400 w-8 text-right">{percent}%</span>
                   </div>
                 </div>
               ))}
@@ -617,8 +619,8 @@ const LeftSidebar: React.FC<{
           {/* Resources & Minerals - Enhanced */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">RESOURCE DEPOSITS</span>
-              <span className="text-[10px] text-slate-500">{mineralDeposits.size}</span>
+              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">RESOURCE DEPOSITS</span>
+              <span className="text-[10px] text-slate-400">{mineralDeposits.size}</span>
             </div>
             {mineralDeposits.size > 0 ? (
               <div className="space-y-2">
@@ -653,8 +655,8 @@ const LeftSidebar: React.FC<{
           {/* Points of Interest - Grouped */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">LANDMARKS</span>
-              <span className="text-[10px] text-slate-500">{pointsOfInterest.length}</span>
+              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">LANDMARKS</span>
+              <span className="text-[10px] text-slate-400">{pointsOfInterest.length}</span>
             </div>
             {Object.entries(groupedPOIs).map(([type, pois]) => (
               <div key={type} className="mb-3">
@@ -730,7 +732,7 @@ const LeftSidebar: React.FC<{
         <div className="flex flex-col h-full">
           <div className="space-y-5 text-sm text-gray-300 flex-1">
             <div>
-              <h4 className="font-semibold text-amber-300 mb-2 border-b border-gray-600/50 pb-2">
+              <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-2 border-b border-gray-600/50 pb-2">
                 Dominant Power
               </h4>
               <div
@@ -743,12 +745,12 @@ const LeftSidebar: React.FC<{
                 onMouseLeave={() => onHideFactionTooltip?.()}
               >
                 <div className="flex items-center gap-2">
-                  <FactionIcon className="w-4 h-4" style={{ color: factionIconData?.color || '#FCD34D' }} />
-                  <p className="text-base font-semibold text-amber-400">{dominantPower}</p>
+                  <FactionIcon className="w-5 h-5" style={{ color: factionIconData?.color || '#FCD34D' }} />
+                  <p className="text-xl font-bold text-amber-300">{dominantPower}</p>
                 </div>
               </div>
               {factionData?.dominantPowerDescription && (
-                <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-gray-300 leading-relaxed text-sm mt-2">
+                <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-slate-300/90 leading-[1.6] text-[0.9rem] mt-3">
                   {factionData.dominantPowerDescription}
                 </blockquote>
               )}
@@ -775,7 +777,7 @@ const LeftSidebar: React.FC<{
 
               {majorCity && (
                 <>
-                  <h4 className="font-semibold text-cyan-300 mb-3 mt-4 border-b border-gray-600/50 pb-2">
+                  <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-3 mt-4 border-b border-gray-600/50 pb-2">
                     Major City
                   </h4>
                   <div
@@ -853,11 +855,10 @@ const LeftSidebar: React.FC<{
               {/* Local Languages */}
               {localLanguages.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="font-semibold text-emerald-300 mb-2 border-b border-gray-600/50 pb-2 flex items-center gap-2">
-                    
+                  <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-2 border-b border-gray-600/50 pb-2">
                     Local Languages
                   </h4>
-                  <div className="space-y-1">
+                  <div className="space-y-3">
                     {localLanguages.map((lang, idx) => (
                       <button
                         key={idx}
@@ -865,82 +866,74 @@ const LeftSidebar: React.FC<{
                           setSelectedLanguageId(lang.id);
                           setShowLanguageTree(true);
                         }}
-                        className="block w-full text-left text-xs text-emerald-200 hover:text-emerald-100 hover:bg-emerald-900/20 rounded px-2 py-1 transition-colors"
+                        className="block w-full text-left cursor-pointer hover:bg-slate-800/30 rounded-lg p-2 -m-2 transition-colors"
                       >
-                        <span className="font-medium">{lang.name}</span>
+                        <span className="font-semibold text-base text-emerald-300">{lang.name}</span>
                         {lang.nativeName && lang.nativeName !== lang.name && (
-                          <span className="text-emerald-300/60 ml-1">({lang.nativeName})</span>
+                          <span className="text-xs text-slate-500 ml-2">({lang.nativeName})</span>
                         )}
-                        <div className="text-[10px] text-emerald-400/50">{lang.family}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-slate-600 mt-0.5">{lang.family}</div>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <h4 className="text-[11px] text-slate-400 uppercase tracking-wider font-medium mb-2 mt-4">Description</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-2 mt-4">Description</h4>
+              <p className="text-[0.9rem] text-slate-300/90 leading-[1.6]">
                 {finalDesc}
               </p>
 
               {/* Summary Counts */}
               <div className="mt-4 pt-3">
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
+                <div className="flex flex-wrap gap-2">
                   {ruinCount > 0 && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setActiveMajorTab('map');
-                          setActiveMapSubTab('analysis');
-                        }}
-                        className="hover:text-slate-300 hover:underline transition-colors"
-                      >
-                        {ruinCount} ruin{ruinCount !== 1 ? 's' : ''}
-                      </button>
-                      <span className="text-amber-500/50">|</span>
-                    </>
+                    <button
+                      onClick={() => {
+                        setActiveMajorTab('map');
+                        setActiveMapSubTab('analysis');
+                      }}
+                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                    >
+                      <span className="font-bold text-amber-300">{ruinCount}</span>
+                      <span className="text-slate-400 ml-1">ruin{ruinCount !== 1 ? 's' : ''}</span>
+                    </button>
                   )}
                   {millCount > 0 && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setActiveMajorTab('map');
-                          setActiveMapSubTab('analysis');
-                        }}
-                        className="hover:text-slate-300 hover:underline transition-colors"
-                      >
-                        {millCount} mill{millCount !== 1 ? 's' : ''}
-                      </button>
-                      <span className="text-cyan-500/50">|</span>
-                    </>
+                    <button
+                      onClick={() => {
+                        setActiveMajorTab('map');
+                        setActiveMapSubTab('analysis');
+                      }}
+                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                    >
+                      <span className="font-bold text-amber-300">{millCount}</span>
+                      <span className="text-slate-400 ml-1">mill{millCount !== 1 ? 's' : ''}</span>
+                    </button>
                   )}
                   {fortressCount > 0 && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setActiveMajorTab('map');
-                          setActiveMapSubTab('analysis');
-                        }}
-                        className="hover:text-slate-300 hover:underline transition-colors"
-                      >
-                        {fortressCount} fortress{fortressCount !== 1 ? 'es' : ''}
-                      </button>
-                      <span className="text-red-500/50">|</span>
-                    </>
+                    <button
+                      onClick={() => {
+                        setActiveMajorTab('map');
+                        setActiveMapSubTab('analysis');
+                      }}
+                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                    >
+                      <span className="font-bold text-amber-300">{fortressCount}</span>
+                      <span className="text-slate-400 ml-1">fortress{fortressCount !== 1 ? 'es' : ''}</span>
+                    </button>
                   )}
                   {mineralCount > 0 && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setActiveMajorTab('map');
-                          setActiveMapSubTab('analysis');
-                        }}
-                        className="hover:text-slate-300 hover:underline transition-colors"
-                      >
-                        {mineralCount} mineral deposit{mineralCount !== 1 ? 's' : ''}
-                      </button>
-                      <span className="text-purple-500/50">|</span>
-                    </>
+                    <button
+                      onClick={() => {
+                        setActiveMajorTab('map');
+                        setActiveMapSubTab('analysis');
+                      }}
+                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                    >
+                      <span className="font-bold text-amber-300">{mineralCount}</span>
+                      <span className="text-slate-400 ml-1">deposit{mineralCount !== 1 ? 's' : ''}</span>
+                    </button>
                   )}
                   {peopleCount > 0 && (
                     <button
@@ -948,9 +941,10 @@ const LeftSidebar: React.FC<{
                         setActiveMajorTab('map');
                         setActiveMapSubTab('npcs');
                       }}
-                      className="hover:text-slate-300 hover:underline transition-colors"
+                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
                     >
-                      {peopleCount} people
+                      <span className="font-bold text-amber-300">{peopleCount}</span>
+                      <span className="text-slate-400 ml-1">people</span>
                     </button>
                   )}
                 </div>
@@ -1144,36 +1138,40 @@ const LeftSidebar: React.FC<{
           {/* Header card */}
           <div className="p-4 rounded-xl bg-slate-800/70 mb-4 border border-slate-700/50 relative">
             <button onClick={() => setIsLeftSidebarExpanded(false)} className="absolute top-2 right-2 text-slate-400 hover:text-white text-lg leading-none" aria-label="Collapse sidebar">&lt;&lt;</button>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-4 items-baseline">
-              <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Date</p>
-                <p className="text-sm text-amber-300 font-semibold">{formattedFullDate}</p>
-                <p className="text-xs text-slate-300">({season})</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-baseline">
+              <div
+                className="cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1 border-r border-slate-700/30 pr-3"
+                onClick={() => setShowLifeEventsCalendar(true)}
+                title="View life events calendar"
+              >
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Date</p>
+                <p className="text-base text-amber-300 font-bold leading-tight">{formattedFullDate}</p>
+                <p className="text-xs text-slate-400 mt-0.5">({season})</p>
               </div>
               <div
                 className="cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1"
                 onClick={onToggleMapVisibility}
                 title="Click to toggle map visibility"
               >
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Time</p>
-                <p className="text-sm text-amber-300 font-semibold">{formattedTime}</p>
-                <p className="text-xs text-slate-300">({currentTimeOfDay.toLowerCase()})</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Time</p>
+                <p className="text-base text-amber-300 font-bold leading-tight">{formattedTime}</p>
+                <p className="text-xs text-slate-400 mt-0.5">({currentTimeOfDay.toLowerCase()})</p>
+              </div>
+              <div className="border-r border-slate-700/30 pr-3">
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Zone</p>
+                <p className="text-sm text-slate-200 font-medium leading-tight">{getDisplayZone(currentZone, currentRegion)}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Zone</p>
-                <p className="text-sm text-white font-semibold">{currentZone}</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Climate</p>
+                <p className="text-sm text-blue-300 font-medium leading-tight">{formatEnumString(currentMapClimate)}</p>
+              </div>
+              <div className="border-r border-slate-700/30 pr-3">
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Region</p>
+                <p className="text-sm font-medium text-green-400 leading-tight">{currentRegion}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Climate</p>
-                <p className="text-sm text-blue-300 font-semibold">{formatEnumString(currentMapClimate)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Region</p>
-                <p className="text-sm font-semibold text-green-400">{currentRegion}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Map Area</p>
-                <p className="text-sm font-semibold text-green-400">{localArea}</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Map Area</p>
+                <p className="text-sm font-medium text-green-400 leading-tight">{localArea}</p>
               </div>
             </div>
           </div>
@@ -1242,6 +1240,17 @@ const LeftSidebar: React.FC<{
           }}
           initialLanguageId={selectedLanguageId}
           currentYear={gameDate.year}
+        />
+      )}
+
+      {/* Life Events Calendar Modal */}
+      {showLifeEventsCalendar && playerCharacter && (
+        <LifeEventsCalendarModal
+          characterName={playerCharacter.name}
+          birthYear={gameDate.year - playerCharacter.age}
+          currentYear={gameDate.year}
+          lifeEvents={playerCharacter.lifeEvents || []}
+          onClose={() => setShowLifeEventsCalendar(false)}
         />
       )}
     </>

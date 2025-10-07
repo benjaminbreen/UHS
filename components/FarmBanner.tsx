@@ -13,6 +13,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { HistoricalEra, CulturalZone, ClimateType, Season, TimeOfDay, BiomeType } from '../types';
+import { generateFarmBannerCaption } from '../services/farmBannerCaptionService';
 
 export type Condition = 'humble' | 'prosperous';
 export type CropType = string;
@@ -456,10 +457,13 @@ const growthFor = (cropType: CropType, season: Season, climate: ClimateType): Gr
 /* Component                                                                  */
 /* -------------------------------------------------------------------------- */
 
+type BehaviorType = 'walking_rows' | 'tending_tree' | 'resting' | 'carrying' | 'inspecting';
+type MovementPath = 'horizontal' | 'vertical' | 'circular' | 'none';
+
 interface FarmCharacter {
   id: string;
-  x: number;
-  y: number;
+  x: number;  // Static base position (no longer changes)
+  y: number;  // Static base position (no longer changes)
   type: 'farmer' | 'worker' | 'animal';
   direction: 1 | -1;
   speed: number;
@@ -472,6 +476,15 @@ interface FarmCharacter {
   playMode?: 'running' | 'playing' | 'chasing' | 'none';
   playTarget?: { x: number; y: number; radius: number };
   playPhase?: number;
+
+  // NEW: CSS-based animation behavior
+  behavior?: BehaviorType;
+  animationDuration?: number;  // seconds (8-20s for variety)
+  animationDelay?: number;     // seconds (stagger starts)
+  movementPath?: MovementPath;
+  movementDistance?: number;   // pixels to move
+  pauseInterval?: number;      // seconds between pauses (0 = no pauses)
+  pauseDuration?: number;      // seconds of pause
 }
 interface Particle { id: string; x: number; y: number; vx: number; vy: number; kind: 'snow' | 'rain' | 'leaf' | 'dust' | 'firefly' | 'splash'; life?: number; }
 
@@ -484,7 +497,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
   season,
   seed = 12345,
   width = 1280,
-  height = 220,
+  height = 200,
   timeOfDay = 'Midday',
   farmName,
   farmerName,
@@ -611,12 +624,101 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
   const getFieldWorkerCount = (time: string, season: Season): number => {
     // Night: 0 workers
     if (time === 'Night') return 0;
-    // Dawn/Dusk: 1-2 workers
-    if (time === 'Dawn' || time === 'Dusk') return Math.random() > 0.5 ? 1 : 2;
-    // Winter: reduced workforce (0-2)
-    if (season === 'winter') return Math.floor(Math.random() * 3); // 0, 1, or 2
-    // Peak times (Day/Midday in growing seasons): 2-4 workers
-    return Math.min(4, 2 + Math.floor(Math.random() * 3)); // 2, 3, or 4
+    // Dawn/Dusk: 1 worker
+    if (time === 'Dawn' || time === 'Dusk') return 1;
+    // Winter: 1 worker max
+    if (season === 'winter') return 1;
+    // All other times: 2 workers max
+    return 2;
+  };
+
+  // Helper: Select context-aware behavior for a character
+  const selectBehavior = (params: {
+    cropType: string;
+    timeOfDay: string;
+    season: Season;
+    role: string;
+    rng: RNG;
+  }): {
+    behavior: BehaviorType;
+    animationDuration: number;
+    animationDelay: number;
+    movementPath: MovementPath;
+    movementDistance: number;
+    pauseInterval: number;
+    pauseDuration: number;
+  } => {
+    const { cropType, timeOfDay, season, role, rng } = params;
+
+    // Base speed multipliers
+    let speedMult = 1.0;
+    if (timeOfDay === 'Dawn' || timeOfDay === 'Dusk') speedMult = 0.7;
+    if (season === 'winter') speedMult *= 0.6;
+    if (role === 'Elder') speedMult *= 0.7;
+
+    // Determine behavior by crop type
+    let behavior: BehaviorType;
+    let movementPath: MovementPath;
+    let movementDistance: number;
+    let pauseInterval: number;
+
+    const cropLower = cropType.toLowerCase();
+    const isOrchard = ['apple', 'orange', 'olive', 'cherry', 'plum', 'peach', 'pear'].some(c => cropLower.includes(c));
+    const isVineyard = cropLower.includes('grape') || cropLower.includes('vine');
+    const isRowCrop = ['wheat', 'rice', 'corn', 'barley', 'oat', 'rye', 'millet', 'sorghum'].some(c => cropLower.includes(c));
+    const isGarden = ['vegetable', 'carrot', 'turnip', 'cabbage', 'lettuce', 'onion'].some(c => cropLower.includes(c));
+
+    if (isOrchard) {
+      behavior = 'tending_tree';
+      movementPath = 'circular';
+      movementDistance = 15 + rng.range(5, 10);
+      pauseInterval = 3 + rng.range(0, 3); // Pause every 3-6 seconds
+    } else if (isVineyard) {
+      behavior = 'inspecting';
+      movementPath = 'horizontal';
+      movementDistance = 40 + rng.range(10, 20);
+      pauseInterval = 5 + rng.range(0, 4); // Longer pauses for inspection
+    } else if (isRowCrop) {
+      behavior = 'walking_rows';
+      movementPath = 'horizontal';
+      movementDistance = 50 + rng.range(10, 30);
+      pauseInterval = 4 + rng.range(0, 2);
+    } else if (isGarden) {
+      behavior = 'tending_tree';
+      movementPath = 'circular';
+      movementDistance = 12 + rng.range(3, 8);
+      pauseInterval = 2 + rng.range(0, 2);
+    } else {
+      // Default fallback
+      behavior = 'walking_rows';
+      movementPath = 'horizontal';
+      movementDistance = 35 + rng.range(10, 20);
+      pauseInterval = 3 + rng.range(0, 3);
+    }
+
+    // Harvest season: add carrying behavior for some workers
+    if (season === 'fall' && rng.next() > 0.6) {
+      behavior = 'carrying';
+      pauseInterval = pauseInterval * 1.5; // Carrying = slower with longer pauses
+    }
+
+    // Winter: mostly resting
+    if (season === 'winter' && rng.next() > 0.5) {
+      behavior = 'resting';
+      movementPath = 'none';
+      movementDistance = 0;
+      pauseInterval = 0; // Continuous resting animation
+    }
+
+    return {
+      behavior,
+      animationDuration: (8 + rng.range(0, 12)) / speedMult,
+      animationDelay: rng.range(0, 8),
+      movementPath,
+      movementDistance: movementDistance * speedMult,
+      pauseInterval,
+      pauseDuration: 1.5 + rng.range(0, 2),
+    };
   };
 
   // Calculate base character positions using useMemo (no setState!)
@@ -633,20 +735,11 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
     // If householdMembers data is provided, intelligently select who should be working
     if (householdMembers && householdMembers.length > 0) {
-      // Prioritize adults for field work, then children
+      // Prioritize adults for field work - ONLY show adults, no children
       const adults = householdMembers.filter(m => m.role === 'Farmer' || m.role === 'Laborer');
-      const children = householdMembers.filter(m => m.role === 'Child');
-      const elders = householdMembers.filter(m => m.role === 'Elder');
 
-      // Select workers based on max count
-      const workersToShow = adults.slice(0, maxFieldWorkers);
-
-      // Add 1-2 children if it's daytime and not winter (playing near farmstead)
-      const showChildren = (timeOfDay === 'Day' || timeOfDay === 'Midday') && season !== 'winter';
-      const childrenToShow = showChildren ? children.slice(0, Math.min(2, children.length)) : [];
-
-      // Combine workers and children
-      const peopleToShow = [...workersToShow, ...childrenToShow];
+      // Select workers based on max count (max 2)
+      const peopleToShow = adults.slice(0, maxFieldWorkers);
 
       peopleToShow.forEach((member, index) => {
         // Determine character type based on role
@@ -657,43 +750,44 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         const baseX = width * 0.25 + (index * 120);
         const xOffset = rr.range(-30, 30);
 
-        // Children get special play behaviors
+        // Children use same behavior system as adults, just at different scale
         const isChild = member.role === 'Child';
-        const playModes: ('running' | 'playing' | 'chasing' | 'none')[] = ['running', 'playing', 'chasing', 'none'];
-        const childPlayMode = isChild ? playModes[rr.int(0, playModes.length - 1)] : 'none';
 
-        // Create play target circle for running children
-        let playTarget = undefined;
-        if (childPlayMode === 'running') {
-          playTarget = {
-            x: baseX + xOffset,
-            y: ground,
-            radius: rr.range(40, 70) // Circle radius for running around
-          };
-        } else if (childPlayMode === 'chasing') {
-          // Target will be the first animal position
-          playTarget = { x: 0, y: 0, radius: 20 }; // Will update to animal position later
-        }
+        // Get context-aware behavior data for ALL household members (adults and children)
+        const behaviorData = selectBehavior({
+          cropType,
+          timeOfDay,
+          season,
+          role: member.role,
+          rng: rr,
+        });
 
         arr.push({
           id: member.id,
-          x: baseX + xOffset,
-          y: ground,
+          x: baseX + xOffset,  // STATIC position
+          y: ground,            // STATIC position
           type: charType,
           direction: rr.next() > 0.5 ? 1 : -1,
-          speed: member.role === 'Child' ? 0.4 : member.role === 'Elder' ? 0.15 : 0.2, // Children faster
-          idleAnimation: isChild ? 'none' : randomIdle(), // Children don't use adult idle animations
+          speed: member.role === 'Child' ? 0.4 : member.role === 'Elder' ? 0.15 : 0.2,
+          idleAnimation: isChild ? 'none' : randomIdle(),
           idlePhase: rr.range(0, Math.PI * 2),
           gender: member.gender,
           age: member.age,
           role: member.role,
-          playMode: childPlayMode,
-          playTarget: playTarget,
-          playPhase: rr.range(0, Math.PI * 2)
+          // Apply behavior data to ALL characters (no playMode)
+          ...behaviorData,
         });
       });
     } else {
       // Fallback to old hardcoded system if no household data
+      const farmerBehavior = selectBehavior({
+        cropType,
+        timeOfDay,
+        season,
+        role: 'Farmer',
+        rng: rr,
+      });
+
       arr.push({
         id: 'farmer',
         x: width * 0.28,
@@ -702,9 +796,19 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         direction: 1,
         speed: 0.22,
         idleAnimation: randomIdle(),
-        idlePhase: rr.range(0, Math.PI * 2)
+        idlePhase: rr.range(0, Math.PI * 2),
+        ...farmerBehavior,
       });
+
       if (condition === 'prosperous') {
+        const worker1Behavior = selectBehavior({
+          cropType,
+          timeOfDay,
+          season,
+          role: 'Laborer',
+          rng: rr,
+        });
+
         arr.push({
           id: 'worker-0',
           x: rr.range(190, width - 240),
@@ -713,8 +817,18 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
           direction: rr.next() > 0.5 ? 1 : -1,
           speed: 0.2,
           idleAnimation: randomIdle(),
-          idlePhase: rr.range(0, Math.PI * 2)
+          idlePhase: rr.range(0, Math.PI * 2),
+          ...worker1Behavior,
         });
+
+        const worker2Behavior = selectBehavior({
+          cropType,
+          timeOfDay,
+          season,
+          role: 'Laborer',
+          rng: rr,
+        });
+
         arr.push({
           id: 'worker-1',
           x: rr.range(220, width - 260),
@@ -723,7 +837,8 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
           direction: rr.next() > 0.5 ? 1 : -1,
           speed: 0.22,
           idleAnimation: randomIdle(),
-          idlePhase: rr.range(0, Math.PI * 2)
+          idlePhase: rr.range(0, Math.PI * 2),
+          ...worker2Behavior,
         });
       }
     }
@@ -2715,10 +2830,42 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
   /* -------------------------- Characters (pixel) -------------------------- */
 
   const drawCharacter = (c: FarmCharacter) => {
-    // Calculate animation inline (no state updates!)
-    const oscillation = Math.sin(tick * 0.02 + (c.idlePhase || 0)) * 30;
-    const animatedX = c.x + oscillation;
-    const direction = oscillation > 0 ? 1 : -1;
+    // Calculate simple horizontal oscillation based on behavior
+    let animatedX = c.x;
+    let animatedY = c.y;
+
+    // Animate ALL characters with behavior data
+    if (c.behavior) {
+      const time = tick * 0.02; // Slow down animation
+      const phase = c.animationDelay || 0;
+      const distance = c.movementDistance || 30;
+      const duration = c.animationDuration || 10;
+      const speed = 1 / duration; // Inverse duration for speed
+
+      switch (c.behavior) {
+        case 'walking_rows':
+        case 'inspecting':
+        case 'carrying':
+          // Simple horizontal movement
+          animatedX = c.x + Math.sin(time * speed + phase) * distance;
+          break;
+
+        case 'tending_tree':
+          // Circular movement
+          const angle = time * speed + phase;
+          const radius = distance * 0.7;
+          animatedX = c.x + Math.cos(angle) * radius;
+          animatedY = c.y + Math.sin(angle) * radius * 0.5; // Elliptical
+          break;
+
+        case 'resting':
+          // Gentle bob
+          animatedY = c.y + Math.sin(time * 2 + phase) * 1;
+          break;
+      }
+    }
+
+    const direction = c.direction;
     const isFemale = c.gender === 'Female';
     const body = c.type === 'farmer' ? CHARACTER_COLORS.clothing_farmer :
                  (c.type === 'worker' ? CHARACTER_COLORS.clothing_worker : CHARACTER_COLORS.clothing_peasant);
@@ -2812,7 +2959,10 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
     const isHovered = hoveredCharacter === c.id;
 
     return (
-      <g key={c.id} transform={`translate(${Math.round(animatedX)}, ${Math.round(c.y - yOffset)})`}>
+      <g
+        key={c.id}
+        transform={`translate(${Math.round(animatedX)}, ${Math.round(animatedY - yOffset)})`}
+      >
         {/* Interactive character group with hover/click */}
         <g
           onMouseEnter={() => setHoveredCharacter(c.id)}
@@ -3191,7 +3341,7 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
           {/* Snow on farmstead roof */}
           <g opacity={0.9}>
             {/* Medieval/Nordic style roof snow */}
-            {(farmsteadVariant === 'medieval_euro' || farmsteadVariant === 'nordic' || farmsteadVariant === 'steppe') && (
+            {(variant === 'medieval_euro' || variant === 'nordic' || variant === 'steppe') && (
               <>
                 {/* Snow layer on roof peak */}
                 <polygon
@@ -3291,15 +3441,82 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   /* -------------------------------- Render -------------------------------- */
 
+  // Generate dynamic caption describing current activity
+  const captionData = useMemo(() => {
+    const maxFieldWorkers = getFieldWorkerCount(timeOfDay, season);
+    return generateFarmBannerCaption({
+      householdMembers,
+      visibleCharacters: baseCharacters.filter(c => c.type !== 'animal'),
+      timeOfDay,
+      season,
+      cropType,
+      maxFieldWorkers,
+      weather: {
+        isRaining: seasonalState.shouldRain,
+        isSnowing: seasonalState.shouldSnow,
+        isDrought: seasonalState.shouldHaveDust,
+      },
+    });
+  }, [householdMembers, baseCharacters, timeOfDay, season, cropType, seasonalState]);
+
+  // Render caption with clickable character names
+  const renderCaption = () => {
+    if (captionData.characterNames.length === 0) {
+      return <span>{captionData.text}</span>;
+    }
+
+    // Split text and insert clickable name spans
+    let remainingText = captionData.text;
+    const parts: React.ReactNode[] = [];
+    let keyIndex = 0;
+
+    captionData.characterNames.forEach((char, idx) => {
+      const nameIndex = remainingText.indexOf(char.name);
+      if (nameIndex !== -1) {
+        // Add text before name
+        if (nameIndex > 0) {
+          parts.push(
+            <span key={`text-${keyIndex++}`}>
+              {remainingText.substring(0, nameIndex)}
+            </span>
+          );
+        }
+
+        // Add clickable name
+        parts.push(
+          <button
+            key={`name-${keyIndex++}`}
+            onClick={() => onCharacterClick?.(char.id)}
+            className="text-amber-400 hover:underline transition-all cursor-pointer"
+          >
+            {char.name}
+          </button>
+        );
+
+        // Update remaining text
+        remainingText = remainingText.substring(nameIndex + char.name.length);
+      }
+    });
+
+    // Add any remaining text
+    if (remainingText.length > 0) {
+      parts.push(<span key={`text-${keyIndex++}`}>{remainingText}</span>);
+    }
+
+    return <>{parts}</>;
+  };
+
   // Calculate zoomed viewBox for center-focused zoom
   const zoomLevel = 1.5;
   const zoomedWidth = width / zoomLevel;
   const zoomedHeight = height / zoomLevel;
   const zoomOffsetX = (width - zoomedWidth) / 2;
-  const zoomOffsetY = (height - zoomedHeight) / 3;
+  const zoomOffsetY = (height - zoomedHeight) / 1.5; // Shift down to show more land, less sky
 
   return (
-    <svg width={width} height={height} viewBox={`${zoomOffsetX} ${zoomOffsetY} ${zoomedWidth} ${zoomedHeight}`} style={{ imageRendering: 'pixelated' }}>
+    <div className="relative">
+      {/* Banner SVG */}
+      <svg width={width} height={height} viewBox={`${zoomOffsetX} ${zoomOffsetY} ${zoomedWidth} ${zoomedHeight}`} style={{ imageRendering: 'pixelated' }}>
       {Defs}
       {Sky}
       {BiomeDressing}
@@ -3346,6 +3563,14 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
       {/* Cinematic vignette */}
       <rect x={0} y={0} width={width} height={height} fill={`url(#vig-${seed})`} />
     </svg>
+
+      {/* Caption overlay on banner */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900/90 via-slate-900/70 to-transparent px-4 py-3">
+        <p className="text-sm text-slate-200 italic leading-relaxed drop-shadow-lg text-right pointer-events-auto">
+          {renderCaption()}
+        </p>
+      </div>
+    </div>
   );
 };
 

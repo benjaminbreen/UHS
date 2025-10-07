@@ -554,18 +554,18 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 <div className={`sticky top-0 z-20 bg-gradient-to-r ${
                     gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-600 to-amber-700' : 'from-amber-600 to-amber-700'
                 } border-b ${isSafari ? 'border-amber-800' : 'border-white/20 backdrop-blur-sm'}`}>
-                    <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center justify-between p-3">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-white/20 rounded-lg">
-                                <DominantFactionIcon className="w-7 h-7 text-white" />
+                                <DominantFactionIcon className="w-8 h-8 text-white" />
                             </div>
                             <div className="text-white">
-                                <div className="text-sm font-medium opacity-90">
+                                <div className="text-md font-medium">
                                     {formatYear(gameDate.year)} • {formatEra(scenarioData.era)} • <span className="font-bold">{currentRegion}</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             {/* Desktop Share Button */}
                             <button
                                 onClick={() => setShowShareLink(!showShareLink)}
@@ -588,7 +588,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 <div className="flex-1 overflow-y-auto p-6 pb-32 md:pb-6">
 
                     {/* Hero Section */}
-                    <div className="mb-6 text-center md:text-left">
+                    <div className="mb-4 text-center md:text-left">
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
                             You are <span className="text-amber-400">{playerCharacter.name}</span>
                         </h1>
@@ -597,9 +597,9 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
                         {/* Left Column - Main Content (3/5) */}
-                        <div className="lg:col-span-3 space-y-4">
+                        <div className="lg:col-span-4 space-y-3">
                             {/* Historical Context */}
                             <div className={cardClass}>
                                 <div className="flex items-center gap-3 mb-3">
@@ -635,7 +635,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                             {/* Character Info */}
                             <div className={cardClass}>
-                                <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                         <User className="w-5 h-5 text-green-400" />
                                         <h3 className="text-lg font-semibold text-green-400">Your Character</h3>
@@ -650,7 +650,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 </div>
 
                                 {/* Portrait and Info Layout */}
-                                <div className="flex flex-col sm:flex-row gap-4">
+                                <div className="flex flex-col sm:flex-row gap-6">
                                     {/* Portrait Column */}
                                     <div className="flex-shrink-0 w-40">
                                         <div className="relative cursor-pointer"
@@ -809,7 +809,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                     {/* Game Mode & Mission */}
                     <div className={cardClass}>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
                                 <Crown className={`w-5 h-5 shrink-0 ${
                                     gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-400' : 'text-amber-400'
@@ -874,7 +874,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                     {/* Settings Section */}
                     <div className={cardClass}>
-                        <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Settings</h4>
+                        <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Settings</h4>
                         <label className="flex items-start gap-3 cursor-pointer group">
                             <input
                                 type="checkbox"
@@ -894,7 +894,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         </div>
 
                         {/* Right Column - Charts (2/5) */}
-                        <div className="lg:col-span-2 space-y-2 md:space-y-3">
+                        <div className="lg:col-span-2 space-y-2 md:space-y-2">
                             {/* Population Chart - Static SVG version for better performance */}
                             <SimplePopulationChart
                                 currentYear={gameDate.year}
@@ -928,7 +928,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         }
                                         onClose();
                                     }}
-                                    className={`w-full px-6 py-4 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all text-lg ${
+                                    className={`w-full px-5 py-4 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out text-lg ${
                                         gameMode ? `bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'} hover:${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'from-amber-700 to-amber-800'}` : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
                                     }`}
                                 >

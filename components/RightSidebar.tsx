@@ -396,9 +396,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 <div className="flex flex-col items-center">
                   <div className="relative">
                     <div className="portrait-container relative flex-shrink-0 w-24 h-24 overflow-hidden bg-gray-100 dark:bg-gray-900 rounded-full border-2 border-slate-400/70 dark:border-slate-500/70 shadow-xl shadow-slate-400/50 dark:shadow-black/50">
+                      {/* Skeleton loader background */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 animate-pulse"></div>
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
-                      <div className="flex items-center justify-center w-full h-full">
+                      <div className="flex items-center justify-center w-full h-full relative z-20">
                         <AnimatedPortrait
                           character={playerCharacter}
                           size={96}
@@ -502,11 +504,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               {/* Enhanced Progress Bars with Skeumorphic Effects */}
               <div className="space-y-3 mt-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-300">
                     <span>HEALTH</span>
                     <span className={`transition-colors duration-200 ${
                       healthPercent < 10 ? 'text-red-400 font-bold text-sm' :
-                      healthPercent < 20 ? 'text-orange-400 font-semibold' : 'text-gray-400'
+                      healthPercent < 20 ? 'text-orange-400 font-semibold' : 'text-gray-300'
                     }`}>
                       {Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}
                     </span>
@@ -535,11 +537,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-300">
                     <span>FATIGUE</span>
                     <span className={`transition-colors duration-200 ${
                       fatiguePercent >= 90 ? 'text-red-400 font-bold text-sm' :
-                      fatiguePercent >= 80 ? 'text-orange-400 font-semibold' : 'text-gray-400'
+                      fatiguePercent >= 80 ? 'text-orange-400 font-semibold' : 'text-gray-300'
                     }`}>
                       {Math.ceil(playerCharacter.fatigue)} / {Math.ceil(playerCharacter.maxFatigue)}
                     </span>
@@ -569,9 +571,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-400">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-300">
                     <span>EXPERIENCE</span>
-                    <span className="text-blue-400">
+                    <span className="text-blue-300">
                       {Math.ceil(playerCharacter.experience)} / {Math.ceil(playerCharacter.maxExperience)}
                     </span>
                   </div>
@@ -623,7 +625,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           {/* Actions */}
           <div className="mb-0">
             <div className="flex items-center justify-between mb-2 mt-1">
-              <h4 className="text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
+              <h4 className="text-xs tracking-wider text-gray-300 uppercase">Actions</h4>
               <button
                 onClick={handleConfigClick}
                 className="p-1 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
@@ -674,14 +676,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         }`}>
                           <p className="text-xs font-semibold text-white mb-1">{action.name}</p>
                           <p className="text-[10px] text-gray-300 mb-2">{action.description}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-purple-300">
-                            <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
-                            <span>Press to activate</span>
-                          </div>
-                          {isDisabled && (
-                            <p className="text-[10px] text-red-400 mt-2">
-                              Select {action.minItems === action.maxItems ? action.minItems : `${action.minItems}-${action.maxItems}`} item(s)
-                            </p>
+                          {!isDisabled ? (
+                            <div className="flex items-center gap-2 text-[10px] text-purple-300">
+                              <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
+                              <span>Press to activate</span>
+                            </div>
+                          ) : (
+                            <div className="mt-2 p-1.5 bg-amber-900/30 border border-amber-600/40 rounded">
+                              <p className="text-[10px] text-amber-300 font-semibold">
+                                ⚠️ Select {action.minItems === action.maxItems ? action.minItems : `${action.minItems}-${action.maxItems}`} item(s) to use
+                              </p>
+                            </div>
                           )}
                         </div>
                       )}
@@ -789,87 +794,95 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
         {/* Panels */}
         <div className="flex-1 min-h-0 px-3 pb-1">
           {activeTab === 'narrator' && (
-            <NarrationPanel
-              narrationHistory={narrationHistory}
-              playerInput={playerInput}
-              onPlayerInputChange={onPlayerInputChange}
-              onSend={onSend}
-              isLoading={isNarratorLoading}
-              onOpenCampModal={() => setIsCampModalOpen(true)}
-            />
+            <div className="h-full animate-fadeIn">
+              <NarrationPanel
+                  narrationHistory={narrationHistory}
+                  playerInput={playerInput}
+                  onPlayerInputChange={onPlayerInputChange}
+                  onSend={onSend}
+                  isLoading={isNarratorLoading}
+                  onOpenCampModal={() => setIsCampModalOpen(true)}
+                />
+            </div>
           )}
 
           {activeTab === 'inventory' && playerCharacter && (
-            <InventoryPanel
-              inventory={playerCharacter.inventory || []}
-              playerCharacter={playerCharacter}
-              onCraft={onCraft}
-              onStudy={(items) => {
-                // Add items to study data
-                const studiedItems: StudiedItem[] = items.map(item => ({
-                  ...item,
-                  studyProgress: 0,
-                  notes: [],
-                  discoveredProperties: [],
-                  dateStudied: Date.now()
-                }));
-                setStudyData(prev => ({
-                  ...prev,
-                  specimens: [...prev.specimens, ...studiedItems]
-                }));
-                // Switch to study tab
-                setActiveTab('study');
-              }}
-              onInventoryUpdate={() => {}}
-              deployVesselToMap={deployVesselToMap}
-              deployBridgeToMap={deployBridgeToMap}
-              playerX={controlledIconX}
-              playerY={controlledIconY}
-              setShipDockPosition={(x, y) => {
-                setShipDockX(x);
-                setShipDockY(y);
-              }}
-              setCurrentVessel={setCurrentVessel}
-            />
+            <div className="h-full animate-fadeIn">
+                <InventoryPanel
+                  inventory={playerCharacter.inventory || []}
+                  playerCharacter={playerCharacter}
+                  onCraft={onCraft}
+                  onStudy={(items) => {
+                    // Add items to study data
+                    const studiedItems: StudiedItem[] = items.map(item => ({
+                      ...item,
+                      studyProgress: 0,
+                      notes: [],
+                      discoveredProperties: [],
+                      dateStudied: Date.now()
+                    }));
+                    setStudyData(prev => ({
+                      ...prev,
+                      specimens: [...prev.specimens, ...studiedItems]
+                    }));
+                    // Switch to study tab
+                    setActiveTab('study');
+                  }}
+                  onInventoryUpdate={() => {}}
+                  deployVesselToMap={deployVesselToMap}
+                  deployBridgeToMap={deployBridgeToMap}
+                  playerX={controlledIconX}
+                  playerY={controlledIconY}
+                  setShipDockPosition={(x, y) => {
+                    setShipDockX(x);
+                    setShipDockY(y);
+                  }}
+                  setCurrentVessel={setCurrentVessel}
+                />
+            </div>
           )}
 
           {activeTab === 'study' && (
-            <StudyPanel
-              studyData={studyData}
-              selectedItems={selectedStudyItems}
-              onSelectionChange={setSelectedStudyItems}
-              onReturnToInventory={(item: StudiedItem) => {
-                // Remove from study data and selection
-                setStudyData(prev => ({
-                  ...prev,
-                  specimens: prev.specimens.filter(s => s.id !== item.id)
-                }));
-                setSelectedStudyItems(prev => prev.filter(id => id !== item.id));
-                // Add back to inventory
-                if (onInventoryUpdate) {
-                  onInventoryUpdate();
-                }
-              }}
-              onObserve={(entity) => {
-                // Trigger observation action
-                onUseSkill('Observe');
-              }}
-              onStudyAction={async (item: any, action: StudyAction, input: string) => {
-                // This is now handled by the action buttons above
-                console.log('[StudyAction] Legacy handler - this should not be called');
-              }}
-            />
+            <div className="h-full animate-fadeIn">
+                <StudyPanel
+                  studyData={studyData}
+                  selectedItems={selectedStudyItems}
+                  onSelectionChange={setSelectedStudyItems}
+                  onReturnToInventory={(item: StudiedItem) => {
+                    // Remove from study data and selection
+                    setStudyData(prev => ({
+                      ...prev,
+                      specimens: prev.specimens.filter(s => s.id !== item.id)
+                    }));
+                    setSelectedStudyItems(prev => prev.filter(id => id !== item.id));
+                    // Add back to inventory
+                    if (onInventoryUpdate) {
+                      onInventoryUpdate();
+                    }
+                  }}
+                  onObserve={(entity) => {
+                    // Trigger observation action
+                    onUseSkill('Observe');
+                  }}
+                  onStudyAction={async (item: any, action: StudyAction, input: string) => {
+                    // This is now handled by the action buttons above
+                    console.log('[StudyAction] Legacy handler - this should not be called');
+                  }}
+                />
+            </div>
           )}
 
           {activeTab === 'sources' && (
-            <SourceDiscussionHistoryPanel
-              discussions={discussionHistory.discussions}
-              sources={discussionHistory.sources}
-              onSelectDiscussion={(discussion) => {
-                // Could open a modal showing full discussion details
-                console.log('Selected discussion:', discussion);
-              }}
-            />
+            <div className="h-full animate-fadeIn">
+                <SourceDiscussionHistoryPanel
+                  discussions={discussionHistory.discussions}
+                  sources={discussionHistory.sources}
+                  onSelectDiscussion={(discussion) => {
+                    // Could open a modal showing full discussion details
+                    console.log('Selected discussion:', discussion);
+                  }}
+                />
+            </div>
           )}
         </div>
       </div>

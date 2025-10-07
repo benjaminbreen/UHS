@@ -20,6 +20,7 @@ const ensureFactionIcons = () => {
 };
 import { generateHistoricalSummary } from '../services/llmService';
 import { useGame } from '../contexts/GameContext';
+import { getDisplayZone } from '../utils/zoneDisplayUtils';
 
 interface FactionsModalProps {
   onClose: () => void;
@@ -141,7 +142,7 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
           </h2>
           {currentZone && currentRegion && (
             <p className="text-center text-slate-400 mb-2">
-              {currentRegion}, {currentZone}
+              {currentRegion}, {getDisplayZone(currentZone, currentRegion)}
             </p>
           )}
         </div>

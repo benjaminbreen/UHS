@@ -22,6 +22,7 @@ export interface ArchitecturalSpace {
         position: Point;
         rotation?: number;
         scale?: number;
+        culturalVariant?: 'european' | 'east_asian' | 'mena' | 'african' | 'default';
     }>;
     accessibility: 'public' | 'restricted' | 'sacred';
     requiredReligion?: string;
@@ -41,7 +42,7 @@ export interface BuildingLayout {
 export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
     name: 'Government Forum',
     totalBounds: { width: 40, height: 48 },
-    entrance: { x: 20, y: 46 },
+    entrance: { x: 20, y: 43 }, // FIXED: Inside entry corridor bounds (y: 42-46)
     backgroundPattern: 'stone_official',
     ambientLighting: { color: '#F5E6D3', intensity: 0.4 },
     spaces: [
@@ -50,7 +51,7 @@ export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
             id: 'council_chamber',
             name: 'Council Chamber',
             type: 'room',
-            bounds: { x: 10, y: 10, width: 20, height: 16 },
+            bounds: { x: 10, y: 10, width: 20, height: 18 }, // ENLARGED: height 16 → 18
             floorType: 'marble',
             wallHeight: 6,
             lightingSources: [
@@ -76,7 +77,7 @@ export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
             id: 'waiting_hall',
             name: 'Public Waiting Hall',
             type: 'room',
-            bounds: { x: 12, y: 28, width: 16, height: 12 },
+            bounds: { x: 12, y: 28, width: 16, height: 14 }, // ENLARGED: height 12 → 14
             floorType: 'stone',
             wallHeight: 5,
             lightingSources: [
@@ -98,7 +99,7 @@ export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
             id: 'tax_office',
             name: 'Tax Collection Office',
             type: 'room',
-            bounds: { x: 2, y: 14, width: 6, height: 8 },
+            bounds: { x: 2, y: 14, width: 8, height: 10 }, // ENLARGED: 6x8 → 8x10
             floorType: 'wood',
             wallHeight: 4,
             lightingSources: [
@@ -116,7 +117,7 @@ export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
             id: 'records_office',
             name: 'Records Archive',
             type: 'room',
-            bounds: { x: 32, y: 14, width: 6, height: 8 },
+            bounds: { x: 30, y: 14, width: 8, height: 10 }, // ENLARGED: 6x8 → 8x10, shifted left to fit
             floorType: 'wood',
             wallHeight: 4,
             lightingSources: [
@@ -135,7 +136,7 @@ export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
             id: 'entry_corridor',
             name: 'Entry Hall',
             type: 'corridor',
-            bounds: { x: 16, y: 42, width: 8, height: 4 },
+            bounds: { x: 14, y: 42, width: 12, height: 6 }, // ENLARGED: 8x4 → 12x6, centered on entrance
             floorType: 'tile',
             wallHeight: 4,
             lightingSources: [
@@ -154,17 +155,35 @@ export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
 // FORTRESS COMMANDER CHAMBER - Military command post
 export const FORTRESS_LAYOUT: BuildingLayout = {
     name: 'Fortress Commander Chamber',
-    totalBounds: { width: 24, height: 16 },
-    entrance: { x: 12, y: 14 },
+    totalBounds: { width: 24, height: 18 }, // ENLARGED: height 16 → 18
+    entrance: { x: 12, y: 16 }, // FIXED: Inside entrance area
     backgroundPattern: 'stone_fortress',
     ambientLighting: { color: '#D2B48C', intensity: 0.5 },
     spaces: [
+        // Entrance Guard Area
+        {
+            id: 'entrance_area',
+            name: 'Entrance',
+            type: 'entrance',
+            bounds: { x: 8, y: 14, width: 8, height: 4 }, // NEW: Entrance guard area
+            floorType: 'stone',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 10, y: 16 }, intensity: 0.6, color: '#FF8C00' },
+                { type: 'torch', position: { x: 14, y: 16 }, intensity: 0.6, color: '#FF8C00' }
+            ],
+            furniture: [
+                { type: 'weapon_rack', position: { x: 9, y: 15 } },
+                { type: 'weapon_rack', position: { x: 15, y: 15 } }
+            ],
+            accessibility: 'public'
+        },
         // Main command chamber
         {
             id: 'command_chamber',
             name: 'Command Chamber',
             type: 'room',
-            bounds: { x: 2, y: 2, width: 20, height: 12 },
+            bounds: { x: 2, y: 2, width: 20, height: 12 }, // Same size, but now more space below
             floorType: 'stone',
             wallHeight: 4,
             lightingSources: [
@@ -188,70 +207,123 @@ export const FORTRESS_LAYOUT: BuildingLayout = {
     ]
 };
 
-// CHRISTIAN CATHEDRAL - Cross/Cruciform layout
+// CHRISTIAN CATHEDRAL - Cross/Cruciform layout (IMPROVED)
 export const CATHEDRAL_LAYOUT: BuildingLayout = {
     name: 'Gothic Cathedral',
-    totalBounds: { width: 32, height: 40 },
-    entrance: { x: 16, y: 38 },
+    totalBounds: { width: 40, height: 50 }, // EXPANDED: 32x42 → 40x50
+    entrance: { x: 20, y: 47 }, // Centered in narthex
     backgroundPattern: 'stone_cathedral',
-    ambientLighting: { color: '#FFE4B5', intensity: 0.3 },
+    ambientLighting: { color: '#FFE4B5', intensity: 0.4 }, // Slightly brighter
     spaces: [
-        // Nave (main body)
+        // Narthex (entrance vestibule)
+        {
+            id: 'narthex',
+            name: 'Narthex',
+            type: 'entrance',
+            bounds: { x: 14, y: 46, width: 12, height: 4 }, // EXPANDED: 8x4 → 12x4
+            floorType: 'tile',
+            wallHeight: 6,
+            lightingSources: [
+                { type: 'torch', position: { x: 16, y: 48 }, intensity: 0.6, color: '#FFA500' },
+                { type: 'torch', position: { x: 24, y: 48 }, intensity: 0.6, color: '#FFA500' }
+            ],
+            furniture: [
+                { type: 'pillar', position: { x: 15, y: 47 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 25, y: 47 }, scale: 1.5 }
+            ],
+            accessibility: 'public'
+        },
+        // Nave (main body) - MASSIVELY EXPANDED with rows of pews
         {
             id: 'nave',
             name: 'Nave',
             type: 'room',
-            bounds: { x: 12, y: 20, width: 8, height: 18 },
+            bounds: { x: 14, y: 24, width: 12, height: 22 }, // EXPANDED: 8x18 → 12x22
             floorType: 'stone',
-            wallHeight: 8,
+            wallHeight: 10, // Taller for Gothic feel
             lightingSources: [
-                { type: 'window', position: { x: 11, y: 25 }, intensity: 0.6, color: '#87CEEB' },
-                { type: 'window', position: { x: 21, y: 25 }, intensity: 0.6, color: '#87CEEB' },
-                { type: 'candle', position: { x: 14, y: 22 }, intensity: 0.4, color: '#FFD700' },
-                { type: 'candle', position: { x: 18, y: 22 }, intensity: 0.4, color: '#FFD700' }
+                { type: 'window', position: { x: 13, y: 28 }, intensity: 0.7, color: '#87CEEB' },
+                { type: 'window', position: { x: 27, y: 28 }, intensity: 0.7, color: '#87CEEB' },
+                { type: 'window', position: { x: 13, y: 36 }, intensity: 0.7, color: '#87CEEB' },
+                { type: 'window', position: { x: 27, y: 36 }, intensity: 0.7, color: '#87CEEB' },
+                { type: 'chandelier', position: { x: 20, y: 35 }, intensity: 0.9, color: '#FFD700' },
+                { type: 'chandelier', position: { x: 20, y: 30 }, intensity: 0.9, color: '#FFD700' }
             ],
             furniture: [
-                { type: 'pew', position: { x: 13, y: 32 }, rotation: 0 },
-                { type: 'pew', position: { x: 17, y: 32 }, rotation: 0 },
-                { type: 'pew', position: { x: 13, y: 28 }, rotation: 0 },
-                { type: 'pew', position: { x: 17, y: 28 }, rotation: 0 },
-                { type: 'pillar', position: { x: 12, y: 24 } },
-                { type: 'pillar', position: { x: 20, y: 24 } }
+                // Left aisle pews (6 rows)
+                { type: 'pew', position: { x: 16, y: 44 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 42 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 40 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 38 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 36 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 34 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 32 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 30 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 28 }, rotation: 0 },
+                { type: 'pew', position: { x: 16, y: 26 }, rotation: 0 },
+                // Right aisle pews (10 rows)
+                { type: 'pew', position: { x: 24, y: 44 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 42 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 40 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 38 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 36 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 34 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 32 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 30 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 28 }, rotation: 0 },
+                { type: 'pew', position: { x: 24, y: 26 }, rotation: 0 },
+                // Gothic pillars along nave
+                { type: 'pillar', position: { x: 14, y: 42 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 26, y: 42 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 14, y: 34 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 26, y: 34 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 14, y: 26 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 26, y: 26 }, scale: 1.5 }
             ],
             accessibility: 'public'
         },
-        // Transept (cross arms)
+        // Transept (cross arms) - EXPANDED
         {
             id: 'transept',
             name: 'Transept',
             type: 'room',
-            bounds: { x: 6, y: 16, width: 20, height: 6 },
+            bounds: { x: 6, y: 18, width: 28, height: 8 }, // EXPANDED: 20x6 → 28x8
             floorType: 'marble',
-            wallHeight: 6,
+            wallHeight: 8,
             lightingSources: [
-                { type: 'chandelier', position: { x: 16, y: 19 }, intensity: 0.8, color: '#FFD700' }
+                { type: 'chandelier', position: { x: 20, y: 22 }, intensity: 1.0, color: '#FFD700' },
+                { type: 'window', position: { x: 5, y: 22 }, intensity: 0.8, color: '#87CEEB' },
+                { type: 'window', position: { x: 35, y: 22 }, intensity: 0.8, color: '#87CEEB' }
             ],
             furniture: [
-                { type: 'statue', position: { x: 8, y: 18 } },
-                { type: 'statue', position: { x: 24, y: 18 } }
+                { type: 'statue', position: { x: 8, y: 22 }, scale: 1.5 },
+                { type: 'statue', position: { x: 32, y: 22 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 12, y: 20 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 28, y: 20 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 12, y: 24 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 28, y: 24 }, scale: 1.5 }
             ],
             accessibility: 'public'
         },
-        // Chancel/Sanctuary (holy area)
+        // Chancel/Sanctuary (holy area) - EXPANDED
         {
             id: 'sanctuary',
             name: 'Sanctuary',
             type: 'altar',
-            bounds: { x: 14, y: 8, width: 4, height: 8 },
+            bounds: { x: 15, y: 8, width: 10, height: 12 }, // EXPANDED: 6x10 → 10x12
             floorType: 'marble',
-            wallHeight: 4,
+            wallHeight: 6,
             lightingSources: [
-                { type: 'altar_glow', position: { x: 16, y: 12 }, intensity: 1.0, color: '#FFF8DC' },
-                { type: 'candle', position: { x: 15, y: 11 }, intensity: 0.5, color: '#FFD700' },
-                { type: 'candle', position: { x: 17, y: 11 }, intensity: 0.5, color: '#FFD700' }
+                { type: 'altar_glow', position: { x: 20, y: 13 }, intensity: 1.2, color: '#FFF8DC' },
+                { type: 'candle', position: { x: 18, y: 12 }, intensity: 0.6, color: '#FFD700' },
+                { type: 'candle', position: { x: 22, y: 12 }, intensity: 0.6, color: '#FFD700' },
+                { type: 'window', position: { x: 20, y: 9 }, intensity: 0.9, color: '#87CEEB' }
             ],
             furniture: [
-                { type: 'altar', position: { x: 16, y: 12 } }
+                { type: 'altar', position: { x: 20, y: 13 }, scale: 1.5, culturalVariant: 'european' },
+                { type: 'pillar', position: { x: 16, y: 16 }, scale: 1.5 },
+                { type: 'pillar', position: { x: 24, y: 16 }, scale: 1.5 },
+                { type: 'rug', position: { x: 20, y: 15 }, scale: 2.5, culturalVariant: 'european' }
             ],
             accessibility: 'sacred',
             requiredReligion: 'Christianity',
@@ -263,17 +335,31 @@ export const CATHEDRAL_LAYOUT: BuildingLayout = {
 // SMALL CHRISTIAN CHURCH - T-shape
 export const CHURCH_LAYOUT: BuildingLayout = {
     name: 'Village Church',
-    totalBounds: { width: 20, height: 24 },
-    entrance: { x: 10, y: 22 },
+    totalBounds: { width: 20, height: 26 }, // ENLARGED: height 24 → 26
+    entrance: { x: 10, y: 24 }, // FIXED: Inside entrance vestibule
     backgroundPattern: 'stone_church',
     ambientLighting: { color: '#FFF8DC', intensity: 0.4 },
     spaces: [
+        // Entrance Vestibule
+        {
+            id: 'entrance_vestibule',
+            name: 'Entrance',
+            type: 'entrance',
+            bounds: { x: 7, y: 22, width: 6, height: 4 }, // NEW: Small entrance area
+            floorType: 'tile',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 10, y: 24 }, intensity: 0.4, color: '#FFA500' }
+            ],
+            furniture: [],
+            accessibility: 'public'
+        },
         // Main worship area
         {
             id: 'worship_hall',
             name: 'Worship Hall',
             type: 'room',
-            bounds: { x: 6, y: 12, width: 8, height: 10 },
+            bounds: { x: 6, y: 12, width: 8, height: 10 }, // Same size
             floorType: 'wood',
             wallHeight: 5,
             lightingSources: [
@@ -295,7 +381,7 @@ export const CHURCH_LAYOUT: BuildingLayout = {
             id: 'altar_area',
             name: 'Altar',
             type: 'altar',
-            bounds: { x: 8, y: 6, width: 4, height: 6 },
+            bounds: { x: 7, y: 6, width: 6, height: 6 }, // ENLARGED: width 4 → 6
             floorType: 'stone',
             wallHeight: 3,
             lightingSources: [
@@ -314,17 +400,48 @@ export const CHURCH_LAYOUT: BuildingLayout = {
 // MOSQUE - Circular/dome layout
 export const MOSQUE_LAYOUT: BuildingLayout = {
     name: 'Grand Mosque',
-    totalBounds: { width: 28, height: 28 },
-    entrance: { x: 14, y: 26 },
+    totalBounds: { width: 28, height: 30 }, // ENLARGED: height 28 → 30
+    entrance: { x: 14, y: 28 }, // FIXED: Inside entrance courtyard
     backgroundPattern: 'geometric_tiles',
     ambientLighting: { color: '#E6E6FA', intensity: 0.4 },
     spaces: [
+        // Entrance Courtyard (Sahn)
+        {
+            id: 'entrance_courtyard',
+            name: 'Entrance Courtyard',
+            type: 'entrance',
+            bounds: { x: 10, y: 26, width: 8, height: 4 }, // NEW: Islamic entrance courtyard
+            floorType: 'tile',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 12, y: 28 }, intensity: 0.5, color: '#FFA500' },
+                { type: 'torch', position: { x: 16, y: 28 }, intensity: 0.5, color: '#FFA500' }
+            ],
+            furniture: [
+                { type: 'fountain', position: { x: 14, y: 28 } }
+            ],
+            accessibility: 'public'
+        },
+        // Connecting Corridor
+        {
+            id: 'corridor',
+            name: 'Corridor',
+            type: 'corridor',
+            bounds: { x: 12, y: 24, width: 4, height: 2 }, // CONNECTS courtyard to prayer hall
+            floorType: 'tile',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 14, y: 25 }, intensity: 0.4, color: '#FFA500' }
+            ],
+            furniture: [],
+            accessibility: 'public'
+        },
         // Main prayer hall (circular)
         {
             id: 'prayer_hall',
             name: 'Prayer Hall',
             type: 'room',
-            bounds: { x: 6, y: 6, width: 16, height: 16 },
+            bounds: { x: 6, y: 6, width: 16, height: 18 }, // ENLARGED: height 16 → 18, now goes to y:24
             floorType: 'carpet',
             wallHeight: 6,
             lightingSources: [
@@ -354,7 +471,7 @@ export const MOSQUE_LAYOUT: BuildingLayout = {
             id: 'mihrab',
             name: 'Mihrab',
             type: 'altar',
-            bounds: { x: 12, y: 4, width: 4, height: 4 },
+            bounds: { x: 11, y: 2, width: 6, height: 6 }, // ENLARGED: 4x4 → 6x6, shifted up
             floorType: 'mosaic',
             wallHeight: 2,
             lightingSources: [
@@ -373,17 +490,34 @@ export const MOSQUE_LAYOUT: BuildingLayout = {
 // BUDDHIST TEMPLE - Rectangular with meditation areas
 export const BUDDHIST_TEMPLE_LAYOUT: BuildingLayout = {
     name: 'Buddhist Temple',
-    totalBounds: { width: 24, height: 20 },
-    entrance: { x: 12, y: 18 },
+    totalBounds: { width: 24, height: 22 }, // ENLARGED: height 20 → 22
+    entrance: { x: 12, y: 20 }, // FIXED: Inside entrance garden
     backgroundPattern: 'wood_zen',
     ambientLighting: { color: '#F5DEB3', intensity: 0.5 },
     spaces: [
+        // Entrance Garden/Vestibule
+        {
+            id: 'entrance_garden',
+            name: 'Entrance Garden',
+            type: 'entrance',
+            bounds: { x: 9, y: 18, width: 6, height: 4 }, // NEW: Zen garden entrance
+            floorType: 'stone',
+            wallHeight: 3,
+            lightingSources: [
+                { type: 'torch', position: { x: 12, y: 20 }, intensity: 0.4, color: '#FFA500' }
+            ],
+            furniture: [
+                { type: 'planter', position: { x: 10, y: 19 } },
+                { type: 'planter', position: { x: 14, y: 19 } }
+            ],
+            accessibility: 'public'
+        },
         // Meditation hall
         {
             id: 'meditation_hall',
             name: 'Meditation Hall',
             type: 'room',
-            bounds: { x: 4, y: 8, width: 16, height: 8 },
+            bounds: { x: 4, y: 8, width: 16, height: 10 }, // ENLARGED: height 8 → 10
             floorType: 'wood',
             wallHeight: 4,
             lightingSources: [
@@ -405,7 +539,7 @@ export const BUDDHIST_TEMPLE_LAYOUT: BuildingLayout = {
             id: 'shrine',
             name: 'Buddha Shrine',
             type: 'altar',
-            bounds: { x: 10, y: 4, width: 4, height: 4 },
+            bounds: { x: 9, y: 4, width: 6, height: 4 }, // ENLARGED: width 4 → 6
             floorType: 'stone',
             wallHeight: 3,
             lightingSources: [
@@ -426,8 +560,8 @@ export const BUDDHIST_TEMPLE_LAYOUT: BuildingLayout = {
 // HINDU TEMPLE - Open courtyard with multiple shrines (Mandapa style)
 export const HINDU_TEMPLE_LAYOUT: BuildingLayout = {
     name: 'Hindu Temple',
-    totalBounds: { width: 26, height: 22 },
-    entrance: { x: 13, y: 20 },
+    totalBounds: { width: 26, height: 24 }, // ENLARGED: height 22 → 24
+    entrance: { x: 13, y: 22 }, // FIXED: Inside entrance vestibule
     backgroundPattern: 'stone_carved',
     ambientLighting: { color: '#FFF8DC', intensity: 0.6 },
     spaces: [
@@ -480,12 +614,26 @@ export const HINDU_TEMPLE_LAYOUT: BuildingLayout = {
             accessibility: 'sacred',
             requiredReligion: 'Hinduism'
         },
+        // Entrance Vestibule
+        {
+            id: 'entrance_vestibule',
+            name: 'Entrance',
+            type: 'entrance',
+            bounds: { x: 10, y: 20, width: 6, height: 4 }, // NEW: Entrance hall
+            floorType: 'tile',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 13, y: 22 }, intensity: 0.5, color: '#FFA500' }
+            ],
+            furniture: [],
+            accessibility: 'public'
+        },
         // Side shrine 1 (for secondary deity)
         {
             id: 'side_shrine_1',
             name: 'Side Shrine',
             type: 'altar',
-            bounds: { x: 3, y: 6, width: 3, height: 4 },
+            bounds: { x: 2, y: 6, width: 5, height: 6 }, // ENLARGED: 3x4 → 5x6
             floorType: 'stone',
             wallHeight: 3,
             lightingSources: [
@@ -502,7 +650,7 @@ export const HINDU_TEMPLE_LAYOUT: BuildingLayout = {
             id: 'side_shrine_2',
             name: 'Side Shrine',
             type: 'altar',
-            bounds: { x: 20, y: 6, width: 3, height: 4 },
+            bounds: { x: 19, y: 6, width: 5, height: 6 }, // ENLARGED: 3x4 → 5x6
             floorType: 'stone',
             wallHeight: 3,
             lightingSources: [
@@ -520,8 +668,8 @@ export const HINDU_TEMPLE_LAYOUT: BuildingLayout = {
 // SYNAGOGUE - Rectangular with bimah
 export const SYNAGOGUE_LAYOUT: BuildingLayout = {
     name: 'Synagogue',
-    totalBounds: { width: 18, height: 16 },
-    entrance: { x: 9, y: 14 },
+    totalBounds: { width: 18, height: 18 }, // ENLARGED: height 16 → 18
+    entrance: { x: 9, y: 15 }, // FIXED: Inside entrance vestibule
     backgroundPattern: 'stone_hebrew',
     ambientLighting: { color: '#F0F8FF', intensity: 0.6 },
     spaces: [
@@ -530,7 +678,7 @@ export const SYNAGOGUE_LAYOUT: BuildingLayout = {
             id: 'sanctuary',
             name: 'Sanctuary',
             type: 'room',
-            bounds: { x: 3, y: 6, width: 12, height: 8 },
+            bounds: { x: 3, y: 4, width: 12, height: 10 }, // ENLARGED: 12x8 → 12x10, shifted down
             floorType: 'wood',
             wallHeight: 5,
             lightingSources: [
@@ -546,12 +694,26 @@ export const SYNAGOGUE_LAYOUT: BuildingLayout = {
             ],
             accessibility: 'public'
         },
+        // Entrance Vestibule
+        {
+            id: 'entrance_vestibule',
+            name: 'Entrance',
+            type: 'entrance',
+            bounds: { x: 6, y: 14, width: 6, height: 4 }, // NEW: Entrance hall containing entrance point
+            floorType: 'tile',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 9, y: 16 }, intensity: 0.5, color: '#FFA500' }
+            ],
+            furniture: [],
+            accessibility: 'public'
+        },
         // Ark area
         {
             id: 'ark',
             name: 'Holy Ark',
             type: 'altar',
-            bounds: { x: 7, y: 3, width: 4, height: 3 },
+            bounds: { x: 7, y: 1, width: 4, height: 3 }, // Shifted up to make room
             floorType: 'marble',
             wallHeight: 4,
             lightingSources: [
@@ -570,17 +732,17 @@ export const SYNAGOGUE_LAYOUT: BuildingLayout = {
 // EUROPEAN PALACE - Throne room with antechamber
 export const EUROPEAN_PALACE_LAYOUT: BuildingLayout = {
     name: 'Royal Palace',
-    totalBounds: { width: 32, height: 24 },
-    entrance: { x: 16, y: 22 },
+    totalBounds: { width: 32, height: 24 }, // Keep same size
+    entrance: { x: 16, y: 19 }, // FIXED: Inside entrance hall (y: 16-22)
     backgroundPattern: 'marble_royal',
-    ambientLighting: { color: '#F5F5DC', intensity: 0.7 },
+    ambientLighting: { color: '#FFF8DC', intensity: 0.85 }, // ENHANCED: brighter, warmer (0.7 → 0.85)
     spaces: [
         // Grand entrance hall
         {
             id: 'entrance_hall',
             name: 'Entrance Hall',
-            type: 'room',
-            bounds: { x: 12, y: 16, width: 8, height: 6 },
+            type: 'entrance', // Changed to 'entrance' type
+            bounds: { x: 12, y: 16, width: 8, height: 8 }, // ENLARGED: height 6 → 8
             floorType: 'marble',
             wallHeight: 6,
             lightingSources: [
@@ -600,22 +762,23 @@ export const EUROPEAN_PALACE_LAYOUT: BuildingLayout = {
             name: 'Throne Room',
             type: 'room',
             bounds: { x: 8, y: 6, width: 16, height: 10 },
-            floorType: 'marble',
+            floorType: 'marble', // Main floor: marble
             wallHeight: 8,
             lightingSources: [
-                { type: 'chandelier', position: { x: 16, y: 11 }, intensity: 1.0, color: '#FFD700' },
-                { type: 'window', position: { x: 10, y: 8 }, intensity: 0.6, color: '#87CEEB' },
-                { type: 'window', position: { x: 22, y: 8 }, intensity: 0.6, color: '#87CEEB' },
-                { type: 'torch', position: { x: 12, y: 10 }, intensity: 0.5, color: '#FF6347' },
-                { type: 'torch', position: { x: 20, y: 10 }, intensity: 0.5, color: '#FF6347' }
+                { type: 'chandelier', position: { x: 16, y: 11 }, intensity: 1.2, color: '#FFD700' }, // ENHANCED: intensity 1.0 → 1.2
+                { type: 'window', position: { x: 10, y: 8 }, intensity: 0.8, color: '#87CEEB' }, // ENHANCED: 0.6 → 0.8
+                { type: 'window', position: { x: 22, y: 8 }, intensity: 0.8, color: '#87CEEB' }, // ENHANCED: 0.6 → 0.8
+                { type: 'torch', position: { x: 12, y: 10 }, intensity: 0.7, color: '#FF6347' }, // ENHANCED: 0.5 → 0.7
+                { type: 'torch', position: { x: 20, y: 10 }, intensity: 0.7, color: '#FF6347' } // ENHANCED: 0.5 → 0.7
             ],
             furniture: [
-                { type: 'throne', position: { x: 16, y: 8 } },
-                { type: 'rug', position: { x: 16, y: 12 }, scale: 3 },
-                { type: 'pillar', position: { x: 12, y: 8 } },
-                { type: 'pillar', position: { x: 20, y: 8 } },
-                { type: 'tapestry', position: { x: 8, y: 8 } },
-                { type: 'tapestry', position: { x: 24, y: 8 } }
+                { type: 'throne', position: { x: 16, y: 8 }, scale: 1.8, culturalVariant: 'european' },
+                { type: 'rug', position: { x: 16, y: 10 }, scale: 3, culturalVariant: 'european' },
+                { type: 'rug', position: { x: 16, y: 14 }, scale: 2, culturalVariant: 'european' },
+                { type: 'pillar', position: { x: 12, y: 8 }, scale: 1.8, culturalVariant: 'european' },
+                { type: 'pillar', position: { x: 20, y: 8 }, scale: 1.8, culturalVariant: 'european' },
+                { type: 'tapestry', position: { x: 8, y: 8 }, scale: 1.5 },
+                { type: 'tapestry', position: { x: 24, y: 8 }, scale: 1.5 }
             ],
             accessibility: 'restricted',
             requiredClass: ['nobility', 'clergy', 'merchant']
@@ -626,31 +789,46 @@ export const EUROPEAN_PALACE_LAYOUT: BuildingLayout = {
 // MIDDLE EASTERN PALACE - Courtyard style
 export const MIDDLE_EASTERN_PALACE_LAYOUT: BuildingLayout = {
     name: 'Sultan\'s Palace',
-    totalBounds: { width: 28, height: 28 },
-    entrance: { x: 14, y: 26 },
+    totalBounds: { width: 28, height: 30 }, // ENLARGED: height 28 → 30
+    entrance: { x: 14, y: 27 }, // FIXED: Inside entrance vestibule
     backgroundPattern: 'geometric_palace',
-    ambientLighting: { color: '#FFF8DC', intensity: 0.6 },
+    ambientLighting: { color: '#FFF5E6', intensity: 0.8 }, // ENHANCED: brighter, warmer (0.6 → 0.8)
     spaces: [
+        // Entrance Vestibule
+        {
+            id: 'entrance_vestibule',
+            name: 'Entrance',
+            type: 'entrance',
+            bounds: { x: 11, y: 26, width: 6, height: 4 }, // NEW: Palace entrance
+            floorType: 'tile',
+            wallHeight: 5,
+            lightingSources: [
+                { type: 'torch', position: { x: 13, y: 28 }, intensity: 0.5, color: '#FFA500' },
+                { type: 'torch', position: { x: 15, y: 28 }, intensity: 0.5, color: '#FFA500' }
+            ],
+            furniture: [],
+            accessibility: 'public'
+        },
         // Courtyard reception
         {
             id: 'courtyard',
             name: 'Courtyard',
             type: 'room',
-            bounds: { x: 8, y: 12, width: 12, height: 12 },
+            bounds: { x: 8, y: 12, width: 12, height: 14 }, // ENLARGED: height 12 → 14
             floorType: 'tile',
             wallHeight: 4,
             lightingSources: [
-                { type: 'brazier', position: { x: 12, y: 16 }, intensity: 0.6, color: '#FF6347' },
-                { type: 'brazier', position: { x: 16, y: 16 }, intensity: 0.6, color: '#FF6347' },
-                { type: 'brazier', position: { x: 12, y: 20 }, intensity: 0.6, color: '#FF6347' },
-                { type: 'brazier', position: { x: 16, y: 20 }, intensity: 0.6, color: '#FF6347' }
+                { type: 'brazier', position: { x: 12, y: 16 }, intensity: 0.9, color: '#FF6347' }, // ENHANCED: 0.6 → 0.9
+                { type: 'brazier', position: { x: 16, y: 16 }, intensity: 0.9, color: '#FF6347' }, // ENHANCED: 0.6 → 0.9
+                { type: 'brazier', position: { x: 12, y: 20 }, intensity: 0.9, color: '#FF6347' }, // ENHANCED: 0.6 → 0.9
+                { type: 'brazier', position: { x: 16, y: 20 }, intensity: 0.9, color: '#FF6347' } // ENHANCED: 0.6 → 0.9
             ],
             furniture: [
-                { type: 'rug', position: { x: 14, y: 18 }, scale: 4 },
-                { type: 'pillar', position: { x: 10, y: 14 } },
-                { type: 'pillar', position: { x: 18, y: 14 } },
-                { type: 'pillar', position: { x: 10, y: 22 } },
-                { type: 'pillar', position: { x: 18, y: 22 } }
+                { type: 'rug', position: { x: 14, y: 18 }, scale: 6 }, // ENLARGED: 4 → 6
+                { type: 'pillar', position: { x: 10, y: 14 }, scale: 1.8 }, // ENLARGED: added scale 1.8
+                { type: 'pillar', position: { x: 18, y: 14 }, scale: 1.8 }, // ENLARGED: added scale 1.8
+                { type: 'pillar', position: { x: 10, y: 22 }, scale: 1.8 }, // ENLARGED: added scale 1.8
+                { type: 'pillar', position: { x: 18, y: 22 }, scale: 1.8 } // ENLARGED: added scale 1.8
             ],
             accessibility: 'public'
         },
@@ -663,15 +841,15 @@ export const MIDDLE_EASTERN_PALACE_LAYOUT: BuildingLayout = {
             floorType: 'carpet',
             wallHeight: 5,
             lightingSources: [
-                { type: 'chandelier', position: { x: 14, y: 9 }, intensity: 0.8, color: '#FFD700' },
-                { type: 'candle', position: { x: 12, y: 7 }, intensity: 0.4, color: '#FFD700' },
-                { type: 'candle', position: { x: 16, y: 7 }, intensity: 0.4, color: '#FFD700' }
+                { type: 'chandelier', position: { x: 14, y: 9 }, intensity: 1.1, color: '#FFD700' }, // ENHANCED: 0.8 → 1.1
+                { type: 'candle', position: { x: 12, y: 7 }, intensity: 0.6, color: '#FFD700' }, // ENHANCED: 0.4 → 0.6
+                { type: 'candle', position: { x: 16, y: 7 }, intensity: 0.6, color: '#FFD700' } // ENHANCED: 0.4 → 0.6
             ],
             furniture: [
-                { type: 'throne', position: { x: 14, y: 8 } },
-                { type: 'rug', position: { x: 14, y: 10 }, scale: 2 },
-                { type: 'tapestry', position: { x: 10, y: 7 } },
-                { type: 'tapestry', position: { x: 18, y: 7 } }
+                { type: 'throne', position: { x: 14, y: 8 }, scale: 1.8, culturalVariant: 'mena' },
+                { type: 'rug', position: { x: 14, y: 9 }, scale: 2.5, culturalVariant: 'mena' },
+                { type: 'tapestry', position: { x: 10, y: 7 }, scale: 1.5 },
+                { type: 'tapestry', position: { x: 18, y: 7 }, scale: 1.5 }
             ],
             accessibility: 'restricted',
             requiredClass: ['nobility', 'clergy']
@@ -682,27 +860,27 @@ export const MIDDLE_EASTERN_PALACE_LAYOUT: BuildingLayout = {
 // ASIAN PALACE - Traditional East Asian layout
 export const ASIAN_PALACE_LAYOUT: BuildingLayout = {
     name: 'Imperial Palace',
-    totalBounds: { width: 30, height: 22 },
-    entrance: { x: 15, y: 20 },
+    totalBounds: { width: 30, height: 22 }, // Keep same
+    entrance: { x: 15, y: 17 }, // FIXED: Inside entrance courtyard (y: 14-20)
     backgroundPattern: 'wood_imperial',
-    ambientLighting: { color: '#F4F1DE', intensity: 0.65 },
+    ambientLighting: { color: '#FFF8DC', intensity: 0.85 }, // ENHANCED: intensity 0.65 → 0.85, warmer color
     spaces: [
         // Entrance courtyard
         {
             id: 'entrance_court',
             name: 'Entrance Courtyard',
-            type: 'room',
-            bounds: { x: 10, y: 14, width: 10, height: 6 },
+            type: 'entrance', // Changed to 'entrance' type
+            bounds: { x: 10, y: 14, width: 10, height: 8 }, // ENLARGED: height 6 → 8
             floorType: 'wood',
             wallHeight: 4,
             lightingSources: [
-                { type: 'torch', position: { x: 12, y: 16 }, intensity: 0.5, color: '#FF6347' },
-                { type: 'torch', position: { x: 18, y: 16 }, intensity: 0.5, color: '#FF6347' }
+                { type: 'torch', position: { x: 12, y: 16 }, intensity: 0.7, color: '#FF6347' }, // ENHANCED: 0.5 → 0.7
+                { type: 'torch', position: { x: 18, y: 16 }, intensity: 0.7, color: '#FF6347' } // ENHANCED: 0.5 → 0.7
             ],
             furniture: [
-                { type: 'pillar', position: { x: 12, y: 15 } },
-                { type: 'pillar', position: { x: 18, y: 15 } },
-                { type: 'rug', position: { x: 15, y: 17 }, scale: 2 }
+                { type: 'pillar', position: { x: 12, y: 15 }, scale: 1.8 }, // ENLARGED: added scale 1.8
+                { type: 'pillar', position: { x: 18, y: 15 }, scale: 1.8 }, // ENLARGED: added scale 1.8
+                { type: 'rug', position: { x: 15, y: 17 }, scale: 5 } // ENLARGED: 2 → 5
             ],
             accessibility: 'public'
         },
@@ -715,17 +893,18 @@ export const ASIAN_PALACE_LAYOUT: BuildingLayout = {
             floorType: 'marble',
             wallHeight: 7,
             lightingSources: [
-                { type: 'chandelier', position: { x: 15, y: 10 }, intensity: 1.0, color: '#FFD700' },
-                { type: 'candle', position: { x: 10, y: 8 }, intensity: 0.4, color: '#FFD700' },
-                { type: 'candle', position: { x: 20, y: 8 }, intensity: 0.4, color: '#FFD700' }
+                { type: 'chandelier', position: { x: 15, y: 10 }, intensity: 1.2, color: '#FFD700' }, // ENHANCED: 1.0 → 1.2
+                { type: 'candle', position: { x: 10, y: 8 }, intensity: 0.6, color: '#FFD700' }, // ENHANCED: 0.4 → 0.6
+                { type: 'candle', position: { x: 20, y: 8 }, intensity: 0.6, color: '#FFD700' } // ENHANCED: 0.4 → 0.6
             ],
             furniture: [
-                { type: 'throne', position: { x: 15, y: 8 } },
-                { type: 'pillar', position: { x: 9, y: 9 } },
-                { type: 'pillar', position: { x: 21, y: 9 } },
-                { type: 'tapestry', position: { x: 7, y: 7 } },
-                { type: 'tapestry', position: { x: 23, y: 7 } },
-                { type: 'rug', position: { x: 15, y: 12 }, scale: 4 }
+                { type: 'throne', position: { x: 15, y: 8 }, scale: 1.8, culturalVariant: 'east_asian' },
+                { type: 'pillar', position: { x: 9, y: 9 }, scale: 1.8, culturalVariant: 'east_asian' },
+                { type: 'pillar', position: { x: 21, y: 9 }, scale: 1.8, culturalVariant: 'east_asian' },
+                { type: 'tapestry', position: { x: 7, y: 7 }, scale: 1.5 },
+                { type: 'tapestry', position: { x: 23, y: 7 }, scale: 1.5 },
+                { type: 'rug', position: { x: 15, y: 10 }, scale: 3, culturalVariant: 'east_asian' },
+                { type: 'rug', position: { x: 15, y: 13 }, scale: 2, culturalVariant: 'east_asian' }
             ],
             accessibility: 'restricted',
             requiredClass: ['nobility', 'clergy']
@@ -736,30 +915,31 @@ export const ASIAN_PALACE_LAYOUT: BuildingLayout = {
 // AFRICAN PALACE - Great hall with traditional elements
 export const AFRICAN_PALACE_LAYOUT: BuildingLayout = {
     name: 'Royal Compound',
-    totalBounds: { width: 26, height: 20 },
-    entrance: { x: 13, y: 18 },
+    totalBounds: { width: 26, height: 20 }, // Keep same
+    entrance: { x: 13, y: 14 }, // FIXED: Inside great hall (y: 10-18)
     backgroundPattern: 'earth_palace',
-    ambientLighting: { color: '#E8D5B7', intensity: 0.7 },
+    ambientLighting: { color: '#FFF0DC', intensity: 0.85 }, // ENHANCED: intensity 0.7 → 0.85, warmer color
     spaces: [
         // Great hall
         {
             id: 'great_hall',
             name: 'Great Hall',
-            type: 'room',
-            bounds: { x: 6, y: 10, width: 14, height: 8 },
+            type: 'entrance', // Changed to 'entrance' type - great hall IS the entrance
+            bounds: { x: 6, y: 10, width: 14, height: 10 }, // ENLARGED: height 8 → 10
             floorType: 'stone',
             wallHeight: 5,
             lightingSources: [
-                { type: 'brazier', position: { x: 10, y: 12 }, intensity: 0.7, color: '#FF6347' },
-                { type: 'brazier', position: { x: 16, y: 12 }, intensity: 0.7, color: '#FF6347' },
-                { type: 'torch', position: { x: 8, y: 14 }, intensity: 0.5, color: '#FF6347' },
-                { type: 'torch', position: { x: 18, y: 14 }, intensity: 0.5, color: '#FF6347' }
+                { type: 'brazier', position: { x: 10, y: 12 }, intensity: 0.9, color: '#FF6347' }, // ENHANCED: 0.7 → 0.9
+                { type: 'brazier', position: { x: 16, y: 12 }, intensity: 0.9, color: '#FF6347' }, // ENHANCED: 0.7 → 0.9
+                { type: 'torch', position: { x: 8, y: 14 }, intensity: 0.7, color: '#FF6347' }, // ENHANCED: 0.5 → 0.7
+                { type: 'torch', position: { x: 18, y: 14 }, intensity: 0.7, color: '#FF6347' } // ENHANCED: 0.5 → 0.7
             ],
             furniture: [
-                { type: 'throne', position: { x: 13, y: 12 } },
-                { type: 'rug', position: { x: 13, y: 15 }, scale: 3 },
-                { type: 'pillar', position: { x: 9, y: 13 } },
-                { type: 'pillar', position: { x: 17, y: 13 } }
+                { type: 'throne', position: { x: 13, y: 12 }, scale: 1.8, culturalVariant: 'african' },
+                { type: 'rug', position: { x: 13, y: 14 }, scale: 3, culturalVariant: 'african' },
+                { type: 'rug', position: { x: 13, y: 17 }, scale: 2, culturalVariant: 'african' },
+                { type: 'pillar', position: { x: 9, y: 13 }, scale: 1.8 },
+                { type: 'pillar', position: { x: 17, y: 13 }, scale: 1.8 }
             ],
             accessibility: 'public'
         },
@@ -768,7 +948,7 @@ export const AFRICAN_PALACE_LAYOUT: BuildingLayout = {
             id: 'royal_chamber',
             name: 'Royal Chamber',
             type: 'room',
-            bounds: { x: 9, y: 5, width: 8, height: 5 },
+            bounds: { x: 9, y: 4, width: 8, height: 6 }, // ENLARGED: height 5 → 6, shifted up
             floorType: 'wood',
             wallHeight: 4,
             lightingSources: [

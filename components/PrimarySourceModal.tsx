@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, BookOpen, Copy, ExternalLink, Download, Globe } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
 import { getBackgroundPaths, loadBackgroundImage } from '../services/backgroundSelectionService';
 import { JournalQuoteTooltip } from './JournalQuoteTooltip';
@@ -222,13 +223,13 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
     }
   }, [source.title, source.wikipediaArticle]);
 
-  const effectiveWikipediaArticle = source.wikipediaArticle || autoDetectedWikipedia;
+  const effectiveWikipediaArticle = source.wikipediaArticle || source.wikisourceTitle || autoDetectedWikipedia;
 
   useEffect(() => {
     if (effectiveWikipediaArticle && activeTab === 'wikipedia' && !wikipediaContent) {
       fetchWikipediaContent();
     }
-  }, [activeTab, source.wikipediaArticle]);
+  }, [activeTab, source.wikipediaArticle, source.wikisourceTitle]);
 
   const fetchWikipediaContent = async () => {
     if (!effectiveWikipediaArticle) return;
@@ -459,7 +460,7 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
             {/* Content Toggle Buttons */}
             <div className="flex flex-row gap-2 justify-start lg:justify-end items-start">
               <div className="flex flex-wrap gap-2">
-                {effectiveWikipediaArticle && (
+                {(effectiveWikipediaArticle || source.wikisourceTitle) && (
                   <button
                     onClick={() => setActiveTab('wikipedia')}
                     className={`px-4 py-2.5 rounded-lg text-base font-medium transition-colors ${
@@ -587,20 +588,22 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
 
           {activeTab === 'excerpt' && (
             <div className="bg-white rounded-lg p-6">
-              <p className="text-lg leading-relaxed text-gray-700">
-                {source.excerpt}
-              </p>
+              <div className="prose prose-lg max-w-none text-gray-700">
+                <ReactMarkdown>{source.excerpt}</ReactMarkdown>
+              </div>
 
               <div className="mt-8 pt-8 border-t border-gray-200">
                 <h3 className="text-gray-900 font-semibold mb-4">Keywords & Topics</h3>
                 <div className="flex flex-wrap gap-2">
                   {source.keywords.map((keyword, index) => (
-                    <span
+                    <button
                       key={index}
-                      className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm"
+                      onClick={() => window.open(`https://en.wikipedia.org/wiki/${encodeURIComponent(keyword.replace(/ /g, '_'))}`, '_blank')}
+                      className="px-3 py-1 bg-gray-200 hover:bg-blue-100 text-gray-700 hover:text-blue-700 rounded-full text-sm transition-colors cursor-pointer"
+                      title={`Search Wikipedia for "${keyword}"`}
                     >
                       {keyword}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -617,8 +620,8 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
           {activeTab === 'fulltext' && (
             <div className="bg-white rounded-lg p-6">
               {source.longExcerpt ? (
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                  {source.longExcerpt}
+                <div className="prose prose-lg max-w-none text-gray-700">
+                  <ReactMarkdown>{source.longExcerpt}</ReactMarkdown>
                 </div>
               ) : (
                 <div className="text-gray-600 text-center py-12">
@@ -677,6 +680,15 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
                 >
                   <ExternalLink className="w-4 h-4" />
                   Wikisource
+                </button>
+              )}
+              {source.scholarSearchTerms && (
+                <button
+                  onClick={() => window.open(`https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=${encodeURIComponent(source.scholarSearchTerms)}`, '_blank')}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/80 hover:bg-white text-gray-700 rounded-lg transition-colors shadow-sm"
+                >
+                  <Globe className="w-4 h-4" />
+                  Google Scholar
                 </button>
               )}
               <button

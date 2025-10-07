@@ -1298,6 +1298,39 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     fortress: ['Spanish Fort (e.g., El Morro)', 'Pirate Haven (e.g., Port Royal)'],
                     factory: ['Sugar Plantation', 'Silver Smelter'],
                     trading_post: ['Treasure Fleet Port (Havana)', 'Slave Market']
+                },
+                mapAreaOverrides: {
+                    "Cuba": {
+                        dominantPower: 'Spanish Crown',
+                        dominantPowerDescription: 'Cuba becomes the jewel of the Spanish Caribbean, with Havana serving as the assembly point for the treasure fleets returning to Spain.',
+                        allegianceGroups: [
+                            { name: 'Spanish Colonial Government', type: 'primary', description: 'Royal officials and military garrison controlling the island.' },
+                            { name: 'Creole Elite', type: 'secondary', description: 'Spanish-descended planters developing tobacco and sugar estates.' },
+                            { name: 'Enslaved Africans', type: 'rebel', description: 'Growing slave population working plantations.' },
+                            { name: 'Pirates and Privateers', type: 'rebel', description: 'Threatening Spanish shipping from nearby havens.' }
+                        ]
+                    },
+                    "Hispaniola": {
+                        dominantPower: 'Spanish and French Colonies',
+                        dominantPowerDescription: 'The island is divided between Spanish Santo Domingo (declining) and French Saint-Domingue (becoming the wealthiest colony in the world through brutal sugar production).',
+                        allegianceGroups: [
+                            { name: 'French Saint-Domingue', type: 'primary', description: 'The western third, becoming the world\'s most profitable sugar colony.' },
+                            { name: 'Spanish Santo Domingo', type: 'secondary', description: 'The declining eastern portion, eclipsed by its French neighbor.' },
+                            { name: 'Enslaved Africans', type: 'rebel', description: 'Massive slave population (will launch the Haitian Revolution).' },
+                            { name: 'Maroons', type: 'rebel', description: 'Escaped slaves establishing independent communities in the mountains.' }
+                        ]
+                    },
+                    "Jamaica": {
+                        dominantPower: 'British Empire',
+                        dominantPowerDescription: 'Seized from Spain in 1655, Jamaica becomes a major British sugar colony and haven for buccaneers at Port Royal, the "wickedest city on Earth."',
+                        allegianceGroups: [
+                            { name: 'British Colonial Government', type: 'primary', description: 'Royal governors and the plantocracy controlling the island.' },
+                            { name: 'Sugar Planters', type: 'secondary', description: 'Wealthy British plantation owners.' },
+                            { name: 'Enslaved Africans', type: 'rebel', description: 'The majority population working brutal sugar plantations.' },
+                            { name: 'Maroons', type: 'rebel', description: 'Free Black communities in the interior, descended from escaped slaves.' },
+                            { name: 'Port Royal Buccaneers', type: 'mercenary', description: 'Pirates operating with tacit British approval (until 1692 earthquake).' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
@@ -1314,6 +1347,38 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     fortress: ['Naval Base', 'Colonial Garrison'],
                     factory: ['Sugar Mill', 'Rum Distillery', 'Tobacco Plantation'],
                     trading_post: ['Sugar Port', 'Coaling Station']
+                },
+                mapAreaOverrides: {
+                    "Cuba": {
+                        dominantPower: 'Spanish Colonial Empire',
+                        dominantPowerDescription: 'Cuba remains Spain\'s most valuable colony, a major sugar and tobacco producer worked by hundreds of thousands of slaves, becoming one of the last bastions of slavery in the Americas.',
+                        allegianceGroups: [
+                            { name: 'Spanish Colonial Government', type: 'primary', description: 'Conservative Spanish authorities resisting independence movements.' },
+                            { name: 'Cuban Sugar Planters', type: 'secondary', description: 'Creole elite dependent on slavery, torn between Spain and independence.' },
+                            { name: 'Cuban Independence Movement', type: 'rebel', description: 'Intellectuals and landowners seeking independence (José Martí, etc.).' },
+                            { name: 'Enslaved Africans', type: 'rebel', description: 'Large slave population (not emancipated until 1886).' }
+                        ]
+                    },
+                    "Hispaniola": {
+                        dominantPower: 'Republic of Haiti / Spanish Santo Domingo',
+                        dominantPowerDescription: 'Haiti becomes the first Black republic after the only successful slave revolt in history (1791-1804), while the eastern part remains under Spanish then Dominican control.',
+                        allegianceGroups: [
+                            { name: 'Republic of Haiti', type: 'primary', description: 'Independent Black republic in the western third, facing international isolation.' },
+                            { name: 'Dominican Republic', type: 'secondary', description: 'The eastern portion, struggling with Haitian occupation and Spanish restoration.' },
+                            { name: 'Haitian Elite', type: 'secondary', description: 'Mulatto and Black ruling class in Port-au-Prince.' },
+                            { name: 'European Powers', type: 'secondary', description: 'France, Spain, and others seeking to contain the revolutionary example.' }
+                        ]
+                    },
+                    "Jamaica": {
+                        dominantPower: 'British Empire',
+                        dominantPowerDescription: 'Jamaica remains a major British sugar colony even after the abolition of slavery (1834), with a complex system of indentured labor and growing resistance to colonial rule.',
+                        allegianceGroups: [
+                            { name: 'British Colonial Government', type: 'primary', description: 'Royal governors maintaining firm control after the Morant Bay Rebellion (1865).' },
+                            { name: 'Planter Class', type: 'secondary', description: 'White plantation owners adapting to post-emancipation labor.' },
+                            { name: 'Free Black Population', type: 'secondary', description: 'Former slaves and their descendants, demanding political rights.' },
+                            { name: 'Indian and Chinese Indentured Workers', type: 'secondary', description: 'Imported laborers replacing slave labor on plantations.' }
+                        ]
+                    }
                 }
             },
             [MODERN_ERA]: {

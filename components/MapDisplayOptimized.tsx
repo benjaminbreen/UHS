@@ -1095,6 +1095,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const svgWidth = width * TILE_SIZE_PX;
   const svgHeight = height * TILE_SIZE_PX;
 
+  // Memoize railroad filtering to prevent re-filtering on every render
+  const railroadPaths = useMemo(() => {
+    return pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
+  }, [pathObjects]);
+
+  // Memoize sorted railroads for train selection (only railroad paths with actual rails, not ties)
+  const trainRailroads = useMemo(() => {
+    // Only use actual rail paths (not ties) for trains - they have no strokeDasharray
+    const railsOnly = railroadPaths.filter(p => !p.strokeDasharray);
+    return [...railsOnly].sort((a, b) => b.svgD.length - a.svgD.length).slice(0, 2);
+  }, [railroadPaths]);
+
   // Safari optimization: Adjust zoom limits to encourage better performance
   const minZoom = isSafariBrowser ? 1.5 : 0.4;  // Safari minimum zoom prevents zooming out too far
   const maxZoom = isSafariBrowser ? 8 : 12;      // Safari maximum zoom slightly reduced
@@ -2607,29 +2619,24 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             </g>
 
             {/* Railroads layer - rendered BELOW buildings, above terrain */}
-            {(() => {
-              const railroads = pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
-              if (railroads.length === 0) return null;
-
-              return (
-                <g className="railroads-layer" style={{ pointerEvents: 'none' }}>
-                  {railroads.map((path) => (
-                    <path
-                      key={path.id}
-                      d={path.svgD}
-                      stroke={path.strokeColor}
-                      strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                      fill="none"
-                      opacity={path.opacity}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeDasharray={path.strokeDasharray}
-                      style={{ pointerEvents: 'none' }}
-                    />
-                  ))}
-                </g>
-              );
-            })()}
+            {railroadPaths.length > 0 && (
+              <g className="railroads-layer" style={{ pointerEvents: 'none' }}>
+                {railroadPaths.map((path) => (
+                  <path
+                    key={path.id}
+                    d={path.svgD}
+                    stroke={path.strokeColor}
+                    strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                    fill="none"
+                    opacity={path.opacity}
+                    strokeLinecap="butt"
+                    strokeLinejoin="miter"
+                    strokeDasharray={path.strokeDasharray}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                ))}
+              </g>
+            )}
 
             {/* Railroad signal lights at junctions */}
             {mapData?.railroadJunctions && mapData.railroadJunctions.length > 0 && (() => {
@@ -2660,21 +2667,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Animated trains on railroads - ABOVE tracks */}
             {(() => {
               const { era } = parseDateString(mapData?.timeSlice || '1650');
-              const railroads = pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
 
-              if ((era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA) && railroads.length > 0) {
-                // Select 1-2 trains on longest railroads
-                const sortedRailroads = [...railroads].sort((a, b) => b.svgD.length - a.svgD.length);
-                const numTrains = Math.min(sortedRailroads.length, 2);
-                const selectedRailroads = sortedRailroads.slice(0, numTrains);
-
+              if ((era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA) && trainRailroads.length > 0) {
                 return (
                   <g className="trains-layer">
-                    {selectedRailroads.map((railroad, idx) => (
+                    {trainRailroads.map((railroad) => (
                       <TrainSymbol
                         key={`train-${railroad.id}`}
                         pathData={railroad.svgD}
-                        speed={0.03} // Slower, smoother movement
+                        speed={0.03}
                         numCars={2}
                       />
                     ))}

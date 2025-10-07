@@ -502,13 +502,21 @@ const ModalHub: React.FC = () => {
                             });
 
                             if (isSpecialMap && npcs && npcs.length > 0 && isTheft) {
+                                // Filter NPCs with valid positions
+                                const validNpcs = npcs.filter(npc =>
+                                    typeof npc.x === 'number' && typeof npc.y === 'number'
+                                );
+
                                 // Debug NPC positions
-                                npcs.forEach((npc, i) => {
+                                validNpcs.forEach((npc, i) => {
                                     console.log(`[Theft Detection] NPC ${i}: ${npc.name} at (${npc.x}, ${npc.y}) role: ${npc.role}`);
                                 });
 
+                                console.log('[Theft Detection] Player position:', { x: playerCharacter.x, y: playerCharacter.y });
+                                console.log('[Theft Detection] Container position:', containerModalData.position);
+
                                 const collectionEvent: ItemCollectionEvent = {
-                                    playerPos: containerModalData.position || { x: 0, y: 0 },
+                                    playerPos: { x: playerCharacter.x, y: playerCharacter.y },
                                     item,
                                     containerOwner: containerModalData.contents.ownerNpc,
                                     isTheft,
@@ -517,10 +525,10 @@ const ModalHub: React.FC = () => {
 
                                 console.log('[Theft Detection] Processing event:', collectionEvent);
 
-                                // Process NPC reactions
+                                // Process NPC reactions (use validNpcs only)
                                 const reactionResult = processNpcReactions(
                                     collectionEvent,
-                                    npcs,
+                                    validNpcs,
                                     mapData?.tiles || [],
                                     playerCharacter.reputation || 0
                                 );
@@ -603,23 +611,31 @@ const ModalHub: React.FC = () => {
 
                             // Check NPC awareness if in special map with NPCs and stealing valuable items
                             if (isSpecialMap && npcs && npcs.length > 0 && isTheft) {
+                                // Filter NPCs with valid positions
+                                const validNpcs = npcs.filter(npc =>
+                                    typeof npc.x === 'number' && typeof npc.y === 'number'
+                                );
+
                                 // Find the most valuable item for the confrontation
                                 const mostValuableItem = allItems.reduce((prev, curr) =>
                                     curr.value > prev.value ? curr : prev, allItems[0]
                                 );
 
+                                console.log('[Theft Detection - Take All] Player position:', { x: playerCharacter.x, y: playerCharacter.y });
+                                console.log('[Theft Detection - Take All] Container position:', containerModalData.position);
+
                                 const collectionEvent: ItemCollectionEvent = {
-                                    playerPos: containerModalData.position || { x: 0, y: 0 },
+                                    playerPos: { x: playerCharacter.x, y: playerCharacter.y },
                                     item: mostValuableItem,
                                     containerOwner: containerModalData.contents.ownerNpc,
                                     isTheft,
                                     action: 'stolen'
                                 };
 
-                                // Process NPC reactions
+                                // Process NPC reactions (use validNpcs only)
                                 const reactionResult = processNpcReactions(
                                     collectionEvent,
-                                    npcs,
+                                    validNpcs,
                                     mapData?.tiles || [],
                                     playerCharacter.reputation || 0
                                 );

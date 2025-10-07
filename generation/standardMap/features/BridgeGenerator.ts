@@ -40,8 +40,8 @@ export interface Bridge {
 }
 
 const isWaterTile = (tile: Tile): boolean => {
-  return !tile.isLand || 
-         tile.biome === BiomeType.RIVER || 
+  return !tile.isLand ||
+         tile.biome === BiomeType.RIVER ||
          tile.biome === BiomeType.MAJOR_RIVER ||
          tile.biome === BiomeType.FRESHWATER_LAKE ||
          tile.biome === BiomeType.ESTUARY;
@@ -50,6 +50,55 @@ const isWaterTile = (tile: Tile): boolean => {
 const inBounds = (x: number, y: number): boolean => {
   return x >= 0 && y >= 0 && x < MAP_WIDTH_TILES && y < MAP_HEIGHT_TILES;
 };
+
+/**
+ * Validate bridge placement - rejects bridges running parallel to shoreline
+ * A valid bridge should have water on its SIDES (perpendicular), not just ahead
+ */
+function validateBridgePlacement(
+  tiles: Tile[][],
+  candidate: BridgeCandidate
+): boolean {
+  // Get start position in tile coordinates
+  const startTileX = Math.floor(candidate.start.x / TILE_SIZE_PX);
+  const startTileY = Math.floor(candidate.start.y / TILE_SIZE_PX);
+
+  if (!inBounds(startTileX, startTileY)) return false;
+
+  // Determine if bridge is primarily vertical or horizontal
+  const isVertical = candidate.direction === 'vertical';
+  const isHorizontal = candidate.direction === 'horizontal';
+
+  // For diagonal bridges, allow them (they're rare and usually intentional)
+  if (!isVertical && !isHorizontal) return true;
+
+  // Check perpendicular directions for water
+  let perpendicularWaterCount = 0;
+
+  if (isVertical) {
+    // N-S bridge, check E-W for water (perpendicular)
+    const westTile = inBounds(startTileX - 1, startTileY) ? tiles[startTileY][startTileX - 1] : null;
+    const eastTile = inBounds(startTileX + 1, startTileY) ? tiles[startTileY][startTileX + 1] : null;
+
+    if (westTile && isWaterTile(westTile)) perpendicularWaterCount++;
+    if (eastTile && isWaterTile(eastTile)) perpendicularWaterCount++;
+  } else {
+    // E-W bridge, check N-S for water (perpendicular)
+    const northTile = inBounds(startTileX, startTileY - 1) ? tiles[startTileY - 1][startTileX] : null;
+    const southTile = inBounds(startTileX, startTileY + 1) ? tiles[startTileY + 1][startTileX] : null;
+
+    if (northTile && isWaterTile(northTile)) perpendicularWaterCount++;
+    if (southTile && isWaterTile(southTile)) perpendicularWaterCount++;
+  }
+
+  // REJECT if no water on perpendicular sides
+  // This means bridge is running parallel to shoreline (bad!)
+  if (perpendicularWaterCount === 0) {
+    return false;
+  }
+
+  return true;
+}
 
 /**
  * Find all locations where roads/paths cross water
@@ -152,6 +201,7 @@ function getTileAtPoint(tiles: Tile[][], point: Point): Tile | null {
 
 /**
  * Trace a water crossing to find start, end, and all water tiles
+ * Bridge should ONLY span the water gap, not extend far over land
  */
 function traceWaterCrossing(
   tiles: Tile[][],
@@ -159,55 +209,63 @@ function traceWaterCrossing(
   startIndex: number
 ): { start: Point; end: Point; waterTiles: Point[] } | null {
   const waterTiles: Point[] = [];
-  let landStart: Point | null = null;
-  let landEnd: Point | null = null;
-  
-  // Find the land tile before water - store in PIXEL coordinates
+  let waterStartIndex: number | null = null;
+  let waterEndIndex: number | null = null;
+
+  // Find where water starts
   for (let i = startIndex; i >= 0; i--) {
     const tile = getTileAtPoint(tiles, pathPoints[i]);
-    if (tile && !isWaterTile(tile)) {
-      // Store as pixel coordinates for rendering alignment
-      landStart = {
-        x: pathPoints[i].x,
-        y: pathPoints[i].y
-      };
+    if (tile && isWaterTile(tile)) {
+      waterStartIndex = i;
+    } else if (waterStartIndex !== null) {
+      // Found land before water - this is our start edge
       break;
     }
   }
-  
-  // Trace through water tiles
+
+  // Find where water ends
   let inWater = false;
   for (let i = startIndex; i < pathPoints.length; i++) {
     const tile = getTileAtPoint(tiles, pathPoints[i]);
     if (!tile) continue;
-    
+
     const tileCoord = {
       x: Math.floor(pathPoints[i].x / TILE_SIZE_PX),
       y: Math.floor(pathPoints[i].y / TILE_SIZE_PX)
     };
-    
+
     if (isWaterTile(tile)) {
       inWater = true;
-      // Water tiles stored as tile coordinates for game logic
+      // Track water tiles
       if (!waterTiles.some(t => t.x === tileCoord.x && t.y === tileCoord.y)) {
         waterTiles.push(tileCoord);
       }
     } else if (inWater) {
-      // Found land after water - store in PIXEL coordinates
-      landEnd = {
-        x: pathPoints[i].x,
-        y: pathPoints[i].y
-      };
+      // Found land after water - this is our end edge
+      waterEndIndex = i;
       break;
     }
   }
-  
-  if (!landStart || !landEnd || waterTiles.length === 0) return null;
-  
+
+  if (waterStartIndex === null || waterEndIndex === null || waterTiles.length === 0) {
+    return null;
+  }
+
+  // Bridge endpoints should be at the EDGES of the water, not far into land
+  // Use the first water tile center as start, last water tile center as end
+  const firstWaterTile = waterTiles[0];
+  const lastWaterTile = waterTiles[waterTiles.length - 1];
+
   return {
-    start: landStart,  // Now in pixels
-    end: landEnd,      // Now in pixels
-    waterTiles         // Still in tiles for game logic
+    start: {
+      x: firstWaterTile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+      y: firstWaterTile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+    },
+    end: {
+      x: lastWaterTile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+      y: lastWaterTile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+    },
+    waterTiles
   };
 }
 
@@ -242,22 +300,27 @@ function calculatePriority(pathType: PathType, length: number): number {
 /**
  * Select which bridges to actually build
  */
-function selectBridges(candidates: BridgeCandidate[]): BridgeCandidate[] {
+function selectBridges(tiles: Tile[][], candidates: BridgeCandidate[]): BridgeCandidate[] {
   // Sort by priority
   candidates.sort((a, b) => b.priority - a.priority);
-  
+
   const selected: BridgeCandidate[] = [];
   const usedLocations = new Set<string>();
-  
+
   for (const candidate of candidates) {
+    // VALIDATE: Reject bridges running parallel to shoreline
+    if (!validateBridgePlacement(tiles, candidate)) {
+      continue;
+    }
+
     // Check if location is already used (avoid duplicate bridges)
     const locKey = `${candidate.start.x},${candidate.start.y}-${candidate.end.x},${candidate.end.y}`;
     const reverseKey = `${candidate.end.x},${candidate.end.y}-${candidate.start.x},${candidate.start.y}`;
-    
+
     if (usedLocations.has(locKey) || usedLocations.has(reverseKey)) {
       continue;
     }
-    
+
     // Check minimum distance from other bridges
     let tooClose = false;
     for (const existing of selected) {
@@ -270,13 +333,13 @@ function selectBridges(candidates: BridgeCandidate[]): BridgeCandidate[] {
         break;
       }
     }
-    
+
     if (!tooClose) {
       selected.push(candidate);
       usedLocations.add(locKey);
     }
   }
-  
+
   return selected;
 }
 
@@ -372,22 +435,22 @@ export function generateBridges(
 ): Bridge[] {
   // Find all water crossings
   const candidates = findWaterCrossings(tiles, paths);
-  
-  // Select which ones to build
-  const selected = selectBridges(candidates);
-  
+
+  // Select which ones to build (now includes perpendicular water validation)
+  const selected = selectBridges(tiles, candidates);
+
   // Convert to bridge objects, filtering out null types (prehistoric era)
   const bridges: Bridge[] = [];
-  
+
   for (const [index, candidate] of selected.entries()) {
     const bridgeType = getBridgeType(era, culturalZone, candidate.pathType, candidate.waterTiles.length);
-    
+
     // Skip if no bridge should be built (e.g., prehistoric era)
     if (!bridgeType) {
       console.log('[Gen] Skipping bridge generation - not available in this era');
       continue;
     }
-    
+
     bridges.push({
       id: `bridge-${index}`,
       start: candidate.start,
@@ -398,7 +461,7 @@ export function generateBridges(
       width: candidate.pathType === PathType.ROAD || candidate.pathType === PathType.HIGHWAY ? 2 : 1,
     });
   }
-  
+
   return bridges;
 }
 

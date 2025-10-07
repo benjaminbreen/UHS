@@ -317,12 +317,19 @@ function svgFromRow(points: Point[]): string { return svgQuadratic(points); }
  * Record railroad crossings at map edges for cross-map continuity
  */
 function recordRailroadEdges(mapData: MapData): void {
-  if (!mapData.pathObjects || !mapData.edgeData) return;
+  if (!mapData.pathObjects || !mapData.edgeDataSet) {
+    console.warn('[Railroad Edges] No pathObjects or edgeDataSet available');
+    return;
+  }
 
   const railroads = mapData.pathObjects.filter(p => p.type === PathType.RAILROAD);
-  if (railroads.length === 0) return;
+  if (railroads.length === 0) {
+    console.log('[Railroad Edges] No railroads to record');
+    return;
+  }
 
-  const edgeData = mapData.edgeData;
+  const edgeData = mapData.edgeDataSet;
+  console.log(`[Railroad Edges] Processing ${railroads.length} railroad path objects`);
 
   // Helper to check if a point is near a map edge
   const isNearEdge = (x: number, y: number, edge: 'north' | 'south' | 'east' | 'west'): boolean => {
@@ -346,6 +353,9 @@ function recordRailroadEdges(mapData: MapData): void {
     return 'N';
   };
 
+  // Track how many edge crossings we find
+  let northCount = 0, southCount = 0, eastCount = 0, westCount = 0;
+
   // Scan each railroad path for edge crossings
   for (const railroad of railroads) {
     const pathStr = railroad.svgD;
@@ -366,29 +376,34 @@ function recordRailroadEdges(mapData: MapData): void {
       if (tileY === 0 && edgeData.north && edgeData.north[tileX]) {
         edgeData.north[tileX].hasRailroad = true;
         edgeData.north[tileX].railroadDirection = getDirectionAtPoint(pathStr, 'north');
+        northCount++;
       }
 
       // South edge (y = MAP_HEIGHT_TILES - 1)
       if (tileY === MAP_HEIGHT_TILES - 1 && edgeData.south && edgeData.south[tileX]) {
         edgeData.south[tileX].hasRailroad = true;
         edgeData.south[tileX].railroadDirection = getDirectionAtPoint(pathStr, 'south');
+        southCount++;
       }
 
       // East edge (x = MAP_WIDTH_TILES - 1)
       if (tileX === MAP_WIDTH_TILES - 1 && edgeData.east && edgeData.east[tileY]) {
         edgeData.east[tileY].hasRailroad = true;
         edgeData.east[tileY].railroadDirection = getDirectionAtPoint(pathStr, 'east');
+        eastCount++;
       }
 
       // West edge (x = 0)
       if (tileX === 0 && edgeData.west && edgeData.west[tileY]) {
         edgeData.west[tileY].hasRailroad = true;
         edgeData.west[tileY].railroadDirection = getDirectionAtPoint(pathStr, 'west');
+        westCount++;
       }
     }
   }
 
-  console.log('[RoadGen] Recorded railroad edge data for cross-map continuity');
+  const totalEdgeCrossings = northCount + southCount + eastCount + westCount;
+  console.log(`[Railroad Edges] Recorded ${totalEdgeCrossings} edge crossings - North: ${northCount}, South: ${southCount}, East: ${eastCount}, West: ${westCount}`);
 }
 
 /**
@@ -397,48 +412,75 @@ function recordRailroadEdges(mapData: MapData): void {
 function findRailroadContinuationPoints(neighboringEdges: any): Point[] {
   const continuationPoints: Point[] = [];
 
-  if (!neighboringEdges) return continuationPoints;
+  if (!neighboringEdges) {
+    console.log('[Railroad Continuations] No neighboring edges provided');
+    return continuationPoints;
+  }
+
+  const edgeDirections = Object.keys(neighboringEdges);
+  console.log(`[Railroad Continuations] Checking ${edgeDirections.length} edge(s): ${edgeDirections.join(', ')}`);
 
   // Check north edge for railroads coming from the north
   if (neighboringEdges.north) {
+    let northRailroads = 0;
     neighboringEdges.north.forEach((tile: any, x: number) => {
       if (tile.hasRailroad) {
         continuationPoints.push({ x, y: 0 });
+        northRailroads++;
+        console.log(`  [Railroad Continuations] Found railroad at north edge x=${x}`);
       }
     });
+    if (northRailroads === 0) {
+      console.log(`  [Railroad Continuations] No railroads found on north edge (checked ${neighboringEdges.north.length} tiles)`);
+    }
   }
 
   // Check south edge for railroads coming from the south
   if (neighboringEdges.south) {
+    let southRailroads = 0;
     neighboringEdges.south.forEach((tile: any, x: number) => {
       if (tile.hasRailroad) {
         continuationPoints.push({ x, y: MAP_HEIGHT_TILES - 1 });
+        southRailroads++;
+        console.log(`  [Railroad Continuations] Found railroad at south edge x=${x}`);
       }
     });
+    if (southRailroads === 0) {
+      console.log(`  [Railroad Continuations] No railroads found on south edge (checked ${neighboringEdges.south.length} tiles)`);
+    }
   }
 
   // Check east edge for railroads coming from the east
   if (neighboringEdges.east) {
+    let eastRailroads = 0;
     neighboringEdges.east.forEach((tile: any, y: number) => {
       if (tile.hasRailroad) {
         continuationPoints.push({ x: MAP_WIDTH_TILES - 1, y });
+        eastRailroads++;
+        console.log(`  [Railroad Continuations] Found railroad at east edge y=${y}`);
       }
     });
+    if (eastRailroads === 0) {
+      console.log(`  [Railroad Continuations] No railroads found on east edge (checked ${neighboringEdges.east.length} tiles)`);
+    }
   }
 
   // Check west edge for railroads coming from the west
   if (neighboringEdges.west) {
+    let westRailroads = 0;
     neighboringEdges.west.forEach((tile: any, y: number) => {
       if (tile.hasRailroad) {
         continuationPoints.push({ x: 0, y });
+        westRailroads++;
+        console.log(`  [Railroad Continuations] Found railroad at west edge y=${y}`);
       }
     });
+    if (westRailroads === 0) {
+      console.log(`  [Railroad Continuations] No railroads found on west edge (checked ${neighboringEdges.west.length} tiles)`);
+    }
   }
 
-  if (continuationPoints.length > 0) {
-    console.log(`[RoadGen] Found ${continuationPoints.length} railroad continuation points from neighboring maps`);
-  }
-
+  console.log(`[Railroad Continuations] Total continuation points found: ${continuationPoints.length}`);
   return continuationPoints;
 }
 
@@ -446,7 +488,7 @@ function findRailroadContinuationPoints(neighboringEdges: any): Point[] {
 
 let pathIdCounter = 0;
 
-export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, era?: HistoricalEra): void {
+export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, era?: HistoricalEra, neighboringEdges?: any): void {
   const tiles = mapData.tiles;
   mapData.pathObjects = mapData.pathObjects || [];
 
@@ -903,7 +945,7 @@ const useUrbanGrids = false;
     console.log(`[RoadGen] Generating railroads for era ${era} (year ${year})`);
 
     // STEP 1: Find railroad continuation points from neighboring maps
-    const railroadContinuations = findRailroadContinuationPoints(mapData.neighboringEdges);
+    const railroadContinuations = findRailroadContinuationPoints(neighboringEdges);
 
     // STEP 2: Connect continuation points across the map (cross-map trunk lines)
     if (railroadContinuations.length > 0) {
@@ -941,14 +983,15 @@ const useUrbanGrids = false;
             const pts = centersFromTiles(path);
             const d = svgQuadratic(pts);
 
-            // Shadow + railroad line
+            // Use consistent sleeper + rail rendering
             mapData.pathObjects!.push({
-              id: `rail-shadow-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH + TILE_SIZE_PX * 0.02, strokeColor: RAILROAD_SHADOW_COLOR, opacity: 0.3,
+              id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
+              strokeWidth: RAILROAD_WIDTH * 3.5, strokeColor: '#4a3c28', opacity: 0.9,
+              strokeDasharray: `${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.25}`,
             } as any);
             mapData.pathObjects!.push({
               id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH, strokeColor: RAILROAD_COLOR, opacity: RAILROAD_OPACITY,
+              strokeWidth: RAILROAD_WIDTH * 1.2, strokeColor: '#2a2a2a', opacity: 0.95,
             } as any);
           }
         }
@@ -981,17 +1024,17 @@ const useUrbanGrids = false;
         const d = svgQuadratic(pts);
 
         // Simple 2-layer railroad: brown ties + black rails
-        // 1. Brown wooden ties (dashed)
+        // 1. Brown wooden sleepers (dashed, perpendicular appearance with butt caps)
         mapData.pathObjects!.push({
           id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-          strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
-          strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`, // Sleepers
+          strokeWidth: RAILROAD_WIDTH * 3.5, strokeColor: '#4a3c28', opacity: 0.9,
+          strokeDasharray: `${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.25}`, // Thicker, more spaced sleepers
         } as any);
 
         // 2. Black steel rails on top
         mapData.pathObjects!.push({
           id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-          strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+          strokeWidth: RAILROAD_WIDTH * 1.2, strokeColor: '#2a2a2a', opacity: 0.95,
         } as any);
 
         console.log(`[RoadGen] Created trunk line: ${path.length} tiles from ${start.cityName || 'City'} to ${end.cityName || 'City'}`);
@@ -1032,13 +1075,13 @@ const useUrbanGrids = false;
 
             mapData.pathObjects!.push({
               id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
-              strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+              strokeWidth: RAILROAD_WIDTH * 3.5, strokeColor: '#4a3c28', opacity: 0.9,
+              strokeDasharray: `${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.25}`,
             } as any);
 
             mapData.pathObjects!.push({
               id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+              strokeWidth: RAILROAD_WIDTH * 1.2, strokeColor: '#2a2a2a', opacity: 0.95,
             } as any);
           }
         }
@@ -1161,13 +1204,13 @@ const useUrbanGrids = false;
           // Render railroad extension
           mapData.pathObjects!.push({
             id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-            strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
-            strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+            strokeWidth: RAILROAD_WIDTH * 3.5, strokeColor: '#4a3c28', opacity: 0.9,
+            strokeDasharray: `${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.25}`,
           } as any);
 
           mapData.pathObjects!.push({
             id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-            strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+            strokeWidth: RAILROAD_WIDTH * 1.2, strokeColor: '#2a2a2a', opacity: 0.95,
           } as any);
 
           console.log(`[RoadGen] Extended railroad ${extensionPath.length} tiles to ${edge} edge`);
@@ -1221,27 +1264,27 @@ const useUrbanGrids = false;
 
             let pts = centersFromTiles(horizontalPath);
 
-            // Extend past BOTH edges (west and east)
+            // Extend to BOTH edges (west and east) - use exact edge tile coordinates for proper edge detection
             const firstPoint = pts[0];
             const lastPoint = pts[pts.length - 1];
 
-            // Prepend extension to west edge
-            pts.unshift({ x: -TILE_SIZE_PX * 0.5, y: firstPoint.y });
+            // Prepend extension to west edge (tile 0)
+            pts.unshift({ x: 0, y: firstPoint.y });
 
-            // Append extension to east edge
-            pts.push({ x: (MAP_WIDTH_TILES - 0.5) * TILE_SIZE_PX, y: lastPoint.y });
+            // Append extension to east edge (tile MAP_WIDTH_TILES - 1)
+            pts.push({ x: (MAP_WIDTH_TILES - 1) * TILE_SIZE_PX, y: lastPoint.y });
 
             const d = svgQuadratic(pts);
 
             mapData.pathObjects!.push({
               id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
-              strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+              strokeWidth: RAILROAD_WIDTH * 3.5, strokeColor: '#4a3c28', opacity: 0.9,
+              strokeDasharray: `${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.25}`,
             } as any);
 
             mapData.pathObjects!.push({
               id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+              strokeWidth: RAILROAD_WIDTH * 1.2, strokeColor: '#2a2a2a', opacity: 0.95,
             } as any);
 
             console.log(`[RoadGen] Created horizontal cross-map industrial railroad: ${horizontalPath.length} tiles`);
@@ -1261,27 +1304,27 @@ const useUrbanGrids = false;
 
             let pts = centersFromTiles(verticalPath);
 
-            // Extend past BOTH edges (north and south)
+            // Extend to BOTH edges (north and south) - use exact edge tile coordinates for proper edge detection
             const firstPoint = pts[0];
             const lastPoint = pts[pts.length - 1];
 
-            // Prepend extension to north edge
-            pts.unshift({ x: firstPoint.x, y: -TILE_SIZE_PX * 0.5 });
+            // Prepend extension to north edge (tile 0)
+            pts.unshift({ x: firstPoint.x, y: 0 });
 
-            // Append extension to south edge
-            pts.push({ x: lastPoint.x, y: (MAP_HEIGHT_TILES - 0.5) * TILE_SIZE_PX });
+            // Append extension to south edge (tile MAP_HEIGHT_TILES - 1)
+            pts.push({ x: lastPoint.x, y: (MAP_HEIGHT_TILES - 1) * TILE_SIZE_PX });
 
             const d = svgQuadratic(pts);
 
             mapData.pathObjects!.push({
               id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
-              strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+              strokeWidth: RAILROAD_WIDTH * 3.5, strokeColor: '#4a3c28', opacity: 0.9,
+              strokeDasharray: `${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.25}`,
             } as any);
 
             mapData.pathObjects!.push({
               id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-              strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+              strokeWidth: RAILROAD_WIDTH * 1.2, strokeColor: '#2a2a2a', opacity: 0.95,
             } as any);
 
             console.log(`[RoadGen] Created vertical cross-map industrial railroad: ${verticalPath.length} tiles`);
@@ -1336,13 +1379,13 @@ const useUrbanGrids = false;
 
                 mapData.pathObjects!.push({
                   id: `rail-ties-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-                  strokeWidth: RAILROAD_WIDTH * 2.5, strokeColor: '#5c4033', opacity: 0.75,
-                  strokeDasharray: `${TILE_SIZE_PX * 0.12} ${TILE_SIZE_PX * 0.08}`,
+                  strokeWidth: RAILROAD_WIDTH * 3.5, strokeColor: '#4a3c28', opacity: 0.9,
+                  strokeDasharray: `${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.25}`,
                 } as any);
 
                 mapData.pathObjects!.push({
                   id: `rail-${pathIdCounter++}`, type: PathType.RAILROAD, svgD: d,
-                  strokeWidth: RAILROAD_WIDTH, strokeColor: '#1a1a1a', opacity: 0.9,
+                  strokeWidth: RAILROAD_WIDTH * 1.2, strokeColor: '#2a2a2a', opacity: 0.95,
                 } as any);
 
                 console.log(`[RoadGen] Connected industrial building at (${building.x}, ${building.y}) to railroad network`);

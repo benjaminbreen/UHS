@@ -21,8 +21,8 @@ export const FarmFamilyTab: React.FC<FarmFamilyTabProps> = ({
   highlightedMemberId,
 }) => {
   return (
-    <div className="animate-fadeIn space-y-6">
-      <h3 className="text-xl font-semibold text-amber-400">Family Members</h3>
+    <div className="animate-fadeIn space-y-5">
+      <h3 className="text-xl font-semibold text-amber-400">Household Members</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {farmState.family.members.map((member) => {

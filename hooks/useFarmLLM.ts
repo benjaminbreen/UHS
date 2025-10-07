@@ -39,6 +39,7 @@ interface UseFarmLLMOptions {
   validCrops: string[];
   useLlm: boolean;
   onPlayerStateChange?: (changes: any) => void;
+  onTimeAdvance?: (hours: number) => void;
 }
 
 interface UseFarmLLMReturn {
@@ -103,6 +104,7 @@ export function useFarmLLM({
   validCrops,
   useLlm,
   onPlayerStateChange,
+  onTimeAdvance,
 }: UseFarmLLMOptions): UseFarmLLMReturn {
   // Family chat
   const [selectedMember, setSelectedMember] = useState<FarmFamilyMember | null>(null);
@@ -133,23 +135,86 @@ export function useFarmLLM({
   const [farmActionLog, setFarmActionLog] = useState<Array<{ action: string; timeElapsed: number }>>([]);
 
   // Initialize farm work history with context-aware intro message
+  // ALSO update when contract status changes
   useEffect(() => {
-    if (farmWorkHistory.length === 0 && era && season) {
+    if (!era || !season || !farmState) return;
+
+    // Build context-aware intro based on residency status
+    const getContextualIntro = (): string => {
+      const farmerName = farmState.family.headOfHousehold || 'the farmer';
+      const status = farmState.residencyStatus?.playerStatus || 'visitor';
+      const daysWorked = farmState.residencyStatus?.daysWorked || 0;
+      const contract = farmState.residencyStatus?.currentContract;
+
       const eraName =
         era === 'MEDIEVAL'
           ? 'medieval'
           : era === 'RENAISSANCE_EARLY_MODERN'
           ? 'early modern'
-          : 'ancient';
+          : era === 'ANTIQUITY'
+          ? 'ancient'
+          : era === 'INDUSTRIAL_ERA'
+          ? 'industrial'
+          : era === 'MODERN_ERA'
+          ? 'modern'
+          : 'historical';
       const zoneName = culturalZone.toLowerCase().replace(/_/g, ' ');
-      setFarmWorkHistory([
-        {
-          type: 'narrator',
-          text: `You stand at the edge of your fields in the ${season} season. The ${eraName} ${zoneName} landscape stretches before you. What will you do? (Try commands like: "plant wheat in field 1", "water the crops", "check field 2", "harvest mature crops")`,
-        },
-      ]);
+
+      // First-time visitor (no contract, no days worked)
+      if (status === 'visitor' && daysWorked === 0 && !contract) {
+        return `You've just arrived at ${farmerName}'s farm in the ${season.toLowerCase()} season. The ${eraName} ${zoneName} landscape stretches before you. You haven't yet spoken to ${farmerName} about working here. (Try: "look around", "find ${farmerName}", "examine the fields")`;
+      }
+
+      // Guest status (welcomed but not working yet)
+      if (status === 'guest' && daysWorked === 0) {
+        return `${farmerName} has welcomed you to the farm as a guest. The ${season.toLowerCase()} ${eraName} fields await. Perhaps you could offer to help with the work? (Try: "ask ${farmerName} about work", "look around", "examine the fields")`;
+      }
+
+      // Active worker with contract
+      if (status === 'worker' && contract) {
+        const tasksText = contract.tasksToday && contract.tasksToday.length > 0
+          ? `Today's tasks: ${contract.tasksToday.join(', ')}.`
+          : 'No specific tasks assigned yet.';
+
+        const paymentText = contract.payment.coins
+          ? `${contract.payment.coins} coins${contract.payment.meals ? ' + meals' : ''}${contract.payment.lodging ? ' + lodging' : ''}`
+          : contract.payment.meals
+          ? 'meals and lodging'
+          : 'room and board';
+
+        return `${farmerName} has hired you to work the farm (${contract.type} contract, ${paymentText}). This is day ${daysWorked + 1} of your arrangement. ${tasksText} The ${season.toLowerCase()} fields await your labor. What will you do? (Try: "mend the fence", "water the crops", "feed the animals")`;
+      }
+
+      // Worker without contract (unusual case)
+      if (status === 'worker' && !contract) {
+        return `You've been working at ${farmerName}'s farm for ${daysWorked} day${daysWorked !== 1 ? 's' : ''} now. The ${season.toLowerCase()} work continues. What will you do? (Try: "plant crops", "water fields", "tend livestock")`;
+      }
+
+      // Resident status (long-term stay)
+      if (status === 'resident') {
+        return `You've been living and working at ${farmerName}'s farm for ${daysWorked} days now. The ${season.toLowerCase()} ${eraName} routine has become familiar. What will you do today? (Try: "check the fields", "tend the animals", "talk to ${farmerName}")`;
+      }
+
+      // Fallback for any other cases
+      return `You stand at ${farmerName}'s farm in the ${season.toLowerCase()} season. The ${eraName} ${zoneName} landscape stretches before you. What will you do? (Try: "look around", "examine the fields", "find ${farmerName}")`;
+    };
+
+    const newIntro = getContextualIntro();
+
+    // Only update if history is empty OR if contract status has changed
+    if (farmWorkHistory.length === 0) {
+      setFarmWorkHistory([{ type: 'narrator', text: newIntro }]);
+    } else if (farmWorkHistory.length === 1 && farmWorkHistory[0].type === 'narrator') {
+      // Update the intro message if contract was just accepted
+      const hasContract = farmState.residencyStatus?.currentContract;
+      const currentIntroMentionsContract = farmWorkHistory[0].text.includes('contract') || farmWorkHistory[0].text.includes('hired');
+
+      if (hasContract && !currentIntroMentionsContract) {
+        // Contract was just accepted - update intro
+        setFarmWorkHistory([{ type: 'narrator', text: newIntro }]);
+      }
     }
-  }, [era, season, culturalZone, farmWorkHistory.length]);
+  }, [era, season, culturalZone, farmState?.residencyStatus?.currentContract, farmState?.residencyStatus?.playerStatus, farmWorkHistory.length]);
 
   // Generate initial farmer greeting using LLM-driven context awareness
   useEffect(() => {
@@ -444,7 +509,7 @@ export function useFarmLLM({
           lastFed: l.lastFed
         }));
 
-        // Call full farm simulation function
+        // Call full farm simulation function with conversation history
         const result = await generateFarmWorkSimulation(
           command,
           farmState,
@@ -453,35 +518,131 @@ export function useFarmLLM({
           season,
           timeOfDay,
           currentFarmTime,
-          livestock
+          livestock,
+          farmWorkHistory.slice(-10) // Pass last 10 messages for context continuity
         );
 
-        // Add narrative to history
-        setFarmWorkHistory(prev => [...prev, { type: 'narrator', text: result.narrative }]);
+        // Add narrative to history with work quality if available
+        let narrativeText = result.narrative;
+        if (result.workQuality) {
+          const qualityColor = result.workQuality.category === 'masterful' ? '🌟' :
+                              result.workQuality.category === 'excellent' ? '✨' :
+                              result.workQuality.category === 'good' ? '✓' :
+                              result.workQuality.category === 'adequate' ? '~' : '✗';
+          narrativeText += `\n\n${qualityColor} Work Quality: ${result.workQuality.score}/100 (${result.workQuality.category}) - ${result.workQuality.feedback}`;
+        }
+        setFarmWorkHistory(prev => [...prev, { type: 'narrator', text: narrativeText }]);
 
         // Apply state changes
         if (result.stateChanges) {
           let updated = { ...farmState };
 
-          // Apply field changes
+          // Apply field changes (LLM uses 0-based array indices) with validation
+          // Create new array to ensure UI re-renders
           if (result.stateChanges.fields) {
-            Object.entries(result.stateChanges.fields).forEach(([fieldId, changes]) => {
-              const fieldIndex = parseInt(fieldId) - 1;
-              if (fieldIndex >= 0 && fieldIndex < updated.fields.length) {
-                updated.fields[fieldIndex] = { ...updated.fields[fieldIndex], ...changes };
+            const fieldNotifications: string[] = [];
+            updated.fields = updated.fields.map((field, idx) => {
+              const fieldChanges = result.stateChanges.fields?.[idx.toString()];
+              if (!fieldChanges) return field;
+
+              // Validate and clamp numeric values
+              const validatedChanges: any = { ...fieldChanges };
+
+              if (fieldChanges.health !== undefined) {
+                validatedChanges.health = Math.max(0, Math.min(100, fieldChanges.health));
               }
+              if (fieldChanges.soilNitrogen !== undefined) {
+                validatedChanges.soilNitrogen = Math.max(0, Math.min(100, fieldChanges.soilNitrogen));
+              }
+              if (fieldChanges.soilPhosphorus !== undefined) {
+                validatedChanges.soilPhosphorus = Math.max(0, Math.min(100, fieldChanges.soilPhosphorus));
+              }
+              if (fieldChanges.soilPotassium !== undefined) {
+                validatedChanges.soilPotassium = Math.max(0, Math.min(100, fieldChanges.soilPotassium));
+              }
+              if (fieldChanges.pestSeverity !== undefined) {
+                validatedChanges.pestSeverity = Math.max(0, Math.min(100, fieldChanges.pestSeverity));
+              }
+              if (fieldChanges.diseaseSeverity !== undefined) {
+                validatedChanges.diseaseSeverity = Math.max(0, Math.min(100, fieldChanges.diseaseSeverity));
+              }
+              if (fieldChanges.weedDensity !== undefined) {
+                validatedChanges.weedDensity = Math.max(0, Math.min(100, fieldChanges.weedDensity));
+              }
+              if (fieldChanges.daysToHarvest !== undefined) {
+                validatedChanges.daysToHarvest = Math.max(0, fieldChanges.daysToHarvest);
+              }
+
+              // Detect significant changes for notifications
+              if (fieldChanges.crop && !field.crop) {
+                fieldNotifications.push(`Field ${idx + 1} planted with ${fieldChanges.crop}!`);
+              }
+              if (fieldChanges.moisture && fieldChanges.moisture !== field.moisture) {
+                if (fieldChanges.moisture === 'wet' || fieldChanges.moisture === 'moist') {
+                  fieldNotifications.push(`Field ${idx + 1} watered successfully`);
+                }
+              }
+              if (fieldChanges.crop === null && field.crop) {
+                fieldNotifications.push(`Field ${idx + 1} harvested!`);
+              }
+
+              return { ...field, ...validatedChanges };
             });
+
+            // Show field change notifications
+            if (fieldNotifications.length > 0) {
+              setTimeout(() => {
+                setFarmerToast({
+                  message: fieldNotifications.join(' • '),
+                  type: 'news'
+                });
+              }, 500);
+            }
           }
 
           // Apply livestock changes
           if (result.stateChanges.livestock && updated.livestock) {
-            Object.entries(result.stateChanges.livestock).forEach(([livestockId, changes]) => {
-              const livestockIndex = updated.livestock!.findIndex(l =>
-                l.type === livestockId || `${l.type}_${updated.livestock!.indexOf(l) + 1}` === livestockId
-              );
-              if (livestockIndex >= 0) {
-                updated.livestock![livestockIndex] = { ...updated.livestock![livestockIndex], ...changes };
+            let livestockStateChanged = false;
+            updated.livestock = updated.livestock.map((animal, idx) => {
+              // Check if this animal has changes (by type name or by type_index)
+              const changes = result.stateChanges.livestock?.[animal.type] ||
+                             result.stateChanges.livestock?.[`${animal.type}_${idx + 1}`];
+
+              if (changes) {
+                livestockStateChanged = true;
+                // Apply changes and ensure health/productivity are clamped 0-100
+                const updatedAnimal = { ...animal, ...changes };
+                if (updatedAnimal.health !== undefined) {
+                  updatedAnimal.health = Math.max(0, Math.min(100, updatedAnimal.health));
+                }
+                if (updatedAnimal.productivity !== undefined) {
+                  updatedAnimal.productivity = Math.max(0, Math.min(100, updatedAnimal.productivity));
+                }
+
+                // If lastFed was updated, it should be currentFarmTime
+                if (changes.lastFed !== undefined) {
+                  updatedAnimal.lastFed = currentFarmTime;
+
+                  // Show state change notification for feeding
+                  setTimeout(() => {
+                    const healthDiff = updatedAnimal.health - animal.health;
+                    if (healthDiff > 0) {
+                      setFarmerToast({
+                        message: `${animal.type.charAt(0).toUpperCase() + animal.type.slice(1)} fed! Health improving (+${healthDiff.toFixed(0)} health)`,
+                        type: 'news'
+                      });
+                    } else {
+                      setFarmerToast({
+                        message: `${animal.type.charAt(0).toUpperCase() + animal.type.slice(1)} fed successfully!`,
+                        type: 'news'
+                      });
+                    }
+                  }, 500);
+                }
+
+                return updatedAnimal;
               }
+              return animal;
             });
           }
 
@@ -492,14 +653,87 @@ export function useFarmLLM({
             livestock: updated.livestock
           });
 
-          // Apply player state changes via callback
+          // Apply player state changes via callback (deltas, not absolute values)
           if (result.stateChanges.player && onPlayerStateChange) {
+            const healthDelta = result.stateChanges.player.health || 0;
+            const fatigueDelta = result.stateChanges.player.fatigue || 0;
+
+            const newHealth = Math.max(0, Math.min(
+              playerCharacter.maxHealth,
+              playerCharacter.health + healthDelta
+            ));
+            const newFatigue = Math.max(0, Math.min(
+              playerCharacter.maxFatigue,
+              playerCharacter.fatigue + fatigueDelta
+            ));
+
             onPlayerStateChange({
-              health: result.stateChanges.player.health,
-              fatigue: result.stateChanges.player.fatigue,
+              health: newHealth,
+              fatigue: newFatigue,
               statusEffects: result.stateChanges.player.statusEffects,
-              inventory: result.stateChanges.inventory
             });
+
+            // Show toast notification for significant injuries
+            if (healthDelta < -5) {
+              setTimeout(() => {
+                setFarmerToast({
+                  message: `You've been injured! (${healthDelta} HP)`,
+                  type: 'warning'
+                });
+              }, 500);
+            }
+
+            // Show toast for exhaustion
+            if (fatigueDelta > 20) {
+              setTimeout(() => {
+                setFarmerToast({
+                  message: `You're getting exhausted. Consider resting soon.`,
+                  type: 'admonition'
+                });
+              }, 500);
+            }
+          }
+
+          // Apply inventory changes (add harvested items, remove consumed tools)
+          if (result.stateChanges.inventory && onPlayerStateChange) {
+            let updatedInventory = [...playerCharacter.inventory];
+
+            // Add items (harvested crops, etc.)
+            if (result.stateChanges.inventory.add) {
+              result.stateChanges.inventory.add.forEach(item => {
+                updatedInventory.push({
+                  id: `farm_harvest_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+                  name: item.name,
+                  category: item.category || 'Material',
+                  quantity: item.quantity || 1,
+                  weight: 1,
+                  value: 5 * (item.quantity || 1),
+                  rarity: 'Common' as const,
+                  quality: 'standard' as const,
+                });
+              });
+
+              // Show toast for successful harvest
+              const totalHarvested = result.stateChanges.inventory.add.reduce(
+                (sum, item) => sum + (item.quantity || 1),
+                0
+              );
+              setTimeout(() => {
+                setFarmerToast({
+                  message: `Harvested ${totalHarvested} units! Check your inventory.`,
+                  type: 'news'
+                });
+              }, 1000);
+            }
+
+            // Remove items (consumed/broken tools)
+            if (result.stateChanges.inventory.remove) {
+              result.stateChanges.inventory.remove.forEach(itemId => {
+                updatedInventory = updatedInventory.filter(i => i.id !== itemId);
+              });
+            }
+
+            onPlayerStateChange({ inventory: updatedInventory });
           }
 
           // Track time
@@ -516,15 +750,31 @@ export function useFarmLLM({
             return newLog;
           });
 
-          // End of day check
+          // End of day check - trigger rest and advance time
           if (newHours >= 8) {
             const headFarmer = farmState.family.members.find(m => m.role === 'Farmer' && m.age >= 30) ||
                               farmState.family.members.find(m => m.role === 'Farmer') ||
                               farmState.family.members[0];
 
+            // Apply rest benefits to player
+            if (onPlayerStateChange) {
+              const fatigueReduction = Math.min(playerCharacter.fatigue, 40); // Rest reduces fatigue by up to 40
+              const healthRecovery = Math.min(playerCharacter.maxHealth - playerCharacter.health, 10); // Light healing
+
+              onPlayerStateChange({
+                fatigue: Math.max(0, playerCharacter.fatigue - fatigueReduction),
+                health: Math.min(playerCharacter.maxHealth, playerCharacter.health + healthRecovery),
+              });
+            }
+
+            // Advance time to next morning (skip to dawn, ~12 hours)
+            if (onTimeAdvance) {
+              onTimeAdvance(12);
+            }
+
             setTimeout(() => {
               setFarmerToast({
-                message: `The sun sets. ${headFarmer?.name || 'The farmer'} calls you home. A day's work is done.`,
+                message: `The sun sets. ${headFarmer?.name || 'The farmer'} calls you home. You rest for the night and wake refreshed at dawn.`,
                 type: 'news'
               });
               setHoursWorkedToday(0);
@@ -554,7 +804,8 @@ export function useFarmLLM({
       playerCharacter,
       hoursWorkedToday,
       currentFarmTime,
-      onPlayerStateChange
+      onPlayerStateChange,
+      onTimeAdvance
     ]
   );
 
@@ -564,15 +815,40 @@ export function useFarmLLM({
                       farmState?.family.members.find(m => m.role === 'Farmer') ||
                       farmState?.family.members[0];
 
+    const farmerName = headFarmer?.name || 'The farmer';
+    const contract = farmState?.residencyStatus?.currentContract;
+    const daysWorked = farmState?.residencyStatus?.daysWorked || 0;
+
+    // Build context-aware intro message based on contract status
+    let introText: string;
+
+    if (contract) {
+      // Player has accepted work contract - show contract context
+      const tasksText = contract.tasksToday && contract.tasksToday.length > 0
+        ? contract.tasksToday.join(', ')
+        : task;
+
+      const paymentText = contract.payment.coins
+        ? `${contract.payment.coins} coins${contract.payment.meals ? ' + meals' : ''}${contract.payment.lodging ? ' + lodging' : ''}`
+        : contract.payment.meals
+        ? 'meals and lodging'
+        : 'room and board';
+
+      introText = `${farmerName} leads you to the fields. "Alright, let's get started with the work. ${tasksText}," they say. You're working under a ${contract.type} contract (${paymentText}), day ${daysWorked + 1}. The ${season.toLowerCase()} sun hangs in the ${timeOfDay.toLowerCase()} sky. What will you do?`;
+    } else {
+      // No contract - generic intro
+      introText = `${farmerName} leads you to the fields. "${task}," they say, gesturing toward the work ahead. The ${season.toLowerCase()} sun hangs in the ${timeOfDay.toLowerCase()} sky. What will you do?`;
+    }
+
     const intro: WorkHistoryEntry = {
       type: 'narrator',
-      text: `${headFarmer?.name || 'The farmer'} leads you to the fields. "${task}," they say, gesturing toward the work ahead. The ${season.toLowerCase()} sun hangs in the ${timeOfDay.toLowerCase()} sky. What will you do?`
+      text: introText
     };
 
     setFarmWorkHistory([intro]);
     setHoursWorkedToday(0);
-    setCurrentFarmTime(new Date().getHours());
-  }, [farmState, season, timeOfDay]);
+    setCurrentFarmTime(gameTimeHours); // ✅ Use game time instead of real-world time
+  }, [farmState, season, timeOfDay, gameTimeHours]);
 
   // Phase 3.4: State persistence for work sessions
   useEffect(() => {

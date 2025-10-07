@@ -132,10 +132,14 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
         setIsSubmittingInput(false);
     }, [currentDialogue, playerInput, mapData, playerCharacter]);
     
-    // Create procedural portrait for fortress commander (similar to GovernmentDistrictModal)
+    // Create procedural portrait for any NPC in dialogue (not just fortress commanders)
     const commanderPortrait = useMemo(() => {
-        if (!interiorData?.namedElite || config.buildingType !== 'fortress') return null;
-        
+        if (!interiorData?.namedElite) {
+            console.log('[BeautifulInteriorMapDisplay] No namedElite found, returning null for portrait');
+            return null;
+        }
+
+        console.log('[BeautifulInteriorMapDisplay] Generating portrait for NPC:', interiorData.namedElite.name);
         const npc = interiorData.namedElite;
         const year = parseInt(mapData?.timeSlice || '1500');
         
@@ -189,7 +193,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 strength: Math.min(10, (baseProfile.stats.strength || 5) + 3)
             }
         };
-    }, [interiorData?.namedElite, config.buildingType, mapData]);
+    }, [interiorData?.namedElite, mapData]);
     
     // Handle player movement - MUST be defined before useEffect that uses it
     const handlePlayerMove = useCallback((newPosition: Point) => {
@@ -375,27 +379,38 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     useEffect(() => {
         const data = generateBeautifulInterior(config);
 
-        // Failsafe: ensure player spawns inside the room bounds
+        // Failsafe: ensure player spawns inside a WALKABLE space
         const entrance = data.layout.entrance;
         const bounds = data.layout.totalBounds;
         let spawnPosition = entrance;
 
-        // Check if entrance is outside bounds, use center of first public space instead
-        if (entrance.x < 0 || entrance.x >= bounds.width || entrance.y < 0 || entrance.y >= bounds.height) {
-            console.warn('⚠️ [BeautifulInteriorMapDisplay] Entrance outside bounds, finding safe spawn...');
-            const firstPublicSpace = data.layout.spaces.find(s => s.accessibility === 'public');
-            if (firstPublicSpace) {
+        // CRITICAL: Validate entrance is actually in a walkable space
+        const entranceSpace = getSpaceAtPosition(data.layout, entrance.x, entrance.y);
+
+        if (!entranceSpace) {
+            console.warn('⚠️ [BeautifulInteriorMapDisplay] Entrance not in walkable space, finding safe spawn...');
+
+            // Priority 1: Find first public space and spawn in its center
+            const publicSpaces = data.layout.spaces.filter(s => s.accessibility === 'public');
+            const targetSpace = publicSpaces[0] || data.layout.spaces[0]; // Fallback to any space
+
+            if (targetSpace) {
+                // Spawn in center of space, guaranteed walkable
                 spawnPosition = {
-                    x: firstPublicSpace.bounds.x + Math.floor(firstPublicSpace.bounds.width / 2),
-                    y: firstPublicSpace.bounds.y + Math.floor(firstPublicSpace.bounds.height / 2)
+                    x: targetSpace.bounds.x + Math.floor(targetSpace.bounds.width / 2),
+                    y: targetSpace.bounds.y + Math.floor(targetSpace.bounds.height / 2)
                 };
+                console.log('✅ [BeautifulInteriorMapDisplay] Safe spawn found:', spawnPosition, 'in', targetSpace.name);
             } else {
-                // Ultimate fallback: center of entire layout
+                // Ultimate emergency fallback (should never happen)
+                console.error('🚨 [BeautifulInteriorMapDisplay] NO SPACES FOUND! Using bounds center');
                 spawnPosition = {
                     x: Math.floor(bounds.width / 2),
                     y: Math.floor(bounds.height / 2)
                 };
             }
+        } else {
+            console.log('✅ [BeautifulInteriorMapDisplay] Entrance is in walkable space:', entranceSpace.name);
         }
 
         console.log('🎨 [BeautifulInteriorMapDisplay] Interior rendering debug:', {
@@ -545,52 +560,34 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                         onNpcClick={onNpcClick}
                     />
                 </div>
-
-                {/* Zoom controls */}
-                <div className="absolute top-4 right-4 flex flex-col gap-2 z-50">
-                    <button
-                        onClick={() => setScale(prev => Math.min(prev + 0.25, 3))}
-                        className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 font-bold"
-                        title="Zoom In"
-                    >
-                        +
-                    </button>
-                    <button
-                        onClick={() => setScale(prev => Math.max(prev - 0.25, 0.5))}
-                        className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 font-bold"
-                        title="Zoom Out"
-                    >
-                        −
-                    </button>
-                    <button
-                        onClick={() => {
-                            setScale(1);
-                            setPanOffset({ x: 0, y: 0 });
-                        }}
-                        className="bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded border border-gray-600 text-xs"
-                        title="Reset View"
-                    >
-                        Reset
-                    </button>
-                </div>
             </div>
 
             {/* FF6-Style Dialogue Box with Portrait */}
             {currentDialogue?.visible && (
                 <div
                     className="ff6-dialogue-box"
+                    ref={(el) => {
+                        if (el) {
+                            console.log('[BeautifulInteriorMapDisplay] Dialogue box rendered with position:', {
+                                top: el.style.top,
+                                left: el.style.left,
+                                zIndex: el.style.zIndex,
+                                computedLeft: window.getComputedStyle(el).left,
+                                computedTop: window.getComputedStyle(el).top
+                            });
+                        }
+                    }}
                     style={{
                         position: 'absolute',
-                        top: '80px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                        top: '16px',
+                        left: '240px',
                         zIndex: 1000,
                         background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
                         border: '3px solid #4a90e2',
                         borderRadius: '12px',
                         padding: '20px',
-                        maxWidth: 'min(500px, calc(100vw - 40px))',
-                        minWidth: 'min(400px, calc(100vw - 40px))',
+                        maxWidth: 'min(500px, calc(100vw - 280px))',
+                        minWidth: 'min(350px, calc(100vw - 280px))',
                         boxShadow: '0 8px 32px rgba(74, 144, 226, 0.3), inset 0 2px 4px rgba(74, 144, 226, 0.2)',
                         animation: 'dialogueFadeIn 0.3s ease-out',
                         display: 'flex',
@@ -599,13 +596,17 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                     }}
                 >
                     {/* Commander Portrait */}
-                    {commanderPortrait && (
+                    {commanderPortrait ? (
                         <div style={{ flexShrink: 0 }}>
                             <ProceduralPortrait
                                 character={commanderPortrait}
                                 size={80}
                                 className="rounded-lg border-2 border-amber-500/30"
                             />
+                        </div>
+                    ) : (
+                        <div style={{ display: 'none' }}>
+                            {console.log('[BeautifulInteriorMapDisplay] commanderPortrait is null, not rendering portrait')}
                         </div>
                     )}
                     
@@ -704,17 +705,20 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 @keyframes dialogueFadeIn {
                     from {
                         opacity: 0;
-                        transform: translateX(-50%) translateY(-10px);
+                        transform: translateY(-10px);
                     }
                     to {
                         opacity: 1;
-                        transform: translateX(-50%) translateY(0);
+                        transform: translateY(0);
                     }
                 }
             `}</style>
             
-            {/* UI Overlay - absolute positioning */}
-            <div className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-2 rounded-lg border border-gray-600 max-w-[200px] z-50">
+            {/* UI Overlay - absolute positioning with high z-index to stay above dialogue */}
+            <div
+                className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-2 rounded-lg border border-gray-600 max-w-[200px]"
+                style={{ zIndex: 1100 }}
+            >
                 <h2 className="text-lg font-bold mb-1">{interiorData.layout.name}</h2>
 
                 {interiorData.namedElite && (
@@ -723,7 +727,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                     </p>
                 )}
                 <div className="text-xs text-gray-400 mt-2">
-                  
+
                 </div>
             </div>
         </div>

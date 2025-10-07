@@ -294,41 +294,48 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                    scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/40"
       >
         {isPlaceholderVisible ? (
-          <div className="text-gray-400 italic text-center h-full flex items-center justify-center">
-            <div className="max-w-xs space-y-4">
-              {/* Contextual suggestions - only appears once per minute when narrator is empty */}
-              {contextualSuggestion && (
-                <div className="p-3 bg-slate-800/40 border border-slate-600/30 rounded-lg text-left
-                               animate-in fade-in slide-in-from-bottom-3 duration-700">
-                  <p className="text-xs text-blue-300 font-semibold mb-2">
-                    Tip
+          <>
+            {/* Contextual tip at top - inside scrollable area */}
+            {contextualSuggestion && (
+              <div className="mb-4">
+                <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                  <p className="text-xs text-blue-300 font-semibold mb-1.5 flex items-center gap-1">
+                    <span>💡</span> Tip
                   </p>
-                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {contextualSuggestion.tip}
                   </p>
-
-                  <p className="text-xs text-purple-300 font-semibold mb-2">
-                    Try asking...
-                  </p>
-                  <div className="space-y-1.5">
-                    {contextualSuggestion.prompts.map((prompt, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => sendQuick(prompt)}
-                        disabled={isLoading}
-                        className="w-full text-left px-2.5 py-1.5 text-xs text-slate-200
-                                  bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600/40
-                                  rounded transition-all disabled:opacity-50 hover:border-purple-500/40
-                                  hover:text-white"
-                      >
-                        "{prompt}"
-                      </button>
-                    ))}
-                  </div>
                 </div>
-              )}
+              </div>
+            )}
+            <div className="text-gray-400 italic text-center flex items-center justify-center" style={{ minHeight: contextualSuggestion ? 'auto' : '100%' }}>
+              <div className="max-w-xs">
+                {/* Contextual prompts */}
+                {contextualSuggestion && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-700">
+                    <p className="text-xs text-slate-400 font-semibold mb-2.5 text-left">
+                      Try asking...
+                    </p>
+                    <div className="space-y-1.5">
+                      {contextualSuggestion.prompts.map((prompt, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => sendQuick(prompt)}
+                          disabled={isLoading}
+                          className="w-full text-left px-3 py-2 text-xs text-slate-200
+                                    bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600/40
+                                    rounded-lg transition-all disabled:opacity-50 hover:border-blue-500/40
+                                    hover:text-white hover:shadow-md"
+                        >
+                          "{prompt}"
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         ) : (
           <div className={stackSpace}>
             {narrationHistory.map((msg, index) => {
@@ -379,7 +386,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         <div className="flex-shrink-0 px-3 py-2 border-t border-slate-600/30 bg-slate-800/50
                         animate-in slide-in-from-bottom-2 duration-300">
           <p className="text-xs text-slate-400 font-semibold mb-2 flex items-center gap-1">
-            <span>⚡</span> Quick Commands
+            <span></span> Quick Commands
             {showQuickCommandsDueToWarning && (
               <span className="text-[10px] text-amber-400 animate-pulse ml-1">(suggested)</span>
             )}
@@ -405,7 +412,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
                         border border-slate-600/50 rounded transition-colors disabled:opacity-50"
             >
-              Rest 1h
+              Rest 1 hour
             </button>
             <button
               onMouseDown={(e) => {
@@ -416,34 +423,10 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
                         border border-slate-600/50 rounded transition-colors disabled:opacity-50"
             >
-              Until Dawn
+         
+              Camp
             </button>
-            <button
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent input blur
-                if (onOpenCampModal) {
-                  onOpenCampModal();
-                } else {
-                  sendQuick('camp for the night');
-                }
-              }}
-              disabled={isLoading}
-              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
-                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
-            >
-              Camp 8h
-            </button>
-            <button
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent input blur
-                sendQuick('wait for 3 hours');
-              }}
-              disabled={isLoading}
-              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
-                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
-            >
-              Wait 3h
-            </button>
+      
             <button
               onMouseDown={(e) => {
                 e.preventDefault(); // Prevent input blur
@@ -459,49 +442,57 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         </div>
       )}
 
-      {/* composer */}
-      <div className="flex-shrink-0 flex gap-2 p-3 border-t border-slate-600/40
-                      bg-slate-800/70 supports-[backdrop-filter]:bg-slate-800/60 backdrop-blur-sm">
-        <input
-          type="text"
-          aria-label="Player action input"
-          disabled={isLoading}
-          placeholder={isLoading ? 'Narrator is thinking…' : 'What do you do?'}
-          value={playerInput}
-          onChange={(e) => onPlayerInputChange(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && !isLoading && onSend()}
-          onFocus={() => setIsInputFocused(true)}
-          onBlur={() => setIsInputFocused(false)}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          inputMode="text"
-          enterKeyHint="send"
-          className="flex-1 px-3 py-2 text-sm text-slate-100 placeholder-slate-400
-                     bg-slate-700/50 border border-slate-600/50 rounded-lg
-                     focus:outline-none focus:border-blue-400/60 focus:bg-slate-700/70
-                     focus:ring-2 focus:ring-blue-400/20 transition-all
-                     min-h-[44px] touch-manipulation"
-          style={{ fontSize: '16px' }}
-        />
-        <button
-          onClick={onSend}
-          aria-label="Send action"
-          disabled={isLoading || !playerInput.trim()}
-          className="px-4 py-2 text-sm font-semibold text-white rounded-lg
-                     bg-amber-600 hover:bg-amber-500 hover:scale-105
-                     disabled:bg-gray-600 disabled:cursor-not-allowed disabled:scale-100
-                     shadow-lg hover:shadow-xl transition-all"
-        >
-          {isLoading ? (
-            <div className="w-4 h-4 border-b-2 border-white rounded-full animate-spin" />
-          ) : (
-            <span className="flex items-center gap-1">
-              <span>Send</span>
-              <span className="text-xs">↵</span>
-            </span>
-          )}
-        </button>
+      {/* composer - emphasized */}
+      <div className="flex-shrink-0 p-3 border-t-2 border-blue-500/30
+                      bg-gradient-to-b from-slate-800/60 to-slate-900/80 backdrop-blur-sm">
+        <div className="mb-0">
+          <label className="text-xs text-slate-400 uppercase tracking-wide flex items-center gap-1">
+            <span></span>
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            aria-label="Player action input"
+            disabled={isLoading}
+            placeholder={isLoading ? 'Narrator is thinking…' : 'Type your action here...'}
+            value={playerInput}
+            onChange={(e) => onPlayerInputChange(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !isLoading && onSend()}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            inputMode="text"
+            enterKeyHint="send"
+            className="flex-1 px-4 py-3 text-base text-slate-100 placeholder-slate-400
+                       bg-slate-700/60 border-2 border-slate-600/50 rounded-xl
+                       focus:outline-none focus:border-blue-400/80 focus:bg-slate-700/80
+                       focus:ring-2 focus:ring-blue-400/30 transition-all
+                       min-h-[48px] touch-manipulation shadow-lg"
+            style={{ fontSize: '16px' }}
+          />
+          <button
+            onClick={onSend}
+            aria-label="Send action"
+            disabled={isLoading || !playerInput.trim()}
+            className="px-5 py-3 text-sm font-bold text-white rounded-xl
+                       bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400
+                       hover:scale-105 active:scale-95
+                       disabled:from-gray-700 disabled:to-gray-600 disabled:cursor-not-allowed disabled:scale-100
+                       shadow-xl hover:shadow-2xl transition-all border-2 border-amber-400/20"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-b-2 border-white rounded-full animate-spin" />
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <span>Send</span>
+                <span className="text-base">↵</span>
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

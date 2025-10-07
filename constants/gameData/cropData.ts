@@ -351,7 +351,7 @@ export const CROP_DATA: Record<string, CropInfo> = {
   apples: {
     name: 'Apples',
     emoji: '🍎',
-    description: 'The fruit that tempted Eve, fed Newton\'s physics, and built American folklore around Johnny Appleseed—whose real mission was cider orchards, not wholesome snacks. Every apple is a genetic lottery; plant seeds and get wild apples, graft scions for reliable sweetness.',
+    description: 'The fruit that tempted Eve. Every apple is a genetic lottery; plant seeds and get wild apples, graft scions for reliable sweetness.',
     bestPlantingMonths: [3, 4, 10, 11],
     waterNeeds: 'moderate',
     fertilizerNeeds: 'moderate',
@@ -383,7 +383,7 @@ export const CROP_DATA: Record<string, CropInfo> = {
   plums: {
     name: 'Plums',
     emoji: '🍑',
-    description: 'The stone fruit with more varieties than poets have metaphors—from tiny damsons to massive Santa Rosas, each adapted to different climates and uses. Fresh, dried as prunes, fermented into slivovitz: plums accommodate every preservation method humans invented.',
+    description: 'A stone fruit with countless varieties—from tiny damsons to massive Santa Rosas, each adapted to different climates and uses. Fresh, dried as prunes, fermented: plums accommodate every preservation method humans invented.',
     bestPlantingMonths: [3, 4],
     waterNeeds: 'moderate',
     fertilizerNeeds: 'moderate',
@@ -863,7 +863,7 @@ export const CROP_DATA: Record<string, CropInfo> = {
 
 // Helper function to get month name
 export function getMonthName(month: number): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return months[month - 1] || '';
 }
 

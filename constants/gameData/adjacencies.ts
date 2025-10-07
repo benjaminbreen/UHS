@@ -109,7 +109,9 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   // Greece and Aegean
   "Athens Basin": { N: "Thessalian Plain", S: "Peloponnesian Hills", E: "Delos Archipelago", W: "Pindus Mountains" },
   "Peloponnesian Hills": { N: "Athens Basin", S: "Crete", E: "Cilician Plain", W: "Aegean Sea" },
-  "Crete": { N: "Peloponnesian Hills", E: "Cilician Plain", S: "Alexandria Coast", W: "Aegean Sea" },
+  "Crete": { N: "Peloponnesian Hills", E: "Cyprus", S: "Alexandria Coast", W: "Aegean Sea" },
+  "Cyprus": { N: "Cilician Plain", S: "Levantine Coast", E: "Levantine Coast", W: "Crete" },
+  "Sicily": { N: "Tyrrhenian Sea", S: "Tunisian Sahel", E: "Eastern Mediterranean", W: "Western Mediterranean" },
   "Delos Archipelago": { W: "Athens Basin", E: "Cilician Plain", N: "Thessalian Plain", S: "Aegean Sea" },
   "Mount Olympus": { S: "Thessalian Plain", N: "Thracian Plain", E: "Vardar Valley", W: "Pindus Mountains" },
   "Thessalian Plain": { N: "Mount Olympus", S: "Athens Basin", E: "Delos Archipelago", W: "Pindus Mountains" },
@@ -240,10 +242,11 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Java Sea": { N: "Borneo", S: "West Java Coast", E: "Makassar Strait", W: "Sumatra Highlands" },
   "West Java Coast": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Central Java", W: "Sunda Strait" },
   "Central Java": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "East Java Coast", W: "West Java Coast" },
-  "East Java Coast": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Makassar Strait", W: "Central Java" },
+  "East Java Coast": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Bali", W: "Central Java" },
+  "Bali": { N: "Java Sea", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "Makassar Strait", W: "East Java Coast" },
   "Sunda Strait": { N: "Sumatra Highlands", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", E: "West Java Coast", W: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA" },
   "Borneo": { N: "South China Sea", S: "Java Sea", E: "Celebes Sea", W: "Strait of Malacca" },
-  "Makassar Strait": { N: "Celebes Sea", S: "Timor Sea", E: "Spice Islands", W: "Borneo" },
+  "Makassar Strait": { N: "Celebes Sea", S: "Timor Sea", E: "Spice Islands", W: "Bali" },
   "Spice Islands": { N: "Celebes Sea", S: "Banda Sea", E: "Sepik River Basin", W: "Makassar Strait" },
   "Celebes Sea": { S: "Makassar Strait", E: "Spice Islands", W: "Borneo", N: "Mindanao" },
   "Banda Sea": { N: "Spice Islands", S: "Timor Sea", E: "Torres Strait", W: "Makassar Strait" },
@@ -364,7 +367,10 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   
   // The Caribbean
   "Greater Antilles": { W: "Caribbean Sea", S: "Lesser Antilles", E: "LIMINAL_ATLANTIC_TO_EUROPE", N: "Gulf of Mexico" },
-  "Lesser Antilles": { N: "Greater Antilles", W: "Caribbean Sea", S: "Orinoco Delta", E: "LIMINAL_ATLANTIC_TO_AFRICA" },
+  "Lesser Antilles": { N: "Greater Antilles", W: "Hispaniola", S: "Orinoco Delta", E: "LIMINAL_ATLANTIC_TO_AFRICA" },
+  "Cuba": { N: "Florida Keys", S: "Jamaica", E: "Hispaniola", W: "Gulf of Mexico" },
+  "Hispaniola": { N: "LIMINAL_ATLANTIC_TO_EUROPE", S: "Caribbean Sea", E: "Lesser Antilles", W: "Cuba" },
+  "Jamaica": { N: "Cuba", S: "Caribbean Sea", E: "Caribbean Sea", W: "Caribbean Sea" },
   
   // === AMERICAN WATERS ===
   "Gulf of Mexico": { N: "Mississippi Bayou", S: "Caribbean Sea", E: "Everglades", W: "Gulf Coast Texas" },
@@ -397,7 +403,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Boston Harbor": { S: "Cape Cod", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Connecticut River Valley" },
   "Long Island": { N: "Hudson River Valley", S: "Pine Barrens", E: "Cape Cod", W: "Hudson River Valley" },
   "Connecticut River Valley": { N: "Champlain Valley", S: "Hudson River Valley", E: "Cape Cod", W: "Adirondacks" },
-  "Florida Keys": { N: "Everglades", S: "Greater Antilles", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Gulf of Mexico" },
+  "Florida Keys": { N: "Everglades", S: "Cuba", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Gulf of Mexico" },
 
   // === CANADA ===
   "St. Lawrence River": { N: "Labrador Coast", S: "Adirondacks", E: "Newfoundland Grand Banks", W: "Ontario Shield" },
@@ -510,7 +516,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Cappadocian Highlands": { N: "Central Plateau", S: "Cilician Plain", E: "Tbilisi Valley", W: "Bosporus Straits" },
   "Pontic Coast": { S: "Central Plateau", E: "Tbilisi Valley", W: "Bosporus Straits", N: "LIMINAL_BLACK_SEA_TO_EUROPE" },
   "Pontic Steppe": { S: "Pontic Coast", E: "Aral Sea Basin", W: "Steppe Borderlands", N: "Ural Mountains" },
-  "Cilician Plain": { N: "Cappadocian Highlands", S: "Mount Lebanon Range", E: "Nineveh Plain" },
+  "Cilician Plain": { N: "Cappadocian Highlands", S: "Cyprus", E: "Nineveh Plain", W: "Eastern Mediterranean" },
   "Tarsus Foothills": { N: "Cappadocian Highlands", S: "Cilician Plain", E: "Zagros Foothills" },
   "Central Plateau": { N: "Pontic Coast", S: "Cappadocian Highlands", E: "Tbilisi Valley", W: "Bosporus Straits" },
   "Bosporus Straits": { E: "Central Plateau", W: "Bosporus", S: "Cilician Plain", N: "LIMINAL_BLACK_SEA_TO_EUROPE" },
@@ -527,7 +533,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 "Atlas Mountains": { N: "Rif Coast", S: "Draa Valley", E: "Tell Atlas", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 "Fez Plateau": { N: "Rif Coast", S: "Atlas Mountains", E: "Tell Atlas", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 "Tell Atlas": { N: "Rif Coast", S: "Draa Valley", E: "Tunisian Sahel", W: "Fez Plateau" },
-"Tunisian Sahel": { N: "Tell Atlas", S: "Tripolitania", E: "Cyrenaica Coast", W: "Tell Atlas" },
+"Tunisian Sahel": { N: "Sicily", S: "Tripolitania", E: "Cyrenaica Coast", W: "Tell Atlas" },
 "Rif Coast": { N: "Strait of Gibraltar", S: "Fez Plateau", E: "Fez Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 "Draa Valley": { N: "Atlas Mountains", S: "Central Sahara", E: "Tell Atlas", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 "Tripolitania": { N: "Tunisian Sahel", S: "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH", E: "Cyrenaica Coast", W: "Tell Atlas" },
@@ -716,7 +722,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   // Deccan Plateau
   "Hyderabad Highlands": { N: "Malwa Plateau", S: "Karnataka Plateau", E: "Eastern Ghats", W: "Western Ghats" },
   "Western Ghats": { N: "Malwa Plateau", S: "Malabar Coast", E: "Hyderabad Highlands", W: "Malabar Coast" },
-  "Malabar Coast": { N: "Western Ghats", S: "Galle Coast", E: "Karnataka Plateau", W: "LIMINAL_ARABIAN_SEA_TO_AFRICA" },
+  "Malabar Coast": { N: "Western Ghats", S: "Maldives", E: "Karnataka Plateau", W: "LIMINAL_ARABIAN_SEA_TO_AFRICA" },
   "Coromandel Coast": { N: "Bengal Delta", S: "Trincomalee Harbor", W: "Eastern Ghats", E: "LIMINAL_BAY_OF_BENGAL_TO_SOUTHEAST_ASIA" },
   "Karnataka Plateau": { N: "Hyderabad Highlands", S: "Malabar Coast", E: "Eastern Ghats", W: "Western Ghats" },
   "Eastern Ghats": { N: "Chota Nagpur Plateau", S: "Coromandel Coast", W: "Hyderabad Highlands", E: "Coromandel Coast" },
@@ -742,8 +748,9 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Jaffna Peninsula": { S: "Anuradhapura Basin", E: "Coromandel Coast", W: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", N: "Malabar Coast" },
   "Anuradhapura Basin": { N: "Jaffna Peninsula", S: "Central Highlands", E: "Trincomalee Harbor", W: "Kandy Plateau" },
   "Kandy Plateau": { E: "Central Highlands", S: "Galle Coast", N: "Anuradhapura Basin", W: "Jaffna Peninsula" },
-  "Galle Coast": { N: "Central Highlands", E: "Trincomalee Harbor", W: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA" },
+  "Galle Coast": { N: "Central Highlands", E: "Trincomalee Harbor", W: "Maldives", S: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA" },
   "Trincomalee Harbor": { W: "Central Highlands", S: "Galle Coast", E: "LIMINAL_BAY_OF_BENGAL_TO_SOUTHEAST_ASIA", N: "Coromandel Coast" },
+  "Maldives": { N: "Malabar Coast", S: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", E: "Galle Coast", W: "LIMINAL_ARABIAN_SEA_TO_AFRICA" },
 
   // === OCEANIA ===
   // Australia – Southeast

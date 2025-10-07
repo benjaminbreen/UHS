@@ -1485,7 +1485,7 @@ export function proceduralGenerateMap(
   // console.log("[Gen] Phase 11.9: Road and Path Network Generation - START");
   // Only skip road generation if economicActivityLevel is explicitly 0
   if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
-    generateRoadAndPathNetwork(mapDataObject, roadPathNoise, dateInfo.era as HistoricalEra); 
+    generateRoadAndPathNetwork(mapDataObject, roadPathNoise, dateInfo.era as HistoricalEra, neighboringEdges);
   }
   // console.log("[Gen] Phase 11.9: Road and Path Network Generation - END");
   

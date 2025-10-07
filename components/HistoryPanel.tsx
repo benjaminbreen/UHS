@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { BookOpen, User, Calendar, ChevronRight } from 'lucide-react';
+import { BookOpen, User, Calendar, ChevronRight, Sparkles } from 'lucide-react';
+import { suggestHistoricalPrimarySource } from '../services/llmService';
+import ReactMarkdown from 'react-markdown';
 import { GameDate, HistoricalEra, MapData, NpcEntity } from '../types';
 
 // Define CulturalZone type locally to avoid import issues
@@ -25,11 +27,21 @@ interface HistoryPanelProps {
 
 type HistorySubTab = 'primary_sources' | 'wikipedia';
 
-const PrimarySourceDisplay: React.FC<{ 
+const PrimarySourceDisplay: React.FC<{
     sources: PrimarySourceMetadata[];
     onSourceClick: (source: PrimarySourceMetadata) => void;
     currentYear?: number;
-}> = ({ sources, onSourceClick, currentYear }) => {
+    currentZone?: string;
+    localArea?: string;
+}> = ({ sources, onSourceClick, currentYear, currentZone, localArea }) => {
+    const [isSuggesting, setIsSuggesting] = useState(false);
+    const [aiSuggestedSource, setAiSuggestedSource] = useState<{
+        description: string;
+        excerpt: string;
+        wikipediaLink: string;
+        scholarSearchTerms: string;
+    } | null>(null);
+
     if (sources.length === 0) {
         return (
             <div className="p-4 text-slate-400 italic text-sm text-center">
@@ -51,31 +63,117 @@ const PrimarySourceDisplay: React.FC<{
         return `~${Math.round(diff/100)} centuries away`;
     };
 
+    const handleSuggestSource = async () => {
+        if (!currentYear || !localArea || !currentZone) {
+            console.warn('Missing context for AI source suggestion');
+            return;
+        }
+
+        setIsSuggesting(true);
+        const result = await suggestHistoricalPrimarySource(
+            currentYear,
+            localArea,
+            currentZone
+        );
+        setIsSuggesting(false);
+
+        if (!result.error) {
+            setAiSuggestedSource(result);
+        }
+    };
+
+    // Display sources: AI suggestion first (if exists), then regular sources
+    const displaySources = aiSuggestedSource
+        ? [aiSuggestedSource, ...sources.slice(1)]
+        : sources;
+
     return (
         <div className="p-3 space-y-3">
-            <div className="text-xs text-slate-500 text-center mb-2">
-                Showing 5 closest sources to year {currentYear}
-            </div>
-            {sources.map((source, index) => (
-                <div 
-                    key={source.id} 
+            <button
+                onClick={handleSuggestSource}
+                disabled={isSuggesting}
+                className="w-full px-3 py-1.5 bg-slate-700/40 hover:bg-slate-700/60
+                           disabled:bg-slate-800/50 disabled:cursor-not-allowed
+                           text-slate-300 hover:text-amber-300 text-xs font-medium rounded-lg
+                           border border-slate-600/50 hover:border-amber-500/30
+                           transition-all duration-200 flex items-center justify-center gap-2 mb-2"
+            >
+                {isSuggesting ? (
+                    <>
+                        <div className="w-4 h-4 border-2 border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
+                        <span className="text-amber-300">Identifying sources...</span>
+                    </>
+                ) : (
+                    <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Identify more relevant historical sources</span>
+                    </>
+                )}
+            </button>
+
+            {/* AI-suggested source (if exists) */}
+            {aiSuggestedSource && (
+                <div
+                    className="bg-slate-800/50 p-4 rounded-lg border-2 border-purple-500/50 hover:border-amber-500/50 transition-all cursor-pointer group relative"
+                    onClick={() => {
+                        // Convert AI suggestion to PrimarySourceMetadata format for modal
+                        const aiSourceForModal: PrimarySourceMetadata = {
+                            id: 'ai-suggested',
+                            title: 'AI-Identified Historical Source',
+                            author: 'AI Research Assistant',
+                            year: currentYear || 0,
+                            era: '',
+                            culturalZones: [currentZone || ''],
+                            excerpt: `${aiSuggestedSource.description}\n\n${aiSuggestedSource.excerpt}`,
+                            keywords: [],
+                            citation: {
+                                translator: 'AI-generated suggestion',
+                                modernSource: aiSuggestedSource.wikipediaLink
+                            },
+                            wikisourceTitle: aiSuggestedSource.wikipediaLink.replace('https://en.wikipedia.org/wiki/', ''),
+                            scholarSearchTerms: aiSuggestedSource.scholarSearchTerms
+                        };
+                        onSourceClick(aiSourceForModal);
+                    }}
+                >
+                    <div className="absolute -top-2 -right-2 bg-purple-500/90 text-white text-xs px-2.5 py-0.5 rounded-full font-medium">
+                        AI Suggested
+                    </div>
+
+                    <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-purple-400 group-hover:text-purple-300 transition-colors">
+                            AI-Identified Historical Source
+                        </h4>
+                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                    </div>
+
+                    <div className="text-sm text-slate-300 leading-relaxed line-clamp-2 prose prose-sm prose-invert max-w-none">
+                        <ReactMarkdown>{aiSuggestedSource.description}</ReactMarkdown>
+                    </div>
+                </div>
+            )}
+
+            {/* Regular sources (skip first if AI source exists) */}
+            {sources.slice(aiSuggestedSource ? 1 : 0).map((source, index) => (
+                <div
+                    key={source.id}
                     className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-amber-500/50 transition-all cursor-pointer group relative"
                     onClick={() => onSourceClick(source)}
                 >
                     {/* Proximity badge */}
-                    {index === 0 && (
+                    {index === 0 && !aiSuggestedSource && (
                         <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
                             Closest
                         </div>
                     )}
-                    
+
                     <div className="flex justify-between items-start mb-2">
                         <h4 className="font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">
                             {source.title}
                         </h4>
                         <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
                     </div>
-                    
+
                     <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
                         <span className="flex items-center gap-1">
                             <User className="w-3 h-3" /> {source.author}
@@ -89,12 +187,12 @@ const PrimarySourceDisplay: React.FC<{
                             </span>
                         )}
                     </div>
-                    
-                    <p className="text-sm text-slate-300 leading-relaxed line-clamp-2">
-                        {source.excerpt}
-                    </p>
-                    
-                    {source.citation.translator && (
+
+                    <div className="text-sm text-slate-300 leading-relaxed line-clamp-2 prose prose-sm prose-invert max-w-none">
+                        <ReactMarkdown>{source.excerpt}</ReactMarkdown>
+                    </div>
+
+                    {source.citation?.translator && (
                         <p className="text-xs text-slate-600 mt-2 italic">
                             Translated by {source.citation.translator}
                         </p>
@@ -119,6 +217,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     const [primarySources, setPrimarySources] = useState<PrimarySourceMetadata[]>([]);
     const [loading, setLoading] = useState(false);
     const [wikipediaOverrideTerm, setWikipediaOverrideTerm] = useState<string | null>(null);
+    const [isContextExpanded, setIsContextExpanded] = useState(false);
 
     const { era, culturalZone } = useMemo(() => {
         const dateInfo = parseDateString(String(gameDate.year));
@@ -304,7 +403,32 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
             <div className="flex flex-col h-full bg-slate-900/30 rounded-lg border border-slate-700/50">
                 <div className="p-4 shrink-0">
                     <h3 className="text-lg font-semibold text-amber-300 mb-2">Historical Context</h3>
-                    <p className="text-sm italic text-slate-400">{renderHistoricalSummary(historicalSummary)}</p>
+                    <div className="relative">
+                        <div className={`text-sm italic text-slate-400 ${!isContextExpanded ? 'line-clamp-4' : ''}`}>
+                            {renderHistoricalSummary(historicalSummary)}
+                        </div>
+                        {!isContextExpanded && historicalSummary.length > 200 && (
+                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none" />
+                        )}
+                        {historicalSummary.length > 200 && (
+                            <button
+                                onClick={() => setIsContextExpanded(!isContextExpanded)}
+                                className="mt-2 text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium"
+                            >
+                                {isContextExpanded ? (
+                                    <>
+                                        <span>▲</span>
+                                        <span>Show less</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>▼</span>
+                                        <span>Read more</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
                 </div>
                 
                 <div className="flex bg-slate-800/60 border-y border-slate-700/50 shrink-0">
@@ -341,10 +465,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                 <div className="animate-pulse">Loading sources...</div>
                             </div>
                         ) : (
-                            <PrimarySourceDisplay 
-                                sources={primarySources} 
+                            <PrimarySourceDisplay
+                                sources={primarySources}
                                 onSourceClick={setSelectedPrimarySource}
                                 currentYear={gameDate.year}
+                                currentZone={currentZone}
+                                localArea={localArea}
                             />
                         )
                     )}

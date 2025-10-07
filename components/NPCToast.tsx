@@ -45,6 +45,12 @@ interface NPCToastProps {
   onLeave?: () => void;
   onRefuse?: () => void;
   onInitiateEncounter?: (target: any) => void;
+  // Fade-out control
+  shouldFadeOut?: boolean;
+  activeTab?: string;
+  // Farm state for generating specific tasks
+  farmState?: any;
+  validCrops?: string[];
 }
 
 const NPCToast: React.FC<NPCToastProps> = ({
@@ -71,7 +77,11 @@ const NPCToast: React.FC<NPCToastProps> = ({
   onRequestResidency,
   onLeave,
   onRefuse,
-  onInitiateEncounter
+  onInitiateEncounter,
+  shouldFadeOut = false,
+  activeTab = 'overview',
+  farmState,
+  validCrops = []
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isAnimating, setIsAnimating] = useState(true);
@@ -89,6 +99,8 @@ const NPCToast: React.FC<NPCToastProps> = ({
     tasks: string[];
     payment: { meals: boolean; lodging: boolean; coins?: number };
   } | null>(null);
+  const [workAccepted, setWorkAccepted] = useState(false);
+  const [opacity, setOpacity] = useState(1);
   const inputRef = useRef<HTMLInputElement>(null);
   const mountedRef = useRef(true);
 
@@ -98,6 +110,21 @@ const NPCToast: React.FC<NPCToastProps> = ({
       mountedRef.current = false;
     };
   }, []);
+
+  // Fade out when on work tab after accepting work
+  useEffect(() => {
+    if (isFarmContext && workAccepted && activeTab === 'work') {
+      // Start fade out after 3 seconds
+      const fadeTimer = setTimeout(() => {
+        setOpacity(0);
+        // Close after fade completes
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 3000);
+      }, 100);
+      return () => clearTimeout(fadeTimer);
+    }
+  }, [isFarmContext, workAccepted, activeTab, onClose]);
 
   useEffect(() => {
     // Auto-hide after delay unless persistent
@@ -497,7 +524,10 @@ const NPCToast: React.FC<NPCToastProps> = ({
   };
 
   return (
-    <div className={`fixed z-50 ${getPositionStyles()} transition-transform duration-300 ease-out`}>
+    <div
+      className={`fixed z-50 ${getPositionStyles()} transition-all duration-3000 ease-out`}
+      style={{ opacity, transitionDuration: '3000ms' }}
+    >
       <div className={`
         flex items-start gap-6 p-6 rounded-xl border-2 backdrop-blur-md shadow-2xl
         min-w-[500px] max-w-[700px] ${getTypeStyles()}
@@ -703,16 +733,95 @@ const NPCToast: React.FC<NPCToastProps> = ({
                     </button>
                   )}
 
-                  {/* Work for lodging option */}
-                  {!farmerDecisions.askToLeave && farmerDecisions.allowWork && onRequestWork && !isNegotiating && (
+                  {/* Work for lodging option - hide if work already accepted */}
+                  {!workAccepted && !farmerDecisions.askToLeave && farmerDecisions.allowWork && onRequestWork && !isNegotiating && (
                     <button
                       onClick={() => {
                         setIsNegotiating(true);
                         setNegotiationRounds(1);
-                        // Generate work offer
-                        const tasks = farmProsperity === 'humble'
-                          ? ['Mend the fence', 'Feed the animals', 'Clear the weeds']
-                          : ['Help with the harvest', 'Tend to the livestock', 'Repair the barn'];
+                        // Generate work offer based on actual farm state with urgency levels
+                        const generateSpecificTasks = () => {
+                          const tasks: Array<{text: string; urgent: boolean}> = [];
+
+                          // Check for animals that need feeding (URGENT if >48 hours)
+                          if (farmState?.livestock && farmState.livestock.length > 0) {
+                            farmState.livestock.forEach((animal: any) => {
+                              const lastFed = animal.lastFed || 0;
+                              const hoursSinceFed = (gameTimeHours || 0) - lastFed;
+                              if (hoursSinceFed > 48) {
+                                tasks.push({
+                                  text: `[URGENT] Feed the ${animal.type}`,
+                                  urgent: true
+                                });
+                              } else if (hoursSinceFed > 24 || !animal.lastFed) {
+                                tasks.push({
+                                  text: `Feed the ${animal.type}`,
+                                  urgent: false
+                                });
+                              }
+                            });
+                          }
+
+                          // Check for fields that need attention
+                          if (farmState?.fields && farmState.fields.length > 0) {
+                            // Harvest ready crops (URGENT if overdue)
+                            const harvestReady = farmState.fields.filter((f: any) =>
+                              f.crop && f.daysToHarvest !== undefined && f.daysToHarvest <= 2
+                            );
+                            harvestReady.forEach((field: any) => {
+                              const fieldIdx = farmState.fields.indexOf(field);
+                              const isOverdue = field.daysToHarvest <= 0;
+                              tasks.push({
+                                text: isOverdue
+                                  ? `[URGENT] Harvest Field ${fieldIdx + 1} (${field.crop} - overdue!)`
+                                  : `Harvest Field ${fieldIdx + 1} (${field.crop})`,
+                                urgent: isOverdue
+                              });
+                            });
+
+                            // Dry fields with crops (URGENT if health < 50%)
+                            const dryFields = farmState.fields.filter((f: any) =>
+                              f.crop && f.moisture === 'dry'
+                            );
+                            dryFields.forEach((field: any) => {
+                              const fieldIdx = farmState.fields.indexOf(field);
+                              const isCritical = field.health < 50;
+                              if (tasks.length < 5) {
+                                tasks.push({
+                                  text: isCritical
+                                    ? `[URGENT] Water Field ${fieldIdx + 1} (${field.crop} - wilting!)`
+                                    : `Water Field ${fieldIdx + 1} (${field.crop})`,
+                                  urgent: isCritical
+                                });
+                              }
+                            });
+
+                            // Empty fields (not urgent) - specify crop type
+                            const emptyFields = farmState.fields.filter((f: any) => !f.crop);
+                            if (emptyFields.length > 0 && tasks.length < 3) {
+                              const fieldIdx = farmState.fields.indexOf(emptyFields[0]);
+                              const cropToPlant = validCrops.length > 0 ? validCrops[0] : 'crops';
+                              tasks.push({
+                                text: `Plant ${cropToPlant} in Field ${fieldIdx + 1}`,
+                                urgent: false
+                              });
+                            }
+                          }
+
+                          // Fallback to generic tasks if no specific ones found
+                          if (tasks.length === 0) {
+                            const genericTasks = farmProsperity === 'humble'
+                              ? ['Clear weeds from the fields', 'Mend the fence', 'Fetch water']
+                              : ['Organize the barn', 'Repair tools', 'Check the irrigation'];
+                            return genericTasks.map(t => ({text: t, urgent: false}));
+                          }
+
+                          // Sort: urgent first, then by original order
+                          return tasks.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0)).slice(0, 3);
+                        };
+
+                        const taskObjects = generateSpecificTasks();
+                        const tasks = taskObjects.map(t => t.text);
                         setWorkOffer({
                           tasks,
                           payment: { meals: true, lodging: true, coins: farmProsperity === 'prosperous' ? 5 : 0 }
@@ -745,11 +854,13 @@ const NPCToast: React.FC<NPCToastProps> = ({
                       <button
                         onClick={() => {
                           setIsNegotiating(false);
+                          setWorkAccepted(true);
                           setCurrentMessage("Good! Let's get started then. I'll show you what needs doing.");
                           // Apply work contract
                           if (onAcceptWork && workOffer) {
                             onAcceptWork(workOffer.tasks, workOffer.payment);
                           }
+                          // Clear state to prevent re-showing negotiation buttons
                           setFarmerDecisions(null);
                           setWorkOffer(null);
                         }}
@@ -926,4 +1037,10 @@ const NPCToast: React.FC<NPCToastProps> = ({
   );
 };
 
-export default NPCToast;
+export { NPCToast as default };
+
+// Add fade-out prop interface
+export interface NPCToastFadeProps {
+  shouldFadeOut?: boolean;
+  onFadeComplete?: () => void;
+}

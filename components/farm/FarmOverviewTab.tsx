@@ -184,32 +184,32 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
       )}
 
       {/* Consolidated Economic Dashboard - Farm Info + Last Year + Current Season */}
-      <div className="w-full bg-gradient-to-br from-slate-700/50 to-slate-800/40 border border-amber-500/20 rounded-xl p-5 shadow-xl">
+      <div className="w-full bg-gradient-to-br from-slate-700/50 to-slate-800/40 border border-amber-500/20 rounded-xl p-4 px-6 shadow-xl">
         {/* Farm Header Row - Compressed vertical space */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-baseline gap-5 flex-1">
             <h2 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-400">
               {dynamicFarmName}
             </h2>
             <div className="flex items-center gap-3">
               <span className="text-xl font-semibold text-slate-200 tracking-tight">{Math.abs(year)} {year < 0 ? 'BCE' : 'CE'}</span>
-              <span className="text-slate-600">·</span>
-              <span className="text-lg font-medium text-blue-400 capitalize tracking-wide">{season}</span>
+              <span className="text-slate-400">·</span>
+              <span className="text-xl font-medium text-blue-400 capitalize tracking-wide">{season}</span>
             </div>
             {farmDescription && (
               <>
-                <span className="text-slate-600">·</span>
-                <p className="text-sm text-slate-400">{farmDescription}</p>
+                <span className="text-slate-400">·</span>
+                <p className="text-md font-style: italic text-slate-400">{farmDescription}</p>
               </>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             <div className="text-right">
-              <div className="text-[9px] text-slate-500 uppercase tracking-[0.15em] font-medium mb-0.5">Head Farmer</div>
-              <div className="text-sm font-bold text-amber-400 tracking-tight">{headFarmer?.name || farmState.family.headOfHousehold}</div>
+              <div className="text-[12px] text-slate-500 uppercase tracking-[0.15em] font-medium mb-0.5">Head Farmer</div>
+              <div className="text-md font-bold text-amber-400 tracking-tight">{headFarmer?.name || farmState.family.headOfHousehold}</div>
             </div>
             <div className={`px-3 py-1.5 rounded-lg ${prosperityInfo.bg} border ${prosperityInfo.bg.replace('bg-', 'border-').replace('/20', '/40')}`}>
-              <span className={`text-xs font-bold tracking-wide ${prosperityInfo.color}`}>{prosperityInfo.label}</span>
+              <span className={`text-md font-bold tracking-wide ${prosperityInfo.color}`}>{prosperityInfo.label}</span>
             </div>
           </div>
         </div>
@@ -220,22 +220,22 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
           {farmState.lastYearData && (
             <div className="bg-slate-800/50 rounded-xl px-5 py-3.5 border border-slate-600/40">
               <div className="flex items-start gap-3">
-                <span className="text-2xl mt-0.5">{farmState.lastYearData.profit >= 0 ? '📈' : '📉'}</span>
+                <span className="text-xl">{farmState.lastYearData.profit >= 0 ? '📈' : '📉'}</span>
                 <div className="flex-1">
-                  <div className="text-[9px] text-slate-500 uppercase tracking-[0.15em] font-medium mb-1.5">
-                    Last Year ({year - 1})
+                  <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] font-medium mb-1.5">
+                    Last Year's Harvest ({year - 1})
                   </div>
                   <div className="flex items-baseline gap-4">
                     <div className="flex items-baseline gap-1.5">
                       <span className={`text-3xl font-bold tracking-tight ${farmState.lastYearData.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {farmState.lastYearData.profit >= 0 ? '+' : ''}{farmState.lastYearData.profit}
                       </span>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wide">coins</span>
+                      <span className="text-[12px] text-slate-500 uppercase tracking-wide">coins</span>
                     </div>
                     <div className="h-6 w-px bg-slate-600/50" />
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-xl text-emerald-400 font-semibold tracking-tight">{farmState.lastYearData.totalHarvest}</span>
-                      <span className="text-[9px] text-emerald-400/70 uppercase tracking-[0.12em]">units of {farmState.lastYearData.cropsMostGrown || primaryCrop} harvested</span>
+                      <span className="text-[12px] text-emerald-400/70 uppercase tracking-[0.12em]">units of {farmState.lastYearData.cropsMostGrown || primaryCrop} harvested</span>
                     </div>
                   </div>
                 </div>
@@ -245,7 +245,7 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
 
           {/* Current Season Summary */}
           {farmState.currentSeasonData && (
-            <div className="bg-gradient-to-br from-amber-900/25 to-emerald-900/25 rounded-xl px-5 py-3.5 border border-amber-500/40">
+            <div className="bg-gradient-to-br from-amber-900/25 to-emerald-900/25 rounded-xl px-5 py-4 border border-amber-500/40">
               <div className="flex items-start gap-3">
                 <span className="text-2xl mt-0.5">💰</span>
                 <div className="flex-1">
@@ -258,12 +258,12 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
                         {farmState.currentSeasonData.revenue - farmState.currentSeasonData.expenses >= 0 ? '+' : ''}
                         {farmState.currentSeasonData.revenue - farmState.currentSeasonData.expenses}
                       </span>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wide">coins</span>
+                      <span className="text-[12px] text-slate-500 uppercase tracking-wide">coins</span>
                     </div>
                     <div className="h-6 w-px bg-slate-600/50" />
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-xl text-emerald-400 font-semibold tracking-tight">{farmState.currentSeasonData.harvestCount}</span>
-                      <span className="text-[9px] text-emerald-400/70 uppercase tracking-[0.12em]">units harvested</span>
+                      <span className="text-[12px] text-emerald-400/70 uppercase tracking-[0.12em]">units harvested</span>
                     </div>
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
         {/* Expandable Details Toggle - Only shows on hover */}
         <button
           onClick={() => toggleCard('economics')}
-          className="group w-full mt-3 text-[10px] uppercase tracking-[0.15em] font-medium text-transparent hover:text-amber-400 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-slate-700/20 transition-all border border-transparent hover:border-slate-600/30"
+          className="group w-full mt-2 text-[9px] uppercase tracking-[0.15em] font-medium text-transparent hover:text-amber-400 flex items-center justify-center gap-2 py-1 rounded-lg hover:bg-slate-700/20 transition-all border border-transparent hover:border-slate-600/30"
         >
           <span className="group-hover:opacity-100 opacity-0 transition-opacity">
             {expandedCard === 'economics' ? 'Hide Details' : 'Show More Details'}
@@ -285,7 +285,7 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
 
         {/* Expanded Details - Reduced padding */}
         {expandedCard === 'economics' && (
-          <div className="mt-2 pt-3 border-t border-slate-600/30 space-y-3">
+          <div className="mt-2 pt-3 px-4 border-t border-slate-600/30 space-y-3">
             {/* Last Year Detailed Breakdown */}
             {farmState.lastYearData && (
               <div>
@@ -534,33 +534,35 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
         {/* Primary Crop Card - Larger text, horizontal layout */}
         <button
           onClick={() => toggleCard('crop')}
-          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-3.5 border border-slate-500/40 transition-all text-left"
+          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-3 px-5 border border-slate-500/40 transition-all text-left"
         >
           {primaryCrop !== 'none' ? (
             <>
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-start gap-3 flex-1">
+              <div className="flex items-start justify-between mb-1 px-2">
+                <div className="flex items-start gap-4 flex-1">
                   <span className="text-5xl">{CROP_EMOJIS[primaryCrop] || CROP_EMOJIS[primaryCrop.toLowerCase()] || '🌱'}</span>
                   <div className="flex-1">
-                    <div className="text-[9px] text-slate-500 uppercase tracking-[0.15em] font-medium mb-0.5">Primary Crop</div>
-                    <div className="text-xl font-bold text-emerald-400 capitalize tracking-tight mb-1">
+                    <div className="text-xs text-slate-500 uppercase tracking-widest font-medium mb-0.5">Primary Crop</div>
+                    <div className="text-2xl font-bold text-emerald-400 capitalize tracking-tight mb-1">
                       {primaryCropData?.name || primaryCrop}
                     </div>
                     {primaryCropData && (
-                      <div className="flex items-center gap-3 text-sm">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wide">Planting</span>
+                      <div className="flex  gap-6 text-sm">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wide">Planting season</span>
                           <span className="text-slate-200 font-semibold">{formatPlantingSeason(primaryCropData.bestPlantingMonths)}</span>
                         </div>
                         <span className="text-slate-600">·</span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-slate-200 font-bold text-lg">{primaryCropData.growthDays}</span>
-                          <span className="text-[10px] text-slate-500 uppercase">days</span>
+                        <div className="flex  gap-2">
+                         <span className="text-[10px] text-slate-500 uppercase ">days of growth</span>
+                          <span className="text-slate-200 font-bold text-2xl">{primaryCropData.growthDays}</span>
+                         
                         </div>
                         <span className="text-slate-600">·</span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-emerald-400 font-bold text-lg">{primaryCropData.basePrice}</span>
-                          <span className="text-[10px] text-slate-500 uppercase">coins/u</span>
+                        <div className="flex  gap-2">
+                        <span className="text-[10px] text-slate-500 uppercase">coins per unit</span>
+                          <span className="text-emerald-400 font-bold text-2xl">{primaryCropData.basePrice}</span>
+                          
                         </div>
                       </div>
                     )}
@@ -573,7 +575,7 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
 
               {primaryCropData && (
                 <>
-                  <p className="text-xs text-slate-400 leading-relaxed ml-[68px]">{primaryCropData.description}</p>
+                  <p className="text-[15px] text-slate-400 leading-relaxed ml-[8px]">{primaryCropData.description}</p>
 
                   {expandedCard === 'crop' && primaryCropData.tip && (
                     <div className="mt-2 pt-2 border-t border-slate-700/30" onClick={(e) => e.stopPropagation()}>
@@ -590,80 +592,179 @@ export const FarmOverviewTab: React.FC<FarmOverviewTabProps> = ({
             <div className="flex items-center gap-3">
               <span className="text-3xl">🌱</span>
               <div>
-                <div className="text-xs text-slate-500 uppercase tracking-wide">Primary Crop</div>
+                <div className="text-xs text-slate-500 uppercase tracking-widest">Primary Crop</div>
                 <div className="text-lg font-semibold text-slate-400">No crop planted</div>
               </div>
             </div>
           )}
         </button>
 
-        {/* Livestock Card - Bigger emojis and numbers */}
+        {/* Livestock Card - Matches primary crop card format */}
         <button
           onClick={() => toggleCard('livestock')}
-          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-3.5 border border-slate-500/40 transition-all text-left"
+          className="bg-slate-700/40 hover:bg-slate-700/60 rounded-lg p-4 px-5  border border-slate-500/40 transition-all text-left"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[9px] text-slate-500 uppercase tracking-[0.15em] font-medium">Livestock</div>
-            <div className={`transform transition-transform text-slate-500 ${expandedCard === 'livestock' ? 'rotate-180' : ''}`}>
-              <span className="text-xs">▼</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-around gap-3">
-            {farmState.livestock.slice(0, 4).map((animal, idx) => {
-              // Check if animal is hungry (2+ days since last fed)
-              const now = Date.now();
-              const oneDayMs = 24 * 60 * 60 * 1000;
-              const daysSinceLastFed = (now - animal.lastFed) / oneDayMs;
-              const isHungry = daysSinceLastFed >= 2;
-
-              return (
-                <div key={idx} className={`flex items-center gap-2 ${isHungry ? 'animate-pulse' : ''}`}>
-                  <span className="text-5xl relative">
-                    {animal.type === 'chickens' ? '🐔' :
-                     animal.type === 'cattle' ? '🐄' :
-                     animal.type === 'horses' ? '🐴' :
-                     animal.type === 'pigs' ? '🐷' :
-                     animal.type === 'sheep' ? '🐑' : '🐾'}
-                    {isHungry && (
-                      <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-slate-700 animate-pulse" title="Hungry!" />
-                    )}
+          {farmState.livestock.length > 0 ? (
+            <>
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-start gap-3 flex-1">
+                  {/* Get primary livestock emoji */}
+                  <span className="text-5xl">
+                    {farmState.livestock[0].type === 'chickens' ? '🐔' :
+                     farmState.livestock[0].type === 'cattle' ? '🐄' :
+                     farmState.livestock[0].type === 'horses' ? '🐴' :
+                     farmState.livestock[0].type === 'pigs' ? '🐷' :
+                     farmState.livestock[0].type === 'sheep' ? '🐑' :
+                     farmState.livestock[0].type === 'goats' ? '🐐' : '🐾'}
                   </span>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-100 tracking-tight">{animal.count}</div>
-                    <div className={`text-[10px] capitalize leading-tight uppercase tracking-wide ${isHungry ? 'text-red-400' : 'text-slate-500'}`}>
-                      {animal.type}
-                      {isHungry && ' (!)'}
+                  <div className="flex-1">
+                    <div className="text-xs text-slate-500 uppercase tracking-widest font-medium mb-0.5">Livestock</div>
+                    <div className="text-2xl font-bold text-sky-400 capitalize tracking-tight mb-1">
+                      {farmState.livestock.length === 1
+                        ? farmState.livestock[0].type
+                        : farmState.livestock.length === 2
+                        ? `${farmState.livestock[0].type} and ${farmState.livestock[1].type}`
+                        : farmState.livestock.length === 3
+                        ? `${farmState.livestock[0].type}, ${farmState.livestock[1].type}, and ${farmState.livestock[2].type}`
+                        : `${farmState.livestock.length} Types`}
+                    </div>
+                    {/* Horizontal stats row - total animals, avg health, hungry count */}
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-slate-200 font-bold text-2xl">
+                          {farmState.livestock.reduce((sum, a) => sum + a.count, 0)}
+                        </span>
+                        <span className="text-[10px] text-slate-500 uppercase">total animals</span>
+                      </div>
+                      <span className="text-slate-600">·</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className={`font-bold text-2xl ${
+                          Math.round(farmState.livestock.reduce((sum, a) => sum + a.health, 0) / farmState.livestock.length) > 70
+                            ? 'text-green-400'
+                            : 'text-yellow-400'
+                        }`}>
+                          {Math.round(farmState.livestock.reduce((sum, a) => sum + a.health, 0) / farmState.livestock.length)}%
+                        </span>
+                        <span className="text-[10px] text-slate-500 uppercase">avg health</span>
+                      </div>
+                      {(() => {
+                        const now = Date.now();
+                        const oneDayMs = 24 * 60 * 60 * 1000;
+                        const hungryCount = farmState.livestock.filter(a =>
+                          (now - a.lastFed) / oneDayMs >= 2
+                        ).length;
+
+                        if (hungryCount > 0) {
+                          return (
+                            <>
+                              <span className="text-slate-600">·</span>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-red-400 font-bold text-2xl animate-pulse">{hungryCount}</span>
+                                <span className="text-[10px] text-red-400 uppercase">hungry</span>
+                              </div>
+                            </>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <div className={`transform transition-transform text-slate-500 ${expandedCard === 'livestock' ? 'rotate-180' : ''}`}>
+                  <span className="text-xs">▼</span>
+                </div>
+              </div>
 
-          {expandedCard === 'livestock' && (
-            <div className="mt-2 pt-2 border-t border-slate-600/30" onClick={(e) => e.stopPropagation()}>
-              <div className="space-y-1.5">
-                {farmState.livestock.map((animal, idx) => (
-                  <div key={idx} className="bg-slate-800/40 rounded p-2 border border-slate-700/30">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-slate-200 capitalize">{animal.type}</span>
-                      <span className="text-base font-bold text-slate-100">{animal.count}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Health</span>
-                        <span className={animal.health > 70 ? 'text-green-400' : animal.health > 40 ? 'text-yellow-400' : 'text-red-400'}>
-                          {animal.health}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Productivity</span>
-                        <span className="text-sky-400">{animal.productivity}%</span>
-                      </div>
-                    </div>
+              {/* Description paragraph matching crop card style */}
+              <p className="text-[15px] text-slate-400 leading-relaxed ml-[8px]">
+                {farmState.livestock.length === 1
+                  ? (() => {
+                      const type = farmState.livestock[0].type;
+                      if (type === 'chickens') return 'Poultry raised for eggs and meat, requiring daily feeding and protection from predators.';
+                      if (type === 'cattle') return 'Large livestock providing milk, meat, and labor. Requires substantial grazing land and regular care.';
+                      if (type === 'horses') return 'Working animals used for transportation, plowing, and hauling. Require daily grooming and exercise.';
+                      if (type === 'pigs') return 'Omnivorous livestock raised for meat. Efficient feed converters requiring secure pens.';
+                      if (type === 'sheep') return 'Grazing animals providing wool, meat, and milk. Require seasonal shearing and herd management.';
+                      if (type === 'goats') return 'Hardy livestock providing milk, meat, and fiber. Can graze on rough terrain and browse on shrubs.';
+                      return 'Livestock animals requiring daily care, feeding, and attention to health and productivity.';
+                    })()
+                  : 'Mixed livestock operation providing diverse products including meat, dairy, eggs, and labor.'}
+              </p>
+
+              {/* Expanded details */}
+              {expandedCard === 'livestock' && (
+                <div className="mt-2 pt-2 border-t border-slate-700/30" onClick={(e) => e.stopPropagation()}>
+                  <div className="space-y-1.5">
+                    {farmState.livestock.map((animal, idx) => {
+                      const now = Date.now();
+                      const oneDayMs = 24 * 60 * 60 * 1000;
+                      const daysSinceLastFed = (now - animal.lastFed) / oneDayMs;
+                      const isHungry = daysSinceLastFed >= 2;
+
+                      return (
+                        <div key={idx} className={`bg-slate-800/40 rounded p-2 border ${isHungry ? 'border-red-700/50 bg-red-900/10' : 'border-slate-700/30'}`}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-2xl">
+                              {animal.type === 'chickens' ? '🐔' :
+                               animal.type === 'cattle' ? '🐄' :
+                               animal.type === 'horses' ? '🐴' :
+                               animal.type === 'pigs' ? '🐷' :
+                               animal.type === 'sheep' ? '🐑' :
+                               animal.type === 'goats' ? '🐐' : '🐾'}
+                            </span>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-slate-200 capitalize">{animal.type}</span>
+                                <span className="text-lg font-bold text-slate-100">{animal.count}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-[11px]">
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Health</span>
+                              <span className={animal.health > 70 ? 'text-green-400' : animal.health > 40 ? 'text-yellow-400' : 'text-red-400'}>
+                                {animal.health}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Productivity</span>
+                              <span className="text-sky-400">{animal.productivity}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Fed</span>
+                              <span className={isHungry ? 'text-red-400 font-semibold' : 'text-green-400'}>
+                                {isHungry ? `${Math.floor(daysSinceLastFed)}d ago` : 'Recently'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
+
+                  {/* Livestock management tip */}
+                  <div className="mt-2 bg-blue-900/10 border border-blue-700/20 rounded p-2.5">
+                    <div className="text-[9px] text-blue-400 uppercase tracking-[0.15em] mb-1 font-semibold">💡 Livestock Care Tip</div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      {farmState.livestock.some(a => {
+                        const now = Date.now();
+                        const oneDayMs = 24 * 60 * 60 * 1000;
+                        return (now - a.lastFed) / oneDayMs >= 2;
+                      })
+                        ? 'Animals that go unfed for 2+ days will lose health and productivity. Feed them regularly in the Livestock tab.'
+                        : 'Keep animals well-fed to maintain health and productivity. Check the Livestock tab daily for feeding opportunities.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="text-5xl">🐾</span>
+              <div>
+                <div className="text-xs text-slate-500 uppercase tracking-widest font-medium mb-0.5">Livestock</div>
+                <div className="text-2xl font-bold text-slate-400 tracking-tight">No livestock yet</div>
+                <p className="text-[15px] text-slate-400 leading-relaxed mt-1">Purchase animals to diversify your farm income</p>
               </div>
             </div>
           )}

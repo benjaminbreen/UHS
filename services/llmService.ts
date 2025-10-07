@@ -3212,6 +3212,11 @@ RESPONSE FORMAT - JSON ONLY:
 
 export interface FarmSimulationResult {
     narrative: string;
+    workQuality?: {
+        score: number;      // 0-100
+        category: 'poor' | 'adequate' | 'good' | 'excellent' | 'masterful';
+        feedback: string;   // e.g., "Seeds evenly spaced" or "Some seeds wasted"
+    };
     stateChanges: {
         fields?: Record<string, {
             crop?: string;
@@ -3256,7 +3261,8 @@ export async function generateFarmWorkSimulation(
     season: Season,
     timeOfDay: string,
     currentFarmTime: number,
-    livestock?: Array<{ type: string; health: number; productivity: number; lastFed: number }>
+    livestock?: Array<{ type: string; health: number; productivity: number; lastFed: number }>,
+    conversationHistory?: Array<{ type: 'player' | 'narrator'; text: string }>
 ): Promise<FarmSimulationResult> {
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -3271,24 +3277,55 @@ export async function generateFarmWorkSimulation(
         .map((f: any) => `Field ${f.id + 1}: ${f.crop !== 'none' ? `${f.crop} (health: ${f.health}%, moisture: ${f.moisture}%)` : 'fallow'}`)
         .join(', ');
 
+    // Build player identity context (CRITICAL FOR ROLE-PLAYING)
+    const playerIdentityContext = `
+PLAYER IDENTITY (CRITICAL - NEVER CONFUSE THIS):
+- Name: ${playerCharacter.name}
+- Age: ${playerCharacter.age || 'unknown'}
+- Gender: ${playerCharacter.gender || 'unknown'}
+- Profession: ${playerCharacter.profession || 'traveler'}
+- The player is NOT a family member of this farm
+- Player status at this farm: ${farmState.residencyStatus?.playerStatus || 'visitor'} (visitor/guest/worker/resident)
+- Days worked at this farm: ${farmState.residencyStatus?.daysWorked || 0}
+- Trust level with farmer: ${farmState.residencyStatus?.trustLevel || 0}/100
+- The farmer's name is: ${farmState.family.headOfHousehold}
+
+CRITICAL: The player is working FOR the farmer ${farmState.family.headOfHousehold}, NOT as a family member. Never refer to the farm family as "your family" or family members as "your wife/children/etc."
+`;
+
     // Build player state context
     const playerStateContext = `
-- Player Health: ${playerCharacter.health}/${playerCharacter.maxHealth} HP
-- Player Fatigue: ${playerCharacter.fatigue}/${playerCharacter.maxFatigue}
-- Player Skills: ${Object.entries(playerCharacter.skills || {}).map(([skill, level]) => `${skill} ${level}`).join(', ')}
-- Player Inventory: ${playerCharacter.inventory.map(i => i.name).slice(0, 10).join(', ')}${playerCharacter.inventory.length > 10 ? '...' : ''}`;
+PLAYER PHYSICAL STATE:
+- Health: ${playerCharacter.health}/${playerCharacter.maxHealth} HP
+- Fatigue: ${playerCharacter.fatigue}/${playerCharacter.maxFatigue}
+- Skills: ${Object.entries(playerCharacter.skills || {}).map(([skill, level]) => `${skill} ${level}`).join(', ')}
+- Inventory: ${playerCharacter.inventory.map(i => i.name).slice(0, 10).join(', ')}${playerCharacter.inventory.length > 10 ? '...' : ''}`;
 
-    // Build contract tasks context (Phase 2.1)
-    const contractContext = farmState.residencyStatus?.currentContract
+    // Build work contract/deal context
+    const workContractContext = farmState.residencyStatus?.currentContract
         ? `
-ASSIGNED TASKS FOR TODAY:
-${farmState.residencyStatus.currentContract.tasksToday?.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n') || 'None'}
+WORK ARRANGEMENT (THE DEAL BETWEEN PLAYER AND FARMER):
+- Contract Type: ${farmState.residencyStatus.currentContract.type} (daily/weekly/seasonal)
+- Days Remaining: ${farmState.residencyStatus.currentContract.daysRemaining}
+- Payment: ${farmState.residencyStatus.currentContract.payment.coins ? `${farmState.residencyStatus.currentContract.payment.coins} coins` : 'no coins'}${farmState.residencyStatus.currentContract.payment.lodging ? ' + lodging' : ''}
+- Required Tasks: ${farmState.residencyStatus.currentContract.requiredTasks?.join(', ') || 'None specified'}
+- Today's Assigned Tasks: ${farmState.residencyStatus.currentContract.tasksToday?.map((t: string, i: number) => `${i + 1}. ${t}`).join(', ') || 'Not yet assigned'}
 
-The farmer expects you to complete these tasks. Mention them naturally if the player seems lost or asks what to do.
-` : '';
+IMPORTANT: ${farmState.family.headOfHousehold} (the farmer) made this work deal with ${playerCharacter.name} (the player). The player is a hired hand, not family. Mention tasks naturally if player seems lost.
+`
+        : `
+NO WORK CONTRACT YET:
+- The player (${playerCharacter.name}) has not yet made a work arrangement with ${farmState.family.headOfHousehold} (the farmer)
+- Player status: ${farmState.residencyStatus?.playerStatus || 'visitor'} - just arrived or visiting
+- If player tries to work without permission, ${farmState.family.headOfHousehold} may confront them about it
+- Player should negotiate with the farmer before doing farm work
+`;
 
     // Generate affordances (what player CAN do)
     const affordances: string[] = [];
+
+    // Observation affordances (always available)
+    affordances.push("Look around", "Observe the farm", "Check who's here", `Find ${farmState.family.headOfHousehold}`, "Examine the farmhouse");
 
     // Field work affordances
     if (farmState.fields.some((f: any) => f.crop !== 'none')) {
@@ -3322,6 +3359,60 @@ The farmer expects you to complete these tasks. Mention them naturally if the pl
     const toolHintsList = toolHints.length > 0
         ? `\nTOOL REQUIREMENTS:\n${toolHints.map(h => `- ${h}`).join('\n')}`
         : '';
+
+    // Build available tools context (CRITICAL - tell LLM what tools player has)
+    const availableToolsContext = `
+PLAYER'S AVAILABLE TOOLS (YOU MUST KNOW THESE):
+- Hoe: Ready (for planting, weeding, soil preparation)
+- Water bucket: Ready (for watering crops, carrying water)
+- Scythe: Ready (for harvesting grain crops, cutting grass)
+
+IMPORTANT: The player HAS these tools. They can use them without needing to acquire them first.
+When player says "plant crops" or "use the hoe", they HAVE the hoe available.
+When player says "water the field" or "use the bucket", they HAVE the bucket available.
+When player says "harvest wheat" or "use the scythe", they HAVE the scythe available.
+`;
+
+    // Build NPC location/activity hints (Phase 4: Proactive context)
+    const npcLocationHints = `
+PEOPLE AT THE FARM (visible to player - describe when relevant):
+${farmState.family.members.map((m: any) => {
+        const task = m.currentTask || 'resting';
+        let location = 'at the farmhouse';
+        let activity = 'resting inside';
+
+        // Determine location based on current task
+        if (task === 'planting' || task === 'watering' || task === 'harvesting') {
+            location = 'working in the fields';
+            activity = task;
+            if (m.assignedField !== undefined && m.assignedField >= 0) {
+                location = `working in field ${m.assignedField + 1}`;
+            }
+        } else if (task === 'feeding') {
+            location = 'near the livestock pen';
+            activity = 'feeding the animals';
+        } else if (task === 'repairs') {
+            location = 'near the barn';
+            activity = 'making repairs';
+        } else if (task === 'ill') {
+            location = 'inside the farmhouse';
+            activity = 'resting (unwell)';
+        }
+
+        const relationship = m.name === farmState.family.headOfHousehold
+            ? 'The Farmer (farm owner)'
+            : m.relationshipToHead || m.role;
+
+        return `- ${m.name} (${m.age}, ${relationship}) - ${location}, ${activity}`;
+    }).join('\n')}
+
+WHEN TO MENTION NPCs:
+- When player says "look around", "who is here", "check who's here" → Describe all visible NPCs and their activities
+- When player says "find ${farmState.family.headOfHousehold}" or "find the farmer" → Describe where ${farmState.family.headOfHousehold} is and what they're doing
+- When player works near an NPC's location → Mention them briefly in passing ("You notice ${farmState.family.members[0]?.name || 'someone'} working nearby")
+- When player asks about a specific person → Provide their current location and activity
+- Keep NPC mentions organic and brief unless directly asked
+`;
 
     // Phase 4.1: Build crop rotation & soil fertility context
     const soilContext = `
@@ -3404,7 +3495,7 @@ ${farmState.activeWeather.event === 'drought' ? `
 - Immediate harvest needed or crops ruined entirely
 - Mention devastating ice, farmer's shock, ruined fields
 ` : ''}
-` : `WEATHER: Normal ${season.toLowerCase()} conditions (no active events)`;
+` : `WEATHER: Normal ${season.toLowerCase()} conditions (no active events). Remember: It is ${season.toUpperCase()} season!`;
 
     // Phase 4.3: Labor time requirements
     const laborContext = `
@@ -3454,31 +3545,50 @@ TREATMENTS:
 - Historical treatments: Wood ash, herbal sprays, companion planting
 `;
 
-    // Build family member context for narration (Phase 2.3)
-    const familyNarration = `
-FARM FAMILY (mention organically when relevant):
-${farmState.family.members.map((m: any) =>
-        `- ${m.name} (${m.age}yo ${m.gender}, ${m.role}${m.currentTask ? `, currently ${m.currentTask}` : ''})`
-    ).join('\n')}
+    // Build relationship clarification (CRITICAL)
+    const relationshipClarification = `
+CHARACTER RELATIONSHIPS (CRITICAL - READ THIS CAREFULLY):
+- ${farmState.family.headOfHousehold} is THE FARMER who owns this land. NOT the player. NOT related to the player.
+- The farm family members listed below are ${farmState.family.headOfHousehold}'s family, NOT the player's family.
+- NEVER say "your wife", "your children", "your farm" when referring to the farmer's family or farm.
+- ALWAYS say "the farmer's wife", "${farmState.family.headOfHousehold}'s children", "the farm".
+- The player (${playerCharacter.name}) is an OUTSIDER - a ${farmState.residencyStatus?.playerStatus || 'visitor'} working here temporarily.
+- When player asks about "${farmState.family.headOfHousehold}" or "the farmer", they mean the farm owner.
 
-NARRATIVE GUIDELINES:
+FARM FAMILY MEMBERS (these are ${farmState.family.headOfHousehold}'s family, NOT the player's):
+${farmState.family.members.map((m: any) => {
+        const relationship = m.name === farmState.family.headOfHousehold
+            ? 'The Farmer (farm owner)'
+            : m.relationshipToHead || m.role;
+        return `- ${m.name} (${m.age}yo ${m.gender}, ${relationship}${m.currentTask ? `, currently ${m.currentTask}` : ''})`;
+    }).join('\n')}
+
+NARRATIVE GUIDELINES FOR FAMILY MENTIONS:
+- Mention family members organically when they're nearby or relevant to the action
 - If player floods rice paddies, mention children playing in water (if children present)
-- If elder present (60+), they might offer advice when player makes mistakes or see weather coming
-- If multiple workers, show them working in background
-- Family can help with labor if asked (affects time required)
-- Keep family mentions brief (1 sentence max) but immersive
-- Don't force family mentions if they don't fit naturally
+- If elder present (60+), they might offer advice when player makes mistakes
+- Family members are working the farm in the background - describe them briefly when appropriate
+- Keep family mentions brief (1 sentence) but immersive
+- ALWAYS refer to them as "the farmer's [relation]" or by name, NEVER "your [relation]"
 `;
 
     const prompt = `You are a FARM WORK SIMULATOR. You simulate farm activities realistically, determine consequences, and report results in engaging second-person present tense narrative.
 
 YOU ARE NOT A CHARACTER. You are the game master/simulator that describes what happens when the player takes actions.
 
+${playerIdentityContext}
+${workContractContext}
+${relationshipClarification}
+
 CONTEXT:
-- Time of Day: ${timeOfDay}, Season: ${season}
+- Time of Day: ${timeOfDay}, Season: ${season} (CRITICAL: It is ${season.toUpperCase()}, not any other season! Month 3-5=Spring, 6-8=Summer, 9-11=Autumn, 12-2=Winter)
 - Farm Time: ${currentFarmTime}h (game hours since farm creation)
 - Fields: ${fieldInfo}${livestockContext}
-${playerStateContext}${contractContext}${affordanceList}${toolHintsList}
+${playerStateContext}${affordanceList}${toolHintsList}
+
+${availableToolsContext}
+
+${npcLocationHints}
 
 ${weatherContext}
 
@@ -3486,7 +3596,15 @@ ${soilContext}
 ${cropRules}
 ${laborContext}
 ${pestDiseaseContext}
-${familyNarration}
+
+${conversationHistory && conversationHistory.length > 0 ? `
+RECENT CONVERSATION (for context continuity - remember what happened earlier):
+${conversationHistory.slice(-10).map((entry, idx) =>
+    `${idx + 1}. ${entry.type === 'player' ? `Player (${playerCharacter.name})` : 'Narrator'}: ${entry.text}`
+).join('\n')}
+
+IMPORTANT: Use this conversation history to maintain continuity. If the player mentioned something earlier (like asking about the farmer, or feeding animals), acknowledge it. Don't repeat yourself - if you already described something, refer back to it briefly.
+` : ''}
 
 PLAYER COMMAND: "${command}"
 
@@ -3519,6 +3637,11 @@ OUTPUT FORMAT (JSON):
 Return a JSON object with:
 {
   "narrative": "Second-person present tense description of what happens (2-4 sentences)",
+  "workQuality": {
+    "score": 75,  // 0-100 based on how well the task was performed
+    "category": "good",  // "poor" (0-40), "adequate" (41-60), "good" (61-80), "excellent" (81-95), "masterful" (96-100)
+    "feedback": "Seeds evenly spaced"  // Short phrase explaining quality (e.g., "Some seeds wasted", "Perfect technique", "Rushed job")
+  },
   "stateChanges": {
     "fields": {
       "0": { "health": 85, "moisture": "moist" }  // ARRAY INDEX! Field 1 = "0", Field 2 = "1", etc. Only include fields that changed
@@ -3544,6 +3667,16 @@ Return a JSON object with:
     }
   }
 }
+
+WORK QUALITY SCORING GUIDELINES:
+- Consider player's description detail: "plant wheat carefully" = higher score than "plant wheat"
+- Technical correctness: Proper technique/tools = higher score
+- Efficiency: Wasted time/materials = lower score
+- Poor (0-40): Mistakes, damage, inefficiency
+- Adequate (41-60): Gets job done but rough/wasteful
+- Good (61-80): Solid work, minor room for improvement
+- Excellent (81-95): Professional quality, efficient
+- Masterful (96-100): Perfect execution, expert technique
 
 IMPORTANT: Only include state changes that actually happened. If nothing changed in a category, omit that category entirely. Make consequences realistic and proportional to the action.`;
 
@@ -3592,6 +3725,148 @@ IMPORTANT: Only include state changes that actually happened. If nothing changed
  * Translate foreign words to English using Gemini Flash Lite
  * Used for dialect continuum tooltip translations
  */
+/**
+ * Suggests a real historical primary source for a given historical setting
+ * using Gemini 2.5 Flash with Google Search grounding
+ */
+export async function suggestHistoricalPrimarySource(
+    year: number,
+    location: string,
+    culturalZone: string
+): Promise<{
+    description: string;
+    excerpt: string;
+    wikipediaLink: string;
+    scholarSearchTerms: string;
+    error?: string;
+}> {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        console.warn('No Gemini API key found, cannot suggest primary source');
+        return {
+            description: '',
+            excerpt: '',
+            wikipediaLink: '',
+            scholarSearchTerms: '',
+            error: 'API key not configured'
+        };
+    }
+
+    try {
+        const genAI = new GoogleGenAI({ apiKey });
+
+        const eraDescription = year < -3000 ? 'prehistoric' :
+                              year < 500 ? 'ancient' :
+                              year < 1500 ? 'medieval' :
+                              year < 1800 ? 'early modern' :
+                              year < 1900 ? 'industrial' : 'modern';
+
+        const prompt = `You are a historical research assistant with access to Google Search. Search for and identify ONE real, verifiable WRITTEN primary source from ${Math.abs(year)} ${year < 0 ? 'BCE' : 'CE'} ${location} (${culturalZone} cultural zone).
+
+CRITICAL: You MUST use Google Search to find REAL sources. Do NOT make up sources from your training data.
+
+SEARCH FOR (in priority order):
+1. Personal letters or diaries from travelers/residents (highest priority)
+2. Newspaper articles or journals from the region
+3. Government reports or official documents
+4. Travel accounts or memoirs published about the region
+5. ONLY if no written sources exist: archaeological findings (but describe, don't fake quotes)
+
+REQUIREMENTS:
+- Must be a REAL document that exists (verify with search results)
+- Must be from this specific time period and region
+- STRONGLY PREFER sources from 1800-1920 (public domain, readily available)
+- Must provide a real, quotable excerpt (verify excerpt exists in search results)
+
+RESPOND ONLY with valid JSON:
+{
+  "description": "Brief description of the document (2-3 lines)",
+  "excerpt": "Real verbatim quote from the source with attribution",
+  "wikipediaLink": "https://en.wikipedia.org/wiki/Article_Name",
+  "scholarSearchTerms": "specific search terms"
+}`;
+
+        // Use Gemini 2.0 Flash Experimental with Google Search grounding
+        const groundingTool = {
+            googleSearch: {},
+        };
+
+        const config = {
+            tools: [groundingTool],
+            temperature: 0.7,
+            maxOutputTokens: 600
+        };
+
+        const result = await genAI.models.generateContent({
+            model: "gemini-2.0-flash-exp", // More reliable grounding than 2.5-flash
+            contents: prompt,
+            config,
+        });
+
+        const responseText = result.text || '';
+
+        // Access grounding metadata for verification
+        const groundingMetadata = result.candidates?.[0]?.groundingMetadata;
+
+        if (groundingMetadata) {
+            console.log('✅ Grounding successful (Gemini 2.0 Flash Exp)');
+            console.log('🔍 Search queries used:', groundingMetadata.webSearchQueries);
+            console.log('📚 Sources found:', groundingMetadata.groundingChunks?.map(chunk => ({
+                url: chunk.web?.uri,
+                title: chunk.web?.title
+            })));
+        } else {
+            console.warn('⚠️ Grounding was attempted but no metadata returned');
+        }
+
+        if (!responseText) {
+            console.error('Empty response from LLM');
+            throw new Error('Empty response from LLM');
+        }
+
+        console.log('LLM Response:', responseText); // Debug log
+
+        // Parse JSON from response - handle markdown code blocks and trailing commas
+        let jsonStr = responseText.trim();
+
+        // Extract JSON from markdown code blocks
+        const fenceRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
+        const fenceMatch = jsonStr.match(fenceRegex);
+        if (fenceMatch && fenceMatch[1]) {
+            jsonStr = fenceMatch[1].trim();
+        }
+
+        // Extract JSON object (handles multi-line)
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            console.error('Could not find JSON in response:', responseText);
+            throw new Error('Invalid response format from LLM - no JSON found');
+        }
+
+        // Remove trailing commas before closing braces (common LLM error)
+        let cleanedJson = jsonMatch[0].replace(/,(\s*[}\]])/g, '$1');
+
+        const parsed = JSON.parse(cleanedJson);
+
+        return {
+            description: parsed.description || 'No description available',
+            excerpt: parsed.excerpt || 'No excerpt available',
+            wikipediaLink: parsed.wikipediaLink || '',
+            scholarSearchTerms: parsed.scholarSearchTerms || ''
+        };
+
+    } catch (error) {
+        console.error('Error suggesting primary source:', error);
+        return {
+            description: '',
+            excerpt: '',
+            wikipediaLink: '',
+            scholarSearchTerms: '',
+            error: error instanceof Error ? error.message : 'Unknown error occurred'
+        };
+    }
+}
+
 export async function translateForeignWords(
     words: string[],
     nativeLanguage: string,

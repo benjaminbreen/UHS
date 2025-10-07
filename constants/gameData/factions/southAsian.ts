@@ -470,6 +470,18 @@ export const SOUTH_ASIAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Chakravartin', 'Mahadipada', 'Camunayaka', 'Adhikari']
+                },
+                mapAreaOverrides: {
+                    "Maldives": {
+                        dominantPower: 'Maldive Sultanate',
+                        dominantPowerDescription: 'After converting from Buddhism to Islam in the 12th century, the Maldives develops as an independent Islamic sultanate controlling vital Indian Ocean trade routes.',
+                        allegianceGroups: [
+                            { name: 'Maldivian Sultan', type: 'primary', description: 'Islamic monarchy ruling from Malé.' },
+                            { name: 'Arab Traders', type: 'trade_company', description: 'Muslim merchants connecting East and West.' },
+                            { name: 'Local Atolls', type: 'secondary', description: 'Semi-autonomous island communities.' },
+                            { name: 'Buddhist Remnants', type: 'secondary', description: 'Traces of pre-Islamic culture and monuments.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
@@ -491,6 +503,18 @@ export const SOUTH_ASIAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['King of Kandy', 'Adigar', 'Disava', 'Dutch Governor']
+                },
+                mapAreaOverrides: {
+                    "Maldives": {
+                        dominantPower: 'Maldive Sultanate',
+                        dominantPowerDescription: 'The Maldives maintains its independence as an Islamic sultanate while facing increasing Portuguese and Dutch pressure, eventually accepting protection from the Dutch and later the British.',
+                        allegianceGroups: [
+                            { name: 'Maldivian Sultan', type: 'primary', description: 'Independent Islamic monarchy facing European encroachment.' },
+                            { name: 'Portuguese Traders', type: 'secondary', description: 'Portuguese attempts at control (briefly occupied in 1558).' },
+                            { name: 'Dutch East India Company', type: 'secondary', description: 'VOC seeking trade monopoly.' },
+                            { name: 'Local Atolls', type: 'secondary', description: 'Island communities with traditional governance.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
@@ -733,6 +757,18 @@ export const SOUTH_ASIAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Raja', 'Sultan', 'Bendahara', 'Syahbandar']
+                },
+                mapAreaOverrides: {
+                    "Bali": {
+                        dominantPower: 'Hindu Balinese Kingdoms',
+                        dominantPowerDescription: 'As Islam spreads through Java, Bali remains the last major Hindu stronghold in the archipelago, preserving Javanese Hindu-Buddhist court culture after Majapahit\'s fall.',
+                        allegianceGroups: [
+                            { name: 'Balinese Rajas', type: 'primary', description: 'Hindu kingdoms preserving Majapahit traditions.' },
+                            { name: 'Brahmin Priests', type: 'religious', description: 'Hindu religious authorities and advisors.' },
+                            { name: 'Javanese Refugees', type: 'secondary', description: 'Hindu nobles and artists fleeing Islamic Java.' },
+                            { name: 'Islamic Traders', type: 'trade_company', description: 'Muslim merchants from Java and Sumatra.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
@@ -754,6 +790,18 @@ export const SOUTH_ASIAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Sultan', 'Dutch Governor', 'Bendahara', 'Company Director']
+                },
+                mapAreaOverrides: {
+                    "Bali": {
+                        dominantPower: 'Hindu Balinese Kingdoms',
+                        dominantPowerDescription: 'Bali maintains its Hindu identity and political independence longer than neighboring islands, with rival kingdoms resisting Dutch encroachment through complex diplomacy and warfare.',
+                        allegianceGroups: [
+                            { name: 'Balinese Rajas', type: 'primary', description: 'Competing Hindu kingdoms (Klungkung, Buleleng, Karangasem, etc.).' },
+                            { name: 'Brahmin Caste', type: 'religious', description: 'Hindu priests maintaining ritual authority.' },
+                            { name: 'Dutch East India Company', type: 'secondary', description: 'VOC gradually expanding influence through trade and conquest.' },
+                            { name: 'Sasak Rebels', type: 'rebel', description: 'Muslim population of Lombok under Balinese rule.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {

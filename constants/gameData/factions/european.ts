@@ -2635,6 +2635,27 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Venetian Ports', type: 'trade_company', description: 'Venice holds key coastal fortresses like Modon and Coron.' },
                             { name: 'Ottoman Raiders', type: 'rebel', description: 'Turkish forces raiding deeper into the peninsula.' }
                         ]
+                    },
+                    "Sicily": {
+                        dominantPower: 'Kingdom of Sicily (Norman)',
+                        dominantPowerDescription: 'Under Norman rule, Sicily becomes a brilliant multicultural kingdom blending Greek, Arab, and Latin traditions, with Roger II creating one of the most sophisticated courts in Europe.',
+                        allegianceGroups: [
+                            { name: 'Norman Kingdom', type: 'primary', description: 'Viking-descended rulers creating a unique Mediterranean kingdom.' },
+                            { name: 'Greek Population', type: 'secondary', description: 'Greek-speaking communities, especially in the east.' },
+                            { name: 'Arab-Sicilian Muslims', type: 'secondary', description: 'Muslim population with advanced science and arts.' },
+                            { name: 'Latin Church', type: 'religious', description: 'Catholic hierarchy coexisting with Greek Orthodox and Muslim communities.' }
+                        ]
+                    },
+                    "Cyprus": {
+                        dominantPower: 'Kingdom of Cyprus (Lusignan)',
+                        dominantPowerDescription: 'The Lusignan dynasty, French crusader kings, rules Cyprus as the last significant crusader state after the fall of Acre, combining Western feudalism with Greek and Oriental traditions.',
+                        allegianceGroups: [
+                            { name: 'Lusignan Dynasty', type: 'primary', description: 'French Catholic kings ruling from Nicosia and Famagusta.' },
+                            { name: 'Knights Templar / Hospitaller', type: 'mercenary', description: 'Military orders with strong presence on the island.' },
+                            { name: 'Greek Orthodox Population', type: 'secondary', description: 'The majority, governed by Catholic overlords.' },
+                            { name: 'Venetian Merchants', type: 'trade_company', description: 'Italian traders with major commercial interests.' },
+                            { name: 'Mamluk Sultanate', type: 'rebel', description: 'Egyptian power raiding and demanding tribute.' }
+                        ]
                     }
                 }
             },
@@ -2671,6 +2692,26 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Ottoman Sipahis', type: 'primary', description: 'The Turkish feudal cavalry class.' },
                             { name: 'Greek Peasantry', type: 'secondary', description: 'The Christian population working the land.' },
                             { name: 'Monasteries of Meteora', type: 'religious', description: 'Orthodox monasteries perched on rock pillars, preserving faith and learning.' }
+                        ]
+                    },
+                    "Sicily": {
+                        dominantPower: 'Spanish Viceroyalty',
+                        dominantPowerDescription: 'After the Norman-Hohenstaufen golden age, Sicily falls under Spanish rule as a viceroyalty, combining Spanish administration with local Sicilian aristocracy and a mixed Greek-Arab-Norman cultural heritage.',
+                        allegianceGroups: [
+                            { name: 'Spanish Viceroy', type: 'primary', description: 'Spanish Habsburg administration governing from Palermo.' },
+                            { name: 'Sicilian Nobility', type: 'secondary', description: 'Local barons and landowners, often of Norman descent.' },
+                            { name: 'Sicilian Commons', type: 'secondary', description: 'Greek, Arab, and Italian-speaking population.' },
+                            { name: 'Barbary Pirates', type: 'rebel', description: 'North African corsairs raiding coastal towns.' }
+                        ]
+                    },
+                    "Cyprus": {
+                        dominantPower: 'Republic of Venice',
+                        dominantPowerDescription: 'Cyprus is Venice\'s easternmost major possession, a crucial staging point for trade with the Levant, but increasingly threatened by Ottoman expansion.',
+                        allegianceGroups: [
+                            { name: 'Venetian Colonial Government', type: 'primary', description: 'Venetian administrators and military garrison.' },
+                            { name: 'Greek Orthodox Population', type: 'secondary', description: 'The majority of the island, under Venetian and Lusignan rule.' },
+                            { name: 'Ottoman Empire', type: 'secondary', description: 'The growing threat from the east (will conquer in 1571).' },
+                            { name: 'Cypriot Nobility', type: 'secondary', description: 'Remnants of the Lusignan dynasty and Greek landowners.' }
                         ]
                     }
                 }

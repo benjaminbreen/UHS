@@ -404,7 +404,7 @@ const FurnitureElement: React.FC<{
             {type === 'rug' && (
                 <g>
                     {culturalVariant === 'mena' ? (
-                        // Persian-style rug
+                        // Persian-style rug with geometric patterns
                         <>
                             <ellipse cx="0" cy="0" rx="20" ry="16" fill="#8B0000" stroke="#DAA520" strokeWidth="2"/>
                             <ellipse cx="0" cy="0" rx="16" ry="12" fill="#DC143C"/>
@@ -412,14 +412,40 @@ const FurnitureElement: React.FC<{
                             <path d="M4,-6 L8,-10 L4,-2 L0,-6 Z" fill="#32CD32" opacity="0.8"/>
                             <path d="M-8,2 L-4,6 L0,2 L-4,-2 Z" fill="#FFD700" opacity="0.8"/>
                             <path d="M4,2 L8,6 L4,-2 L0,2 Z" fill="#FF6347" opacity="0.8"/>
+                            <circle cx="0" cy="0" r="3" fill="none" stroke="#FFD700" strokeWidth="0.8"/>
+                        </>
+                    ) : culturalVariant === 'east_asian' ? (
+                        // East Asian rug with dragon/cloud motifs
+                        <>
+                            <rect x="-20" y="-16" width="40" height="32" fill="#8B0000" stroke="#DAA520" strokeWidth="2" rx="2"/>
+                            <rect x="-16" y="-12" width="32" height="24" fill="#DC143C"/>
+                            {/* Dragon/cloud pattern */}
+                            <circle cx="-6" cy="-4" r="3" fill="#FFD700" opacity="0.7"/>
+                            <circle cx="6" cy="-4" r="3" fill="#FFD700" opacity="0.7"/>
+                            <circle cx="0" cy="4" r="4" fill="#FFD700" opacity="0.8"/>
+                            <path d="M-8,0 Q-4,-4 0,0 T8,0" stroke="#DAA520" strokeWidth="1.5" fill="none"/>
+                            <path d="M-10,-8 L10,-8" stroke="#FFD700" strokeWidth="0.8"/>
+                            <path d="M-10,8 L10,8" stroke="#FFD700" strokeWidth="0.8"/>
+                        </>
+                    ) : culturalVariant === 'african' ? (
+                        // African rug with geometric tribal patterns
+                        <>
+                            <rect x="-20" y="-16" width="40" height="32" fill="#8B4513" stroke="#000000" strokeWidth="2"/>
+                            <rect x="-16" y="-12" width="32" height="24" fill="#D2691E"/>
+                            {/* Tribal geometric patterns */}
+                            <path d="M-12,-8 L-8,-4 L-12,0 L-8,4 L-12,8" stroke="#000000" strokeWidth="1.5" fill="none"/>
+                            <path d="M12,-8 L8,-4 L12,0 L8,4 L12,8" stroke="#000000" strokeWidth="1.5" fill="none"/>
+                            <circle cx="0" cy="0" r="4" fill="none" stroke="#000000" strokeWidth="1.5"/>
+                            <path d="M-6,-6 L-2,-2 M6,-6 L2,-2 M-6,6 L-2,2 M6,6 L2,2" stroke="#FFD700" strokeWidth="1"/>
                         </>
                     ) : (
-                        // European rug (default)
+                        // European rug (default) with heraldic cross
                         <>
                             <ellipse cx="0" cy="0" rx="20" ry="16" fill="#8B0000" stroke="#DAA520" strokeWidth="2"/>
                             <ellipse cx="0" cy="0" rx="16" ry="12" fill="#DC143C"/>
-                            <path d="M-12,0 L12,0 M0,-8 L0,8" stroke="#DAA520" strokeWidth="1"/>
+                            <path d="M-12,0 L12,0 M0,-8 L0,8" stroke="#DAA520" strokeWidth="1.5"/>
                             <circle cx="0" cy="0" r="4" fill="none" stroke="#DAA520" strokeWidth="1"/>
+                            <circle cx="0" cy="0" r="7" fill="none" stroke="#DAA520" strokeWidth="0.8"/>
                         </>
                     )}
                 </g>
@@ -573,8 +599,22 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
         const viewBoxWidth = (layout.totalBounds.width * TILE_SIZE / scale) + (padding * 2);
         const viewBoxHeight = (layout.totalBounds.height * TILE_SIZE / scale) + (padding * 2);
 
+        // Calculate center point for vignette (center of viewBox, accounting for negative offset)
+        const centerX = viewBoxWidth / 2 + viewBoxX;
+        const centerY = viewBoxHeight / 2 + viewBoxY;
+
+        // Radius should cover entire viewport with smooth falloff
+        const vignetteRadius = Math.max(viewBoxWidth, viewBoxHeight) * 0.8;
+
         return {
             viewBox: `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`,
+            viewBoxX,
+            viewBoxY,
+            viewBoxWidth,
+            viewBoxHeight,
+            centerX,
+            centerY,
+            vignetteRadius,
             spaces: layout.spaces,
             lighting: layout.spaces.flatMap(space => space.lightingSources),
             furniture: layout.spaces.flatMap(space => space.furniture)
@@ -587,7 +627,7 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
             preserveAspectRatio="xMidYMid meet"
             className="w-full h-full"
             style={{
-                background: `radial-gradient(ellipse at center, ${layout.ambientLighting.color} 0%, rgba(0,0,0,0.8) 100%)`,
+                background: `radial-gradient(ellipse 120% 100% at 50% 45%, ${layout.ambientLighting.color} 0%, rgba(0,0,0,0.9) 100%)`,
                 maxHeight: '100%',
                 maxWidth: '100%'
             }}
@@ -597,13 +637,19 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
                     <g key={`pattern-${key}`}>{pattern}</g>
                 ))}
                 
-                {/* Vignette effect */}
-                <radialGradient id="vignette">
+                {/* Vignette effect - centered on viewBox with smooth falloff */}
+                <radialGradient id="vignette" cx={renderData.centerX} cy={renderData.centerY} r={renderData.vignetteRadius} gradientUnits="userSpaceOnUse">
                     <stop offset="0%" stopColor="rgba(0,0,0,0)" />
-                    <stop offset="70%" stopColor="rgba(0,0,0,0)" />
-                    <stop offset="100%" stopColor="rgba(0,0,0,0.6)" />
+                    <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+                    <stop offset="100%" stopColor="rgba(0,0,0,0.7)" />
                 </radialGradient>
-                
+
+                {/* Floor depth shading - subtle top-to-bottom gradient */}
+                <linearGradient id="floorShading" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(0,0,0,0.3)" />
+                    <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+                </linearGradient>
+
                 {/* Shadow filter */}
                 <filter id="dropShadow">
                     <feDropShadow dx="2" dy="3" stdDeviation="2" floodColor="rgba(0,0,0,0.5)"/>
@@ -623,7 +669,18 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
                         stroke="rgba(0,0,0,0.2)"
                         strokeWidth={0.5}
                     />
-                    
+
+                    {/* Subtle floor depth gradient */}
+                    <rect
+                        x={space.bounds.x * TILE_SIZE * scale}
+                        y={space.bounds.y * TILE_SIZE * scale}
+                        width={space.bounds.width * TILE_SIZE * scale}
+                        height={space.bounds.height * TILE_SIZE * scale}
+                        fill="url(#floorShading)"
+                        opacity="0.15"
+                        pointerEvents="none"
+                    />
+
                     {/* 3D Walls */}
                     <IsometricWall
                         x={space.bounds.x * TILE_SIZE * scale}
@@ -646,6 +703,7 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
                         rotation={furniture.rotation}
                         scale={furniture.scale}
                         renderScale={scale}
+                        culturalVariant={furniture.culturalVariant || 'default'}
                     />
                 ))}
             </g>
@@ -706,10 +764,12 @@ const BeautifulInteriorRenderer: React.FC<BeautifulInteriorRendererProps> = ({
                 );
             })}
             
-            {/* Vignette overlay */}
+            {/* Vignette overlay - covers entire viewBox */}
             <rect
-                width="100%"
-                height="100%"
+                x={renderData.viewBoxX}
+                y={renderData.viewBoxY}
+                width={renderData.viewBoxWidth}
+                height={renderData.viewBoxHeight}
                 fill="url(#vignette)"
                 pointerEvents="none"
             />

@@ -125,6 +125,8 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Athens Basin": { name: "Athens Basin", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Peloponnesian Hills": { name: "Peloponnesian Hills", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.PENINSULA },
             "Crete": { name: "Crete", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ISLAND },
+            "Sicily": { name: "Sicily", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ISLAND, economicActivityLevel: 3, isVolcanic: true },
+            "Cyprus": { name: "Cyprus", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ISLAND, economicActivityLevel: 3 },
             "Delos Archipelago": { name: "Delos Archipelago", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ISLAND },
             "Mount Olympus": { name: "Mount Olympus", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Thessalian Plain": { name: "Thessalian Plain", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ALL_LAND, hasLakes: false }
@@ -261,6 +263,9 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "The Caribbean": {
             "Greater Antilles": { name: "Greater Antilles", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
+            "Cuba": { name: "Cuba", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND, economicActivityLevel: 4 },
+            "Hispaniola": { name: "Hispaniola", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND, economicActivityLevel: 3 },
+            "Jamaica": { name: "Jamaica", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND, economicActivityLevel: 3 },
             "Lesser Antilles": { name: "Lesser Antilles", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
              "Gulf of Mexico": { name: "Gulf of Mexico", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.OPEN_OCEAN },
             "Caribbean Sea": { name: "Caribbean Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
@@ -585,7 +590,8 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Anuradhapura Basin": { name: "Anuradhapura Basin", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Kandy Plateau": { name: "Kandy Plateau", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Galle Coast": { name: "Galle Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY },
-            "Trincomalee Harbor": { name: "Trincomalee Harbor", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY }
+            "Trincomalee Harbor": { name: "Trincomalee Harbor", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY },
+            "Maldives": { name: "Maldives", climate: ClimateType.TROPICAL, archetype: MapArchetype.ATOLL, economicActivityLevel: 2 }
         },
         "Mainland Southeast Asia": {
             "Irrawaddy Valley": { name: "Irrawaddy Valley", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
@@ -609,6 +615,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "West Java Coast": { name: "West Java Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY, economicActivityLevel: 4 },
             "Central Java": { name: "Central Java", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false, isVolcanic: true },
             "East Java Coast": { name: "East Java Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY, economicActivityLevel: 4 },
+            "Bali": { name: "Bali", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND, economicActivityLevel: 2 },
             "Sunda Strait": { name: "Sunda Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
             "Borneo": { name: "Borneo", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
             "Makassar Strait": { name: "Makassar Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },

@@ -14,6 +14,7 @@ import { useFarmLLM } from '../../hooks/useFarmLLM';
 import { useFarmCombat } from '../../hooks/useFarmCombat';
 import { gameSounds } from '../../services/gameSoundsService';
 import { generateFarmName } from '../../constants/gameData/farmNaming';
+import { acceptWorkContract } from '../../services/farmService';
 import FarmBanner from '../FarmBanner';
 import NPCToast from '../NPCToast';
 
@@ -60,6 +61,8 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
+  const [pendingWorkInit, setPendingWorkInit] = useState<string | null>(null);
+  const [toastDismissed, setToastDismissed] = useState(false);
 
   // Handle character click from FarmBanner
   const handleCharacterClick = (memberId: string) => {
@@ -99,6 +102,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
     validCrops: farmFieldsHook.validCrops,
     useLlm: props.useLlm || false,
     onPlayerStateChange: props.onPlayerStateChange,
+    onTimeAdvance: props.onTimeAdvance,
   });
 
   const farmCombatHook = useFarmCombat({
@@ -147,18 +151,50 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   const handleAcceptWork = React.useCallback((tasks: string[], payment: { meals?: boolean; lodging?: boolean; coins?: number }) => {
     // Store the work contract (as per plan 1.2)
     const farmKey = farmStateHook.farmState?.tileKey;
-    if (farmKey) {
-      const { acceptWorkContract } = require('../services/farmService');
+    if (farmKey && farmStateHook.farmState) {
+      // ✅ Use imported function instead of require()
       acceptWorkContract(farmKey, tasks, payment);
+
+      // Update local farmState to reflect the new contract
+      const updatedFarmState = {
+        ...farmStateHook.farmState,
+        residencyStatus: {
+          ...(farmStateHook.farmState.residencyStatus || {
+            playerStatus: 'visitor',
+            daysWorked: 0,
+            tasksCompleted: 0,
+            trustLevel: 50
+          }),
+          playerStatus: 'worker' as const,
+          currentContract: {
+            type: 'daily' as const,
+            daysRemaining: 1,
+            payment,
+            requiredTasks: tasks,
+            tasksToday: tasks
+          },
+          negotiationRounds: 0
+        }
+      };
+      farmStateHook.setFarmState(updatedFarmState);
+
+      // Switch to work tab
+      setActiveTab('work');
+
+      // Store the first task to initialize work session after state update
+      const firstTask = tasks[0] || 'Help around the farm';
+      setPendingWorkInit(firstTask);
     }
+  }, [farmStateHook, setActiveTab]);
 
-    // Initialize work session with first task
-    const firstTask = tasks[0] || 'Help around the farm';
-    farmLLMHook.initializeWorkSession(firstTask);
-
-    // Switch to work tab
-    setActiveTab('work');
-  }, [farmLLMHook, farmStateHook.farmState]);
+  // Initialize work session when contract is set and we're on work tab
+  useEffect(() => {
+    if (pendingWorkInit && activeTab === 'work' && farmStateHook.farmState?.residencyStatus?.currentContract) {
+      // Contract is now in place, safe to initialize
+      farmLLMHook.initializeWorkSession(pendingWorkInit);
+      setPendingWorkInit(null);
+    }
+  }, [pendingWorkInit, activeTab, farmStateHook.farmState?.residencyStatus?.currentContract, farmLLMHook]);
 
   // Loading state
   if (farmStateHook.isLoading || !farmStateHook.farmState) {
@@ -197,11 +233,11 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+      <div className="flex-1 flex bg-gradient-to-b from-slate-900 via-slate-950 to-slate-800">
         {/* Center panel */}
         <div ref={farmStateHook.centerRef} className="flex-1 flex flex-col">
           {/* Banner */}
-          <div className="h-48 relative overflow-hidden">
+          <div className="h-58 relative overflow-hidden">
             <FarmBanner
               era={farmStateHook.era}
               culturalZone={farmStateHook.culturalZone}
@@ -213,7 +249,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
               farmName={dynamicFarmName}
               farmerName={farmStateHook.headFarmer?.name || farmStateHook.farmState.family.headOfHousehold}
               width={farmStateHook.centerWidth}
-              height={192}
+              height={230}
               livestock={farmStateHook.farmState.livestock}
               householdMembers={farmStateHook.farmState.family.members.map(member => ({
                 id: member.id,
@@ -250,8 +286,8 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
           <div className="bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 border-b border-slate-800/60">
             <div className="flex items-center justify-between">
               {/* Location and time on left */}
-              <div className="px-4 py-3 min-w-[280px]">
-                <div className={`text-sm font-bold ${getCulturalZoneColor(farmStateHook.culturalZone)}`}>
+              <div className="px-4 py-1 min-w-[280px]">
+                <div className={`text-md font-bold ${getCulturalZoneColor(farmStateHook.culturalZone)}`}>
                   {props.mapData.localArea || farmStateHook.culturalZone}
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5">
@@ -373,6 +409,8 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
           feedLivestock={farmFieldsHook.feedLivestock}
           progressFieldTime={farmFieldsHook.progressFieldTime}
           onOpenCalendar={() => setShowCalendar(true)}
+          activeTab={activeTab}
+          validCrops={farmFieldsHook.validCrops}
         />
       </div>
 
@@ -387,8 +425,8 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
         />
       )}
 
-      {/* NPCToast for head farmer */}
-      {farmLLMHook.farmerToast && farmStateHook.headFarmer && activeTab === 'overview' && (
+      {/* NPCToast for head farmer - show on both overview and work tabs, but not if dismissed */}
+      {!toastDismissed && farmLLMHook.farmerToast && farmStateHook.headFarmer && (activeTab === 'overview' || activeTab === 'work') && (
         <NPCToast
           character={{ ...farmStateHook.headFarmer, culturalZone: farmStateHook.culturalZone }}
           message={farmLLMHook.farmerToast.message}
@@ -402,6 +440,8 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
           playerCharacter={props.playerCharacter}
           mapData={props.mapData}
           npcs={props.npcs}
+          farmState={farmStateHook.farmState}
+          validCrops={farmFieldsHook.validCrops}
           onInitiateEncounter={farmCombatHook.handleInitiateEncounter}
           onRequestWork={() => {
             console.log('[FarmPanel] Work requested - switching to work tab');
@@ -410,7 +450,11 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
             console.log('[FarmPanel] Rest requested for fee:', fee);
           }}
           onAcceptWork={handleAcceptWork}
-          onClose={() => farmLLMHook.setFarmerToast(null)}
+          onClose={() => {
+            farmLLMHook.setFarmerToast(null);
+            setToastDismissed(true);
+          }}
+          activeTab={activeTab}
         />
       )}
     </div>
