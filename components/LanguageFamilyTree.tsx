@@ -661,7 +661,7 @@ useEffect(() => {
                   const svg = d3.select(svgRef.current);
                   svg.transition().duration(500).call(zoomBehaviorRef.current.scaleBy, 1.25);
                 }}
-                className="bg-white/95 backdrop-blur border border-slate-200 shadow-lg rounded-xl p-2 hover:bg-slate-50 transition"
+                className="bg-white/95  border border-slate-200 shadow-lg rounded-xl p-2 hover:bg-slate-50 transition"
                 aria-label="Zoom in"
               >
                 <ZoomIn className="w-5 h-5 text-slate-700" />
@@ -672,7 +672,7 @@ useEffect(() => {
                   const svg = d3.select(svgRef.current);
                   svg.transition().duration(500).call(zoomBehaviorRef.current.scaleBy, 0.8);
                 }}
-                className="bg-white/95 backdrop-blur border border-slate-200 shadow-lg rounded-xl p-2 hover:bg-slate-50 transition"
+                className="bg-white/95 border border-slate-200 shadow-lg rounded-xl p-2 hover:bg-slate-50 transition"
                 aria-label="Zoom out"
               >
                 <ZoomOut className="w-5 h-5 text-slate-700" />
@@ -686,7 +686,7 @@ useEffect(() => {
                   const t = d3.zoomIdentity.translate(width * 0.2, height * 0.4).scale(0.9);
                   svg.transition().duration(500).call(zoomBehaviorRef.current.transform, t);
                 }}
-                className="bg-white/95 backdrop-blur border border-slate-200 shadow-lg rounded-xl p-2 hover:bg-slate-50 transition"
+                className="bg-white/95  border border-slate-200 shadow-lg rounded-xl p-2 hover:bg-slate-50 transition"
                 title="Reset zoom"
                 aria-label="Reset zoom"
               >
@@ -698,7 +698,7 @@ useEffect(() => {
             </div>
 
             {/* Legend */}
-            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur rounded-xl shadow-lg p-3 border border-slate-200 z-10 max-h-48 overflow-y-auto w-56">
+            <div className="absolute bottom-4 left-4 bg-white/95 rounded-xl shadow-lg p-3 border border-slate-200 z-10 max-h-48 overflow-y-auto w-56">
               <div className="text-xs font-semibold text-slate-800 mb-2 tracking-wide">Language Families</div>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(FAMILY_COLORS).slice(0, 10).map(([family, color]) => (
@@ -725,7 +725,7 @@ useEffect(() => {
             {/* Tooltip */}
             {tooltip && (
               <div
-                className="pointer-events-none fixed z-[10000] rounded-lg border border-slate-200 bg-white/95 backdrop-blur px-3 py-2 shadow-xl"
+                className="pointer-events-none fixed z-[10000] rounded-lg border border-slate-200 bg-white/95 px-3 py-2 shadow-xl"
                 style={{ left: tooltip.x, top: tooltip.y, maxWidth: 320 }}
                 dangerouslySetInnerHTML={{ __html: tooltip.html }}
               />

@@ -1,7 +1,7 @@
 /**
  * components/TileInfoModal.tsx - Modal to display detailed tile information.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { TileInfoModalProps, Tile, InteriorTile, AnyTile, TileQualities, AnyEntity, NpcEntity, AnimalEntity, VegetationEntity, BiomeType } from '../types';
 import { getPotentialWildlife, PotentialWildlife } from '../services/ecologyService';
 
@@ -15,16 +15,23 @@ const getQualityColor = (value: number, reverse: boolean = false): string => {
 
 const QualityBar: React.FC<{ value: number, reverse?: boolean }> = ({ value, reverse = false }) => {
   const percentage = Math.round(value * 100);
-  const colorClass = reverse 
+  const colorClass = reverse
     ? value >= 0.7 ? 'bg-red-500' : value >= 0.4 ? 'bg-yellow-500' : 'bg-green-500'
     : value >= 0.7 ? 'bg-green-500' : value >= 0.4 ? 'bg-yellow-500' : 'bg-red-500';
-  return <div className="w-full h-2 bg-gray-600/50 rounded-full overflow-hidden border border-gray-700"><div className={`h-full ${colorClass}`} style={{ width: `${percentage}%` }}/></div>;
+  return (
+    <div className="w-16 h-1.5 bg-slate-700/50 rounded-full overflow-hidden border border-slate-600/50 mx-auto">
+      <div
+        className={`h-full ${colorClass} transition-all duration-300 ease-out`}
+        style={{ width: `${percentage}%` }}
+      />
+    </div>
+  );
 };
 
 const SectionHeader: React.FC<{ icon: string; title: string }> = ({ icon, title }) => (
-    <h4 className="font-semibold text-blue-300 mb-2 border-b border-gray-700/50 pb-1 flex items-center gap-2">
-      <span className="text-base">{icon}</span>
-      <span>{title}</span>
+    <h4 className="font-medium text-slate-100 mb-2 flex items-center gap-2">
+      <span className="text-xl">{icon}</span>
+      <span className="text-base">{title}</span>
     </h4>
 );
 
@@ -32,30 +39,31 @@ const QualityDisplay = React.memo<{ qualities: TileQualities | undefined }>(({ q
   const qualityMetrics = useMemo(() => {
     if (!qualities) return [];
     return [
-      { label: '🔥 Flammability', value: qualities.flammability, reverse: true },
-      { label: '🌿 Biodiversity', value: qualities.biodiversity, reverse: false },
-      { label: '💚 Healthiness', value: qualities.healthiness, reverse: false },
-      { label: '✨ Sacrality', value: qualities.sacrality, reverse: false },
-      { label: '🛡️ Safety', value: qualities.safety, reverse: false }
+      { label: 'Flammability', icon: '🔥', value: qualities.flammability, reverse: true },
+      { label: 'Biodiversity', icon: '🌿', value: qualities.biodiversity, reverse: false },
+      { label: 'Healthiness', icon: '💚', value: qualities.healthiness, reverse: false },
+      { label: 'Sacrality', icon: '✨', value: qualities.sacrality, reverse: false },
+      { label: 'Safety', icon: '🛡️', value: qualities.safety, reverse: false }
     ];
   }, [qualities]);
 
   if (!qualities) return null;
 
   return (
-    <div className="space-y-2.5">
-        <SectionHeader icon="📊" title="Strategic Qualities" />
-        {qualityMetrics.map(metric => (
-          <div key={metric.label}>
-            <div className="flex justify-between items-center text-xs mb-1">
-              <span>{metric.label}</span>
-              <span className={getQualityColor(metric.value, metric.reverse)}>
+    <div className="space-y-2">
+        <SectionHeader icon="" title="Strategic Qualities" />
+        <div className="grid grid-cols-5 gap-2">
+          {qualityMetrics.map(metric => (
+            <div key={metric.label} className="bg-slate-700/30 p-2 rounded-lg border border-slate-600/40 flex flex-col items-center">
+              <span className="text-2xl mb-1">{metric.icon}</span>
+              <span className="text-xs text-slate-400 text-center mb-1">{metric.label}</span>
+              <div className={`text-3xl font-semibold ${getQualityColor(metric.value, metric.reverse)} mb-1 leading-none`}>
                 {(metric.value * 100).toFixed(0)}%
-              </span>
+              </div>
+              <QualityBar value={metric.value} reverse={metric.reverse} />
             </div>
-            <QualityBar value={metric.value} reverse={metric.reverse} />
-          </div>
-        ))}
+          ))}
+        </div>
     </div>
   );
 });
@@ -65,33 +73,45 @@ const EcologyDisplay: React.FC<{ potentialWildlife: PotentialWildlife[] }> = ({ 
 
   if (potentialWildlife.length === 0) {
     return (
-        <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/30">
-            <SectionHeader icon="🐾" title="Ecology" />
-            <p className="text-xs text-gray-400">No significant wildlife is likely to be found here.</p>
+        <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-600/40">
+            <SectionHeader icon="" title="Ecology" />
+            <p className="text-sm text-slate-400">No significant wildlife is likely to be found here.</p>
         </div>
     );
   }
 
   return (
-    <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/30">
+    <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-600/40">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full text-left flex items-center justify-between hover:opacity-80 transition-opacity"
+          className="w-full text-left flex items-center justify-between hover:bg-slate-700/30 rounded-md p-1.5 -m-1.5 transition-all duration-200"
         >
-          <SectionHeader icon="🐾" title={`Potential Wildlife (${potentialWildlife.length})`} />
-          <span className="text-gray-400 text-sm ml-2">{expanded ? '▼' : '▶'}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl"></span>
+            <span className="text-base font-medium text-slate-100">Potential Wildlife</span>
+            <span className="text-xs bg-slate-600/50 px-2 py-0.5 rounded text-slate-300">
+              {potentialWildlife.length}
+            </span>
+          </div>
+          <div className={`transform transition-transform duration-300 text-slate-400 ${expanded ? 'rotate-180' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 10.5l-4-4h8l-4 4z"/>
+            </svg>
+          </div>
         </button>
-        {expanded && (
-          <div className="space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mt-2">
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50">
               {potentialWildlife.map(w => (
-                  <div key={w.name} className="text-xs">
-                      <span className="text-lg mr-1">{w.emoji}</span>
-                      <span className="font-medium text-gray-200">{w.name}</span>
-                      <span className={`ml-2 font-bold ${w.likelihood === 'Common' ? 'text-green-400' : w.likelihood === 'Uncommon' ? 'text-yellow-400' : 'text-red-400'}`}>({w.likelihood})</span>
+                  <div key={w.name} className="flex items-center gap-2 bg-slate-700/30 p-2 rounded-md border border-slate-600/30">
+                      <span className="text-xl">{w.emoji}</span>
+                      <span className="font-medium text-slate-50 text-sm flex-1">{w.name}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded ${w.likelihood === 'Common' ? 'bg-green-500/20 text-green-400' : w.likelihood === 'Uncommon' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {w.likelihood}
+                      </span>
                   </div>
               ))}
           </div>
-        )}
+        </div>
     </div>
   );
 };
@@ -108,13 +128,13 @@ const TileSpecifics: React.FC<{ tile: Tile }> = ({ tile }) => {
     if (specifics.length === 0) return null;
 
     return (
-        <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/30">
+        <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-600/40">
             <SectionHeader icon="🏛️" title="Tile Specifics" />
-            <div className="space-y-1.5 text-xs">
+            <div className="flex flex-wrap gap-2">
                 {specifics.map(item => (
-                    <div key={item.label} className="grid grid-cols-[auto_1fr] gap-x-3">
-                        <span className="text-gray-500">{item.label}:</span>
-                        <span className="font-medium">{item.value}</span>
+                    <div key={item.label} className="flex items-center gap-2 bg-slate-700/30 px-3 py-2 rounded-md">
+                        <span className="text-xs text-slate-400">{item.label}</span>
+                        <span className="font-medium text-slate-50 text-sm">{item.value}</span>
                     </div>
                 ))}
             </div>
@@ -138,25 +158,64 @@ const TileInfoModal: React.FC<{ modalProps: TileInfoModalProps, onClose: () => v
 
   const qualities = parentTile?.qualities;
 
+  // Keyboard shortcuts (ESC to close)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [onClose]);
+
+  // Determine tile icon based on type
+  const getTileIcon = () => {
+    if (isStandardTile(tile)) {
+      if (tile.isLand) return '🗺️';
+      return '🌊';
+    }
+    return '🏠';
+  };
+
+  const getBiomeDisplayName = () => {
+    if (isStandardTile(tile)) {
+      return tile.biome.toLowerCase().replace(/_/g, ' ');
+    }
+    return 'Interior';
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 px-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tile-info-title"
+    >
         <div
-          className="ff-panel"
-          style={{
-            width: '90vw',
-            maxWidth: '450px',
-            maxHeight: '80vh',
-            animation: 'slideInUp 0.2s ease-out'
-          }}
+          className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-600/50 rounded-2xl shadow-[0_0_30px_rgba(100,116,139,0.4)] text-slate-200 w-full max-w-4xl animate-popIn"
+          style={{ maxHeight: '85vh' }}
           onClick={e => e.stopPropagation()}
         >
-            <div className="p-4 sm:p-5 flex flex-col h-full">
-                <div className="flex justify-between items-center mb-4 pb-3 border-b border-blue-500/30">
-                  <h3 className="text-xl font-semibold text-blue-400" id="tile-info-title">Tile Information</h3>
+            <div className="p-4 flex flex-col h-full">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-600/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-3xl">
+                      {getTileIcon()}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-medium text-slate-50 leading-none" id="tile-info-title">
+                        Tile Information
+                      </h3>
+                      <p className="text-sm text-slate-400 mt-1 capitalize">{getBiomeDisplayName()}</p>
+                    </div>
+                  </div>
                   <button
                     onClick={onClose}
-                    className="text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors p-2 rounded-lg -mr-2"
-                    style={{ minWidth: '44px', minHeight: '44px', transform: 'none' }}
+                    className="text-slate-400 hover:text-slate-100 hover:bg-slate-700/50 transition-all duration-200 p-1.5 rounded-lg"
                     aria-label="Close modal"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,28 +224,41 @@ const TileInfoModal: React.FC<{ modalProps: TileInfoModalProps, onClose: () => v
                   </button>
                 </div>
 
-                <div className="space-y-3.5 text-sm flex-grow overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                <div className="space-y-3 flex-grow overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50">
                     {/* Basic Info */}
-                    <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/30">
+                    <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-600/40">
                         <SectionHeader icon="📍" title="Basic Properties" />
-                        <div className="text-xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
-                             <span className="text-gray-500">Coordinates:</span>
-                             <span className="font-medium">({tile.x}, {tile.y})</span>
+                        <div className="grid grid-cols-5 gap-2">
+                             <div className="bg-slate-700/30 p-2 rounded-md">
+                               <div className="text-xs text-slate-400 mb-1">Coordinates</div>
+                               <div className="font-medium text-slate-50 text-base leading-tight">({tile.x}, {tile.y})</div>
+                             </div>
                              {isStandardTile(tile) && <>
-                                <span className="text-gray-500">Altitude:</span>
-                                <span className="font-medium">{(tile.altitude).toFixed(3)}</span>
-                                <span className="text-gray-500">Biome:</span>
-                                <span className="font-medium capitalize">{tile.biome.toLowerCase().replace(/_/g, ' ')}</span>
-                                <span className="text-gray-500">Type:</span>
-                                <span className={`font-medium ${tile.isLand ? 'text-green-400' : 'text-blue-400'}`}>{tile.isLand ? 'Land' : 'Water'}</span>
-                                <span className="text-gray-500">Coast:</span>
-                                <span className="font-medium">{tile.isCoast ? 'Yes' : 'No'}</span>
+                                <div className="bg-slate-700/30 p-2 rounded-md">
+                                  <div className="text-xs text-slate-400 mb-1">Altitude</div>
+                                  <div className="font-medium text-slate-50 text-base leading-tight">{(tile.altitude).toFixed(3)}</div>
+                                </div>
+                                <div className="bg-slate-700/30 p-2 rounded-md col-span-2">
+                                  <div className="text-xs text-slate-400 mb-1">Biome</div>
+                                  <div className="font-medium text-slate-50 text-base leading-tight capitalize">{tile.biome.toLowerCase().replace(/_/g, ' ')}</div>
+                                </div>
+                                <div className="bg-slate-700/30 p-2 rounded-md">
+                                  <div className="text-xs text-slate-400 mb-1">Type</div>
+                                  <div className={`font-medium text-base leading-tight ${tile.isLand ? 'text-green-400' : 'text-blue-400'}`}>
+                                    {tile.isLand ? 'Land' : 'Water'}
+                                  </div>
+                                </div>
                              </>}
+
                              {isInteriorTile(tile) && <>
-                                <span className="text-gray-500">Type:</span>
-                                <span className="font-medium capitalize">{tile.type}</span>
-                                <span className="text-gray-500">Material:</span>
-                                <span className="font-medium capitalize">{tile.material}</span>
+                                <div className="bg-slate-700/30 p-2 rounded-md">
+                                  <div className="text-xs text-slate-400 mb-1">Type</div>
+                                  <div className="font-medium text-slate-50 text-base leading-tight capitalize">{tile.type}</div>
+                                </div>
+                                <div className="bg-slate-700/30 p-2 rounded-md">
+                                  <div className="text-xs text-slate-400 mb-1">Material</div>
+                                  <div className="font-medium text-slate-50 text-base leading-tight capitalize">{tile.material}</div>
+                                </div>
                              </>}
                         </div>
                     </div>
@@ -196,35 +268,31 @@ const TileInfoModal: React.FC<{ modalProps: TileInfoModalProps, onClose: () => v
 
                     {/* Vegetation */}
                     {vegetation && (
-                        <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/30">
+                        <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-600/40">
                             <SectionHeader icon="🌳" title="Vegetation" />
-                            <div className="text-xs space-y-1">
-                                <div className="grid grid-cols-[auto_1fr] gap-x-3">
-                                    <span className="text-gray-500">Species:</span>
-                                    <span className="font-medium">{vegetation.speciesName}</span>
+                            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                                <div className="text-base font-medium text-slate-50 mb-1">
+                                    {vegetation.speciesName}
                                 </div>
-                                <div className="text-gray-500 italic text-[11px] ml-[4.5rem]">{vegetation.linnaeanName}</div>
+                                <div className="text-sm text-slate-400 italic">{vegetation.linnaeanName}</div>
                             </div>
                         </div>
                     )}
 
                     {/* Entity */}
                     {entity && (
-                        <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/30">
+                        <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-600/40">
                             <SectionHeader icon="👤" title="Entity on Tile" />
-                            <div className="text-xs space-y-1.5">
-                                <div className="grid grid-cols-[auto_1fr] gap-x-3">
-                                    <span className="text-gray-500">Type:</span>
-                                    <span className="font-medium capitalize">{
-                                        'subType' in entity ? entity.subType.replace(/_/g, ' ') :
-                                        'role' in entity ? (entity as NpcEntity).role.replace(/_/g, ' ') :
-                                        'aiState' in entity ? (entity as AnimalEntity).type.replace(/_/g, ' ') :
-                                        'Entity'
-                                    }</span>
-                                </div>
+                            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                                <div className="text-base font-medium text-slate-50 mb-1 capitalize">{
+                                    'subType' in entity ? entity.subType.replace(/_/g, ' ') :
+                                    'role' in entity ? (entity as NpcEntity).role.replace(/_/g, ' ') :
+                                    'aiState' in entity ? (entity as AnimalEntity).type.replace(/_/g, ' ') :
+                                    'Entity'
+                                }</div>
                                 {(() => {
                                     const description = ('description' in entity && entity.description) || ('descriptions' in entity && (entity as NpcEntity).descriptions?.short);
-                                    return description ? <p className="text-gray-500 italic text-[11px] mt-1">"{description}"</p> : null;
+                                    return description ? <p className="text-xs text-slate-400 mt-1">"{description}"</p> : null;
                                 })()}
                             </div>
                         </div>
@@ -232,7 +300,7 @@ const TileInfoModal: React.FC<{ modalProps: TileInfoModalProps, onClose: () => v
 
                     {/* Qualities */}
                     {isStandardTile(tile) && qualities && (
-                        <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/30">
+                        <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-600/40">
                             <QualityDisplay qualities={qualities} />
                         </div>
                     )}
@@ -241,6 +309,16 @@ const TileInfoModal: React.FC<{ modalProps: TileInfoModalProps, onClose: () => v
                     {parentTile && !isInteriorTile(tile) && (
                         <EcologyDisplay potentialWildlife={potentialWildlife} />
                     )}
+                </div>
+
+                {/* Footer with Close Button */}
+                <div className="mt-3 pt-3 border-t border-slate-600/50">
+                    <button
+                        onClick={onClose}
+                        className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl active:scale-95"
+                    >
+                        Close
+                    </button>
                 </div>
             </div>
         </div>

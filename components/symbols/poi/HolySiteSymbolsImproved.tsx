@@ -1249,9 +1249,6 @@ export const TribalFireSymbol: React.FC<HolySiteSymbolProps> = ({ x, y, size, se
   );
 };
 
-// Import for missing dependency
-import { ValueNoise } from '../../../utils/noise';
-
 // Export function to get appropriate holy site type
 export const getHolySiteSymbol = (religion: string, culture?: string) => {
   const rel = religion?.toLowerCase() || '';

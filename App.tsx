@@ -52,6 +52,8 @@ import { railroadNetworkService } from './services/railroadNetworkService';
 import { LoadingSkeleton } from './components/LoadingSkeleton';
 import JournalViewport from './components/JournalViewport';
 import QuestsPanel from './components/QuestsPanel';
+import { GameModePanel } from './components/GameModePanel';
+import { LanguageFamilyTree } from './components/LanguageFamilyTree';
 
 // Lazy load heavy modals that are used infrequently
 const EventModal = lazy(() => import('./components/EventModal').then(m => ({ default: m.EventModal })));
@@ -239,12 +241,9 @@ const AppContent: React.FC = () => {
         return config;
     }, []); // Only parse once on mount
     
-    // Death modal state
-    const [showDeathModal, setShowDeathModal] = React.useState(false);
+    // Death modal state (modal visibility now in useUI, but data stays here)
     const [deathCause, setDeathCause] = React.useState<any>(null);
-    const [showNpcDeathModal, setShowNpcDeathModal] = React.useState(false);
     const [npcDeathData, setNpcDeathData] = React.useState<{ npc: any; disease: any } | null>(null);
-    const [showDiseaseProgressionModal, setShowDiseaseProgressionModal] = React.useState(false);
     const [diseaseProgressionQueue, setDiseaseProgressionQueue] = React.useState<DiseaseProgressionEvent[]>([]);
     const [currentDiseaseProgression, setCurrentDiseaseProgression] = React.useState<DiseaseProgressionEvent | null>(null);
 
@@ -284,7 +283,7 @@ const AppContent: React.FC = () => {
     }, []);
 
     // Get hooks FIRST before defining callbacks that depend on them
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, showInitialScenarioModal, setShowInitialScenarioModal, showDeathModal, setShowDeathModal, showNpcDeathModal, setShowNpcDeathModal, showDiseaseProgressionModal, setShowDiseaseProgressionModal, showEventModal, setShowEventModal, showFactionsModal, setShowFactionsModal, showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId } = useUI();
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog } = useGame();
 
@@ -353,7 +352,6 @@ const AppContent: React.FC = () => {
     
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
-    const [showInitialScenarioModal, setShowInitialScenarioModal] = React.useState(false);
     const isMobile = isMobileDevice();
     const [hasShownInitialScenario, setHasShownInitialScenario] = React.useState(false);
     const [hasInitializedFromURL, setHasInitializedFromURL] = React.useState(false);
@@ -367,10 +365,6 @@ const AppContent: React.FC = () => {
         quest?: any;
     } | null>(null);
     const [showTransitionOverlay, setShowTransitionOverlay] = React.useState(false); // Full-screen overlay state
-
-    // Journal and Quests panel state
-    const [showJournal, setShowJournal] = React.useState(false);
-    const [showQuestsPanel, setShowQuestsPanel] = React.useState(false);
 
     // Use a ref to ensure we only generate once from URL
     const hasGeneratedFromURLRef = React.useRef(false);
@@ -630,13 +624,11 @@ const AppContent: React.FC = () => {
         resetForNewGame,
         hasShownInitialEvent 
     } = useEventSystem();
-    
-    const [showEventModal, setShowEventModal] = React.useState(false);
+
     const [showModeSelector, setShowModeSelector] = React.useState(false);
     const [notificationEvent, setNotificationEvent] = React.useState(currentEvent);
-    
+
     // Faction modal and tooltip state
-    const [showFactionsModal, setShowFactionsModal] = React.useState(false);
     const [showFactionTooltip, setShowFactionTooltip] = React.useState(false);
     const [factionTooltipPosition, setFactionTooltipPosition] = React.useState({ x: 0, y: 0 });
     const [factionData, setFactionData] = React.useState<any>(null);
@@ -847,10 +839,6 @@ const AppContent: React.FC = () => {
                 <TopNavBarPolished
                     onWorldWeaverLoadingChange={setIsProcessingWorldWeaver}
                     onWorldWeaverDataReceived={setWorldWeaverData}
-                    showJournal={showJournal}
-                    setShowJournal={setShowJournal}
-                    showQuestsPanel={showQuestsPanel}
-                    setShowQuestsPanel={setShowQuestsPanel}
                 />
             </div>}
             
@@ -1216,6 +1204,25 @@ const AppContent: React.FC = () => {
             }, 2000);
           }}
         />
+
+        {/* Game Mode Panel - rendered at App level for proper z-index */}
+        <GameModePanel
+          isOpen={showGameModePanel}
+          onClose={() => setShowGameModePanel(false)}
+        />
+
+        {/* Language Family Tree - rendered at App level for proper z-index */}
+        {showLanguageTree && selectedLanguageId && (
+          <LanguageFamilyTree
+            isOpen={showLanguageTree}
+            onClose={() => {
+              setShowLanguageTree(false);
+              setSelectedLanguageId(null);
+            }}
+            initialLanguageId={selectedLanguageId}
+            currentYear={gameDate?.year || 1500}
+          />
+        )}
       </div>
     );
 };

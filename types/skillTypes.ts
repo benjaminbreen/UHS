@@ -69,6 +69,9 @@ export interface ForageSkillResult {
     message: string;
     entityToRemoveId?: string;
     xpGained?: number;
+    context?: {
+        biome?: string;
+    };
 }
 
 export interface DigSkillResult {
@@ -80,6 +83,9 @@ export interface DigSkillResult {
     tileCoords?: { x: number, y: number }; // The tile that was mined
     amountExtracted?: number; // How much was removed from the deposit
     injury?: any; // Injury from failed skill attempt
+    context?: {
+        biome?: string;
+    };
 }
 
 export interface ChopSkillResult {
@@ -90,6 +96,9 @@ export interface ChopSkillResult {
     xpGained?: number;
     entityToRemoveId?: string;
     injury?: any; // Injury from failed skill attempt
+    context?: {
+        biome?: string;
+    };
 }
 
 export interface CombatSkillResult {

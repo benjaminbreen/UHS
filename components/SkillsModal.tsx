@@ -6,6 +6,7 @@ import { SkillResult, ObserveSkillResult, ForageSkillResult, DigSkillResult, Cho
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
+import { useUI } from '../contexts/UIContext';
 import { gameSounds } from '../services/gameSoundsService';
 import { imageGenerationService } from '../services/imageGenerationService';
 import {
@@ -27,6 +28,23 @@ interface SkillsModalProps {
     result: SkillResult;
     onClose: () => void;
 }
+
+// Helper function to properly capitalize item names (converts ALL_CAPS to Title Case)
+const formatItemName = (name: string): string => {
+    // If the entire string is uppercase (like "PAPER BIRCH LOG"), convert to title case
+    if (name === name.toUpperCase() && name.includes('_')) {
+        return name
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    }
+    // If it's all caps but no underscores (like "WOOD")
+    if (name === name.toUpperCase()) {
+        return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    }
+    // Otherwise return as-is (already properly formatted)
+    return name;
+};
 
 // Helper function to generate contextual advice
 const getContextualAdvice = (result: SkillResult): { calculation: string; advice: string } => {
@@ -105,6 +123,8 @@ const getContextualAdvice = (result: SkillResult): { calculation: string; advice
 };
 
 const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
+    const isSuccess = (result as any)?.success !== false;
+    // Default to closed
     const [isExpanded, setIsExpanded] = useState(false);
     const { calculation, advice } = getContextualAdvice(result);
 
@@ -112,9 +132,11 @@ const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
         <div className="mt-4 border-t border-slate-600/50 pt-3">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between text-sm text-slate-400 hover:text-slate-300 transition-colors duration-200"
+                className={`w-full flex items-center justify-between text-sm transition-colors duration-200 ${isSuccess ? 'text-slate-400 hover:text-slate-300' : 'text-yellow-400 hover:text-yellow-300'}`}
             >
-                <span className="font-medium">More Information</span>
+                <span className="font-medium flex items-center gap-1">
+                    {isSuccess ? '💡 Tips & Information' : '💡 How to Improve'}
+                </span>
                 <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 10.5l-4-4h8l-4 4z"/>
@@ -122,22 +144,22 @@ const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
                 </div>
             </button>
 
-            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="mt-3 p-4 bg-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700/30 space-y-3">
+            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="mt-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700/30 space-y-3">
                     {/* Calculation Section */}
                     <div>
-                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                            Calculation
+                        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-1 ${isSuccess ? 'text-slate-400' : 'text-red-400'}`}>
+                            {isSuccess ? 'Calculation' : 'Why It Failed'}
                         </h4>
-                        <div className="text-sm text-slate-300 font-mono bg-slate-900/50 p-2 rounded">
+                        <div className="text-xs text-slate-300 font-mono bg-slate-900/50 p-2 rounded">
                             {calculation}
                         </div>
                     </div>
 
                     {/* Advice Section */}
                     <div>
-                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                            {(result as any).success ? 'Tips' : 'How to Improve'}
+                        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-1 ${isSuccess ? 'text-slate-400' : 'text-yellow-400'}`}>
+                            {isSuccess ? 'Tips' : 'What You Need'}
                         </h4>
                         <p className="text-sm text-slate-300 leading-relaxed">
                             {advice}
@@ -455,7 +477,7 @@ const renderObserveResult = (result: ObserveSkillResult, onClose: () => void) =>
   <ObserveResultWithBackground result={result} onClose={onClose} />
 );
 
-const renderForageResult = (result: ForageSkillResult) => {
+const renderForageResult = (result: ForageSkillResult, isToolRelatedFailure: (msg: string) => boolean, handleOpenEquipment: () => void) => {
     const rarityColor = {
         'Common': 'text-gray-300',
         'Uncommon': 'text-blue-400',
@@ -464,23 +486,108 @@ const renderForageResult = (result: ForageSkillResult) => {
         'Unique': 'text-amber-400 font-bold'
     };
 
+    const isSuccess = result.success && result.item;
+
     return (
         <>
-            <h3 id="skill-modal-title" className="text-xl font-semibold text-blue-300 mb-4 capitalize">Foraging</h3>
-            <p className="text-gray-400 mb-4">{result.message}</p>
-            {result.item && (
-                <div className="bg-gray-700/50 p-3 rounded-md border border-gray-600/50">
-                    <p className="font-bold text-lg text-white">You found: {result.item.name}</p>
-                    <p className={`font-semibold ${rarityColor[result.item.rarity as keyof typeof rarityColor]}`}>Rarity: {result.item.rarity}</p>
-                    {result.item.description && <p className="text-sm italic text-gray-400 mt-2">"{result.item.description}"</p>}
+            {/* Header with Icon */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 ${isSuccess ? 'bg-green-500/20' : 'bg-red-500/20'} rounded-full flex items-center justify-center ${isSuccess ? 'animate-[checkmark_0.5s_ease-out]' : 'animate-[shake_0.5s_ease-out]'}`}>
+                        {isSuccess ? (
+                            <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        ) : (
+                            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        )}
+                    </div>
+                    <div>
+                        <h3 id="skill-modal-title" className={`text-xl font-semibold ${isSuccess ? 'text-green-300' : 'text-red-300'}`}>
+                            {isSuccess ? 'Foraging Success!' : 'Foraging Failed'}
+                        </h3>
+                        <p className="text-xs text-slate-400">{result.context?.biome || 'Unknown'} Biome</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className={`text-2xl font-bold ${result.xpGained ? 'text-yellow-400' : 'text-slate-500'}`}>
+                        {result.xpGained ? `+${result.xpGained}` : '+0'} XP
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Stats Summary */}
+            {isSuccess && result.item && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">Rarity</div>
+                        <div className={`text-sm font-bold ${rarityColor[result.item.rarity as keyof typeof rarityColor]}`}>
+                            {result.item.rarity}
+                        </div>
+                    </div>
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">XP Gained</div>
+                        <div className="text-sm text-yellow-400 font-bold">+{result.xpGained || 0}</div>
+                    </div>
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">Value</div>
+                        <div className="text-sm text-green-400 font-bold">{result.item.value || 0}💰</div>
+                    </div>
                 </div>
             )}
-            {result.xpGained && <p className="text-sm text-yellow-400 mt-4 font-semibold">+{result.xpGained} XP</p>}
+
+            {/* Item Found or Failure Message */}
+            {isSuccess && result.item ? (
+                <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 p-4 rounded-lg border-2 border-purple-500/40 mb-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-purple-500/20 rounded-lg flex items-center justify-center text-4xl">
+                            {result.item.emoji || '🌿'}
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-bold text-xl text-white">You found: {formatItemName(result.item.name)}</p>
+                            <p className={`font-semibold text-sm ${rarityColor[result.item.rarity as keyof typeof rarityColor]}`}>
+                                Rarity: {result.item.rarity}
+                            </p>
+                            {result.item.quantity && result.item.quantity > 1 && (
+                                <p className="text-xs text-slate-300 mt-1">Quantity: {result.item.quantity}</p>
+                            )}
+                        </div>
+                    </div>
+                    {result.item.description && (
+                        <p className="text-sm italic text-slate-300 mt-3 border-t border-purple-500/20 pt-3">
+                            "{result.item.description}"
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <div className="bg-red-900/20 p-4 rounded-lg border-2 border-red-500/30 mb-4">
+                    <div className="flex items-start gap-3">
+                        <div className="text-3xl">🔍</div>
+                        <div className="flex-1">
+                            <p className="font-bold text-lg text-red-300 mb-2">Nothing Found</p>
+                            <p className="text-sm text-slate-300 mb-3">{result.message}</p>
+                            {isToolRelatedFailure(result.message) && (
+                                <button
+                                    onClick={handleOpenEquipment}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                    Open Equipment Panel
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
 
-const renderDigResult = (result: DigSkillResult) => {
+const renderDigResult = (result: DigSkillResult, isToolRelatedFailure: (msg: string) => boolean, handleOpenEquipment: () => void) => {
     const rarityColor = {
         'Common': 'text-gray-300',
         'Uncommon': 'text-blue-400',
@@ -489,28 +596,108 @@ const renderDigResult = (result: DigSkillResult) => {
         'Unique': 'text-amber-400 font-bold'
     };
 
+    const isSuccess = result.success && result.item;
+
     return (
         <>
-            <h3 id="skill-modal-title" className="text-xl font-semibold text-blue-300 mb-4 capitalize">Digging</h3>
-            <p className="text-gray-400 mb-4">{result.message}</p>
-            {result.success && result.item && (
-                <div className="bg-gray-700/50 p-3 rounded-md border border-gray-600/50">
-                    <p className="font-bold text-lg text-white">You unearthed: {result.item.name}</p>
-                    {result.item.quantity && result.item.quantity > 1 && (
-                        <p className="text-sm text-gray-300">Quantity: {result.item.quantity}</p>
-                    )}
-                    <p className={`font-semibold ${rarityColor[result.item.rarity as keyof typeof rarityColor] || 'text-gray-300'}`}>
-                        Rarity: {result.item.rarity || 'Common'}
-                    </p>
-                    {result.item.description && <p className="text-sm italic text-gray-400 mt-2">"{result.item.description}"</p>}
+            {/* Header with Icon */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 ${isSuccess ? 'bg-green-500/20' : 'bg-red-500/20'} rounded-full flex items-center justify-center ${isSuccess ? 'animate-[checkmark_0.5s_ease-out]' : 'animate-[shake_0.5s_ease-out]'}`}>
+                        {isSuccess ? (
+                            <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        ) : (
+                            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        )}
+                    </div>
+                    <div>
+                        <h3 id="skill-modal-title" className={`text-xl font-semibold ${isSuccess ? 'text-green-300' : 'text-red-300'}`}>
+                            {isSuccess ? 'Digging Success!' : 'Digging Failed'}
+                        </h3>
+                        <p className="text-xs text-slate-400">{result.context?.biome || 'Unknown'} Biome</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className={`text-2xl font-bold ${result.xpGained ? 'text-yellow-400' : 'text-slate-500'}`}>
+                        {result.xpGained ? `+${result.xpGained}` : '+0'} XP
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Stats Summary */}
+            {isSuccess && result.item && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">Rarity</div>
+                        <div className={`text-sm font-bold ${rarityColor[result.item.rarity as keyof typeof rarityColor] || 'text-gray-300'}`}>
+                            {result.item.rarity || 'Common'}
+                        </div>
+                    </div>
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">XP Gained</div>
+                        <div className="text-sm text-yellow-400 font-bold">+{result.xpGained || 0}</div>
+                    </div>
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">Quantity</div>
+                        <div className="text-sm text-green-400 font-bold">{result.item.quantity || 1}</div>
+                    </div>
                 </div>
             )}
-            {result.xpGained && <p className="text-sm text-yellow-400 mt-4 font-semibold">+{result.xpGained} XP</p>}
+
+            {/* Item Found or Failure Message */}
+            {isSuccess && result.item ? (
+                <div className="bg-gradient-to-br from-amber-900/30 to-amber-800/20 p-4 rounded-lg border-2 border-amber-500/40 mb-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-amber-500/20 rounded-lg flex items-center justify-center text-4xl">
+                            {result.item.emoji || '⛏️'}
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-bold text-xl text-white">You unearthed: {formatItemName(result.item.name)}</p>
+                            <p className={`font-semibold text-sm ${rarityColor[result.item.rarity as keyof typeof rarityColor] || 'text-gray-300'}`}>
+                                Rarity: {result.item.rarity || 'Common'}
+                            </p>
+                            {result.item.quantity && result.item.quantity > 1 && (
+                                <p className="text-xs text-slate-300 mt-1">Quantity: {result.item.quantity}</p>
+                            )}
+                        </div>
+                    </div>
+                    {result.item.description && (
+                        <p className="text-sm italic text-slate-300 mt-3 border-t border-amber-500/20 pt-3">
+                            "{result.item.description}"
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <div className="bg-red-900/20 p-4 rounded-lg border-2 border-red-500/30 mb-4">
+                    <div className="flex items-start gap-3">
+                        <div className="text-3xl">⛏️</div>
+                        <div className="flex-1">
+                            <p className="font-bold text-lg text-red-300 mb-2">Nothing Found</p>
+                            <p className="text-sm text-slate-300 mb-3">{result.message}</p>
+                            {isToolRelatedFailure(result.message) && (
+                                <button
+                                    onClick={handleOpenEquipment}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                    Open Equipment Panel
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
 
-const renderChopResult = (result: ChopSkillResult) => {
+const renderChopResult = (result: ChopSkillResult, isToolRelatedFailure: (msg: string) => boolean, handleOpenEquipment: () => void) => {
     const rarityColor = {
         'Common': 'text-gray-300',
         'Uncommon': 'text-blue-400',
@@ -519,23 +706,103 @@ const renderChopResult = (result: ChopSkillResult) => {
         'Unique': 'text-amber-400 font-bold'
     };
 
+    const isSuccess = result.success && result.item;
+
     return (
         <>
-            <h3 id="skill-modal-title" className="text-xl font-semibold text-blue-300 mb-4 capitalize">Chopping</h3>
-            <p className="text-gray-400 mb-4">{result.message}</p>
-            {result.success && result.item && (
-                <div className="bg-gray-700/50 p-3 rounded-md border border-gray-600/50">
-                    <p className="font-bold text-lg text-white">You obtained: {result.item.name}</p>
-                    {result.item.quantity && result.item.quantity > 1 && (
-                        <p className="text-sm text-gray-300">Quantity: {result.item.quantity}</p>
-                    )}
-                    <p className={`font-semibold ${rarityColor[result.item.rarity as keyof typeof rarityColor] || 'text-gray-300'}`}>
-                        Rarity: {result.item.rarity || 'Common'}
-                    </p>
-                    {result.item.description && <p className="text-sm italic text-gray-400 mt-2">"{result.item.description}"</p>}
+            {/* Header with Icon */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 ${isSuccess ? 'bg-green-500/20' : 'bg-red-500/20'} rounded-full flex items-center justify-center ${isSuccess ? 'animate-[checkmark_0.5s_ease-out]' : 'animate-[shake_0.5s_ease-out]'}`}>
+                        {isSuccess ? (
+                            <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        ) : (
+                            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        )}
+                    </div>
+                    <div>
+                        <h3 id="skill-modal-title" className={`text-xl font-semibold ${isSuccess ? 'text-green-300' : 'text-red-300'}`}>
+                            {isSuccess ? 'Chopping Success!' : 'Chopping Failed'}
+                        </h3>
+                        <p className="text-xs text-slate-400">{result.context?.biome || 'Unknown'} Biome</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className={`text-2xl font-bold ${result.xpGained ? 'text-yellow-400' : 'text-slate-500'}`}>
+                        {result.xpGained ? `+${result.xpGained}` : '+0'} XP
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Stats Summary */}
+            {isSuccess && result.item && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">Rarity</div>
+                        <div className={`text-sm font-bold ${rarityColor[result.item.rarity as keyof typeof rarityColor] || 'text-gray-300'}`}>
+                            {result.item.rarity || 'Common'}
+                        </div>
+                    </div>
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">XP Gained</div>
+                        <div className="text-sm text-yellow-400 font-bold">+{result.xpGained || 0}</div>
+                    </div>
+                    <div className="bg-slate-700/50 p-2 rounded-lg text-center border border-slate-600/50">
+                        <div className="text-xs text-slate-400">Quantity</div>
+                        <div className="text-sm text-green-400 font-bold">{result.item.quantity || 1}</div>
+                    </div>
                 </div>
             )}
-            {result.xpGained && <p className="text-sm text-yellow-400 mt-4 font-semibold">+{result.xpGained} XP</p>}
+
+            {/* Item Found or Failure Message */}
+            {isSuccess && result.item ? (
+                <div className="bg-gradient-to-br from-green-900/30 to-green-800/20 p-4 rounded-lg border-2 border-green-500/40 mb-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-green-500/20 rounded-lg flex items-center justify-center text-4xl">
+                            {result.item.emoji || '🪵'}
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-bold text-xl text-white">You obtained: {formatItemName(result.item.name)}</p>
+                            <p className={`font-semibold text-sm ${rarityColor[result.item.rarity as keyof typeof rarityColor] || 'text-gray-300'}`}>
+                                Rarity: {result.item.rarity || 'Common'}
+                            </p>
+                            {result.item.quantity && result.item.quantity > 1 && (
+                                <p className="text-xs text-slate-300 mt-1">Quantity: {result.item.quantity}</p>
+                            )}
+                        </div>
+                    </div>
+                    {result.item.description && (
+                        <p className="text-sm italic text-slate-300 mt-3 border-t border-green-500/20 pt-3">
+                            "{result.item.description}"
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <div className="bg-red-900/20 p-4 rounded-lg border-2 border-red-500/30 mb-4">
+                    <div className="flex items-start gap-3">
+                        <div className="text-3xl">🪓</div>
+                        <div className="flex-1">
+                            <p className="font-bold text-lg text-red-300 mb-2">Nothing to Chop</p>
+                            <p className="text-sm text-slate-300 mb-3">{result.message}</p>
+                            {isToolRelatedFailure(result.message) && (
+                                <button
+                                    onClick={handleOpenEquipment}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                    Open Equipment Panel
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
@@ -735,12 +1002,47 @@ const renderStudyResult = (result: StudySkillResult) => {
 };
 
 const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, onClose }) => {
+  const { setIsCharacterProfileModalOpen } = useUI();
+
+  // Keyboard shortcuts (ESC, Enter to close)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isOpen, onClose]);
+
+  // Helper to detect tool-related failures
+  const isToolRelatedFailure = (message: string) => {
+    const keywords = ['tool', 'axe', 'pickaxe', 'shovel', 'equipped', 'holding'];
+    return keywords.some(keyword => message.toLowerCase().includes(keyword));
+  };
+
+  // Handler to open equipment panel
+  const handleOpenEquipment = () => {
+    onClose(); // Close skills modal
+    setIsCharacterProfileModalOpen(true); // Open character modal
+    // Note: We'd need to add defaultTab support to fully implement this
+  };
+
   if (!isOpen) return null;
 
   // Special full-screen rendering for observe skill
   if (result?.type === 'observe' && !isLoading) {
     return renderObserveResult(result as ObserveSkillResult, onClose);
   }
+
+  // Determine success state
+  const isSuccess = (result as any)?.success !== false;
+  const borderColor = isSuccess ? 'border-green-500/30' : 'border-red-500/30';
+  const glowClass = isSuccess ? 'shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'shadow-[0_0_20px_rgba(239,68,68,0.3)]';
+  const animateClass = isSuccess ? 'animate-popIn' : 'animate-[shake_0.5s_ease-out]';
 
   return (
     <div
@@ -751,7 +1053,7 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
         aria-labelledby="skill-modal-title"
     >
       <div
-        className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 w-full max-w-lg p-6 flex flex-col animate-popIn pointer-events-auto"
+        className={`bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border ${borderColor} rounded-2xl ${glowClass} text-slate-200 w-full max-w-lg p-6 flex flex-col ${animateClass} pointer-events-auto`}
         onClick={(e) => e.stopPropagation()}
         style={{ minHeight: '250px' }}
       >
@@ -763,9 +1065,9 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
                 </div>
             ) : result ? (
                 <>
-                    {result.type === 'forage' && renderForageResult(result as ForageSkillResult)}
-                    {result.type === 'dig' && renderDigResult(result as DigSkillResult)}
-                    {result.type === 'chop' && renderChopResult(result as ChopSkillResult)}
+                    {result.type === 'forage' && renderForageResult(result as ForageSkillResult, isToolRelatedFailure, handleOpenEquipment)}
+                    {result.type === 'dig' && renderDigResult(result as DigSkillResult, isToolRelatedFailure, handleOpenEquipment)}
+                    {result.type === 'chop' && renderChopResult(result as ChopSkillResult, isToolRelatedFailure, handleOpenEquipment)}
                     {result.type === 'study' && renderStudyResult(result as StudySkillResult)}
                     {/* Add other result types here */}
                     {result.type !== 'observe' && result.type !== 'forage' && result.type !== 'dig' && result.type !== 'chop' && result.type !== 'study' && (
@@ -785,13 +1087,21 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
                  </div>
             )}
         </div>
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex gap-2">
+             {!isSuccess && (
+               <button
+                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition duration-150"
+                  onClick={onClose}
+               >
+                  Try Again
+               </button>
+             )}
              <button
-                className="px-6 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold rounded-md transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-6 py-2 ${isSuccess ? 'bg-green-600 hover:bg-green-500' : 'bg-slate-600 hover:bg-slate-500'} text-white font-semibold rounded-lg transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed`}
                 onClick={onClose}
                 disabled={isLoading}
             >
-                Close
+                {isSuccess ? 'Continue' : 'Close'}
             </button>
         </div>
       </div>

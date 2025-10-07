@@ -1,0 +1,271 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    MAJOR BROKEN LANGUAGE EVOLUTION CHAINS
+═══════════════════════════════════════════════════════════════════════════════
+
+LEGEND:
+  ✓ = Language exists in languages.ts
+  ✗ = Language is missing (breaks chain)
+  → = Successor relationship
+  ← = Predecessor relationship
+
+═══════════════════════════════════════════════════════════════════════════════
+1. GREEK EVOLUTION CHAIN (CRITICAL - COMPLETELY BROKEN)
+═══════════════════════════════════════════════════════════════════════════════
+
+    PROTO_HELLENIC ✓
+    (-2000 BCE)
+         │
+         ↓
+    ANCIENT_GREEK ✓                    [Line 255]
+    (-800 to 300 BCE)
+    Lists successors: KOINE_GREEK, BYZANTINE_GREEK, MODERN_GREEK
+         │
+         ↓
+    KOINE_GREEK ✗✗✗ MISSING           [BREAKS HERE]
+    (Should be: -300 to 300 CE)
+         │
+         ↓
+    BYZANTINE_GREEK ✓                  [Line 1010]
+    (300 to 1453 CE)
+    Lists predecessors: ANCIENT_GREEK, KOINE_GREEK
+         │
+         ↓
+    MODERN_GREEK ✓
+    (1453 to present)
+
+═══════════════════════════════════════════════════════════════════════════════
+2. ROMANCE LANGUAGE EVOLUTION (CRITICAL - MULTIPLE BREAKS)
+═══════════════════════════════════════════════════════════════════════════════
+
+                        PROTO_ITALIC ✓
+                        (-1000 BCE)
+                             │
+                             ↓
+                         LATIN ✓                      [Line 212]
+                      (700 BCE - 600 CE)
+                Lists successors: VULGAR_LATIN, SPANISH, PORTUGUESE, ROMANIAN
+                             │
+                             ↓
+                    VULGAR_LATIN ✗✗✗ MISSING         [BREAKS HERE]
+                  (Should be: 200 BCE - 800 CE)
+                             │
+            ┌────────────────┼────────────────┐
+            ↓                ↓                ↓
+    FRANKISH ✗ MISSING   OLD_FRENCH ✓   ITALIAN ✓     OLD_SPANISH ✗ MISSING
+    (500-900 CE)         [Line 784]      (1200 CE)     (900-1300 CE)
+            │            Lists preds:         │              │
+            │            VULGAR_LATIN,        │              ↓
+            │            FRANKISH              │         EARLY_SPANISH ✓
+            │                 │                │              │
+            └──────┬──────────┘                │              ↓
+                   ↓                           │         MODERN_SPANISH ✓
+           MIDDLE_FRENCH ✗ MISSING             │
+           (1300-1600 CE)                      │
+                   │                           │
+                   ↓                           ↓
+              FRENCH ✓                   (continues)
+          (1600-present)
+
+    Additional Missing:
+    - PORTUGUESE ✗ (or rename EARLY_PORTUGUESE)
+    - SPANISH ✗ (or rename EARLY_SPANISH)
+    - ROMANIAN ✗ (completely missing - entire Eastern Romance branch!)
+    - GALICIAN_PORTUGUESE ✗ (predecessor of EARLY_PORTUGUESE)
+
+═══════════════════════════════════════════════════════════════════════════════
+3. GERMANIC EVOLUTION CHAIN (CRITICAL - BROKEN)
+═══════════════════════════════════════════════════════════════════════════════
+
+    PROTO_GERMANIC ✓                           [Line 561]
+    (500 BCE - 500 CE)
+    Lists successor: OLD_HIGH_GERMAN
+         │
+         ↓
+    OLD_HIGH_GERMAN ✗✗✗ MISSING                [BREAKS HERE]
+    (Should be: 500-1050 CE)
+         │
+         ↓
+    GERMAN ✓                                   [Line 3469]
+    (1050-1800 CE)
+    Lists preds: OLD_HIGH_GERMAN
+    Lists succs: MODERN_GERMAN
+         │
+         ↓
+    MODERN_GERMAN ✗✗✗ MISSING                  [BREAKS HERE]
+    (Should be: 1800-present)
+
+    Parallel broken chain:
+    PROTO_GERMANIC ✓
+         │
+         ↓
+    OLD_DUTCH ✗ MISSING
+    (500-1150 CE)
+         │
+         ↓
+    DUTCH ✓                                    [Line 3449]
+    Lists preds: OLD_DUTCH
+
+═══════════════════════════════════════════════════════════════════════════════
+4. INDO-ARYAN EVOLUTION (HIGH PRIORITY - MULTIPLE BREAKS)
+═══════════════════════════════════════════════════════════════════════════════
+
+    PROTO_INDO_IRANIAN ✓
+    (-2500 BCE)
+         │
+         ↓
+    SANSKRIT ✓                                 [Line 333]
+    (-1500 BCE - 100 CE)
+    Lists successors: PRAKRITS, HINDI, BENGALI, MARATHI
+         │
+         ↓
+    PRAKRITS ✗✗✗ MISSING                       [BREAKS HERE]
+    (Should be: 600 BCE - 1000 CE)
+         │
+    ┌────┴────┬─────────┬──────────┐
+    ↓         ↓         ↓          ↓
+  HINDI ✗  BENGALI ✗  MARATHI ✗  HINDUSTANI ✗
+  MISSING   MISSING    MISSING    MISSING
+                                      │
+                                      ↓
+                                 MUGHAL_URDU ✓    [Line 2796]
+                                 Lists preds: HINDUSTANI
+                                      │
+                                      ↓
+                                 MODERN_URDU ✗ MISSING
+
+═══════════════════════════════════════════════════════════════════════════════
+5. CHINESE EVOLUTION (HIGH PRIORITY - NAMING CONFUSION)
+═══════════════════════════════════════════════════════════════════════════════
+
+    PROTO_SINO_TIBETAN ✓
+    (-4000 BCE)
+         │
+         ↓
+    CLASSICAL_CHINESE ✓                        [Line 423]
+    (-1100 to 100 BCE)
+    Lists successor: MANDARIN
+         │
+         ↓
+    MANDARIN ✗ MISSING                         [BREAKS HERE]
+    (But EARLY_MANDARIN exists!)
+         │
+         ↓
+    MIDDLE_CHINESE ✓                           [Line 1055]
+    (600-1200 CE)
+    Lists successor: MANDARIN
+         │
+         ↓
+    EARLY_MANDARIN ✓                           [Line 2818]
+    (1200-1900 CE)
+    Lists successor: MODERN_MANDARIN
+         │
+         ↓
+    MODERN_MANDARIN ✗ MISSING                  [BREAKS HERE]
+
+    ISSUE: Naming inconsistency - should either:
+    Option A: Rename EARLY_MANDARIN → MANDARIN
+    Option B: Add MANDARIN as separate entry (1200-1600 CE)
+
+═══════════════════════════════════════════════════════════════════════════════
+6. JAPANESE EVOLUTION (HIGH PRIORITY - MISSING BRIDGE)
+═══════════════════════════════════════════════════════════════════════════════
+
+    PROTO_JAPONIC ✓
+    (-500 BCE)
+         │
+         ↓
+    CLASSICAL_JAPANESE ✓                       [Line 1071]
+    (794-1185 CE)
+    Lists successor: MIDDLE_JAPANESE
+         │
+         ↓
+    MIDDLE_JAPANESE ✗✗✗ MISSING                [BREAKS HERE]
+    (Should be: 1185-1603 CE)
+         │
+         ↓
+    EDO_JAPANESE ✓                             [Line 2840]
+    (1603-1868 CE)
+    Lists preds: MIDDLE_JAPANESE
+    Lists succs: MODERN_JAPANESE
+         │
+         ↓
+    MODERN_JAPANESE ✗✗✗ MISSING                [BREAKS HERE]
+    (Should be: 1868-present)
+
+═══════════════════════════════════════════════════════════════════════════════
+7. SEMITIC LANGUAGE FAMILY (HIGH PRIORITY - BROKEN ROOTS)
+═══════════════════════════════════════════════════════════════════════════════
+
+    PROTO_AFROASIATIC ✓                        [Line 193]
+    (-8000 BCE)
+    Lists successors: PROTO_SEMITIC, PROTO_BERBER, PROTO_CUSHITIC
+         │
+         ├──────┬──────────────┐
+         ↓      ↓              ↓
+    PROTO_SEMITIC ✗  PROTO_BERBER ✗  PROTO_CUSHITIC ✗
+    MISSING          MISSING          MISSING
+         │
+    ┌────┴────┬─────────┬──────────┐
+    ↓         ↓         ↓          ↓
+  AKKADIAN ✓  PHOENICIAN ✓  ARAMAIC ✓  OLD_ARABIC ✗ MISSING
+  [Line 298]  [Line 829]     [Line 277]  (Should be: 500 BCE-600 CE)
+  (NO PRED)   (NO PRED)      (NO PRED)        │
+                  │              │            ↓
+                  ├──────────────┤       CLASSICAL_ARABIC ✓  [Line 1033]
+                  ↓              ↓       Lists preds: OLD_ARABIC
+              PUNIC ✗        SYRIAC ✗
+              MISSING        MISSING
+                             MANDAIC ✗
+                             MISSING
+
+═══════════════════════════════════════════════════════════════════════════════
+8. ENGLISH EVOLUTION (MEDIUM PRIORITY - INCOMPLETE)
+═══════════════════════════════════════════════════════════════════════════════
+
+    PROTO_GERMANIC ✓
+         │
+         ↓
+    OLD_ENGLISH ✓
+    (450-1100 CE)
+         │
+         ↓
+    MIDDLE_ENGLISH ✓                           [Line 741]
+    (1100-1500 CE)
+    Lists preds: OLD_ENGLISH, OLD_NORMAN_FRENCH
+         │        │
+         │        ↓
+         │   OLD_NORMAN_FRENCH ✗ MISSING
+         │
+         ↓
+    EARLY_MODERN_ENGLISH ✓                     [Line 1868]
+    (1500-1800 CE)
+    Lists successor: MODERN_ENGLISH
+         │
+         ↓
+    MODERN_ENGLISH ✗✗✗ MISSING                 [BREAKS HERE]
+    (Should be: 1800-present)
+
+═══════════════════════════════════════════════════════════════════════════════
+SUMMARY: 69 BROKEN REFERENCES TOTAL
+═══════════════════════════════════════════════════════════════════════════════
+
+CRITICAL (Top 3):
+  1. KOINE_GREEK - Breaks Greek evolution completely
+  2. VULGAR_LATIN - Breaks ALL Romance languages
+  3. OLD_HIGH_GERMAN - Breaks Germanic chain
+
+HIGH PRIORITY (Next 12):
+  4. PRAKRITS (Indo-Aryan bridge)
+  5. HINDI (300M+ speakers)
+  6. BENGALI (230M+ speakers)
+  7. MIDDLE_JAPANESE (essential bridge)
+  8. MODERN_JAPANESE (125M+ speakers)
+  9. MODERN_ENGLISH (1.5B speakers)
+  10. MODERN_GERMAN (90M+ speakers)
+  11. PROTO_SEMITIC (entire language family)
+  12. OLD_ARABIC (essential Semitic bridge)
+  13. ROMANIAN (20M+ speakers, Eastern Romance)
+  14. OLD_SPANISH (medieval bridge)
+  15. GALICIAN_PORTUGUESE (medieval bridge)
+
+═══════════════════════════════════════════════════════════════════════════════

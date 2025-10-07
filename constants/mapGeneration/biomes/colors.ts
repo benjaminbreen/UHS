@@ -210,9 +210,37 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.GUARD_POST]: '#696969', // Guard post dark gray
   [BiomeType.PATH]: '#9C8F7A', // Dirt/stone path
   [BiomeType.STAIRS_UP]: '#A09080', // Stone stairs
+  [BiomeType.STAIRS_DOWN]: '#989080', // Stone stairs (slightly darker than up)
   [BiomeType.TOILET]: '#E8E8E8', // White porcelain
   [BiomeType.TREE]: '#2F4F2F', // Dark green tree
   [BiomeType.WALL_WINDOW]: '#87CEEB', // Sky blue window
+  [BiomeType.DOOR_LOCKED]: '#5a3f21', // Darker brown for locked doors
+
+  // Furniture and Fixtures
+  [BiomeType.COAT_RACK]: '#7a5c3a', // Wood coat rack
+  [BiomeType.BATH]: '#E8F4F8', // Light blue-white bathtub
+  [BiomeType.MIRROR]: '#C8D8E8', // Reflective light blue-gray
+  [BiomeType.RUG]: '#8B4513', // Saddle brown rug
+  [BiomeType.PLANTER]: '#6B8E23', // Olive drab planter with plants
+
+  // Kitchen Elements
+  [BiomeType.KITCHEN_STOVE]: '#4A4A4A', // Dark gray/black stove
+  [BiomeType.KITCHEN_COUNTER]: '#A0826D', // Light tan counter
+  [BiomeType.KITCHEN_SINK]: '#D3D3D3', // Light gray sink
+  [BiomeType.PANTRY]: '#8B7355', // Brown pantry shelving
+
+  // Office/Government Elements
+  [BiomeType.DOCUMENT_TABLE]: '#7a5c3a', // Wood document table
+  [BiomeType.SCROLL_RACK]: '#8B6914', // Dark goldenrod scroll rack
+  [BiomeType.SEAL_STAND]: '#CD853F', // Peru seal stand
+
+  // Ground Surfaces
+  [BiomeType.GRASS_GROUND]: '#7a9a50', // Grassy ground
+  [BiomeType.DIRT_GROUND]: '#8b7355', // Brown dirt ground
+  [BiomeType.STONE_GROUND]: '#9a9a9a', // Gray stone ground
+
+  // Lighting
+  [BiomeType.LANTERN]: '#FFD700', // Gold lantern (should use overlay, but needs base color)
 };
 
 // Helper to make a color slightly darker/richer

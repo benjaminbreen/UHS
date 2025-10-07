@@ -361,6 +361,7 @@ interface Props {
   onConsumeItem: (item: Item) => void;
   date: string;
   location: string;
+  defaultTab?: 'overview' | 'health' | 'equipment' | 'inventory' | 'beliefs' | 'history' | 'household';
 }
 
 const CharacterProfileModal: React.FC<Props> = ({
@@ -375,6 +376,7 @@ const CharacterProfileModal: React.FC<Props> = ({
   onConsumeItem,
   date,
   location,
+  defaultTab = 'overview'
 }) => {
   // Early return MUST come before any hooks
   if (!isOpen || !character) return null;
@@ -383,7 +385,7 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   const [active, setActive] = useState<
     'overview' | 'health' | 'equipment' | 'inventory' | 'beliefs' | 'history' | 'household'
-  >('overview');
+  >(defaultTab);
 
   const [inventoryFilter, setInventoryFilter] = useState<'All' | 'Weapons' | 'Clothing' | 'Consumables' | 'Other'>('All');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);

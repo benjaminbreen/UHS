@@ -30,9 +30,16 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
     const dy = endY - startY;
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-    
-    // Bridge dimensions - much thinner for better clarity
-    const bridgeWidth = TILE_SIZE_PX * width * 0.25; // Reduced to 0.25 for narrow footbridge look
+
+    console.log(`[BridgeSymbol] Rendering bridge at (${startX}, ${startY}) to (${endX}, ${endY}):`, {
+      dx, dy, length, angle,
+      TILE_SIZE_PX,
+      width: width,
+      calculatedBridgeWidth: TILE_SIZE_PX * width * 0.6
+    });
+
+    // Bridge dimensions - sized appropriately for visibility
+    const bridgeWidth = TILE_SIZE_PX * width * 0.6; // 0.6 = more visible bridge width
     const bridgeLength = length * 0.95; // Slightly shorter to not overhang
     
     // Use pixel coordinates directly (no multiplication needed)

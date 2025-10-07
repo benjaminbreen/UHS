@@ -27,7 +27,7 @@ import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
 import { getDisplayZone } from '../utils/zoneDisplayUtils';
 import { primarySourceService } from '../services/primarySourceService';
-import { LazyPortrait } from './portraits';
+import { VisiblePortrait } from './portraits';
 import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
 import { languageVisualizationService } from '../services/languageVisualizationService';
 import { LanguageFamilyTree } from './LanguageFamilyTree';
@@ -146,11 +146,13 @@ const NpcListItem = React.memo(
             : "bg-slate-800/30 hover:bg-slate-700/40 border-slate-700/40 text-gray-200"
         ].join(" ")}
       >
-        {/* Portrait */}
+        {/* Portrait - using VisiblePortrait for lazy rendering */}
         <div className="relative shrink-0">
-          <div className="w-11 h-11 rounded-md overflow-hidden border border-slate-600/70 bg-slate-700/60">
-            <LazyPortrait character={npc} size={44} type="procedural" staticMode={true} />
-          </div>
+          <VisiblePortrait
+            npc={npc}
+            size={44}
+            className="rounded-md overflow-hidden border border-slate-600/70 bg-slate-700/60"
+          />
         </div>
 
         {/* Text block */}
@@ -203,7 +205,8 @@ const LeftSidebar: React.FC<{
     setIsMapDetailsModalOpen, setStructureModalTarget, setActivePoi,
     inMiningRoguelike,
     setCityHistoricalModalData,
-    hasSeenTooltip, markTooltipSeen
+    hasSeenTooltip, markTooltipSeen,
+    showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId
   } = useUI();
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
@@ -217,9 +220,6 @@ const LeftSidebar: React.FC<{
   const [npcQuery, setNpcQuery] = useState<string>('');
   const [highlightedNpcId, setHighlightedNpcId] = useState<string | null>(null);
 
-  // Language tree modal state
-  const [showLanguageTree, setShowLanguageTree] = useState(false);
-  const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
   // Life events calendar state
   const [showLifeEventsCalendar, setShowLifeEventsCalendar] = useState(false);
   const resizeStartX = useRef<number>(0);
@@ -403,6 +403,51 @@ const LeftSidebar: React.FC<{
       return [];
     }
   }, [terrainStructures]);
+
+  // Memoize filtered NPCs based on search query
+  const filteredNpcs = useMemo(() => {
+    const list = (npcs || []);
+    if (!npcQuery.trim()) return list;
+    return list.filter(n =>
+      n.name.toLowerCase().includes(npcQuery.toLowerCase()) ||
+      (n.role || '').toLowerCase().includes(npcQuery.toLowerCase()) ||
+      (n.class || '').toString().toLowerCase().includes(npcQuery.toLowerCase())
+    );
+  }, [npcs, npcQuery]);
+
+  // Memoize secondary powers calculation
+  const secondaryPowers = useMemo(() => {
+    if (!factionData?.allegianceGroups) return [];
+    const risingPowers = factionData.allegianceGroups.filter(group => group.type === 'rising') || [];
+    const contestedPowers = factionData.allegianceGroups.filter(group => group.type === 'contested') || [];
+    const rebelliousPowers = factionData.allegianceGroups.filter(group => group.type === 'rebel') || [];
+    return [...risingPowers, ...contestedPowers, ...rebelliousPowers];
+  }, [factionData]);
+
+  // Memoize local languages calculation
+  const localLanguages = useMemo(() => {
+    if (!gameDate?.year) return [];
+    return languageVisualizationService.getLanguagesByYear(gameDate.year)
+      .filter(lang =>
+        // Match by region
+        lang.regions?.some(region =>
+          currentRegion.toLowerCase().includes(region.toLowerCase()) ||
+          region.toLowerCase().includes(currentRegion.toLowerCase())
+        ) ||
+        // Fallback: Match by cultural zone (check culturalZones array, not family name)
+        (playerCharacter?.culturalZone && lang.culturalZones?.includes(playerCharacter.culturalZone))
+      )
+      .slice(0, 4); // Limit to 4 most relevant
+  }, [gameDate?.year, currentRegion, playerCharacter?.culturalZone]);
+
+  // Memoize POI counts
+  const poiCounts = useMemo(() => ({
+    ruins: pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('ruin')).length,
+    fortresses: pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('fortress')).length,
+    mills: pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('mill')).length,
+    minerals: Array.from(mineralDeposits.values()).reduce((a, b) => a + b, 0),
+    people: npcs?.length || 0
+  }), [pointsOfInterest, mineralDeposits, npcs?.length]);
 
   const selectedAnimalId = isAnimal(infoModalTarget) ? infoModalTarget?.id : undefined;
   const selectedNpcId = isNpc(infoModalTarget) ? infoModalTarget?.id : undefined;
@@ -707,26 +752,8 @@ const LeftSidebar: React.FC<{
       const factionIconData = FACTION_ICONS[dominantPower];
       const FactionIcon = factionIconData?.icon || Crown;
 
-      // Get rising and contested powers
-      const risingPowers = factionData?.allegianceGroups?.filter(group => group.type === 'rising') || [];
-      const contestedPowers = factionData?.allegianceGroups?.filter(group => group.type === 'contested') || [];
-      const rebelliousPowers = factionData?.allegianceGroups?.filter(group => group.type === 'rebel') || [];
-      const secondaryPowers = [...risingPowers, ...contestedPowers, ...rebelliousPowers];
-
-      // Get local languages based on cultural zone and time period
-      const localLanguages = languageVisualizationService.getLanguagesByYear(gameDate.year)
-        .filter(lang => lang.regions?.some(region =>
-          currentRegion.toLowerCase().includes(region.toLowerCase()) ||
-          region.toLowerCase().includes(currentRegion.toLowerCase())
-        ) || (playerCharacter?.culturalZone && lang.family?.toLowerCase().includes(playerCharacter.culturalZone.toLowerCase())))
-        .slice(0, 4); // Limit to 4 most relevant
-
-      // Count map features for summary
-      const ruinCount = pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('ruin')).length;
-      const fortressCount = pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('fortress')).length;
-      const millCount = pointsOfInterest.filter(poi => poi.structureType?.toLowerCase().includes('mill')).length;
-      const mineralCount = Array.from(mineralDeposits.values()).reduce((a, b) => a + b, 0);
-      const peopleCount = npcs?.length || 0;
+      // Use memoized secondary powers, local languages, and counts
+      const { ruins: ruinCount, fortresses: fortressCount, mills: millCount, minerals: mineralCount, people: peopleCount } = poiCounts;
 
       return (
         <div className="flex flex-col h-full">
@@ -1016,14 +1043,8 @@ const LeftSidebar: React.FC<{
     }
 
     if (tab === 'npcs') {
+      // Use memoized filtered NPCs
       const list = (npcs || []);
-      const filtered = npcQuery.trim()
-        ? list.filter(n =>
-            n.name.toLowerCase().includes(npcQuery.toLowerCase()) ||
-            (n.role || '').toLowerCase().includes(npcQuery.toLowerCase()) ||
-            (n.class || '').toString().toLowerCase().includes(npcQuery.toLowerCase())
-          )
-        : list;
 
       return (
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
@@ -1045,9 +1066,9 @@ const LeftSidebar: React.FC<{
           </div>
 
           {/* List */}
-          {filtered.length > 0 ? (
+          {filteredNpcs.length > 0 ? (
             <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 flex-1 pr-1">
-              {filtered.map(npc => (
+              {filteredNpcs.map(npc => (
                 <NpcListItem
                   key={npc.id}
                   npc={npc}
@@ -1229,19 +1250,6 @@ const LeftSidebar: React.FC<{
         </div>
       </div>
     </div>
-
-      {/* Language Family Tree Modal */}
-      {showLanguageTree && selectedLanguageId && (
-        <LanguageFamilyTree
-          isOpen={showLanguageTree}
-          onClose={() => {
-            setShowLanguageTree(false);
-            setSelectedLanguageId(null);
-          }}
-          initialLanguageId={selectedLanguageId}
-          currentYear={gameDate.year}
-        />
-      )}
 
       {/* Life Events Calendar Modal */}
       {showLifeEventsCalendar && playerCharacter && (

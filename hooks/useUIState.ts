@@ -161,6 +161,23 @@ export const useUIState = () => {
         connectedStations: any[];
     } | null>(null);
 
+    // App-level modals
+    const [showInitialScenarioModal, setShowInitialScenarioModal] = useState<boolean>(false);
+    const [showDeathModal, setShowDeathModal] = useState<boolean>(false);
+    const [showNpcDeathModal, setShowNpcDeathModal] = useState<boolean>(false);
+    const [showDiseaseProgressionModal, setShowDiseaseProgressionModal] = useState<boolean>(false);
+    const [showEventModal, setShowEventModal] = useState<boolean>(false);
+    const [showFactionsModal, setShowFactionsModal] = useState<boolean>(false);
+
+    // Top nav panels state
+    const [showJournal, setShowJournal] = useState<boolean>(false);
+    const [showQuestsPanel, setShowQuestsPanel] = useState<boolean>(false);
+    const [showGameModePanel, setShowGameModePanel] = useState<boolean>(false);
+
+    // Language Family Tree modal state
+    const [showLanguageTree, setShowLanguageTree] = useState<boolean>(false);
+    const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
+
     // Dev Tooltip
     const [hoveredDevData, setHoveredDevData] = useState<DevTooltipDisplayData | null>(null);
     const [pinnedDevData, setPinnedDevData] = useState<DevTooltipDisplayData | null>(null);
@@ -319,10 +336,13 @@ export const useUIState = () => {
     const isAnyModalOpen = useMemo(() =>
         isSettingsModalOpen || isAboutModalOpen || isPauseModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
-        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen,
+        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen || showJournal || showQuestsPanel || showGameModePanel ||
+        showInitialScenarioModal || showDeathModal || showNpcDeathModal || showDiseaseProgressionModal || showEventModal || showFactionsModal ||
+        (!!diseaseContractedModalData && diseaseContractedModalData.isOpen) || !!railroadStationModalData || showLanguageTree,
         [isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen]
+         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen, showJournal, showQuestsPanel, showGameModePanel,
+         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal, diseaseContractedModalData, railroadStationModalData, showLanguageTree]
     );
 
     // Handlers
@@ -1583,6 +1603,9 @@ export const useUIState = () => {
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
         isCampModalOpen,
+        showJournal, showQuestsPanel, showGameModePanel,
+        showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal,
+        showLanguageTree, selectedLanguageId,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, panelNotificationItem,
         isRightSidebarVisible, setIsRightSidebarVisible,
         floatingTextMessages, containerPrompt,
@@ -1613,6 +1636,9 @@ export const useUIState = () => {
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
         closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
         setIsCampModalOpen,
+        setShowJournal, setShowQuestsPanel, setShowGameModePanel,
+        setShowInitialScenarioModal, setShowDeathModal, setShowNpcDeathModal, setShowDiseaseProgressionModal, setShowEventModal, setShowFactionsModal,
+        setShowLanguageTree, setSelectedLanguageId,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
         showFloatingText, removeFloatingText, showContainerPrompt, hideContainerPrompt,
         handleLooting, handleCloseLootModal, onTakeCoins,

@@ -553,11 +553,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 {/* Sticky Header with gradient */}
                 <div className={`sticky top-0 z-20 bg-gradient-to-r ${
                     gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-600 to-amber-700' : 'from-amber-600 to-amber-700'
-                } border-b ${isSafari ? 'border-amber-800' : 'border-white/20 backdrop-blur-sm'}`}>
-                    <div className="flex items-center justify-between p-3">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-white/20 rounded-lg">
-                                <DominantFactionIcon className="w-8 h-8 text-white" />
+                } border-b-2 ${isSafari ? 'border-amber-800' : 'border-white/30 backdrop-blur-sm'}`}>
+                    <div className="flex items-center justify-between p-2.5">
+                        <div className="flex items-center gap-5">
+                            <div className="p-2 bg-white/20 rounded-lg">
+                                <DominantFactionIcon className="w-9 h-9 text-white" />
                             </div>
                             <div className="text-white">
                                 <div className="text-md font-medium">
@@ -589,7 +589,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                     {/* Hero Section */}
                     <div className="mb-4 text-center md:text-left">
-                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-1">
                             You are <span className="text-amber-400">{playerCharacter.name}</span>
                         </h1>
                         <p className="text-xl text-slate-300">
@@ -602,10 +602,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         <div className="lg:col-span-4 space-y-3">
                             {/* Historical Context */}
                             <div className={cardClass}>
-                                <div className="flex items-center gap-3 mb-3">
+                                <div className="flex items-center gap-3 mb-1">
                                     <Globe className="w-6 h-6 text-blue-400 shrink-0" />
-                                    <h3 className="text-lg font-semibold text-blue-400">
-                                        The {localArea}
+                                    <h3 className="text-xl font-semibold text-blue-400">
+                                        {localArea}
                                     </h3>
                                 </div>
                                 <div className="relative">
@@ -635,7 +635,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                             {/* Character Info */}
                             <div className={cardClass}>
-                                <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <User className="w-5 h-5 text-green-400" />
                                         <h3 className="text-lg font-semibold text-green-400">Your Character</h3>
@@ -652,7 +652,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 {/* Portrait and Info Layout */}
                                 <div className="flex flex-col sm:flex-row gap-6">
                                     {/* Portrait Column */}
-                                    <div className="flex-shrink-0 w-40">
+                                    <div className="flex-shrink-0 w-50">
                                         <div className="relative cursor-pointer"
                                             onClick={() => {
                                                 if (shouldRenderPortrait) {
@@ -706,8 +706,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         {(() => {
                                             const attributeSentence = generateAttributeSentence(playerCharacter);
                                             return attributeSentence ? (
-                                                <div className="mt-2 p-2 bg-slate-800/30 rounded text-center">
-                                                    <p className="text-slate-300 text-xs italic break-words leading-relaxed">
+                                                <div className="mt-2 p-2 bg-slate-800/30 rounded text-center max-w-[160px]">
+                                                    <p className="text-slate-300 text-xs italic break-words whitespace-normal leading-relaxed">
                                                         {attributeSentence}
                                                     </p>
                                                 </div>
@@ -875,19 +875,19 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     {/* Settings Section */}
                     <div className={cardClass}>
                         <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Settings</h4>
-                        <label className="flex items-start gap-3 cursor-pointer group">
-                            <input
-                                type="checkbox"
-                                checked={dialectContinuumEnabled}
-                                onChange={(e) => setDialectContinuumEnabled(e.target.checked)}
-                                className="w-4 h-4 mt-0.5 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                            />
-                            <div className="flex-1">
+                        <label className="flex flex-col md:flex-row items-start md:items-center gap-3 cursor-pointer group">
+                            <div className="flex items-start gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={dialectContinuumEnabled}
+                                    onChange={(e) => setDialectContinuumEnabled(e.target.checked)}
+                                    className="w-4 h-4 mt-0.5 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+                                />
                                 <div className="text-sm font-medium text-blue-400 group-hover:text-blue-300 transition-colors">Enable Dialect Continuum</div>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    Gradually introduces foreign languages as you travel.
-                                </p>
                             </div>
+                            <p className="text-xs text-slate-400 md:ml-auto md:text-right">
+                                Gradually introduces foreign languages as you travel.
+                            </p>
                         </label>
                     </div>
 
@@ -928,8 +928,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         }
                                         onClose();
                                     }}
-                                    className={`w-full px-5 py-4 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out text-lg ${
-                                        gameMode ? `bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'} hover:${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'from-amber-700 to-amber-800'}` : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
+                                    className={`w-full px-5 py-4 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-out text-lg ${
+                                        gameMode ? ` border-white/10 bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'} hover:${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'from-amber-700 to-amber-800'}` : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
                                     }`}
                                 >
                                     Begin the Simulation

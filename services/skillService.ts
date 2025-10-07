@@ -14,6 +14,18 @@ import { getDayOfYear } from '../utils/dateUtils';
 import { handleSkillFailureInjury } from './injuryService';
 import { mapLocationToCulture } from '../utils/mapUtils';
 
+/**
+ * Helper to add biome context to skill results
+ */
+function addBiomeContext<T extends ForageSkillResult | DigSkillResult | ChopSkillResult>(
+    result: T,
+    biome: string
+): T {
+    return {
+        ...result,
+        context: { biome }
+    };
+}
 
 async function executeObserve(context: PlayerContext): Promise<ObserveSkillResult> {
     try {
@@ -104,10 +116,13 @@ function findSpeciesDefinition(baseType: string, speciesName: string, climate: s
 async function executeForage(context: PlayerContext): Promise<ForageSkillResult> {
     const { playerCharacter, currentTile, mapData } = context;
 
+    // Extract biome for context
+    const biome = (currentTile as Tile)?.biome || 'GRASSLAND';
+
     if (!playerCharacter || !mapData) {
-        return { type: 'forage', success: false, message: "You can't forage right now." };
+        return addBiomeContext({ type: 'forage', success: false, message: "You can't forage right now." }, biome);
     }
-    
+
     const tile = currentTile as Tile;
     
     // Check if this is an urban tile
@@ -118,14 +133,14 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
     // Try terrain-specific foraging first
     // Validate player location before proceeding
     if (typeof context.playerX !== 'number' || typeof context.playerY !== 'number') {
-        return {
+        return addBiomeContext({
             type: 'forage',
             success: false,
             message: 'Unable to determine your location for foraging.',
             xpGained: 0
-        };
+        }, biome);
     }
-    
+
     const playerLocation = { x: context.playerX, y: context.playerY };
     const terrainResult = executeTerrainForage(tile, playerCharacter, isUrbanTile, mapData, playerLocation);
     if (terrainResult.success) {
@@ -136,14 +151,14 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
             message: terrainResult.message,
             xpGained: terrainResult.xpGained || 1
         };
-        
+
         // Add reputation change if stealing
         if (terrainResult.reputationChange) {
             (result as any).reputationChange = terrainResult.reputationChange;
             (result as any).stealingDetected = terrainResult.stealingDetected;
         }
-        
-        return result;
+
+        return addBiomeContext(result, biome);
     }
     const perception = playerCharacter.stats.perception || 5;
     const luck = playerCharacter.stats.luck || 5;
@@ -238,14 +253,14 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
                     customItem.description = 'Sweet, ripe figs - a Mediterranean delicacy.';
                 }
                 
-                return { 
-                    type: 'forage', 
-                    success: true, 
+                return addBiomeContext({
+                    type: 'forage',
+                    success: true,
                     item: customItem,
                     message: `You successfully harvested ${customItem.name.toLowerCase()} from the ${bushName}.`,
                     xpGained: 2,
                     entityToRemoveId: vegetationEntity.id // Mark bush for removal
-                };
+                }, biome);
             }
         } else if (speciesDef?.drops && speciesDef.drops.length > 0) {
             // For non-bush vegetation (trees, etc), use the original chance-based system
@@ -254,13 +269,13 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
                 if (Math.random() < successChance) {
                     const item = createItemInstance(drop.name);
                     if (item) {
-                        return { 
-                            type: 'forage', 
-                            success: true, 
+                        return addBiomeContext({
+                            type: 'forage',
+                            success: true,
                             item,
                             message: `You foraged ${item.name.toLowerCase()} from the ${speciesDef.name}.`,
                             xpGained: 1
-                        };
+                        }, biome);
                     }
                 }
             }
@@ -275,46 +290,46 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
         if (roll < 5 && lootTable.Rare) {
             const itemName = lootTable.Rare[Math.floor(Math.random() * lootTable.Rare.length)];
             const item = createItemInstance(itemName);
-            if(item) return { type: 'forage', success: true, item, message: `Searching around the ${structure.name}, you find something rare!`, xpGained: 2 };
+            if(item) return addBiomeContext({ type: 'forage', success: true, item, message: `Searching around the ${structure.name}, you find something rare!`, xpGained: 2 }, biome);
         }
         if (roll < 50 && lootTable.Common) {
             const itemName = lootTable.Common[Math.floor(Math.random() * lootTable.Common.length)];
             const item = createItemInstance(itemName);
-            if(item) return { type: 'forage', success: true, item, message: `You find some scraps near the ${structure.name}.`, xpGained: 1 };
+            if(item) return addBiomeContext({ type: 'forage', success: true, item, message: `You find some scraps near the ${structure.name}.`, xpGained: 1 }, biome);
         }
     }
-    
+
     // 3. Fallback to generic biome loot table
     const lootTable = LOOT_TABLES[tile.biome];
     if (!lootTable) {
-        return { type: 'forage', success: false, message: "You find nothing of use in this area." };
+        return addBiomeContext({ type: 'forage', success: false, message: "You find nothing of use in this area." }, biome);
     }
 
     const roll = Math.random() * 100;
     const luckBonus = (luck - 5) * 1.5;
     
-    if (roll <= 1 + luckBonus / 2) { 
+    if (roll <= 1 + luckBonus / 2) {
         try {
             const uniqueItem = await generateUniqueForageItem(context);
-            return { type: 'forage', success: true, item: { ...uniqueItem, rarity: 'Unique' }, message: `Incredibly, you've found something unique!`, xpGained: 5 };
+            return addBiomeContext({ type: 'forage', success: true, item: { ...uniqueItem, rarity: 'Unique' }, message: `Incredibly, you've found something unique!`, xpGained: 5 }, biome);
         } catch (error) {
              const fallbackItem = lootTable.ultra_rare?.[0] || lootTable.rare?.[0] || 'A Peculiar Rock';
              const item = createItemInstance(fallbackItem) || {name: fallbackItem, description: 'A rock', rarity: 'Rare'};
-             return { type: 'forage', success: true, item: {name: item.name, rarity: 'Ultra-rare', description: item.description}, message: `You found something very rare!`, xpGained: 3 };
+             return addBiomeContext({ type: 'forage', success: true, item: {name: item.name, rarity: 'Ultra-rare', description: item.description}, message: `You found something very rare!`, xpGained: 3 }, biome);
         }
-    } else if (roll <= 6 + luckBonus) { 
+    } else if (roll <= 6 + luckBonus) {
         const items = lootTable.ultra_rare;
         if (items && items.length > 0) {
             const itemName = items[Math.floor(Math.random() * items.length)];
             const item = createItemInstance(itemName);
-            if(item) return { type: 'forage', success: true, item, message: `You found something very rare!`, xpGained: 3 };
+            if(item) return addBiomeContext({ type: 'forage', success: true, item, message: `You found something very rare!`, xpGained: 3 }, biome);
         }
-    } else if (roll <= 31 + luckBonus * 2) { 
+    } else if (roll <= 31 + luckBonus * 2) {
         const items = lootTable.rare;
         if (items && items.length > 0) {
             const itemName = items[Math.floor(Math.random() * items.length)];
             const item = createItemInstance(itemName);
-            if(item) return { type: 'forage', success: true, item, message: 'You found something of interest!', xpGained: 1 };
+            if(item) return addBiomeContext({ type: 'forage', success: true, item, message: 'You found something of interest!', xpGained: 1 }, biome);
         }
     }
 
@@ -322,25 +337,29 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
     if (items && items.length > 0) {
         const itemName = items[Math.floor(Math.random() * items.length)];
         const item = createItemInstance(itemName);
-        if(item) return { type: 'forage', success: true, item, message: 'You foraged successfully.', xpGained: 1 };
+        if(item) return addBiomeContext({ type: 'forage', success: true, item, message: 'You foraged successfully.', xpGained: 1 }, biome);
     }
-    
-    return { type: 'forage', success: false, message: "You search the area but find nothing useful." };
+
+    return addBiomeContext({ type: 'forage', success: false, message: "You search the area but find nothing useful." }, biome);
 }
 
 
 async function executeChop(context: PlayerContext): Promise<ChopSkillResult> {
     const { playerCharacter, currentTile, mapData } = context;
-    if (!playerCharacter || !mapData) return { type: 'chop', success: false, message: 'You cannot chop right now.' };
-    
+
+    // Extract biome for context
+    const biome = (currentTile as Tile)?.biome || 'GRASSLAND';
+
+    if (!playerCharacter || !mapData) return addBiomeContext({ type: 'chop', success: false, message: 'You cannot chop right now.' }, biome);
+
     const tile = currentTile as Tile;
     const vegetationEntity = mapData.vegetation?.find(v => v.id === tile.vegetationId);
-    
+
     // Check if this is an urban tile
-    const isUrbanTile = mapData.urbanCenters?.some(uc => 
+    const isUrbanTile = mapData.urbanCenters?.some(uc =>
         uc.x === tile.x && uc.y === tile.y
     ) || false;
-    
+
     // Try terrain-specific chopping first (mangroves, bamboo, etc.)
     const terrainResult = executeTerrainChop(tile, playerCharacter, isUrbanTile);
     if (terrainResult.success || terrainResult.reputationChange) {
@@ -351,23 +370,23 @@ async function executeChop(context: PlayerContext): Promise<ChopSkillResult> {
             message: terrainResult.message,
             xpGained: terrainResult.xpGained || 0
         };
-        
+
         // Add reputation change if vandalism
         if (terrainResult.reputationChange) {
             (result as any).reputationChange = terrainResult.reputationChange;
             (result as any).stealingDetected = terrainResult.stealingDetected;
         }
-        
-        return result;
+
+        return addBiomeContext(result, biome);
     }
 
     if (!vegetationEntity || !vegetationEntity.baseType.includes('tree')) {
-        return { type: 'chop', success: false, message: 'There is nothing here to chop.' };
+        return addBiomeContext({ type: 'chop', success: false, message: 'There is nothing here to chop.' }, biome);
     }
-    
+
     const equippedTool = playerCharacter.equippedItems.main_hand;
     if (!equippedTool) {
-        return { type: 'chop', success: false, message: 'You need to be holding a tool to chop.' };
+        return addBiomeContext({ type: 'chop', success: false, message: 'You need to be holding a tool to chop.' }, biome);
     }
 
     let toolModifier = 0;
@@ -385,17 +404,17 @@ async function executeChop(context: PlayerContext): Promise<ChopSkillResult> {
     if (Math.random() < successChance) {
         const logBaseId = `${vegetationEntity.speciesName.toUpperCase().replace(/ /g, '_')}_LOG`;
         const logItem = createItemInstance(logBaseId);
-        
-        if (!logItem) return { type: 'chop', success: false, message: 'You successfully chopped the tree, but the wood was unusable.' };
 
-        return {
+        if (!logItem) return addBiomeContext({ type: 'chop', success: false, message: 'You successfully chopped the tree, but the wood was unusable.' }, biome);
+
+        return addBiomeContext({
             type: 'chop',
             success: true,
             message: `With a mighty effort, you fell the ${vegetationEntity.speciesName.toLowerCase()} and gather a log!`,
             item: logItem,
             xpGained: 3,
             entityToRemoveId: vegetationEntity.id,
-        };
+        }, biome);
     } else {
         // Check for injury on critical chopping failures
         const currentDate = context.gameDate || { year: 1000, month: 1, day: 1 };
@@ -408,41 +427,45 @@ async function executeChop(context: PlayerContext): Promise<ChopSkillResult> {
         const injuryResult = handleSkillFailureInjury(playerCharacter, injuryContext, currentDate);
 
         if (injuryResult.injured) {
-            return {
+            return addBiomeContext({
                 type: 'chop',
                 success: false,
                 message: `You swing at the ${vegetationEntity.speciesName.toLowerCase()} but fail to make a dent.\n\n${injuryResult.message}`,
                 injury: injuryResult.injury
-            };
+            }, biome);
         }
 
-        return { type: 'chop', success: false, message: `You swing at the ${vegetationEntity.speciesName.toLowerCase()} but fail to make a dent.` };
+        return addBiomeContext({ type: 'chop', success: false, message: `You swing at the ${vegetationEntity.speciesName.toLowerCase()} but fail to make a dent.` }, biome);
     }
 }
 
 async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
     const { playerCharacter, currentTile, mapData } = context;
-    if (!playerCharacter || !mapData) return { type: 'dig', success: false, message: "You can't dig right now." };
+
+    // Extract biome for context
+    const biome = (currentTile as Tile)?.biome || 'GRASSLAND';
+
+    if (!playerCharacter || !mapData) return addBiomeContext({ type: 'dig', success: false, message: "You can't dig right now." }, biome);
 
     const tile = currentTile as Tile;
     const equippedTool = playerCharacter.equippedItems.main_hand;
-    
+
     // Check if this is an urban tile
-    const isUrbanTile = mapData.urbanCenters?.some(uc => 
+    const isUrbanTile = mapData.urbanCenters?.some(uc =>
         uc.x === tile.x && uc.y === tile.y
     ) || false;
-    
+
     // Try terrain-specific digging first (salt flats, beaches, etc.)
     // Validate player location before proceeding
     if (typeof context.playerX !== 'number' || typeof context.playerY !== 'number') {
-        return {
+        return addBiomeContext({
             type: 'dig',
             success: false,
             message: 'Unable to determine your location for digging.',
             xpGained: 0
-        };
+        }, biome);
     }
-    
+
     const playerLocation = { x: context.playerX, y: context.playerY };
     const terrainResult = executeTerrainDig(tile, playerCharacter, isUrbanTile, mapData, playerLocation);
     if (terrainResult.success) {
@@ -453,14 +476,14 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
             message: terrainResult.message,
             xpGained: terrainResult.xpGained || 1
         };
-        
+
         // Add reputation change if stealing
         if (terrainResult.reputationChange) {
             (result as any).reputationChange = terrainResult.reputationChange;
             (result as any).stealingDetected = terrainResult.stealingDetected;
         }
-        
-        return result;
+
+        return addBiomeContext(result, biome);
     }
 
     // Case 1: Mining a mineral deposit
@@ -578,11 +601,11 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
                 
                 item.quantity = actualAmount;
                 const newDepositQty = tile.mineralDeposit.quantity - actualAmount;
-                const message = newDepositQty > 0 
+                const message = newDepositQty > 0
                     ? `You successfully extract ${actualAmount} ${qualityDescription}${item.name.toLowerCase()} using ${toolName}!`
                     : `You extract the last ${actualAmount} ${qualityDescription}${item.name.toLowerCase()} from the depleted deposit using ${toolName}!`;
-                
-                return {
+
+                return addBiomeContext({
                     type: 'dig',
                     success: true,
                     message,
@@ -590,7 +613,7 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
                     xpGained: quality === 'excellent' ? 4 : quality === 'good' ? 3 : 2,
                     tileCoords: { x: tile.x, y: tile.y },
                     amountExtracted: actualAmount,
-                };
+                }, biome);
             }
         }
         
@@ -609,15 +632,15 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
             : `You try to dig with ${toolName} but can't extract any ore this time.`;
 
         if (injuryResult.injured) {
-            return {
+            return addBiomeContext({
                 type: 'dig',
                 success: false,
                 message: `${failureMessage}\n\n${injuryResult.message}`,
                 injury: injuryResult.injury
-            };
+            }, biome);
         }
 
-        return { type: 'dig', success: false, message: failureMessage };
+        return addBiomeContext({ type: 'dig', success: false, message: failureMessage }, biome);
     }
 
     // Case 2: Digging in normal ground
@@ -634,7 +657,7 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
         else if (lootRoll < 0.85) itemBaseId = 'DAMP_LOG';
         else if (lootRoll < 0.95) itemBaseId = 'POTTERY_SHARD';
         else itemBaseId = 'SMOOTH_STONE';
-        
+
         foundItem = createItemInstance(itemBaseId);
         message = `You dig in the dirt and find a ${foundItem?.name.toLowerCase()}.`;
     } else {
@@ -642,16 +665,16 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
     }
 
     if (foundItem) {
-        return {
+        return addBiomeContext({
             type: 'dig',
             success: true,
             message,
             item: foundItem,
             xpGained: 1
-        };
+        }, biome);
     }
 
-    return { type: 'dig', success: false, message };
+    return addBiomeContext({ type: 'dig', success: false, message }, biome);
 }
 
 /**

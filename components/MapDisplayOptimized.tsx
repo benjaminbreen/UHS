@@ -81,13 +81,14 @@ import { NpcHelperOverlay } from './NpcHelperModeHandler';
 import { getHelperMode } from '../services/npcHelperService';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle, getSafariGPUStyle, getSafariOptimizedTransform, isSafari } from '../utils/safariUtils';
 import { eventBus } from '../services/eventBus';
+import { rafDebounce } from '../utils/perfUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 const ICON_ANIMATION_DURATION = 200; // Back to 200ms for smoother, more controlled animation
 
 // Safari optimization: Start more zoomed in to render fewer tiles
 const isSafariBrowser = isSafari(); // Call the function from safariUtils
-const INITIAL_ZOOM_LEVEL = isSafariBrowser ? 2.5 : 2;
+const INITIAL_ZOOM_LEVEL = 1.8;
 
 type PlayerMode = 'ship' | 'onFoot';
 
@@ -115,14 +116,38 @@ function getPathBounds(svgD: string): { minX: number, minY: number, maxX: number
 function pathCrossesWater(pathD: string, tiles: Tile[][]): boolean {
   const numbers = pathD.match(/[\d.-]+/g);
   if (!numbers || numbers.length < 2) return false;
-  
+
   for (let i = 0; i < numbers.length - 1; i += 2) {
     const x = Math.floor(parseFloat(numbers[i]) / TILE_SIZE_PX_CONST);
     const y = Math.floor(parseFloat(numbers[i + 1]) / TILE_SIZE_PX_CONST);
-    
+
     if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
       const tile = tiles[y][x];
       if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Check if path crosses ANY water tiles (ocean, river, etc) - for filtering SVG river paths
+function pathCrossesAnyWater(pathD: string, tiles: Tile[][]): boolean {
+  const numbers = pathD.match(/[\d.-]+/g);
+  if (!numbers || numbers.length < 2) return false;
+
+  for (let i = 0; i < numbers.length - 1; i += 2) {
+    const x = Math.floor(parseFloat(numbers[i]) / TILE_SIZE_PX_CONST);
+    const y = Math.floor(parseFloat(numbers[i + 1]) / TILE_SIZE_PX_CONST);
+
+    if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+      const tile = tiles[y][x];
+      // Check if it's ANY water tile (ocean, river, major river, etc)
+      if (!tile.isLand ||
+          tile.biome === BiomeType.DEEP_OCEAN ||
+          tile.biome === BiomeType.SHALLOW_OCEAN ||
+          tile.biome === BiomeType.RIVER ||
+          tile.biome === BiomeType.MAJOR_RIVER) {
         return true;
       }
     }
@@ -492,6 +517,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         canvasRef.current.style.webkitTransform = newTransform;
         canvasRef.current.style.willChange = 'transform';
       }
+
+      // CRITICAL FIX: Update React state during animation so visibleTiles recalculates
+      // This ensures symbols appear as player moves into new areas
+      setPanX(currentPanX.current);
+      setPanY(currentPanY.current);
     }
   }, [displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, mapData]);
 
@@ -527,36 +557,24 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   // Listen for fire changes and batch updates with RAF (OLD SYSTEM - disabled if unified enabled)
   useEffect(() => {
     if (ENABLE_UNIFIED_ANIMATIONS) return; // Skip if using unified system
-    let rafId: number | null = null;
-    let pendingUpdate = false;
-    
-    // Batch fire updates using requestAnimationFrame
-    const batchedFireUpdate = () => {
-      if (!pendingUpdate) return;
-      pendingUpdate = false;
+
+    // Debounced fire update function using RAF for smooth animations
+    const debouncedFireUpdate = rafDebounce(() => {
       setFireUpdateTrigger(prev => prev + 1);
-    };
-    
-    // Subscribe to fire changes
-    const unsubscribe = fireService.onFireChange(() => {
-      pendingUpdate = true;
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(batchedFireUpdate);
     });
-    
-    // Also update periodically for animation (reduced frequency with RAF batching)
+
+    // Subscribe to fire changes with debounced updates
+    const unsubscribe = fireService.onFireChange(debouncedFireUpdate);
+
+    // Also update periodically for animation with debouncing
     const fireUpdateInterval = setInterval(() => {
-      // Force re-render if there are active fires for animation
       if (fireService.getAllFires().length > 0) {
-        pendingUpdate = true;
-        if (rafId !== null) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(batchedFireUpdate);
+        debouncedFireUpdate();
       }
-    }, 1000); // Reduced to once per second since RAF handles smoother updates
-    
+    }, 1000); // Check once per second, but actual update is debounced via RAF
+
     return () => {
       clearInterval(fireUpdateInterval);
-      if (rafId !== null) cancelAnimationFrame(rafId);
       unsubscribe();
     };
   }, []);
@@ -619,6 +637,33 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const flatTiles = useMemo(() => {
     return mapData?.tiles?.flat() || [];
   }, [mapData?.tiles]);
+
+  // VIEWPORT CULLING - Only render visible tiles + buffer for massive Safari performance gain
+  // Calculates tile range directly instead of filtering (avoids 1,024 comparisons per frame)
+  const visibleTiles = useMemo(() => {
+    if (!mapData?.tiles || containerDimensions.width === 0) return flatTiles;
+
+    const buffer = TILE_SIZE_PX * 3; // 3-tile buffer to prevent pop-in during fast panning
+
+    // Calculate visible tile bounds
+    // FIXED: Convert pixels to tiles BEFORE clamping (was comparing tiles vs pixels)
+    const viewLeft = Math.max(0, Math.floor((-panX / zoomLevel - buffer) / TILE_SIZE_PX));
+    const viewRight = Math.min(MAP_WIDTH_TILES - 1, Math.ceil(((-panX + containerDimensions.width) / zoomLevel + buffer) / TILE_SIZE_PX));
+    const viewTop = Math.max(0, Math.floor((-panY / zoomLevel - buffer) / TILE_SIZE_PX));
+    const viewBottom = Math.min(MAP_HEIGHT_TILES - 1, Math.ceil(((-panY + containerDimensions.height) / zoomLevel + buffer) / TILE_SIZE_PX));
+
+    // Direct calculation: iterate only through visible range (not all 1,024 tiles)
+    const visible: Tile[] = [];
+    for (let y = viewTop; y <= viewBottom; y++) {
+      for (let x = viewLeft; x <= viewRight; x++) {
+        if (mapData.tiles[y]?.[x]) {
+          visible.push(mapData.tiles[y][x]);
+        }
+      }
+    }
+
+    return visible;
+  }, [flatTiles, panX, panY, zoomLevel, containerDimensions.width, containerDimensions.height, mapData?.tiles]);
 
   // Memoized filter operations - PERFORMANCE: Avoid filtering 10k elements every render
   const desertParticleTiles = useMemo(() => {
@@ -827,6 +872,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 if (svgRef.current) svgRef.current.style.transform = newTransform;
                 if (canvasRef.current) canvasRef.current.style.transform = newTransform;
             }
+
+            // CRITICAL FIX: Update React state during animation so visibleTiles recalculates
+            // This ensures symbols appear as player moves into new areas
+            setPanX(currentPanX.current);
+            setPanY(currentPanY.current);
 
             // Continue animating
             cameraAnimationFrame.current = requestAnimationFrame(smoothCameraLoop);
@@ -1345,6 +1395,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           componentInfo = { fileName: 'IndustrialDistrictSymbol.tsx', symbolName: 'IndustrialDistrictSymbol' };
           break;
         case BiomeType.STAIRS_UP:
+          componentInfo = { fileName: 'StairsUpPixel.tsx', symbolName: 'StairsUpPixel' };
+          break;
+        case BiomeType.STAIRS_DOWN:
           componentInfo = { fileName: 'StairsUpPixel.tsx', symbolName: 'StairsUpPixel' };
           break;
         case BiomeType.AIR:
@@ -1913,6 +1966,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     return !tile.isLand || [BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN].includes(tile.biome);
   }, []);
 
+  // Helper to check if a tile is OCEAN (not rivers) - for filtering river paths
+  const isOceanTile = useCallback((tile: Tile) => {
+    return [BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN].includes(tile.biome);
+  }, []);
+
   // Simple day/night detection for UI purposes only (no color tinting)
   const timeOfDayData = useMemo(() => {
     const hour = gameTimeHours;
@@ -2143,21 +2201,28 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-            
-            {/* Water mask for paths */}
+
+            {/* Water mask for paths - OPTIMIZED for Safari performance
+                 OLD: Created 1,024 rect elements (one per tile)
+                 NEW: Creates 1 white background + only black rects for water tiles (~200-400)
+                 RESULT: 60-75% reduction in DOM elements */}
             <mask id="waterMask">
-              {flatTiles.map((tile) => (
+              {/* White background - show paths everywhere by default */}
+              <rect x="0" y="0" width={svgWidth} height={svgHeight} fill="white" />
+
+              {/* Black rects ONLY for water tiles - hide paths over these */}
+              {flatTiles.filter(isWaterTile).map((tile) => (
                 <rect
                   key={`mask-${tile.x}-${tile.y}`}
                   x={tile.x * TILE_SIZE_PX}
                   y={tile.y * TILE_SIZE_PX}
                   width={TILE_SIZE_PX}
                   height={TILE_SIZE_PX}
-                  fill={isWaterTile(tile) ? "black" : "white"}
+                  fill="black"
                 />
               ))}
             </mask>
-            
+
             {/* Coastal enhancement patterns */}
             <pattern id="wavePattern" x="0" y="0" width={TILE_SIZE_PX * 2} height={TILE_SIZE_PX} patternUnits="userSpaceOnUse">
               <path 
@@ -2219,8 +2284,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Strategic Lens Overlay */}
             {activeLens !== 'none' && (
                 <g key="strategic-lens">
-                    {/* Lens visualization layer */}
-                    {flatTiles.map(tile => {
+                    {/* Lens visualization layer - VIEWPORT CULLED for performance */}
+                    {visibleTiles.map(tile => {
                         if (!tile.isLand && activeLens !== 'minerals') return null;
                         
                         let value = 0;
@@ -2335,38 +2400,46 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Vegetation layer - MOVED TO AFTER ROADS/PATHS */}
             
             {/* Terrain features layer (farms, cliffs, etc - rendered BELOW roads, but EXCLUDING hills which render above) */}
+            {/* VIEWPORT CULLED - Only renders visible tiles for massive Safari performance gain */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
-                  const elements = [];
-                  
+
                   // Only render non-hill terrain features in this pass
+                  // FIXED: Direct returns instead of elements array to prevent re-rendering
                   if(tile.biome === BiomeType.CLIFF) {
-                    elements.push(<CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
-                  } else if(tile.biome === BiomeType.MANGROVE) {
-                    elements.push(<MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
-                  } else if(tile.biome === BiomeType.SALT_FLATS) {
-                    elements.push(<SaltFlatsSymbol key={`saltflats-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
-                  } else if(tile.biome === BiomeType.STAIRS_UP) {
-                    elements.push(
-                      <StairsUpPixel 
-                        key={`stairs-${tile.x}-${tile.y}`} 
-                        x={symbolX} 
-                        y={symbolY} 
-                        size={TILE_SIZE_PX} 
+                    return <CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />;
+                  }
+                  if(tile.biome === BiomeType.MANGROVE) {
+                    return <MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />;
+                  }
+                  if(tile.biome === BiomeType.SALT_FLATS) {
+                    return <SaltFlatsSymbol key={`saltflats-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />;
+                  }
+                  if(tile.biome === BiomeType.STAIRS_UP) {
+                    return (
+                      <StairsUpPixel
+                        key={`stairs-${tile.x}-${tile.y}`}
+                        x={symbolX}
+                        y={symbolY}
+                        size={TILE_SIZE_PX}
                       />
                     );
+                  }
                   // HILLS MOVED TO AFTER ROADS
-                  } else if(tile.biome === BiomeType.OASIS) {
-                    elements.push(<OasisSymbol key={`oasis-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} tileX={tile.x} tileY={tile.y} />);
-                  } else if(tile.biome === BiomeType.PLAZA) {
-                    elements.push(<PlazaSymbol key={`plaza-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />);
-                  } else if(tile.biome === BiomeType.PARK) {
-                    elements.push(<ParkSymbol key={`park-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />);
-                  } else if(tile.biome === BiomeType.HARBOR_DISTRICT) {
+                  if(tile.biome === BiomeType.OASIS) {
+                    return <OasisSymbol key={`oasis-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} tileX={tile.x} tileY={tile.y} />;
+                  }
+                  if(tile.biome === BiomeType.PLAZA) {
+                    return <PlazaSymbol key={`plaza-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />;
+                  }
+                  if(tile.biome === BiomeType.PARK) {
+                    return <ParkSymbol key={`park-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />;
+                  }
+                  if(tile.biome === BiomeType.HARBOR_DISTRICT) {
                     // Get era and cultural style for harbor district
                     const { era: harborEra } = parseDateString(formattedDate);
                     const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
@@ -2375,8 +2448,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       year = -year;
                     }
                     const harborCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
-                    elements.push(<HarborDistrictSymbol key={`harbor-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={harborEra} culturalStyle={harborCulturalStyle} mapTiles={mapData.tiles} />);
-                  } else if(tile.biome === BiomeType.INDUSTRIAL_DISTRICT) {
+                    return <HarborDistrictSymbol key={`harbor-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={harborEra} culturalStyle={harborCulturalStyle} mapTiles={mapData.tiles} />;
+                  }
+                  if(tile.biome === BiomeType.INDUSTRIAL_DISTRICT) {
                     // Get era and cultural style for industrial district
                     const { era: industrialEra } = parseDateString(formattedDate);
                     const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
@@ -2385,8 +2459,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       year = -year;
                     }
                     const industrialCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
-                    elements.push(<IndustrialDistrictSymbol key={`industrial-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={industrialEra} culturalStyle={industrialCulturalStyle} />);
-                  } else if(tile.biome === BiomeType.RAILROAD_STATION) {
+                    return <IndustrialDistrictSymbol key={`industrial-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={industrialEra} culturalStyle={industrialCulturalStyle} />;
+                  }
+                  if(tile.biome === BiomeType.RAILROAD_STATION) {
                     // Railroad station symbol - clickable
                     const { era: stationEra } = parseDateString(formattedDate);
                     const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
@@ -2395,7 +2470,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       year = -year;
                     }
                     const stationCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
-                    elements.push(
+                    return (
                       <g
                         key={`station-${tile.x}-${tile.y}`}
                         onClick={() => onStationClick && onStationClick(tile)}
@@ -2428,8 +2503,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         )}
                       </g>
                     );
-                  } else if(tile.biome === BiomeType.FARMLAND) {
-                    elements.push(
+                  }
+                  if(tile.biome === BiomeType.FARMLAND) {
+                    return (
                       <g
                         key={`farm-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
@@ -2461,33 +2537,37 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         )}
                       </g>
                     );
-                  } else if(tile.biome === BiomeType.ESTUARY) {
-                    elements.push(<EstuarySymbol key={`estuary-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
-                  } else if(tile.biome === BiomeType.REEF) {
-                    elements.push(<CoralReefSymbol key={`reef-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
-                  } else if(tile.biome === BiomeType.HOT_SPRINGS) {
-                    elements.push(<SteamSymbol key={`hotspring-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="heavy" />);
-                  } else if(tile.biome === BiomeType.VOLCANIC_ROCK) {
+                  }
+                  if(tile.biome === BiomeType.ESTUARY) {
+                    return <EstuarySymbol key={`estuary-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />;
+                  }
+                  if(tile.biome === BiomeType.REEF) {
+                    return <CoralReefSymbol key={`reef-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />;
+                  }
+                  if(tile.biome === BiomeType.HOT_SPRINGS) {
+                    return <SteamSymbol key={`hotspring-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="heavy" />;
+                  }
+                  if(tile.biome === BiomeType.VOLCANIC_ROCK) {
                     if ((tile.x + tile.y + Math.floor(seed/10)) % 12 === 0) {
-                      elements.push(<SteamSymbol key={`volcanic-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="light" />);
+                      return <SteamSymbol key={`volcanic-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="light" />;
                     }
                   }
-                  
+
                   // Add fireflies for swamps and temperate summer nights
                   const shouldShowFireflies = (
                     // Always show in wetlands/swamps at night
                     (tile.biome === BiomeType.WETLANDS && timeOfDayData.isNight) ||
                     // Show in temperate climates during summer nights
-                    (climate === 'temperate' && season === 'summer' && timeOfDayData.isNight && 
-                     (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST || 
+                    (climate === 'temperate' && season === 'summer' && timeOfDayData.isNight &&
+                     (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST ||
                       tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK))
                   );
-                  
+
                   if (shouldShowFireflies && (tile.x + tile.y + tileSeed) % 30 === 0) {
-                    elements.push(<FireflySymbol key={`firefly-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />);
+                    return <FireflySymbol key={`firefly-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />;
                   }
-                  
-                  return elements;
+
+                  return null;
                 })}
               </g>
             )}
@@ -2526,7 +2606,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 
                 const isWaterPath = isStreamPath || isWaterColoredPath;
                 const crossesWater = !isWaterPath && pathCrossesWater(path.svgD, tiles);
-                
+
                 // Special rendering for modern roads (RAILROADS MOVED TO SEPARATE LAYER ABOVE BUILDINGS)
                 if (path.type === PathType.MODERN_ROAD) {
                   return (
@@ -2559,44 +2639,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   return null;
                 }
                 
-                // Default rendering for regular roads and paths with simple bridges
+                // Skip simple bridge rendering - we use proper BridgeSymbol components now
+                // The fancy bridge rendering happens in the bridges-layer below (line ~2755)
                 if (crossesWater) {
-                  // Render a simple bridge
-                  return (
-                    <g key={path.id}>
-                      {/* Bridge shadow */}
-                      <path
-                        d={path.svgD}
-                        stroke="rgba(0, 0, 0, 0.3)"
-                        strokeWidth={path.strokeWidth * 1.3 * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        transform="translate(2, 3)"
-                      />
-                      {/* Bridge deck - darker brown */}
-                      <path
-                        d={path.svgD}
-                        stroke="#6B4423"
-                        strokeWidth={path.strokeWidth * 1.1 * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={0.95}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      {/* Bridge planks */}
-                      <path
-                        d={path.svgD}
-                        stroke="#8B5A3C"
-                        strokeWidth={path.strokeWidth * 0.9 * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={0.9}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeDasharray="4 2"
-                      />
-                    </g>
-                  );
+                  // Don't render the path itself over water - let BridgeSymbol handle it
+                  return null;
                 }
                 
                 // Regular path rendering (with special filter for streams)
@@ -2692,8 +2739,22 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   .filter(structure => structure.structureType === 'bridge')
                   .map(bridge => {
                     const bridgeData = bridge.customData as any;
-                    if (!bridgeData) return null;
-                    
+                    if (!bridgeData) {
+                      console.warn(`[BridgeRender] Bridge ${bridge.id} has no customData`);
+                      return null;
+                    }
+
+                    console.log(`[BridgeRender] Rendering bridge ${bridge.id}:`, {
+                      startX: bridgeData.start.x,
+                      startY: bridgeData.start.y,
+                      endX: bridgeData.end.x,
+                      endY: bridgeData.end.y,
+                      type: bridgeData.type,
+                      style: bridgeData.style,
+                      width: bridgeData.width,
+                      lengthPx: Math.hypot(bridgeData.end.x - bridgeData.start.x, bridgeData.end.y - bridgeData.start.y)
+                    });
+
                     return (
                       <BridgeSymbol
                         key={bridge.id}
@@ -2711,10 +2772,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             )}
             
             {/* Hills and Vegetation layer - rendered ABOVE roads/streams so they don't appear cut over */}
-            {/* Hills */}
+            {/* Hills - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   if (tile.biome !== BiomeType.HILLS) return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
@@ -2724,10 +2785,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
-            {/* Mountains */}
+            {/* Mountains - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   if (tile.biome !== BiomeType.MOUNTAIN) return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
@@ -2738,10 +2799,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
-            {/* Ethereal Realms - Space, Undersea, Heaven/Clouds */}
+            {/* Ethereal Realms - Space, Undersea, Heaven/Clouds - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   // Space tiles (AIR biome in ARID climate)
                   if (tile.biome === BiomeType.AIR && climate === ClimateType.ARID) {
                     const symbolX = tile.x * TILE_SIZE_PX;
@@ -2774,10 +2835,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
 
-            {/* Snow and seasonal riverbank snow */}
+            {/* Snow and seasonal riverbank snow - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   // Regular snow tiles
                   if (tile.biome === BiomeType.SNOW) {
                     const symbolX = tile.x * TILE_SIZE_PX;
@@ -2830,10 +2891,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
-            {/* Lava tiles - dramatic animated effect */}
+            {/* Lava tiles - dramatic animated effect - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   if (tile.biome !== BiomeType.ACTIVE_LAVA) return null;
                   const lavaX = tile.x * TILE_SIZE_PX;
                   const lavaY = tile.y * TILE_SIZE_PX;
@@ -2851,10 +2912,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
-            {/* Animal Paddocks (fences) */}
+            {/* Animal Paddocks (fences) - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   if (tile.paddockType !== 'Livestock') return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
@@ -2927,18 +2988,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               );
             })}
             
-            {/* Urban and structure symbols layer (rendered ABOVE terrain features) */}
+            {/* Urban and structure symbols layer (rendered ABOVE terrain features) - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {flatTiles.map((tile) => {
+                {visibleTiles.map((tile) => {
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
-                  const elements = [];
-                  
+
                   // Only render urban/structure symbols in this pass
+                  // FIXED: Direct returns instead of elements array to prevent re-rendering
                   if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(tile.biome)) {
-                    elements.push(
+                    return (
                       <g
                         key={`urban-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
@@ -2970,8 +3031,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         )}
                       </g>
                     );
-                  } else if (tile.biome === BiomeType.GOVERNMENT_DISTRICT) {
-                    elements.push(
+                  }
+                  if (tile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+                    return (
                       <g
                         key={`gov-district-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
@@ -2986,19 +3048,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         }}
                         style={{ cursor: 'pointer' }}
                       >
-                        <GovernmentDistrictSymbol 
-                          x={symbolX} 
-                          y={symbolY} 
-                          size={TILE_SIZE_PX} 
-                          seed={tileSeed} 
-                          tile={tile} 
-                          date={formattedDate} 
-                          zone={currentLocation} 
-                          nightIntensity={timeOfDayData.isNight ? 0.6 : 0} 
+                        <GovernmentDistrictSymbol
+                          x={symbolX}
+                          y={symbolY}
+                          size={TILE_SIZE_PX}
+                          seed={tileSeed}
+                          tile={tile}
+                          date={formattedDate}
+                          zone={currentLocation}
+                          nightIntensity={timeOfDayData.isNight ? 0.6 : 0}
                         />
                       </g>
                     );
-                  } else if(tile.biome === BiomeType.MARKETPLACE) {
+                  }
+                  if(tile.biome === BiomeType.MARKETPLACE) {
                     // Create a pseudo-structure for marketplace hover
                     const marketplaceStructure: TerrainStructure = {
                       id: `marketplace-${tile.x}-${tile.y}`,
@@ -3010,8 +3073,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       allegianceGroup: mapData.dominantPower || 'Local Authority',
                       outputGoods: ['food', 'crafts', 'textiles', 'spices']
                     };
-                    
-                    elements.push(
+
+                    return (
                       <g
                         key={`marketplace-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
@@ -3042,7 +3105,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         )}
                       </g>
                     );
-                  } else if(tile.biome === BiomeType.PALACE) {
+                  }
+                  if(tile.biome === BiomeType.PALACE) {
                     const palaceType = tile.palaceType || 'generic';
                     const culture = currentLocation || 'Europe';
                     // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
@@ -3052,15 +3116,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       year = -year;
                     }
                     const era = year < 500 ? 'ancient' : year < 1500 ? 'medieval' : 'modern';
-                    
+
                     // Removed console.log to prevent infinite spam
                     const PalaceComponent = getPalaceSymbol(palaceType, culture, era);
-                    
+
                     // Find the structure for this palace or create a fallback
-                    let palaceStructure = terrainStructures?.find(s => 
+                    let palaceStructure = terrainStructures?.find(s =>
                       s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'palace'
                     );
-                    
+
                     // Create fallback structure if not found
                     if (!palaceStructure) {
                       palaceStructure = {
@@ -3073,9 +3137,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         treasury: { gold: 100, silver: 200, gems: 50 }
                       };
                     }
-                    
-                    elements.push(
-                      <g 
+
+                    return (
+                      <g
                         key={`palace-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
@@ -3105,12 +3169,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         )}
                       </g>
                     );
-                  } else if(tile.biome === BiomeType.RUINS) {
+                  }
+                  if(tile.biome === BiomeType.RUINS) {
                     // Find the structure for this ruin or create a fallback
-                    let ruinStructure = terrainStructures?.find(s => 
+                    let ruinStructure = terrainStructures?.find(s =>
                       s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'ruin'
                     );
-                    
+
                     // Create fallback structure if not found
                     if (!ruinStructure) {
                       ruinStructure = {
@@ -3123,9 +3188,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         treasury: Math.random() > 0.5 ? { gold: 10, silver: 20 } : null
                       };
                     }
-                    
-                    elements.push(
-                      <g 
+
+                    return (
+                      <g
                         key={`ruins-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
@@ -3155,11 +3220,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         )}
                       </g>
                     );
-                  } else if(tile.biome === BiomeType.HOLY_SITE) {
+                  }
+                  if(tile.biome === BiomeType.HOLY_SITE) {
                     // Get cultural zone and year for proper selection
                     const { year, era } = parseDateString(mapData.timeSlice || '1650');
                     const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', year);
-                    
+
                     // Use assigned religion or get region-appropriate fallback
                     let religion = tile.holyPlaceReligion;
                     if (!religion || religion === 'generic') {
@@ -3184,14 +3250,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         religion = 'Traditional'; // Generic traditional/folk religion
                       }
                     }
-                    
+
                     const HolySiteComponent = getHolySiteSymbol(religion, culturalZone, tile.holyPlaceType);
-                    
+
                     // Find the structure for this holy site or create a fallback
-                    let holySiteStructure = terrainStructures?.find(s => 
+                    let holySiteStructure = terrainStructures?.find(s =>
                       s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'holy_site'
                     );
-                    
+
                     // Create fallback structure if not found
                     if (!holySiteStructure) {
                       holySiteStructure = {
@@ -3205,9 +3271,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         treasury: null
                       };
                     }
-                    
-                    elements.push(
-                      <g 
+
+                    return (
+                      <g
                         key={`holy-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
@@ -3239,7 +3305,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     );
                   }
 
-                  return elements;
+                  return null;
                 })}
 
                 {/* Terrain Structures  */}

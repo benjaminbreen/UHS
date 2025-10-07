@@ -107,14 +107,10 @@ interface TopNavBarPolishedProps {
     characterDescription?: string;
     quest?: any;
   }) => void;
-  showJournal: boolean;
-  setShowJournal: (show: boolean) => void;
-  showQuestsPanel: boolean;
-  setShowQuestsPanel: (show: boolean) => void;
 }
 
-const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel }) => {
-  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal } = useUI();
+const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived }) => {
+  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel } = useUI();
   const { currentMode } = useEventSystem();
   const { setControlledIconX, setControlledIconY } = usePlayer();
   const { 
@@ -191,8 +187,6 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   }, [showAPITracker]);
   const [showGameModeTooltip, setShowGameModeTooltip] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
-  
-  const [showGameModePanel, setShowGameModePanel] = useState(false);
   const [worldWeaverModalData, setWorldWeaverModalData] = useState<{
     isOpen: boolean;
     year: number;
@@ -501,61 +495,10 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   
                   {/* Tooltip */}
                   {showGameModeTooltip && !showGameModePanel && currentMode && (
-                    <div className="absolute top-full left-0 mt-2 p-2 bg-slate-800 border border-slate-600 
+                    <div className="absolute top-full left-0 mt-2 p-2 bg-slate-800 border border-slate-600
                       rounded-lg shadow-xl z-50 w-64 pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200">
                       <p className="text-xs text-slate-300">{currentMode.description}</p>
                       <p className="text-[10px] text-slate-500 mt-1">Click for more details</p>
-                    </div>
-                  )}
-                  
-                  {/* Dropdown Panel */}
-                  {showGameModePanel && (
-                    <div className="absolute top-full left-0 mt-2 p-4 bg-gradient-to-br from-slate-800 to-slate-900 
-                      border border-slate-600 rounded-lg shadow-2xl z-50 w-80 animate-in slide-in-from-top-2 duration-200">
-                      {currentMode ? (
-                        <>
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <h3 className={`text-sm font-semibold flex items-center gap-1.5 
-                                ${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG]?.color || 'text-amber-400'}`}>
-                                {GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
-                                  React.createElement(GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].icon, { className: "w-4 h-4" }) :
-                                  <Trophy className="w-4 h-4" />
-                                }
-                                {currentMode.name}
-                              </h3>
-                              <p className="text-xs text-slate-400 mt-1">
-                                {GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG]?.description || currentMode.description}
-                              </p>
-                        </div>
-                        <button
-                          onClick={() => setShowGameModePanel(false)}
-                          className="text-slate-500 hover:text-white transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div>
-                          <h4 className="text-xs font-medium text-slate-300 mb-1">Victory Conditions:</h4>
-                          <ul className="space-y-1">
-                            {currentMode.victoryConditions.map((condition, idx) => (
-                              <li key={idx} className="text-xs text-slate-400 flex items-start gap-1">
-                                <Target className="w-3 h-3 text-green-400 mt-0.5 flex-shrink-0" />
-                                <span>{condition.description}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                        </>
-                      ) : (
-                        <div className="text-center">
-                          <p className="text-sm text-slate-400">No game mode selected</p>
-                          <p className="text-xs text-slate-500 mt-2">Start a new game to select a mode</p>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>

@@ -51,52 +51,369 @@ const inBounds = (x: number, y: number): boolean => {
   return x >= 0 && y >= 0 && x < MAP_WIDTH_TILES && y < MAP_HEIGHT_TILES;
 };
 
+// Bridge density controls (Phase 2)
+const MIN_BRIDGE_SPACING_TILES = 15; // Minimum distance between bridges
+const MAX_BRIDGES_PER_MAP = 8; // Maximum total bridges on any map
+
 /**
- * Validate bridge placement - rejects bridges running parallel to shoreline
- * A valid bridge should have water on its SIDES (perpendicular), not just ahead
+ * Score a potential bridge location based on quality metrics
+ * Higher score = better bridge placement
+ */
+function scoreBridgeLocation(
+  tiles: Tile[][],
+  start: Point,
+  end: Point,
+  waterTiles: Point[],
+  approachAngle?: number
+): number {
+  let score = 1000; // Start with base score
+
+  // 1. Length scoring - prefer shorter bridges
+  const length = Math.hypot(end.x - start.x, end.y - start.y);
+  const lengthPenalty = length / TILE_SIZE_PX * 50; // Penalty per tile
+  score -= lengthPenalty;
+
+  // 2. Perpendicular water coverage - prefer bridges with water on sides
+  const bridgeVector = {
+    x: end.x - start.x,
+    y: end.y - start.y
+  };
+  const bridgeLength = Math.hypot(bridgeVector.x, bridgeVector.y);
+  const dirX = bridgeVector.x / bridgeLength;
+  const dirY = bridgeVector.y / bridgeLength;
+  const perpX = -dirY;
+  const perpY = dirX;
+
+  let perpendicularWaterCount = 0;
+  const sampleCount = Math.min(5, waterTiles.length + 2);
+
+  for (let i = 0; i < sampleCount; i++) {
+    const t = i / (sampleCount - 1);
+    const sampleX = start.x + bridgeVector.x * t;
+    const sampleY = start.y + bridgeVector.y * t;
+
+    for (const side of [-1, 1]) {
+      const checkX = Math.floor((sampleX + perpX * TILE_SIZE_PX * 1.5 * side) / TILE_SIZE_PX);
+      const checkY = Math.floor((sampleY + perpY * TILE_SIZE_PX * 1.5 * side) / TILE_SIZE_PX);
+
+      if (inBounds(checkX, checkY) && isWaterTile(tiles[checkY][checkX])) {
+        perpendicularWaterCount++;
+        break;
+      }
+    }
+  }
+
+  const perpendicularRatio = perpendicularWaterCount / sampleCount;
+  score += perpendicularRatio * 200; // Bonus for perpendicular water
+
+  // 3. Altitude scoring - prefer lower altitude (easier construction)
+  const startTileX = Math.floor(start.x / TILE_SIZE_PX);
+  const startTileY = Math.floor(start.y / TILE_SIZE_PX);
+  const endTileX = Math.floor(end.x / TILE_SIZE_PX);
+  const endTileY = Math.floor(end.y / TILE_SIZE_PX);
+
+  if (inBounds(startTileX, startTileY) && inBounds(endTileX, endTileY)) {
+    const startTile = tiles[startTileY][startTileX];
+    const endTile = tiles[endTileY][endTileX];
+    const avgAltitude = (startTile.altitude + endTile.altitude) / 2;
+    score -= avgAltitude * 100; // Prefer lower altitude
+  }
+
+  // 4. Approach angle alignment - prefer bridges aligned with path direction
+  if (approachAngle !== undefined) {
+    const bridgeAngle = Math.atan2(bridgeVector.y, bridgeVector.x);
+    const angleDiff = Math.abs(bridgeAngle - approachAngle);
+    const normalizedDiff = Math.min(angleDiff, Math.PI * 2 - angleDiff); // Handle wrap-around
+    score -= normalizedDiff * 50; // Penalty for misalignment
+  }
+
+  // 5. Straightness - prefer straight crossings
+  let pathLength = 0;
+  for (let i = 0; i < waterTiles.length - 1; i++) {
+    const t1 = waterTiles[i];
+    const t2 = waterTiles[i + 1];
+    pathLength += Math.hypot(
+      (t2.x - t1.x) * TILE_SIZE_PX,
+      (t2.y - t1.y) * TILE_SIZE_PX
+    );
+  }
+  const straightness = length / (pathLength + 0.1); // Avoid division by zero
+  score += straightness * 100; // Bonus for straightness
+
+  return score;
+}
+
+/**
+ * Find optimal bridge points for a given water span
+ * Searches for the best land-to-land crossing instead of blindly following path
+ */
+function findOptimalBridgePoints(
+  tiles: Tile[][],
+  waterTiles: Point[],
+  pathPoints: Point[],
+  waterStartIndex: number,
+  waterEndIndex: number
+): { start: Point; end: Point; score: number } | null {
+  if (waterTiles.length === 0) return null;
+
+  // Get land tiles just before and after water
+  const landBeforeIndex = waterStartIndex - 1;
+  const landAfterIndex = waterEndIndex + 1;
+
+  if (landBeforeIndex < 0 || landAfterIndex >= pathPoints.length) return null;
+
+  // Search area: look at tiles around the path entry/exit points
+  const searchRadius = 3; // tiles
+  const candidates: Array<{ start: Point; end: Point; score: number }> = [];
+
+  const approachX = pathPoints[landBeforeIndex].x;
+  const approachY = pathPoints[landBeforeIndex].y;
+  const exitX = pathPoints[landAfterIndex].x;
+  const exitY = pathPoints[landAfterIndex].y;
+
+  // Calculate approach angle from path
+  const approachAngle = Math.atan2(
+    pathPoints[waterStartIndex].y - pathPoints[landBeforeIndex].y,
+    pathPoints[waterStartIndex].x - pathPoints[landBeforeIndex].x
+  );
+
+  // Try different start/end combinations within search radius
+  for (let startDx = -searchRadius; startDx <= searchRadius; startDx++) {
+    for (let startDy = -searchRadius; startDy <= searchRadius; startDy++) {
+      const startX = Math.floor(approachX / TILE_SIZE_PX) + startDx;
+      const startY = Math.floor(approachY / TILE_SIZE_PX) + startDy;
+
+      if (!inBounds(startX, startY)) continue;
+
+      const startTile = tiles[startY][startX];
+      if (!startTile.isLand) continue; // Must start on land
+
+      for (let endDx = -searchRadius; endDx <= searchRadius; endDx++) {
+        for (let endDy = -searchRadius; endDy <= searchRadius; endDy++) {
+          const endX = Math.floor(exitX / TILE_SIZE_PX) + endDx;
+          const endY = Math.floor(exitY / TILE_SIZE_PX) + endDy;
+
+          if (!inBounds(endX, endY)) continue;
+
+          const endTile = tiles[endY][endX];
+          if (!endTile.isLand) continue; // Must end on land
+
+          // Calculate candidate bridge
+          const startPx = { x: startX * TILE_SIZE_PX + TILE_SIZE_PX / 2, y: startY * TILE_SIZE_PX + TILE_SIZE_PX / 2 };
+          const endPx = { x: endX * TILE_SIZE_PX + TILE_SIZE_PX / 2, y: endY * TILE_SIZE_PX + TILE_SIZE_PX / 2 };
+
+          // Check distance - must span 1-4 tiles
+          const distance = Math.hypot(endPx.x - startPx.x, endPx.y - startPx.y);
+          const tileDistance = distance / TILE_SIZE_PX;
+          if (tileDistance < 1 || tileDistance > 4.5) continue;
+
+          // Find water tiles this bridge would cross
+          const bridgeWaterTiles = findWaterTilesAlongLine(tiles, startPx, endPx);
+          if (bridgeWaterTiles.length === 0 || bridgeWaterTiles.length > 4) continue;
+
+          // Score this candidate
+          const score = scoreBridgeLocation(tiles, startPx, endPx, bridgeWaterTiles, approachAngle);
+          candidates.push({ start: startPx, end: endPx, score });
+        }
+      }
+    }
+  }
+
+  // Return best candidate
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0];
+}
+
+/**
+ * Find water tiles along a straight line between two points
+ */
+function findWaterTilesAlongLine(tiles: Tile[][], start: Point, end: Point): Point[] {
+  const waterTiles: Point[] = [];
+  const steps = Math.ceil(Math.hypot(end.x - start.x, end.y - start.y) / (TILE_SIZE_PX / 2));
+
+  const seenTiles = new Set<string>();
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = start.x + (end.x - start.x) * t;
+    const y = start.y + (end.y - start.y) * t;
+
+    const tileX = Math.floor(x / TILE_SIZE_PX);
+    const tileY = Math.floor(y / TILE_SIZE_PX);
+    const key = `${tileX},${tileY}`;
+
+    if (seenTiles.has(key)) continue;
+    seenTiles.add(key);
+
+    if (!inBounds(tileX, tileY)) continue;
+
+    const tile = tiles[tileY][tileX];
+    if (isWaterTile(tile)) {
+      waterTiles.push({ x: tileX, y: tileY });
+    }
+  }
+
+  return waterTiles;
+}
+
+/**
+ * Validate bridge placement - comprehensive checks to reject bad bridges
+ * Rejects bridges that:
+ * - Don't have solid land endpoints
+ * - Run parallel to coastlines
+ * - Curve too much (not straight)
+ * - Connect the same landmass (peninsula bridges)
  */
 function validateBridgePlacement(
   tiles: Tile[][],
   candidate: BridgeCandidate
 ): boolean {
-  // Get start position in tile coordinates
+  // Check 1: Verify both endpoints are on SOLID LAND (not water, not edge biomes)
   const startTileX = Math.floor(candidate.start.x / TILE_SIZE_PX);
   const startTileY = Math.floor(candidate.start.y / TILE_SIZE_PX);
+  const endTileX = Math.floor(candidate.end.x / TILE_SIZE_PX);
+  const endTileY = Math.floor(candidate.end.y / TILE_SIZE_PX);
 
-  if (!inBounds(startTileX, startTileY)) return false;
-
-  // Determine if bridge is primarily vertical or horizontal
-  const isVertical = candidate.direction === 'vertical';
-  const isHorizontal = candidate.direction === 'horizontal';
-
-  // For diagonal bridges, allow them (they're rare and usually intentional)
-  if (!isVertical && !isHorizontal) return true;
-
-  // Check perpendicular directions for water
-  let perpendicularWaterCount = 0;
-
-  if (isVertical) {
-    // N-S bridge, check E-W for water (perpendicular)
-    const westTile = inBounds(startTileX - 1, startTileY) ? tiles[startTileY][startTileX - 1] : null;
-    const eastTile = inBounds(startTileX + 1, startTileY) ? tiles[startTileY][startTileX + 1] : null;
-
-    if (westTile && isWaterTile(westTile)) perpendicularWaterCount++;
-    if (eastTile && isWaterTile(eastTile)) perpendicularWaterCount++;
-  } else {
-    // E-W bridge, check N-S for water (perpendicular)
-    const northTile = inBounds(startTileX, startTileY - 1) ? tiles[startTileY - 1][startTileX] : null;
-    const southTile = inBounds(startTileX, startTileY + 1) ? tiles[startTileY + 1][startTileX] : null;
-
-    if (northTile && isWaterTile(northTile)) perpendicularWaterCount++;
-    if (southTile && isWaterTile(southTile)) perpendicularWaterCount++;
-  }
-
-  // REJECT if no water on perpendicular sides
-  // This means bridge is running parallel to shoreline (bad!)
-  if (perpendicularWaterCount === 0) {
+  if (!inBounds(startTileX, startTileY) || !inBounds(endTileX, endTileY)) {
     return false;
   }
 
+  const startTile = tiles[startTileY][startTileX];
+  const endTile = tiles[endTileY][endTileX];
+
+  // Both endpoints must be solid land
+  if (!startTile.isLand || !endTile.isLand) {
+    return false;
+  }
+
+  // Reject if endpoints are problematic edge biomes
+  const edgeBiomes = [BiomeType.RIVERBANK, BiomeType.BEACH, BiomeType.MANGROVE];
+  if (edgeBiomes.includes(startTile.biome) || edgeBiomes.includes(endTile.biome)) {
+    return false;
+  }
+
+  // Check 2: Straightness requirement - bridge path shouldn't curve too much
+  const directDistance = Math.hypot(
+    candidate.end.x - candidate.start.x,
+    candidate.end.y - candidate.start.y
+  );
+
+  // Calculate actual path length by summing water tile distances
+  let pathLength = 0;
+  for (let i = 0; i < candidate.waterTiles.length - 1; i++) {
+    const t1 = candidate.waterTiles[i];
+    const t2 = candidate.waterTiles[i + 1];
+    pathLength += Math.hypot(
+      (t2.x - t1.x) * TILE_SIZE_PX,
+      (t2.y - t1.y) * TILE_SIZE_PX
+    );
+  }
+
+  // If path is more than 30% longer than direct line, it's too curved
+  if (pathLength > directDistance * 1.3) {
+    return false;
+  }
+
+  // Check 3: Perpendicular water along ENTIRE bridge span
+  // Sample multiple points along the bridge to verify perpendicular water
+  const bridgeVector = {
+    x: candidate.end.x - candidate.start.x,
+    y: candidate.end.y - candidate.start.y
+  };
+  const bridgeLength = Math.hypot(bridgeVector.x, bridgeVector.y);
+
+  // Normalize bridge direction
+  const dirX = bridgeVector.x / bridgeLength;
+  const dirY = bridgeVector.y / bridgeLength;
+
+  // Perpendicular direction (rotate 90 degrees)
+  const perpX = -dirY;
+  const perpY = dirX;
+
+  // Sample 5 points along the bridge span
+  const sampleCount = Math.min(5, candidate.waterTiles.length + 2);
+  let perpendicularWaterSamples = 0;
+
+  for (let i = 0; i < sampleCount; i++) {
+    const t = i / (sampleCount - 1); // 0 to 1
+    const sampleX = candidate.start.x + bridgeVector.x * t;
+    const sampleY = candidate.start.y + bridgeVector.y * t;
+
+    // Check perpendicular tiles (both sides)
+    const checkDist = TILE_SIZE_PX * 1.5; // Check 1.5 tiles perpendicular
+
+    for (const side of [-1, 1]) {
+      const checkX = Math.floor((sampleX + perpX * checkDist * side) / TILE_SIZE_PX);
+      const checkY = Math.floor((sampleY + perpY * checkDist * side) / TILE_SIZE_PX);
+
+      if (inBounds(checkX, checkY)) {
+        const checkTile = tiles[checkY][checkX];
+        if (isWaterTile(checkTile)) {
+          perpendicularWaterSamples++;
+          break; // Found water on at least one side
+        }
+      }
+    }
+  }
+
+  // Require at least 60% of samples to have perpendicular water
+  const perpendicularRatio = perpendicularWaterSamples / sampleCount;
+  if (perpendicularRatio < 0.6) {
+    return false;
+  }
+
+  // Check 4: Two-landmass requirement (prevent peninsula bridges)
+  // Use flood-fill to verify start and end are on DIFFERENT landmasses
+  // (separated by water not counting the bridge's water tiles)
+
+  // Create set of water tiles that are part of the bridge (to exclude from flood fill)
+  const bridgeWaterSet = new Set<string>();
+  for (const wt of candidate.waterTiles) {
+    bridgeWaterSet.add(`${wt.x},${wt.y}`);
+  }
+
+  // Flood-fill from start tile through land only
+  const visited = new Set<string>();
+  const queue: Point[] = [{ x: startTileX, y: startTileY }];
+  visited.add(`${startTileX},${startTileY}`);
+
+  const maxFloodSize = 500; // Limit flood-fill for performance
+  let iterations = 0;
+
+  while (queue.length > 0 && iterations < maxFloodSize) {
+    iterations++;
+    const current = queue.shift()!;
+
+    // Check if we reached the end tile (means same landmass - BAD)
+    if (current.x === endTileX && current.y === endTileY) {
+      return false; // Bridge connects same landmass
+    }
+
+    // Explore adjacent land tiles (4 cardinal directions)
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      const key = `${nx},${ny}`;
+
+      if (!inBounds(nx, ny) || visited.has(key)) continue;
+
+      const neighbor = tiles[ny][nx];
+
+      // Can traverse land, but NOT water (unless it's a bridge water tile we're ignoring)
+      const isBridgeWater = bridgeWaterSet.has(key);
+
+      if (neighbor.isLand || isBridgeWater) {
+        visited.add(key);
+        // Only continue flood-fill through actual land (not bridge water)
+        if (neighbor.isLand) {
+          queue.push({ x: nx, y: ny });
+        }
+      }
+    }
+  }
+
+  // If we didn't reach the end tile, it means they're on different landmasses (GOOD)
   return true;
 }
 
@@ -133,8 +450,8 @@ function findWaterCrossings(
         // Found a crossing! Now trace the full water span
         const crossing = traceWaterCrossing(tiles, points, i);
         
-        // Only build bridges for 1-tile water crossings (3 tiles total: land-water-land)
-        if (crossing && crossing.waterTiles.length === 1) {
+        // Build bridges for 1-4 tile water crossings (short to medium spans)
+        if (crossing && crossing.waterTiles.length >= 1 && crossing.waterTiles.length <= 4) {
           // Determine direction
           const dx = crossing.end.x - crossing.start.x;
           const dy = crossing.end.y - crossing.start.y;
@@ -201,7 +518,7 @@ function getTileAtPoint(tiles: Tile[][], point: Point): Tile | null {
 
 /**
  * Trace a water crossing to find start, end, and all water tiles
- * Bridge should ONLY span the water gap, not extend far over land
+ * Phase 2: Now uses intelligent search to find optimal bridge placement
  */
 function traceWaterCrossing(
   tiles: Tile[][],
@@ -211,19 +528,22 @@ function traceWaterCrossing(
   const waterTiles: Point[] = [];
   let waterStartIndex: number | null = null;
   let waterEndIndex: number | null = null;
+  let landBeforeWaterIndex: number | null = null;
+  let landAfterWaterIndex: number | null = null;
 
-  // Find where water starts
+  // Find where water starts (going backwards from startIndex)
   for (let i = startIndex; i >= 0; i--) {
     const tile = getTileAtPoint(tiles, pathPoints[i]);
     if (tile && isWaterTile(tile)) {
       waterStartIndex = i;
     } else if (waterStartIndex !== null) {
-      // Found land before water - this is our start edge
+      // Found land before water - this is our bridge start point
+      landBeforeWaterIndex = i;
       break;
     }
   }
 
-  // Find where water ends
+  // Find where water ends (going forward from startIndex)
   let inWater = false;
   for (let i = startIndex; i < pathPoints.length; i++) {
     const tile = getTileAtPoint(tiles, pathPoints[i]);
@@ -236,13 +556,14 @@ function traceWaterCrossing(
 
     if (isWaterTile(tile)) {
       inWater = true;
+      waterEndIndex = i;
       // Track water tiles
       if (!waterTiles.some(t => t.x === tileCoord.x && t.y === tileCoord.y)) {
         waterTiles.push(tileCoord);
       }
     } else if (inWater) {
-      // Found land after water - this is our end edge
-      waterEndIndex = i;
+      // Found land after water - this is our bridge end point
+      landAfterWaterIndex = i;
       break;
     }
   }
@@ -251,19 +572,43 @@ function traceWaterCrossing(
     return null;
   }
 
-  // Bridge endpoints should be at the EDGES of the water, not far into land
-  // Use the first water tile center as start, last water tile center as end
-  const firstWaterTile = waterTiles[0];
-  const lastWaterTile = waterTiles[waterTiles.length - 1];
+  if (landBeforeWaterIndex === null || landAfterWaterIndex === null) {
+    return null;
+  }
+
+  // PHASE 2: Try to find optimal bridge placement nearby
+  const optimalBridge = findOptimalBridgePoints(
+    tiles,
+    waterTiles,
+    pathPoints,
+    waterStartIndex,
+    waterEndIndex
+  );
+
+  if (optimalBridge) {
+    // Use optimized bridge location
+    // Recalculate water tiles for the optimal bridge line
+    const optimizedWaterTiles = findWaterTilesAlongLine(tiles, optimalBridge.start, optimalBridge.end);
+
+    return {
+      start: optimalBridge.start,
+      end: optimalBridge.end,
+      waterTiles: optimizedWaterTiles
+    };
+  }
+
+  // FALLBACK: Use original path-following behavior if optimization fails
+  const startPoint = pathPoints[landBeforeWaterIndex];
+  const endPoint = pathPoints[landAfterWaterIndex];
 
   return {
     start: {
-      x: firstWaterTile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
-      y: firstWaterTile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+      x: startPoint.x,
+      y: startPoint.y
     },
     end: {
-      x: lastWaterTile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
-      y: lastWaterTile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+      x: endPoint.x,
+      y: endPoint.y
     },
     waterTiles
   };
@@ -278,14 +623,14 @@ function calculatePriority(pathType: PathType, length: number): number {
   // Path type priority
   switch (pathType) {
     case PathType.ROAD:
-    case PathType.HIGHWAY:
+    case PathType.MODERN_ROAD:
       base = 200;
-      break;
-    case PathType.MAJOR_PATH:
-      base = 150;
       break;
     case PathType.RAILROAD:
       base = 180;
+      break;
+    case PathType.PATH:
+      base = 150;
       break;
     default:
       base = 100;
@@ -299,6 +644,7 @@ function calculatePriority(pathType: PathType, length: number): number {
 
 /**
  * Select which bridges to actually build
+ * Phase 2: Enhanced with density controls to prevent bridge spam
  */
 function selectBridges(tiles: Tile[][], candidates: BridgeCandidate[]): BridgeCandidate[] {
   // Sort by priority
@@ -306,8 +652,15 @@ function selectBridges(tiles: Tile[][], candidates: BridgeCandidate[]): BridgeCa
 
   const selected: BridgeCandidate[] = [];
   const usedLocations = new Set<string>();
+  const minSpacingPx = MIN_BRIDGE_SPACING_TILES * TILE_SIZE_PX;
 
   for (const candidate of candidates) {
+    // PHASE 2: Enforce maximum bridge count per map
+    if (selected.length >= MAX_BRIDGES_PER_MAP) {
+      console.log(`[BridgeGen] Reached maximum bridge limit (${MAX_BRIDGES_PER_MAP})`);
+      break;
+    }
+
     // VALIDATE: Reject bridges running parallel to shoreline
     if (!validateBridgePlacement(tiles, candidate)) {
       continue;
@@ -321,14 +674,14 @@ function selectBridges(tiles: Tile[][], candidates: BridgeCandidate[]): BridgeCa
       continue;
     }
 
-    // Check minimum distance from other bridges
+    // PHASE 2: Enhanced spacing check - now uses MIN_BRIDGE_SPACING_TILES
     let tooClose = false;
     for (const existing of selected) {
       const dist = Math.hypot(
         candidate.start.x - existing.start.x,
         candidate.start.y - existing.start.y
       );
-      if (dist < 5) {
+      if (dist < minSpacingPx) {
         tooClose = true;
         break;
       }
@@ -353,7 +706,7 @@ function getBridgeType(
   length: number
 ): { type: 'wooden' | 'stone' | 'iron' | 'modern'; style: string } | null {
   // Era-based selection with historical accuracy
-  const eraStr = typeof era === 'string' ? era : era.toString();
+  const eraStr = typeof era === 'string' ? era : String(era);
   
   // PREHISTORIC (before 3000 BCE) - No bridges
   if (eraStr.includes('PREHISTORIC') || eraStr.includes('STONE_AGE')) {
@@ -388,7 +741,7 @@ function getBridgeType(
   
   // EARLY MODERN (1500 - 1800) - Refined stone construction
   if (eraStr.includes('RENAISSANCE') || eraStr.includes('EARLY_MODERN')) {
-    if (pathType === PathType.ROAD || pathType === PathType.MAJOR_PATH) {
+    if (pathType === PathType.ROAD || pathType === PathType.PATH) {
       // Stone becomes standard for major routes
       return { type: 'stone', style: 'arch' };
     }
@@ -412,8 +765,8 @@ function getBridgeType(
   
   // MODERN (1950+) - Concrete and steel
   if (eraStr.includes('MODERN') || eraStr.includes('CONTEMPORARY')) {
-    if (pathType === PathType.HIGHWAY) {
-      // Highways get modern concrete
+    if (pathType === PathType.MODERN_ROAD) {
+      // Modern roads get modern concrete
       return { type: 'modern', style: 'highway' };
     }
     // Standard modern bridge
@@ -442,7 +795,8 @@ export function generateBridges(
   // Convert to bridge objects, filtering out null types (prehistoric era)
   const bridges: Bridge[] = [];
 
-  for (const [index, candidate] of selected.entries()) {
+  for (let index = 0; index < selected.length; index++) {
+    const candidate = selected[index];
     const bridgeType = getBridgeType(era, culturalZone, candidate.pathType, candidate.waterTiles.length);
 
     // Skip if no bridge should be built (e.g., prehistoric era)
@@ -451,17 +805,30 @@ export function generateBridges(
       continue;
     }
 
-    bridges.push({
+    const bridge = {
       id: `bridge-${index}`,
       start: candidate.start,
       end: candidate.end,
       waterTiles: candidate.waterTiles,
       type: bridgeType.type,
       style: bridgeType.style,
-      width: candidate.pathType === PathType.ROAD || candidate.pathType === PathType.HIGHWAY ? 2 : 1,
+      width: candidate.pathType === PathType.MODERN_ROAD ? 1.4 :
+             candidate.pathType === PathType.ROAD ? 1.2 : 1,
+    };
+
+    console.log(`[BridgeGen] Created bridge ${bridge.id}:`, {
+      startPx: bridge.start,
+      endPx: bridge.end,
+      type: bridge.type,
+      style: bridge.style,
+      width: bridge.width,
+      lengthPx: Math.hypot(bridge.end.x - bridge.start.x, bridge.end.y - bridge.start.y)
     });
+
+    bridges.push(bridge);
   }
 
+  console.log(`[BridgeGen] Total bridges generated: ${bridges.length}`);
   return bridges;
 }
 

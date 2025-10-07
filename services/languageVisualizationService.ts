@@ -249,13 +249,37 @@ class LanguageVisualizationService {
     });
 
     // Find "roots" for each family: nodes with no primary parent
+    // EXCLUDE "ur-proto-languages" (reconstructed roots like PROTO_INDO_EUROPEAN)
+    // since the family bucket itself already represents them conceptually.
+    // Instead, use their children as the top-level roots.
     const topLevelByFamily = new Map<string, LanguageNode[]>();
     this.maps.byId.forEach((n) => {
       if (n.id === 'root') return;
       if (n.family && !this.maps.primaryParent.has(n.id)) {
-        const arr = topLevelByFamily.get(n.family) ?? [];
-        arr.push(n);
-        topLevelByFamily.set(n.family, arr);
+        // If this is a reconstructed proto-language with no predecessors, skip it
+        // and use its children as roots instead
+        if (n.isReconstructed && !this.maps.primaryParent.has(n.id)) {
+          const kids = this.maps.childrenOf.get(n.id) ?? [];
+          if (kids.length > 0) {
+            // Use children as top-level roots
+            const arr = topLevelByFamily.get(n.family) ?? [];
+            kids.forEach(kidId => {
+              const kid = this.maps.byId.get(kidId);
+              if (kid) arr.push(kid);
+            });
+            topLevelByFamily.set(n.family, arr);
+          } else {
+            // No children, keep the proto-language (edge case)
+            const arr = topLevelByFamily.get(n.family) ?? [];
+            arr.push(n);
+            topLevelByFamily.set(n.family, arr);
+          }
+        } else {
+          // Not a root proto-language, add normally
+          const arr = topLevelByFamily.get(n.family) ?? [];
+          arr.push(n);
+          topLevelByFamily.set(n.family, arr);
+        }
       }
     });
 

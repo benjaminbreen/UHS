@@ -6095,6 +6095,292 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       populationPeak: 200000,
       economicFocus: ['wine', 'poetry', 'gardens', 'textiles', 'crafts']
     }
+  ],
+
+  // === NEWLY ADDED REGIONS (December 2024) ===
+
+  "Cuba": [
+    {
+      name: "Havana",
+      isHistorical: true,
+      foundingYear: 1519,
+      description: "The key to the New World, Spain's heavily fortified treasure fleet port and Caribbean capital.",
+      allegianceHistory: {
+        1519: "Spanish Empire",
+        1898: "United States (Military Occupation)",
+        1902: "Republic of Cuba",
+        1959: "Revolutionary Cuba"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'renaissance_early_modern': 'moderate',
+        'industrial': 'large',
+        'modern': 'massive'
+      },
+      populationPeak: 2100000,
+      economicFocus: ['shipping', 'sugar', 'tobacco', 'military', 'rum']
+    },
+    {
+      name: "Santiago de Cuba",
+      isHistorical: true,
+      foundingYear: 1515,
+      description: "Cuba's second city and first capital, gateway to the Caribbean and coffee heartland.",
+      allegianceHistory: {
+        1515: "Spanish Empire",
+        1898: "United States (Military Occupation)",
+        1902: "Republic of Cuba"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'renaissance_early_modern': 'small',
+        'industrial': 'moderate',
+        'modern': 'large'
+      },
+      economicFocus: ['copper', 'coffee', 'sugar', 'military']
+    }
+  ],
+
+  "Hispaniola": [
+    {
+      name: "Santo Domingo",
+      isHistorical: true,
+      foundingYear: 1496,
+      description: "The first European city in the Americas, seat of Spain's earliest colonial government.",
+      allegianceHistory: {
+        1496: "Spanish Empire",
+        1795: "French Republic",
+        1809: "Spanish Empire",
+        1821: "Republic of Spanish Haiti",
+        1822: "Republic of Haiti",
+        1844: "Dominican Republic"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'renaissance_early_modern': 'small',
+        'modern': 'large'
+      },
+      populationPeak: 965000,
+      economicFocus: ['government', 'sugar', 'trade', 'military']
+    },
+    {
+      name: "Port-au-Prince",
+      isHistorical: true,
+      foundingYear: 1749,
+      description: "Capital of Haiti, birthplace of the world's first successful slave revolution.",
+      allegianceHistory: {
+        1749: "French Empire (Saint-Domingue)",
+        1804: "Republic of Haiti"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'industrial': 'moderate',
+        'modern': 'large'
+      },
+      populationPeak: 987000,
+      economicFocus: ['sugar', 'coffee', 'government', 'trade']
+    },
+    {
+      name: "Cap-Haïtien",
+      isHistorical: true,
+      foundingYear: 1670,
+      description: "The Paris of the Antilles, wealthy capital of French Saint-Domingue before the revolution.",
+      allegianceHistory: {
+        1670: "French Empire (Saint-Domingue)",
+        1804: "Republic of Haiti"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'renaissance_early_modern': 'moderate',
+        'industrial': 'moderate'
+      },
+      economicFocus: ['sugar', 'coffee', 'indigo', 'trade']
+    }
+  ],
+
+  "Jamaica": [
+    {
+      name: "Port Royal",
+      isHistorical: true,
+      foundingYear: 1518,
+      declineYear: 1692,
+      description: "The wickedest city on Earth, notorious pirate haven destroyed by earthquake and tsunami.",
+      allegianceHistory: {
+        1518: "Spanish Empire",
+        1655: "English Commonwealth",
+        1660: "Kingdom of England"
+      },
+      urbanDensity: 'moderate',
+      economicFocus: ['piracy', 'privateering', 'trade', 'sugar', 'slavery']
+    },
+    {
+      name: "Kingston",
+      isHistorical: true,
+      foundingYear: 1693,
+      description: "Jamaica's capital, built after Port Royal's destruction to become the Caribbean's largest English city.",
+      allegianceHistory: {
+        1693: "Kingdom of England",
+        1707: "Kingdom of Great Britain",
+        1801: "United Kingdom",
+        1962: "Jamaica"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'industrial': 'moderate',
+        'modern': 'large'
+      },
+      populationPeak: 670000,
+      economicFocus: ['sugar', 'rum', 'shipping', 'coffee', 'music']
+    }
+  ],
+
+  "Sicily": [
+    {
+      name: "Palermo",
+      isHistorical: true,
+      foundingYear: -734,
+      description: "Crossroads of civilizations, where Norman, Arab, and Greek cultures created Europe's most cosmopolitan medieval court.",
+      allegianceHistory: {
+        [-734]: "Phoenician Carthage",
+        [-254]: "Roman Republic",
+        535: "Byzantine Empire",
+        831: "Aghlabid Emirate",
+        1072: "Norman Kingdom of Sicily",
+        1194: "Holy Roman Empire",
+        1282: "Aragonese Sicily",
+        1516: "Spanish Empire",
+        1713: "Kingdom of Savoy",
+        1720: "Austrian Empire",
+        1735: "Spanish Bourbon Kingdom",
+        1816: "Kingdom of the Two Sicilies",
+        1860: "Kingdom of Italy"
+      },
+      urbanDensity: 'large',
+      eraSpecificDensity: {
+        'medieval': 'large',
+        'renaissance_early_modern': 'large',
+        'modern': 'large'
+      },
+      populationPeak: 677000,
+      economicFocus: ['trade', 'grain', 'wine', 'citrus', 'tuna', 'sulfur']
+    },
+    {
+      name: "Syracuse",
+      isHistorical: true,
+      foundingYear: -734,
+      description: "Once the greatest Greek city in the world, home to Archimedes and rival to Athens.",
+      allegianceHistory: {
+        [-734]: "Greek Corinth",
+        [-212]: "Roman Republic",
+        878: "Aghlabid Emirate",
+        1086: "Norman Sicily"
+      },
+      urbanDensity: 'large',
+      eraSpecificDensity: {
+        'antiquity': 'massive',
+        'medieval': 'moderate',
+        'modern': 'moderate'
+      },
+      populationPeak: 120000,
+      economicFocus: ['philosophy', 'mathematics', 'naval power', 'trade']
+    }
+  ],
+
+  "Cyprus": [
+    {
+      name: "Nicosia",
+      isHistorical: true,
+      foundingYear: 965,
+      description: "The last divided capital in Europe, seat of Lusignan crusader kings and Venetian governors.",
+      allegianceHistory: {
+        965: "Byzantine Empire",
+        1191: "Kingdom of Cyprus (Lusignan)",
+        1489: "Republic of Venice",
+        1571: "Ottoman Empire",
+        1878: "British Empire",
+        1960: "Republic of Cyprus"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'medieval': 'moderate',
+        'renaissance_early_modern': 'moderate',
+        'modern': 'moderate'
+      },
+      populationPeak: 116000,
+      economicFocus: ['copper', 'trade', 'wine', 'lace', 'government']
+    },
+    {
+      name: "Famagusta",
+      isHistorical: true,
+      foundingYear: -285,
+      description: "The richest city in Christendom during the Lusignan era, protected by massive Venetian walls.",
+      allegianceHistory: {
+        [-285]: "Ptolemaic Egypt",
+        1291: "Kingdom of Cyprus (Lusignan)",
+        1489: "Republic of Venice",
+        1571: "Ottoman Empire"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'medieval': 'large',
+        'renaissance_early_modern': 'moderate'
+      },
+      economicFocus: ['trade', 'shipping', 'crusades', 'luxury goods']
+    }
+  ],
+
+  "Bali": [
+    {
+      name: "Denpasar",
+      isHistorical: true,
+      foundingYear: 1788,
+      description: "Capital of Bali's last independent Hindu kingdom, preserving Javanese culture after Islam's spread.",
+      allegianceHistory: {
+        1788: "Kingdom of Badung",
+        1906: "Dutch East Indies",
+        1949: "Republic of Indonesia"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'large'
+      },
+      populationPeak: 897000,
+      economicFocus: ['rice', 'arts', 'crafts', 'tourism', 'Hindu temples']
+    },
+    {
+      name: "Ubud",
+      isHistorical: true,
+      foundingYear: 1300,
+      description: "Sacred cultural heart of Bali, center of traditional dance, gamelan music, and Hindu-Buddhist arts.",
+      allegianceHistory: {
+        1300: "Balinese Hindu Kingdoms",
+        1906: "Dutch East Indies",
+        1949: "Republic of Indonesia"
+      },
+      urbanDensity: 'small',
+      economicFocus: ['arts', 'dance', 'painting', 'woodcarving', 'rice terraces']
+    }
+  ],
+
+  "Maldives": [
+    {
+      name: "Malé",
+      isHistorical: true,
+      foundingYear: 1153,
+      description: "Capital of the Maldive Sultanate, pearl of the Indian Ocean and guardian of vital trade routes.",
+      allegianceHistory: {
+        1153: "Maldive Sultanate",
+        1558: "Portuguese Empire",
+        1573: "Maldive Sultanate",
+        1887: "British Empire (Protectorate)",
+        1965: "Republic of Maldives"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'modern': 'moderate'
+      },
+      populationPeak: 133000,
+      economicFocus: ['fishing', 'trade', 'coconuts', 'cowrie shells', 'coral']
+    }
   ]
 
 };
