@@ -4,7 +4,7 @@
  * with the MapCanvasPerformance component and optimized dependency management
  */
 
-import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, memo } from 'react';
 import * as ReactDOM from 'react-dom';
 import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
 import { useUnifiedAnimations, ENABLE_UNIFIED_ANIMATIONS } from '../hooks/useUnifiedAnimations';
@@ -302,6 +302,8 @@ interface MapDisplayOptimizedProps {
   guardAlerts?: Map<string, 'detecting' | 'warning' | 'pursuing'>;
   onContainerClick?: (x: number, y: number, tile: Tile) => void;
   onStationClick?: (tile: Tile) => void;
+  onHarborClick?: (tile: Tile) => void;
+  isLoading?: boolean; // For coordinating camera positioning with map transition fades
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
@@ -345,7 +347,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   isSpecialMap = false,
   guardAlerts,
   onContainerClick,
-  onStationClick
+  onStationClick,
+  onHarborClick,
+  isLoading = false
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -354,6 +358,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const lastMousePosRef = useRef({ x: 0, y: 0 }); // Ref version to avoid recreating event listeners
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [isFreePanMode, setIsFreePanMode] = useState(false);
   
@@ -429,8 +434,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const animationStartTime = useRef<number | null>(null);
   const animationStartX = useRef<number | null>(null);
   const animationStartY = useRef<number | null>(null);
-  const prevMapDataRef = useRef<MapData | null>(null);
+  const prevMapSeed = useRef<string | null>(null);
   const hasCenteredOnCurrentMap = useRef(false);
+  const hasEverCentered = useRef(false); // Track if we've ever centered (for initial load vs transitions)
+  const lastCenterContainerSize = useRef<{ width: number; height: number }>({ width: 0, height: 0 }); // Track container size used for centering
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const cameraAnimationFrame = useRef<number | null>(null);
   const targetPanX = useRef(0);
@@ -638,19 +645,42 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     return mapData?.tiles?.flat() || [];
   }, [mapData?.tiles]);
 
-  // VIEWPORT CULLING - Only render visible tiles + buffer for massive Safari performance gain
-  // Calculates tile range directly instead of filtering (avoids 1,024 comparisons per frame)
+  // VIEWPORT CULLING - Tile-grid-based calculation for optimal performance
+  // Step 1: Calculate grid boundaries based on rounded pan values (only changes when tiles change)
+  const visibleTileGrid = useMemo(() => {
+    if (containerDimensions.width === 0 || containerDimensions.height === 0) {
+      return null;
+    }
+
+    const buffer = 3; // 3-tile buffer to prevent pop-in during fast panning
+
+    // Round pan values to tile grid coordinates to prevent recalc on every pixel
+    // Only recalculates when we've moved at least one tile-width in screen space
+    const gridX = Math.floor(panX / (TILE_SIZE_PX * zoomLevel));
+    const gridY = Math.floor(panY / (TILE_SIZE_PX * zoomLevel));
+
+    // Calculate visible tile bounds in grid coordinates
+    const viewLeft = Math.max(0, Math.floor(-gridX - buffer - (containerDimensions.width / (TILE_SIZE_PX * zoomLevel)) * 0.5));
+    const viewRight = Math.min(MAP_WIDTH_TILES - 1, Math.ceil(-gridX + buffer + (containerDimensions.width / (TILE_SIZE_PX * zoomLevel)) * 1.5));
+    const viewTop = Math.max(0, Math.floor(-gridY - buffer - (containerDimensions.height / (TILE_SIZE_PX * zoomLevel)) * 0.5));
+    const viewBottom = Math.min(MAP_HEIGHT_TILES - 1, Math.ceil(-gridY + buffer + (containerDimensions.height / (TILE_SIZE_PX * zoomLevel)) * 1.5));
+
+    return { viewLeft, viewRight, viewTop, viewBottom };
+  }, [
+    // Only recalculate when grid position changes (rounded to tile boundaries)
+    Math.floor(panX / (TILE_SIZE_PX * zoomLevel)),
+    Math.floor(panY / (TILE_SIZE_PX * zoomLevel)),
+    zoomLevel,
+    containerDimensions.width,
+    containerDimensions.height
+  ]);
+
+  // Step 2: Generate visible tiles array from grid boundaries
+  // Only recalculates when grid boundaries actually change
   const visibleTiles = useMemo(() => {
-    if (!mapData?.tiles || containerDimensions.width === 0) return flatTiles;
+    if (!mapData?.tiles || !visibleTileGrid) return flatTiles;
 
-    const buffer = TILE_SIZE_PX * 3; // 3-tile buffer to prevent pop-in during fast panning
-
-    // Calculate visible tile bounds
-    // FIXED: Convert pixels to tiles BEFORE clamping (was comparing tiles vs pixels)
-    const viewLeft = Math.max(0, Math.floor((-panX / zoomLevel - buffer) / TILE_SIZE_PX));
-    const viewRight = Math.min(MAP_WIDTH_TILES - 1, Math.ceil(((-panX + containerDimensions.width) / zoomLevel + buffer) / TILE_SIZE_PX));
-    const viewTop = Math.max(0, Math.floor((-panY / zoomLevel - buffer) / TILE_SIZE_PX));
-    const viewBottom = Math.min(MAP_HEIGHT_TILES - 1, Math.ceil(((-panY + containerDimensions.height) / zoomLevel + buffer) / TILE_SIZE_PX));
+    const { viewLeft, viewRight, viewTop, viewBottom } = visibleTileGrid;
 
     // Direct calculation: iterate only through visible range (not all 1,024 tiles)
     const visible: Tile[] = [];
@@ -663,7 +693,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     }
 
     return visible;
-  }, [flatTiles, panX, panY, zoomLevel, containerDimensions.width, containerDimensions.height, mapData?.tiles]);
+  }, [visibleTileGrid, mapData?.tiles, flatTiles]);
 
   // Memoized filter operations - PERFORMANCE: Avoid filtering 10k elements every render
   const desertParticleTiles = useMemo(() => {
@@ -873,10 +903,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 if (canvasRef.current) canvasRef.current.style.transform = newTransform;
             }
 
-            // CRITICAL FIX: Update React state during animation so visibleTiles recalculates
-            // This ensures symbols appear as player moves into new areas
-            setPanX(currentPanX.current);
-            setPanY(currentPanY.current);
+            // PERFORMANCE FIX: Removed setPanX/setPanY from animation loop
+            // DOM is updated directly above (lines 872-873) for smooth 60fps animation
+            // State only updates when movement stops (see below) to trigger React re-render
+            // This prevents 60 re-renders/second during player movement
 
             // Continue animating
             cameraAnimationFrame.current = requestAnimationFrame(smoothCameraLoop);
@@ -885,6 +915,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             currentPanX.current = targetPanX.current;
             currentPanY.current = targetPanY.current;
 
+            // Update React state when movement STOPS to trigger visibleTiles recalculation
+            // This ensures symbols appear after player finishes moving
             if (panX !== targetPanX.current || panY !== targetPanY.current) {
                 setPanX(targetPanX.current);
                 setPanY(targetPanY.current);
@@ -906,7 +938,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             cancelAnimationFrame(cameraAnimationFrame.current);
         }
     };
-  }, [mapData, displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, panX, panY, debugSettings?.throttleAnimationFPS]);
+  }, [mapData, displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, debugSettings?.throttleAnimationFPS]);
 
   // Enhanced icon animation
   useEffect(() => {
@@ -993,100 +1025,124 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     };
   }, [logicalControlledIconX, logicalControlledIconY, onIconAnimationComplete, playerCharacter?.elevatedState]);
 
-  // Reset centering flag when map changes
-  useEffect(() => {
-    if (mapData && prevMapDataRef.current !== mapData) {
-      hasCenteredOnCurrentMap.current = false;
-      prevMapDataRef.current = mapData;
-    }
-  }, [mapData]);
+  // Camera centering - immediate positioning when map seed changes
+  useLayoutEffect(() => {
+    const containerWidth = containerRef.current?.clientWidth || 0;
+    const containerHeight = containerRef.current?.clientHeight || 0;
 
-  // Initial camera centering with zoom animation
-  useEffect(() => {
+    console.log('[CAMERA DEBUG] Camera centering effect triggered', {
+      hasMapData: !!mapData,
+      hasIconX: logicalControlledIconX !== null,
+      hasIconY: logicalControlledIconY !== null,
+      hasContainer: !!containerRef.current,
+      containerWidth,
+      containerHeight,
+      iconX: logicalControlledIconX,
+      iconY: logicalControlledIconY,
+      isAlreadyCentered: hasCenteredOnCurrentMap.current,
+      hasEverCentered: hasEverCentered.current,
+      isLoading: isLoading,
+      currentSeed: mapData?.seed,
+      prevSeed: prevMapSeed.current,
+      currentPanX: currentPanX.current,
+      currentPanY: currentPanY.current,
+      targetPanX: targetPanX.current,
+      targetPanY: targetPanY.current
+    });
+
     // Wait for all required data
     if (!mapData || logicalControlledIconX === null || logicalControlledIconY === null || !containerRef.current) {
+      console.log('[CAMERA DEBUG] Early return: missing required data');
       return;
     }
-    
-    // Don't recenter if already centered on this map
-    if (hasCenteredOnCurrentMap.current) {
+
+    // Check if this is a new map (seed changed)
+    const isNewMap = prevMapSeed.current !== mapData.seed;
+
+    if (isNewMap) {
+      console.log('[CAMERA DEBUG] New map detected, resetting centered flag', {
+        oldSeed: prevMapSeed.current,
+        newSeed: mapData.seed
+      });
+      hasCenteredOnCurrentMap.current = false;
+      // DON'T update prevMapSeed yet - only after successful centering
+    }
+
+    // Check if container dimensions have changed significantly since last centering
+    // This handles the case where centering happens with a small container that then grows
+    const lastWidth = lastCenterContainerSize.current.width;
+    const lastHeight = lastCenterContainerSize.current.height;
+    const widthChanged = lastWidth > 0 && Math.abs(containerWidth - lastWidth) > 100;
+    const heightChanged = lastHeight > 0 && Math.abs(containerHeight - lastHeight) > 100;
+
+    if ((widthChanged || heightChanged) && containerWidth > lastWidth && containerHeight > lastHeight) {
+      console.log('[CAMERA DEBUG] Container size increased significantly, re-centering', {
+        oldSize: `${lastWidth}x${lastHeight}`,
+        newSize: `${containerWidth}x${containerHeight}`
+      });
+      hasCenteredOnCurrentMap.current = false;
+    }
+
+    // Don't recenter if already centered on this map (and container size hasn't changed)
+    if (hasCenteredOnCurrentMap.current && !isNewMap) {
+      console.log('[CAMERA DEBUG] Early return: already centered');
       return;
     }
-    
-    // Small delay to ensure container is properly mounted and sized
-    const timeoutId = setTimeout(() => {
-      if (!containerRef.current) return;
-      
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-      
-      // Only center if we have valid container dimensions
-      if (containerWidth > 0 && containerHeight > 0) {
-        const iconSvgX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
-        const iconSvgY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
 
-        // Start with zoomed out view (0.7x)
-        const startZoom = INITIAL_ZOOM_LEVEL * 0.7;
-        const endZoom = INITIAL_ZOOM_LEVEL;
-        
-        // Calculate pan for the final zoom level
-        const finalPanX = containerWidth / 2 - iconSvgX * endZoom;
-        const finalPanY = containerHeight / 2 - iconSvgY * endZoom;
-        
-        // Calculate pan for the initial zoom level
-        const initialPanX = containerWidth / 2 - iconSvgX * startZoom;
-        const initialPanY = containerHeight / 2 - iconSvgY * startZoom;
+    // Don't center during map transitions - UNLESS this is the very first centering
+    // (Initial load must center even if isLoading is true)
+    if (isLoading && hasEverCentered.current) {
+      console.log('[CAMERA DEBUG] Early return: map transition in progress');
+      return;
+    }
 
-        // Set initial position (zoomed out)
-        setPanX(initialPanX);
-        setPanY(initialPanY);
-        targetPanX.current = initialPanX;
-        targetPanY.current = initialPanY;
-        
-        // Mark as centered immediately to prevent other effects from interfering
-        hasCenteredOnCurrentMap.current = true;
-        
-        // Animate zoom and pan over 2 seconds
-        const animationDuration = 2000;
-        const startTime = performance.now();
-        
-        const animate = () => {
-          const now = performance.now();
-          const elapsed = now - startTime;
-          const progress = Math.min(elapsed / animationDuration, 1);
-          
-          // Easing function for smooth animation
-          const easeInOutCubic = (t: number) => t < 0.5 
-            ? 4 * t * t * t 
-            : 1 - Math.pow(-2 * t + 2, 3) / 2;
-          
-          const easedProgress = easeInOutCubic(progress);
-          
-          // Interpolate zoom
-          const currentZoom = startZoom + (endZoom - startZoom) * easedProgress;
-          setZoomLevel(currentZoom);
-          
-          // Recalculate pan for current zoom level to keep player centered
-          const currentPanX = containerWidth / 2 - iconSvgX * currentZoom;
-          const currentPanY = containerHeight / 2 - iconSvgY * currentZoom;
-          
-          setPanX(currentPanX);
-          setPanY(currentPanY);
-          targetPanX.current = currentPanX;
-          targetPanY.current = currentPanY;
-          
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          }
-        };
-        
-        // Start the animation
-        requestAnimationFrame(animate);
-      }
-    }, 100); // 100ms delay to ensure container is sized
-    
-    return () => clearTimeout(timeoutId);
-  }, [logicalControlledIconX, logicalControlledIconY]); // Removed mapData dependency to prevent recentering on terrain modifications
+    // Only center if we have valid container dimensions (already declared at top)
+    if (containerWidth > 0 && containerHeight > 0) {
+      console.log('[CAMERA DEBUG] Executing immediate camera center (no delay)');
+
+      const iconSvgX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+      const iconSvgY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+
+      // Set final zoom and pan immediately for responsive map transitions
+      const endZoom = INITIAL_ZOOM_LEVEL;
+      console.log('[CAMERA DEBUG] Setting zoom and camera position', {
+        playerX: logicalControlledIconX,
+        playerY: logicalControlledIconY,
+        timestamp: performance.now()
+      });
+
+      // Calculate final pan position to center on player
+      const finalPanX = containerWidth / 2 - iconSvgX * endZoom;
+      const finalPanY = containerHeight / 2 - iconSvgY * endZoom;
+
+      // 1. Update React state (triggers re-render)
+      setZoomLevel(endZoom);
+      setPanX(finalPanX);
+      setPanY(finalPanY);
+
+      // 2. CRITICAL: Update refs directly so they're in sync immediately
+      currentPanX.current = finalPanX;
+      currentPanY.current = finalPanY;
+      targetPanX.current = finalPanX;
+      targetPanY.current = finalPanY;
+
+      // 3. CRITICAL: Apply transform directly to DOM (bypasses React for immediate visual update)
+      const newTransform = `translate3d(${finalPanX}px, ${finalPanY}px, 0) scale(${endZoom})`;
+      if (svgRef.current) svgRef.current.style.transform = newTransform;
+      if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+
+      console.log('[CAMERA DEBUG] Camera position set complete');
+
+      // Mark as centered immediately to prevent other effects from interfering
+      hasCenteredOnCurrentMap.current = true;
+      hasEverCentered.current = true; // Mark that we've completed at least one centering
+      prevMapSeed.current = mapData.seed; // NOW mark this seed as handled (after successful centering)
+      lastCenterContainerSize.current = { width: containerWidth, height: containerHeight }; // Store container size used for centering
+    } else {
+      console.log('[CAMERA DEBUG] Container not sized yet, will retry on next render');
+      // prevMapSeed NOT updated - effect will run again when dependencies change
+    }
+  }, [mapData?.seed, logicalControlledIconX, logicalControlledIconY, isLoading, containerDimensions.width, containerDimensions.height]);
 
   // Listen for center map events from quest panel
   useEffect(() => {
@@ -1151,10 +1207,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   }, [pathObjects]);
 
   // Memoize sorted railroads for train selection (only railroad paths with actual rails, not ties)
+  // PERFORMANCE LIMIT: Only 1 train maximum
   const trainRailroads = useMemo(() => {
     // Only use actual rail paths (not ties) for trains - they have no strokeDasharray
     const railsOnly = railroadPaths.filter(p => !p.strokeDasharray);
-    return [...railsOnly].sort((a, b) => b.svgD.length - a.svgD.length).slice(0, 2);
+    return [...railsOnly].sort((a, b) => b.svgD.length - a.svgD.length).slice(0, 1); // Changed from 2 to 1
   }, [railroadPaths]);
 
   // Safari optimization: Adjust zoom limits to encourage better performance
@@ -1190,7 +1247,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     setIsDragging(true);
-    setLastMousePos({ x: e.clientX, y: e.clientY });
+    const pos = { x: e.clientX, y: e.clientY };
+    setLastMousePos(pos);
+    lastMousePosRef.current = pos; // Sync ref
   }, []);
   
   const getTileFromMouseEvent = useCallback((e: React.MouseEvent): Tile | null => {
@@ -1546,9 +1605,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     if (isDragging && mapData) {
       if (!isFreePanMode) setIsFreePanMode(true);
 
-      const deltaX = e.clientX - lastMousePos.x;
-      const deltaY = e.clientY - lastMousePos.y;
-      
+      const deltaX = e.clientX - lastMousePosRef.current.x;
+      const deltaY = e.clientY - lastMousePosRef.current.y;
+
       currentPanX.current += deltaX;
       currentPanY.current += deltaY;
 
@@ -1561,8 +1620,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       if (canvasRef.current) {
         canvasRef.current.style.transform = newTransform;
       }
-      
-      setLastMousePos({ x: e.clientX, y: e.clientY });
+
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
     } else {
       const tile = getTileFromMouseEvent(e);
       if (tile) {
@@ -1637,7 +1696,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         throttledOnDevHover(null);
       }
     }
-  }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel, npcs, animals, updateHoverStates]);
+  }, [isDragging, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel, updateHoverStates]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     // Clear NPC highlight when clicking anywhere on the map
@@ -1697,8 +1756,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       if (!mapData) return;
       if (!isFreePanMode) setIsFreePanMode(true);
 
-      const deltaX = e.clientX - lastMousePos.x;
-      const deltaY = e.clientY - lastMousePos.y;
+      const deltaX = e.clientX - lastMousePosRef.current.x;
+      const deltaY = e.clientY - lastMousePosRef.current.y;
 
       currentPanX.current += deltaX;
       currentPanY.current += deltaY;
@@ -1713,7 +1772,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         canvasRef.current.style.transform = newTransform;
       }
 
-      setLastMousePos({ x: e.clientX, y: e.clientY });
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
     };
 
     const handleGlobalMouseUp = () => {
@@ -1731,7 +1790,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       window.removeEventListener('mousemove', handleGlobalMouseMove);
       window.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [isDragging, isFreePanMode, lastMousePos, mapData, zoomLevel]);
+  }, [isDragging, isFreePanMode, mapData, zoomLevel]);
 
   const handleMouseLeave = useCallback(() => {
     setIsDragging(false);
@@ -1744,12 +1803,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       // Single touch - prepare for pan
-      touchStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
-      };
+      const pos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchStartRef.current = pos;
       setIsDragging(true);
-      setLastMousePos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+      setLastMousePos(pos);
+      lastMousePosRef.current = pos; // Sync ref
     } else if (e.touches.length === 2) {
       // Two touches - prepare for pinch zoom
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -1765,16 +1823,16 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     e.preventDefault();
-    
+
     if (!touchStartRef.current || !mapData) return;
-    
+
     if (e.touches.length === 1 && isDragging) {
       // Single touch - pan
       if (!isFreePanMode) setIsFreePanMode(true);
-      
-      const deltaX = e.touches[0].clientX - lastMousePos.x;
-      const deltaY = e.touches[0].clientY - lastMousePos.y;
-      
+
+      const deltaX = e.touches[0].clientX - lastMousePosRef.current.x;
+      const deltaY = e.touches[0].clientY - lastMousePosRef.current.y;
+
       currentPanX.current += deltaX;
       currentPanY.current += deltaY;
 
@@ -1792,8 +1850,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         canvasRef.current.style.webkitTransform = newTransform;
         canvasRef.current.style.willChange = 'transform';
       }
-      
-      setLastMousePos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+
+      lastMousePosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     } else if (e.touches.length === 2 && touchStartRef.current.distance) {
       // Two touches - pinch zoom
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -1827,7 +1885,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         }
       }
     }
-  }, [isDragging, isFreePanMode, lastMousePos, mapData, zoomLevel, panX, panY]);
+  }, [isDragging, isFreePanMode, mapData, zoomLevel]);
 
   const handleTouchEnd = useCallback(() => {
     if (isDragging) {
@@ -2097,37 +2155,50 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         onTouchEnd={handleTouchEnd}
         onClick={handleClick}
       >
-        {/* OPTIMIZED CANVAS - Using MapCanvasPerformance instead of expensive inline rendering */}
-        <MapCanvasPerformance
-          key={currentMapSeed || 'default'}
-          ref={canvasRef}
-          mapData={mapData}
-          canvasSize={canvasSize}
-          panX={panX}
-          panY={panY}
-          zoomLevel={zoomLevel}
-          isNight={timeOfDayData.isNight}
-          playerX={playerCharacter?.x}
-          playerY={playerCharacter?.y}
-          disableSmoothing={debugSettings?.disableCanvasSmoothing}
-          season={season}
-        />
-        
-        {/* Enhanced SVG overlay */}
-        <svg 
-          ref={svgRef} 
-          width={svgWidth} 
-          height={svgHeight} 
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
-          className="pointer-events-none absolute top-0 left-0 select-none" 
+        {/* Fade wrapper for smooth map transitions */}
+        <div
           style={{
-            width: svgWidth,
-            height: svgHeight,
-            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
-            transformOrigin: '0 0'
-            // willChange: 'transform' // Disabled - causes Safari to render at lower resolution
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: isLoading ? 0 : 1,
+            transition: 'opacity 0.15s ease-in-out',
+            pointerEvents: 'none'
           }}
         >
+          {/* OPTIMIZED CANVAS - Using MapCanvasPerformance instead of expensive inline rendering */}
+          <MapCanvasPerformance
+            key={currentMapSeed || 'default'}
+            ref={canvasRef}
+            mapData={mapData}
+            canvasSize={canvasSize}
+            panX={panX}
+            panY={panY}
+            zoomLevel={zoomLevel}
+            isNight={timeOfDayData.isNight}
+            playerX={playerCharacter?.x}
+            playerY={playerCharacter?.y}
+            disableSmoothing={debugSettings?.disableCanvasSmoothing}
+            season={season}
+          />
+
+          {/* Enhanced SVG overlay */}
+          <svg
+            ref={svgRef}
+            width={svgWidth}
+            height={svgHeight}
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            className="pointer-events-none absolute top-0 left-0 select-none"
+            style={{
+              width: svgWidth,
+              height: svgHeight,
+              transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
+              transformOrigin: '0 0'
+              // willChange: 'transform' // Disabled - causes Safari to render at lower resolution
+            }}
+          >
           <defs>
             {/* Enhanced filters and gradients - optimized for Safari */}
             {!isSafari ? (
@@ -2484,7 +2555,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredTile(null);
                           setHoveredTileCoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <RailroadStationSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} era={stationEra} culturalStyle={stationCulturalStyle} seed={tileSeed} />
                         {hoveredTile === tile && (
@@ -2495,6 +2566,49 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             height={TILE_SIZE_PX}
                             fill="none"
                             stroke="#60A5FA"
+                            strokeWidth="2"
+                            opacity="0.8"
+                            rx="3"
+                            pointerEvents="none"
+                          />
+                        )}
+                      </g>
+                    );
+                  }
+                  if(tile.biome === BiomeType.HARBOR_DISTRICT) {
+                    // Harbor district symbol - clickable for ocean voyages
+                    const { era: harborEra } = parseDateString(formattedDate);
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+                    const harborCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
+                    return (
+                      <g
+                        key={`harbor-${tile.x}-${tile.y}`}
+                        onClick={() => onHarborClick && onHarborClick(tile)}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredTile(tile);
+                            setHoveredTileCoords({ x: e.clientX, y: e.clientY });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredTile(null);
+                          setHoveredTileCoords(null);
+                        }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
+                      >
+                        <HarborDistrictSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} era={harborEra} culturalStyle={harborCulturalStyle} seed={tileSeed} />
+                        {hoveredTile === tile && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="#3B82F6"
                             strokeWidth="2"
                             opacity="0.8"
                             rx="3"
@@ -2518,7 +2632,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredTile(null);
                           setHoveredTileCoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <FarmSymbol tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} climate={climate} season={season} />
                         {hoveredTile === tile && (
@@ -3012,7 +3126,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredTile(null);
                           setHoveredTileCoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <UrbanSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} location={mapData.localArea || mapData.region || currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />
                         {hoveredTile === tile && (
@@ -3046,7 +3160,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredTile(null);
                           setHoveredTileCoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <GovernmentDistrictSymbol
                           x={symbolX}
@@ -3087,7 +3201,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOI(null);
                           setHoveredPOICoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <MarketplaceSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} date={formattedDate} zone={currentLocation} />
                         {hoveredPOI?.id === marketplaceStructure.id && (
@@ -3151,7 +3265,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOI(null);
                           setHoveredPOICoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <PalaceComponent x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />
                         {hoveredPOI?.id === palaceStructure?.id && (
@@ -3202,7 +3316,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOI(null);
                           setHoveredPOICoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <RuinsSymbolNew x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />
                         {hoveredPOI?.id === ruinStructure?.id && (
@@ -3285,7 +3399,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOI(null);
                           setHoveredPOICoords(null);
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
                         <HolySiteComponent x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />
                         {hoveredPOI?.id === holySiteStructure?.id && (
@@ -3353,7 +3467,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     
                     return (
                       <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}>
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <GovernmentComponent
                             x={structX} 
@@ -3400,7 +3514,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     
                     return (
                       <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}>
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <FactoryComponent
                             x={structX} 
@@ -3430,7 +3544,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     
                     return (
                       <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}>
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <FishingHutSymbol 
                             x={structX} 
@@ -3484,7 +3598,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOICoords(null);
                         }}
                       >
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <MillComponent
                             x={structX} 
@@ -3530,7 +3644,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOICoords(null);
                         }}
                       >
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <MineComponent
                             x={structX} 
@@ -3575,7 +3689,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOICoords(null);
                         }}
                       >
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <QuarryComponent
                             x={structX} 
@@ -3642,7 +3756,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOICoords(null);
                         }}
                       >
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <FortressComponent
                             x={structX} 
@@ -3687,7 +3801,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setHoveredPOICoords(null);
                         }}
                       >
-                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <LumberCampSymbol
                             x={structX}
@@ -3724,13 +3838,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         fontSize={TILE_SIZE_PX * 1.3}
                         textAnchor="middle"
                         dominantBaseline="central"
-                        style={{ 
-                          cursor: 'pointer',
-                          filter: shouldRenderShadows 
+                        style={{
+                          cursor: isDragging ? 'inherit' : 'pointer',
+                          pointerEvents: isDragging ? 'none' : 'auto',
+                          filter: shouldRenderShadows
                             ? (isRuined ? 'grayscale(1) drop-shadow(1px 1px 2px rgba(0,0,0,0.6))' : 'drop-shadow(2px 3px 4px rgba(0,0,0,0.9))')
                             : (isRuined ? 'grayscale(1)' : 'none'),
-                          opacity: isRuined ? 0.6 : 1,
-                          pointerEvents: 'auto'
+                          opacity: isRuined ? 0.6 : 1
                         }}
                       >
                         <title>{`${structure.name} (${structure.structureType})`}</title>
@@ -3847,7 +3961,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         <g
                           key={`overlay-${tile.x}-${tile.y}`}
                           style={{
-                            cursor: isClickableContainer ? 'pointer' : 'default',
+                            cursor: isDragging ? 'inherit' : (isClickableContainer ? 'pointer' : 'default'),
+                            pointerEvents: isDragging ? 'none' : (isClickableContainer ? 'auto' : 'none'),
                             filter: hasItems ? (
                               isValuable ?
                                 'drop-shadow(0 0 5px rgba(255, 215, 0, 0.8))' : // Gold glow for valuable
@@ -3958,9 +4073,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Deployed Vessels layer */}
             <g>
               {(deployedVessels || []).map(vessel => (
-                <g key={vessel.id} 
-                   onClick={(e) => { e.stopPropagation(); onVesselClick?.(vessel); }} 
-                   style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                <g key={vessel.id}
+                   onClick={(e) => { e.stopPropagation(); onVesselClick?.(vessel); }}
+                   style={{cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto'}}
                    className="smooth-movement"
                    transform={`translate(${vessel.x * TILE_SIZE_PX}, ${vessel.y * TILE_SIZE_PX})`}>
                   {/* Shadow beneath vessel */}
@@ -4015,7 +4130,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                      setHoveredAnimal(null);
                      setHoveredEntityCoords(null);
                    }}
-                   style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                   style={{cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto'}}
                    className="smooth-movement"
                    transform={`translate(${animal.x * TILE_SIZE_PX}, ${animal.y * TILE_SIZE_PX})`}>
                   {/* Shadow beneath animal */}
@@ -4085,7 +4200,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                        console.log('[MapDisplay] Companion clicked:', animal);
                        onCompanionClick?.(animal);
                      }}
-                     style={{ cursor: 'pointer', pointerEvents: 'all' }}>
+                     style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'all' }}>
                     {/* Shadow beneath tamed animal */}
                     <ellipse
                       cx={TILE_SIZE_PX/2}
@@ -4155,7 +4270,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                      setHoveredNPC(null);
                      setHoveredEntityCoords(null);
                    }}
-                   style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                   style={{cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto'}}
                    className={`smooth-movement ${selectedNpcId === npc.id ? 'animate-ff6-idle-bob' : ''}`}
                    transform={`translate(${npc.x * TILE_SIZE_PX}, ${npc.y * TILE_SIZE_PX})`}>
                   {/* Shadow beneath NPC */}
@@ -4437,7 +4552,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             setShipTooltipPos({ x, y });
                             setShowShipTooltip(true);
                           }}
-                          style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                          style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'all' }}
                         >
                           <VesselSymbol 
                             vessel={currentVessel} 
@@ -4456,7 +4571,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             setShipTooltipPos({ x, y });
                             setShowShipTooltip(true);
                           }}
-                          style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                          style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'all' }}
                         >
                           {/* Shadow halo under basic ship */}
                           <ellipse
@@ -4485,7 +4600,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           setPlayerTooltipPos({ x, y });
                           setShowPlayerTooltip(true);
                         }}
-                        style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                        style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'all' }}
                       >
                         {/* Shadow halo under player */}
                         <ellipse
@@ -4647,6 +4762,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             )}
           </g>
         </svg>
+        </div>
+        {/* End fade wrapper */}
       </div>
       
       {/* Quest Markers */}

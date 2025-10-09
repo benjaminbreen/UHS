@@ -23,7 +23,7 @@ import { CulturalZone } from '../types/characterData';
 let diseaseModule: any = null;
 let diseaseModulePromise: Promise<any> | null = null;
 
-const ensureDiseaseModule = () => {
+const ensureDiseaseModule = async (): Promise<any> => {
   if (diseaseModule) {
     return diseaseModule;
   }
@@ -32,12 +32,26 @@ const ensureDiseaseModule = () => {
   if (!diseaseModulePromise) {
     diseaseModulePromise = import('../constants/gameData/diseases').then(module => {
       diseaseModule = module;
+      console.log('[DiseaseService] Disease module loaded successfully with', module?.DISEASE_DATABASE?.diseases?.length, 'diseases');
       diseaseModulePromise = null; // Clear promise after loading
       return module;
+    }).catch(error => {
+      console.error('[DiseaseService] Failed to load disease module:', error);
+      diseaseModulePromise = null;
+      return null;
     });
   }
 
-  // Return the module if it's already loaded, or null if still loading
+  // Wait for the module to load
+  return await diseaseModulePromise;
+};
+
+// Synchronous version for backwards compatibility - tries to use cached module
+const ensureDiseaseModuleSync = () => {
+  if (!diseaseModule) {
+    console.warn('[DiseaseService] Disease module not yet loaded, starting async load...');
+    ensureDiseaseModule(); // Start loading but don't wait
+  }
   return diseaseModule;
 };
 
@@ -47,10 +61,13 @@ class DiseaseService {
   private static instance: DiseaseService;
   private diseaseCache: Map<string, Disease> = new Map();
   private proximityCheckRadius = 1.0; // tiles
+  private initialized = false;
 
   constructor() {
     // Don't initialize disease cache in constructor to avoid circular dependency issues
     // Cache will be initialized lazily on first access
+    // Start preloading the disease module
+    this.preloadDiseaseModule();
   }
 
   public static getInstance(): DiseaseService {
@@ -58,6 +75,17 @@ class DiseaseService {
       DiseaseService.instance = new DiseaseService();
     }
     return DiseaseService.instance;
+  }
+
+  /**
+   * Preload disease module - call this early in app initialization
+   */
+  public async preloadDiseaseModule(): Promise<void> {
+    if (this.initialized) return;
+    console.log('[DiseaseService] Preloading disease module...');
+    await ensureDiseaseModule();
+    this.initialized = true;
+    console.log('[DiseaseService] Disease module preloaded');
   }
 
   private initializeDiseaseCache(): void {
@@ -721,15 +749,45 @@ class DiseaseService {
     return null;
   }
 
+  /**
+   * Map modern era enum values to legacy disease database era names
+   */
+  private mapEraToLegacyName(era: HistoricalEra): string {
+    const mapping: Record<string, string> = {
+      'PREHISTORY': 'PREHISTORIC',
+      'ANTIQUITY': 'ANCIENT',
+      'MEDIEVAL': 'MEDIEVAL',
+      'RENAISSANCE_EARLY_MODERN': 'EARLY_MODERN',
+      'INDUSTRIAL_ERA': 'INDUSTRIAL',
+      'MODERN_ERA': 'MODERN',
+      'FUTURE_ERA': 'FUTURE'
+    };
+    return mapping[era] || era;
+  }
+
+  /**
+   * Get available diseases for a given context (synchronous - uses preloaded module)
+   */
   public getAvailableDiseasesForContext(
     era: HistoricalEra,
     region: CulturalZone,
     currentYear: number
   ): Disease[] {
-    ensureDiseaseModule();
-    return (diseaseModule?.DISEASE_DATABASE?.diseases || []).filter(disease => {
-      // Check era availability
-      if (!disease.availableEras.includes(era)) return false;
+    // If module isn't loaded yet, return empty array with warning
+    if (!diseaseModule) {
+      console.warn('[DiseaseService] Disease module not yet loaded, returning empty array');
+      return [];
+    }
+
+    const legacyEraName = this.mapEraToLegacyName(era);
+    console.log(`[DiseaseService] Getting diseases for era: ${era} (mapped to: ${legacyEraName}), region: ${region}, year: ${currentYear}`);
+    console.log(`[DiseaseService] diseaseModule exists:`, !!diseaseModule);
+    console.log(`[DiseaseService] DISEASE_DATABASE exists:`, !!diseaseModule?.DISEASE_DATABASE);
+    console.log(`[DiseaseService] Total diseases in database:`, diseaseModule?.DISEASE_DATABASE?.diseases?.length || 0);
+
+    const filtered = (diseaseModule?.DISEASE_DATABASE?.diseases || []).filter(disease => {
+      // Check era availability (using legacy era names from diseases.ts)
+      if (!disease.availableEras.includes(legacyEraName as any)) return false;
 
       // Check region availability
       if (!disease.availableRegions.includes(region)) return false;
@@ -754,6 +812,21 @@ class DiseaseService {
 
       return true;
     });
+
+    console.log(`[DiseaseService] Found ${filtered.length} available diseases`);
+    return filtered;
+  }
+
+  /**
+   * Async version for cases where you need to ensure module is loaded
+   */
+  public async getAvailableDiseasesForContextAsync(
+    era: HistoricalEra,
+    region: CulturalZone,
+    currentYear: number
+  ): Promise<Disease[]> {
+    await ensureDiseaseModule();
+    return this.getAvailableDiseasesForContext(era, region, currentYear);
   }
 
   private calculateDiseaseChance(entity: NpcEntity | AnimalEntity): number {

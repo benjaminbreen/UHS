@@ -176,14 +176,14 @@ export const FarmRightSidebar: React.FC<FarmRightSidebarProps> = ({
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="p-1.5 bg-green-500/10 rounded-lg">
-                <Sprout className="w-4 h-4 text-green-400" />
+                <Sprout className="w-5 h-5 text-green-400" />
               </div>
               <h3 className="text-sm font-bold text-green-300 uppercase tracking-wider">
                 {season === 'Spring' || season === 'Winter' ? 'Available Crops' : 'Available Tools'}
               </h3>
             </div>
-            <div className="bg-gradient-to-br from-slate-700/30 to-slate-800/30 rounded-lg p-3 border border-slate-600/20">
-              <div className="space-y-1">
+            <div className="bg-gradient-to-br from-slate-700/40 to-slate-800/40 rounded-xl p-4 border border-slate-600/30">
+              <div className="space-y-2.5">
                 {season === 'Spring' || season === 'Winter' ? (
                   // Show crop counts
                   validCrops.slice(0, 6).map((crop) => {
@@ -199,38 +199,38 @@ export const FarmRightSidebar: React.FC<FarmRightSidebarProps> = ({
                     };
                     const emoji = cropEmojis[crop] || '🌱';
                     return (
-                      <div key={crop} className="flex items-center justify-between text-[10px] text-slate-300">
-                        <span className="flex items-center gap-1">
-                          <span>{emoji}</span>
-                          <span className="capitalize">{crop}</span>
+                      <div key={crop} className="flex items-center justify-between text-sm text-slate-200 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/40">
+                        <span className="flex items-center gap-2">
+                          <span className="text-xl">{emoji}</span>
+                          <span className="capitalize font-medium">{crop}</span>
                         </span>
-                        <span className="text-slate-500">Available</span>
+                        <span className="text-xs text-green-400 font-semibold">Ready</span>
                       </div>
                     );
                   })
                 ) : (
                   // Show tools for tending fields in Summer/Fall
                   <>
-                    <div className="flex items-center justify-between text-[10px] text-slate-300">
-                      <span className="flex items-center gap-1">
-                        <Droplets className="w-3 h-3" />
-                        <span>Water bucket</span>
+                    <div className="flex items-center justify-between text-sm text-slate-200 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/40">
+                      <span className="flex items-center gap-2">
+                        <Droplets className="w-4 h-4 text-blue-400" />
+                        <span className="font-medium">Water bucket</span>
                       </span>
-                      <span className="text-slate-500">Ready</span>
+                      <span className="text-xs text-green-400 font-semibold">Ready</span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-slate-300">
-                      <span className="flex items-center gap-1">
-                        <Sprout className="w-3 h-3" />
-                        <span>Hoe</span>
+                    <div className="flex items-center justify-between text-sm text-slate-200 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/40">
+                      <span className="flex items-center gap-2">
+                        <Sprout className="w-4 h-4 text-green-400" />
+                        <span className="font-medium">Hoe</span>
                       </span>
-                      <span className="text-slate-500">Ready</span>
+                      <span className="text-xs text-green-400 font-semibold">Ready</span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-slate-300">
-                      <span className="flex items-center gap-1">
-                        <Wheat className="w-3 h-3" />
-                        <span>Scythe</span>
+                    <div className="flex items-center justify-between text-sm text-slate-200 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/40">
+                      <span className="flex items-center gap-2">
+                        <Wheat className="w-4 h-4 text-amber-400" />
+                        <span className="font-medium">Scythe</span>
                       </span>
-                      <span className="text-slate-500">Ready</span>
+                      <span className="text-xs text-green-400 font-semibold">Ready</span>
                     </div>
                   </>
                 )}

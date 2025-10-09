@@ -4,6 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Map Voyager - Enhanced Engine</title>
+
+  <!-- Critical CSS to prevent FOUC -->
+  <style>
+    /* Apply dark mode immediately before Tailwind loads */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f172a !important;
+      color: #e5e7eb !important;
+      overflow: hidden;
+    }
+
+    #root {
+      width: 100vw;
+      height: 100vh;
+      background-color: #0f172a !important;
+    }
+
+    /* Hide content until styles are fully loaded */
+    #root > * {
+      visibility: visible;
+    }
+  </style>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
@@ -1353,9 +1377,9 @@
 <link rel="stylesheet" href="/loading.css">
 <link rel="stylesheet" href="/farm-animations.css">
 </head>
-<body class="bg-slate-200 text-slate-800 dark:bg-slate-900 dark:text-gray-100 m-0 p-0 w-full h-full font-sans antialiased overflow-hidden transition-colors duration-300">
+<body class="bg-slate-200 text-slate-800 dark:bg-slate-900 dark:text-gray-100 m-0 p-0 w-full h-full font-sans antialiased overflow-hidden transition-colors duration-300" style="background-color: #0f172a; color: #e5e7eb;">
   <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root" class="w-full h-screen flex flex-col items-stretch relative"></div>
+  <div id="root" class="w-full h-screen flex flex-col items-stretch relative" style="background-color: #0f172a;"></div>
 <script type="module" src="/index.tsx"></script>
 </body>
 </html>

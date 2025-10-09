@@ -293,10 +293,20 @@ export const useMapState = (props: useMapStateProps) => {
 
     // Initialize railroad network when map data changes
     useEffect(() => {
-        if (mapData) {
-            railroadNetworkService.initialize(mapData);
+        if (mapData && gameState.gameDate) {
+            // Convert year to era for railroad service
+            const year = gameState.gameDate.year;
+            let era: HistoricalEra;
+            if (year < 500) era = HistoricalEra.ANTIQUITY;
+            else if (year < 1450) era = HistoricalEra.MEDIEVAL;
+            else if (year < 1800) era = HistoricalEra.RENAISSANCE_EARLY_MODERN;
+            else if (year < 1900) era = HistoricalEra.INDUSTRIAL_ERA;
+            else if (year < 2000) era = HistoricalEra.MODERN_ERA;
+            else era = HistoricalEra.FUTURE_ERA;
+
+            railroadNetworkService.initialize(mapData, year, era);
         }
-    }, [mapData]);
+    }, [mapData, gameState.gameDate]);
 
     const removeVegetation = useCallback((vegetationId: string) => {
         // Don't modify special maps (check ref for immediate value)
@@ -632,9 +642,11 @@ export const useMapState = (props: useMapStateProps) => {
 
         // If the current mapData doesn't match the coordinates, we need to load a new one.
         if (mapData && (mapData.seed !== currentMapSeed)) {
+             console.log('[MAP TRANSITION DEBUG] Setting isLoading = TRUE', performance.now());
              setGameState.setIsLoading(true);
 
             if (cachedEntry) {
+                console.log('[MAP TRANSITION DEBUG] Loading from cache');
                 setMapData(cachedEntry.mapData);
                 setAnimals(cachedEntry.animals);
                 setNpcs(cachedEntry.npcs);
@@ -657,6 +669,7 @@ export const useMapState = (props: useMapStateProps) => {
                 if (playerState.pendingIconTransitionInfo) {
                     validateAndPlacePlayerOnNewMap(cachedEntry.mapData, playerState.pendingIconTransitionInfo);
                 }
+                console.log('[MAP TRANSITION DEBUG] Setting isLoading = FALSE (cached)', performance.now());
                 setGameState.setIsLoading(false);
             } else {
                 // Generate new map - neighboring edges will be collected automatically by generateAndCacheMapInternal
@@ -704,6 +717,7 @@ export const useMapState = (props: useMapStateProps) => {
                         mapToGenerate.name, mapToGenerate.region, mapToGenerate.zone, undefined, // neighboringEdges will be collected automatically
                         mapToGenerate.altitude, mapToGenerate.hasLakes, mapToGenerate.economicActivityLevel, mapToGenerate.isVolcanic
                     );
+                    console.log('[MAP TRANSITION DEBUG] Generated new map');
                     setMapData(newMapData.mapData);
                     setAnimals(newMapData.animals);
                     setNpcs(newMapData.npcs);
@@ -712,6 +726,7 @@ export const useMapState = (props: useMapStateProps) => {
                         validateAndPlacePlayerOnNewMap(newMapData.mapData, playerState.pendingIconTransitionInfo);
                     }
                 }
+                console.log('[MAP TRANSITION DEBUG] Setting isLoading = FALSE (generated)', performance.now());
                 setGameState.setIsLoading(false);
             }
         }
@@ -1888,6 +1903,146 @@ export const useMapState = (props: useMapStateProps) => {
         return { success: true, bridgePosition: bridgeLocation };
     }, [mapData, currentWorldCoords, mapDataCache]);
 
+    /**
+     * Fast travel to a specific map area (for caravans, teleportation, etc.)
+     * Unlike onStartNewWorldAtLocation, this preserves world state and just moves the player
+     */
+    const fastTravelToArea = useCallback((targetMapAreaName: string, targetCityName?: string) => {
+        console.log(`[FastTravel] Traveling to ${targetMapAreaName}${targetCityName ? ` (${targetCityName})` : ''}`);
+
+        // Find the target map area in geography
+        const foundArea = findMapAreaDefinition(targetMapAreaName);
+
+        if (!foundArea) {
+            console.error(`[FastTravel] Could not find map area: ${targetMapAreaName}`);
+            return false;
+        }
+
+        const { zone: targetZone, region: foundRegion, areaDef: foundAreaDef } = foundArea;
+
+        // Update location state
+        setGameState.setCurrentZone(targetZone);
+        setGameState.setCurrentRegion(foundRegion);
+        setLocalArea(foundAreaDef.name);
+
+        // Update dialect continuum tracking
+        if (dialectContinuumService.isEnabled()) {
+            dialectContinuumService.updatePlayerMovement(foundAreaDef.name);
+        }
+
+        // Reset world coordinates to (0, 0) for the new area
+        setCurrentWorldCoords({ x: 0, y: 0 });
+
+        // Calculate map seed for the new area at (0, 0)
+        const mapSeedToUse = deriveMapSeed(initialGameSeed, 0, 0);
+
+        // Check if we have this map cached
+        const cacheKey = `0,0`;
+        const cachedEntry = mapDataCache.get(cacheKey);
+
+        if (cachedEntry && cachedEntry.localArea === foundAreaDef.name) {
+            console.log(`[FastTravel] Using cached map for ${foundAreaDef.name}`);
+            setMapData(cachedEntry.mapData);
+            setAnimals(cachedEntry.animals);
+            setNpcs(cachedEntry.npcs);
+            setDeployedVessels(cachedEntry.deployedVessels || []);
+
+            // Restore urban registry if present
+            if (cachedEntry.urbanRegistryData) {
+                urbanTileRegistry.deserialize(cachedEntry.urbanRegistryData);
+            }
+        } else {
+            // Generate new map
+            console.log(`[FastTravel] Generating map for ${foundAreaDef.name}`);
+
+            const effectiveEconomicLevel = foundAreaDef.economicActivityLevel !== undefined ?
+                foundAreaDef.economicActivityLevel : economicActivityLevel;
+
+            const newMapData = proceduralGenerateMap(
+                mapSeedToUse,
+                foundAreaDef.archetype,
+                foundAreaDef.climate,
+                generateHarbor,
+                generateLargeCity,
+                foundAreaDef.altitude || userSelectedBaseAltitude,
+                foundAreaDef.isVolcanic || forceVolcanicActivity,
+                targetZone,
+                foundRegion,
+                foundAreaDef.name,
+                String(gameState.gameDate.year),
+                { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel },
+                {},
+                foundAreaDef.hasLakes,
+                foundAreaDef.riverDirection,
+                foundAreaDef.bayOutlet,
+                foundAreaDef.deltaOutlet
+            );
+
+            // Extract entities
+            const newAnimals = newMapData.animals || [];
+            const newNpcs = newMapData.npcs || [];
+            delete newMapData.animals;
+            delete newMapData.npcs;
+
+            setMapData(newMapData);
+            setAnimals(newAnimals);
+            setNpcs(newNpcs);
+            setDeployedVessels([]);
+
+            // Cache the new map
+            const urbanData = urbanTileRegistry.serialize();
+            setMapDataCache(new Map(mapDataCache).set(cacheKey, {
+                mapData: newMapData,
+                animals: newAnimals,
+                npcs: newNpcs,
+                deployedVessels: [],
+                seed: mapSeedToUse,
+                archetype: foundAreaDef.archetype,
+                climate: foundAreaDef.climate,
+                worldX: 0,
+                worldY: 0,
+                region: foundRegion,
+                localArea: foundAreaDef.name,
+                urbanRegistryData: urbanData
+            }));
+        }
+
+        // Place player at an appropriate location
+        // If a city name is provided, try to find it; otherwise, center of map
+        let playerX = Math.floor(MAP_WIDTH_TILES / 2);
+        let playerY = Math.floor(MAP_HEIGHT_TILES / 2);
+
+        // Try to find the target city if specified
+        if (targetCityName && mapData?.terrainStructures) {
+            const cityStructure = mapData.terrainStructures.find(s =>
+                s.structureType === 'city' &&
+                s.settlementName?.toLowerCase().includes(targetCityName.toLowerCase())
+            );
+
+            if (cityStructure) {
+                playerX = cityStructure.location[0];
+                playerY = cityStructure.location[1];
+                console.log(`[FastTravel] Placing player at city ${targetCityName} (${playerX}, ${playerY})`);
+            }
+        }
+
+        // Set pending icon transition to place the player
+        setPlayerState.setPendingIconTransitionInfo({
+            direction: 'N' as AdjacencyDirection,
+            entryX: playerX,
+            entryY: playerY,
+            fromArea: localArea,
+            toArea: foundAreaDef.name
+        });
+
+        console.log(`[FastTravel] Successfully traveled to ${foundAreaDef.name}`);
+        return true;
+    }, [findMapAreaDefinition, setGameState, setLocalArea, dialectContinuumService, setCurrentWorldCoords,
+        initialGameSeed, mapDataCache, setMapData, setAnimals, setNpcs, setDeployedVessels,
+        economicActivityLevel, generateHarbor, generateLargeCity, userSelectedBaseAltitude,
+        forceVolcanicActivity, gameState.gameDate.year, isAgricultural, isPastoral,
+        urbanTileRegistry, setMapDataCache, mapData, setPlayerState, localArea]);
+
     return {
         mapData, setMapData,
         animals, setAnimals,
@@ -1920,6 +2075,7 @@ export const useMapState = (props: useMapStateProps) => {
         economicActivityLevel, setEconomicActivityLevel,
         
         handleMapTransition,
+        fastTravelToArea,
         handleSeedChangeFromSettings,
         onRegenerateMapWithCurrentSettings,
         onStartNewWorldWithCurrentSettings,

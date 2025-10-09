@@ -25,6 +25,7 @@ interface BottomPanelProps {
     onEnterHolySite?: (tile: Tile) => void;
     onEnterPalace?: (tile: Tile) => void;
     onEnterRailroadStation?: (tile: Tile) => void;
+    onEnterHarborDistrict?: (tile: Tile) => void;
     toastMessage: string | null;
     season?: Season;
     timeOfDay?: TimeOfDay;
@@ -605,6 +606,20 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     <LocationDisplay
                         title="Railroad Station"
                         subtitle={tile.cityName || 'Station'}
+                        icon={locationIcon}
+                    />
+                );
+                break;
+            case 'harbor_district':
+                buttonText = 'Book Passage';
+                buttonIcon = '⚓';
+                locationIcon = '⚓';
+                onClickAction = () => onEnterHarborDistrict?.(tile);
+                helperText = "Book passage on a ship to travel to distant ports across the ocean.";
+                contextualInfo = (
+                    <LocationDisplay
+                        title="Harbor"
+                        subtitle={tile.cityName || 'Port'}
                         icon={locationIcon}
                     />
                 );

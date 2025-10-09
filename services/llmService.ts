@@ -3251,6 +3251,12 @@ export interface FarmSimulationResult {
             elapsed: number; // Hours elapsed
         };
     };
+    // Farmer awareness - optional, only when farmer would notice/react
+    farmerNoticed?: {
+        dialogue: string;      // What farmer says
+        tone: 'neutral' | 'pleased' | 'concerned' | 'suspicious' | 'angry' | 'hostile';
+        shouldReact: boolean;  // Should update toast?
+    };
 }
 
 export async function generateFarmWorkSimulation(
@@ -3633,6 +3639,50 @@ EXAMPLES OF GOOD NARRATION:
 - "You open the irrigation channel to Field 2, and water rushes across the rice paddies. The field quickly floods to the perfect depth - about ankle-high. In the distance, you see the farmer's young daughter splashing gleefully through the flooded rice, chasing frogs. The rice seedlings look healthier already."
   (Example JSON for this: { "narrative": "...", "stateChanges": { "fields": { "1": { "moisture": "flooded", "health": 75 } } } } because Field 2 = array index 1)
 
+FARMER AWARENESS & REACTION SYSTEM:
+The farmer (${farmState.family.headOfHousehold}) notices and reacts to actions based on context:
+
+**When farmer notices (include farmerNoticed):**
+- Visitor/guest doing farm work WITHOUT permission (unauthorized labor)
+- Anyone doing suspicious activity: digging at night, breaking things, stealing, trespassing
+- Night activities (20:00-05:00) that would alert/wake farmer
+- Actions directly damaging farm property (flooding wheat, harming animals)
+- Actions violating work contract terms (worker doing wrong task, shirking duties)
+
+**When farmer does NOT notice (omit farmerNoticed):**
+- Worker doing assigned contract tasks during daytime (routine work)
+- Player observing/looking around (passive actions, no property interaction)
+- Actions farmer wouldn't realistically notice (too far away, farmer asleep/away, inside different building)
+
+**Farmer location awareness (CRITICAL):**
+Check NPC location hints above! If ${farmState.family.headOfHousehold} is "inside farmhouse resting" and player is "working in field 3", farmer probably won't notice unless action is loud/destructive.
+If farmer is "working in field 1" and player acts in field 1, farmer WILL notice.
+
+**Tone calibration based on trust (${farmState.residencyStatus?.trustLevel || 50}/100):**
+- High trust (70+): 'neutral' or 'pleased' for good work, 'concerned' for minor issues
+- Medium trust (40-69): 'suspicious' for questionable actions, 'angry' for violations
+- Low trust (<40): 'angry' or 'hostile' quickly, even for minor infractions
+- Visitor (no trust): Automatic 'suspicious' for any farm work, 'angry' for night activity
+
+**Historical/cultural realism:**
+- Medieval/pre-modern farmers were EXTREMELY protective of crops/animals (livelihood)
+- Night activity = automatic deep suspicion (thieves, vandals, supernatural threats)
+- Strangers touching property without permission = immediate confrontation
+- BUT: Hospitality customs exist (offering shelter/food), especially to respectful travelers
+- Cultural zone matters: ${farmState.family.members[0]?.culturalZone || 'EUROPEAN'} norms apply
+
+**Escalation patterns:**
+- First offense: Warning, explanation of rules
+- Second offense: Stern admonition, threat of consequences
+- Third offense: Hostile action (call guards, physical confrontation, expulsion)
+
+**Dialogue examples:**
+- Pleased (worker doing good job): "Fine work, ${playerCharacter.name}! You're learning the craft."
+- Concerned (minor mistake): "Careful there - those seeds need more depth, or the birds will get them."
+- Suspicious (visitor working): "What are you doing with my hoe? Did I give you permission to work my fields?"
+- Angry (violation): "PUT THAT DOWN! This is MY land, and you have NO right to be digging here!"
+- Hostile (serious threat): "THIEF! GUARDS! Someone stop this scoundrel before they ruin my crops!"
+
 OUTPUT FORMAT (JSON):
 Return a JSON object with:
 {
@@ -3665,6 +3715,11 @@ Return a JSON object with:
     "time": {
       "elapsed": 2.0  // Hours passed
     }
+  },
+  "farmerNoticed": {  // OPTIONAL - only include if farmer would notice/react to this action
+    "dialogue": "What are you doing in my fields at this hour?!",  // What farmer says (1-2 sentences, in character)
+    "tone": "suspicious",  // neutral/pleased/concerned/suspicious/angry/hostile (follow guidelines above)
+    "shouldReact": true  // Always true when included (determines if toast updates)
   }
 }
 

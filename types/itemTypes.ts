@@ -4,7 +4,7 @@
 import { EquipmentSlot, StatusEffectType, CulturalZone } from './index';
 
 export type Rarity = 'Junk' | 'Common' | 'Uncommon' | 'Rare' | 'Ultra-rare' | 'Unique';
-export type ItemCategory = 'Tool' | 'Weapon' | 'Material' | 'Apparel' | 'Food' | 'Special' | 'Document' | 'Consumable' | 'Vessel';
+export type ItemCategory = 'Tool' | 'Weapon' | 'Material' | 'Apparel' | 'Food' | 'Special' | 'Document' | 'Consumable' | 'Vessel' | 'Ammunition' | 'Container' | 'Currency' | 'Armor';
 
 export interface ItemDefinition {
     baseId: string;

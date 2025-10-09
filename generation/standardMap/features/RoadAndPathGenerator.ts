@@ -945,10 +945,11 @@ const useUrbanGrids = false;
     console.log(`[RoadGen] Generating railroads for era ${era} (year ${year})`);
 
     // STEP 1: Find railroad continuation points from neighboring maps
-    const railroadContinuations = findRailroadContinuationPoints(neighboringEdges);
+    // PERFORMANCE: DISABLED to keep railroad count under 2 lines total
+    const railroadContinuations = []; // Disabled: findRailroadContinuationPoints(neighboringEdges);
 
     // STEP 2: Connect continuation points across the map (cross-map trunk lines)
-    if (railroadContinuations.length > 0) {
+    if (false && railroadContinuations.length > 0) { // Disabled for performance
       console.log(`[RoadGen] Connecting ${railroadContinuations.length} cross-map railroad continuations`);
 
       for (let i = 0; i < railroadContinuations.length; i++) {
@@ -1005,9 +1006,10 @@ const useUrbanGrids = false;
     const sortedCities = [...urban].sort((a, b) => (b.population || 0) - (a.population || 0));
 
     // Create trunk lines connecting major cities across the entire map
+    // PERFORMANCE LIMIT: Maximum 2 trunk lines only
     if (sortedCities.length >= 2) {
-      // Connect the 2-3 largest cities with trunk lines
-      const majorHubs = sortedCities.slice(0, Math.min(3, sortedCities.length));
+      // Connect ONLY the 2 largest cities with trunk lines (was 2-3)
+      const majorHubs = sortedCities.slice(0, Math.min(2, sortedCities.length));
 
       for (let i = 0; i < majorHubs.length - 1; i++) {
         const start = majorHubs[i];
@@ -1047,8 +1049,9 @@ const useUrbanGrids = false;
       );
       const branchTargets = [...factories, ...mills, ...lumber, ...industrialDistricts];
 
+      // PERFORMANCE: Skip branch lines entirely to keep only 2 trunk lines maximum
       // Connect remaining cities to the railroad network
-      for (const city of sortedCities.slice(3)) {
+      for (const city of [] as Tile[]) { // Disabled: sortedCities.slice(3)
         // Find nearest point on existing railroad network
         let nearestRailTile: Tile | null = null;
         let minDist = Infinity;
@@ -1230,10 +1233,11 @@ const useUrbanGrids = false;
     }
 
     // STEP 3.6: Industrial railroad logic (post-1880)
+    // PERFORMANCE: DISABLED to keep railroad count under 2 lines total
     // If map has mills/mines/factories after 1880, create railroad lines to map edge
     const currentYear = mapData.timeSlice ? parseInt(mapData.timeSlice.split(',')[0]) : 1500;
 
-    if (currentYear >= 1880) {
+    if (false && currentYear >= 1880) { // Disabled for performance
       const industrialBuildings = [...mills, ...mines, ...factories, ...lumber];
 
       if (industrialBuildings.length > 0) {
@@ -1422,8 +1426,12 @@ const useUrbanGrids = false;
     }
 
     // Add junctions with some spacing (min 10 tiles apart)
+    // PERFORMANCE LIMIT: Maximum 1 junction only
     const MIN_JUNCTION_SEPARATION = 10;
+    const MAX_JUNCTIONS = 1;
     for (const [key, _] of junctionCandidates) {
+      if (mapData.railroadJunctions.length >= MAX_JUNCTIONS) break; // Stop after 1 junction
+
       const [x, y] = key.split(',').map(Number);
 
       // Check if too close to existing junction
@@ -1440,13 +1448,15 @@ const useUrbanGrids = false;
     console.log(`[RoadGen] Detected ${mapData.railroadJunctions.length} railroad junctions for signal lights`);
 
     // STEP 5: Generate trains on railroad routes
+    // PERFORMANCE LIMIT: Maximum 1 train only
     mapData.trains = [];
 
-    // Create trains on trunk lines (1-2 trains per major route)
+    // Create trains on trunk lines (ONLY 1 train total)
     if (sortedCities.length >= 2) {
-      const majorHubs = sortedCities.slice(0, Math.min(3, sortedCities.length));
+      const majorHubs = sortedCities.slice(0, Math.min(2, sortedCities.length));
 
-      for (let i = 0; i < majorHubs.length - 1; i++) {
+      // Only create 1 train on the first route
+      for (let i = 0; i < Math.min(1, majorHubs.length - 1); i++) {
         const start = majorHubs[i];
         const end = majorHubs[i + 1];
 

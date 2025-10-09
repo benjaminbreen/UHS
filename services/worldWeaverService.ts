@@ -10,9 +10,11 @@ import { eventService } from './eventService';
 import { llmEventService } from './llmEventService';
 import { GAME_MODES, suggestGameMode } from '../constants/gameData/gameModes';
 import { GameMode, EventArchetype, SpecialNPC } from '../types/eventTypes';
-import { DISEASES } from '../constants/gameData/diseases';
 import { mapQuestAnalyzer, QuestLocation } from './mapQuestAnalyzer';
 import { MapData } from '../types';
+import DiseaseService from './diseaseService';
+import { HistoricalEra } from '../types/ambiance';
+import { CulturalZone } from '../types/characterData';
 
 export interface CharacterSpecification {
   name?: string;
@@ -119,11 +121,11 @@ export interface WorldWeaverResult {
 const MAP_AREAS_LIST = generateMapAreaListForPrompt();
 // console.log('[WorldWeaverService] Generated map areas list with', MAP_AREAS_LIST.split('\n').length, 'lines');
 
-// Generate list of available diseases for the prompt
-const DISEASE_LIST = DISEASES.map(d => `- ${d.id}: ${d.name} (${d.severity})`).join('\n');
-// console.log('[WorldWeaverService] Generated disease list with', DISEASES.length, 'diseases');
-
-const WORLD_WEAVER_PROMPT = `You are WorldWeaver, an AI that converts user prompts into historical game settings and player characters.
+/**
+ * Build the WorldWeaver prompt with dynamic disease list based on era/region
+ */
+function buildWorldWeaverPrompt(diseaseList: string): string {
+  return `You are WorldWeaver, an AI that converts user prompts into historical game settings and player characters.
 
 Given ANY user input, extract TWO things:
 1. SETTING: A specific year and map area
@@ -169,18 +171,29 @@ CHARACTER EXTRACTION RULES:
 
 DISEASE EXTRACTION:
 If the prompt mentions a disease or illness, match it to one of these available diseases:
-${DISEASE_LIST}
+${diseaseList}
 
-Disease matching examples:
-- "plague", "black death", "bubonic plague" → disease: "BUBONIC_PLAGUE"
-- "smallpox", "pox" → disease: "SMALLPOX"
-- "cholera" → disease: "CHOLERA"
-- "typhus", "typhoid" → disease: "TYPHUS"
-- "flu", "influenza", "grippe" → disease: "INFLUENZA"
-- "tuberculosis", "consumption", "TB" → disease: "TUBERCULOSIS"
+Disease matching examples (with historical synonyms):
+- "plague", "black death", "bubonic plague", "pestilence" → disease: "BUBONIC_PLAGUE"
+- "smallpox", "pox", "variola" → disease: "SMALLPOX"
+- "cholera", "blue death", "cholera morbus" → disease: "CHOLERA"
+- "typhus", "typhoid", "camp fever", "jail fever" → disease: "TYPHUS"
+- "flu", "influenza", "grippe", "la grippe" → disease: "INFLUENZA"
+- "tuberculosis", "consumption", "TB", "white plague", "phthisis" → disease: "TUBERCULOSIS"
 - "leprosy", "Hansen's disease" → disease: "LEPROSY"
-- "malaria", "ague", "fever" → disease: "MALARIA"
-- "dysentery", "bloody flux" → disease: "DYSENTERY"
+- "malaria", "ague", "swamp fever", "jungle fever" → disease: "MALARIA"
+- "dysentery", "bloody flux", "the flux" → disease: "DYSENTERY"
+- "scurvy", "sailor's disease", "scorbutus" → disease: "SCURVY"
+- "yellow fever", "yellow jack", "black vomit" → disease: "YELLOW_FEVER"
+- "measles", "rubeola" → disease: "MEASLES"
+- "syphilis", "great pox", "French disease" → disease: "SYPHILIS"
+- "diphtheria", "strangling angel" → disease: "DIPHTHERIA"
+- "whooping cough", "pertussis" → disease: "WHOOPING_COUGH"
+
+HEALTH STATUS vs SPECIFIC DISEASE:
+- "sick" alone → health: "sick" (guarantees random contextually appropriate disease)
+- "sickly" or "unhealthy" → health: "sickly" or "unhealthy" (60-45% disease chance)
+- "sick with [disease]" or "[disease] victim" → disease: "[DISEASE_ID]" (specific disease)
 
 HISTORICAL FIGURES:
 When a specific historical person is named in the prompt, you MUST:
@@ -253,8 +266,64 @@ If you cannot find a suitable connection or cannot interpret the prompt, return:
   "success": false,
   "errorMessage": "Could not interpret prompt"
 }`;
+}
 
 class WorldWeaverService {
+  /**
+   * Get a comprehensive disease list for WorldWeaver prompt
+   * Uses a broad context to allow LLM to recognize disease names from any era
+   * Character generator will validate disease availability for actual era/region
+   */
+  private async getComprehensiveDiseaseList(): Promise<string> {
+    const diseaseService = DiseaseService.getInstance();
+
+    // Ensure disease module is loaded
+    await diseaseService.preloadDiseaseModule();
+
+    // Get diseases from multiple representative eras to create a comprehensive list
+    const medievalDiseases = diseaseService.getAvailableDiseasesForContext(
+      'MEDIEVAL' as HistoricalEra,
+      'EUROPEAN' as CulturalZone,
+      1300
+    );
+
+    const earlyModernDiseases = diseaseService.getAvailableDiseasesForContext(
+      'RENAISSANCE_EARLY_MODERN' as HistoricalEra,
+      'EUROPEAN' as CulturalZone,
+      1700
+    );
+
+    const industrialDiseases = diseaseService.getAvailableDiseasesForContext(
+      'INDUSTRIAL_ERA' as HistoricalEra,
+      'EUROPEAN' as CulturalZone,
+      1850
+    );
+
+    // Combine and deduplicate by ID
+    const allDiseases = [...medievalDiseases, ...earlyModernDiseases, ...industrialDiseases];
+    const uniqueDiseases = Array.from(
+      new Map(allDiseases.map(d => [d.id, d])).values()
+    );
+
+    if (uniqueDiseases.length === 0) {
+      console.warn('[WorldWeaverService] No diseases available for comprehensive list');
+      return '(No diseases available)';
+    }
+
+    // Sort by severity (most severe first) and take top 30 for prompt efficiency
+    const topDiseases = uniqueDiseases
+      .sort((a, b) => (Number(b.severity) || 0) - (Number(a.severity) || 0))
+      .slice(0, 30);
+
+    // Format as bullet list with ID, name, type, and severity
+    const diseaseList = topDiseases
+      .map(d => `- ${d.id}: ${d.name} (${d.type}, severity: ${((Number(d.severity) || 0) * 100).toFixed(0)}%)`)
+      .join('\n');
+
+    console.log(`[WorldWeaverService] Generated comprehensive disease list with ${topDiseases.length} diseases`);
+    return diseaseList;
+  }
+
   async interpretPrompt(userPrompt: string): Promise<WorldWeaverResult> {
     // console.log('[WorldWeaverService] interpretPrompt called with:', userPrompt);
     
@@ -360,8 +429,14 @@ class WorldWeaverService {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const fullPrompt = WORLD_WEAVER_PROMPT + `\n\nUser prompt: "${userPrompt}"\n\nCreate a historical setting or explain why you cannot.`;
-      
+
+      // Get comprehensive disease list for the prompt
+      const diseaseList = await this.getComprehensiveDiseaseList();
+
+      // Build the prompt with dynamic disease list
+      const basePrompt = buildWorldWeaverPrompt(diseaseList);
+      const fullPrompt = basePrompt + `\n\nUser prompt: "${userPrompt}"\n\nCreate a historical setting or explain why you cannot.`;
+
       // console.log('[WorldWeaverService] Sending to LLM...');
       const result = await ai.models.generateContent({ 
         model: 'gemini-2.5-flash-preview-09-2025', 

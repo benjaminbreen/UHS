@@ -1259,6 +1259,8 @@ const useCoreLoops = (
         setActionableTile({ type: 'ruin', tile: currentTile });
       } else if (currentTile.biome === BiomeType.RAILROAD_STATION) {
         setActionableTile({ type: 'railroad_station', tile: currentTile });
+      } else if (currentTile.biome === BiomeType.HARBOR_DISTRICT) {
+        setActionableTile({ type: 'harbor_district', tile: currentTile });
       } else if (isUrbanTile) {
         setActionableTile({ type: 'city', tile: currentTile });
       } else if (isBuildingTile) {

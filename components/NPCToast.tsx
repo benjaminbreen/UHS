@@ -244,6 +244,18 @@ const NPCToast: React.FC<NPCToastProps> = ({
     }
   };
 
+  const getMoodEmoji = () => {
+    switch (type) {
+      case 'praise': return '😊';
+      case 'admonition': return '🤨';
+      case 'warning': return '😠';
+      case 'greeting': return '👋';
+      case 'quest': return '✨';
+      case 'news': return '📰';
+      default: return '💬';
+    }
+  };
+
   const getTypeStyles = () => {
     switch (type) {
       case 'warning': 
@@ -567,7 +579,10 @@ const NPCToast: React.FC<NPCToastProps> = ({
           {/* Header with contextual indicators */}
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3">
-              {getTypeIcon()}
+              <div className="flex items-center gap-2">
+                {getTypeIcon()}
+                <span className="text-xl">{getMoodEmoji()}</span>
+              </div>
               <span className="font-bold text-white text-base">
                 {character.name || 'Farmer'}
               </span>

@@ -160,6 +160,21 @@ export const useUIState = () => {
         station: any;
         connectedStations: any[];
     } | null>(null);
+    const [harborModalData, setHarborModalData] = useState<{
+        harbor: any;
+        availableDestinations: any[];
+    } | null>(null);
+
+    // Factory labor panel state
+    const [showFactoryPanel, setShowFactoryPanel] = useState<boolean>(false);
+    const [showFactoryContractModal, setShowFactoryContractModal] = useState<boolean>(false);
+    const [activeFactoryData, setActiveFactoryData] = useState<{
+        factoryType: any;
+        factoryName: string;
+        factoryStructure: any;
+        npcs: NpcEntity[];
+        contract: any | null;
+    } | null>(null);
 
     // App-level modals
     const [showInitialScenarioModal, setShowInitialScenarioModal] = useState<boolean>(false);
@@ -338,11 +353,11 @@ export const useUIState = () => {
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
         !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen || showJournal || showQuestsPanel || showGameModePanel ||
         showInitialScenarioModal || showDeathModal || showNpcDeathModal || showDiseaseProgressionModal || showEventModal || showFactionsModal ||
-        (!!diseaseContractedModalData && diseaseContractedModalData.isOpen) || !!railroadStationModalData || showLanguageTree,
+        (!!diseaseContractedModalData && diseaseContractedModalData.isOpen) || !!railroadStationModalData || !!harborModalData || showLanguageTree,
         [isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
          interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen, showJournal, showQuestsPanel, showGameModePanel,
-         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal, diseaseContractedModalData, railroadStationModalData, showLanguageTree]
+         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal, diseaseContractedModalData, railroadStationModalData, harborModalData, showLanguageTree]
     );
 
     // Handlers
@@ -1446,6 +1461,42 @@ export const useUIState = () => {
         }
     }, []);
 
+    const handleHarborClick = useCallback((tile: Tile) => {
+        // Import harbor service functions at top of file
+        const { getHarborDestinations, TravelMode } = require('../services/crossMapTravelService');
+
+        if (!mapData || !gameDate) return;
+
+        const harborName = tile.cityName || mapData.majorCity?.name || 'Harbor';
+        const currentMapArea = mapData.mapAreaName || mapData.localArea || '';
+
+        // Convert year to era
+        const year = gameDate.year;
+        let era: any;
+        if (year < 500) era = 'ANTIQUITY';
+        else if (year < 1450) era = 'MEDIEVAL';
+        else if (year < 1800) era = 'RENAISSANCE_EARLY_MODERN';
+        else if (year < 1900) era = 'INDUSTRIAL_ERA';
+        else if (year < 2000) era = 'MODERN_ERA';
+        else era = 'FUTURE_ERA';
+
+        try {
+            const destinations = getHarborDestinations(currentMapArea, {
+                mode: TravelMode.SHIP,
+                currentYear: year,
+                currentEra: era,
+                playerWealth: playerCharacter?.money
+            });
+
+            setHarborModalData({
+                harbor: { name: harborName, x: tile.x, y: tile.y },
+                availableDestinations: destinations
+            });
+        } catch (error) {
+            console.error('[handleHarborClick] Error getting harbor destinations:', error);
+        }
+    }, [mapData, gameDate, playerCharacter]);
+
     const handleCombatVictory = useCallback((opponent: EncounterableEntity) => {
         const xpGained = 10 * (opponent.stats.level || 1);
         let itemsGained: Item[] = [];
@@ -1657,6 +1708,17 @@ export const useUIState = () => {
         railroadStationModalData,
         setRailroadStationModalData,
         handleStationClick,
+        harborModalData,
+        setHarborModalData,
+        handleHarborClick,
+
+        // Factory labor panel
+        showFactoryPanel,
+        setShowFactoryPanel,
+        showFactoryContractModal,
+        setShowFactoryContractModal,
+        activeFactoryData,
+        setActiveFactoryData,
 
         // Tooltip handlers
         markTooltipSeen,

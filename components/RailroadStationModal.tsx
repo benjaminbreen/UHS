@@ -8,9 +8,10 @@ interface RailroadStation {
   name: string;
   x: number;
   y: number;
-  distance: number; // Distance in tiles
+  distance: number; // Distance in miles
   travelTime: number; // Time in hours
   fare: number; // Cost in coins
+  routeDescription?: string; // Optional route path description (e.g., "via Sacramento Valley")
 }
 
 interface RailroadStationModalProps {
@@ -116,6 +117,9 @@ const RailroadStationModal: React.FC<RailroadStationModalProps> = ({
                             </div>
                             <div className="text-left">
                               <h4 className="text-lg font-semibold text-white">{station.name}</h4>
+                              {station.routeDescription && (
+                                <p className="text-xs text-slate-500 mt-1">{station.routeDescription}</p>
+                              )}
                               <div className="flex items-center space-x-4 mt-2 text-sm text-slate-400">
                                 <span className="flex items-center space-x-1">
                                   <MapPin className="w-4 h-4" />

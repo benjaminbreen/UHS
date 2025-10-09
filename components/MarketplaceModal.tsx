@@ -25,7 +25,7 @@ import { llmQuestService } from '../services/llmQuestService';
 import { Quest } from '../types/questTypes';
 import { unifiedQuestPipeline, QuestGenerationContext } from '../services/unifiedQuestPipeline';
 import { worldEntityRegistry } from '../services/worldEntityRegistry';
-import { Sparkles, ScrollText, Package, TrendingUp, AlertTriangle, Calendar, Award, Search, X } from 'lucide-react';
+import { Sparkles, ScrollText, Package, TrendingUp, AlertTriangle, Calendar, Award, Search, X, Grid3x3, List, Coins, TrendingDown, ShoppingCart, DollarSign } from 'lucide-react';
 import { marketEventSystem } from '../services/marketEventSystem';
 import { npcMarketParticipationService } from '../services/npcMarketParticipationService';
 import { marketVolatilityService } from '../services/marketVolatilityService';
@@ -34,6 +34,7 @@ import { merchantMemoryService } from '../services/merchantMemoryService';
 import { merchantBehaviorService, MerchantBehavior } from '../services/merchantBehaviorService';
 import { priceHistoryService, PriceComparison, MarketTrend } from '../services/priceHistoryService';
 import { economicVictoryService, EconomicMilestone, EconomicAchievement } from '../services/economicVictoryService';
+import { getCaravanDestinations, TravelDestination, TravelMode } from '../services/crossMapTravelService';
 import { useUI } from '../contexts/UIContext';
 import { isSafari } from '../utils/safariUtils';
 
@@ -51,6 +52,7 @@ interface MarketplaceModalProps {
   weather?: WeatherState | null;
   onAddPersistedNpc?: (npc: NpcEntity) => void;
   currentMapSeed: number;
+  onRequestTravel?: (destination: TravelDestination) => void;
 }
 
 type TabType = 'buy' | 'sell' | 'trade' | 'people' | 'info' | 'analysis';
@@ -58,7 +60,7 @@ type CategoryFilter = 'all' | 'food' | 'tool' | 'weapon' | 'luxury' | 'raw_mater
 
 const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   tile, playerCharacter, mapData, npcs, mapAnalysisData, gameTimeHours, season,
-  onClose, onBuy, onSell, weather, onAddPersistedNpc, currentMapSeed
+  onClose, onBuy, onSell, weather, onAddPersistedNpc, currentMapSeed, onRequestTravel
 }) => {
   const { showToast } = useUI();
   const [activeTab, setActiveTab] = useState<TabType>('buy');
@@ -90,6 +92,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [economicQuests, setEconomicQuests] = useState<Quest[]>([]);
   const [merchantBehaviors, setMerchantBehaviors] = useState<Map<string, MerchantBehavior>>(new Map());
   const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([]);
+  const [caravanDestinations, setCaravanDestinations] = useState<TravelDestination[]>([]);
   const [marketTrends, setMarketTrends] = useState<MarketTrend | null>(null);
   const [victoryProgress, setVictoryProgress] = useState<any>(null);
   const [showVictoryModal, setShowVictoryModal] = useState(false);
@@ -98,10 +101,27 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [dismissedCrises, setDismissedCrises] = useState<Set<string>>(new Set());
   const [marketplaceDataLoading, setMarketplaceDataLoading] = useState(false); // Start false for instant modal
   const [inventoryReady, setInventoryReady] = useState(false); // Track when full inventory is ready
-  
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card'); // View mode toggle for buy/sell tabs
+
   // Detect mobile
   const isMobile = useMemo(() => window.innerWidth <= 768, []);
-  
+
+  // Helper to format era names (INDUSTRIAL_ERA -> Industrial Era)
+  const formatEraName = (era: string): string => {
+    return era
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Helper to capitalize item names properly
+  const formatItemName = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   // Load dismissed crises from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem('dismissedMarketCrises');
@@ -548,7 +568,35 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
     return () => clearTimeout(timer);
   }, [tile, mapData, npcs, culturalZone, era]);
-  
+
+  // Fetch available caravan destinations for fast travel
+  useEffect(() => {
+    const fetchCaravanDestinations = () => {
+      try {
+        const currentMapArea = mapData.region || mapData.localArea || 'Unknown';
+        const currentYear = parseDateString(playerCharacter.dateOfBirth).year + playerCharacter.age;
+
+        console.log(`[Marketplace] Fetching caravan destinations from ${currentMapArea} in year ${currentYear}`);
+
+        const destinations = getCaravanDestinations(currentMapArea, {
+          mode: TravelMode.CARAVAN,
+          currentYear,
+          currentEra: era,
+          playerWealth: playerCharacter.wealth || 0,
+          maxHops: 6
+        });
+
+        console.log(`[Marketplace] Found ${destinations.length} caravan destinations:`, destinations);
+        setCaravanDestinations(destinations);
+      } catch (error) {
+        console.error('[Marketplace] Error fetching caravan destinations:', error);
+        setCaravanDestinations([]);
+      }
+    };
+
+    fetchCaravanDestinations();
+  }, [mapData, playerCharacter.age, playerCharacter.dateOfBirth, playerCharacter.wealth]);
+
   // Check for active crises affecting this market and record price history
   useEffect(() => {
     const marketLocation = { x: tile.x, y: tile.y };
@@ -1214,7 +1262,29 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       }
     }
   }, [portraitClickCounts, mapData, timeOfDay, season]);
-  
+
+  // Handle caravan fast travel booking
+  const handleCaravanBooking = useCallback((destination: TravelDestination) => {
+    if (!onRequestTravel) {
+      console.error('[Marketplace] No onRequestTravel handler provided');
+      return;
+    }
+
+    // Check if player has enough money
+    if (!playerCharacter.wealth || playerCharacter.wealth < destination.fare) {
+      showToast(`Need ${destination.fare - (playerCharacter.wealth || 0)} more coins`, 'error');
+      return;
+    }
+
+    console.log(`[Marketplace] Booking caravan to ${destination.cityName} for ${destination.fare} coins`);
+
+    // Call the travel handler
+    onRequestTravel(destination);
+
+    // Close the modal
+    onClose();
+  }, [onRequestTravel, playerCharacter.wealth, showToast, onClose]);
+
   // Market condition description
   const marketConditionDesc = useMemo(() => {
     const urbanCount = mapAnalysisData?.urbanTileCount || 0;
@@ -1231,69 +1301,39 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       case 'buy':
         return (
           <div className="flex flex-col h-full">
-            {/* Compact category filters with search icon */}
-            <div className="px-4 py-2 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30">
-              <div className="flex gap-1.5 items-center">
-                {/* Category buttons */}
-                <div className="flex gap-1.5 flex-wrap flex-1">
-                  {[
-                    { id: 'all', label: 'All Goods', icon: '📦' },
-                    { id: 'food', label: 'Provisions', icon: '🍞' },
-                    { id: 'tool', label: 'Tools', icon: '🔨' },
-                    { id: 'weapon', label: 'Arms', icon: '⚔️' },
-                    { id: 'luxury', label: 'Luxuries', icon: '💎' },
-                    { id: 'raw_material', label: 'Raw Goods', icon: '🪵' },
-                    { id: 'medicine', label: 'Remedies', icon: '🧪' }
-                  ].map(cat => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setCategoryFilter(cat.id as CategoryFilter)}
-                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-medium transition-all transform hover:scale-105 ${
-                        categoryFilter === cat.id
-                          ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-900/40'
-                          : 'bg-slate-800/70 text-amber-200/70 hover:bg-slate-700/70 hover:text-amber-200 border border-slate-700/50'
-                      }`}
-                    >
-                      <span className="mr-1">{cat.icon}</span>
-                      <span className="hidden sm:inline">{cat.label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Search section - expandable */}
-                {searchExpanded ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Search..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-32 sm:w-48 px-3 py-1.5 bg-slate-900/60 border border-amber-900/30 rounded-md text-sm text-amber-50 placeholder-amber-200/40 focus:border-amber-600/50 focus:outline-none focus:ring-1 focus:ring-amber-600/30"
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => {
-                        setSearchExpanded(false);
-                        setSearchQuery('');
-                      }}
-                      className="p-1.5 text-amber-400 hover:text-amber-300 transition-colors"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setSearchExpanded(true)}
-                    className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-slate-800/50 rounded-md transition-all"
-                    title="Search items"
-                  >
-                    <Search size={18} />
-                  </button>
-                )}
+            {/* View toggle and header */}
+            <div className="px-4 py-2 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-emerald-900/30 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-emerald-300 flex items-baseline gap-2">
+                Market Goods
+                <span className="text-xs text-amber-200/60 font-normal">{marketInventory.length} items available</span>
+              </h3>
+              <div className="flex items-center gap-2 bg-slate-900/50 rounded-lg p-1 border border-slate-700/50">
+                <button
+                  onClick={() => setViewMode('card')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewMode === 'card'
+                      ? 'bg-emerald-600/30 text-emerald-300'
+                      : 'text-slate-400 hover:text-slate-300'
+                  }`}
+                  title="Card view"
+                >
+                  <Grid3x3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewMode === 'list'
+                      ? 'bg-emerald-600/30 text-emerald-300'
+                      : 'text-slate-400 hover:text-slate-300'
+                  }`}
+                  title="List view"
+                >
+                  <List className="w-4 h-4" />
+                </button>
               </div>
             </div>
-            
-            {/* Goods grid with enhanced styling */}
+
+            {/* Goods display with enhanced styling */}
             <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40">
               {marketInventory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-amber-200/50">
@@ -1301,33 +1341,155 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   <p className="text-lg">No goods match your search</p>
                   <p className="text-sm mt-1">Try different filters or come back later</p>
                 </div>
+              ) : viewMode === 'list' ? (
+                // LIST VIEW for buy tab
+                <div className="space-y-2">
+                  {marketInventory.map((good, index) => {
+                    const questInfo = isQuestItem(good.itemId);
+                    const comparison = priceComparisons.find(c => c.itemId === good.itemId);
+                    return (
+                      <div
+                        key={`${good.itemId}-${index}`}
+                        className={`group flex items-center gap-4 p-3 rounded-lg transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} hover:shadow-lg ${
+                          questInfo.isQuest
+                            ? 'bg-gradient-to-r from-yellow-900/30 to-amber-900/20 border border-yellow-600/50 hover:border-yellow-500/70'
+                            : (good as any).crisisAffected
+                              ? 'bg-gradient-to-r from-red-900/30 to-red-800/20 border border-red-600/50 hover:border-red-500/70'
+                              : 'bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-slate-700/50 hover:border-emerald-600/50'
+                        }`}
+                      >
+                        {/* Item info section */}
+                        <div className="flex-1 flex items-center gap-3 min-w-0">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-bold text-amber-50 text-base">
+                                {formatItemName(good.name)}
+                              </h4>
+                              {questInfo.isQuest && (
+                                <span className="text-xs px-1.5 py-0.5 bg-yellow-600/30 text-yellow-300 rounded border border-yellow-600/50 flex items-center gap-1">
+                                  📋 Quest
+                                </span>
+                              )}
+                              {(good as any).crisisAffected && (
+                                <span className="text-xs text-red-400 animate-pulse" title="Affected by crisis">⚠️</span>
+                              )}
+                              {comparison?.trend && comparison.percentChange && (
+                                comparison.trend === 'up' ? (
+                                  <TrendingUp className="w-3.5 h-3.5 text-red-400" title={`Price up ${Math.abs(comparison.percentChange).toFixed(0)}% since yesterday`} />
+                                ) : comparison.trend === 'down' ? (
+                                  <TrendingDown className="w-3.5 h-3.5 text-green-400" title={`Price down ${Math.abs(comparison.percentChange).toFixed(0)}% since yesterday`} />
+                                ) : null
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {/* Quality badge */}
+                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                good.quality === 'exceptional' ? 'bg-purple-900/40 text-purple-300' :
+                                good.quality === 'fine' ? 'bg-blue-900/40 text-blue-300' :
+                                good.quality === 'poor' ? 'bg-red-900/40 text-red-300' :
+                                'bg-slate-700/40 text-slate-300'
+                              }`}>
+                                {good.quality === 'exceptional' ? '✨' : good.quality === 'fine' ? '⭐' : good.quality === 'poor' ? '⚠️' : ''}
+                                {good.quality}
+                              </span>
+                              {/* Origin badge */}
+                              {good.origin && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                  good.origin === 'local' ? 'bg-green-900/30 text-green-300' :
+                                  good.origin === 'regional' ? 'bg-blue-900/30 text-blue-300' :
+                                  good.origin === 'distant' ? 'bg-purple-900/30 text-purple-300' :
+                                  'bg-orange-900/30 text-orange-300'
+                                }`}>
+                                  {good.origin === 'local' ? '🏠' : good.origin === 'regional' ? '🗺️' : good.origin === 'distant' ? '⛵' : '🌟'}
+                                  {good.origin}
+                                </span>
+                              )}
+                              {/* Stock indicator */}
+                              <span className={`text-xs px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                                good.quantity <= 5 ? 'bg-red-900/30 text-red-300' :
+                                good.quantity <= 15 ? 'bg-yellow-900/30 text-yellow-300' :
+                                'bg-green-900/30 text-green-300'
+                              }`}>
+                                {good.quantity <= 5 ? '🔴' : good.quantity <= 15 ? '🟡' : '🟢'}
+                                {good.quantity} in stock
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Price section */}
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            {good.basePrice !== good.currentPrice && (
+                              <p className="text-xs text-slate-400 line-through flex items-center justify-end gap-1">
+                                <Coins className="w-3 h-3" />
+                                {good.basePrice}
+                              </p>
+                            )}
+                            <p className="text-lg font-bold bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent flex items-center justify-end gap-1.5">
+                              <Coins className="w-4 h-4 text-yellow-400" />
+                              {good.currentPrice}
+                            </p>
+                            {good.currentPrice !== good.basePrice && (
+                              <p className={`text-xs font-medium ${
+                                good.currentPrice > good.basePrice ? 'text-red-400' : 'text-green-400'
+                              }`}>
+                                {good.currentPrice > good.basePrice ? '+' : ''}
+                                {Math.round(((good.currentPrice - good.basePrice) / good.basePrice) * 100)}%
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleBuy(good)}
+                            disabled={playerCharacter.currency < good.currentPrice}
+                            className={`px-3 py-2 rounded-md font-semibold text-sm transition-all flex items-center gap-1.5 ${
+                              playerCharacter.currency >= good.currentPrice
+                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-md'
+                                : 'bg-slate-600/50 text-slate-400 cursor-not-allowed opacity-60'
+                            }`}
+                          >
+                            {playerCharacter.currency >= good.currentPrice ? (
+                              <>
+                                <ShoppingCart className="w-4 h-4" />
+                                Buy
+                              </>
+                            ) : (
+                              'Too expensive'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
+                // CARD VIEW for buy tab (existing)
                 <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-3'}`}>
                   {marketInventory.map((good, index) => {
                     const questInfo = isQuestItem(good.itemId);
                     return (
                     <div
                       key={`${good.itemId}-${index}`}
-                      className={`group bg-gradient-to-br from-slate-800/80 to-slate-900/60 border rounded-md p-4 hover:shadow-lg transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
-                        questInfo.isQuest 
-                          ? 'border-yellow-600/50 hover:border-yellow-500/70 hover:shadow-yellow-900/30' 
-                          : (good as any).crisisAffected 
-                            ? 'border-red-600/50 hover:border-red-500/70 hover:shadow-red-900/30' 
-                            : 'border-slate-700/50 hover:border-amber-600/50 hover:shadow-amber-900/20'
+                      className={`group bg-gradient-to-br from-slate-700/90 to-slate-800/70 border rounded-lg p-3 hover:shadow-xl transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
+                        questInfo.isQuest
+                          ? 'border-yellow-500/60 hover:border-yellow-400/80 hover:shadow-yellow-800/40'
+                          : (good as any).crisisAffected
+                            ? 'border-red-500/60 hover:border-red-400/80 hover:shadow-red-800/40'
+                            : 'border-slate-600/60 hover:border-amber-500/70 hover:shadow-amber-800/30'
                       }`}
                     >
                       {questInfo.isQuest && (
-                        <div className="bg-gradient-to-r from-yellow-900/50 to-amber-900/30 rounded px-2 py-1 mb-2 flex items-center gap-1">
-                          <span className="text-yellow-400 text-sm">📋</span>
+                        <div className="bg-gradient-to-r from-yellow-900/50 to-amber-900/30 rounded px-2 py-0.5 mb-2 flex items-center gap-1">
+                          <ScrollText className="w-3 h-3 text-yellow-400" />
                           <span className="text-xs text-yellow-200 font-medium truncate" title={questInfo.questName}>
                             Quest: {questInfo.questName}
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between items-start mb-3">
+                      <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="font-semibold text-amber-50 capitalize text-sm lg:text-base flex items-center gap-2">
-                            {good.name}
+                          <h4 className="font-bold text-amber-50 text-base flex items-center gap-2">
+                            {formatItemName(good.name)}
                             {(good as any).crisisAffected && (
                               <span className="text-xs text-red-400 animate-pulse" title="Affected by crisis">
                                 ⚠️
@@ -1387,26 +1549,42 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                            'Standard'}
                         </span>
                       </div>
-                      
-                      <div className="bg-slate-900/30 rounded-md p-2 mb-3">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-amber-200/60">Stock:</span>
-                          <span className={`font-medium ${
-                            good.quantity <= 5 ? 'text-red-400' :
-                            good.quantity <= 15 ? 'text-yellow-400' :
-                            'text-green-400'
-                          }`}>
-                            {good.quantity} units
-                          </span>
+
+                      <div className="bg-slate-900/40 rounded-lg p-2 mb-2 space-y-1.5">
+                        {/* Stock indicator with progress bar */}
+                        <div>
+                          <div className="flex justify-between items-center text-xs mb-1">
+                            <span className="text-amber-100/70">Stock:</span>
+                            <span className={`font-semibold flex items-center gap-1 ${
+                              good.quantity <= 5 ? 'text-red-400' :
+                              good.quantity <= 15 ? 'text-yellow-400' :
+                              'text-green-400'
+                            }`}>
+                              <Package className={`w-3 h-3 ${good.quantity <= 5 ? 'text-red-400' : good.quantity <= 15 ? 'text-yellow-400' : 'text-green-400'}`} />
+                              {good.quantity}
+                            </span>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="h-1 bg-slate-800/60 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${
+                                good.quantity <= 5 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                                good.quantity <= 15 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                                'bg-gradient-to-r from-green-500 to-green-600'
+                              }`}
+                              style={{ width: `${Math.min(100, (good.quantity / 30) * 100)}%` }}
+                            />
+                          </div>
                         </div>
                         {good.currentPrice !== good.basePrice && (
-                          <div className="flex justify-between items-center text-sm mt-1">
-                            <span className="text-amber-200/60">Market:</span>
-                            <span className={`font-medium ${
+                          <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-700/50">
+                            <span className="text-amber-100/70">Market:</span>
+                            <span className={`font-semibold flex items-center gap-1 ${
                               good.currentPrice > good.basePrice ? 'text-red-400' : 'text-green-400'
                             }`}>
-                              {good.currentPrice > good.basePrice ? '↑' : '↓'} 
-                              {Math.abs(Math.round(((good.currentPrice - good.basePrice) / good.basePrice) * 100))}%
+                              {good.currentPrice > good.basePrice ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                              {good.currentPrice > good.basePrice ? '+' : ''}
+                              {Math.round(((good.currentPrice - good.basePrice) / good.basePrice) * 100)}%
                             </span>
                           </div>
                         )}
@@ -1415,24 +1593,33 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                       <div className="flex justify-between items-center">
                         <div>
                           {good.basePrice !== good.currentPrice && (
-                            <p className="text-xs text-slate-500 line-through">
-                              {good.basePrice} coins
+                            <p className="text-xs text-slate-400 line-through flex items-center gap-1">
+                              <Coins className="w-3 h-3" />
+                              {good.basePrice}
                             </p>
                           )}
-                          <p className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">
-                            {good.currentPrice} coins
+                          <p className="text-xl font-bold bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent drop-shadow-sm flex items-center gap-1.5">
+                            <Coins className="w-5 h-5 text-yellow-400" />
+                            {good.currentPrice}
                           </p>
                         </div>
                         <button
                           onClick={() => handleBuy(good)}
                           disabled={playerCharacter.currency < good.currentPrice}
-                          className={`px-4 py-2 rounded-md font-medium transition-all transform hover:scale-105 ${
+                          className={`px-4 py-2 rounded-md font-semibold text-sm transition-all transform hover:scale-105 flex items-center gap-1.5 ${
                             playerCharacter.currency >= good.currentPrice
-                              ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white shadow-md shadow-green-900/30'
-                              : 'bg-slate-700/50 text-slate-500 cursor-not-allowed opacity-50'
+                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-lg shadow-emerald-900/40 border border-emerald-400/30'
+                              : 'bg-slate-600/50 text-slate-400 cursor-not-allowed opacity-60 border border-slate-700/50'
                           }`}
                         >
-                          {playerCharacter.currency >= good.currentPrice ? 'Buy' : 'Too Costly'}
+                          {playerCharacter.currency >= good.currentPrice ? (
+                            <>
+                              <ShoppingCart className="w-4 h-4" />
+                              Buy
+                            </>
+                          ) : (
+                            'Too expensive'
+                          )}
                         </button>
                       </div>
                     </div>
@@ -1442,14 +1629,43 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
           </div>
         );
-        
+
       case 'sell':
         return (
           <div className="flex flex-col h-full">
-            <div className="p-4 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30">
-              <h3 className="text-lg font-semibold text-amber-300 mb-1">Your Trading Inventory</h3>
-              <p className="text-sm text-amber-200/60">Select items to sell at current market rates</p>
+            {/* View toggle and header */}
+            <div className="px-4 py-2 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-amber-300 flex items-baseline gap-2">
+                Your Inventory
+                <span className="text-xs text-amber-200/60 font-normal">{playerSellableItems.length} items</span>
+              </h3>
+              <div className="flex items-center gap-2 bg-slate-900/50 rounded-lg p-1 border border-slate-700/50">
+                <button
+                  onClick={() => setViewMode('card')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewMode === 'card'
+                      ? 'bg-amber-600/30 text-amber-300'
+                      : 'text-slate-400 hover:text-slate-300'
+                  }`}
+                  title="Card view"
+                >
+                  <Grid3x3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewMode === 'list'
+                      ? 'bg-amber-600/30 text-amber-300'
+                      : 'text-slate-400 hover:text-slate-300'
+                  }`}
+                  title="List view"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+
+            {/* Items display */}
             <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40">
               {playerSellableItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-amber-200/50">
@@ -1457,7 +1673,88 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   <p className="text-lg">Your inventory is empty</p>
                   <p className="text-sm mt-1">Gather items to trade at the market</p>
                 </div>
+              ) : viewMode === 'card' ? (
+                // CARD VIEW for sell tab (new)
+                <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-3'}`}>
+                  {playerSellableItems.map(item => {
+                    const profitMargin = item.sellPrice > (item.value || 0) ?
+                      ((item.sellPrice - (item.value || 0)) / (item.value || 1) * 100) : 0;
+                    const questInfo = item.itemType !== 'animal' ? isQuestItem(item.baseId || item.id) : { isQuest: false };
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`group bg-gradient-to-br from-slate-700/90 to-slate-800/70 border rounded-lg p-3 hover:shadow-xl transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
+                          questInfo.isQuest
+                            ? 'border-yellow-500/60 hover:border-yellow-400/80 hover:shadow-yellow-800/40'
+                            : item.itemType === 'animal'
+                              ? 'border-green-600/60 hover:border-green-500/80 hover:shadow-green-800/40'
+                              : 'border-slate-600/60 hover:border-amber-500/70 hover:shadow-amber-800/30'
+                        }`}
+                      >
+                        {/* Item header */}
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-bold text-amber-50 text-base flex items-center gap-2 flex-wrap">
+                              {formatItemName(item.name)}
+                              {item.itemType === 'animal' && (
+                                <span className="text-xs px-1.5 py-0.5 bg-green-600/30 text-green-300 rounded border border-green-600/50">
+                                  🐾 Companion
+                                </span>
+                              )}
+                              {questInfo.isQuest && questInfo.action === 'sell' && (
+                                <span className="text-xs px-1.5 py-0.5 bg-yellow-600/30 text-yellow-300 rounded border border-yellow-600/50">
+                                  📋 Quest
+                                </span>
+                              )}
+                            </h4>
+                            <p className="text-sm text-amber-200/60 mt-1">
+                              {item.itemType === 'animal'
+                                ? item.description
+                                : `${item.quantity || 1} unit${(item.quantity || 1) > 1 ? 's' : ''} in stock`
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Price info */}
+                        <div className="bg-slate-900/40 rounded-lg p-2 mb-2">
+                          {profitMargin > 0 && (
+                            <p className="text-xs text-green-400 mb-1.5 flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" />
+                              +{profitMargin.toFixed(0)}%
+                            </p>
+                          )}
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-amber-200/70">Offer</span>
+                            <div className="text-right">
+                              <p className="text-base font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-1.5">
+                                <Coins className="w-4 h-4 text-yellow-400" />
+                                {item.sellPrice}
+                              </p>
+                              {item.value && item.value !== item.sellPrice && (
+                                <p className="text-xs text-slate-500 line-through flex items-center justify-end gap-1">
+                                  {item.value}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action button */}
+                        <button
+                          onClick={() => handleSell(item)}
+                          className="w-full px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-md font-semibold text-sm transition-all transform hover:scale-105 shadow-md shadow-amber-900/30 flex items-center justify-center gap-1.5"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          Sell for {item.sellPrice}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
+                // LIST VIEW for sell tab (existing)
                 <div className="space-y-2">
                   {playerSellableItems.map(item => {
                     const profitMargin = item.sellPrice > (item.value || 0) ? 
@@ -1477,12 +1774,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-3xl filter drop-shadow-md group-hover:scale-110 transition-transform">
-                            {item.emoji}
-                          </span>
                           <div>
                             <p className="font-medium text-amber-50">
-                              {item.name}
+                              {formatItemName(item.name)}
                               {item.itemType === 'animal' && (
                                 <span className="ml-2 text-xs px-2 py-0.5 bg-green-600/30 text-green-300 rounded-full border border-green-600/50">
                                   🐾 Companion
@@ -1510,17 +1804,22 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className="text-xs text-amber-200/50 uppercase tracking-wide">Market Offer</p>
-                            <p className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">
-                              {item.sellPrice} coins
+                            <p className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent flex items-center justify-end gap-1.5">
+                              <Coins className="w-5 h-5 text-yellow-400" />
+                              {item.sellPrice}
                             </p>
                             {item.value && item.value !== item.sellPrice && (
-                              <p className="text-xs text-slate-500 line-through">Base: {item.value}</p>
+                              <p className="text-xs text-slate-500 line-through flex items-center justify-end gap-1">
+                                <Coins className="w-3 h-3" />
+                                Base: {item.value}
+                              </p>
                             )}
                           </div>
                           <button
                             onClick={() => handleSell(item)}
-                            className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-amber-900/30"
+                            className="px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-amber-900/30 flex items-center gap-1.5"
                           >
+                            <DollarSign className="w-4 h-4" />
                             Sell
                           </button>
                         </div>
@@ -1667,31 +1966,85 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <p className="text-sm text-amber-200/60">Current conditions and trade opportunities</p>
             </div>
             <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40 space-y-4">
-              {/* Market Status Card */}
-              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-cyan-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
-                <h4 className="text-sm font-semibold text-cyan-400 mb-3 uppercase tracking-wide">🏛️ Market Status</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-slate-900/40 rounded-md p-2">
-                    <p className="text-xs text-cyan-300/60 mb-1">Settlement Type</p>
-                    <p className="text-sm text-amber-50 font-medium">{marketConditionDesc}</p>
+              {/* Fast Travel - Caravan Routes Card */}
+              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-orange-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+                <h4 className="text-sm font-semibold text-orange-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                  {caravanDestinations.length > 0 && caravanDestinations[0].culturalIcon || '🐪'} Fast Travel Options
+                </h4>
+                {caravanDestinations.length === 0 ? (
+                  <div className="bg-slate-900/40 rounded-md p-3">
+                    <p className="text-amber-200/50 italic text-sm">No overland routes available from this location.</p>
+                    <p className="text-xs text-amber-200/40 mt-2">
+                      💡 Tip: Fast travel routes connect distant settlements
+                    </p>
                   </div>
-                  <div className="bg-slate-900/40 rounded-md p-2">
-                    <p className="text-xs text-cyan-300/60 mb-1">Historical Era</p>
-                    <p className="text-sm text-amber-50 font-medium">{era}</p>
-                  </div>
-                  <div className="bg-slate-900/40 rounded-md p-2">
-                    <p className="text-xs text-cyan-300/60 mb-1">Cultural Zone</p>
-                    <p className="text-sm text-amber-50 font-medium">{culturalZone.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                  </div>
-                </div>
-                {marketAllegiance && (
-                  <div className="mt-3 pt-3 border-t border-cyan-700/20">
-                    <p className="text-xs text-cyan-300/60 mb-1">Political Allegiance</p>
-                    <p className="text-sm text-amber-400 font-medium">🏰 {marketAllegiance.name}</p>
-                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-amber-200/60 mb-3">
+                      {caravanDestinations[0].culturalDescription || 'Book passage to distant marketplaces'}
+                    </p>
+                    <div className="space-y-2">
+                      {caravanDestinations.map((dest, index) => (
+                        <div key={index} className="bg-slate-900/40 rounded-lg p-3 border border-orange-700/20 hover:border-orange-600/40 transition-all">
+                          {/* Cultural Travel Mode Badge */}
+                          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-orange-700/20">
+                            <span className="text-xl">{dest.culturalIcon || '🐴'}</span>
+                            <span className="text-xs text-orange-300 font-medium uppercase tracking-wide">
+                              {dest.culturalTravelName || 'Caravan'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="text-sm text-amber-50 font-semibold">{dest.cityName}</p>
+                              <p className="text-xs text-orange-300/80">{dest.mapAreaName}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-amber-400 font-medium">{dest.fare} coins</p>
+                              <p className="text-xs text-amber-200/40">{dest.distance.toFixed(0)} miles</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                            <div className="bg-slate-900/40 rounded px-2 py-1">
+                              <span className="text-orange-400">Journey:</span>
+                              <span className="text-amber-200 ml-1">{dest.journeyDays.toFixed(1)} days</span>
+                            </div>
+                            <div className="bg-slate-900/40 rounded px-2 py-1">
+                              <span className="text-orange-400">Via:</span>
+                              <span className="text-amber-200 ml-1">{dest.path.length} stops</span>
+                            </div>
+                          </div>
+                          {dest.path.length > 0 && (
+                            <details className="mb-2">
+                              <summary className="text-xs text-amber-200/50 cursor-pointer hover:text-amber-200/70 mb-1">
+                                🗺️ Route: {dest.path.slice(0, 2).join(' → ')}{dest.path.length > 2 ? '...' : ''}
+                              </summary>
+                              <p className="text-xs text-amber-200/60 ml-4 mt-1">
+                                {dest.path.join(' → ')}
+                              </p>
+                            </details>
+                          )}
+                          <button
+                            onClick={() => handleCaravanBooking(dest)}
+                            disabled={!playerCharacter.wealth || playerCharacter.wealth < dest.fare}
+                            className={`w-full py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                              !playerCharacter.wealth || playerCharacter.wealth < dest.fare
+                                ? 'bg-slate-700/50 text-amber-200/40 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-md shadow-orange-900/30 transform hover:scale-105'
+                            }`}
+                          >
+                            {!playerCharacter.wealth || playerCharacter.wealth < dest.fare
+                              ? `Need ${dest.fare - (playerCharacter.wealth || 0)} more coins`
+                              : `${dest.culturalIcon || '🐴'} Book ${dest.culturalTravelName || 'Passage'} (${dest.fare} coins)`
+                            }
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
-              
+
               {/* Trade Routes Card */}
               <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-purple-400 mb-3 uppercase tracking-wide">🗺️ Trade Routes</h4>
@@ -2354,7 +2707,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         zIndex: 50
       }}
     >
-      <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-lg shadow-2xl flex flex-col overflow-hidden relative ${
+      <div className={`bg-gradient-to-b from-slate-800 via-slate-850 to-slate-900 border-2 border-amber-700/50 rounded-lg shadow-2xl flex flex-col overflow-hidden relative ${
         isMobile ? 'w-full h-full rounded-none' : 'w-full h-full max-w-full max-h-full rounded-lg'
       }`}>
         {/* Mobile close button */}
@@ -2439,10 +2792,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         )}
         
         {/* Compact marketplace header */}
-        <div className={`px-4 py-2 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+        <div className={`px-5 py-3 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-amber-200 to-yellow-200 bg-clip-text text-transparent drop-shadow-sm">
                 {marketplaceDataLoading ? (
                   <>
                     <span className="animate-pulse">⌛</span>
@@ -2454,25 +2807,23 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </h2>
               {/* Badges moved next to title */}
               <div className="flex items-center gap-2">
-                <span className="text-xs px-2 py-0.5 bg-slate-900/50 text-amber-200/60 rounded border border-slate-700/50">
-                  {era} Era
+                <span className="text-xs px-2.5 py-1 bg-slate-900/50 text-amber-100/70 rounded-md border border-slate-700/50 tracking-wide">
+                  {formatEraName(era)}
                 </span>
                 {marketAllegiance && (
-                  <span className="text-xs px-2 py-0.5 bg-amber-900/30 text-amber-300 rounded border border-amber-700/50">
+                  <span className="text-xs px-2.5 py-1 bg-amber-900/30 text-amber-200 rounded-md border border-amber-700/50 tracking-wide">
                     {marketAllegiance.name}
                   </span>
                 )}
-                <span className="text-xs px-2 py-0.5 bg-cyan-900/30 text-cyan-300 rounded border border-cyan-700/50">
-                  {culturalZone.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
+               
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-xs text-amber-200/70">
+              <p className="text-xs text-amber-100/80 tracking-wide">
                 {mapData.localArea || mapData.continent || 'Unknown Lands'}
               </p>
-              <div className="bg-slate-900/50 rounded-md px-3 py-1 border border-amber-700/30">
-                <p className="text-sm font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">
+              <div className="bg-slate-900/50 rounded-lg px-4 py-1.5 border border-amber-700/40">
+                <p className="text-base font-bold bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent drop-shadow-sm tracking-wide">
                   💰 {playerCharacter.currency} coins
                 </p>
               </div>
@@ -2481,7 +2832,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         </div>
         
         {/* Enhanced tab navigation with historical theming */}
-        <div className="flex bg-gradient-to-r from-slate-800/80 via-slate-800/60 to-slate-800/80 border-b border-amber-900/30">
+        <div className="flex bg-gradient-to-r from-slate-700/90 via-slate-700/80 to-slate-700/90 border-b border-amber-800/40">
           {[
             { id: 'buy', label: 'Buy', icon: '🛒' },
             { id: 'sell', label: 'Sell', icon: '💰' },
@@ -2493,18 +2844,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`flex-1 py-3 px-4 font-medium transition-all relative group ${
+              className={`flex-1 py-3.5 px-4 font-semibold text-sm transition-all relative group ${
                 activeTab === tab.id
-                  ? tab.id === 'buy' ? 'bg-gradient-to-t from-emerald-900/30 to-transparent text-emerald-400 border-b-2 border-emerald-400' :
-                    tab.id === 'sell' ? 'bg-gradient-to-t from-amber-900/30 to-transparent text-amber-400 border-b-2 border-amber-400' :
-                    tab.id === 'trade' ? 'bg-gradient-to-t from-purple-900/30 to-transparent text-purple-400 border-b-2 border-purple-400' :
-                    tab.id === 'people' ? 'bg-gradient-to-t from-blue-900/30 to-transparent text-blue-400 border-b-2 border-blue-400' :
-                    tab.id === 'analysis' ? 'bg-gradient-to-t from-red-900/30 to-transparent text-red-400 border-b-2 border-red-400' :
-                    'bg-gradient-to-t from-cyan-900/30 to-transparent text-cyan-400 border-b-2 border-cyan-400'
-                  : 'text-amber-200/60 hover:text-amber-200 hover:bg-slate-700/30'
+                  ? tab.id === 'buy' ? 'bg-gradient-to-t from-emerald-800/40 to-transparent text-emerald-300 border-b-3 border-emerald-400' :
+                    tab.id === 'sell' ? 'bg-gradient-to-t from-amber-800/40 to-transparent text-amber-300 border-b-3 border-amber-400' :
+                    tab.id === 'trade' ? 'bg-gradient-to-t from-purple-800/40 to-transparent text-purple-300 border-b-3 border-purple-400' :
+                    tab.id === 'people' ? 'bg-gradient-to-t from-blue-800/40 to-transparent text-blue-300 border-b-3 border-blue-400' :
+                    tab.id === 'analysis' ? 'bg-gradient-to-t from-red-800/40 to-transparent text-red-300 border-b-3 border-red-400' :
+                    'bg-gradient-to-t from-cyan-800/40 to-transparent text-cyan-300 border-b-3 border-cyan-400'
+                  : 'text-amber-100/50 hover:text-amber-100/80 hover:bg-slate-600/30'
               }`}
             >
-              <span className="inline-block transform group-hover:scale-110 transition-transform">
+              <span className="inline-block transform group-hover:scale-110 transition-transform text-base">
                 {tab.icon}
               </span>
               <span className="ml-2">{tab.label}</span>

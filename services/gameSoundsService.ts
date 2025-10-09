@@ -16665,6 +16665,420 @@ class GameSoundsService {
       osc.stop(pedalTime + pedal.dur);
     });
   }
+
+  // ============================================================================
+  // FACTORY MINIGAME SOUNDS
+  // ============================================================================
+
+  /**
+   * Factory Minigame Result Sound - Graded feedback based on result
+   */
+  public playFactoryResultSound(result: 'perfect' | 'great' | 'good' | 'okay' | 'miss') {
+    if (this.isMuted) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+
+      switch (result) {
+        case 'perfect':
+          // Perfect - Triumphant ascending arpeggio
+          const perfectNotes = [523.25, 659.25, 783.99, 1046.50]; // C-E-G-C
+          perfectNotes.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+
+            const startTime = now + (i * 0.08);
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.15 * this.masterVolume, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.4);
+          });
+          break;
+
+        case 'great':
+          // Great - Happy two-tone chime
+          [880, 1046.50].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+
+            const startTime = now + (i * 0.1);
+            gain.gain.setValueAtTime(0.12 * this.masterVolume, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.3);
+          });
+          break;
+
+        case 'good':
+          // Good - Single pleasant tone
+          const goodOsc = ctx.createOscillator();
+          const goodGain = ctx.createGain();
+
+          goodOsc.connect(goodGain);
+          goodGain.connect(ctx.destination);
+
+          goodOsc.frequency.value = 659.25; // E5
+          goodOsc.type = 'sine';
+
+          goodGain.gain.setValueAtTime(0.1 * this.masterVolume, now);
+          goodGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+          goodOsc.start(now);
+          goodOsc.stop(now + 0.2);
+          break;
+
+        case 'okay':
+          // Okay - Neutral beep
+          const okayOsc = ctx.createOscillator();
+          const okayGain = ctx.createGain();
+
+          okayOsc.connect(okayGain);
+          okayGain.connect(ctx.destination);
+
+          okayOsc.frequency.value = 440; // A4
+          okayOsc.type = 'square';
+
+          okayGain.gain.setValueAtTime(0.08 * this.masterVolume, now);
+          okayGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+          okayOsc.start(now);
+          okayOsc.stop(now + 0.15);
+          break;
+
+        case 'miss':
+          // Miss - Descending disappointed sound
+          const missOsc = ctx.createOscillator();
+          const missGain = ctx.createGain();
+
+          missOsc.connect(missGain);
+          missGain.connect(ctx.destination);
+
+          missOsc.frequency.setValueAtTime(440, now);
+          missOsc.frequency.exponentialRampToValueAtTime(220, now + 0.3);
+          missOsc.type = 'sawtooth';
+
+          missGain.gain.setValueAtTime(0.1 * this.masterVolume, now);
+          missGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+          missOsc.start(now);
+          missOsc.stop(now + 0.3);
+          break;
+      }
+    } catch (error) {
+      console.error('Error playing factory result sound:', error);
+    }
+  }
+
+  /**
+   * Factory Click Sound - For minigame interactions
+   */
+  public playFactoryClickSound() {
+    if (this.isMuted) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+
+      // Mechanical click
+      const click = ctx.createOscillator();
+      const clickGain = ctx.createGain();
+      const clickFilter = ctx.createBiquadFilter();
+
+      click.connect(clickFilter);
+      clickFilter.connect(clickGain);
+      clickGain.connect(ctx.destination);
+
+      click.frequency.value = 1200;
+      click.type = 'square';
+
+      clickFilter.type = 'highpass';
+      clickFilter.frequency.value = 800;
+
+      clickGain.gain.setValueAtTime(0.06 * this.masterVolume, now);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+      click.start(now);
+      click.stop(now + 0.05);
+    } catch (error) {
+      console.error('Error playing factory click sound:', error);
+    }
+  }
+
+  /**
+   * Factory Pulse Sound - For rhythm minigames
+   */
+  public playFactoryPulseSound() {
+    if (this.isMuted) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+
+      // Industrial pulse
+      const pulse = ctx.createOscillator();
+      const pulseGain = ctx.createGain();
+
+      pulse.connect(pulseGain);
+      pulseGain.connect(ctx.destination);
+
+      pulse.frequency.value = 220; // A3
+      pulse.type = 'square';
+
+      pulseGain.gain.setValueAtTime(0.08 * this.masterVolume, now);
+      pulseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+      pulse.start(now);
+      pulse.stop(now + 0.1);
+    } catch (error) {
+      console.error('Error playing factory pulse sound:', error);
+    }
+  }
+
+  // ============================================================================
+  // KRAFTWERK-STYLE FACTORY MUSIC
+  // ============================================================================
+
+  private factoryMusicNodes: any[] = [];
+  private factoryMusicPlaying: boolean = false;
+
+  /**
+   * Play Kraftwerk-inspired factory music - Repetitive, robotic, industrial
+   */
+  public playFactoryMusic() {
+    if (this.isMuted) return;
+    if (this.factoryMusicPlaying) return; // Already playing
+
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.factoryMusicPlaying = true;
+      const now = ctx.currentTime;
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0.12 * this.masterVolume; // Quieter background music
+      masterGain.connect(ctx.destination);
+
+      // Pattern duration: 4 beats (each beat = 0.5s, so 2 seconds total)
+      const beatDuration = 0.5;
+      const patternDuration = beatDuration * 4; // 2 seconds
+      const totalDuration = 60; // Play for 60 seconds, then loop
+
+      // Mechanical kick drum pattern (on every beat)
+      const kickPattern = [1, 0, 1, 0]; // Simple 4/4
+      for (let t = 0; t < totalDuration; t += beatDuration) {
+        const beatIndex = Math.floor(t / beatDuration) % kickPattern.length;
+        if (kickPattern[beatIndex]) {
+          const kick = ctx.createOscillator();
+          const kickGain = ctx.createGain();
+          const kickFilter = ctx.createBiquadFilter();
+
+          kick.type = 'sine';
+          kick.frequency.setValueAtTime(150, now + t);
+          kick.frequency.exponentialRampToValueAtTime(50, now + t + 0.05);
+
+          kickFilter.type = 'lowpass';
+          kickFilter.frequency.value = 200;
+
+          kick.connect(kickFilter);
+          kickFilter.connect(kickGain);
+          kickGain.connect(masterGain);
+
+          kickGain.gain.setValueAtTime(0.8, now + t);
+          kickGain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.2);
+
+          kick.start(now + t);
+          kick.stop(now + t + 0.2);
+
+          this.factoryMusicNodes.push(kick);
+        }
+      }
+
+      // Hi-hat / industrial noise (on off-beats)
+      const hihatPattern = [0, 1, 0, 1];
+      for (let t = 0; t < totalDuration; t += beatDuration) {
+        const beatIndex = Math.floor(t / beatDuration) % hihatPattern.length;
+        if (hihatPattern[beatIndex]) {
+          const hihat = ctx.createOscillator();
+          const hihatGain = ctx.createGain();
+          const hihatFilter = ctx.createBiquadFilter();
+
+          hihat.type = 'square';
+          hihat.frequency.value = 8000 + Math.random() * 2000;
+
+          hihatFilter.type = 'highpass';
+          hihatFilter.frequency.value = 6000;
+
+          hihat.connect(hihatFilter);
+          hihatFilter.connect(hihatGain);
+          hihatGain.connect(masterGain);
+
+          hihatGain.gain.setValueAtTime(0.15, now + t);
+          hihatGain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.08);
+
+          hihat.start(now + t);
+          hihat.stop(now + t + 0.08);
+
+          this.factoryMusicNodes.push(hihat);
+        }
+      }
+
+      // Robotic bass line (simple repeating pattern)
+      const bassNotes = [110, 110, 146.83, 110]; // A2, A2, D3, A2
+      for (let i = 0; i < totalDuration / patternDuration; i++) {
+        bassNotes.forEach((freq, noteIndex) => {
+          const startTime = now + (i * patternDuration) + (noteIndex * beatDuration);
+
+          const bass = ctx.createOscillator();
+          const bassGain = ctx.createGain();
+          const bassFilter = ctx.createBiquadFilter();
+
+          bass.type = 'sawtooth';
+          bass.frequency.value = freq;
+
+          bassFilter.type = 'lowpass';
+          bassFilter.frequency.value = 400;
+          bassFilter.Q.value = 5;
+
+          bass.connect(bassFilter);
+          bassFilter.connect(bassGain);
+          bassGain.connect(masterGain);
+
+          bassGain.gain.setValueAtTime(0, startTime);
+          bassGain.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+          bassGain.gain.setValueAtTime(0.3, startTime + beatDuration - 0.05);
+          bassGain.gain.exponentialRampToValueAtTime(0.001, startTime + beatDuration);
+
+          bass.start(startTime);
+          bass.stop(startTime + beatDuration);
+
+          this.factoryMusicNodes.push(bass);
+        });
+      }
+
+      // Robotic synth melody (Kraftwerk-style)
+      const melodyPattern = [
+        { freq: 440, time: 0, dur: beatDuration },      // A4
+        { freq: 523.25, time: 1, dur: beatDuration },   // C5
+        { freq: 587.33, time: 2, dur: beatDuration },   // D5
+        { freq: 523.25, time: 3, dur: beatDuration },   // C5
+      ];
+
+      for (let i = 0; i < totalDuration / patternDuration; i++) {
+        melodyPattern.forEach(note => {
+          const startTime = now + (i * patternDuration) + (note.time * beatDuration);
+
+          const melody = ctx.createOscillator();
+          const melodyGain = ctx.createGain();
+          const melodyFilter = ctx.createBiquadFilter();
+
+          melody.type = 'square';
+          melody.frequency.value = note.freq;
+
+          melodyFilter.type = 'lowpass';
+          melodyFilter.frequency.value = 2000;
+          melodyFilter.Q.value = 2;
+
+          melody.connect(melodyFilter);
+          melodyFilter.connect(melodyGain);
+          melodyGain.connect(masterGain);
+
+          melodyGain.gain.setValueAtTime(0, startTime);
+          melodyGain.gain.linearRampToValueAtTime(0.15, startTime + 0.02);
+          melodyGain.gain.setValueAtTime(0.15, startTime + note.dur - 0.05);
+          melodyGain.gain.exponentialRampToValueAtTime(0.001, startTime + note.dur);
+
+          melody.start(startTime);
+          melody.stop(startTime + note.dur);
+
+          this.factoryMusicNodes.push(melody);
+        });
+      }
+
+      // Mechanical "clanking" percussion
+      for (let t = beatDuration * 2; t < totalDuration; t += patternDuration) {
+        const clank = ctx.createOscillator();
+        const clankGain = ctx.createGain();
+        const clankFilter = ctx.createBiquadFilter();
+
+        clank.type = 'square';
+        clank.frequency.value = 1500;
+        clank.frequency.exponentialRampToValueAtTime(800, now + t + 0.05);
+
+        clankFilter.type = 'bandpass';
+        clankFilter.frequency.value = 1200;
+        clankFilter.Q.value = 10;
+
+        clank.connect(clankFilter);
+        clankFilter.connect(clankGain);
+        clankGain.connect(masterGain);
+
+        clankGain.gain.setValueAtTime(0.12, now + t);
+        clankGain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.1);
+
+        clank.start(now + t);
+        clank.stop(now + t + 0.1);
+
+        this.factoryMusicNodes.push(clank);
+      }
+
+      // Auto-loop after 60 seconds
+      setTimeout(() => {
+        this.stopFactoryMusic();
+        if (this.factoryMusicPlaying) {
+          this.playFactoryMusic(); // Restart
+        }
+      }, (totalDuration + 1) * 1000);
+
+    } catch (error) {
+      console.error('Error playing factory music:', error);
+      this.factoryMusicPlaying = false;
+    }
+  }
+
+  /**
+   * Stop factory music
+   */
+  public stopFactoryMusic() {
+    this.factoryMusicPlaying = false;
+
+    this.factoryMusicNodes.forEach(node => {
+      try {
+        if (node && typeof node.stop === 'function') {
+          node.stop();
+        }
+      } catch (e) {
+        // Already stopped
+      }
+    });
+
+    this.factoryMusicNodes = [];
+  }
+
+  /**
+   * Check if factory music is playing
+   */
+  public isFactoryMusicPlaying(): boolean {
+    return this.factoryMusicPlaying;
+  }
 }
 
 // Create and export singleton instance

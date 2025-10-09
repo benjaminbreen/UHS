@@ -67,11 +67,12 @@ interface MapViewportProps {
   mapVisible?: boolean;
   isProcessingWorldWeaver?: boolean;
   onPlayerDeath?: (deathInfo: any) => void;
+  onFarmPanelChange?: (isOpen: boolean) => void;
   className?: string;
   isStudyingStars?: boolean;
 }
 
-const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, className, isStudyingStars = false }) => {
+const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, onFarmPanelChange, className, isStudyingStars = false }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage, setToastMessage,
@@ -81,7 +82,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         poiToastData, setPoiToastData,
         handleCompanionClick, handlePlayerClick, handleNewAreaEntry, setContainerModalData,
         onUseSkill,
-        handleStationClick
+        handleStationClick, handleHarborClick
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
@@ -91,6 +92,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData,
         enterSpecialMap, exitSpecialMap, isSpecialMap,
         addPersistedMerchant, setNpcs,
+        fastTravelToArea,
     } = useMap();
 
     const {
@@ -184,6 +186,13 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
             }
         }
     });
+
+    // Notify parent when farm panel opens/closes
+    useEffect(() => {
+        if (onFarmPanelChange) {
+            onFarmPanelChange(activePanel === 'farm');
+        }
+    }, [activePanel, onFarmPanelChange]);
 
     // Listen for POV viewport toggle requests from narration
     useEffect(() => {
@@ -706,18 +715,12 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     //     }
     // }, [showPOVViewport, ambianceText]);
 
-    // Handle map transitions with elegant fade effect
+    // Handle map transitions with instant crossfade (PERFORMANCE FIX)
+    // Removed delay and complex state management for faster, cleaner transitions
     useEffect(() => {
-        if (isLoading && !isMapTransitioning) {
-            // Starting to load - trigger fade transition
-            setIsMapTransitioning(true);
-        } else if (!isLoading && isMapTransitioning) {
-            // Finished loading - wait a moment then fade in
-            setTimeout(() => {
-                setIsMapTransitioning(false);
-            }, 800); // Wait for fade to complete
-        }
-    }, [isLoading, isMapTransitioning]);
+        console.log('[TRANSITION DEBUG] isLoading changed:', isLoading, 'timestamp:', performance.now());
+        setIsMapTransitioning(isLoading); // Direct mapping, no delays
+    }, [isLoading]);
 
     // POI Toast Auto-Detection System
     useEffect(() => {
@@ -1031,6 +1034,76 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                 season={season}
                 onAddPersistedNpc={addPersistedMerchant}
                 currentMapSeed={currentMapSeed}
+                onRequestTravel={(destination) => {
+                    if (!playerCharacter || !gameDate) return;
+
+                    console.log('[MapViewport] Caravan travel requested:', destination);
+
+                    // Check if player has enough money
+                    if (!playerCharacter.money || playerCharacter.money < destination.fare) {
+                        showToast?.(`Need ${destination.fare - (playerCharacter.money || 0)} more coins for caravan fare!`, 'error');
+                        return;
+                    }
+
+                    // 1. Deduct fare from player money
+                    const updatedCharacter = {
+                        ...playerCharacter,
+                        money: playerCharacter.money - destination.fare
+                    };
+                    setPlayerCharacter(updatedCharacter);
+
+                    // 2. Advance game time by journey hours
+                    const journeyDays = (destination.travelTime / 24).toFixed(1);
+                    const hoursToAdd = destination.travelTime;
+                    const daysToAdd = Math.floor(hoursToAdd / 24);
+
+                    // If we crossed into new days, update the date
+                    if (daysToAdd > 0 && gameDate) {
+                        const newGameDate = {
+                            ...gameDate,
+                            day: gameDate.day + daysToAdd
+                        };
+
+                        // Handle month overflow
+                        const daysInMonth = 30; // Simplified for game
+                        if (newGameDate.day > daysInMonth) {
+                            newGameDate.month += Math.floor(newGameDate.day / daysInMonth);
+                            newGameDate.day = newGameDate.day % daysInMonth;
+                        }
+
+                        // Handle year overflow
+                        if (newGameDate.month > 12) {
+                            newGameDate.year += Math.floor(newGameDate.month / 12);
+                            newGameDate.month = newGameDate.month % 12;
+                        }
+
+                        setGameDate(newGameDate);
+                    }
+
+                    // 3. Perform fast travel to destination
+                    const travelModeName = destination.culturalTravelName || 'caravan';
+                    const success = fastTravelToArea(destination.mapAreaName, destination.cityName);
+
+                    if (success) {
+                        // Close modal and notify
+                        setActiveMarketplaceModal(null);
+                        showToast?.(`${destination.culturalIcon || '🐴'} ${travelModeName} to ${destination.cityName} complete! ${journeyDays} days of travel.`, 5000);
+
+                        console.log('[MapViewport] Fast travel completed:', {
+                            travelMode: travelModeName,
+                            destination: destination.cityName,
+                            mapArea: destination.mapAreaName,
+                            fare: destination.fare,
+                            journeyDays: journeyDays,
+                            newMoney: updatedCharacter.money,
+                            culturalIcon: destination.culturalIcon
+                        });
+                    } else {
+                        // Refund money if travel failed
+                        setPlayerCharacter(playerCharacter);
+                        showToast?.(`Failed to find route to ${destination.mapAreaName}`, 'error');
+                    }
+                }}
             />;
         }
         if (activeCityModal && playerCharacter && mapData) {
@@ -1305,6 +1378,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         });
                     }}
                     onStationClick={handleStationClick}
+                    onHarborClick={handleHarborClick}
+                    isLoading={isLoading}
                 />
             );
         }
@@ -1543,9 +1618,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                style={{
                  zIndex: 10,
                  opacity: isStudyingStars ? 0 : ((mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 1 : 0),
-                 transform: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 'scale(1)' : 'scale(0.95)',
-                 transition: 'opacity 0.5s ease-out, transform 5s ease-out',
-                 transitionDelay: (mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? '0s' : '0s',
+                 // Removed slow scale transform for instant, responsive feel
+                 transition: 'opacity 0.2s ease-in-out', // Fast crossfade only
                  pointerEvents: isStudyingStars ? 'none' : ((mapVisible && !isMapTransitioning && !isProcessingWorldWeaver) ? 'auto' : 'none')
                }}
              >
@@ -1801,6 +1875,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                             onEnterBuilding(tile, mapData);
                         }}
                         onEnterRailroadStation={handleStationClick}
+                        onEnterHarborDistrict={handleHarborClick}
                         toastMessage={toastMessage}
                         season={season}
                         timeOfDay={currentTimeOfDay}

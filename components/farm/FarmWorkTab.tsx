@@ -212,15 +212,15 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
   return (
     <div className="animate-fadeIn flex gap-4 h-full">
       {/* Left Sidebar - Field Status, Livestock & Action Log (wider for better visibility) */}
-      <div className="w-96 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-3 h-full overflow-hidden">
         {/* Compact Field Display */}
-        <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 overflow-hidden">
+        <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 overflow-hidden flex flex-col">
           <button
             onClick={() => setIsFieldsCollapsed(!isFieldsCollapsed)}
-            className="w-full flex items-center justify-between p-3 hover:bg-slate-800/40 transition-colors"
+            className="w-full flex items-center justify-between p-3 hover:bg-slate-800/40 transition-colors flex-shrink-0"
           >
-            <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
-              Fields
+            <h4 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">
+              Fields ({farmState.fields.length})
             </h4>
             {isFieldsCollapsed ? (
               <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -230,9 +230,9 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
           </button>
 
           {!isFieldsCollapsed && (
-            <div className="p-3 pt-0">
+            <div className="p-3 pt-0 overflow-y-auto max-h-64">
               <div className="grid grid-cols-2 gap-2">
-                {farmState.fields.slice(0, 8).map((field, idx) => {
+                {farmState.fields.map((field, idx) => {
                   const cropEmoji = field.crop ? CROP_EMOJIS[field.crop] || '🌱' : '🟫';
                   const healthColor = field.health > 70 ? 'text-green-400' :
                                      field.health > 40 ? 'text-yellow-400' :
@@ -282,17 +282,17 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
 
                       {/* Content */}
                       <div className="relative z-10">
-                        <div className="text-2xl mb-1">{cropEmoji}</div>
+                        <div className="text-3xl mb-1.5">{cropEmoji}</div>
 
                         {/* Moisture indicator dots (Phase 3.1) */}
-                        <div className="flex gap-0.5 justify-center mb-1">
+                        <div className="flex gap-1 justify-center mb-1.5">
                           {['dry', 'moist', 'wet', 'flooded'].map((level, i) => {
                             const moistureLevels = ['dry', 'moist', 'wet', 'flooded'];
                             const currentIndex = moistureLevels.indexOf(field.moisture);
                             return (
                               <div
                                 key={i}
-                                className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
+                                className={`w-2 h-2 rounded-full transition-colors duration-300 ${
                                   currentIndex >= i ? 'bg-blue-400' : 'bg-slate-600'
                                 }`}
                               />
@@ -300,8 +300,8 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
                           })}
                         </div>
 
-                        <div className="text-[9px] text-slate-500">Field {idx + 1}</div>
-                        <div className={`text-[9px] font-medium ${healthColor}`}>
+                        <div className="text-xs text-slate-400 font-medium">Field {idx + 1}</div>
+                        <div className={`text-xs font-semibold ${healthColor}`}>
                           {field.crop ? `${field.health}%` : 'Empty'}
                         </div>
                       </div>
@@ -315,13 +315,13 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
 
         {/* Livestock Section */}
         {farmState.livestock && farmState.livestock.length > 0 && (
-          <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 overflow-hidden">
+          <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 overflow-hidden flex flex-col">
             <button
               onClick={() => setIsLivestockCollapsed(!isLivestockCollapsed)}
-              className="w-full flex items-center justify-between p-3 hover:bg-slate-800/40 transition-colors"
+              className="w-full flex items-center justify-between p-3 hover:bg-slate-800/40 transition-colors flex-shrink-0"
             >
-              <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
-                Livestock
+              <h4 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">
+                Livestock ({farmState.livestock.length})
               </h4>
               {isLivestockCollapsed ? (
                 <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -331,7 +331,7 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
             </button>
 
             {!isLivestockCollapsed && (
-              <div className="p-3 pt-0 space-y-2">
+              <div className="p-3 pt-0 space-y-2 overflow-y-auto max-h-56">
                 {farmState.livestock.map((animal, idx) => {
                   const healthColor = animal.health > 70 ? 'text-green-400' :
                                      animal.health > 40 ? 'text-yellow-400' :
@@ -374,28 +374,28 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
                     <div
                       key={idx}
                       data-livestock={idx}
-                      className="bg-slate-800/40 rounded-lg p-2 border border-slate-700/40 transition-all duration-300"
+                      className="bg-slate-800/40 rounded-lg p-3 border border-slate-700/40 transition-all duration-300"
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">{emoji}</span>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-3xl">{emoji}</span>
                         <div className="flex-1">
-                          <div className="text-xs font-semibold text-slate-200 capitalize">
+                          <div className="text-sm font-semibold text-slate-200 capitalize">
                             {animal.type}
                           </div>
-                          <div className={`text-[9px] ${fedColor}`}>
+                          <div className={`text-xs ${fedColor}`}>
                             {fedStatus}
                           </div>
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[10px]">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-400">Health</span>
-                          <span className={healthColor}>{animal.health}%</span>
+                          <span className={`${healthColor} font-semibold`}>{animal.health}%</span>
                         </div>
-                        <div className="flex items-center justify-between text-[10px]">
+                        <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-400">Productivity</span>
-                          <span className={productivityColor}>{animal.productivity}%</span>
+                          <span className={`${productivityColor} font-semibold`}>{animal.productivity}%</span>
                         </div>
                       </div>
                     </div>
@@ -403,7 +403,7 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
                 })}
 
                 <div className="mt-2 pt-2 border-t border-slate-700/40">
-                  <div className="text-[9px] text-slate-500 italic text-center">
+                  <div className="text-xs text-slate-500 italic text-center">
                     Try: "feed the {farmState.livestock[0]?.type}", "check on animals"
                   </div>
                 </div>
@@ -415,23 +415,42 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
         {/* Available Resources moved to right sidebar */}
 
         {/* Action Log */}
-        <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60 flex-1">
-          <h4 className="text-xs font-semibold text-amber-400 mb-2 uppercase tracking-wide">
+        <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 flex flex-col flex-1 min-h-0">
+          <h4 className="text-sm font-semibold text-amber-400 p-3 pb-2 uppercase tracking-wide flex-shrink-0">
             Recent Actions
           </h4>
-          <div className="space-y-2">
+          <div className="overflow-y-auto px-3 pb-3 space-y-2">
             {farmActionLog.length === 0 ? (
-              <div className="text-[10px] text-slate-500 italic">No actions yet today</div>
+              <div className="text-sm text-slate-500 italic">No actions yet today</div>
             ) : (
-              farmActionLog.map((log, idx) => (
-                <div key={idx} className="text-[10px] text-slate-400 pb-2 border-b border-slate-800/40 last:border-0">
-                  <div className="italic mb-1">"{log.action}"</div>
-                  <div className="text-slate-500 flex items-center gap-1">
-                    <Timer className="w-3 h-3" />
-                    {log.timeElapsed.toFixed(1)}h
+              farmActionLog.map((log, idx) => {
+                // Determine action icon based on keywords
+                const getActionIcon = (action: string) => {
+                  const lower = action.toLowerCase();
+                  if (lower.includes('plant') || lower.includes('seed')) return '🌱';
+                  if (lower.includes('water') || lower.includes('irrigate')) return '💧';
+                  if (lower.includes('harvest') || lower.includes('reap')) return '🌾';
+                  if (lower.includes('dig') || lower.includes('hoe') || lower.includes('till')) return '⚒️';
+                  if (lower.includes('feed') || lower.includes('livestock') || lower.includes('animal')) return '🐄';
+                  if (lower.includes('repair') || lower.includes('fix') || lower.includes('mend')) return '🔧';
+                  if (lower.includes('weed') || lower.includes('clear')) return '🌿';
+                  if (lower.includes('fence') || lower.includes('build')) return '🪵';
+                  return '🔨';
+                };
+
+                return (
+                  <div key={idx} className="text-xs text-slate-300 pb-2 border-b border-slate-800/40 last:border-0">
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <span className="text-xl flex-shrink-0">{getActionIcon(log.action)}</span>
+                      <div className="italic flex-1 leading-relaxed">"{log.action}"</div>
+                    </div>
+                    <div className="text-slate-500 flex items-center gap-1.5 ml-7 text-xs">
+                      <Timer className="w-3.5 h-3.5" />
+                      {log.timeElapsed.toFixed(1)}h elapsed
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -442,11 +461,11 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
         {/* Header */}
         <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/60 mb-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-amber-400 flex items-center gap-2">
-              <Sprout className="w-5 h-5" />
+            <h3 className="text-xl font-medium text-amber-400 flex items-center gap-2">
+              <Sprout className="w-6 h-6" />
               A Day's Farm Work
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-sm text-slate-400">
               Enter commands to work the farm. Be specific! ({hoursWorkedToday.toFixed(1)} hours worked today)
             </p>
           </div>
@@ -535,21 +554,21 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
                   : 'bg-slate-800/40 border-slate-700/40 mr-8'
               } p-3 rounded-lg border`}
             >
-              <div className="text-xs text-slate-500 mb-1">
+              <div className="text-xs font-medium text-slate-500 mb-1.5">
                 {entry.type === 'player' ? 'You' : 'Narrator'}
               </div>
               {/* Phase 3.3: Apply formatting to narrator messages */}
               {entry.type === 'narrator' ? (
-                <div className="text-sm text-slate-200">{formatMessage(entry.text)}</div>
+                <div className="text-base text-slate-200 leading-relaxed">{formatMessage(entry.text)}</div>
               ) : (
-                <div className="text-sm text-slate-200">{entry.text}</div>
+                <div className="text-base text-slate-200 leading-relaxed">{entry.text}</div>
               )}
             </div>
           ))}
           {isFarmWorkProcessing && (
             <div className="bg-slate-800/40 border-slate-700/40 mr-8 p-3 rounded-lg border">
-              <div className="text-xs text-slate-500 mb-1">Narrator</div>
-              <div className="text-sm text-slate-400 italic">Considering your actions...</div>
+              <div className="text-xs font-medium text-slate-500 mb-1.5">Narrator</div>
+              <div className="text-base text-slate-400 italic leading-relaxed">Considering your actions...</div>
             </div>
           )}
         </div>
@@ -571,17 +590,17 @@ export const FarmWorkTab: React.FC<FarmWorkTabProps> = ({
               onChange={(e) => setFarmWorkInput(e.target.value)}
               disabled={isFarmWorkProcessing || !useLlm}
               placeholder={useLlm ? "What do you do? (e.g., 'plant wheat in field 1 carefully')" : "LLM disabled"}
-              className="flex-1 bg-slate-800/60 border border-slate-700/60 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              className="flex-1 bg-slate-800/60 border border-slate-700/60 rounded-lg px-4 py-2.5 text-base text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             />
             <button
               type="submit"
               disabled={isFarmWorkProcessing || !useLlm || !farmWorkInput.trim()}
-              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium text-sm transition-colors"
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium text-base transition-colors"
             >
               {isFarmWorkProcessing ? 'Working...' : 'Do It'}
             </button>
           </form>
-          <div className="mt-2 text-[10px] text-slate-500">
+          <div className="mt-2 text-xs text-slate-500">
             Tip: Be detailed for better results. Commands like "carefully plant wheat seeds 2 inches deep in field 1, then water gently" work better than just "plant wheat"
           </div>
         </div>

@@ -36,6 +36,7 @@ interface UseFarmLLMOptions {
   season: Season;
   timeOfDay: TimeOfDay;
   gameTimeHours: number;
+  year: number;
   validCrops: string[];
   useLlm: boolean;
   onPlayerStateChange?: (changes: any) => void;
@@ -101,6 +102,7 @@ export function useFarmLLM({
   season,
   timeOfDay,
   gameTimeHours,
+  year,
   validCrops,
   useLlm,
   onPlayerStateChange,
@@ -313,28 +315,41 @@ export function useFarmLLM({
 
   // Handle farmer chat
   const handleFarmerChat = useCallback(async () => {
-    if (!useLlm || !chatInput.trim() || !selectedMember) return;
+    if (!useLlm || !chatInput.trim() || !selectedMember || !farmState) return;
 
     setIsChatting(true);
 
     try {
-      const context = {
-        npcName: selectedMember.name,
-        npcRole: selectedMember.role,
-        playerName: playerCharacter.name,
-        location: `${farmState?.family.familyName || 'Unknown'} Farm`,
-        culturalZone,
-        era,
-        useHistoricalLanguage,
+      // Convert selectedMember to NpcEntity format
+      const npcEntity: NpcEntity = {
+        id: selectedMember.id,
+        name: selectedMember.name,
+        type: 'npc' as const,
+        x: 0,
+        y: 0,
+        health: selectedMember.health,
+        maxHealth: selectedMember.maxHealth,
+        age: selectedMember.age,
+        gender: selectedMember.gender.toLowerCase() as 'male' | 'female',
+        culturalZone: culturalZone,
+        occupation: selectedMember.role.toLowerCase(),
+        personality: selectedMember.traits?.map(t => t.name.toLowerCase()) || ['hardworking', 'practical'],
+        memory: {
+          conversationSummaries: [],
+          opinionOfPlayer: 50
+        }
       };
 
-      const response = await generateEncounterDialogue({
-        playerMessage: chatInput,
-        npcCharacter: selectedMember as any,
+      // Call with correct signature
+      const response = await generateEncounterDialogue(
+        npcEntity,
+        chatHistory,
+        chatInput,
         playerCharacter,
-        context: context as any,
-        conversationHistory: chatHistory,
-      });
+        [],
+        mapData,
+        useHistoricalLanguage
+      );
 
       const newHistory: DialogueEntry[] = [
         ...chatHistory,
@@ -345,12 +360,15 @@ export function useFarmLLM({
         },
         {
           speaker: 'npc' as const,
-          text: response,
+          text: response.text,
           timestamp: new Date(),
         },
       ];
 
-      setChatHistory(newHistory);
+      // Keep only last 10 exchanges (20 entries)
+      const trimmedHistory = newHistory.slice(-20);
+
+      setChatHistory(trimmedHistory);
       setChatInput('');
     } catch (error) {
       console.error('Failed to generate dialogue:', error);
@@ -381,6 +399,7 @@ export function useFarmLLM({
     era,
     useHistoricalLanguage,
     chatHistory,
+    mapData,
   ]);
 
   // Run advisor summary
@@ -392,7 +411,7 @@ export function useFarmLLM({
     try {
       const summary = await generateHistoricalSummary({
         location: mapData.localArea || mapData.continent || 'Unknown',
-        year: mapData.timeSlice || '1650',
+        year: String(year), // Use the actual year passed as parameter
         culturalZone,
         topics: ['farming', 'agriculture', 'crops', 'livestock'],
       });
@@ -406,7 +425,7 @@ export function useFarmLLM({
     } finally {
       setIsAdvisorBusy(false);
     }
-  }, [useLlm, mapData, culturalZone]);
+  }, [useLlm, mapData, culturalZone, year]);
 
   // Run advisor chat
   const runAdvisorChat = useCallback(async () => {
@@ -415,33 +434,41 @@ export function useFarmLLM({
     setIsAdvisorBusy(true);
 
     try {
-      const elderNPC = {
+      // Create a proper NPC entity for the village elder
+      const elderNPC: NpcEntity = {
+        id: 'farm-advisor-elder',
         name: 'Village Elder',
-        role: 'Advisor',
+        type: 'npc' as const,
+        x: 0,
+        y: 0,
+        health: 80,
+        maxHealth: 100,
         age: 65,
         gender: 'male' as const,
+        culturalZone,
+        occupation: 'advisor',
+        personality: ['wise', 'patient', 'knowledgeable', 'traditional'],
+        memory: {
+          conversationSummaries: [],
+          opinionOfPlayer: 70
+        }
       };
 
-      const response = await generateEncounterDialogue({
-        playerMessage: advisorChat,
-        npcCharacter: elderNPC as any,
+      // Call with correct signature: target, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage
+      const response = await generateEncounterDialogue(
+        elderNPC,
+        advisorLog.map(line => line.startsWith('You:') ? line.substring(5) : line.substring(7)),
+        advisorChat,
         playerCharacter,
-        context: {
-          npcName: 'Village Elder',
-          npcRole: 'Farming Advisor',
-          playerName: playerCharacter.name,
-          location: mapData.localArea || mapData.continent,
-          culturalZone,
-          era,
-          season,
-        } as any,
-        conversationHistory: [],
-      });
+        [],
+        mapData,
+        false
+      );
 
       setAdvisorLog(prev => [
         ...prev,
         `You: ${advisorChat}`,
-        `Elder: ${response}`,
+        `Elder: ${response.text}`,
       ]);
       setAdvisorChat('');
     } catch (error) {
@@ -449,7 +476,7 @@ export function useFarmLLM({
       setAdvisorLog(prev => [
         ...prev,
         `You: ${advisorChat}`,
-        'Elder: I cannot advise you at this time.',
+        'Elder: I cannot advise you at this time. Perhaps try again later.',
       ]);
       setAdvisorChat('');
     } finally {
@@ -461,8 +488,7 @@ export function useFarmLLM({
     playerCharacter,
     mapData,
     culturalZone,
-    era,
-    season,
+    advisorLog,
   ]);
 
   // Refresh farm flavor
@@ -532,6 +558,19 @@ export function useFarmLLM({
           narrativeText += `\n\n${qualityColor} Work Quality: ${result.workQuality.score}/100 (${result.workQuality.category}) - ${result.workQuality.feedback}`;
         }
         setFarmWorkHistory(prev => [...prev, { type: 'narrator', text: narrativeText }]);
+
+        // Update farmer toast if farmer noticed/reacted to the action
+        if (result.farmerNoticed && result.farmerNoticed.shouldReact) {
+          setTimeout(() => {
+            setFarmerToast({
+              message: result.farmerNoticed.dialogue,
+              type: result.farmerNoticed.tone === 'pleased' ? 'praise' :
+                    result.farmerNoticed.tone === 'concerned' ? 'advice' :
+                    result.farmerNoticed.tone === 'suspicious' || result.farmerNoticed.tone === 'angry' ? 'admonition' :
+                    result.farmerNoticed.tone === 'hostile' ? 'warning' : 'news'
+            });
+          }, 800); // Slight delay for dramatic effect
+        }
 
         // Apply state changes
         if (result.stateChanges) {

@@ -266,7 +266,9 @@ const MATERIAL_EXCLUDED_CATEGORIES = ['Food', 'Consumable', 'Document', 'Special
 // Specific items that shouldn't get material variations
 const MATERIAL_EXCLUDED_ITEMS = [
   'SALT', 'ROCK_SALT', 'SEA_SALT', 'WHETSTONE', 'INCENSE', 'CANDLES',
-  'SPICE_POUCH', 'HERBS', 'MEDICINAL_HERBS', 'HERB_BUNDLE'
+  'SPICE_POUCH', 'HERBS', 'MEDICINAL_HERBS', 'HERB_BUNDLE',
+  // Natural projectiles (just stones, can't be metal)
+  'SLING_STONE'
 ];
 
 // Regional meat variants for different cultures and eras
@@ -415,6 +417,24 @@ const CATEGORY_QUALITY_WORDS: Record<ItemCategory, Record<ItemQuality, string[]>
     'standard': ['Common', 'Standard', 'Basic', 'Simple', 'Regular'],
     'good': ['Fine', 'Sturdy', 'Well-made', 'Quality', 'Solid'],
     'excellent': ['Masterwork', 'Legendary', 'Perfect', 'Superior', 'Invincible']
+  },
+  'Ammunition': {
+    'poor': ['Jagged', 'Uneven', 'Rough', 'Irregular', 'Chipped'],
+    'standard': ['Smooth', 'Round', 'Common', 'Regular'],
+    'good': ['Well-rounded', 'Perfectly Smooth', 'River-worn', 'Select'],
+    'excellent': ['Perfectly Spherical', 'Flawless', 'Ideal', 'Perfect']
+  },
+  'Vessel': {
+    'poor': ['Cracked', 'Leaky', 'Worn', 'Damaged', 'Patched'],
+    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
+    'good': ['Sturdy', 'Well-made', 'Quality', 'Solid', 'Reliable'],
+    'excellent': ['Masterwork', 'Perfect', 'Superior', 'Exquisite', 'Flawless']
+  },
+  'Currency': {
+    'poor': ['Clipped', 'Worn', 'Debased', 'Counterfeit', 'Damaged'],
+    'standard': ['Common', 'Standard', 'Regular', 'Authentic', 'Basic'],
+    'good': ['Pure', 'Mint', 'Certified', 'Quality', 'Genuine'],
+    'excellent': ['Pristine', 'Perfect', 'Uncirculated', 'Flawless', 'Rare']
   }
 };
 

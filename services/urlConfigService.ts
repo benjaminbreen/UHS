@@ -1,11 +1,13 @@
 /**
  * URL Configuration Service
  * Handles parsing and generating URLs for game configuration
- * URL format: /:dateRange?/:geography?/:gameMode?/:seed?
+ * URL format: /:dateRange?/:geography?/:gameMode?/:seed?/:profession?/:healthStatus?
  * Examples:
  * - /1348-1350/europe/survival/ABC12345
  * - /1492/americas/exploration
  * - /random/random/random
+ * - /europe/1600/merchant/sick
+ * - /mena/1700-1800/blacksmith
  */
 
 import { HistoricalEra, CulturalZone, Region } from '../types';
@@ -24,6 +26,8 @@ export interface URLGameConfig {
   };
   gameMode?: GameModeId;
   seed?: string;
+  profession?: string;
+  healthStatus?: 'sick' | 'healthy' | 'sickly' | 'unhealthy';
 }
 
 /**
@@ -31,34 +35,74 @@ export interface URLGameConfig {
  */
 export function parseURLConfig(pathname: string): URLGameConfig {
   const config: URLGameConfig = {};
-  
+
   // Remove leading slash and split by /
   const segments = pathname.replace(/^\//, '').split('/').filter(Boolean);
-  
+
+  console.log('[URLConfig] Parsing URL:', pathname);
+  console.log('[URLConfig] Segments:', segments);
+
   if (segments.length === 0) {
     return config;
   }
-  
+
   // Parse date range (first segment)
   if (segments[0]) {
     config.dateRange = parseDateRange(segments[0]);
   }
-  
-  // Parse geography (second segment)
+
+  // Parse geography (second segment) - but only if it's actually geography
+  // If segment 2 is NOT geography, we'll treat it as profession/gamemode/etc
+  let startIndex = 2; // Where to start parsing other segments
   if (segments[1]) {
-    config.geography = parseGeography(segments[1]);
+    const geography = parseGeography(segments[1]);
+    if (geography) {
+      config.geography = geography;
+      startIndex = 2; // Geography was found, start at segment 3
+    } else {
+      // Segment 2 is NOT geography, so treat it as profession/gamemode/etc
+      startIndex = 1; // Start parsing from segment 2
+      console.log('[URLConfig] Segment 2 is not geography, treating as profession/gamemode/health');
+    }
   }
-  
-  // Parse game mode (third segment)
-  if (segments[2]) {
-    config.gameMode = parseGameMode(segments[2]);
+
+  // Parse remaining segments intelligently (game mode, seed, profession, health status)
+  // These can appear in any order after the geography segment (or after date if no geography)
+  for (let i = startIndex; i < segments.length; i++) {
+    const segment = segments[i];
+
+    // Try to parse as health status first (most specific)
+    const healthStatus = parseHealthStatus(segment);
+    if (healthStatus) {
+      config.healthStatus = healthStatus;
+      console.log('[URLConfig] Found health status:', healthStatus);
+      continue;
+    }
+
+    // Try to parse as game mode
+    const gameMode = parseGameMode(segment);
+    if (gameMode) {
+      config.gameMode = gameMode;
+      console.log('[URLConfig] Found game mode:', gameMode);
+      continue;
+    }
+
+    // Try to parse as seed (6-8 char alphanumeric with at least one number)
+    // This prevents matching profession names like "merchant" or "potter"
+    if (/^[A-Z0-9]{6,8}$/i.test(segment) && /\d/.test(segment)) {
+      config.seed = segment.toUpperCase().slice(0, 8);
+      console.log('[URLConfig] Found seed:', config.seed);
+      continue;
+    }
+
+    // Otherwise, treat as profession
+    if (!config.profession) {
+      config.profession = segment.toLowerCase();
+      console.log('[URLConfig] Found profession:', config.profession);
+    }
   }
-  
-  // Parse seed (fourth segment)
-  if (segments[3]) {
-    config.seed = segments[3].toUpperCase().slice(0, 8);
-  }
-  
+
+  console.log('[URLConfig] Final config:', config);
   return config;
 }
 
@@ -354,6 +398,28 @@ function parseGameMode(segment: string): GameModeId | undefined {
 }
 
 /**
+ * Parse health status from URL segment
+ */
+function parseHealthStatus(segment: string): 'sick' | 'healthy' | 'sickly' | 'unhealthy' | undefined {
+  if (!segment) {
+    return undefined;
+  }
+
+  const healthStatusMap: Record<string, 'sick' | 'healthy' | 'sickly' | 'unhealthy'> = {
+    'sick': 'sick',
+    'sickly': 'sickly',
+    'ill': 'sick',
+    'diseased': 'sick',
+    'healthy': 'healthy',
+    'fit': 'healthy',
+    'unhealthy': 'unhealthy',
+    'weak': 'sickly'
+  };
+
+  return healthStatusMap[segment.toLowerCase()];
+}
+
+/**
  * Generate URL path from game configuration
  */
 export function generateURLPath(config: URLGameConfig): string {
@@ -446,6 +512,11 @@ export function getExampleURLs(): string[] {
     '/medieval/world/exploration', // Medieval era, anywhere in the world
     '/modern/africa/balanced',
     '/1600/eastasia/scholarship', // Specifically East Asia
-    '/1600/southasia/commerce' // Specifically South Asia
+    '/1600/southasia/commerce', // Specifically South Asia
+    '/europe/1600/merchant/sick', // Merchant character with disease
+    '/mena/1700-1800/blacksmith', // Blacksmith in MENA, random year 1700-1800
+    '/1600/europe/survival/SEED123/potter/sickly', // Full specification with seed
+    '/europe/1600/sick', // Sick character, random profession
+    '/1800/southasia/weaver/healthy' // Healthy weaver in South Asia
   ];
 }

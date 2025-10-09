@@ -54,6 +54,9 @@ const NpcConfrontationModal = lazy(() => import('./NpcConfrontationModal'));
 const DiseaseContractedModal = lazy(() => import('./DiseaseContractedModal'));
 const CityHistoricalModal = lazy(() => import('./CityHistoricalModal').then(module => ({ default: module.CityHistoricalModal })));
 const RailroadStationModal = lazy(() => import('./RailroadStationModal'));
+const HarborStationModal = lazy(() => import('./HarborStationModal'));
+const ContractNegotiationModal = lazy(() => import('./factory/ContractNegotiationModal'));
+const FactoryLaborPanel = lazy(() => import('./factory/FactoryLaborPanel'));
 import { processNpcReactions, ItemCollectionEvent } from '../services/npcAwarenessService';
 import { updateCachedContents } from '../services/containerCacheService';
 import { useState } from 'react';
@@ -102,7 +105,11 @@ const ModalHub: React.FC = () => {
         diseaseContractedModalData, setDiseaseContractedModalData,
         cityHistoricalModalData, setCityHistoricalModalData,
         railroadStationModalData, setRailroadStationModalData,
-        contextualTooltipsEnabled, toggleContextualTooltips, resetAllTooltips
+        harborModalData, setHarborModalData,
+        contextualTooltipsEnabled, toggleContextualTooltips, resetAllTooltips,
+        showFactoryPanel, setShowFactoryPanel,
+        showFactoryContractModal, setShowFactoryContractModal,
+        activeFactoryData, setActiveFactoryData
     } = useUI();
 
     const {
@@ -872,12 +879,16 @@ const ModalHub: React.FC = () => {
                             y: conn.station.y,
                             distance: conn.distance,
                             travelTime: conn.travelTime,
-                            fare: conn.fare
+                            fare: conn.fare,
+                            routeDescription: conn.routeDescription
                         }))}
                         playerMoney={playerCharacter?.money || 0}
                         currentTime={gameTimeHours}
                         onFastTravel={(destination) => {
                             if (!playerCharacter || !gameDate) return;
+
+                            // Check if this is a cross-map destination (x === -1 indicates another map area)
+                            const isCrossMapTravel = destination.x === -1;
 
                             // 1. Deduct fare from player money
                             if (playerCharacter.money < destination.fare) {
@@ -891,9 +902,11 @@ const ModalHub: React.FC = () => {
                             };
                             onCharacterUpdate(updatedCharacter);
 
-                            // 2. Move player to destination coordinates
-                            setControlledIconX(destination.x);
-                            setControlledIconY(destination.y);
+                            // 2. Move player to destination coordinates (only for same-map travel)
+                            if (!isCrossMapTravel) {
+                                setControlledIconX(destination.x);
+                                setControlledIconY(destination.y);
+                            }
 
                             // 3. Advance game time
                             const newHours = gameTimeHours + destination.travelTime;
@@ -912,14 +925,188 @@ const ModalHub: React.FC = () => {
 
                             // 4. Close modal and notify user
                             setRailroadStationModalData(null);
-                            showToast(`Arrived at ${destination.name} after ${destination.travelTime} hours of travel!`);
 
-                            console.log('[ModalHub] Fast travel completed:', {
+                            if (isCrossMapTravel) {
+                                showToast(`Railroad ticket to ${destination.name} purchased! Travel time: ${destination.travelTime}h. Map transition coming soon - for now, walk to the edge to reach adjacent areas.`, 8000);
+                                console.log('[ModalHub] Cross-map fast travel:', {
+                                    destination: destination.name,
+                                    fare: destination.fare,
+                                    travelTime: destination.travelTime,
+                                    newMoney: updatedCharacter.money,
+                                    note: 'Cross-map transition not yet implemented'
+                                });
+                            } else {
+                                showToast(`Arrived at ${destination.name} after ${destination.travelTime} hours of travel!`);
+                                console.log('[ModalHub] Same-map fast travel completed:', {
+                                    destination: destination.name,
+                                    fare: destination.fare,
+                                    travelTime: destination.travelTime,
+                                    newMoney: updatedCharacter.money
+                                });
+                            }
+                        }}
+                    />
+                </Suspense>
+            )}
+
+            {/* Harbor Station Modal */}
+            {harborModalData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <HarborStationModal
+                        isOpen={true}
+                        onClose={() => setHarborModalData(null)}
+                        harborName={harborModalData.harbor.name}
+                        availableDestinations={harborModalData.availableDestinations.map(dest => ({
+                            name: dest.cityName,
+                            mapArea: dest.mapAreaName,
+                            distance: dest.distance,
+                            travelTimeMin: dest.travelTimeMin || dest.travelTime,
+                            travelTimeMax: dest.travelTimeMax || dest.travelTime,
+                            fare: dest.fare,
+                            shipType: dest.shipTypeRequired || 'coastal',
+                            dangerLevel: dest.dangerLevel || 'low',
+                            routeDescription: dest.routeDescription || ''
+                        }))}
+                        playerMoney={playerCharacter?.money || 0}
+                        currentTime={gameTimeHours}
+                        onFastTravel={(destination) => {
+                            if (!playerCharacter || !gameDate) return;
+
+                            // Ocean voyages are always cross-map travel
+                            const isCrossMapTravel = true;
+
+                            // 1. Deduct fare from player money
+                            if (playerCharacter.money < destination.fare) {
+                                showToast(`Insufficient funds! Passage costs ${destination.fare} coins.`);
+                                return;
+                            }
+
+                            const updatedCharacter = {
+                                ...playerCharacter,
+                                money: playerCharacter.money - destination.fare
+                            };
+                            onCharacterUpdate(updatedCharacter);
+
+                            // 2. Advance game time (randomize within the range)
+                            const minHours = destination.travelTimeMin || destination.travelTime;
+                            const maxHours = destination.travelTimeMax || destination.travelTime;
+                            const actualTravelTime = Math.floor(minHours + Math.random() * (maxHours - minHours));
+
+                            const newHours = gameTimeHours + actualTravelTime;
+                            const daysToAdd = Math.floor(newHours / 24);
+                            const finalHours = newHours % 24;
+
+                            // Update hours
+                            setGameTimeHours(finalHours);
+
+                            // If we crossed into new days, update the date
+                            if (daysToAdd > 0 && gameDate) {
+                                const newDate = new Date(gameDate);
+                                newDate.setDate(newDate.getDate() + daysToAdd);
+                                setGameDate(newDate);
+                            }
+
+                            // 3. Close modal and notify user
+                            setHarborModalData(null);
+
+                            showToast(`Ocean voyage to ${destination.name} booked! Journey: ${Math.floor(actualTravelTime / 24)} days (${actualTravelTime}h). Map transition coming soon - for now, walk to the edge to reach coastal areas.`, 8000);
+                            console.log('[ModalHub] Ocean voyage fast travel:', {
                                 destination: destination.name,
+                                mapArea: destination.mapArea,
                                 fare: destination.fare,
-                                travelTime: destination.travelTime,
-                                newMoney: updatedCharacter.money
+                                travelTime: actualTravelTime,
+                                shipType: destination.shipType,
+                                dangerLevel: destination.dangerLevel,
+                                newMoney: updatedCharacter.money,
+                                note: 'Cross-map transition not yet implemented'
                             });
+                        }}
+                    />
+                </Suspense>
+            )}
+
+            {/* Factory Contract Negotiation Modal */}
+            {showFactoryContractModal && activeFactoryData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <ContractNegotiationModal
+                        factoryType={activeFactoryData.factoryType}
+                        factoryName={activeFactoryData.factoryName}
+                        playerCharacter={playerCharacter}
+                        overseerNpc={activeFactoryData.npcs[0]}
+                        onAccept={(contract) => {
+                            // Contract accepted - open factory panel
+                            setActiveFactoryData(prev => prev ? { ...prev, contract } : null);
+                            setShowFactoryContractModal(false);
+                            setShowFactoryPanel(true);
+                        }}
+                        onDecline={() => {
+                            // Contract declined - close everything
+                            setShowFactoryContractModal(false);
+                            setActiveFactoryData(null);
+                        }}
+                    />
+                </Suspense>
+            )}
+
+            {/* Factory Labor Panel */}
+            {showFactoryPanel && activeFactoryData && activeFactoryData.contract && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <FactoryLaborPanel
+                        factoryType={activeFactoryData.factoryType}
+                        factoryName={activeFactoryData.factoryName}
+                        playerCharacter={playerCharacter}
+                        mapData={mapData}
+                        nearbyNpcs={activeFactoryData.npcs || []}
+                        onClose={() => {
+                            setShowFactoryPanel(false);
+                            setActiveFactoryData(null);
+                        }}
+                        onWagesEarned={(amount) => {
+                            // Add coins to player inventory
+                            if (playerCharacter) {
+                                onCharacterUpdate(prev => {
+                                    if (!prev) return prev;
+                                    return {
+                                        ...prev,
+                                        inventory: [
+                                            ...(prev.inventory || []),
+                                            {
+                                                id: 'COIN',
+                                                name: 'Gold Coin',
+                                                category: 'Currency' as const,
+                                                quantity: Math.floor(amount * 100), // Convert to cents
+                                                weight: 0.01,
+                                                value: 1,
+                                                rarity: 'Common' as const,
+                                                quality: 'standard' as const
+                                            }
+                                        ]
+                                    };
+                                });
+                                showToast(`Earned ${amount.toFixed(2)} gold coins for your work!`, 'success');
+                            }
+                        }}
+                        onPlayerStateChange={(changes) => {
+                            // Apply health/fatigue changes
+                            if (playerCharacter) {
+                                onCharacterUpdate(prev => {
+                                    if (!prev) return prev;
+                                    return { ...prev, ...changes };
+                                });
+                            }
+                        }}
+                        onTimeAdvance={(hours) => {
+                            // Advance game time
+                            const newHours = (gameTimeHours + hours) % 24;
+                            const daysToAdd = Math.floor((gameTimeHours + hours) / 24);
+
+                            setGameTimeHours(newHours);
+
+                            if (daysToAdd > 0 && gameDate) {
+                                const newDate = new Date(gameDate);
+                                newDate.setDate(newDate.getDate() + daysToAdd);
+                                setGameDate(newDate);
+                            }
                         }}
                     />
                 </Suspense>

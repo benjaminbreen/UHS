@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { FaHeartBroken, FaBed, FaSkull, FaExclamationTriangle } from 'react-icons/fa';
 import { IoWarning } from 'react-icons/io5';
 import { GiNightSleep } from 'react-icons/gi';
-import { Tent } from 'lucide-react';
+import { Tent, Home } from 'lucide-react';
 
 interface StatusWarningToastProps {
   type: 'health' | 'fatigue';
@@ -16,6 +16,8 @@ interface StatusWarningToastProps {
   maxValue: number;
   onClose: () => void;
   onMakeCamp?: () => void; // Callback to open camping modal
+  onReturnToFarmhouse?: () => void; // Callback to rest at farmhouse
+  isOnFarm?: boolean; // Whether player is currently on a farm
   duration?: number; // milliseconds before auto-dismiss (0 = no auto-dismiss)
 }
 
@@ -26,6 +28,8 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
   maxValue,
   onClose,
   onMakeCamp,
+  onReturnToFarmhouse,
+  isOnFarm = false,
   duration = 0
 }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -223,11 +227,15 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
               {config.advice}
             </div>
 
-            {/* Make Camp Button - only show if callback provided and not collapsed */}
-            {onMakeCamp && !isCollapsed && (
+            {/* Make Camp / Return to Farmhouse Button - only show if callback provided and not collapsed */}
+            {!isCollapsed && (isOnFarm ? onReturnToFarmhouse : onMakeCamp) && (
               <button
                 onClick={() => {
-                  onMakeCamp();
+                  if (isOnFarm && onReturnToFarmhouse) {
+                    onReturnToFarmhouse();
+                  } else if (onMakeCamp) {
+                    onMakeCamp();
+                  }
                   handleManualClose();
                 }}
                 className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500
@@ -235,8 +243,17 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
                          border border-blue-400/30 hover:border-blue-400/50
                          hover:shadow-lg hover:shadow-blue-500/20"
               >
-                <Tent className="w-4 h-4" />
-                <span>Make Camp</span>
+                {isOnFarm ? (
+                  <>
+                    <Home className="w-4 h-4" />
+                    <span>Return to farmhouse</span>
+                  </>
+                ) : (
+                  <>
+                    <Tent className="w-4 h-4" />
+                    <span>Make Camp</span>
+                  </>
+                )}
               </button>
             )}
 

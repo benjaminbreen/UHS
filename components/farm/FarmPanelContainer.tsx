@@ -99,6 +99,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
     season: props.season,
     timeOfDay: farmStateHook.timeOfDay,
     gameTimeHours: props.gameTimeHours,
+    year: farmStateHook.year,
     validCrops: farmFieldsHook.validCrops,
     useLlm: props.useLlm || false,
     onPlayerStateChange: props.onPlayerStateChange,
@@ -391,6 +392,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
                 season={props.season}
                 year={farmStateHook.year}
                 useLlm={props.useLlm || false}
+                validCrops={farmFieldsHook.validCrops}
               />
             )}
           </div>

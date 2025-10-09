@@ -19,6 +19,7 @@ import FactoryBanner from './FactoryBanner';
 import LumberCampBanner from './LumberCampBanner';
 import ProcessingInterface, { ProcessingRecipe } from './ProcessingInterface';
 import { getProcessingRecipes, getProcessingDuration } from '../services/poiProcessingService';
+import { getFactoryTypeFromStructure } from '../services/factoryDataService';
 
 const POITypeIcon: React.FC<{ type: string }> = ({ type }) => {
   const iconMap: Record<string, string> = {
@@ -86,9 +87,9 @@ interface POIToastModalProps {
 }
 
 export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentCulturalZone, onDismiss }: POIToastModalProps = {}) {
-  const { poiToastData, setPoiToastData, showToast, onUseSkill, setInMiningRoguelike, setMiningRoguelikeData } = useUI();
+  const { poiToastData, setPoiToastData, showToast, onUseSkill, setInMiningRoguelike, setMiningRoguelikeData, setShowFactoryContractModal, setActiveFactoryData } = useUI();
   const { playerCharacter, onBuyItem, onSellItem, onEnterBuilding, handleInventoryUpdate } = usePlayer();
-  const { terrainStructures, setTerrainStructures } = useMap();
+  const { terrainStructures, setTerrainStructures, npcs } = useMap();
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [isMining, setIsMining] = useState(false);
   const [mineResult, setMineResult] = useState<{success: boolean; message: string; item?: any} | null>(null);
@@ -1219,23 +1220,64 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                     <div className="space-y-2">
                       <button
                         onClick={() => {
-                          setCurrentView('processing');
-                          setProcessingType('factory');
+                          // Get factory data
+                          const factoryStructure = poiToastData?.structure;
+                          if (!factoryStructure || !mapData) return;
+
+                          // Get factory type using single source of truth
+                          const factoryType = getFactoryTypeFromStructure(factoryStructure, mapData);
+
+                          if (!factoryType) {
+                            showToast && showToast({
+                              message: 'This factory is not currently hiring workers.',
+                              type: 'warning'
+                            });
+                            return;
+                          }
+
+                          console.log('[POIToast] Factory identified:', {
+                            factoryName: factoryStructure.name,
+                            factoryTypeId: factoryType.id,
+                            factoryTypeName: factoryType.name
+                          });
+
+                          // Find nearby NPCs (factory workers/overseers)
+                          const factoryLocation = factoryStructure.location;
+                          const nearbyNpcs = npcs.filter(npc => {
+                            const distance = Math.hypot(
+                              npc.x - factoryLocation[0],
+                              npc.y - factoryLocation[1]
+                            );
+                            return distance < 15; // Within 15 tiles
+                          });
+
+                          // Find overseer/manager or use first NPC
+                          const overseer = nearbyNpcs.find(npc =>
+                            npc.occupation === 'overseer' ||
+                            npc.occupation === 'factory_manager' ||
+                            npc.occupation === 'foreman'
+                          ) || nearbyNpcs[0];
+
+                          // Set up factory data
+                          setActiveFactoryData({
+                            factoryType,
+                            factoryName: factoryStructure.name || 'Factory',
+                            factoryStructure,
+                            npcs: overseer ? [overseer, ...nearbyNpcs.slice(0, 5)] : nearbyNpcs.slice(0, 6),
+                            contract: null // Will be set after negotiation
+                          });
+
+                          // Close POI toast and open contract modal
+                          handleClose();
+                          setShowFactoryContractModal(true);
                         }}
-                        disabled={!hasInventoryItem('raw_materials')}
-                        className={`w-full p-3 rounded-lg transition-all text-left border ${
-                          hasInventoryItem('raw_materials')
-                            ? 'bg-slate-700/50 hover:bg-slate-600/60 border-slate-600 cursor-pointer'
-                            : 'bg-slate-800/30 border-slate-700/50 cursor-not-allowed opacity-50'
-                        }`}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600 cursor-pointer"
                       >
-                        <div className={`font-medium text-sm mb-1 ${
-                          hasInventoryItem('raw_materials') ? 'text-white' : 'text-gray-500'
-                        }`}>
-                          🔨 Commission Crafting
+                        <div className="text-white font-medium text-sm mb-1">
+                          💼 Ask for Work
                         </div>
                         <div className="text-gray-400 text-xs leading-tight">
-                          Have tools and goods crafted from materials {!hasInventoryItem('raw_materials') && '(Need materials)'}
+                          Negotiate a labor contract with the factory overseer
                         </div>
                       </button>
                       

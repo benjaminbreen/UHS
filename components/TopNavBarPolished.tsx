@@ -440,7 +440,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
   return (
     <>
-      <nav className={getSafariOptimizedClassName("relative w-full shadow-xl bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-b border-slate-300/50 dark:border-slate-700/50 z-40")}>
+      <nav className={getSafariOptimizedClassName("relative w-full shadow-xl bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-b border-slate-300/50 dark:border-slate-700/50 z-60")}>
         <div className="px-2 sm:px-4 py-2">
           {/* Main Navigation Row */}
           <div className="flex items-center justify-between gap-2">

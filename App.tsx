@@ -82,14 +82,30 @@ const AppContent: React.FC = () => {
         worldWeaverObjectiveHandler.initialize();
         worldWeaverNotificationService.initialize();
 
-        // Hide loading skeleton after brief delay to ensure UI is ready
-        const timer = setTimeout(() => {
-            setIsInitializing(false);
-            // Trigger Safari fade-in after skeleton is hidden
-            setTimeout(() => setUiVisible(true), 50);
-        }, 300);
+        // Wait for stylesheets to fully load before hiding loading skeleton
+        // This prevents the flash of unstyled content (FOUC)
+        const ensureStylesLoaded = () => {
+            // Check if document stylesheets are loaded
+            const stylesheetsLoaded = document.styleSheets.length > 0;
 
-        return () => clearTimeout(timer);
+            if (stylesheetsLoaded) {
+                // Add extra delay to ensure Tailwind classes are fully applied
+                const timer = setTimeout(() => {
+                    setIsInitializing(false);
+                    // Trigger Safari fade-in after skeleton is hidden
+                    setTimeout(() => setUiVisible(true), 50);
+                }, 500); // Increased from 300ms to 500ms
+
+                return () => clearTimeout(timer);
+            } else {
+                // Retry if stylesheets haven't loaded yet
+                const retryTimer = setTimeout(ensureStylesLoaded, 50);
+                return () => clearTimeout(retryTimer);
+            }
+        };
+
+        const cleanup = ensureStylesLoaded();
+        return () => { if (cleanup) cleanup(); };
     }, []);
 
     // Parse URL config FIRST, before any hooks that use game state
@@ -283,7 +299,7 @@ const AppContent: React.FC = () => {
     }, []);
 
     // Get hooks FIRST before defining callbacks that depend on them
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, showInitialScenarioModal, setShowInitialScenarioModal, showDeathModal, setShowDeathModal, showNpcDeathModal, setShowNpcDeathModal, showDiseaseProgressionModal, setShowDiseaseProgressionModal, showEventModal, setShowEventModal, showFactionsModal, setShowFactionsModal, showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, showInitialScenarioModal, setShowInitialScenarioModal, showDeathModal, setShowDeathModal, showNpcDeathModal, setShowNpcDeathModal, showDiseaseProgressionModal, setShowDiseaseProgressionModal, showEventModal, setShowEventModal, showFactionsModal, setShowFactionsModal, showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId, showFactoryPanel } = useUI();
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog } = useGame();
 
@@ -322,6 +338,31 @@ const AppContent: React.FC = () => {
         showToast('Campground exploration coming soon!');
         setIsCampModalOpen(false);
     }, [setIsCampModalOpen, showToast]);
+
+    // Farm rest state and handler
+    const [isPlayerOnFarm, setIsPlayerOnFarm] = React.useState(false);
+
+    const handleFarmRest = React.useCallback(() => {
+        if (!playerCharacter || !gameDate) return;
+
+        // Fully restore health and fatigue
+        setPlayerCharacter({
+            ...playerCharacter,
+            health: playerCharacter.maxHealth,
+            fatigue: 0
+        });
+
+        // Advance time to dawn (6 AM next day)
+        const nextDay = new Date(gameDate.year, gameDate.month - 1, gameDate.day + 1);
+        setGameDate({
+            year: nextDay.getFullYear(),
+            month: nextDay.getMonth() + 1,
+            day: nextDay.getDate()
+        });
+        setGameTimeHours(6);
+
+        showToast('You wake in the farmhouse at dawn, fully refreshed.');
+    }, [playerCharacter, setPlayerCharacter, gameDate, setGameDate, setGameTimeHours, showToast]);
 
     // Study stars mode state
     const [isStudyingStars, setIsStudyingStars] = React.useState(false);
@@ -523,13 +564,31 @@ const AppContent: React.FC = () => {
                 
                 targetZone = finalZone;
                 targetRegion = finalRegion;
-                characterSpec = { 
+                characterSpec = {
                     year: fullState.year,
                     mapArea: mapArea,
                     zone: finalZone,
                     region: finalRegion
                 };
-                
+
+                // Add profession and health status from URL if present
+                if (urlConfig.profession) {
+                    characterSpec.profession = urlConfig.profession;
+                }
+                if (urlConfig.healthStatus) {
+                    characterSpec.health = urlConfig.healthStatus;
+                }
+
+                // If we have profession or health status, store character data
+                if (urlConfig.profession || urlConfig.healthStatus) {
+                    const characterData: any = {
+                        profession: urlConfig.profession,
+                        health: urlConfig.healthStatus
+                    };
+                    console.log('[URL] Storing character specs:', characterData);
+                    localStorage.setItem('urlCharacterData', JSON.stringify(characterData));
+                }
+
                 // PHASE 3: Store game mode using unified restoration
                 if (fullState.gameMode) {
                     shareableStateService.setGameModeForRestoration(fullState.gameMode);
@@ -586,7 +645,26 @@ const AppContent: React.FC = () => {
 
                 characterSpec = selectedYear ? { year: selectedYear } : undefined;
 
-                console.log('[App] Legacy URL world generation - Zone:', targetZone, 'Region:', targetRegion, 'MapArea:', mapArea, 'Year:', selectedYear);
+                // Add profession and health status from URL if present
+                if (urlConfig.profession || urlConfig.healthStatus) {
+                    if (!characterSpec) characterSpec = {};
+                    if (urlConfig.profession) {
+                        characterSpec.profession = urlConfig.profession;
+                    }
+                    if (urlConfig.healthStatus) {
+                        characterSpec.health = urlConfig.healthStatus;
+                    }
+
+                    // Store character data for the generator
+                    const characterData: any = {
+                        profession: urlConfig.profession,
+                        health: urlConfig.healthStatus
+                    };
+                    console.log('[URL] Storing character specs:', characterData);
+                    localStorage.setItem('urlCharacterData', JSON.stringify(characterData));
+                }
+
+                console.log('[App] Legacy URL world generation - Zone:', targetZone, 'Region:', targetRegion, 'MapArea:', mapArea, 'Year:', selectedYear, 'Profession:', urlConfig.profession, 'Health:', urlConfig.healthStatus);
 
                 // If we have a specific map area, use onStartNewWorldAtLocation
                 if (mapArea && typeof onStartNewWorldAtLocation === 'function') {
@@ -822,6 +900,8 @@ const AppContent: React.FC = () => {
             maxValue={statusWarning.maxValue}
             onClose={() => setStatusWarning(null)}
             onMakeCamp={() => setIsCampModalOpen(true)}
+            onReturnToFarmhouse={handleFarmRest}
+            isOnFarm={isPlayerOnFarm}
             duration={statusWarning.severity === 'critical' ? 0 : statusWarning.severity === 'danger' ? 8000 : 5000}
           />
         )}
@@ -900,7 +980,8 @@ const AppContent: React.FC = () => {
                     )}
                 </button>
                 
-                {/* Left Sidebar with mobile overlay and slide animation */}
+                {/* Left Sidebar with mobile overlay and slide animation - hidden when factory panel is open */}
+                {!showFactoryPanel && (
                 <div className={`${mobileMenuOpen === 'left' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-opacity duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     {mobileMenuOpen === 'left' && (
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
@@ -922,12 +1003,14 @@ const AppContent: React.FC = () => {
                 />
                     </div>
                 </div>
-                
+                )}
+
                 <MapViewport
                     key={currentMapSeed || 'default'}
                     mapVisible={mapVisible}
                     isProcessingWorldWeaver={isProcessingWorldWeaver}
                     onPlayerDeath={handleDeath}
+                    onFarmPanelChange={setIsPlayerOnFarm}
                     className={`${isSafariBrowser ? `safari-fade-in-scale ${uiVisible ? 'visible' : ''}` : 'animate-fade-in-scale delay-200'}`}
                     isStudyingStars={isStudyingStars}
                 />

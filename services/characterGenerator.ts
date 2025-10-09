@@ -1036,6 +1036,8 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     // Check if a specific disease was requested via WorldWeaver
     if (spec.disease) {
         console.log(`[Character Generator] Specific disease requested: ${spec.disease}`);
+
+        // Try exact match first
         diseaseHealth = diseaseService.assignSpecificDisease(
             { health: undefined } as any,
             spec.disease,
@@ -1043,22 +1045,53 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
             culturalZone,
             dateInfo.year
         );
-        
+
+        // If exact match failed, try fuzzy matching
+        if (!diseaseHealth || diseaseHealth.currentDiseases.length === 0) {
+            console.log(`[Character Generator] Exact match failed for '${spec.disease}', trying fuzzy match...`);
+
+            // Normalize: uppercase, replace spaces with underscores, remove punctuation
+            const normalizedId = spec.disease
+                .toUpperCase()
+                .replace(/\s+/g, '_')
+                .replace(/[^A-Z0-9_]/g, '');
+
+            console.log(`[Character Generator] Normalized disease ID: ${normalizedId}`);
+
+            diseaseHealth = diseaseService.assignSpecificDisease(
+                { health: undefined } as any,
+                normalizedId,
+                generationContext.era,
+                culturalZone,
+                dateInfo.year
+            );
+        }
+
+        // Check if we successfully assigned the disease
         if (diseaseHealth && diseaseHealth.currentDiseases.length > 0) {
-            console.log(`[Character Generator] Custom character given requested disease: ${diseaseHealth.currentDiseases[0].disease.name}`);
+            console.log(`[Character Generator] ✓ Custom character given requested disease: ${diseaseHealth.currentDiseases[0].disease.name}`);
         } else {
-            console.log(`[Character Generator] Could not assign requested disease ${spec.disease}, falling back to random`);
-            // Fall back to random disease selection
+            // Disease not available for this era/region - force a contextually appropriate disease
+            console.warn(`[Character Generator] ⚠ Disease '${spec.disease}' not available for ${generationContext.era}/${culturalZone}/${dateInfo.year}`);
+            console.log(`[Character Generator] Forcing contextually appropriate disease instead...`);
+
+            // Override health spec to force disease selection below
+            if (!spec.health || spec.health === 'average' || spec.health === 'healthy') {
+                spec.health = 'sick'; // Force 100% disease chance
+            }
         }
     }
     
     // If no specific disease requested or assignment failed, use random chance
     if (!diseaseHealth) {
         // SIMPLIFIED: Base 33% chance (1 in 3) like NPCs
-        let diseaseChance = 0.33;
-        
         // Health specification affects disease chance
-        if (spec.health === 'sickly') {
+        let diseaseChance = 0.33;
+
+        if (spec.health === 'sick') {
+            diseaseChance = 1.0; // 100% chance for sick characters
+            console.log(`[Character Generator] Health spec is 'sick', guaranteeing disease`);
+        } else if (spec.health === 'sickly') {
             diseaseChance = 0.6; // 60% chance for sickly characters
         } else if (spec.health === 'unhealthy') {
             diseaseChance = 0.45; // 45% chance for unhealthy characters
