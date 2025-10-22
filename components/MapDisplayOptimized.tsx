@@ -1191,7 +1191,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         <div className="text-center relative z-10">
           <div className="w-20 h-20 mx-auto mb-6 border-4 border-blue-400 rounded-full animate-spin shadow-glow-primary"></div>
           <div className="mb-2 text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Generating World...</div>
-          <div className="text-lg text-blue-300">Crafting landscapes & civilizations</div>
+          <div className="text-lg text-accent">Crafting landscapes & civilizations</div>
         </div>
       </div>
     );
@@ -2437,7 +2437,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     height={200}
                     style={{ pointerEvents: 'none' }}
                 >
-                    <div className={getSafariOptimizedClassName("bg-slate-900/90 backdrop-blur-sm border border-slate-600 rounded-lg p-3 text-white text-sm shadow-xl")}>
+                    <div className={getSafariOptimizedClassName("tooltip-surface p-3 text-text-primary text-sm shadow-xl")}>
                         <div className="font-bold text-amber-400 mb-2">🗺️ Mineral Legend</div>
                         <div className="space-y-1 text-xs">
                             {[
@@ -2458,7 +2458,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                                 </div>
                             ))}
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                        <div className="text-xs text-text-secondary mt-2">
                             Circle size = abundance
                         </div>
                     </div>
@@ -4895,19 +4895,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               transition: 'opacity 0.2s ease-in-out'
             }}
           >
-            <div className={`bg-slate-900/95 backdrop-blur-sm border ${borderColor} rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px] ${isHostile ? 'animate-pulse' : ''}`}>
+            <div className={`tooltip-surface ${borderColor} p-3 shadow-xl min-w-[200px] max-w-[280px] ${isHostile ? 'animate-pulse' : ''}`}>
           {hoveredNPC && (
             <>
               <div className={`font-bold text-sm mb-1.5 ${titleColor}`}>{warningIcon}{hoveredNPC.name}</div>
-              <div className="text-xs space-y-1 text-slate-700 dark:text-slate-200">
+              <div className="text-xs space-y-1 text-text-primary">
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Age:</span>
+                  <span className="text-text-secondary">Age:</span>
                   <span>{hoveredNPC.age} years old</span>
                 </div>
                 {logicalControlledIconX !== null && logicalControlledIconY !== null && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Distance:</span>
-                    <span className="text-slate-300">
+                    <span className="text-text-secondary">Distance:</span>
+                    <span className="text-text-muted">
                       {Math.round(Math.sqrt(
                         Math.pow(hoveredNPC.x - logicalControlledIconX, 2) +
                         Math.pow(hoveredNPC.y - logicalControlledIconY, 2)
@@ -4916,20 +4916,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Gender:</span>
+                  <span className="text-text-secondary">Gender:</span>
                   <span>{hoveredNPC.gender}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Profession:</span>
-                  <span className="text-blue-300">{hoveredNPC.role}</span>
+                  <span className="text-text-secondary">Profession:</span>
+                  <span className="text-accent">{hoveredNPC.role}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Class:</span>
-                  <span className="text-purple-300">{hoveredNPC.class}</span>
+                  <span className="text-text-secondary">Class:</span>
+                  <span className="text-accent">{hoveredNPC.class}</span>
                 </div>
                 {hoveredNPC.aiState && hoveredNPC.aiState !== 'idle' && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Status:</span>
+                    <span className="text-text-secondary">Status:</span>
                     <span className={`${isNpcHostile(hoveredNPC) ? 'text-red-400' : isNpcAlert(hoveredNPC) ? 'text-yellow-400' : 'text-green-400'} text-xs uppercase`}>
                       {hoveredNPC.aiState.replace(/_/g, ' ')}
                     </span>
@@ -4937,13 +4937,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 )}
                 {hoveredNPC.stats && (
                   <>
-                    <div className="border-t border-slate-700 mt-1 pt-1">
+                    <div className="border-t border-surface-muted mt-1 pt-1">
                       <div className="flex justify-between mb-1">
-                        <span className="text-slate-500 dark:text-slate-400">Health:</span>
+                        <span className="text-text-secondary">Health:</span>
                         <span>{hoveredNPC.currentHealth || hoveredNPC.maxHealth || 100}/{hoveredNPC.maxHealth || 100}</span>
                       </div>
                       {/* Health bar */}
-                      <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 progress-track rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-300 ${
                             ((hoveredNPC.currentHealth || hoveredNPC.maxHealth || 100) / (hoveredNPC.maxHealth || 100)) > 0.5 ? 'bg-green-500' :
@@ -4954,7 +4954,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         />
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">TEST/CON:</span>
+                        <span className="text-text-secondary">TEST/CON:</span>
                         <span>{hoveredNPC.stats.strength}/{hoveredNPC.stats.constitution}</span>
                       </div>
                     </div>
@@ -4967,19 +4967,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           {hoveredAnimal && (
             <>
               <div className={`font-bold text-sm mb-1.5 ${titleColor}`}>{warningIcon}{hoveredAnimal.speciesName || hoveredAnimal.type}</div>
-              <div className="text-xs space-y-1 text-slate-700 dark:text-slate-200">
+              <div className="text-xs space-y-1 text-text-primary">
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Type:</span>
+                  <span className="text-text-secondary">Type:</span>
                   <span>{hoveredAnimal.type}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Age:</span>
+                  <span className="text-text-secondary">Age:</span>
                   <span>{hoveredAnimal.age} years</span>
                 </div>
                 {logicalControlledIconX !== null && logicalControlledIconY !== null && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Distance:</span>
-                    <span className="text-slate-300">
+                    <span className="text-text-secondary">Distance:</span>
+                    <span className="text-text-muted">
                       {Math.round(Math.sqrt(
                         Math.pow(hoveredAnimal.x - logicalControlledIconX, 2) +
                         Math.pow(hoveredAnimal.y - logicalControlledIconY, 2)
@@ -4988,23 +4988,23 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Temperament:</span>
+                  <span className="text-text-secondary">Temperament:</span>
                   <span className="text-yellow-300">{hoveredAnimal.temperament || 'Unknown'}</span>
                 </div>
                 {hoveredAnimal.aiState && hoveredAnimal.aiState !== 'idle' && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Status:</span>
+                    <span className="text-text-secondary">Status:</span>
                     <span className={`${isAnimalHostile(hoveredAnimal) ? 'text-red-400' : isAnimalAlert(hoveredAnimal) ? 'text-yellow-400' : 'text-green-400'} text-xs uppercase`}>
                       {hoveredAnimal.aiState}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between mb-1">
-                  <span className="text-slate-500 dark:text-slate-400">Health:</span>
+                  <span className="text-text-secondary">Health:</span>
                   <span>{hoveredAnimal.currentHealth || hoveredAnimal.maxHealth || 16}/{hoveredAnimal.maxHealth || 16}</span>
                 </div>
                 {/* Health bar */}
-                <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 progress-track rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-300 ${
                       ((hoveredAnimal.currentHealth || hoveredAnimal.maxHealth || 16) / (hoveredAnimal.maxHealth || 16)) > 0.5 ? 'bg-green-500' :
@@ -5016,12 +5016,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </div>
                 {hoveredAnimal.stats && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Attack/Defense:</span>
+                    <span className="text-text-secondary">Attack/Defense:</span>
                     <span>{hoveredAnimal.stats.attack}/{hoveredAnimal.stats.defense}</span>
                   </div>
                 )}
                 {hoveredAnimal.diseaseHealth && hoveredAnimal.diseaseHealth.currentDiseases && hoveredAnimal.diseaseHealth.currentDiseases.length > 0 && (
-                  <div className="border-t border-slate-700 mt-1 pt-1">
+                  <div className="border-t border-surface-muted mt-1 pt-1">
                     <div className="text-green-400 font-semibold">
                       ⚠️ Disease: {hoveredAnimal.diseaseHealth.currentDiseases[0].disease.name}
                     </div>

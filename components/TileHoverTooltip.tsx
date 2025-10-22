@@ -243,14 +243,14 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
         transition: 'opacity 0.2s ease-in-out'
       }}
     >
-      <div className="bg-slate-900/95 backdrop-blur-sm border border-amber-500/50 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
+      <div className="tooltip-surface border border-amber-500/50 p-3 shadow-xl min-w-[200px] max-w-[280px] text-text-primary">
         {/* Header with icon */}
         <div className="flex items-center gap-2 mb-2">
           <span style={{ color: info.color }} className="text-lg">
             {info.icon}
           </span>
           <div className="flex-1">
-            <h4 className="text-sm font-bold text-white truncate">{info.title}</h4>
+            <h4 className="text-sm font-bold text-text-primary truncate">{info.title}</h4>
             <p className="text-xs text-amber-400">{tile.biome.replace(/_/g, ' ')}</p>
           </div>
         </div>
@@ -258,11 +258,11 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
         {/* Info sections */}
         <div className="space-y-1 text-xs">
           <div className="flex justify-between items-center">
-            <span className="text-slate-400">Status:</span>
-            <span className="text-white">{info.subtitle}</span>
+            <span className="text-text-secondary">Status:</span>
+            <span className="text-text-primary">{info.subtitle}</span>
           </div>
           <div className="pt-1 border-t border-slate-700/50">
-            <p className="text-slate-300">{info.details}</p>
+            <p className="text-text-secondary">{info.details}</p>
           </div>
         </div>
       </div>

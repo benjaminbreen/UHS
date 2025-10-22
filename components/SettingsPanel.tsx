@@ -403,28 +403,30 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         aria-hidden={!isOpen}
       ></div>
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-sidebar-gradient shadow-sidebar-right z-50 transform transition-transform duration-300 ease-in-out border-l border-slate-700/80 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        data-surface="settings-panel"
+        className={`surface-drawer fixed top-0 right-0 h-full w-full max-w-sm z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-panel-title"
+        style={{ borderLeftWidth: '1px' }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-700">
-          <h2 id="settings-panel-title" className="text-lg font-semibold text-white">Settings</h2>
+        <div className="flex items-center justify-between px-5 py-4 surface-drawer-header">
+          <h2 id="settings-panel-title" className="text-lg font-semibold text-text-primary">Settings</h2>
           <button
             onClick={onClose}
-            className="text-2xl text-slate-400 transition-colors hover:text-white"
+            className="text-2xl text-text-secondary transition-colors hover:text-text-primary"
             aria-label="Close settings panel"
           >&times;</button>
         </div>
 
-        <div className="h-full p-4 overflow-y-auto pb-20 scrollbar-thin">
+        <div className="h-full p-5 overflow-y-auto pb-24 scrollbar-thin text-text-primary">
           {/* Game Description */}
-          <section className="mb-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-lg border border-blue-700/50">
+          <section className="mb-6 p-4 surface-muted rounded-lg border border-surface-muted shadow-sm">
             <div className="flex items-center gap-3 mb-2">
-              <Info className="w-5 h-5 text-blue-400" />
-              <h3 className="text-lg font-semibold text-white">Universal History Simulator</h3>
+              <Info className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-semibold text-text-primary">Universal History Simulator</h3>
             </div>
-            <p className="text-sm text-blue-100 leading-relaxed">
+            <p className="text-sm text-text-secondary leading-relaxed">
               An educational history simulation game developed at UC Santa Cruz in 2025.
               Explore different historical periods and cultures through immersive gameplay.
             </p>
@@ -432,15 +434,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
           {/* Theme Toggle */}
           <section className="mb-6">
-            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+            <h3 className="mb-3 text-xs font-semibold tracking-[0.28em] text-text-muted uppercase flex items-center gap-2">
               <Palette className="w-4 h-4" />
               Appearance
             </h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+            <div className="p-3 surface-muted rounded-md border border-surface-muted">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {isDarkMode ? <Moon className="w-4 h-4 text-blue-400" /> : <Sun className="w-4 h-4 text-yellow-400" />}
-                  <label className="text-sm font-medium text-gray-200">
+                  {isDarkMode ? (
+                    <Moon className="w-4 h-4 text-[var(--accent-primary)]" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-[var(--accent-primary)]" />
+                  )}
+                  <label className="text-sm font-medium text-text-primary">
                     {isDarkMode ? 'Dark Mode' : 'Light Mode'}
                   </label>
                 </div>
@@ -453,23 +459,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <span className={`${isDarkMode ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`} />
                 </button>
               </div>
-              <p className="mt-1.5 text-xs text-slate-400">Toggle between light and dark theme</p>
+              <p className="mt-1.5 text-xs text-text-muted">Toggle between light and dark theme</p>
             </div>
           </section>
 
           {/* Audio Controls */}
           <section className="mb-6">
-            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+            <h3 className="mb-3 text-xs font-semibold tracking-[0.28em] text-text-muted uppercase flex items-center gap-2">
               {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               Audio
             </h3>
             <div className="space-y-3">
               {/* Mute Toggle */}
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <div className="p-3 surface-muted rounded-md border border-surface-muted">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-green-400" />}
-                    <label className="text-sm font-medium text-gray-200">
+                    {isMuted ? (
+                      <VolumeX className="w-4 h-4 text-[var(--color-error)]" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
+                    )}
+                    <label className="text-sm font-medium text-text-primary">
                       {isMuted ? 'Muted' : 'Sound Enabled'}
                     </label>
                   </div>
@@ -483,16 +493,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <span className={`${!isMuted ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`} />
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-slate-400">Mute all game sounds and music</p>
+                <p className="mt-1.5 text-xs text-text-muted">Mute all game sounds and music</p>
               </div>
 
               {/* Volume Slider */}
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <div className="p-3 surface-muted rounded-md border border-surface-muted">
                 <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="volumeSlider" className="text-sm font-medium text-gray-200">
+                  <label htmlFor="volumeSlider" className="text-sm font-medium text-text-primary">
                     Master Volume
                   </label>
-                  <span className="text-xs text-slate-400 font-mono">
+                  <span className="text-xs text-text-muted font-mono">
                     {Math.round(volume * 100)}%
                   </span>
                 </div>
@@ -512,7 +522,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       : `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #475569 ${volume * 100}%, #475569 100%)`
                   }}
                 />
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-text-muted">
                   Controls volume for all sounds and music
                 </p>
               </div>

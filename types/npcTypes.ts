@@ -68,8 +68,9 @@ export interface NpcEntity {
     y: number; // grid y on map
     
     // Core Generated Profile
-    health: CharacterHealth;
+    health: number; // Current health points
     maxHealth: number;
+    diseaseHealth?: CharacterHealth; // Disease tracking (separate from combat health)
     stats: NpcStats;
     personality: NpcPersonality;
     socialContext: NpcSocialContext;

@@ -229,6 +229,7 @@ interface InventoryPanelProps {
     playerCharacter: PlayerCharacter;
     onCraft: (items: Item[], method: 'COMBINE' | 'DISAGGREGATE') => void;
     onStudy?: (items: Item[]) => void; // New prop for study functionality
+    onEat?: (item: Item) => void; // New prop for eating functionality
     onInventoryUpdate?: () => void; // Callback to refresh inventory after vessel deployment
     deployVesselToMap?: (vesselItem: Item, playerX: number, playerY: number) => { success: boolean, vesselPosition?: { x: number, y: number } };
     deployBridgeToMap?: (bridgeItem: Item, playerX: number, playerY: number) => { success: boolean, bridgePosition?: { x: number, y: number } };
@@ -272,7 +273,7 @@ const getQualityLabel = (quality?: ItemQuality): string => {
     }
 };
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onStudy, onInventoryUpdate, deployVesselToMap, deployBridgeToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onStudy, onEat, onInventoryUpdate, deployVesselToMap, deployBridgeToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set());
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
@@ -376,6 +377,14 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
       }
   }, [selectedItems, selectedAnimals, onStudy]);
 
+  const handleEat = useCallback(() => {
+      if (selectedItemIds.size === 1 && onEat) {
+          const item = selectedItems[0];
+          onEat(item);
+          setSelectedItemIds(new Set());
+      }
+  }, [selectedItems, selectedItemIds.size, onEat]);
+
   const handleButcher = useCallback(() => {
       // Handle animal butchering into meat items
       if (selectedAnimalIds.size > 0) {
@@ -422,6 +431,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
 
   const canCraft = selectedItemIds.size >= 1;
   const canStudy = selectedItemIds.size >= 1 || selectedAnimalIds.size >= 1;
+  const canEat = selectedItemIds.size === 1 && selectedAnimalIds.size === 0;
   const canButcher = selectedAnimalIds.size === 1;
   const showInfoInsteadOfCraft = selectedAnimalIds.size >= 1 && selectedItemIds.size === 0; // Only animals selected
   // Memoize vessel check
@@ -760,12 +770,12 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
         </div>
       </div>
       {/* Crafting Controls - Always Visible */}
-      <div className="flex-shrink-0 p-2 border-t border-slate-600/50 bg-slate-800/80">
+      <div className="flex-shrink-0 p-2 border-t surface-muted">
           <div className="flex gap-1">
               {canDeploy ? (
                 <button
                     onClick={handleVesselDeploy}
-                    className="ff-action-button flex-1 text-xs px-2 py-1 bg-blue-600/80 hover:bg-blue-700 border-blue-500"
+                    className="btn-primary flex-1 text-xs px-2 py-1"
                     title="Deploy vessel for sea travel"
                 >
                     🚤 Deploy Vessel
@@ -773,7 +783,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               ) : canDeployBridge ? (
                 <button
                     onClick={handleBridgeDeploy}
-                    className="ff-action-button flex-1 text-xs px-2 py-1 bg-amber-600/80 hover:bg-amber-700 border-amber-500"
+                    className="btn-primary flex-1 text-xs px-2 py-1"
                     title="Deploy bridge to cross water"
                 >
                     🌉 Deploy Bridge
@@ -784,7 +794,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                     <button
                         onClick={handleAnimalInfo}
                         disabled={selectedAnimalIds.size !== 1}
-                        className="ff-action-button flex-1 text-xs px-2 py-1"
+                        className="btn-secondary flex-1 text-xs px-2 py-1"
                         title="View companion animal info"
                     >
                         ℹ️ Info
@@ -793,7 +803,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                     <button
                         onClick={handleCraft}
                         disabled={!canCraft}
-                        className="ff-action-button flex-1 text-xs px-2 py-1"
+                        className="btn-primary flex-1 text-xs px-2 py-1 disabled:opacity-60"
                         title="Open crafting interface"
                     >
                         Craft
@@ -802,15 +812,23 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                   <button
                       onClick={handleStudy}
                       disabled={!canStudy}
-                      className="ff-action-button flex-1 text-xs px-2 py-1"
+                      className="btn-secondary flex-1 text-xs px-2 py-1 disabled:opacity-60"
                       title="Study selected items"
                   >
                       Study 🔬
                   </button>
+                  <button
+                      onClick={handleEat}
+                      disabled={!canEat}
+                      className="btn-secondary flex-1 text-xs px-2 py-1 disabled:opacity-60"
+                      title="Consume selected item"
+                  >
+                      Eat 🍽️
+                  </button>
                   {canButcher && (
                       <button
                           onClick={handleButcher}
-                          className="ff-action-button flex-1 text-xs px-2 py-1"
+                          className="btn-secondary flex-1 text-xs px-2 py-1"
                           title="Process selected animal"
                       >
                           Butcher

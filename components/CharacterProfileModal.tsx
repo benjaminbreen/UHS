@@ -748,9 +748,14 @@ const CharacterProfileModal: React.FC<Props> = ({
 
   /* ----------------------------- Fixed Heights ---------------------------- */
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface"
+      onClick={onClose}
+    >
       <div
-        className="ff-panel w-full max-w-7xl h-[93vh] flex flex-col text-slate-200"
+        data-surface="modal-panel"
+        className="ff-panel theme-surface w-full max-w-7xl h-[93vh] flex flex-col text-slate-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -1613,11 +1618,13 @@ const CharacterProfileModal: React.FC<Props> = ({
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 flex items-center justify-between p-4 border-t-2 border-slate-700 bg-slate-800/75">
-          <button onClick={onRegenerate} className="ff-action-button" disabled={isEnhancing}>
+        <div className="shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-[var(--border-normal)] bg-[var(--bg-secondary)]">
+          <button onClick={onClose} className="btn-secondary" type="button">
+            Close
+          </button>
+          <button onClick={onRegenerate} className="btn-primary" disabled={isEnhancing} type="button">
             {isEnhancing ? 'Enhancing...' : 'Regenerate Character'}
           </button>
-          <button onClick={onClose} className="ff-action-button">Close</button>
         </div>
       </div>
 
@@ -1637,9 +1644,14 @@ const CharacterProfileModal: React.FC<Props> = ({
 
       {/* Quick animal detail modal */}
       {selectedAnimal && isAnimalModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsAnimalModalOpen(false)}>
+        <div
+          data-surface="modal-overlay"
+          className="modal-overlay theme-surface"
+          onClick={() => setIsAnimalModalOpen(false)}
+        >
           <div
-            className="bg-modal-bg-gradient border border-slate-600 rounded-2xl text-slate-200 w-full max-w-md p-6 shadow-glow-blue"
+            data-surface="modal-panel"
+            className="theme-surface bg-modal-bg-gradient border border-slate-600 rounded-2xl text-slate-200 w-full max-w-md p-6 shadow-glow-blue"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between pb-2 mb-4 border-b border-slate-700">

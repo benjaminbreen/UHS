@@ -48,8 +48,14 @@ const LevelUpModal: React.FC<LevelUpModalProps> = ({ character, onLevelUp }) => 
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="ff-panel w-full max-w-2xl p-6">
+        <div
+            data-surface="modal-overlay"
+            className="modal-overlay theme-surface"
+        >
+            <div
+                data-surface="modal-panel"
+                className="ff-panel theme-surface w-full max-w-2xl p-6"
+            >
                 <h3 className="text-center text-4xl font-press-start mb-4 text-yellow-400">
                     LEVEL UP!
                 </h3>

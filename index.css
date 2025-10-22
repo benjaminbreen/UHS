@@ -2,29 +2,28 @@
 @import './styles/mobile.css';
 
 /* ==========================================
-   LIGHT MODE - COMPREHENSIVE SYSTEM v2.0
-   Professional light theme with proper contrast
+   MODERN THEME SYSTEM v3.0
+   Uses CSS light-dark() function for clean theming
    ==========================================
 
    DESIGN PRINCIPLES:
-   - Uses CSS custom properties for maintainability
-   - Proper visual hierarchy through layered backgrounds
+   - Modern light-dark() function (2024 standard)
+   - Warm, comfortable light mode (not harsh white)
+   - Professional color palette (2025 UI trends)
    - Enhanced contrast ratios (WCAG AA compliant)
-   - Stronger borders and shadows for depth
-   - Map/viewport optimizations for terrain visibility
-   - Performance-optimized (no impact on dark mode)
+   - Browser-native theme switching support
+   - Performance-optimized single definitions
 
-   KEY IMPROVEMENTS:
-   ✓ CSS variables for consistent theming
-   ✓ Layered background system (card > secondary > tertiary)
-   ✓ Enhanced shadows (visible in light mode)
-   ✓ Stronger border colors (#94a3b8 vs #cbd5e1)
-   ✓ Proper text contrast (4.5:1 minimum)
-   ✓ Icon stroke improvements
-   ✓ Minimap border/shadow enhancements
-   ✓ Map viewport brightness/contrast boost
-   ✓ Better scrollbar visibility
-   ✓ Modal overlay darkening
+   LIGHT MODE PALETTE:
+   - Warm off-white backgrounds (#F8F6F3 - creamy, not stark)
+   - Soft charcoal text (#2A2826 - easier on eyes than black)
+   - Sage-teal accents (#5A9B8C - modern, professional)
+   - Warm gray borders (#E8E6E3 - subtle, cohesive)
+
+   DARK MODE PALETTE:
+   - Deep charcoal backgrounds (#1a1a1a)
+   - Bright readable text (#e5e5e5)
+   - Vibrant accents (#4ade80)
 
    EXCLUSIONS (.keep-dark class):
    - Map container and game overlays
@@ -34,1838 +33,340 @@
 
    ========================================== */
 
-/* Light Mode CSS Custom Properties */
+/* Enable modern color-scheme support */
+:root {
+  color-scheme: light dark;
+}
+
+/* FALLBACK: Explicit light mode rules (for browsers without light-dark() support) */
 :root:not(.dark) {
-  /* Base colors - warm, professional palette */
-  --light-bg-primary: #fefefe;
-  --light-bg-secondary: #f8fafc;
-  --light-bg-tertiary: #f1f5f9;
-  --light-bg-card: #ffffff;
-
-  /* Border colors - stronger contrast */
-  --light-border-subtle: #e2e8f0;
-  --light-border-normal: #cbd5e1;
-  --light-border-strong: #94a3b8;
-
-  /* Text colors - proper contrast ratios */
-  --light-text-primary: #0f172a;
-  --light-text-secondary: #475569;
-  --light-text-tertiary: #64748b;
-  --light-text-muted: #94a3b8;
-
-  /* Shadow system - visible in light mode */
-  --light-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
-  --light-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
-  --light-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --light-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-
-  /* Overlay colors */
-  --light-overlay-dark: rgba(15, 23, 42, 0.75);
-  --light-overlay-light: rgba(248, 250, 252, 0.95);
-}
-
-/* Main App Background */
-:root:not(.dark) body {
-  background-color: var(--light-bg-primary);
-  color: var(--light-text-primary);
-}
-
-/* ==========================================
-   LOGO & TYPOGRAPHY - LIGHT MODE
-   ========================================== */
-
-/* History Simulator Logo - Make Dark in Light Mode */
-:root:not(.dark) .text-cyan-300,
-:root:not(.dark) h1,
-:root:not(.dark) .logo-text {
-  color: rgb(15, 23, 42) !important;
-  font-weight: 700 !important;
-}
-
-/* Make all headers darker and more readable */
-:root:not(.dark) h1, :root:not(.dark) h2, :root:not(.dark) h3, :root:not(.dark) h4 {
-  color: rgb(15, 23, 42) !important;
-  font-weight: 600 !important;
-}
-
-/* ==========================================
-   UI PANELS & COMPONENTS - LIGHT MODE
-   ========================================== */
-
-/* Sidebar backgrounds - use layered system */
-:root:not(.dark) .sidebar-left,
-:root:not(.dark) .right-sidebar,
-:root:not(.dark) [class*="sidebar"] {
-  background: var(--light-bg-card) !important;
-  border-color: var(--light-border-strong) !important;
-}
-
-/* Card-based UI elements */
-:root:not(.dark) .card,
-:root:not(.dark) [class*="card"],
-:root:not(.dark) .panel {
-  background-color: var(--light-bg-card) !important;
-  border-color: var(--light-border-normal) !important;
-  box-shadow: var(--light-shadow-sm) !important;
-}
-
-/* Panel headers and sections */
-:root:not(.dark) .panel-header,
-:root:not(.dark) [class*="header"]:not(.mobile-header) {
-  background-color: var(--light-bg-tertiary) !important;
-  border-color: var(--light-border-normal) !important;
-}
-
-/* ==========================================
-   ENHANCED READABILITY & CONTRAST
-   ========================================== */
-
-/* Ensure text contrast in light mode */
-:root:not(.dark) .sidebar-left .text-slate-500,
-:root:not(.dark) .sidebar-right .text-slate-500,
-:root:not(.dark) .character-panel .text-slate-500 {
-  color: rgb(71, 85, 105) !important;
-}
-
-/* Placeholder text in light mode */
-:root:not(.dark) .placeholder-slate-400::placeholder,
-:root:not(.dark) .placeholder-slate-500::placeholder {
-  color: rgb(148, 163, 184) !important;
-}
-
-/* Icon colors in light mode */
-:root:not(.dark) .sidebar-left .lucide,
-:root:not(.dark) .sidebar-right .lucide,
-:root:not(.dark) .character-panel .lucide {
-  color: rgb(71, 85, 105) !important;
-}
-
-/* ==========================================
-   BUTTON COLORS - REDESIGNED FOR LIGHT MODE
-   ========================================== */
-
-/* Softer, More Professional Button Colors */
-
-/* Green buttons - Darker, less saturated */
-:root:not(.dark) .bg-green-600:not(.keep-dark) {
-  background-color: rgb(22, 101, 52) !important;
-}
-:root:not(.dark) .hover\\:bg-green-700:hover:not(.keep-dark) {
-  background-color: rgb(20, 83, 45) !important;
-}
-:root:not(.dark) .bg-gradient-to-r.from-green-600:not(.keep-dark) {
-  background: linear-gradient(to right, rgb(22, 101, 52), rgb(21, 128, 61)) !important;
-}
-
-/* Blue buttons - Professional navy */
-:root:not(.dark) .bg-blue-600:not(.keep-dark) {
-  background-color: rgb(30, 64, 175) !important;
-}
-:root:not(.dark) .hover\\:bg-blue-700:hover:not(.keep-dark) {
-  background-color: rgb(29, 78, 216) !important;
-}
-:root:not(.dark) .bg-gradient-to-r.from-blue-600:not(.keep-dark) {
-  background: linear-gradient(to right, rgb(30, 64, 175), rgb(37, 99, 235)) !important;
-}
-
-/* Purple buttons - Elegant deep purple */
-:root:not(.dark) .bg-purple-600:not(.keep-dark) {
-  background-color: rgb(109, 40, 217) !important;
-}
-:root:not(.dark) .hover\\:bg-purple-700:hover:not(.keep-dark) {
-  background-color: rgb(88, 28, 135) !important;
-}
-:root:not(.dark) .bg-gradient-to-r.from-purple-600:not(.keep-dark) {
-  background: linear-gradient(to right, rgb(109, 40, 217), rgb(126, 34, 206)) !important;
-}
-
-/* Indigo buttons - Professional indigo */
-:root:not(.dark) .bg-indigo-600:not(.keep-dark) {
-  background-color: rgb(67, 56, 202) !important;
-}
-:root:not(.dark) .hover\\:bg-indigo-700:hover:not(.keep-dark) {
-  background-color: rgb(55, 48, 163) !important;
-}
-:root:not(.dark) .bg-gradient-to-r.from-indigo-600:not(.keep-dark) {
-  background: linear-gradient(to right, rgb(67, 56, 202), rgb(79, 70, 229)) !important;
-}
-
-/* Red/Pink buttons - Professional red */
-:root:not(.dark) .bg-red-600:not(.keep-dark) {
-  background-color: rgb(185, 28, 28) !important;
-}
-:root:not(.dark) .hover\\:bg-red-700:hover:not(.keep-dark) {
-  background-color: rgb(153, 27, 27) !important;
-}
-:root:not(.dark) .bg-gradient-to-r.from-red-600:not(.keep-dark) {
-  background: linear-gradient(to right, rgb(185, 28, 28), rgb(220, 38, 38)) !important;
-}
-
-/* Amber/Orange buttons - Warmer, professional */
-:root:not(.dark) .bg-amber-600:not(.keep-dark) {
-  background-color: rgb(180, 83, 9) !important;
-}
-:root:not(.dark) .hover\\:bg-amber-700:hover:not(.keep-dark) {
-  background-color: rgb(146, 64, 14) !important;
-}
-:root:not(.dark) .bg-gradient-to-r.from-amber-600:not(.keep-dark) {
-  background: linear-gradient(to right, rgb(180, 83, 9), rgb(217, 119, 6)) !important;
-}
-
-/* Cyan buttons - Professional teal */
-:root:not(.dark) .bg-cyan-600:not(.keep-dark) {
-  background-color: rgb(8, 145, 178) !important;
-}
-:root:not(.dark) .hover\\:bg-cyan-700:hover:not(.keep-dark) {
-  background-color: rgb(14, 116, 144) !important;
-}
-
-/* ==========================================
-   COMPREHENSIVE COVERAGE - AGGRESSIVE LIGHT MODE
-   ========================================== */
-
-/* LAYERED BACKGROUND SYSTEM - Proper hierarchy */
-:root:not(.dark) [class*="bg-slate-900"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
-  background-color: var(--light-bg-card) !important;
-  border: 1px solid var(--light-border-normal);
-}
-
-:root:not(.dark) [class*="bg-slate-800"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
-  background-color: var(--light-bg-secondary) !important;
-  border-color: var(--light-border-subtle);
-}
-
-:root:not(.dark) [class*="bg-slate-700"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
-  background-color: var(--light-bg-tertiary) !important;
-}
-
-:root:not(.dark) [class*="bg-slate-600"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
-  background-color: #e2e8f0 !important;
-}
-
-/* Transparency variants */
-:root:not(.dark) .bg-slate-800\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
-  background-color: rgba(248, 250, 252, 0.7) !important;
-}
-
-:root:not(.dark) .bg-slate-700\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
-  background-color: rgba(241, 245, 249, 0.7) !important;
-}
-
-:root:not(.dark) .bg-slate-900\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
-  background-color: rgba(255, 255, 255, 0.7) !important;
-}
-
-:root:not(.dark) .bg-slate-600\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
-  background-color: rgba(226, 232, 240, 0.6) !important;
-}
-
-/* Gray backgrounds */
-:root:not(.dark) [class*="bg-gray-"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
-  background-color: rgba(248, 250, 252, 0.9) !important;
-}
-
-/* Input fields in light mode */
-:root:not(.dark) input:not(.keep-dark):not(.modal-overlay input):not(.map-container input) {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(203, 213, 225, 0.8) !important;
-  color: rgb(15, 23, 42) !important;
-}
-
-:root:not(.dark) input:focus:not(.keep-dark):not(.modal-overlay input):not(.map-container input) {
-  border-color: rgb(59, 130, 246) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-}
-
-/* Select dropdowns in light mode */
-:root:not(.dark) select:not(.keep-dark):not(.modal-overlay select):not(.map-container select) {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(203, 213, 225, 0.8) !important;
-  color: rgb(15, 23, 42) !important;
-}
-
-/* Textarea in light mode */
-:root:not(.dark) textarea:not(.keep-dark):not(.modal-overlay textarea):not(.map-container textarea) {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(203, 213, 225, 0.8) !important;
-  color: rgb(15, 23, 42) !important;
-}
-
-/* ==========================================
-   UTILITIES & HELPERS
-   ========================================== */
-
-/* Force dark utility class */
-.force-dark,
-.force-dark * {
-  /* Elements with this class stay dark in light mode */
-}
-
-/* Force light utility class */
-:root:not(.dark) .force-light {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  color: rgb(15, 23, 42) !important;
-}
-
-/* Modal overlays - darker for better contrast */
-:root:not(.dark) .bg-black\/60:not(.keep-dark):not(.modal-overlay):not(.map-container) {
-  background-color: var(--light-overlay-dark) !important;
-}
-
-:root:not(.dark) .bg-black\/80:not(.keep-dark):not(.modal-overlay):not(.map-container) {
-  background-color: rgba(15, 23, 42, 0.85) !important;
-}
-
-:root:not(.dark) .bg-black\/50:not(.keep-dark):not(.modal-overlay):not(.map-container) {
-  background-color: rgba(15, 23, 42, 0.7) !important;
-}
-
-/* Modal content - high contrast cards */
-:root:not(.dark) .modal-content:not(.keep-dark),
-:root:not(.dark) [role="dialog"]:not(.keep-dark) {
-  background-color: var(--light-bg-card) !important;
-  border: 1px solid var(--light-border-strong) !important;
-  box-shadow: var(--light-shadow-xl) !important;
-}
-
-/* ==========================================
-   FINAL POLISH & EDGE CASES
-   ========================================== */
-
-/* Enhanced shadow system for light mode */
-:root:not(.dark) .shadow-sm:not(.keep-dark) {
-  box-shadow: var(--light-shadow-sm) !important;
-}
-
-:root:not(.dark) .shadow:not(.keep-dark),
-:root:not(.dark) .shadow-md:not(.keep-dark) {
-  box-shadow: var(--light-shadow-md) !important;
-}
-
-:root:not(.dark) .shadow-lg:not(.keep-dark) {
-  box-shadow: var(--light-shadow-lg) !important;
-}
-
-:root:not(.dark) .shadow-xl:not(.keep-dark) {
-  box-shadow: var(--light-shadow-xl) !important;
-}
-
-:root:not(.dark) .shadow-2xl:not(.keep-dark) {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 12px 24px -8px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Stronger borders for better definition */
-:root:not(.dark) [class*="border-slate-"]:not(.keep-dark) {
-  border-color: var(--light-border-strong) !important;
-}
-
-:root:not(.dark) .border:not(.keep-dark) {
-  border-color: var(--light-border-normal) !important;
-}
-
-/* Ring colors for focus states */
-:root:not(.dark) .focus\\:ring-blue-500:focus:not(.keep-dark) {
-  --tw-ring-color: rgb(59 130 246) !important;
-}
-
-/* Tooltips - dark on light background for readability */
-:root:not(.dark) .tooltip:not(.keep-dark),
-:root:not(.dark) [role="tooltip"]:not(.keep-dark) {
-  background-color: rgba(15, 23, 42, 0.95) !important;
-  color: rgb(248, 250, 252) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: var(--light-shadow-lg) !important;
-}
-
-/* Icon visibility improvements */
-:root:not(.dark) svg:not(.keep-dark):not(.portrait-container svg):not(.map-container svg) {
-  color: var(--light-text-secondary) !important;
-}
-
-:root:not(.dark) .lucide:not(.keep-dark):not(.portrait-container .lucide) {
-  stroke: var(--light-text-secondary) !important;
-  stroke-width: 2 !important;
-}
-
-/* Text color improvements - proper hierarchy */
-:root:not(.dark) .text-slate-300:not(.keep-dark),
-:root:not(.dark) .text-slate-400:not(.keep-dark),
-:root:not(.dark) .text-gray-300:not(.keep-dark),
-:root:not(.dark) .text-gray-400:not(.keep-dark) {
-  color: var(--light-text-secondary) !important;
-}
-
-:root:not(.dark) .text-slate-500:not(.keep-dark),
-:root:not(.dark) .text-gray-500:not(.keep-dark) {
-  color: var(--light-text-tertiary) !important;
-}
-
-:root:not(.dark) .text-slate-600:not(.keep-dark),
-:root:not(.dark) .text-gray-600:not(.keep-dark) {
-  color: var(--light-text-muted) !important;
-}
-
-/* ==========================================
-   MAP VIEWPORT & MINIMAP - LIGHT MODE
-   ========================================== */
-
-/* Minimap container - add strong border and shadow */
-:root:not(.dark) .minimap,
-:root:not(.dark) [class*="minimap"] {
-  border: 2px solid var(--light-border-strong) !important;
-  box-shadow: var(--light-shadow-lg) !important;
-  background-color: var(--light-bg-card) !important;
-}
-
-/* Map viewport - ensure proper contrast */
-:root:not(.dark) .map-viewport,
-:root:not(.dark) [class*="map-viewport"] {
-  background-color: var(--light-bg-secondary) !important;
-}
-
-/* Game canvas/map container improvements */
-:root:not(.dark) .game-container:not(.keep-dark),
-:root:not(.dark) .map-display:not(.keep-dark) {
-  filter: brightness(1.05) contrast(1.1) !important;
-}
-
-/* Player icon/character on map - make more visible */
-:root:not(.dark) .player-icon:not(.keep-dark),
-:root:not(.dark) [class*="player"]:not(.keep-dark) {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
-}
-
-/* NPC and item icons - add subtle shadows for depth */
-:root:not(.dark) .npc-icon:not(.keep-dark),
-:root:not(.dark) .item-icon:not(.keep-dark) {
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2)) !important;
-}
-
-/* ==========================================
-   FINAL CLEANUP & EDGE CASES
-   ========================================== */
-
-/* Progress bars and meters in light mode */
-:root:not(.dark) .progress-bar:not(.keep-dark),
-:root:not(.dark) [class*="progress"]:not(.keep-dark) {
-  background-color: rgba(226, 232, 240, 0.8) !important;
-  border-color: rgba(203, 213, 225, 0.6) !important;
-}
-
-/* Tab navigation in light mode */
-:root:not(.dark) .tab-active:not(.keep-dark),
-:root:not(.dark) [class*="tab"][class*="active"]:not(.keep-dark) {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-color: rgba(59, 130, 246, 0.5) !important;
-  color: rgb(15, 23, 42) !important;
-}
-
-/* Dropdown menus - enhanced contrast */
-:root:not(.dark) .dropdown:not(.keep-dark),
-:root:not(.dark) [class*="dropdown"]:not(.keep-dark) {
-  background-color: var(--light-bg-card) !important;
-  border: 1px solid var(--light-border-strong) !important;
-  box-shadow: var(--light-shadow-lg) !important;
-}
-
-:root:not(.dark) .dropdown-item:hover:not(.keep-dark) {
-  background-color: var(--light-bg-tertiary) !important;
-}
-
-/* Card components - proper layering */
-:root:not(.dark) .card:not(.keep-dark),
-:root:not(.dark) [class*="card"]:not(.keep-dark) {
-  background-color: var(--light-bg-card) !important;
-  border: 1px solid var(--light-border-normal) !important;
-  box-shadow: var(--light-shadow-sm) !important;
-}
-
-/* Badges and pills - better visibility */
-:root:not(.dark) .badge:not(.keep-dark),
-:root:not(.dark) [class*="badge"]:not(.keep-dark),
-:root:not(.dark) .pill:not(.keep-dark) {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  color: rgb(30, 64, 175) !important;
-  border: 1px solid rgba(59, 130, 246, 0.3) !important;
-  font-weight: 600 !important;
-}
-
-/* Status indicators */
-:root:not(.dark) .status-healthy:not(.keep-dark) {
-  background-color: rgba(34, 197, 94, 0.1) !important;
-  color: rgb(22, 101, 52) !important;
-}
-
-:root:not(.dark) .status-warning:not(.keep-dark) {
-  background-color: rgba(245, 158, 11, 0.1) !important;
-  color: rgb(180, 83, 9) !important;
-}
-
-:root:not(.dark) .status-danger:not(.keep-dark) {
-  background-color: rgba(239, 68, 68, 0.1) !important;
-  color: rgb(185, 28, 28) !important;
-}
-
-/* Scrollbars - better visibility in light mode */
-:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar {
+  --bg-primary: #F4F0E7;
+  --bg-secondary: #EFE7D9;
+  --bg-tertiary: #E8DFCE;
+  --bg-card: #FBF7F0;
+  --bg-elevated: #FFF9F1;
+
+  --border-subtle: #E6DDCD;
+  --border-normal: #D6C9B5;
+  --border-strong: #C4B59E;
+
+  --text-primary: #2C2A27;
+  --text-secondary: #5A544B;
+  --text-tertiary: #7A7165;
+  --text-muted: #9C9387;
+
+  --accent-primary: #4B7768;
+  --accent-primary-hover: #40695C;
+  --accent-primary-active: #365A4F;
+
+    --accent-secondary: #FFA000;
+  --accent-secondary-hover: #FFA000;
+  --accent-secondary-active: #FFA000;
+
+  --color-success: #6D8B55;
+  --color-warning: #C27A3A;
+  --color-error: #C05A4A;
+  --color-info: #5E81A6;
+
+  --overlay-dark: rgba(247, 240, 227, 0.92);
+  --font-ui: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', sans-serif;
+
+  --surface-app-bg: var(--bg-primary);
+  --surface-app-text: var(--text-primary);
+  --surface-app-border: transparent;
+
+  --surface-top-nav-bg: linear-gradient(120deg, #f3eddf 0%, #fffaf1 55%, #ece2d0 100%);
+  --surface-top-nav-text: var(--text-primary);
+  --surface-top-nav-border: var(--border-subtle);
+  --surface-top-nav-shadow: 0 12px 32px rgba(31, 31, 31, 0.08);
+
+  --surface-sidebar-bg: linear-gradient(145deg, rgba(249, 243, 233, 0.98) 0%, rgba(240, 230, 214, 0.94) 55%, rgba(229, 218, 199, 0.86) 100%);
+  --surface-sidebar-text: var(--text-primary);
+  --surface-sidebar-border: var(--border-strong);
+  --surface-sidebar-shadow: 2px 0 28px rgba(20, 20, 20, 0.08);
+
+  --surface-modal-overlay-bg: rgba(36, 46, 61, 0.18);
+  --surface-modal-panel-bg: var(--bg-card);
+  --surface-modal-panel-text: var(--text-primary);
+  --surface-modal-panel-border: var(--border-normal);
+  --surface-modal-panel-shadow: 0 22px 48px rgba(42, 35, 23, 0.14);
+  --modal-overlay-bg: var(--surface-modal-overlay-bg);
+
+  --surface-card-bg: linear-gradient(145deg, rgba(255, 252, 245, 0.96) 0%, rgba(246, 237, 221, 0.94) 100%);
+  --surface-card-border: rgba(201, 187, 165, 0.65);
+  --surface-card-shadow: 0 18px 36px rgba(63, 50, 33, 0.12);
+
+  --surface-muted-bg: rgba(232, 222, 206, 0.55);
+  --surface-muted-border: rgba(197, 182, 160, 0.45);
+  --surface-muted-hover-bg: rgba(220, 208, 189, 0.82);
+  --surface-muted-hover-border: rgba(183, 166, 140, 0.55);
+  --surface-track-bg: rgba(191, 173, 146, 0.35);
+  --surface-track-border: rgba(179, 163, 139, 0.4);
+  --surface-handle-bg: rgba(99, 132, 120, 0.25);
+  --surface-handle-hover-bg: rgba(99, 132, 120, 0.45);
+  --surface-tooltip-bg: rgba(58, 69, 80, 0.95);
+  --surface-tooltip-border: rgba(48, 56, 64, 0.45);
+  --surface-bottom-panel-bg: linear-gradient(180deg, rgba(248, 244, 233, 0.96) 0%, rgba(236, 226, 210, 0.98) 100%);
+  --surface-bottom-panel-border: rgba(201, 187, 165, 0.6);
+  --surface-bottom-panel-shadow: 0 -24px 48px rgba(63, 50, 33, 0.16);
+  --surface-location-overlay: linear-gradient(
+    to right,
+    rgba(248, 246, 243, 0.92) 0%,
+    rgba(248, 246, 243, 0.78) 18%,
+    rgba(248, 246, 243, 0.4) 52%,
+    rgba(248, 246, 243, 0.78) 82%,
+    rgba(248, 246, 243, 0.92) 100%
+  );
+  --surface-drawer-bg: rgba(248, 244, 233, 0.98);
+  --surface-drawer-border: rgba(184, 168, 146, 0.55);
+  --surface-drawer-shadow: -24px 0 48px rgba(63, 50, 33, 0.12);
+  --surface-drawer-header-bg: rgba(241, 233, 220, 0.96);
+  --surface-chip-bg: rgba(236, 224, 208, 0.82);
+  --surface-chip-hover: rgba(224, 211, 192, 0.92);
+  --surface-chip-border: rgba(205, 188, 162, 0.6);
+  --surface-chip-active-bg: var(--accent-primary);
+  --surface-chip-active-border: rgba(75, 119, 104, 0.55);
+  --surface-chip-active-text: var(--button-primary-text);
+  --action-tile-bg: rgba(243, 233, 216, 0.88);
+  --action-tile-border: rgba(214, 197, 173, 0.65);
+  --action-tile-hover-bg: rgba(235, 223, 203, 0.98);
+  --action-tile-hover-border: rgba(201, 183, 158, 0.7);
+  --action-tile-disabled-bg: rgba(232, 219, 198, 0.6);
+  --action-tile-disabled-border: rgba(203, 184, 157, 0.45);
+  --brand-text: #4d6c5f;
+  --brand-shadow: rgba(77, 108, 95, 0.35);
+  --brand-glow: rgba(148, 197, 179, 0.45);
+
+  --button-primary-bg: #4B7768;
+  --button-primary-hover: #41695C;
+  --button-primary-border: rgba(61, 104, 90, 0.55);
+  --button-primary-text: #F8FBF9;
+  --button-primary-shadow: 0 16px 34px rgba(52, 85, 77, 0.28);
+
+  --button-secondary-bg: rgba(203, 167, 121, 0.22);
+  --button-secondary-hover: rgba(203, 167, 121, 0.32);
+  --button-secondary-border: rgba(188, 150, 107, 0.38);
+  --button-secondary-text: var(--text-primary);
+
+  --pill-bg: rgba(214, 197, 173, 0.38);
+  --pill-border: rgba(191, 171, 143, 0.52);
+  --pill-text: rgba(74, 63, 50, 0.9);
+  --pill-accent-bg: rgba(75, 119, 104, 0.2);
+  --pill-accent-border: rgba(75, 119, 104, 0.45);
+  --pill-accent-text: rgba(34, 58, 51, 0.95);
+
+  --tab-strip-bg: rgba(242, 232, 216, 0.72);
+  --tab-strip-border: rgba(205, 188, 162, 0.65);
+  --tab-button-text: rgba(76, 68, 59, 0.9);
+  --tab-button-hover-bg: rgba(233, 221, 204, 0.92);
+  --tab-button-active-bg: rgba(75, 119, 104, 0.22);
+  --tab-button-active-border: rgba(75, 119, 104, 0.45);
+  --tab-button-active-text: rgba(34, 58, 51, 0.95);
+  --toast-surface-bg: rgba(248, 244, 233, 0.95);
+  --toast-surface-border: rgba(184, 168, 146, 0.55);
+  --toast-surface-text: #2C2A27;
+  --toast-progress-bg: rgba(75, 119, 104, 0.45);
+}
+
+/* Dark mode variables */
+:root.dark {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #262626;
+  --bg-tertiary: #333333;
+  --bg-card: #152133;
+  --bg-elevated: #1f1f1f;
+
+  --border-subtle: #404040;
+  --border-normal: #2d3442;
+  --border-strong: #737373;
+
+  --text-primary: #e5e5e5;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #737373;
+  --text-muted: #525252;
+
+  --accent-primary: #4ade80;
+  --accent-primary-hover: #22c55e;
+  --accent-primary-active: #16a34a;
+
+  --accent-secondary: #FFCA28;
+  --accent-secondary-hover: #ffbf00;
+  --accent-secondary-active: #ffbf00;
+
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
+
+  --overlay-dark: rgba(0, 0, 0, 0.9);
+  --font-ui: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', sans-serif;
+
+  --surface-app-bg: var(--bg-primary);
+  --surface-app-text: var(--text-primary);
+  --surface-app-border: transparent;
+
+  --surface-top-nav-bg: linear-gradient(120deg, #0f172a 0%, #111c33 55%, #1f2937 100%);
+  --surface-top-nav-text: var(--text-primary);
+  --surface-top-nav-border: var(--border-normal);
+  --surface-top-nav-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+
+  --surface-sidebar-bg: linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 55%, rgba(51, 65, 85, 0.85) 100%);
+  --surface-sidebar-text: var(--text-primary);
+  --surface-sidebar-border: var(--border-normal);
+  --surface-sidebar-shadow: 2px 0 28px rgba(0, 0, 0, 0.45);
+
+  --surface-modal-overlay-bg: rgba(0, 0, 0, 0.65);
+  --surface-modal-panel-bg: var(--bg-card);
+  --surface-modal-panel-text: var(--text-primary);
+  --surface-modal-panel-border: var(--border-normal);
+  --surface-modal-panel-shadow: 0 26px 52px rgba(0, 0, 0, 0.55);
+  --modal-overlay-bg: var(--surface-modal-overlay-bg);
+
+  --surface-card-bg: rgba(30, 41, 59, 0.92);
+  --surface-card-border: rgba(148, 163, 184, 0.0);
+  --surface-card-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+
+  --surface-muted-bg: rgba(51, 65, 85, 0.6);
+  --surface-muted-border: rgba(100, 116, 139, 0.4);
+  --surface-muted-hover-bg: rgba(64, 78, 100, 0.72);
+  --surface-muted-hover-border: rgba(148, 163, 184, 0.45);
+  --surface-track-bg: rgba(71, 85, 105, 0.55);
+  --surface-track-border: rgba(100, 116, 139, 0.45);
+  --surface-handle-bg: rgba(96, 165, 250, 0.25);
+  --surface-handle-hover-bg: rgba(96, 165, 250, 0.45);
+  --surface-tooltip-bg: rgba(15, 23, 42, 0.95);
+  --surface-tooltip-border: rgba(94, 107, 133, 0.45);
+  --surface-bottom-panel-bg: rgba(15, 23, 43, 0.74);
+  --surface-bottom-panel-border: rgba(71, 85, 105, 0.65);
+  --surface-bottom-panel-shadow: 0 -20px 40px rgba(8, 11, 19, 0.7);
+  --surface-location-overlay: linear-gradient(
+    to right,
+    rgba(15, 23, 42, 0.9) 0%,
+    rgba(17, 25, 44, 0.78) 18%,
+    rgba(21, 30, 50, 0.42) 52%,
+    rgba(17, 25, 44, 0.78) 82%,
+    rgba(15, 23, 42, 0.9) 100%
+  );
+  --surface-drawer-bg: rgba(19, 24, 33, 0.96);
+  --surface-drawer-border: rgba(71, 85, 105, 0.55);
+  --surface-drawer-shadow: -28px 0 56px rgba(5, 9, 18, 0.7);
+  --surface-drawer-header-bg: rgba(26, 33, 45, 0.94);
+  --surface-chip-bg: rgba(40, 48, 63, 0.82);
+  --surface-chip-hover: rgba(54, 65, 82, 0.88);
+  --surface-chip-border: rgba(79, 93, 116, 0.55);
+  --surface-chip-active-bg: rgba(63, 135, 114, 0.9);
+  --surface-chip-active-border: rgba(110, 192, 165, 0.5);
+  --surface-chip-active-text: #e7f4ef;
+  --action-tile-bg: rgba(45, 55, 72, 0.85);
+  --action-tile-border: rgba(82, 97, 124, 0.55);
+  --action-tile-hover-bg: rgba(60, 74, 97, 0.9);
+  --action-tile-hover-border: rgba(117, 139, 170, 0.65);
+  --action-tile-disabled-bg: rgba(39, 48, 65, 0.55);
+  --action-tile-disabled-border: rgba(68, 82, 108, 0.4);
+  --brand-text: #5cc483;
+  --brand-shadow: rgba(112, 232, 195, 0.25);
+  --brand-glow: rgba(56, 189, 148, 0.5);
+
+  --button-primary-bg: #3F8772;
+  --button-primary-hover: #2F6E5A;
+  --button-primary-border: rgba(76, 146, 125, 0.55);
+  --button-primary-text: #E7F4EF;
+  --button-primary-shadow: 0 18px 36px rgba(12, 52, 41, 0.45);
+
+  --button-secondary-bg: rgba(59, 130, 246, 0.2);
+  --button-secondary-hover: rgba(59, 130, 246, 0.3);
+  --button-secondary-border: rgba(96, 165, 250, 0.38);
+  --button-secondary-text: #e2e8f0;
+
+  --pill-bg: rgba(59, 73, 95, 0.68);
+  --pill-border: rgba(148, 163, 184, 0.35);
+  --pill-text: #e2e8f0;
+  --pill-accent-bg: rgba(34, 197, 94, 0.25);
+  --pill-accent-border: rgba(74, 222, 128, 0.45);
+  --pill-accent-text: rgba(236, 253, 245, 0.95);
+
+  --tab-strip-bg: rgba(15, 23, 42, 0.48);
+  --tab-strip-border: rgba(30, 41, 59, 0.88);
+  --tab-button-text: rgba(203, 213, 225, 0.85);
+  --tab-button-hover-bg: rgba(39, 51, 75, 0.85);
+  --tab-button-active-bg: rgba(59, 130, 246, 0.25);
+  --tab-button-active-border: rgba(96, 165, 250, 0.45);
+  --tab-button-active-text: rgba(226, 233, 246, 0.98);
+  --toast-surface-bg: rgba(12, 21, 38, 0.94);
+  --toast-surface-border: rgba(96, 165, 250, 0.28);
+  --toast-surface-text: #e2e8f0;
+  --toast-progress-bg: rgba(96, 165, 250, 0.55);
+}
+
+/* CSS Variables are defined in :root:not(.dark) and :root.dark above - no light-dark() needed! */
+
+/* Main App Background - auto-adjusts based on theme */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+[data-surface="app-shell"] {
+  background-color: var(--surface-app-bg);
+  color: var(--surface-app-text);
+}
+
+[data-surface="top-nav"] {
+  background: var(--surface-top-nav-bg);
+  color: var(--surface-top-nav-text);
+  border-color: var(--surface-top-nav-border);
+  box-shadow: var(--surface-top-nav-shadow);
+}
+
+[data-surface="sidebar-left"],
+[data-surface="sidebar-right"] {
+  background: var(--surface-sidebar-bg);
+  color: var(--surface-sidebar-text);
+  border-color: var(--surface-sidebar-border);
+  box-shadow: var(--surface-sidebar-shadow);
+}
+
+[data-surface="modal-overlay"] {
+  background: var(--surface-modal-overlay-bg);
+}
+
+[data-surface="toast"] {
+  background: var(--toast-surface-bg);
+  border-color: var(--toast-surface-border);
+  color: var(--toast-surface-text);
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+[data-surface="modal-panel"] {
+  background-color: var(--surface-modal-panel-bg);
+  color: var(--surface-modal-panel-text);
+  border-color: var(--surface-modal-panel-border);
+  box-shadow: var(--surface-modal-panel-shadow);
+}
+
+/* Utility primitives */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
   width: 8px;
 }
 
-:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar-track {
-  background: var(--light-bg-tertiary);
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
   border-radius: 4px;
 }
 
-:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar-thumb {
-  background: var(--light-border-strong);
-  border-radius: 4px;
-  border: 2px solid var(--light-bg-tertiary);
-}
-
-:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar-thumb:hover {
-  background: var(--light-text-secondary);
-}
-
-/* Sidebar-specific gradients for light mode */
-:root:not(.dark) .bg-sidebar-gradient {
-  background: linear-gradient(to bottom, var(--light-bg-card), var(--light-bg-secondary)) !important;
-}
-
-:root:not(.dark) .bg-sidebar-gradient-light {
-  background: linear-gradient(135deg, var(--light-bg-card) 0%, var(--light-bg-secondary) 100%) !important;
-}
-
-/* ==========================================
-   LEFT SIDEBAR - TYPOGRAPHY FIXES
-   ========================================== */
-
-/* Header card text - make highly readable */
-:root:not(.dark) .sidebar-left .text-slate-400,
-:root:not(.dark) .sidebar-left .text-gray-400 {
-  color: var(--light-text-tertiary) !important;
-  font-weight: 600 !important;
-}
-
-/* Important info text - date, zone, region, etc. */
-:root:not(.dark) .sidebar-left .text-amber-300,
-:root:not(.dark) .sidebar-left .text-blue-300,
-:root:not(.dark) .sidebar-left .text-green-400,
-:root:not(.dark) .sidebar-left .text-white {
-  color: var(--light-text-primary) !important;
-  font-weight: 700 !important;
-}
-
-/* Secondary descriptive text */
-:root:not(.dark) .sidebar-left .text-slate-300 {
-  color: var(--light-text-secondary) !important;
-}
-
-/* ==========================================
-   RIGHT SIDEBAR - COMPLETE OVERHAUL
-   ========================================== */
-
-/* Right sidebar container */
-:root:not(.dark) .right-sidebar {
-  background: var(--light-bg-card) !important;
-  border-color: var(--light-border-strong) !important;
-  color: var(--light-text-primary) !important;
-}
-
-/* Profile card background */
-:root:not(.dark) .right-sidebar .bg-gradient-to-br {
-  background: var(--light-bg-card) !important;
-  border-color: var(--light-border-strong) !important;
-}
-
-/* Player name and info */
-:root:not(.dark) .right-sidebar .text-white,
-:root:not(.dark) .right-sidebar h4 {
-  color: var(--light-text-primary) !important;
-}
-
-/* Profession text */
-:root:not(.dark) .right-sidebar .text-amber-300,
-:root:not(.dark) .right-sidebar .text-amber-600 {
-  color: #d97706 !important;
-  font-weight: 600 !important;
-}
-
-/* Level, currency, reputation */
-:root:not(.dark) .right-sidebar .text-blue-300,
-:root:not(.dark) .right-sidebar .text-blue-600 {
-  color: #2563eb !important;
-  font-weight: 700 !important;
-}
-
-:root:not(.dark) .right-sidebar .text-yellow-400,
-:root:not(.dark) .right-sidebar .text-yellow-600 {
-  color: #ca8a04 !important;
-}
-
-:root:not(.dark) .right-sidebar .text-green-400,
-:root:not(.dark) .right-sidebar .text-green-600 {
-  color: #16a34a !important;
-}
-
-/* Status text */
-:root:not(.dark) .right-sidebar .text-amber-200 {
-  color: #92400e !important;
-  font-style: italic;
-}
-
-/* Age and gender info */
-:root:not(.dark) .right-sidebar .text-gray-400,
-:root:not(.dark) .right-sidebar .text-gray-600 {
-  color: var(--light-text-tertiary) !important;
-}
-
-/* Progress bar labels */
-:root:not(.dark) .right-sidebar .text-gray-400 {
-  color: var(--light-text-muted) !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
-}
-
-/* Action buttons section header */
-:root:not(.dark) .right-sidebar .tracking-wider {
-  color: var(--light-text-tertiary) !important;
-  font-weight: 700 !important;
-}
-
-/* Tab navigation backgrounds */
-:root:not(.dark) .right-sidebar .bg-slate-800 {
-  background-color: var(--light-bg-tertiary) !important;
-  border-color: var(--light-border-normal) !important;
-}
-
-/* Active tab states */
-:root:not(.dark) .right-sidebar .bg-gradient-to-r.from-blue-600,
-:root:not(.dark) .right-sidebar .bg-gradient-to-r.from-emerald-600,
-:root:not(.dark) .right-sidebar .bg-gradient-to-r.from-purple-600,
-:root:not(.dark) .right-sidebar .bg-gradient-to-r.from-amber-600 {
-  color: white !important;
-}
-
-/* Inactive tab text */
-:root:not(.dark) .right-sidebar .text-slate-400 {
-  color: var(--light-text-tertiary) !important;
-}
-
-/* Action button text - ensure visibility */
-:root:not(.dark) .right-sidebar button .text-gray-300,
-:root:not(.dark) .right-sidebar .text-gray-300 {
-  color: var(--light-text-primary) !important;
-  font-weight: 600 !important;
-}
-
-/* Progress bar track backgrounds */
-:root:not(.dark) .right-sidebar .bg-slate-900\/90,
-:root:not(.dark) .right-sidebar .bg-slate-800\/80 {
-  background-color: var(--light-bg-tertiary) !important;
-  border: 1px solid var(--light-border-normal) !important;
-}
-
-/* ==========================================
-   BOTTOM PANEL - LIGHT MODE
-   ========================================== */
-
-/* Bottom panel container */
-:root:not(.dark) .bottom-panel,
-:root:not(.dark) [class*="bottom"] {
-  background-color: var(--light-bg-card) !important;
-  border-color: var(--light-border-strong) !important;
-}
-
-/* Location text in bottom panel */
-:root:not(.dark) .bottom-panel .text-cyan-400,
-:root:not(.dark) .bottom-panel .text-blue-400 {
-  color: #0891b2 !important;
-  font-weight: 700 !important;
-}
-
-/* ==========================================
-   COMPREHENSIVE BUTTON TEXT FIXES
-   ========================================== */
-
-/* All button text - default to dark */
-:root:not(.dark) button:not(.keep-dark):not(.bg-gradient-to-r) {
-  color: var(--light-text-primary) !important;
-}
-
-/* Buttons with light text classes */
-:root:not(.dark) button .text-slate-200,
-:root:not(.dark) button .text-slate-300,
-:root:not(.dark) button .text-gray-200,
-:root:not(.dark) button .text-gray-300,
-:root:not(.dark) button .text-white {
-  color: var(--light-text-primary) !important;
-}
-
-/* Gradient buttons keep white text */
-:root:not(.dark) .bg-gradient-to-r,
-:root:not(.dark) .bg-gradient-to-br,
-:root:not(.dark) .bg-gradient-to-r *,
-:root:not(.dark) .bg-gradient-to-br * {
-  color: white !important;
-}
-
-/* Specific button color overrides */
-:root:not(.dark) .bg-slate-700,
-:root:not(.dark) .bg-slate-800 {
-  background-color: var(--light-bg-tertiary) !important;
-  color: var(--light-text-primary) !important;
-  border-color: var(--light-border-normal) !important;
-}
-
-/* Hover states on slate buttons */
-:root:not(.dark) .bg-slate-700:hover,
-:root:not(.dark) .bg-slate-800:hover,
-:root:not(.dark) .hover\:bg-slate-700:hover,
-:root:not(.dark) .hover\:bg-slate-800:hover {
-  background-color: var(--light-bg-tertiary) !important;
-  filter: brightness(0.95);
-}
-
-/* ==========================================
-   NARRATOR PANEL & TEXT INPUT
-   ========================================== */
-
-/* Narrator history background */
-:root:not(.dark) .narrator-panel,
-:root:not(.dark) [class*="narration"] {
-  background-color: var(--light-bg-secondary) !important;
-}
-
-/* Input placeholder text */
-:root:not(.dark) ::placeholder {
-  color: var(--light-text-muted) !important;
-  opacity: 0.7;
-}
-
-/* Text input fields */
-:root:not(.dark) textarea:not(.keep-dark),
-:root:not(.dark) input[type="text"]:not(.keep-dark) {
-  background-color: var(--light-bg-card) !important;
-  border-color: var(--light-border-normal) !important;
-  color: var(--light-text-primary) !important;
-}
-
-:root:not(.dark) textarea:focus:not(.keep-dark),
-:root:not(.dark) input[type="text"]:focus:not(.keep-dark) {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
-}
-
-/* ==========================================
-   ADDITIONAL COMPONENT FIXES
-   ========================================== */
-
-/* Collapsible sections and accordions */
-:root:not(.dark) .text-blue-400,
-:root:not(.dark) .text-blue-300 {
-  color: #2563eb !important;
-  font-weight: 600 !important;
-}
-
-/* Count badges */
-:root:not(.dark) .bg-gray-600,
-:root:not(.dark) .bg-slate-600 {
-  background-color: var(--light-border-strong) !important;
-  color: white !important;
-}
-
-:root:not(.dark) .bg-slate-700\/50,
-:root:not(.dark) .bg-slate-700\/60 {
-  background-color: var(--light-bg-tertiary) !important;
-  border: 1px solid var(--light-border-normal) !important;
-}
-
-/* List items and interactive elements */
-:root:not(.dark) .hover\:bg-slate-700\/50:hover,
-:root:not(.dark) .hover\:bg-slate-800\/40:hover {
-  background-color: var(--light-bg-tertiary) !important;
-}
-
-/* Selected states */
-:root:not(.dark) .bg-blue-800\/50 {
-  background-color: rgba(37, 99, 235, 0.1) !important;
-  border-color: rgba(37, 99, 235, 0.3) !important;
-}
-
-/* Hover states - proper feedback in light mode */
-:root:not(.dark) button:hover:not(.keep-dark):not(:disabled),
-:root:not(.dark) [role="button"]:hover:not(.keep-dark) {
-  background-color: var(--light-bg-tertiary) !important;
-  border-color: var(--light-border-strong) !important;
-}
-
-:root:not(.dark) .hover\:bg-slate-700:hover:not(.keep-dark),
-:root:not(.dark) .hover\:bg-slate-800:hover:not(.keep-dark) {
-  background-color: var(--light-bg-tertiary) !important;
-}
-
-/* Active/focus states */
-:root:not(.dark) button:active:not(.keep-dark):not(:disabled),
-:root:not(.dark) [role="button"]:active:not(.keep-dark) {
-  transform: scale(0.98);
-  box-shadow: var(--light-shadow-sm) !important;
-}
-
-/* Ensure text contrast is sufficient across all elements */
-:root:not(.dark) *:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
-  --tw-text-opacity: 1;
-}
-
-@keyframes fireFlicker {
-  0% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1.1) translateY(-2px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-/* Enhanced fire animations with varying patterns */
-@keyframes fireFlicker1 {
-  0% { transform: scale(1) translateY(0) translateX(0); opacity: 0.9; }
-  25% { transform: scale(1.05) translateY(-1px) translateX(-0.5px); opacity: 0.95; }
-  50% { transform: scale(1.12) translateY(-3px) translateX(0.5px); opacity: 1; }
-  75% { transform: scale(1.08) translateY(-2px) translateX(-0.3px); opacity: 0.9; }
-  100% { transform: scale(1) translateY(0) translateX(0); opacity: 0.9; }
-}
-
-@keyframes fireFlicker2 {
-  0% { transform: scale(1.02) translateY(-0.5px) translateX(0.2px); opacity: 0.8; }
-  30% { transform: scale(1.1) translateY(-2px) translateX(-0.4px); opacity: 0.85; }
-  60% { transform: scale(1.15) translateY(-4px) translateX(0.6px); opacity: 0.9; }
-  80% { transform: scale(1.06) translateY(-1px) translateX(-0.2px); opacity: 0.85; }
-  100% { transform: scale(1.02) translateY(-0.5px) translateX(0.2px); opacity: 0.8; }
-}
-
-@keyframes fireFlicker3 {
-  0% { transform: scale(0.98) translateY(0.5px) translateX(-0.1px); opacity: 0.9; }
-  20% { transform: scale(1.08) translateY(-2px) translateX(0.3px); opacity: 0.95; }
-  45% { transform: scale(1.18) translateY(-5px) translateX(-0.4px); opacity: 1; }
-  70% { transform: scale(1.12) translateY(-3px) translateX(0.2px); opacity: 0.92; }
-  100% { transform: scale(0.98) translateY(0.5px) translateX(-0.1px); opacity: 0.9; }
-}
-
-@keyframes fireFlicker4 {
-  0% { transform: scale(1.01) translateY(-0.2px) translateX(0.1px); opacity: 0.95; }
-  35% { transform: scale(1.06) translateY(-1.5px) translateX(-0.3px); opacity: 1; }
-  55% { transform: scale(1.14) translateY(-3.5px) translateX(0.4px); opacity: 0.98; }
-  85% { transform: scale(1.09) translateY(-2px) translateX(-0.1px); opacity: 0.96; }
-  100% { transform: scale(1.01) translateY(-0.2px) translateX(0.1px); opacity: 0.95; }
-}
-
-@keyframes fireGlow {
-  0% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.1); }
-  100% { opacity: 0.3; transform: scale(1); }
-}
-
-@keyframes sparks {
-  0% { opacity: 0.8; transform: translateY(0) scale(1); }
-  25% { opacity: 0.9; transform: translateY(-2px) scale(1.2); }
-  50% { opacity: 0.6; transform: translateY(-4px) scale(0.8); }
-  75% { opacity: 0.7; transform: translateY(-1px) scale(1.1); }
-  100% { opacity: 0.8; transform: translateY(0) scale(1); }
-}
-
-/* CSS classes for the animations */
-.animate-fireFlicker1 {
-  animation: fireFlicker1 1.8s ease-in-out infinite;
-}
-
-.animate-fireFlicker2 {
-  animation: fireFlicker2 2.2s ease-in-out infinite;
-  animation-delay: 0.3s;
-}
-
-.animate-fireFlicker3 {
-  animation: fireFlicker3 1.5s ease-in-out infinite;
-  animation-delay: 0.6s;
-}
-
-.animate-fireFlicker4 {
-  animation: fireFlicker4 2.0s ease-in-out infinite;
-  animation-delay: 0.9s;
-}
-
-.animate-fireGlow {
-  animation: fireGlow 3.0s ease-in-out infinite;
-}
-
-.animate-sparks {
-  animation: sparks 2.5s ease-in-out infinite;
-  animation-delay: 1.2s;
-}
-
-@keyframes kangarooPunch {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  20% { transform: scale(1.1) translateX(-4px) rotate(-5deg); }
-  50% { transform: scale(1.15) translateX(-8px) rotate(-10deg); }
-  70% { transform: scale(1.2) translateX(4px) rotate(3deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-kangaroo-punch {
-  animation: kangarooPunch 0.6s ease-in-out;
-}
-
-@keyframes lionPounce {
-  0% { transform: scale(1) translateY(0) rotate(0deg); }
-  30% { transform: scale(1.1) translateY(-8px) rotate(-5deg); }
-  60% { transform: scale(1.15) translateY(-4px) translateX(6px) rotate(5deg); }
-  100% { transform: scale(1) translateY(0) rotate(0deg); }
-}
-
-.animate-lion-pounce {
-  animation: lionPounce 0.8s ease-in-out;
-}
-
-@keyframes tigerStrike {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  25% { transform: scale(1.05) translateX(-6px) rotate(-8deg); }
-  50% { transform: scale(1.1) translateX(-2px) rotate(0deg); }
-  75% { transform: scale(1.15) translateX(8px) rotate(5deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-tiger-strike {
-  animation: tigerStrike 0.7s ease-in-out;
-}
-
-@keyframes bearSwipe {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  20% { transform: scale(1.05) translateX(-3px) rotate(-5deg); }
-  50% { transform: scale(1.1) translateX(2px) rotate(0deg); }
-  80% { transform: scale(1.15) translateX(6px) rotate(8deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-bear-swipe {
-  animation: bearSwipe 0.9s ease-in-out;
-}
-
-@keyframes leopardPounce {
-  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
-  25% { transform: scale(1.05) translateY(-6px) translateX(-3px) rotate(-3deg); }
-  50% { transform: scale(1.1) translateY(-10px) translateX(2px) rotate(2deg); }
-  75% { transform: scale(1.15) translateY(-4px) translateX(6px) rotate(4deg); }
-  100% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
-}
-
-.animate-leopard-pounce {
-  animation: leopardPounce 0.75s ease-in-out;
-}
-
-@keyframes elephantStomp {
-  0% { transform: scale(1) translateY(0) rotate(0deg); }
-  20% { transform: scale(1.02) translateY(-2px) rotate(-1deg); }
-  50% { transform: scale(1.05) translateY(3px) rotate(1deg); }
-  80% { transform: scale(1.08) translateY(-1px) rotate(-0.5deg); }
-  100% { transform: scale(1) translateY(0) rotate(0deg); }
-}
-
-.animate-elephant-stomp {
-  animation: elephantStomp 1.2s ease-in-out;
-}
-
-@keyframes rhinoCharge {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  25% { transform: scale(1.03) translateX(-2px) rotate(-2deg); }
-  50% { transform: scale(1.06) translateX(4px) rotate(1deg); }
-  75% { transform: scale(1.1) translateX(8px) rotate(3deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-rhino-charge {
-  animation: rhinoCharge 1.0s ease-in-out;
-}
-
-@keyframes eagleSwoop {
-  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
-  20% { transform: scale(1.05) translateY(-8px) translateX(-2px) rotate(-8deg); }
-  40% { transform: scale(1.1) translateY(-12px) translateX(4px) rotate(-3deg); }
-  60% { transform: scale(1.15) translateY(-6px) translateX(8px) rotate(5deg); }
-  80% { transform: scale(1.1) translateY(-2px) translateX(4px) rotate(2deg); }
-  100% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
-}
-
-.animate-eagle-swoop {
-  animation: eagleSwoop 0.8s ease-in-out;
-}
-
-/* Fleeing animations for animals */
-@keyframes flyAway {
-  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
-  20% { transform: scale(1.1) translateY(-8px) translateX(20px) rotate(-5deg); opacity: 1; }
-  40% { transform: scale(1.05) translateY(-16px) translateX(60px) rotate(-3deg); opacity: 0.8; }
-  60% { transform: scale(0.9) translateY(-20px) translateX(100px) rotate(2deg); opacity: 0.6; }
-  80% { transform: scale(0.8) translateY(-18px) translateX(140px) rotate(5deg); opacity: 0.3; }
-  100% { transform: scale(0.6) translateY(-15px) translateX(200px) rotate(8deg); opacity: 0; }
-}
-
-.animate-fly-away {
-  animation: flyAway 1.5s ease-out forwards;
-}
-
-@keyframes boundAway {
-  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
-  10% { transform: scale(1.1) translateY(-4px) translateX(8px) rotate(-2deg); opacity: 1; }
-  25% { transform: scale(1.05) translateY(2px) translateX(20px) rotate(1deg); opacity: 1; }
-  35% { transform: scale(1.1) translateY(-6px) translateX(35px) rotate(-3deg); opacity: 0.9; }
-  50% { transform: scale(1.05) translateY(1px) translateX(55px) rotate(2deg); opacity: 0.8; }
-  65% { transform: scale(1.0) translateY(-4px) translateX(80px) rotate(-1deg); opacity: 0.6; }
-  80% { transform: scale(0.9) translateY(0px) translateX(120px) rotate(1deg); opacity: 0.3; }
-  100% { transform: scale(0.7) translateY(-2px) translateX(180px) rotate(0deg); opacity: 0; }
-}
-
-.animate-bound-away {
-  animation: boundAway 1.2s ease-out forwards;
-}
-
-@keyframes swimAway {
-  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
-  20% { transform: scale(1.05) translateY(-2px) translateX(15px) rotate(-8deg); opacity: 1; }
-  40% { transform: scale(1.0) translateY(1px) translateX(40px) rotate(-12deg); opacity: 0.9; }
-  60% { transform: scale(0.95) translateY(-1px) translateX(75px) rotate(-15deg); opacity: 0.7; }
-  80% { transform: scale(0.85) translateY(2px) translateX(120px) rotate(-18deg); opacity: 0.4; }
-  100% { transform: scale(0.7) translateY(0px) translateX(180px) rotate(-20deg); opacity: 0; }
-}
-
-.animate-swim-away {
-  animation: swimAway 1.8s ease-out forwards;
-}
-
-@keyframes runAway {
-  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
-  15% { transform: scale(1.05) translateY(-1px) translateX(12px) rotate(-1deg); opacity: 1; }
-  30% { transform: scale(1.02) translateY(1px) translateX(30px) rotate(1deg); opacity: 1; }
-  45% { transform: scale(1.0) translateY(-1px) translateX(55px) rotate(0deg); opacity: 0.9; }
-  60% { transform: scale(0.95) translateY(0px) translateX(85px) rotate(-1deg); opacity: 0.7; }
-  75% { transform: scale(0.9) translateY(1px) translateX(120px) rotate(1deg); opacity: 0.5; }
-  90% { transform: scale(0.8) translateY(0px) translateX(160px) rotate(0deg); opacity: 0.2; }
-  100% { transform: scale(0.7) translateY(-1px) translateX(200px) rotate(0deg); opacity: 0; }
-}
-
-.animate-run-away {
-  animation: runAway 1.4s ease-out forwards;
-}
-
-/* Combat Skill Animations */
-
-/* Observing - focused attention */
-@keyframes observing {
-  0% { transform: scale(1) translateY(0); }
-  25% { transform: scale(1.02) translateY(-1px); }
-  50% { transform: scale(1.05) translateY(-2px); }
-  75% { transform: scale(1.03) translateY(-1px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-.animate-observing {
-  animation: observing 1.5s ease-in-out;
-}
-
-/* Foraging - searching motion */
-@keyframes foraging {
-  0% { transform: translateX(0) rotate(0deg); }
-  20% { transform: translateX(-3px) rotate(-5deg); }
-  40% { transform: translateX(3px) rotate(5deg); }
-  60% { transform: translateX(-2px) rotate(-3deg); }
-  80% { transform: translateX(2px) rotate(3deg); }
-  100% { transform: translateX(0) rotate(0deg); }
-}
-
-.animate-foraging {
-  animation: foraging 1.2s ease-in-out;
-}
-
-/* Digging - up and down motion */
-@keyframes digging {
-  0% { transform: translateY(0) scale(1); }
-  25% { transform: translateY(-4px) scale(1.05); }
-  50% { transform: translateY(2px) scale(0.98); }
-  75% { transform: translateY(-2px) scale(1.02); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-.animate-digging {
-  animation: digging 0.8s ease-in-out;
-}
-
-/* Bandaging - gentle healing motion */
-@keyframes bandaging {
-  0% { transform: scale(1) translateX(0); }
-  33% { transform: scale(1.02) translateX(-2px); }
-  66% { transform: scale(1.02) translateX(2px); }
-  100% { transform: scale(1) translateX(0); }
-}
-
-.animate-bandaging {
-  animation: bandaging 2.0s ease-in-out;
-}
-
-/* Parrying - defensive stance */
-@keyframes parrying {
-  0% { transform: translateX(0) rotate(0deg) scale(1); }
-  30% { transform: translateX(-4px) rotate(-8deg) scale(1.05); }
-  60% { transform: translateX(2px) rotate(3deg) scale(1.02); }
-  100% { transform: translateX(0) rotate(0deg) scale(1); }
-}
-
-.animate-parrying {
-  animation: parrying 0.6s ease-out;
-}
-
-/* Grappling - wrestling motion */
-@keyframes grappling {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  20% { transform: scale(1.1) translateX(-5px) rotate(-10deg); }
-  40% { transform: scale(1.15) translateX(3px) rotate(8deg); }
-  60% { transform: scale(1.08) translateX(-2px) rotate(-5deg); }
-  80% { transform: scale(1.12) translateX(4px) rotate(6deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-grappling {
-  animation: grappling 1.0s ease-in-out;
-}
-
-/* Feinting - deceptive movement */
-@keyframes feinting {
-  0% { transform: translateX(0) rotate(0deg); }
-  25% { transform: translateX(6px) rotate(5deg); }
-  50% { transform: translateX(-8px) rotate(-8deg); }
-  75% { transform: translateX(4px) rotate(3deg); }
-  100% { transform: translateX(0) rotate(0deg); }
-}
-
-.animate-feinting {
-  animation: feinting 0.8s ease-in-out;
-}
-
-/* Singing - rhythmic motion */
-@keyframes singing {
-  0% { transform: scale(1) translateY(0); }
-  25% { transform: scale(1.02) translateY(-1px); }
-  50% { transform: scale(1.04) translateY(-2px); }
-  75% { transform: scale(1.02) translateY(-1px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-.animate-singing {
-  animation: singing 1.5s ease-in-out infinite;
-}
-
-/* Profession-Specific Skill Animations */
-
-/* Knight Skills */
-@keyframes mountedCharge {
-  0% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
-  30% { transform: scale(1.15) translateX(-8px) translateY(-3px) rotate(-5deg); }
-  60% { transform: scale(1.2) translateX(12px) translateY(-1px) rotate(8deg); }
-  100% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
-}
-
-.animate-mounted-charge {
-  animation: mountedCharge 1.0s ease-out;
-}
-
-@keyframes swordAndBoard {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  25% { transform: scale(1.05) translateX(-3px) rotate(-5deg); }
-  50% { transform: scale(1.1) translateX(6px) rotate(8deg); }
-  75% { transform: scale(1.05) translateX(-2px) rotate(-3deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-sword-and-board {
-  animation: swordAndBoard 0.8s ease-in-out;
-}
-
-@keyframes chivalrousChallenge {
-  0% { transform: scale(1) translateY(0); }
-  30% { transform: scale(1.08) translateY(-4px); }
-  60% { transform: scale(1.05) translateY(-2px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-.animate-chivalrous-challenge {
-  animation: chivalrousChallenge 1.2s ease-out;
-}
-
-/* Blacksmith Skills */
-@keyframes forgeHeat {
-  0% { transform: scale(1) translateY(0); }
-  20% { transform: scale(1.05) translateY(-2px); }
-  40% { transform: scale(1.1) translateY(-4px); }
-  60% { transform: scale(1.08) translateY(-2px); }
-  80% { transform: scale(1.03) translateY(-1px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-.animate-forge-heat {
-  animation: forgeHeat 1.0s ease-out;
-}
-
-@keyframes metalworkExpertise {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  25% { transform: scale(1.03) translateX(-2px) rotate(-3deg); }
-  50% { transform: scale(1.06) translateX(2px) rotate(3deg); }
-  75% { transform: scale(1.03) translateX(-1px) rotate(-1deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-metalwork-expertise {
-  animation: metalworkExpertise 0.9s ease-in-out;
-}
-
-/* Carpenter Skills */
-@keyframes timberStrike {
-  0% { transform: scale(1) translateY(0) rotate(0deg); }
-  30% { transform: scale(1.1) translateY(-6px) rotate(-8deg); }
-  60% { transform: scale(1.15) translateY(2px) rotate(5deg); }
-  100% { transform: scale(1) translateY(0) rotate(0deg); }
-}
-
-.animate-timber-strike {
-  animation: timberStrike 0.7s ease-out;
-}
-
-@keyframes preciseCut {
-  0% { transform: scale(1) translateX(0); }
-  40% { transform: scale(1.05) translateX(-4px); }
-  80% { transform: scale(1.02) translateX(2px); }
-  100% { transform: scale(1) translateX(0); }
-}
-
-.animate-precise-cut {
-  animation: preciseCut 0.6s ease-in-out;
-}
-
-@keyframes woodenBarrier {
-  0% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1.1) translateY(-3px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-.animate-wooden-barrier {
-  animation: woodenBarrier 0.8s ease-out;
-}
-
-/* Farmer Skills */
-@keyframes scytheSweep {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  30% { transform: scale(1.05) translateX(-8px) rotate(-15deg); }
-  70% { transform: scale(1.08) translateX(8px) rotate(15deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-scythe-sweep {
-  animation: scytheSweep 0.9s ease-in-out;
-}
-
-@keyframes pitchforkThrust {
-  0% { transform: scale(1) translateY(0) translateX(0); }
-  40% { transform: scale(1.08) translateY(-4px) translateX(-2px); }
-  80% { transform: scale(1.12) translateY(2px) translateX(6px); }
-  100% { transform: scale(1) translateY(0) translateX(0); }
-}
-
-.animate-pitchfork-thrust {
-  animation: pitchforkThrust 0.7s ease-out;
-}
-
-@keyframes harvestEndurance {
-  0% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1.03) translateY(-1px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-.animate-harvest-endurance {
-  animation: harvestEndurance 1.5s ease-in-out;
-}
-
-/* Fisherman Skills */
-@keyframes netThrow {
-  0% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
-  30% { transform: scale(1.1) translateX(-4px) translateY(-8px) rotate(-20deg); }
-  70% { transform: scale(1.05) translateX(12px) translateY(-4px) rotate(25deg); }
-  100% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
-}
-
-.animate-net-throw {
-  animation: netThrow 1.0s ease-out;
-}
-
-@keyframes guttingKnife {
-  0% { transform: scale(1) translateX(0) rotate(0deg); }
-  25% { transform: scale(1.05) translateX(-3px) rotate(-8deg); }
-  50% { transform: scale(1.08) translateX(3px) rotate(8deg); }
-  75% { transform: scale(1.03) translateX(-1px) rotate(-3deg); }
-  100% { transform: scale(1) translateX(0) rotate(0deg); }
-}
-
-.animate-gutting-knife {
-  animation: guttingKnife 0.6s ease-in-out;
-}
-
-@keyframes sailorsStrength {
-  0% { transform: scale(1) translateY(0); }
-  25% { transform: scale(1.05) translateY(-2px); }
-  50% { transform: scale(1.08) translateY(-4px); }
-  75% { transform: scale(1.03) translateY(-1px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-.animate-sailors-strength {
-  animation: sailorsStrength 1.0s ease-out;
-}
-
-/* Default/Desperate Skills */
-@keyframes desperateSwing {
-  0% {
-    transform: scale(1) translateX(0) rotate(0deg);
-    filter: brightness(1);
-  }
-  10% {
-    transform: scale(1.2) translateX(-15px) rotate(-35deg);
-    filter: brightness(1.3) contrast(1.2);
-  }
-  25% {
-    transform: scale(1.25) translateX(20px) rotate(45deg);
-    filter: brightness(1.5) contrast(1.3) saturate(1.5);
-  }
-  40% {
-    transform: scale(1.3) translateX(-25px) rotate(-60deg);
-    filter: brightness(1.4) contrast(1.2);
-  }
-  55% {
-    transform: scale(1.2) translateX(30px) rotate(50deg);
-    filter: brightness(1.6) contrast(1.4) hue-rotate(10deg);
-  }
-  70% {
-    transform: scale(1.15) translateX(-18px) rotate(-40deg);
-    filter: brightness(1.3);
-  }
-  85% {
-    transform: scale(1.1) translateX(10px) rotate(20deg);
-    filter: brightness(1.2);
-  }
-  100% {
-    transform: scale(1) translateX(0) rotate(0deg);
-    filter: brightness(1);
-  }
-}
-
-.animate-desperate-swing {
-  animation: desperateSwing 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  transform-origin: center;
-}
-
-/* Burn Skill Animation - Initial fiery attack */
-@keyframes burnAttack {
-  0% {
-    transform: scale(1) translateX(0);
-    filter: brightness(1);
-  }
-  20% {
-    transform: scale(1.1) translateX(-5px);
-    filter: brightness(1.5) saturate(2) hue-rotate(-20deg);
-  }
-  40% {
-    transform: scale(1.2) translateX(10px);
-    filter: brightness(2) saturate(3) hue-rotate(-30deg) contrast(1.3);
-  }
-  60% {
-    transform: scale(1.15) translateX(-2px);
-    filter: brightness(1.8) saturate(2.5) hue-rotate(-25deg);
-  }
-  80% {
-    transform: scale(1.05) translateX(3px);
-    filter: brightness(1.3) saturate(1.5) hue-rotate(-10deg);
-  }
-  100% {
-    transform: scale(1) translateX(0);
-    filter: brightness(1);
-  }
-}
-
-.animate-burn {
-  animation: burnAttack 0.8s ease-out;
-}
-
-@keyframes improvisedWeapon {
-  0% { transform: scale(1) translateY(0) rotate(0deg); }
-  30% { transform: scale(1.12) translateY(-5px) rotate(-10deg); }
-  60% { transform: scale(1.08) translateY(2px) rotate(8deg); }
-  100% { transform: scale(1) translateY(0) rotate(0deg); }
-}
-
-.animate-improvised-weapon {
-  animation: improvisedWeapon 0.9s ease-out;
-}
-
-/* Projectile animations for combat */
-@keyframes projectileFly {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(40vw); }
-}
-
-@keyframes projectileFlyReverse {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-40vw); }
-}
-
-/* Thrown item arc animations */
-@keyframes throwArc {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate(10vw, -10vh) rotate(90deg);
-  }
-  50% {
-    transform: translate(20vw, -15vh) rotate(180deg);
-  }
-  75% {
-    transform: translate(30vw, -8vh) rotate(270deg);
-  }
-  100% {
-    transform: translate(40vw, 0) rotate(360deg);
-  }
-}
-
-@keyframes throwArcReverse {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate(-10vw, -10vh) rotate(-90deg);
-  }
-  50% {
-    transform: translate(-20vw, -15vh) rotate(-180deg);
-  }
-  75% {
-    transform: translate(-30vw, -8vh) rotate(-270deg);
-  }
-  100% {
-    transform: translate(-40vw, 0) rotate(-360deg);
-  }
-}
-
-/* Enhanced projectile trajectory animations */
-@keyframes throwStraight {
-  0% {
-    transform: translate(0, 0);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(40vw, 0);
-    opacity: 0.8;
-  }
-}
-
-@keyframes throwStraightReverse {
-  0% {
-    transform: translate(0, 0);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-40vw, 0);
-    opacity: 0.8;
-  }
-}
-
-@keyframes throwSpinning {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 1;
-  }
-  25% {
-    transform: translate(10vw, -5vh) rotate(180deg);
-    opacity: 0.95;
-  }
-  50% {
-    transform: translate(20vw, -8vh) rotate(360deg);
-    opacity: 0.9;
-  }
-  75% {
-    transform: translate(30vw, -4vh) rotate(540deg);
-    opacity: 0.85;
-  }
-  100% {
-    transform: translate(40vw, 0) rotate(720deg);
-    opacity: 0.8;
-  }
-}
-
-@keyframes throwSpinningReverse {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 1;
-  }
-  25% {
-    transform: translate(-10vw, -5vh) rotate(-180deg);
-    opacity: 0.95;
-  }
-  50% {
-    transform: translate(-20vw, -8vh) rotate(-360deg);
-    opacity: 0.9;
-  }
-  75% {
-    transform: translate(-30vw, -4vh) rotate(-540deg);
-    opacity: 0.85;
-  }
-  100% {
-    transform: translate(-40vw, 0) rotate(-720deg);
-    opacity: 0.8;
-  }
-}
-
-/* Death Modal Animations */
-@keyframes deathFadeIn {
-  0% {
-    opacity: 0;
-    background-color: transparent;
-  }
-  50% {
-    opacity: 0.5;
-    background-color: rgba(0, 0, 0, 0.6);
-  }
-  100% {
-    opacity: 1;
-    background-color: rgba(0, 0, 0, 0.8);
-  }
-}
-
-@keyframes deathModalAppear {
-  0% {
-    opacity: 0;
-    transform: scale(0.9) translateY(20px);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.95) translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes etherealFloat {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-5px) scale(1.01);
-  }
-}
-
-.death-modal-container {
-  animation: deathFadeIn 2s ease-out forwards;
-}
-
-.death-modal-content {
-  animation: deathModalAppear 1.5s ease-out 0.5s both,
-             etherealFloat 4s ease-in-out infinite 2s;
-}
-
-/* Ethereal particle effect overlay */
-.death-modal-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 50%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 50% 20%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
-  animation: etherealFloat 8s ease-in-out infinite reverse;
-  pointer-events: none;
-}
-
-/* Custom scrollbar for modals */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
   border-radius: 4px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.6);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
-}
-
-/* ==========================================
-   SMOOTH LOADING ANIMATIONS
-   ========================================== */
-
-/* Fade-in animation for main UI elements */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Apply animations with staggered delays */
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-.animate-fade-in-scale {
-  animation: fadeInScale 0.5s ease-out forwards;
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.4s ease-out forwards;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.4s ease-out forwards;
-}
-
-/* Safari-compatible fade using transitions instead of animations */
-.safari-fade-in {
-  opacity: 0;
-  transform: translateY(0);
-  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-}
-
-.safari-fade-in.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.safari-fade-in-scale {
-  opacity: 0;
-  transform: scale(0.98);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-}
-
-.safari-fade-in-scale.visible {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.safari-slide-left {
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-}
-
-.safari-slide-left.visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.safari-slide-right {
-  opacity: 0;
-  transform: translateX(10px);
-  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-}
-
-.safari-slide-right.visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-
-/* Staggered delays for cascading effect */
-.delay-50 {
-  animation-delay: 50ms;
-}
-
-.delay-100 {
-  animation-delay: 100ms;
-}
-
-.delay-150 {
-  animation-delay: 150ms;
-}
-
-.delay-200 {
-  animation-delay: 200ms;
-}
-
-.delay-250 {
-  animation-delay: 250ms;
-}
-
-.delay-300 {
-  animation-delay: 300ms;
-}
-
-/* ==========================================
-   SAFARI PERFORMANCE OPTIMIZATIONS
-   ========================================== */
-
-/* Remove tap highlight on Safari for better click responsiveness */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Enable fast clicking without 300ms delay on Safari */
-button,
-a,
-.clickable,
-[role="button"],
-[onclick],
-.cursor-pointer {
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Force GPU acceleration for commonly animated elements */
-.modal,
-.modal-content,
-.transition-all,
-.transition-transform,
-.animate-*,
-[class*="animate-"] {
-  -webkit-transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  -webkit-perspective: 1000;
-}
-
-/* Disable expensive backdrop-blur on Safari automatically */
-@supports (-webkit-backdrop-filter: blur(1px)) {
-  .backdrop-blur-sm,
-  .backdrop-blur,
-  .backdrop-blur-md,
-  .backdrop-blur-lg,
-  .backdrop-blur-xl {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    background-color: rgba(0, 0, 0, 0.8) !important;
-  }
-}
-
-/* Optimize transitions for Safari */
-@supports (-webkit-appearance: none) {
-  .transition-all {
-    transition-property: transform, opacity, background-color, border-color !important;
-    transition-duration: 150ms !important;
-  }
-
-  .duration-300 {
-    transition-duration: 150ms !important;
-  }
-
-  .duration-200 {
-    transition-duration: 100ms !important;
-  }
-}
-
-/* Volume Slider Styling */
-.slider-thumb::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #3b82f6;
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: all 0.15s ease-in-out;
-}
-
-.slider-thumb::-webkit-slider-thumb:hover {
-  background: #60a5fa;
-  transform: scale(1.1);
-}
-
-.slider-thumb::-webkit-slider-thumb:active {
-  background: #2563eb;
-  transform: scale(0.95);
-}
-
-.slider-thumb::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #3b82f6;
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: all 0.15s ease-in-out;
-}
-
-.slider-thumb::-moz-range-thumb:hover {
-  background: #60a5fa;
-  transform: scale(1.1);
-}
-
-.slider-thumb::-moz-range-thumb:active {
-  background: #2563eb;
-  transform: scale(0.95);
-}
-
-.slider-thumb:disabled::-webkit-slider-thumb,
-.slider-thumb:disabled::-moz-range-thumb {
-  background: #94a3b8;
-  cursor: not-allowed;
-}
-
-/* Tile Info Modal Animations */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-muted) 70%, transparent);
 }

@@ -113,7 +113,11 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
   };
   
   return (
-    <div style={containerStyle}>
+    <div
+      data-surface="mobile-controls"
+      className="mobile-controls theme-surface"
+      style={containerStyle}
+    >
       {/* Up button */}
       <button
         style={{

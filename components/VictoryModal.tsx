@@ -37,9 +37,14 @@ const VictoryModal: React.FC<VictoryModalProps> = ({
   }, [opponent]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface"
+      onClick={onClose}
+    >
       <div 
-        className="ff-panel w-full max-w-2xl p-6" 
+        data-surface="modal-panel"
+        className="ff-panel theme-surface w-full max-w-2xl p-6" 
         onClick={(e) => e.stopPropagation()}
       >
         {isNpc(opponent) ? (

@@ -90,8 +90,17 @@ const MapDetailsModal: React.FC<MapDetailsModalProps> = ({ isOpen, onClose, mapD
   if (!isOpen || !mapData || !analysisData) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="ff-panel" style={{ width: '80vw', maxWidth: '700px', height: 'auto', maxHeight: '80vh' }} onClick={(e) => e.stopPropagation()}>
+    <div
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface"
+      onClick={onClose}
+    >
+      <div
+        data-surface="modal-panel"
+        className="ff-panel theme-surface"
+        style={{ width: '80vw', maxWidth: '700px', height: 'auto', maxHeight: '80vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="modal-header" style={{ 

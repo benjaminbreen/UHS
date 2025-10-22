@@ -1299,6 +1299,26 @@ const PRICING_DATA = {
 };
 
 class POIDialogueService {
+  private static ERA_ORDER: HistoricalEra[] = [
+    HistoricalEra.PREHISTORY,
+    HistoricalEra.ANTIQUITY,
+    HistoricalEra.MEDIEVAL,
+    HistoricalEra.RENAISSANCE_EARLY_MODERN,
+    HistoricalEra.INDUSTRIAL_ERA,
+    HistoricalEra.MODERN_ERA,
+    HistoricalEra.FUTURE_ERA
+  ];
+
+  private static ZONE_AFFINITIES: Record<string, string[]> = {
+    'Europe': ['Middle East', 'North America', 'South America'],
+    'Asia': ['Middle East', 'South Asia', 'Oceania'],
+    'Middle East': ['Europe', 'Asia', 'Africa'],
+    'North America': ['South America', 'Europe'],
+    'South America': ['North America', 'Europe'],
+    'Africa': ['Middle East', 'Europe'],
+    'Oceania': ['Asia', 'South America']
+  };
+
   private mapCulturalZone(zone: CulturalZone): string {
     const mapping: Record<CulturalZone, string> = {
       'EUROPEAN': 'Europe',
@@ -1320,23 +1340,54 @@ class POIDialogueService {
     era: HistoricalEra
   ): DialogueTemplate | null {
     const mappedZone = this.mapCulturalZone(culturalZone);
-    
-    // Convert era to string to ensure comparison works
-    const eraString = typeof era === 'string' ? era : (era ? era.toString() : 'MEDIEVAL');
-    
-    return DIALOGUE_TEMPLATES.find(
-      template => {
-        // Safe conversion with fallback
-        const templateEraString = typeof template.era === 'string' 
-          ? template.era 
-          : (template.era ? template.era.toString() : 'MEDIEVAL');
-        return (
-          template.type === poiType &&
-          template.culturalZone === mappedZone &&
-          templateEraString === eraString
-        );
+    const eraIndex = POIDialogueService.ERA_ORDER.indexOf(era);
+
+    const candidates = DIALOGUE_TEMPLATES.filter(template => template.type === poiType);
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const affinityZones = POIDialogueService.ZONE_AFFINITIES[mappedZone] || [];
+
+    const scoreTemplate = (template: DialogueTemplate): number => {
+      let score = 0;
+
+      if (template.culturalZone === mappedZone) {
+        score += 300;
+      } else if (affinityZones.includes(template.culturalZone)) {
+        score += 180;
+      } else {
+        score += 75;
       }
-    ) || null;
+
+      const templateEraIndex = POIDialogueService.ERA_ORDER.indexOf(template.era);
+      if (eraIndex !== -1 && templateEraIndex !== -1) {
+        const diff = Math.abs(templateEraIndex - eraIndex);
+        score += Math.max(120 - diff * 25, 0);
+        if (diff === 0) {
+          score += 80;
+        }
+      } else {
+        score += 20;
+      }
+
+      // Prefer richer service sets when scores tie
+      score += Math.min(template.services.length, 6);
+
+      return score;
+    };
+
+    let bestTemplate: DialogueTemplate | null = null;
+    let bestScore = -Infinity;
+    for (const candidate of candidates) {
+      const candidateScore = scoreTemplate(candidate);
+      if (candidateScore > bestScore) {
+        bestScore = candidateScore;
+        bestTemplate = candidate;
+      }
+    }
+
+    return bestTemplate;
   }
 
   private pickRandom<T>(array: T[]): T {

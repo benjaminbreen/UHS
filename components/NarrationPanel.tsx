@@ -206,22 +206,18 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
     <div
       aria-busy={isLoading}
       className={[
-        'group relative flex flex-col h-full rounded-xl overflow-hidden shadow-xl border transition-colors',
-        'bg-gradient-to-b from-slate-700/30 to-slate-800/55',
-        'border-slate-500/40 backdrop-blur-md',
-        'focus-within:ring-2 focus-within:ring-blue-400/25',
-        isLoading ? 'ring-1 ring-amber-400/25' : ''
+        'group relative flex flex-col h-full rounded-2xl overflow-hidden surface-card theme-surface transition-colors',
+        'shadow-lg border focus-within:ring-1 focus-within:ring-[color:var(--accent-primary)]/30',
+        isLoading ? 'ring-1 ring-amber-500/25' : ''
       ].join(' ')}
+      style={{ borderColor: 'var(--surface-card-border)' }}
     >
       {/* subtle settings gear */}
       <button
         ref={gearRef}
         onClick={() => setMenuOpen((v) => !v)}
         aria-label="Narration settings"
-        className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-80 focus:opacity-100
-                   text-xs px-1.5 py-1 rounded-md border
-                   bg-slate-800/60 border-slate-600/50 text-slate-200
-                   hover:text-white hover:bg-slate-800/80 transition-opacity"
+        className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-80 focus:opacity-100 text-xs px-1.5 py-1 btn-secondary"
       >
         ⚙︎
       </button>
@@ -230,13 +226,11 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
       {menuOpen && (
         <div
           ref={menuRef}
-          className="absolute top-10 right-2 z-30 w-56 rounded-md border
-                     bg-slate-900/95 border-slate-600/60 text-slate-200
-                     shadow-xl p-2 text-xs"
+          className="absolute top-10 right-2 z-30 w-60 rounded-xl surface-card shadow-xl p-3 text-xs"
         >
-          <div className="px-1 pb-1 text-[11px] font-semibold text-slate-300">Narration Settings</div>
+          <div className="px-1 pb-2 text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Narration Settings</div>
 
-          <label className="flex items-center justify-between px-1 py-1 rounded hover:bg-slate-800/60">
+          <label className="flex items-center justify-between px-1.5 py-1.5 rounded-lg surface-muted hover:shadow-md">
             <span>Quick replies</span>
             <input
               type="checkbox"
@@ -246,7 +240,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             />
           </label>
 
-          <label className="flex items-center justify-between px-1 py-1 rounded hover:bg-slate-800/60">
+          <label className="flex items-center justify-between px-1.5 py-1.5 rounded-lg surface-muted hover:shadow-md mt-1">
             <span>Compact spacing</span>
             <input
               type="checkbox"
@@ -256,10 +250,10 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             />
           </label>
 
-          <div className="px-1 pt-1">Text size</div>
+          <div className="px-1 pt-2 text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Text size</div>
           <div className="flex items-center gap-2 px-1 pb-1">
             {(['sm', 'md', 'lg'] as TextSize[]).map((size) => (
-              <label key={size} className="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-slate-800/60">
+              <label key={size} className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 surface-muted hover:shadow-md">
                 <input
                   type="radio"
                   name="narr-textsize"
@@ -273,7 +267,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             ))}
           </div>
 
-          <label className="flex items-center justify-between px-1 py-1 rounded hover:bg-slate-800/60">
+          <label className="flex items-center justify-between px-1.5 py-1.5 rounded-lg surface-muted hover:shadow-md">
             <span>Auto-scroll</span>
             <input
               type="checkbox"
@@ -290,30 +284,30 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         ref={logRef}
         role="log"
         aria-live="polite"
-        className="flex-1 min-h-0 p-3 overflow-y-auto text-sm leading-relaxed
-                   scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/40"
+        className="flex-1 min-h-0 p-4 overflow-y-auto text-sm leading-relaxed space-y-3
+                   scrollbar-thin scrollbar-thumb-slate-400/60 scrollbar-track-transparent"
       >
         {isPlaceholderVisible ? (
           <>
             {/* Contextual tip at top - inside scrollable area */}
             {contextualSuggestion && (
               <div className="mb-4">
-                <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                  <p className="text-xs text-blue-300 font-semibold mb-1.5 flex items-center gap-1">
+                <div className="surface-muted rounded-xl p-3 border border-blue-200/50">
+                  <p className="text-xs font-semibold text-[var(--accent-primary)] mb-1.5 flex items-center gap-1">
                     <span>💡</span> Tip
                   </p>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                     {contextualSuggestion.tip}
                   </p>
                 </div>
               </div>
             )}
-            <div className="text-gray-400 italic text-center flex items-center justify-center" style={{ minHeight: contextualSuggestion ? 'auto' : '100%' }}>
+            <div className="text-[var(--text-muted)] italic text-center flex items-center justify-center" style={{ minHeight: contextualSuggestion ? 'auto' : '100%' }}>
               <div className="max-w-xs">
                 {/* Contextual prompts */}
                 {contextualSuggestion && (
                   <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-700">
-                    <p className="text-xs text-slate-400 font-semibold mb-2.5 text-left">
+                    <p className="text-xs text-[var(--text-secondary)] font-semibold mb-2.5 text-left uppercase tracking-wide">
                       Try asking...
                     </p>
                     <div className="space-y-1.5">
@@ -322,10 +316,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                           key={idx}
                           onClick={() => sendQuick(prompt)}
                           disabled={isLoading}
-                          className="w-full text-left px-3 py-2 text-xs text-slate-200
-                                    bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600/40
-                                    rounded-lg transition-all disabled:opacity-50 hover:border-blue-500/40
-                                    hover:text-white hover:shadow-md"
+                          className="w-full text-left px-3 py-2 text-xs surface-muted rounded-xl transition-all disabled:opacity-50 hover:shadow-md"
                         >
                           "{prompt}"
                         </button>
@@ -339,15 +330,15 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         ) : (
           <div className={stackSpace}>
             {narrationHistory.map((msg, index) => {
-              const base = `group relative ${bubblePad} rounded-lg transition-colors border border-transparent`;
+              const base = `group relative ${bubblePad} rounded-xl transition-colors border`;
               const kind =
                 msg.sender === 'player'
-                  ? 'text-emerald-300 italic pl-4 border-l-2 border-emerald-500/30 bg-emerald-900/15 rounded-r-lg'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
                   : msg.sender === 'narrator-special'
-                  ? 'text-blue-300 bg-blue-900/15 border-blue-500/20'
+                  ? 'bg-sky-100 text-sky-900 border-sky-300'
                   : msg.sender === 'narrator-ambient'
-                  ? 'text-purple-300 bg-purple-900/10 border-purple-500/00 italic'
-                  : 'text-slate-100 bg-slate-700/35 border-slate-500/30';
+                  ? 'bg-violet-100 text-violet-900 border-violet-200 italic'
+                  : 'surface-muted border-[rgba(189,179,162,0.45)] text-[var(--text-primary)]';
 
               return (
                 <div key={index} className={`${base} ${kind}`}>
@@ -369,11 +360,11 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             })}
 
             {isLoading && (
-              <div className={`${bubblePad} text-slate-100 bg-slate-700/35 border border-slate-500/30 rounded-lg animate-pulse`}>
-                <p className="text-xs text-amber-300 font-semibold mb-1 flex items-center gap-1">📜 The Narrator</p>
-                <p className="flex items-center gap-2">
+              <div className={`${bubblePad} surface-muted rounded-xl animate-pulse`}>
+                <p className="text-xs text-amber-500 font-semibold mb-1 flex items-center gap-1">📜 The Narrator</p>
+                <p className="flex items-center gap-2 text-[var(--text-secondary)]">
                   <span className="animate-pulse">● ● ●</span>
-                  <span className="text-xs text-slate-300">thinking…</span>
+                  <span className="text-xs">thinking…</span>
                 </p>
               </div>
             )}
@@ -383,9 +374,8 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
 
       {/* Quick Command Buttons - Only show when input is focused OR rest warning appears */}
       {settings.showQuickReplies && (isInputFocused || showQuickCommandsDueToWarning) && (
-        <div className="flex-shrink-0 px-3 py-2 border-t border-slate-600/30 bg-slate-800/50
-                        animate-in slide-in-from-bottom-2 duration-300">
-          <p className="text-xs text-slate-400 font-semibold mb-2 flex items-center gap-1">
+        <div className="flex-shrink-0 px-3 py-2 border-t surface-muted animate-in slide-in-from-bottom-2 duration-300">
+          <p className="text-xs text-[var(--text-secondary)] font-semibold mb-2 flex items-center gap-1">
             <span></span> Quick Commands
             {showQuickCommandsDueToWarning && (
               <span className="text-[10px] text-amber-400 animate-pulse ml-1">(suggested)</span>
@@ -398,8 +388,8 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('look around');
               }}
               disabled={isLoading}
-              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
-                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+              className="badge-pill text-xs disabled:opacity-50"
+              data-variant="accent"
             >
               Look Around
             </button>
@@ -409,8 +399,8 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('rest for 1 hour');
               }}
               disabled={isLoading}
-              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
-                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+              className="badge-pill text-xs disabled:opacity-50"
+              data-variant="accent"
             >
               Rest 1 hour
             </button>
@@ -420,10 +410,10 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('rest until dawn');
               }}
               disabled={isLoading}
-              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
-                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+              className="badge-pill text-xs disabled:opacity-50"
+              data-variant="accent"
             >
-         
+
               Camp
             </button>
       
@@ -433,8 +423,8 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('skip 1 day');
               }}
               disabled={isLoading}
-              className="px-2.5 py-1 text-xs text-slate-200 bg-slate-700/60 hover:bg-slate-600/70
-                        border border-slate-600/50 rounded transition-colors disabled:opacity-50"
+              className="badge-pill text-xs disabled:opacity-50"
+              data-variant="accent"
             >
               Skip Day
             </button>
@@ -443,10 +433,9 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
       )}
 
       {/* composer - emphasized */}
-      <div className="flex-shrink-0 p-3 border-t-2 border-blue-500/30
-                      bg-gradient-to-b from-slate-800/60 to-slate-900/80 backdrop-blur-sm">
+      <div className="flex-shrink-0 p-3 border-t surface-muted backdrop-blur-sm">
         <div className="mb-0">
-          <label className="text-xs text-slate-400 uppercase tracking-wide flex items-center gap-1">
+          <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wide flex items-center gap-1">
             <span></span>
           </label>
         </div>
@@ -466,22 +455,16 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             autoCapitalize="off"
             inputMode="text"
             enterKeyHint="send"
-            className="flex-1 px-4 py-3 text-base text-slate-100 placeholder-slate-400
-                       bg-slate-700/60 border-2 border-slate-600/50 rounded-xl
-                       focus:outline-none focus:border-blue-400/80 focus:bg-slate-700/80
-                       focus:ring-2 focus:ring-blue-400/30 transition-all
-                       min-h-[48px] touch-manipulation shadow-lg"
+            className="flex-1 px-4 py-3 text-base text-[var(--text-primary)] placeholder-[var(--text-muted)] surface-muted rounded-xl
+                       focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-primary)]/35 focus:border-transparent
+                       transition-all min-h-[48px] touch-manipulation"
             style={{ fontSize: '16px' }}
           />
           <button
             onClick={onSend}
             aria-label="Send action"
             disabled={isLoading || !playerInput.trim()}
-            className="px-5 py-3 text-sm font-bold text-white rounded-xl
-                       bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400
-                       hover:scale-105 active:scale-95
-                       disabled:from-gray-700 disabled:to-gray-600 disabled:cursor-not-allowed disabled:scale-100
-                       shadow-xl hover:shadow-2xl transition-all border-2 border-amber-400/20"
+            className="btn-primary px-5 py-3 text-sm font-bold rounded-xl disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-b-2 border-white rounded-full animate-spin" />

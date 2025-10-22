@@ -24,6 +24,7 @@ import { urbanTileRegistry } from '../services/urbanTileRegistryService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { shouldTriggerEncounter, rollForLiminalEncounter, type LiminalEncounter } from '../services/liminalEncounterService';
 import { railroadNetworkService } from '../services/railroadNetworkService';
+import { clearAllWorkOffers } from '../services/workOfferStorage';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -1303,6 +1304,10 @@ export const useMapState = (props: useMapStateProps) => {
     const onStartNewWorldAtLocation = useCallback((targetZone: string, targetMapArea: string, characterSpec?: any, overrideYear?: number) => {
         console.log('[onStartNewWorldAtLocation] Called with zone:', targetZone, 'area:', targetMapArea, 'characterSpec:', characterSpec, 'overrideYear:', overrideYear);
 
+        // Clear work offers when starting a new game (not from saved game)
+        clearAllWorkOffers();
+        console.log('[onStartNewWorldAtLocation] Cleared all work offers for fresh game start');
+
         // Clear any existing map data to prevent overlay issues
         if (mapData) {
             console.log('[onStartNewWorldAtLocation] Clearing existing map data before generating new map');
@@ -1492,6 +1497,10 @@ export const useMapState = (props: useMapStateProps) => {
         console.log('Region:', targetRegion || '(empty - will randomize)');
         console.log('CharacterSpec:', characterSpec);
         console.log('═══════════════════════════════════════════════════════');
+
+        // Clear work offers when starting a new game (not from saved game)
+        clearAllWorkOffers();
+        console.log('[onStartNewWorldAtZoneRegion] Cleared all work offers for fresh game start');
 
         // Update the game date FIRST if characterSpec has a year
         if (characterSpec?.year !== undefined) {

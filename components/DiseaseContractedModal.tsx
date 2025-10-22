@@ -87,9 +87,14 @@ const DiseaseContractedModal: React.FC<DiseaseContractedModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay z-[9999]" onClick={onClose}>
+    <div
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface z-[9999]"
+      onClick={onClose}
+    >
       <div 
-        className="modal-content max-w-2xl p-0 overflow-hidden bg-gradient-to-b from-red-950/95 to-slate-900/95 border-2 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.5)]" 
+        data-surface="modal-panel"
+        className="modal-content theme-surface max-w-2xl p-0 overflow-hidden bg-gradient-to-b from-red-950/95 to-slate-900/95 border-2 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.5)]" 
         onClick={e => e.stopPropagation()}
       >
         {/* Emergency Header */}

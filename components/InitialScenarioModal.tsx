@@ -13,7 +13,7 @@ import { URLGameConfig } from '../services/urlConfigService';
 import { SeedManager } from '../services/seedService';
 import { shareableStateService } from '../services/shareableStateService';
 import { findZoneForMapArea } from '../services/zoneDetectionService';
-import { getSafariOptimizedClassName } from '../utils/safariUtils';
+import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { FACTION_DATA } from '../constants/gameData/factions';
 import { FACTION_ICONS } from '../constants/gameData/factionIcons';
@@ -276,7 +276,7 @@ function getSeasonColors(season: string): string {
         case 'spring': return 'text-green-600 dark:text-green-400';
         case 'summer': return 'bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent';
         case 'autumn': case 'fall': return 'bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent';
-        default: return 'text-slate-600 dark:text-slate-300';
+        default: return 'text-text-secondary';
     }
 }
 
@@ -347,15 +347,6 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     }, []);
 
-    // Safari-optimized class names (no transparencies/backdrop-blur)
-    const cardClass = isSafari
-        ? "bg-slate-800 rounded-xl p-4 border border-slate-700"
-        : "bg-slate-800/70 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50";
-
-    const modalBgClass = isSafari
-        ? "bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl"
-        : "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl";
-
     useEffect(() => {
         if (isOpen) {
             // Start the fade-in animation sequence
@@ -378,6 +369,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     }, [isOpen, isSafari]);
     
     if (!isOpen) return null;
+
+    const modalAnimationClass = contentVisible
+        ? `opacity-100 ${!isSafari ? 'scale-100 translate-y-0' : ''}`
+        : `opacity-0 ${!isSafari ? 'scale-95 translate-y-4' : ''}`;
 
     // Combine related computations into single memoized object
     const scenarioData = useMemo(() => {
@@ -539,16 +534,15 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     };
 
     return (
-        <div className={`fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 pb-7 md:pb-3 transition-opacity duration-500 ${
+        <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-500 p-2 md:p-4 pb-7 md:pb-3 transition-opacity duration-500 ${
             isVisible ? 'opacity-100' : 'opacity-0'
         }`}>
-            <div className={`${modalBgClass} max-w-7xl w-full
-                max-h-[95vh] overflow-hidden flex flex-col
-                ${isSafari ? 'transition-opacity duration-700' : 'transition-all duration-700 transform'} ${
-                    contentVisible
-                        ? `opacity-100 ${!isSafari ? 'scale-100 translate-y-0' : ''}`
-                        : `opacity-0 ${!isSafari ? 'scale-95 translate-y-4' : ''}`
-                }`}>
+            <div
+                data-surface="modal-panel"
+                className={getSafariOptimizedClassName(
+                    `theme-surface border rounded-3xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col transition-all duration-700 ${modalAnimationClass}`
+                )}
+            >
 
                 {/* Sticky Header with gradient */}
                 <div className={`sticky top-0 z-20 bg-gradient-to-r ${
@@ -556,10 +550,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 } border-b-2 ${isSafari ? 'border-amber-800' : 'border-white/30 backdrop-blur-sm'}`}>
                     <div className="flex items-center justify-between p-2.5">
                         <div className="flex items-center gap-5">
-                            <div className="p-2 bg-white/20 rounded-lg">
-                                <DominantFactionIcon className="w-9 h-9 text-white" />
+                            <div className="p-2 surface-muted rounded-lg shadow-sm">
+                                <DominantFactionIcon className="w-9 h-9 text-text-primary" />
                             </div>
-                            <div className="text-white">
+                            <div className="text-text-primary">
                                 <div className="text-md font-medium">
                                     {formatYear(gameDate.year)} • {formatEra(scenarioData.era)} • <span className="font-bold">{currentRegion}</span>
                                 </div>
@@ -569,15 +563,16 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             {/* Desktop Share Button */}
                             <button
                                 onClick={() => setShowShareLink(!showShareLink)}
-                                className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors"
+                                className={getOptimizedButtonClassName(`hidden md:flex items-center gap-2 nav-button nav-button--compact ${showShareLink ? 'nav-button--active' : ''}`)}
+                                data-active={showShareLink}
                             >
                                 <Share2 className="w-4 h-4" />
                                 <span className="text-sm">Share</span>
                             </button>
                             <button
                                 onClick={onClose}
-                                className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-                            >
+                                className={getOptimizedButtonClassName('nav-button nav-button--compact flex items-center justify-center')}
+                                >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
@@ -589,31 +584,31 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                     {/* Hero Section */}
                     <div className="mb-4 text-center md:text-left">
-                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-1">
-                            You are <span className="text-amber-400">{playerCharacter.name}</span>
+                        <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-1">
+                            You are <span className="text-amber-600 dark:text-amber-400">{playerCharacter.name}</span>
                         </h1>
-                        <p className="text-xl text-slate-300">
-                            A <span className="text-emerald-400">{playerCharacter.occupation || playerCharacter.profession || 'traveler'}</span> in the <span className={getSeasonColors(getSeasonFromDate(gameDate)) + ' font-semibold'}>{getSeasonFromDate(gameDate)}</span> of {formatYear(gameDate.year)}
+                        <p className="text-xl text-text-secondary">
+                            A <span className="text-emerald-600 dark:text-emerald-400">{playerCharacter.occupation || playerCharacter.profession || 'traveler'}</span> in the <span className={getSeasonColors(getSeasonFromDate(gameDate)) + ' font-semibold'}>{getSeasonFromDate(gameDate)}</span> of {formatYear(gameDate.year)}
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
                         {/* Left Column - Main Content (3/5) */}
                         <div className="lg:col-span-4 space-y-3">
-                            {/* Historical Context */}
-                            <div className={cardClass}>
+                        {/* Historical Context */}
+                            <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
                                 <div className="flex items-center gap-3 mb-1">
-                                    <Globe className="w-6 h-6 text-blue-400 shrink-0" />
-                                    <h3 className="text-xl font-semibold text-blue-400">
+                                    <Globe className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
+                                    <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
                                         {localArea}
                                     </h3>
                                 </div>
                                 <div className="relative">
-                                    <p className={`text-slate-300 leading-relaxed text-base transition-all duration-300 ${
+                                    <p className={`text-text-secondary leading-relaxed text-base transition-all duration-300 ${
                                         expandedContext ? '' : 'line-clamp-3'
                                     }`}>
                                         {isProcessingWorldWeaver ? (
-                                            <span className="flex items-center gap-2 text-green-400">
+                                            <span className="flex items-center gap-2 text-green-600 dark:text-green-400">
                                                 <span className="inline-block w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
                                                 WorldWeaver is creating your custom scenario...
                                             </span>
@@ -624,7 +619,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                     {!isProcessingWorldWeaver && (worldWeaverData?.settingDescription || historicalContext).length > 150 && (
                                         <button
                                             onClick={() => setExpandedContext(!expandedContext)}
-                                            className="text-blue-400 hover:text-blue-300 text-sm mt-2 flex items-center gap-1 transition-colors"
+                                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm mt-2 flex items-center gap-1 transition-colors"
                                         >
                                             <span>{expandedContext ? 'Read less' : 'Read more'}</span>
                                             <ChevronDown className={`w-4 h-4 transition-transform ${expandedContext ? 'rotate-180' : ''}`} />
@@ -634,15 +629,15 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
 
                             {/* Character Info */}
-                            <div className={cardClass}>
+                            <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
-                                        <User className="w-5 h-5 text-green-400" />
-                                        <h3 className="text-lg font-semibold text-green-400">Your Character</h3>
+                                        <User className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                        <h3 className="text-lg font-semibold text-slate-400 dark:text-green-400">Your Character</h3>
                                     </div>
                                     <button
                                         onClick={() => setShowCharacterDetails(!showCharacterDetails)}
-                                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-full text-xs transition-colors"
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-200/50 dark:bg-slate-700/50 hover:bg-slate-300/50 dark:hover:bg-slate-600/50 text-text-secondary rounded-full text-xs transition-colors"
                                     >
                                         <span>{showCharacterDetails ? 'Less Info' : 'More Info'}</span>
                                         <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showCharacterDetails ? 'rotate-180' : ''}`} />
@@ -665,7 +660,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                             }}
                                             title="Click to change expression"
                                         >
-                                            <div className="w-40 h-40 rounded-xl border-2 border-amber-400/50 overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 transition-all hover:border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.4)]">
+                                            <div className="w-50 h-40 rounded-xl border-2 border-amber-400/50 overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 transition-all hover:border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.4)]">
                                                 {shouldRenderPortrait ? (
                                                     <ProceduralPortrait
                                                         character={playerCharacter}
@@ -674,27 +669,27 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                         className="w-full h-full"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
+                                                    <div className="w-full h-full flex items-center justify-center bg-slate-200/50 dark:bg-slate-700/50">
                                                         <div className="animate-pulse">
-                                                            <User className="w-16 h-16 text-slate-500" />
+                                                            <User className="w-16 h-16 text-text-muted" />
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                         {/* Expression indicator - directly under portrait */}
-                                        <div className="text-center mt-2 text-xs text-slate-400">
-                                            Expression: <span className="text-amber-400 capitalize">{portraitExpression}</span>
+                                        <div className="text-center mt-2 text-xs text-text-secondary">
+                                            Expression: <span className="text-amber-600 dark:text-amber-400 capitalize">{portraitExpression}</span>
                                         </div>
 
                                         {/* Health Status below portrait */}
                                         {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
-                                            <div className="mt-2 p-2 bg-red-900/20 border border-red-600/30 rounded text-center">
-                                                <span className="text-red-400 text-xs font-medium block mb-1">HEALTH</span>
+                                            <div className="mt-2 p-2 border border-red-400/30 dark:border-red-600/30 rounded text-center">
+                                                <span className="text-red-600 dark:text-red-400 text-xs tracking-wide font-medium block mb-1">HEALTH</span>
                                                 {playerCharacter.diseaseHealth.currentDiseases.map((disease, idx) => {
                                                     const isCritical = disease.disease.mortalityRate > 0.3 || disease.severity > 0.7;
                                                     return (
-                                                        <span key={idx} className={`block text-xs ${isCritical ? 'text-red-400' : 'text-orange-400'}`}>
+                                                        <span key={idx} className={`block text-xs ${isCritical ? 'text-red-700 dark:text-red-400' : 'text-orange-700 dark:text-orange-400'}`}>
                                                             {disease.disease.name}
                                                         </span>
                                                     );
@@ -706,8 +701,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         {(() => {
                                             const attributeSentence = generateAttributeSentence(playerCharacter);
                                             return attributeSentence ? (
-                                                <div className="mt-2 p-2 bg-slate-800/30 rounded text-center max-w-[160px]">
-                                                    <p className="text-slate-300 text-xs italic break-words whitespace-normal leading-relaxed">
+                                                <div className="mt-1 p-2 rounded text-center max-w-[260px]">
+                                                    <p className="text-text-secondary text-xs italic break-words whitespace-normal leading-relaxed">
                                                         {attributeSentence}
                                                     </p>
                                                 </div>
@@ -719,16 +714,16 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                     <div className="flex-1 space-y-3">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Name</div>
-                                                <div className="text-white font-medium">{playerCharacter.name}</div>
+                                                <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Name</div>
+                                                <div className="text-text-primary font-medium">{playerCharacter.name}</div>
                                             </div>
                                             <div>
-                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Occupation</div>
-                                                <div className="text-white font-medium">{playerCharacter.occupation || playerCharacter.profession || 'Unknown'}</div>
+                                                <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Occupation</div>
+                                                <div className="text-text-primary font-medium">{playerCharacter.occupation || playerCharacter.profession || 'Unknown'}</div>
                                             </div>
                                             <div>
-                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Social Class</div>
-                                                <div className="text-white font-medium">
+                                                <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Social Class</div>
+                                                <div className="text-text-primary font-medium">
                                                     {playerCharacter.class ?
                                                         playerCharacter.class
                                                             .replace(/_/g, ' ')
@@ -739,44 +734,44 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                 </div>
                                             </div>
                                             <div>
-                                                <div className="text-xs text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                                <div className="text-xs text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
                                                     <MapPin className="w-3 h-3" />
                                                     Region
                                                 </div>
-                                                <div className="text-emerald-400 font-bold">{currentRegion}</div>
+                                                <div className="text-emerald-600 dark:text-emerald-400 font-bold">{currentRegion}</div>
                                             </div>
                                         </div>
 
                                         {/* Character Description - WorldWeaver or Standard */}
                                         {isProcessingWorldWeaver ? (
-                                            <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
-                                                <p className="text-green-400 text-sm flex items-center gap-2">
+                                            <div className="p-3 bg-slate-200/30 dark:bg-slate-700/30 rounded-lg border border-slate-400/30 dark:border-slate-600/30">
+                                                <p className="text-green-600 dark:text-green-400 text-sm flex items-center gap-2">
                                                     <span className="inline-block w-3 h-3 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
                                                     Creating character background...
                                                 </p>
                                             </div>
                                         ) : worldWeaverData?.characterDescription ? (
-                                            <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
-                                                <p className="text-slate-300 text-sm italic">
+                                            <div className="p-3 bg-slate-200/30 dark:bg-slate-700/30 rounded-lg border border-slate-400/30 dark:border-slate-600/30">
+                                                <p className="text-text-secondary text-sm italic">
                                                     {worldWeaverData.characterDescription}
                                                 </p>
                                             </div>
                                         ) : (
                                             <>
                                                 {/* Brief Character Description */}
-                                                <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
-                                                    <p className="text-slate-300 text-sm italic">
+                                                <div className="p-3  rounded-lg border border-slate-400/30 dark:border-slate-600/30">
+                                                    <p className="text-text-secondary text-sm italic">
                                                         {extractPersonalityTrait(playerCharacter)}
                                                     </p>
                                                 </div>
 
                                                 {/* Prized Possession */}
-                                                <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                                <div className="p-3 rounded-lg border border-slate-400/30 dark:border-slate-600/30">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <Trophy className="w-4 h-4 text-amber-400" />
-                                                        <span className="text-amber-400 text-xs font-medium uppercase">Prized Possession</span>
+                                                        <Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                                        <span className="text-amber-600 dark:text-amber-400 text-xs font-medium uppercase">Prized Possession</span>
                                                     </div>
-                                                    <p className="text-slate-300 text-sm">
+                                                    <p className="text-text-secondary text-sm">
                                                         {getPrizedPossession(playerCharacter)}
                                                     </p>
                                                 </div>
@@ -792,15 +787,15 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 }`}>
                                     <div className="pt-4 border-t border-slate-700/50 space-y-3">
                                         <div>
-                                            <div className="text-blue-400 text-xs font-medium mb-2">FULL BACKGROUND</div>
-                                            <p className="text-slate-300 text-sm leading-relaxed">
+                                            <div className="text-blue-600 dark:text-blue-400 text-xs font-medium mb-2">FULL BACKGROUND</div>
+                                            <p className="text-text-secondary text-sm leading-relaxed">
                                                 {playerCharacter.backstory || 'No detailed background available.'}
                                             </p>
                                         </div>
                                         {playerCharacter.religion && (
                                             <div>
-                                                <div className="text-blue-400 text-xs font-medium mb-2">RELIGION</div>
-                                                <p className="text-slate-300 text-sm">{playerCharacter.religion}</p>
+                                                <div className="text-blue-600 dark:text-blue-400 text-xs font-medium mb-2">RELIGION</div>
+                                                <p className="text-text-secondary text-sm">{playerCharacter.religion}</p>
                                             </div>
                                         )}
                                     </div>
@@ -808,7 +803,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
 
                     {/* Game Mode & Mission */}
-                    <div className={cardClass}>
+                    <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
                                 <Crown className={`w-5 h-5 shrink-0 ${
@@ -823,14 +818,14 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             {gameMode && (
                                 <button
                                     onClick={() => setShowModeDetails(!showModeDetails)}
-                                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-full text-xs transition-colors"
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-200/50 dark:bg-slate-700/50 hover:bg-slate-300/50 dark:hover:bg-slate-600/50 text-text-secondary rounded-full text-xs transition-colors"
                                 >
                                     <span>{showModeDetails ? 'Less Info' : 'More Info'}</span>
                                     <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showModeDetails ? 'rotate-180' : ''}`} />
                                 </button>
                             )}
                         </div>
-                        <p className="text-slate-300 leading-relaxed text-sm">
+                        <p className="text-text-secondary leading-relaxed text-sm">
                             {gameMode ? modeDescription : 'Your game mode is being determined based on your character\'s background and skills. This will shape your adventure and goals.'}
                         </p>
 
@@ -842,11 +837,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 <div className="pt-4 border-t border-slate-700/50 space-y-3">
                                     {gameMode.victoryConditions.length > 0 && (
                                         <div>
-                                            <div className="text-green-400 text-xs font-medium mb-2">VICTORY CONDITIONS</div>
+                                            <div className="text-green-600 dark:text-green-400 text-xs font-medium mb-2">VICTORY CONDITIONS</div>
                                             <ul className="space-y-1">
                                                 {gameMode.victoryConditions.map((condition, idx) => (
-                                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
-                                                        <span className="text-green-400 mt-0.5">•</span>
+                                                    <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
+                                                        <span className="text-green-600 dark:text-green-400 mt-0.5">•</span>
                                                         <span>{condition.description}</span>
                                                     </li>
                                                 ))}
@@ -856,11 +851,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                                     {gameMode.challenges && gameMode.challenges.length > 0 && (
                                         <div>
-                                            <div className="text-orange-400 text-xs font-medium mb-2">KEY CHALLENGES</div>
+                                            <div className="text-orange-700 dark:text-orange-400 text-xs font-medium mb-2">KEY CHALLENGES</div>
                                             <ul className="space-y-1">
                                                 {gameMode.challenges.slice(0, 3).map((challenge, idx) => (
-                                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
-                                                        <span className="text-orange-400 mt-0.5">•</span>
+                                                    <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
+                                                        <span className="text-orange-700 dark:text-orange-400 mt-0.5">•</span>
                                                         <span>{challenge}</span>
                                                     </li>
                                                 ))}
@@ -873,19 +868,20 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     </div>
 
                     {/* Settings Section */}
-                    <div className={cardClass}>
-                        <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Settings</h4>
+                    <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
+                        <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-2">Settings</h4>
                         <label className="flex flex-col md:flex-row items-start md:items-center gap-3 cursor-pointer group">
                             <div className="flex items-start gap-3">
                                 <input
                                     type="checkbox"
                                     checked={dialectContinuumEnabled}
                                     onChange={(e) => setDialectContinuumEnabled(e.target.checked)}
-                                    className="w-4 h-4 mt-0.5 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+                                    className="w-4 h-4 mt-0.5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2 bg-[var(--bg-elevated)] border"
+                                    style={{ borderColor: 'var(--surface-card-border)' }}
                                 />
-                                <div className="text-sm font-medium text-blue-400 group-hover:text-blue-300 transition-colors">Enable Dialect Continuum</div>
+                                <div className="text-sm font-medium text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">Enable Dialect Continuum</div>
                             </div>
-                            <p className="text-xs text-slate-400 md:ml-auto md:text-right">
+                            <p className="text-xs text-text-secondary md:ml-auto md:text-right">
                                 Gradually introduces foreign languages as you travel.
                             </p>
                         </label>
@@ -928,7 +924,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         }
                                         onClose();
                                     }}
-                                    className={`w-full px-5 py-4 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-out text-lg ${
+                                    className={`w-full px-5 py-4 text-text-primary font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-out text-lg ${
                                         gameMode ? ` border-white/10 bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'} hover:${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'from-amber-700 to-amber-800'}` : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
                                     }`}
                                 >
@@ -940,7 +936,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         setShowShareLink(!showShareLink);
                                         setCopiedToClipboard(false);
                                     }}
-                                    className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                                    className={getOptimizedButtonClassName(`w-full px-6 py-3 nav-button nav-button--compact flex items-center justify-center gap-2 ${showShareLink ? 'nav-button--active' : ''}`)}
+                                    data-active={showShareLink}
                                 >
                                     <Share2 className="w-5 h-5" />
                                     <span>{showShareLink ? 'Hide Share Options' : 'Share This Scenario'}</span>
@@ -950,8 +947,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 <div className={`overflow-hidden transition-all duration-300 ease-out ${
                                     showShareLink ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                                 }`}>
-                                    <div className="p-4 bg-slate-800/80 rounded-xl border border-slate-600/50 space-y-3">
-                                        <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Share this scenario:</div>
+                                <div className="p-4 surface-muted rounded-xl shadow-sm space-y-3">
+                                        <div className="text-xs font-medium text-text-secondary uppercase tracking-wider">Share this scenario:</div>
 
                                         {/* URL Copy */}
                                         <div className="flex gap-2">
@@ -959,7 +956,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                 type="text"
                                                 value={shareableURL}
                                                 readOnly
-                                                className="flex-1 px-3 py-2 bg-slate-900 text-slate-200 text-sm rounded border border-slate-600 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="flex-1 px-3 py-2 bg-[var(--bg-elevated)] text-text-primary text-sm rounded border font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                style={{ borderColor: 'var(--surface-card-border)' }}
                                                 onClick={(e) => e.currentTarget.select()}
                                             />
                                             <button
@@ -969,7 +967,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                     setTimeout(() => setCopiedToClipboard(false), 3000);
                                                 }}
                                                 className={`px-4 py-2 rounded transition-colors flex items-center gap-2 ${
-                                                    copiedToClipboard ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                    copiedToClipboard ? 'bg-green-600 text-text-primary' : 'bg-blue-600 hover:bg-blue-700 text-text-primary'
                                                 }`}
                                             >
                                                 {copiedToClipboard ? (
@@ -986,7 +984,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                             </button>
                                         </div>
 
-                                        <div className="text-xs text-slate-400">
+                                        <div className="text-xs text-text-secondary">
                                             This link preserves: character, location, date, game mode, and map seed
                                         </div>
                                     </div>
@@ -997,7 +995,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 </div>
 
                 {/* Mobile Bottom Bar with safe area support */}
-                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900 via-slate-900 to-slate-900/95 border-t border-slate-700 z-20 p-4"
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 surface-bottom-panel z-20 p-4"
                     style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                     <div className="space-y-2">
                         <button
@@ -1011,7 +1009,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 }
                                 onClose();
                             }}
-                            className={`w-full px-6 py-4 text-white font-bold rounded-xl shadow-lg text-lg ${
+                            className={`w-full px-6 py-4 text-text-primary font-bold rounded-xl shadow-lg text-lg ${
                                 gameMode ? `bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'}` : 'bg-gradient-to-r from-amber-600 to-amber-700'
                             }`}
                         >
@@ -1019,7 +1017,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         </button>
                         <button
                             onClick={() => setShowBottomSheet(true)}
-                            className="w-full px-6 py-3 bg-slate-700 active:bg-slate-600 text-slate-200 font-medium rounded-xl flex items-center justify-center gap-2"
+                            className={getOptimizedButtonClassName('w-full px-6 py-3 nav-button nav-button--compact flex items-center justify-center gap-2')}
                         >
                             <Share2 className="w-5 h-5" />
                             Share This Scenario
@@ -1042,7 +1040,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 transform: showBottomSheet ? 'translateY(0)' : 'translateY(100%)',
                                 paddingBottom: 'env(safe-area-inset-bottom, 1rem)'
                             }}>
-                            <div className="bg-slate-900 rounded-t-3xl border-t border-slate-700 shadow-2xl">
+                            <div className="surface-card rounded-t-3xl border-t shadow-2xl" style={{ borderColor: 'var(--surface-card-border)' }}>
                                 {/* Handle */}
                                 <div className="flex justify-center pt-3 pb-2">
                                     <div className="w-12 h-1.5 bg-slate-600 rounded-full" />
@@ -1050,7 +1048,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                                 {/* Content */}
                                 <div className="p-6">
-                                    <h3 className="text-lg font-semibold text-white mb-4">Share Scenario</h3>
+                                    <h3 className="text-lg font-semibold text-text-primary mb-4">Share Scenario</h3>
 
                                     {/* Native Share Button */}
                                     {navigator.share && (
@@ -1059,7 +1057,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                 handleNativeShare();
                                                 setShowBottomSheet(false);
                                             }}
-                                            className="w-full px-6 py-3 bg-blue-600 active:bg-blue-700 text-white font-medium rounded-xl flex items-center justify-center gap-2 mb-3"
+                                            className="w-full px-6 py-3 bg-blue-600 active:bg-blue-700 text-text-primary font-medium rounded-xl flex items-center justify-center gap-2 mb-3"
                                         >
                                             <Share2 className="w-5 h-5" />
                                             Share via...
@@ -1078,7 +1076,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                 }, 2000);
                                             }
                                         }}
-                                        className="w-full px-6 py-3 bg-slate-700 active:bg-slate-600 text-white font-medium rounded-xl flex items-center justify-center gap-2"
+                                        className={getOptimizedButtonClassName('w-full px-6 py-3 nav-button nav-button--compact flex items-center justify-center gap-2')}
+                                        data-active={copiedToClipboard}
                                     >
                                         {copiedToClipboard ? (
                                             <>
@@ -1095,7 +1094,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                                     <button
                                         onClick={() => setShowBottomSheet(false)}
-                                        className="w-full mt-3 px-6 py-3 text-slate-400 font-medium"
+                                        className="w-full mt-3 px-6 py-3 text-text-secondary font-medium"
                                     >
                                         Cancel
                                     </button>

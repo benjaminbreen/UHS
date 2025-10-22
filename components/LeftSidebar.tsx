@@ -63,12 +63,12 @@ const MAJOR_TAB_KEY = 'uhs.majorTab';
 const AnalysisListItem: React.FC<{ icon: string, name: string, subtext: string, onClick: () => void }> = ({ icon, name, subtext, onClick }) => (
   <li
     onClick={onClick}
-    className="flex items-center p-2 rounded-md cursor-pointer hover:bg-slate-700/50"
+    className="flex items-center p-2 rounded-md cursor-pointer surface-muted hover:shadow-md"
   >
     <span className="text-xl mr-3">{icon}</span>
     <div className="min-w-0">
-      <p className="font-medium text-slate-200 text-sm truncate">{name}</p>
-      <p className="text-xs text-slate-400 truncate">{subtext}</p>
+      <p className="font-medium text-text-primary text-sm truncate">{name}</p>
+      <p className="text-xs text-text-muted truncate">{subtext}</p>
     </div>
   </li>
 );
@@ -81,17 +81,17 @@ const CollapsibleSection: React.FC<{ title: string, count?: number, children: Re
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center text-left font-semibold text-blue-400 dark:text-blue-300 mb-2 p-2 rounded-md hover:bg-slate-800/40"
+        className="w-full flex justify-between items-center text-left font-semibold text-blue-500 dark:text-blue-300 mb-2 p-2 rounded-md surface-muted hover:shadow-md"
       >
         <span className="flex items-center gap-2">
           {title}
           {typeof count === 'number' && (
-            <span className="text-xs font-mono bg-slate-700/50 text-slate-300 px-1.5 py-0.5 rounded-md">{count}</span>
+            <span className="text-xs font-mono badge-pill" data-variant="accent">{count}</span>
           )}
         </span>
         <span className={isOpen ? 'rotate-90' : ''}>▶</span>
       </button>
-      {isOpen && <div className="pl-2 border-l-2 border-slate-700/50">{children}</div>}
+      {isOpen && <div className="pl-2 border-l-2" style={{ borderColor: 'var(--surface-muted-border)' }}>{children}</div>}
     </div>
   );
 };
@@ -107,12 +107,12 @@ const AnimalListItem = React.memo(
     return (
       <div
         onClick={() => onClick(animal)}
-        className={`flex items-center p-3 rounded-lg cursor-pointer text-gray-300 hover:bg-slate-700/50 ${isSelected ? 'bg-blue-800/50 text-white border border-blue-400/50' : ''}`}
+        className={`flex items-center p-3 rounded-lg cursor-pointer ${isSelected ? 'bg-accent text-white border border-accent-active' : 'surface-muted text-text-primary hover:shadow-md'}`}
       >
         <div className="text-2xl mr-3 flex-shrink-0">{animal.emoji}</div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate text-sm">{animal.speciesName}</p>
-          <div className="text-xs text-gray-400 flex items-center mt-1">
+          <div className="text-xs text-text-muted flex items-center mt-1">
             <Heart className="w-3 h-3 mr-1 flex-shrink-0" />
             <span className="truncate">{description}</span>
           </div>
@@ -128,7 +128,8 @@ const NpcListItem = React.memo(
     const Badge: React.FC<{ children: React.ReactNode; title?: string }> = ({ children, title }) => (
       <span
         title={title}
-        className="px-1.5 py-0.5 rounded-md bg-slate-700/60 text-[10px] font-semibold uppercase tracking-wide text-slate-200 border border-slate-600/60"
+        className="badge-pill"
+        data-variant="accent"
       >
         {children}
       </span>
@@ -137,13 +138,13 @@ const NpcListItem = React.memo(
     return (
       <button
         onClick={() => onClick(npc)}
-        className={[
+       className={[
           "group w-full flex items-center gap-3 p-2.5 rounded-lg text-left border",
           isSelected
-            ? "bg-blue-800/50 border-blue-400/50 text-white"
+            ? "bg-accent border-accent-active text-white"
             : isHighlighted
-            ? "bg-amber-700/30 border-amber-500/40 text-gray-100"
-            : "bg-slate-800/30 hover:bg-slate-700/40 border-slate-700/40 text-gray-200"
+            ? "bg-amber-200/60 border-amber-400/60 text-text-primary"
+            : "surface-muted text-text-primary hover:shadow-md"
         ].join(" ")}
       >
         {/* Portrait - using VisiblePortrait for lazy rendering */}
@@ -151,28 +152,28 @@ const NpcListItem = React.memo(
           <VisiblePortrait
             npc={npc}
             size={44}
-            className="rounded-md overflow-hidden border border-slate-600/70 bg-slate-700/60"
+            className="rounded-md overflow-hidden surface-muted"
           />
         </div>
 
         {/* Text block */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold text-sm text-slate-100 truncate">{npc.name}</p>
+            <p className="font-semibold text-sm text-text-primary truncate">{npc.name}</p>
           </div>
 
           {/* Profession • Class */}
-          <div className="text-xs text-slate-300 truncate">
+          <div className="text-xs text-text-secondary truncate">
             <span className="capitalize text-green-300">{npc.role?.replace(/_/g, ' ') || "unknown"}</span>
-            <span className="mx-1 text-slate-500">•</span>
+            <span className="mx-1 text-text-muted">•</span>
             <span className="capitalize">{(npc.class || "commoner").toString().toLowerCase().replace(/_/g, ' ')}</span>
           </div>
 
           {/* Badges: Age + Gender (+ optional religion trailing) */}
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-300">
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-text-secondary">
             <Badge title="Age">{(npc.age ?? "?").toString()}</Badge>
             <Badge title="Gender">{(npc.gender ?? "—").toString()}</Badge>
-            {npc.religion ? <span className="text-[11px] text-slate-400 truncate">· {npc.religion}</span> : null}
+            {npc.religion ? <span className="text-[11px] text-text-muted truncate">· {npc.religion}</span> : null}
           </div>
         </div>
       </button>
@@ -228,7 +229,7 @@ const LeftSidebar: React.FC<{
   // Memoize main container className for performance
   const sidebarClassName = useMemo(() =>
     getSafariOptimizedClassName(
-      `relative flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient border-r border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 h-full flex flex-col`
+      `sidebar-left theme-surface relative flex-shrink-0 border-r h-full flex flex-col`
     ), []);
 
   /* ----- formatters ----- */
@@ -486,10 +487,10 @@ const LeftSidebar: React.FC<{
         onClick={() => setActiveLens(lens.id)}
         aria-pressed={active}
         className={[
-          "flex items-center justify-center gap-2 px-2 py-2 rounded-md border text-sm",
+          "flex items-center justify-center gap-2 px-2 py-2 rounded-md border text-sm transition-all",
           active
-            ? "bg-amber-600/25 border-amber-500/60 text-amber-200"
-            : "bg-slate-800/45 hover:bg-slate-700/60 border-slate-700/60 text-slate-200"
+            ? "bg-accent border-accent-active text-white shadow-md"
+            : "surface-muted text-text-primary hover:shadow-md"
         ].join(" ")}
       >
         <span className="text-base leading-none">{lens.icon}</span>
@@ -558,37 +559,37 @@ const LeftSidebar: React.FC<{
       return (
         <div className="space-y-3">
           {/* Quick Stats Card */}
-          <div className="bg-slate-800/40 rounded-lg p-3 border border-slate-700/40">
-            <div className="text-xs text-slate-400 uppercase tracking-widest mb-2 font-bold">
+          <div className="surface-card rounded-2xl p-3 border" style={{ borderColor: 'var(--surface-card-border)' }}>
+            <div className="text-xs text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-bold">
               {currentMapArchetype ? formatEnumString(currentMapArchetype).replace('_', ' ') : 'STANDARD'} MAP
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-900/40 rounded-md p-2">
-                <div className="text-[10px] text-slate-500 uppercase">Entities</div>
+              <div className="surface-muted rounded-lg p-2">
+                <div className="text-[10px] text-[var(--text-secondary)] uppercase">Entities</div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold text-blue-300">{npcs?.length || 0}</span>
-                  <span className="text-xs text-slate-400">NPCs</span>
+                  <span className="text-lg font-bold text-sky-600 dark:text-sky-300">{npcs?.length || 0}</span>
+                  <span className="text-xs text-[var(--text-muted)]">NPCs</span>
                 </div>
               </div>
-              <div className="bg-slate-900/40 rounded-md p-2">
-                <div className="text-[10px] text-slate-500 uppercase">Wildlife</div>
+              <div className="surface-muted rounded-lg p-2">
+                <div className="text-[10px] text-[var(--text-secondary)] uppercase">Wildlife</div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold text-green-300">{animals?.length || 0}</span>
-                  <span className="text-xs text-slate-400">Animals</span>
+                  <span className="text-lg font-bold text-emerald-600 dark:text-emerald-300">{animals?.length || 0}</span>
+                  <span className="text-xs text-[var(--text-muted)]">Animals</span>
                 </div>
               </div>
-              <div className="bg-slate-900/40 rounded-md p-2">
-                <div className="text-[10px] text-slate-500 uppercase">Water</div>
+              <div className="surface-muted rounded-lg p-2">
+                <div className="text-[10px] text-[var(--text-secondary)] uppercase">Water</div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold text-cyan-300">{biomeStats.waterPercent}%</span>
-                  <span className="text-xs text-slate-400">Coverage</span>
+                  <span className="text-lg font-bold text-cyan-600 dark:text-cyan-300">{biomeStats.waterPercent}%</span>
+                  <span className="text-xs text-[var(--text-muted)]">Coverage</span>
                 </div>
               </div>
-              <div className="bg-slate-900/40 rounded-md p-2">
-                <div className="text-[10px] text-slate-500 uppercase">Urban</div>
+              <div className="surface-muted rounded-lg p-2">
+                <div className="text-[10px] text-[var(--text-secondary)] uppercase">Urban</div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold text-amber-300">{biomeStats.urbanPercent}%</span>
-                  <span className="text-xs text-slate-400">Developed</span>
+                  <span className="text-lg font-bold text-amber-600 dark:text-amber-300">{biomeStats.urbanPercent}%</span>
+                  <span className="text-xs text-[var(--text-muted)]">Developed</span>
                 </div>
               </div>
             </div>
@@ -597,18 +598,19 @@ const LeftSidebar: React.FC<{
           {/* Strategic Lenses - Redesigned */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">STRATEGIC LENSES</span>
+              <span className="text-[11px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">STRATEGIC LENSES</span>
               <div className="flex items-center gap-2">
                 {activeLens !== 'none' && (
                   <button
                     onClick={() => setActiveLens('none' as LensMode)}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-red-600/30 hover:bg-red-600/40 text-red-200 border border-red-500/40"
+                    className="text-[10px] px-1.5 py-0.5 rounded badge-pill"
+                    data-variant="accent"
                     title="Clear active lens"
                   >
                     Clear
                   </button>
                 )}
-                <span className="text-[10px] text-slate-400">6</span>
+                <span className="text-[10px] text-[var(--text-muted)]">6</span>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
@@ -620,11 +622,10 @@ const LeftSidebar: React.FC<{
                     title={lens.desc}
                     onClick={() => setActiveLens(lens.id)}
                     className={`
-                      flex flex-col items-center justify-center p-2 rounded-md border text-xs
-                      transition-colors
+                      flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-colors
                       ${active
-                        ? 'bg-amber-600/30 border-amber-500/60 text-amber-200 ring-1 ring-amber-500/30'
-                        : 'bg-slate-800/30 hover:bg-slate-700/40 border-slate-700/40 text-slate-300'}
+                        ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-sm'
+                        : 'surface-muted text-[var(--text-secondary)] hover:shadow-md'}
                     `}
                   >
                     <span className="text-lg mb-0.5">{lens.icon}</span>
@@ -638,23 +639,23 @@ const LeftSidebar: React.FC<{
           {/* Terrain Composition */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">TERRAIN COMPOSITION</span>
-              <span className="text-[10px] text-slate-400">{biomeStats.distribution.length}</span>
+              <span className="text-[11px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">TERRAIN COMPOSITION</span>
+              <span className="text-[10px] text-[var(--text-muted)]">{biomeStats.distribution.length}</span>
             </div>
             <div className="space-y-1">
               {biomeStats.distribution.map(({ biome, percent }) => (
                 <div key={biome} className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-200 flex-1 truncate">
+                  <span className="text-[11px] text-[var(--text-primary)] flex-1 truncate">
                     {biome.replace(/_/g, ' ').toLowerCase()}
                   </span>
                   <div className="flex items-center gap-1">
-                    <div className="w-20 h-1 bg-slate-800/50 rounded-full overflow-hidden">
+                    <div className="w-20 h-1 bg-[rgba(189,179,162,0.35)] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-400 w-8 text-right">{percent}%</span>
+                    <span className="text-[10px] text-[var(--text-muted)] w-8 text-right">{percent}%</span>
                   </div>
                 </div>
               ))}
@@ -664,8 +665,8 @@ const LeftSidebar: React.FC<{
           {/* Resources & Minerals - Enhanced */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">RESOURCE DEPOSITS</span>
-              <span className="text-[10px] text-slate-400">{mineralDeposits.size}</span>
+              <span className="text-[11px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">RESOURCE DEPOSITS</span>
+              <span className="text-[10px] text-[var(--text-muted)]">{mineralDeposits.size}</span>
             </div>
             {mineralDeposits.size > 0 ? (
               <div className="space-y-2">
@@ -675,37 +676,37 @@ const LeftSidebar: React.FC<{
                               name.toLowerCase().includes('copper') ? '🟠' :
                               name.toLowerCase().includes('iron') ? '⚫' : '💎';
                   return (
-                    <div key={name} className="flex items-center justify-between p-1.5 bg-slate-800/20 rounded">
+                    <div key={name} className="flex items-center justify-between p-1.5 surface-muted rounded-lg">
                       <span className="flex items-center gap-2">
                         <span className="text-sm">{icon}</span>
-                        <span className="text-[11px] text-slate-200 font-medium">{name}</span>
+                        <span className="text-[11px] text-[var(--text-primary)] font-medium">{name}</span>
                       </span>
-                      <span className="text-[10px] bg-slate-700/50 text-slate-300 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] badge-pill" data-variant="accent">
                         {count} {count === 1 ? 'tile' : 'tiles'}
                       </span>
                     </div>
                   );
                 })}
-                <div className="pt-2 border-t border-slate-700/30">
-                  <div className="text-[10px] text-slate-500">
+                <div className="pt-2 border-t" style={{ borderColor: 'rgba(189, 179, 162, 0.35)' }}>
+                  <div className="text-[10px] text-[var(--text-muted)]">
                     Total resource tiles: {Array.from(mineralDeposits.values()).reduce((a, b) => a + b, 0)}
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-[10px] text-slate-500">No deposits found</p>
+              <p className="text-[10px] text-[var(--text-muted)]">No deposits found</p>
             )}
           </div>
 
           {/* Points of Interest - Grouped */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-300 uppercase tracking-wider font-medium">LANDMARKS</span>
-              <span className="text-[10px] text-slate-400">{pointsOfInterest.length}</span>
+              <span className="text-[11px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">LANDMARKS</span>
+              <span className="text-[10px] text-[var(--text-muted)]">{pointsOfInterest.length}</span>
             </div>
             {Object.entries(groupedPOIs).map(([type, pois]) => (
               <div key={type} className="mb-3">
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   {type.replace(/_/g, ' ')}
                 </div>
                 <div className="space-y-1">
@@ -713,24 +714,24 @@ const LeftSidebar: React.FC<{
                     <button
                       key={poi.id}
                       onClick={() => handlePoiClick(poi)}
-                      className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-slate-700/30 text-left transition-colors"
+                      className="w-full flex items-center gap-2 p-1.5 rounded-lg surface-muted hover:shadow-md text-left transition-colors"
                     >
                       <span className="text-base">{STRUCTURE_BLUEPRINTS[poi.structureType]?.icon || '📍'}</span>
-                      <span className="text-[11px] text-slate-200 truncate">{poi.name}</span>
+                      <span className="text-[11px] text-[var(--text-primary)] truncate">{poi.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
             ))}
             {pointsOfInterest.length === 0 && (
-              <p className="text-[10px] text-slate-500">No landmarks found</p>
+              <p className="text-[10px] text-[var(--text-muted)]">No landmarks found</p>
             )}
           </div>
 
           {/* Terrain Analysis Button */}
           <button
             onClick={() => setIsMapDetailsModalOpen(true)}
-            className="w-full flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/40 text-emerald-200 rounded-lg text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 p-2.5 btn-secondary text-sm font-medium"
           >
             <BarChart className="w-4 h-4" />
             <span>Full Terrain Analysis</span>
@@ -757,13 +758,12 @@ const LeftSidebar: React.FC<{
 
       return (
         <div className="flex flex-col h-full">
-          <div className="space-y-5 text-sm text-gray-300 flex-1">
-            <div>
-              <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-2 border-b border-gray-600/50 pb-2">
-                Dominant Power
-              </h4>
-              <div
-                className="cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2"
+          <div className="flex-1 space-y-4 text-sm text-[var(--text-primary)]">
+            <div className="surface-card rounded-2xl px-2 py-3" >
+              <h4 className="text-xs uppercase tracking-wider font-semibold text-[var(--text-secondary)] -mt-1 mb-3">Dominant Power</h4>
+              <button
+                type="button"
+                className="w-full surface-muted rounded-xl px-3 py-2 flex items-center gap-3 text-left transition-shadow hover:shadow-md"
                 onClick={() => onShowFactionsModal?.(factionData)}
                 onMouseEnter={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -771,30 +771,35 @@ const LeftSidebar: React.FC<{
                 }}
                 onMouseLeave={() => onHideFactionTooltip?.()}
               >
-                <div className="flex items-center gap-2">
-                  <FactionIcon className="w-5 h-5" style={{ color: factionIconData?.color || '#FCD34D' }} />
-                  <p className="text-xl font-bold text-amber-300">{dominantPower}</p>
-                </div>
-              </div>
+                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/40 dark:bg-white/10">
+                  <FactionIcon className="w-8 h-8" style={{ color: factionIconData?.color || '#3f5b64' }} />
+                </span>
+                <span>
+                  <p className="text-base font-semibold text-[var(--text-primary)]">{dominantPower}</p>
+                  <span className="text-[11px] text-[var(--text-secondary)]">Tap for faction details</span>
+                </span>
+              </button>
               {factionData?.dominantPowerDescription && (
-                <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-slate-300/90 leading-[1.6] text-[0.9rem] mt-3">
+                <p className=" mt-3 opacity-90 text-[0.9rem] text-[var(--text-primary)] leading-relaxed italic">
                   {factionData.dominantPowerDescription}
-                </blockquote>
+                </p>
               )}
 
               {/* Rising/Contested Powers */}
               {secondaryPowers.length > 0 && (
                 <div className="mt-3">
-                  <h5 className="text-[11px] text-slate-400 uppercase tracking-wider font-medium mb-2">Other Powers</h5>
+                  <h5 className="text-[11px] text-[var(--text-secondary)] uppercase tracking-wider font-medium mb-1">Other Powers</h5>
                   <div className="space-y-1">
                     {secondaryPowers.map((power, idx) => {
                       const powerIconData = FACTION_ICONS[power.name];
                       const PowerIcon = powerIconData?.icon || Crown;
                       return (
-                        <div key={idx} className="flex items-center gap-2 text-xs">
-                          <PowerIcon className="w-3 h-3" style={{ color: powerIconData?.color || '#94A3B8' }} />
-                          <span className="text-slate-300">{power.name}</span>
-                          <span className="text-slate-500">({power.type})</span>
+                        <div key={idx} className="flex items-center justify-between rounded-lg px-2 py-1 text-xs">
+                          <span className="flex items-center gap-2">
+                            <PowerIcon className="w-5 h-5" style={{ color: powerIconData?.color || '#64748B' }} />
+                            <span className="font-medium text-[var(--text-primary)]">{power.name}</span>
+                          </span>
+                          <span className="capitalize text-[var(--text-secondary)]">{power.type}</span>
                         </div>
                       );
                     })}
@@ -804,32 +809,34 @@ const LeftSidebar: React.FC<{
 
               {majorCity && (
                 <>
-                  <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-3 mt-4 border-b border-gray-600/50 pb-2">
-                    Major City
-                  </h4>
-                  <div
-                    className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4 cursor-pointer hover:bg-cyan-800/30 hover:border-cyan-600/40"
-                    onClick={() => {
-                      setCityHistoricalModalData({
-                        cityName: majorCity.name,
-                        cityDescription: majorCity.description
-                      });
-                    }}
-                    title="Click to explore historical details"
-                  >
-                    {/* City header with founding year */}
-                    <div className="flex items-start justify-between mb-1">
-                      <p className="text-lg font-bold text-cyan-400">{majorCity.name}</p>
+                  <div className=" rounded-2xl  mt-4" style={{ borderColor: 'var(--surface-card-border)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs uppercase tracking-wider font-semibold text-[var(--text-secondary)]">Major City</h4>
                       {majorCity.foundingYear && (
-                        <span className="text-[10px] text-gray-400 mt-1">
-                          est. {majorCity.foundingYear < 0 ? `${Math.abs(majorCity.foundingYear)} BCE` : `${majorCity.foundingYear}`}
+                        <span className="text-[10px] text-[var(--text-muted)]">
+                          Founded {majorCity.foundingYear < 0 ? `${Math.abs(majorCity.foundingYear)} BCE` : `${majorCity.foundingYear}`}
                         </span>
                       )}
                     </div>
+                     <div className="surface-card rounded-2xl p-2  mt-2" style={{ borderColor: 'var(--surface-card-border)' }}>
+                    <button
+                      type="button"
+                      className="surface-card rounded-xl px-4 py-2 w-full text-left transition-shadow hover:shadow-md mb-4"
+                      onClick={() => {
+                        setCityHistoricalModalData({
+                          cityName: majorCity.name,
+                          cityDescription: majorCity.description
+                        });
+                      }}
+                      title="Click to explore historical details"
+                    >
 
-                    <p className="text-xs text-gray-300 mb-2">{majorCity.description}</p>
+                      <p className="text-lg font-semibold text-sky-700 dark:text-sky-300">{majorCity.name}</p>
+                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed mt-1">{majorCity.description}</p>
+                    </button>
 
-                    {/* Economic sectors with minimal colored outlines */}
+                
+
                     {majorCity.economicFocus && majorCity.economicFocus.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {majorCity.economicFocus.map((sector: string) => {
@@ -864,28 +871,32 @@ const LeftSidebar: React.FC<{
                           return (
                             <span
                               key={sector}
-                              className={`inline-block px-1.5 py-0.5 rounded text-[10px] text-gray-400 border ${borderColor} bg-transparent`}
+                              className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] text-[var(--text-secondary)] border ${borderColor} dark:bg-transparent`}
                               title={sector}
                             >
                               {sector.toLowerCase()}
                             </span>
                           );
+
                         })}
+
                       </div>
+
                     )}
 
-                    <p className="text-[10px] text-cyan-300/50 mt-2">Click for details →</p>
+                    
                   </div>
+                       </div>
                 </>
               )}
 
               {/* Local Languages */}
               {localLanguages.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-2 border-b border-gray-600/50 pb-2">
+                <div className="surface-card rounded-2xl p-3 border mt-4" style={{ borderColor: 'var(--surface-card-border)' }}>
+                  <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2">
                     Local Languages
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {localLanguages.map((lang, idx) => (
                       <button
                         key={idx}
@@ -893,26 +904,26 @@ const LeftSidebar: React.FC<{
                           setSelectedLanguageId(lang.id);
                           setShowLanguageTree(true);
                         }}
-                        className="block w-full text-left cursor-pointer hover:bg-slate-800/30 rounded-lg p-2 -m-2 transition-colors"
+                        className="block w-full text-left language-tile px-3 py-2 transition-all"
                       >
-                        <span className="font-semibold text-base text-emerald-300">{lang.name}</span>
+                        <span className="font-semibold text-base language-tile__name">{lang.name}</span>
                         {lang.nativeName && lang.nativeName !== lang.name && (
-                          <span className="text-xs text-slate-500 ml-2">({lang.nativeName})</span>
+                          <span className="text-xs text-[var(--text-muted)] ml-2">({lang.nativeName})</span>
                         )}
-                        <div className="text-[10px] uppercase tracking-wide text-slate-600 mt-0.5">{lang.family}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mt-0.5">{lang.family}</div>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <h4 className="text-xs uppercase tracking-wide font-bold text-slate-200 mb-2 mt-4">Description</h4>
-              <p className="text-[0.9rem] text-slate-300/90 leading-[1.6]">
+              <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2 mt-5">Description</h4>
+              <p className="text-[0.85rem] text-[var(--text-primary)] leading-[1.55]">
                 {finalDesc}
               </p>
 
               {/* Summary Counts */}
-              <div className="mt-4 pt-3">
+              <div className="mt-2 pt-1">
                 <div className="flex flex-wrap gap-2">
                   {ruinCount > 0 && (
                     <button
@@ -920,10 +931,10 @@ const LeftSidebar: React.FC<{
                         setActiveMajorTab('map');
                         setActiveMapSubTab('analysis');
                       }}
-                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                      className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
-                      <span className="font-bold text-amber-300">{ruinCount}</span>
-                      <span className="text-slate-400 ml-1">ruin{ruinCount !== 1 ? 's' : ''}</span>
+                      <span className="font-bold text-[var(--accent-primary)]">{ruinCount}</span>
+                      <span className="ml-1">ruin{ruinCount !== 1 ? 's' : ''}</span>
                     </button>
                   )}
                   {millCount > 0 && (
@@ -932,10 +943,10 @@ const LeftSidebar: React.FC<{
                         setActiveMajorTab('map');
                         setActiveMapSubTab('analysis');
                       }}
-                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                      className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
-                      <span className="font-bold text-amber-300">{millCount}</span>
-                      <span className="text-slate-400 ml-1">mill{millCount !== 1 ? 's' : ''}</span>
+                      <span className="font-bold text-[var(--accent-primary)]">{millCount}</span>
+                      <span className="ml-1">mill{millCount !== 1 ? 's' : ''}</span>
                     </button>
                   )}
                   {fortressCount > 0 && (
@@ -944,10 +955,10 @@ const LeftSidebar: React.FC<{
                         setActiveMajorTab('map');
                         setActiveMapSubTab('analysis');
                       }}
-                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                      className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
-                      <span className="font-bold text-amber-300">{fortressCount}</span>
-                      <span className="text-slate-400 ml-1">fortress{fortressCount !== 1 ? 'es' : ''}</span>
+                      <span className="font-bold text-[var(--accent-primary)]">{fortressCount}</span>
+                      <span className="ml-1">fortress{fortressCount !== 1 ? 'es' : ''}</span>
                     </button>
                   )}
                   {mineralCount > 0 && (
@@ -956,10 +967,10 @@ const LeftSidebar: React.FC<{
                         setActiveMajorTab('map');
                         setActiveMapSubTab('analysis');
                       }}
-                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                      className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
-                      <span className="font-bold text-amber-300">{mineralCount}</span>
-                      <span className="text-slate-400 ml-1">deposit{mineralCount !== 1 ? 's' : ''}</span>
+                      <span className="font-bold text-[var(--accent-primary)]">{mineralCount}</span>
+                      <span className="ml-1">deposit{mineralCount !== 1 ? 's' : ''}</span>
                     </button>
                   )}
                   {peopleCount > 0 && (
@@ -968,10 +979,10 @@ const LeftSidebar: React.FC<{
                         setActiveMajorTab('map');
                         setActiveMapSubTab('npcs');
                       }}
-                      className="px-2.5 py-1 bg-slate-700/40 hover:bg-slate-700/60 rounded-full text-xs transition-colors"
+                      className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
-                      <span className="font-bold text-amber-300">{peopleCount}</span>
-                      <span className="text-slate-400 ml-1">people</span>
+                      <span className="font-bold text-[var(--accent-primary)]">{peopleCount}</span>
+                      <span className="ml-1">people</span>
                     </button>
                   )}
                 </div>
@@ -981,18 +992,18 @@ const LeftSidebar: React.FC<{
 
           {/* Primary Sources Banner */}
           {sourceCount > 0 && (
-            <div className="relative mt-4">
+            <div className="relative mt-4 py-2">
               <button
                 onClick={() => setActiveMajorTab('history')}
-                className="w-full bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/40 rounded-lg p-2.5 flex items-center justify-between group transition-colors"
+                className="w-full surface-muted rounded-xl px-3 py-2 flex items-center justify-between group hover:shadow-md transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-xs font-medium text-amber-300">
+                  <span className="text-xs font-medium text-[var(--text-primary)]">
                     {sourceCount} historical source{sourceCount !== 1 ? 's' : ''} available
                   </span>
                 </div>
-                <span className="text-[10px] text-amber-400/70 group-hover:text-amber-300 transition-colors">
+                <span className="text-[10px] text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors">
                   View →
                 </span>
               </button>
@@ -1015,9 +1026,9 @@ const LeftSidebar: React.FC<{
     if (tab === 'animals') {
       return (
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
-          <h4 className="text-sm font-semibold text-blue-300 flex justify-between items-center shrink-0">
+          <h4 className="text-sm font-semibold text-blue-500 flex justify-between items-center shrink-0">
             <span>Observed Wildlife</span>
-            <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+            <span className="badge-pill" data-variant="accent">
               {animals?.length || 0}
             </span>
           </h4>
@@ -1035,7 +1046,7 @@ const LeftSidebar: React.FC<{
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-gray-500 italic text-center py-8">No animals observed.</p>
+              <p className="text-sm text-text-muted italic text-center py-8">No animals observed.</p>
             </div>
           )}
         </div>
@@ -1048,9 +1059,9 @@ const LeftSidebar: React.FC<{
 
       return (
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
-          <h4 className="text-sm font-semibold text-blue-300 flex justify-between items-center shrink-0">
+          <h4 className="text-sm font-semibold text-blue-500 flex justify-between items-center shrink-0">
             <span>Nearby People</span>
-            <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+            <span className="badge-pill" data-variant="accent">
               {list.length}
             </span>
           </h4>
@@ -1061,7 +1072,7 @@ const LeftSidebar: React.FC<{
               value={npcQuery}
               onChange={(e) => setNpcQuery(e.target.value)}
               placeholder="Search name, role, or class…"
-              className="w-full text-sm px-2.5 py-1.5 rounded-md bg-slate-800/70 border border-slate-700/60 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="w-full text-sm px-2.5 py-1.5 rounded-md surface-muted text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
             />
           </div>
 
@@ -1093,7 +1104,7 @@ const LeftSidebar: React.FC<{
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-gray-500 italic text-center py-8">No matching people.</p>
+              <p className="text-sm text-text-muted italic text-center py-8">No matching people.</p>
             </div>
           )}
         </div>
@@ -1111,18 +1122,20 @@ const LeftSidebar: React.FC<{
   ];
 
   const renderMapTabContent = () => (
-    <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-      <div className="flex bg-slate-800/60 rounded-t-lg border-x border-t border-slate-700/50 shrink-0">
+    <div className="flex flex-col flex-1 overflow-hidden min-h-0 gap-2">
+      <div className="tab-strip rounded-xl shrink-0">
         {mapSubTabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveMapSubTab(tab.id)}
-            className={`flex-1 py-3 px-2 text-center text-sm font-semibold border-b-2
-            ${activeMapSubTab === tab.id ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveMapSubTab(tab.id)}
+            className={`tab-button text-sm ${activeMapSubTab === tab.id ? 'is-active' : ''}`}
           >
             {tab.label}
           </button>
         ))}
       </div>
-      <div className="flex-1 p-3 bg-slate-900/40 rounded-b-lg border-x border-b border-slate-700/50 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
+      <div className="flex-1 surface-card rounded-2xl p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
         {getSubTabContent(activeMapSubTab)}
       </div>
     </div>
@@ -1137,6 +1150,7 @@ const LeftSidebar: React.FC<{
   return (
     <>
       <div
+        data-surface="sidebar-left"
         className={sidebarClassName}
         style={{
           width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px',
@@ -1157,42 +1171,42 @@ const LeftSidebar: React.FC<{
       <div className={`p-3 flex flex-col flex-1 overflow-hidden transition-opacity ${isLeftSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
         <div className="shrink-0">
           {/* Header card */}
-          <div className="p-4 rounded-xl bg-slate-800/70 mb-4 border border-slate-700/50 relative">
-            <button onClick={() => setIsLeftSidebarExpanded(false)} className="absolute top-2 right-2 text-slate-400 hover:text-white text-lg leading-none" aria-label="Collapse sidebar">&lt;&lt;</button>
+          <div className="p-4 rounded-xl surface-card mb-4 relative">
+            <button onClick={() => setIsLeftSidebarExpanded(false)} className="absolute opacity-40 top-1 right-2 text-text-secondary hover:text-text-primary text-lg leading-none" aria-label="Collapse sidebar">&lt;&lt;</button>
             <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-baseline">
               <div
-                className="cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1 border-r border-slate-700/30 pr-3"
+                className="cursor-pointer sidebar-meta -m-1 pr-3"
                 onClick={() => setShowLifeEventsCalendar(true)}
                 title="View life events calendar"
               >
-                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Date</p>
-                <p className="text-base text-amber-300 font-bold leading-tight">{formattedFullDate}</p>
-                <p className="text-xs text-slate-400 mt-0.5">({season})</p>
+                <p className="text-[12px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1">Date</p>
+                <p className="text-base font-bold text-[var(--accent-secondary)] leading-tight">{formattedFullDate}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5 capitalize">{season}</p>
               </div>
               <div
-                className="cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1"
+                className="cursor-pointer sidebar-meta -m-1"
                 onClick={onToggleMapVisibility}
                 title="Click to toggle map visibility"
               >
-                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Time</p>
-                <p className="text-base text-amber-300 font-bold leading-tight">{formattedTime}</p>
-                <p className="text-xs text-slate-400 mt-0.5">({currentTimeOfDay.toLowerCase()})</p>
+                <p className="text-[12px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1">Time</p>
+                <p className="text-base font-bold text-[var(--accent-secondary)] leading-tight">{formattedTime}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5 capitalize">{currentTimeOfDay.toLowerCase()}</p>
               </div>
-              <div className="border-r border-slate-700/30 pr-3">
-                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Zone</p>
-                <p className="text-sm text-slate-200 font-medium leading-tight">{getDisplayZone(currentZone, currentRegion)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Climate</p>
-                <p className="text-sm text-blue-300 font-medium leading-tight">{formatEnumString(currentMapClimate)}</p>
-              </div>
-              <div className="border-r border-slate-700/30 pr-3">
-                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Region</p>
-                <p className="text-sm font-medium text-green-400 leading-tight">{currentRegion}</p>
+              <div className="pr-3" style={{ borderRight: '1px solid var(--surface-muted-border)' }}>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Zone</p>
+                <p className="text-sm text-[var(--text-primary)] font-semibold leading-tight">{getDisplayZone(currentZone, currentRegion)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-[0.05em] mb-1.5">Map Area</p>
-                <p className="text-sm font-medium text-green-400 leading-tight">{localArea}</p>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Climate</p>
+                <p className="text-sm font-semibold text-[var(--accent-primary)] leading-tight">{formatEnumString(currentMapClimate)}</p>
+              </div>
+              <div className="pr-3" style={{ borderRight: '1px solid var(--surface-muted-border)' }}>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Region</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] leading-tight">{currentRegion}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Map Area</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] leading-tight">{localArea}</p>
               </div>
             </div>
           </div>
@@ -1201,25 +1215,17 @@ const LeftSidebar: React.FC<{
           <LiminalProgressBar liminalTravelState={liminalTravelState} />
 
           {/* Major tabs */}
-          <div className="flex mb-2 bg-slate-800 border border-slate-600/60 rounded-xl p-1 gap-1">
+          <div className="tab-strip rounded-2xl mb-2">
             {majorTabs.map(tab => {
               const isActive = activeMajorTab === tab.id;
-              const gradientMap: Record<string, string> = {
-                'bg-amber-600': 'from-amber-600 to-amber-700 shadow-amber-600/30',
-                'bg-blue-600': 'from-blue-600 to-blue-700 shadow-blue-600/30',
-                'bg-purple-600': 'from-purple-600 to-purple-700 shadow-purple-600/30'
-              };
-              const gradient = gradientMap[tab.color] || 'from-blue-600 to-blue-700 shadow-blue-600/30';
-
               return (
-                <button key={tab.id} onClick={() => setActiveMajorTab(tab.id)}
-                  className={`flex-1 py-2.5 px-2 text-center text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
-                    isActive
-                      ? `text-white bg-gradient-to-r ${gradient} shadow-lg transform scale-105`
-                      : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
-                  }`}
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveMajorTab(tab.id)}
+                  className={`tab-button text-xs font-bold ${isActive ? 'is-active' : ''}`}
                 >
-                  <span className="relative z-10">{tab.label}</span>
+                  {tab.label}
                 </button>
               );
             })}
@@ -1230,7 +1236,7 @@ const LeftSidebar: React.FC<{
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {activeMajorTab === 'map' && renderMapTabContent()}
           {activeMajorTab === 'history' && (
-            <div className="flex-1 overflow-hidden bg-slate-900/40 rounded-lg border border-slate-700/50">
+            <div className="flex-1 overflow-hidden surface-card rounded-2xl">
               <HistoryPanel
                 gameDate={gameDate}
                 currentZone={currentZone}
@@ -1243,7 +1249,7 @@ const LeftSidebar: React.FC<{
             </div>
           )}
           {activeMajorTab === 'gamelog' && (
-            <div className="flex-1 overflow-hidden bg-slate-900/40 rounded-lg border border-slate-700/50">
+            <div className="flex-1 overflow-hidden surface-card rounded-2xl">
               <GamelogPanel entries={gameLog} />
             </div>
           )}

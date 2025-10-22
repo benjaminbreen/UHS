@@ -43,19 +43,49 @@ const InventoryToast: React.FC<InventoryToastProps> = ({
   const getActionDetails = () => {
     switch (action) {
       case 'collected':
-        return { text: 'Collected', color: 'text-green-400', bgColor: 'bg-green-900/20', borderColor: 'border-green-500' };
+        return {
+          text: 'Collected',
+          textClass: 'text-emerald-400',
+          tintBg: 'rgba(34,197,94,0.12)',
+          tintBorder: 'rgba(52,211,153,0.38)',
+          progressColor: 'rgba(34,197,94,0.55)'
+        };
       case 'stolen':
-        return { text: 'Stolen', color: 'text-red-400', bgColor: 'bg-red-900/20', borderColor: 'border-red-500' };
+        return {
+          text: 'Stolen',
+          textClass: 'text-rose-400',
+          tintBg: 'rgba(248,113,113,0.12)',
+          tintBorder: 'rgba(248,113,113,0.35)',
+          progressColor: 'rgba(248,113,113,0.55)'
+        };
       case 'found':
-        return { text: 'Found', color: 'text-blue-400', bgColor: 'bg-blue-900/20', borderColor: 'border-blue-500' };
+        return {
+          text: 'Found',
+          textClass: 'text-sky-400',
+          tintBg: 'rgba(96,165,250,0.12)',
+          tintBorder: 'rgba(96,165,250,0.35)',
+          progressColor: 'rgba(96,165,250,0.55)'
+        };
       case 'looted':
-        return { text: 'Looted', color: 'text-yellow-400', bgColor: 'bg-yellow-900/20', borderColor: 'border-yellow-500' };
+        return {
+          text: 'Looted',
+          textClass: 'text-amber-400',
+          tintBg: 'rgba(251,191,36,0.12)',
+          tintBorder: 'rgba(251,191,36,0.36)',
+          progressColor: 'rgba(250,204,21,0.55)'
+        };
       default:
-        return { text: 'Obtained', color: 'text-gray-400', bgColor: 'bg-gray-900/20', borderColor: 'border-gray-500' };
+        return {
+          text: 'Obtained',
+          textClass: 'text-slate-200',
+          tintBg: 'rgba(148,163,184,0.12)',
+          tintBorder: 'rgba(148,163,184,0.32)',
+          progressColor: 'rgba(148,163,184,0.55)'
+        };
     }
   };
 
-  const { text: actionText, color: textColor, bgColor, borderColor } = getActionDetails();
+  const { text: actionText, textClass, tintBg, tintBorder, progressColor } = getActionDetails();
 
   // Get rarity color for item name
   const getRarityColor = () => {
@@ -70,84 +100,73 @@ const InventoryToast: React.FC<InventoryToastProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`
-        fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[9998]
-        transition-all duration-300 ease-out
-        ${isVisible && !isExiting ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}
+        fixed left-1/2 bottom-[calc(7rem+4vh)] -translate-x-1/2 z-[9998]
+        transition-all duration-400 ease-out
+        ${isVisible && !isExiting ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}
       `}
     >
-      <div className={`
-        flex items-center gap-4 px-6 py-4
-        bg-gray-900/95 backdrop-blur-md
-        border-2 ${borderColor} rounded-lg
-        shadow-2xl shadow-black/50
-        min-w-[320px] max-w-[480px]
-      `}>
-        {/* Item Icon */}
-        <div className={`
-          w-16 h-16 flex items-center justify-center
-          ${bgColor} rounded-lg border ${borderColor}
-          shadow-inner
-        `}>
-          <GenerativeItemIcon item={item} size={48} />
+      <div
+        data-surface="toast"
+        className="relative flex items-center gap-4 px-6 py-4 rounded-xl shadow-xl min-w-[280px] max-w-[420px] backdrop-blur-xl border"
+        style={{
+          boxShadow: '0 20px 40px rgba(15, 23, 42, 0.28)'
+        }}
+      >
+        <div
+          className="w-[56px] h-[56px] flex items-center justify-center rounded-lg border shadow-inner"
+          style={{ background: tintBg, borderColor: tintBorder }}
+        >
+          <GenerativeItemIcon item={item} size={44} />
         </div>
 
-        {/* Item Info */}
-        <div className="flex-1">
-          {/* Action Text */}
-          <div className={`text-xs font-bold uppercase tracking-wider ${textColor} mb-1`}>
-            {actionText}
-          </div>
-          
-          {/* Item Name */}
-          <div className={`text-base font-semibold ${getRarityColor()}`}>
-            {item.name}
-            {item.quantity && item.quantity > 1 && (
-              <span className="text-sm text-gray-400 ml-2">x{item.quantity}</span>
-            )}
-          </div>
-          
-          {/* Item Value */}
+        <div className="flex-1 min-w-0">
+          <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${textClass} mb-1`}>{actionText}</div>
+          <div className={`text-base font-semibold ${getRarityColor()} truncate`}>{item.name}</div>
+          {item.quantity && item.quantity > 1 && (
+            <div style={{ color: 'var(--toast-surface-text)', opacity: 0.7 }} className="text-xs">
+              Qty&nbsp;{item.quantity}
+            </div>
+          )}
           {item.value > 0 && (
-            <div className="text-xs text-gray-400 mt-1">
-              Value: <span className="text-yellow-400">{item.value}</span> coins
+            <div style={{ color: 'var(--toast-surface-text)', opacity: 0.7 }} className="text-[11px] mt-1">
+              Value <span style={{ color: '#fbbf24', fontWeight: 600 }}>{item.value}</span> coins
             </div>
           )}
         </div>
 
-        {/* Special Indicators */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 text-xs" style={{ color: 'var(--toast-surface-text)', opacity: 0.75 }}>
           {item.specialMapOnly && (
-            <span className="text-xs bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded-full">
+            <span
+              style={{
+                background: 'rgba(168, 85, 247, 0.16)',
+                color: 'rgba(107, 33, 168, 0.9)',
+                padding: '2px 8px',
+                borderRadius: '999px'
+              }}
+            >
               Special
             </span>
           )}
           {item.value > 100 && (
-            <span className="text-xs bg-yellow-900/50 text-yellow-300 px-2 py-0.5 rounded-full">
+            <span
+              style={{
+                background: 'rgba(234, 179, 8, 0.16)',
+                color: 'rgba(180, 83, 9, 0.9)',
+                padding: '2px 8px',
+                borderRadius: '999px'
+              }}
+            >
               Valuable
             </span>
           )}
         </div>
-      </div>
 
-      {/* Progress Bar for Auto-Dismiss */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800 rounded-b-lg overflow-hidden">
-        <div 
-          className={`h-full ${bgColor} transition-all ease-linear`}
-          style={{
-            width: '100%',
-            animation: `shrink ${duration}ms linear forwards`
-          }}
-        />
+        <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-xl" style={{ background: 'rgba(51,65,85,0.2)' }}>
+          <div className="h-full" style={{ background: progressColor, animation: `toastProgress ${duration}ms linear forwards` }}></div>
+        </div>
       </div>
-
-      <style jsx>{`
-        @keyframes shrink {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-      `}</style>
     </div>
   );
 };

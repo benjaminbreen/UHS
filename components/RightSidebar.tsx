@@ -14,7 +14,7 @@ import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { usePlayer } from '../contexts/PlayerContext';
-import { getSafariOptimizedClassName, isSafari } from '../utils/safariUtils';
+import { getSafariOptimizedClassName, getOptimizedButtonClassName, isSafari } from '../utils/safariUtils';
 import NarrationPanel from './NarrationPanel';
 import InventoryPanel from './InventoryPanel';
 import StudyPanel, { StudyData, StudiedItem } from './StudyPanel';
@@ -52,7 +52,7 @@ interface RightSidebarProps {
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = false }) => {
-  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen } = useUI();
+  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, onEat, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen } = useUI();
   const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
   const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone } = useMap();
@@ -358,8 +358,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     <>
       <style>{progressBarStyles}</style>
       <div
+        data-surface="sidebar-right"
         className={`right-sidebar ${getSafariOptimizedClassName(
-          'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-right-light dark:shadow-sidebar-right border-l border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200'
+          'theme-surface relative h-full flex flex-col flex-shrink-0 border-l'
         )}`}
         style={{
           width: `${sidebarWidth}px`,
@@ -375,27 +376,28 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
         style={{ width: '6px', marginLeft: '-3px' }}
         aria-label="Resize right sidebar"
       >
-        <div className="w-full h-full bg-transparent group-hover:bg-blue-400/40 transition-colors duration-200 relative">
-          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-slate-500/40 rounded-full group-hover:bg-blue-400/80 transition-all duration-200 group-hover:h-12" />
+        <div className="w-full h-full bg-transparent transition-colors duration-200 relative">
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 handle-pill transition-all duration-200 group-hover:h-12" />
         </div>
       </div>
 
       <div className="flex flex-col h-full overflow-y-auto scrollbar-thin">
         {/* Player Profile Card */}
-        <div className="flex-shrink-0 p-2.5">
+        <div className="flex-shrink-0 p-2 px-3 ">
           {playerCharacter && playerCharacter.appearance && (
             <div
-              className="p-3 mb-2 transition-[transform,border-color] duration-200 border rounded-2xl cursor-pointer
-                         bg-gradient-to-br from-slate-800/95 via-slate-850/90 to-slate-900/95
-                         border-slate-600/60
-                         hover:border-slate-500/80 hover:-translate-y-1
-                         active:translate-y-0"
+              className="surface-card rounded-xl p-3 mb-3 transition-[transform,border-color] duration-200 cursor-pointer hover:-translate-y-1 active:translate-y-0"
               onClick={handleProfileClick}
             >
               <div className="flex items-start gap-4 mb-3">
                 <div className="flex flex-col items-center">
-                  <div className="relative">
-                    <div className="portrait-container relative flex-shrink-0 w-24 h-24 overflow-hidden bg-gray-100 dark:bg-gray-900 rounded-full border-2 border-slate-400/70 dark:border-slate-500/70 shadow-xl shadow-slate-400/50 dark:shadow-black/50">
+                    <div className="relative">
+                      <div className="portrait-container relative flex-shrink-0 w-24 h-24 overflow-hidden rounded-full border-2 shadow-xl"
+                        style={{
+                          background: 'var(--bg-elevated)',
+                          borderColor: 'white',
+                          boxShadow: '0 12px 28px rgba(63, 50, 33, 0.16)'
+                        }}>
                       {/* Skeleton loader background */}
                       <div className="absolute inset-0 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 animate-pulse"></div>
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
@@ -418,7 +420,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                     <div
                       className="absolute inset-0 -z-10 rounded-full"
                       style={{
-                        background: `conic-gradient(#60a5fa ${xpPercent * 3.6}deg, transparent 0deg)`
+                        background: `conic-gradient(var(--accent-primary) ${xpPercent * 3.6}deg, transparent 0deg)`
                       }}
                     />
                     {/* Attribute badges overlay - positioned in lower right of portrait */}
@@ -439,22 +441,22 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-3 gap-3">
+                    <div className="flex items-start justify-between mb-2 gap-3">
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-lg font-bold leading-tight text-slate-900 dark:text-white break-words">{playerCharacter.name}</h4>
-                      <p className="text-sm font-semibold text-amber-600 dark:text-amber-300 capitalize">{playerCharacter.profession}</p>
-                      <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                      <h4 className="text-lg font-bold leading-tight text-[var(--text-primary)] break-words">{playerCharacter.name}</h4>
+                      <p className="text-sm font-semibold text-[var(--accent-primary)] capitalize">{playerCharacter.profession}</p>
+                      <p className="mt-1 text-xs text-text-secondary">
                         Age {playerCharacter.age} • {playerCharacter.gender || 'Unknown'}
                       </p>
                     </div>
                     <div className="flex-shrink-0 text-right pl-2 min-w-0">
-                      <p className="text-sm font-bold text-blue-600 dark:text-blue-300 whitespace-nowrap">Level {playerCharacter.level}</p>
+                      <p className="text-sm font-bold text-[var(--accent-primary)] whitespace-nowrap">Level {playerCharacter.level}</p>
                       <div className="flex flex-col items-end gap-1 mt-1">
-                        <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 flex items-center gap-1" title="Currency">
+                        <p className="text-sm font-semibold text-[var(--color-warning)] flex items-center gap-1" title="Currency">
                           <span>💰</span>
                           <span>{playerCharacter.currency}</span>
                         </p>
-                        <p className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1" title={`Reputation: ${repPercent}/100`}>
+                        <p className="text-sm font-semibold text-[var(--accent-primary)] flex items-center gap-1" title={`Reputation: ${repPercent}/100`}>
                           <span>🤝</span>
                           <span>{repPercent}</span>
                         </p>
@@ -494,7 +496,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                     </div>
                   ) : (
                     /* Status when no disease */
-                    <p className="mb-2 text-xs italic text-amber-200">
+                    <p className="mb-2 text-xs italic text-[var(--accent-primary)]">
                       {statusInfo.text}
                     </p>
                   )}
@@ -504,20 +506,20 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               {/* Enhanced Progress Bars with Skeumorphic Effects */}
               <div className="space-y-3 mt-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-300">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
                     <span>HEALTH</span>
                     <span className={`transition-colors duration-200 ${
                       healthPercent < 10 ? 'text-red-400 font-bold text-sm' :
-                      healthPercent < 20 ? 'text-orange-400 font-semibold' : 'text-gray-300'
+                      healthPercent < 20 ? 'text-orange-400 font-semibold' : 'text-text-secondary'
                     }`}>
                       {Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}
                     </span>
                   </div>
-                  <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
+                  <div className="relative w-full h-2.5 progress-track overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.7),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.4),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
                     {/* Inner track with padding for inset effect */}
-                    <div className="absolute inset-0.5 bg-slate-800/80 rounded-full" />
+                    <div className="absolute inset-0.5 progress-fill opacity-30" />
                     {/* Progress fill - FIXED: simpler positioning */}
                     <div className="absolute inset-0.5 rounded-full overflow-hidden">
                       <div
@@ -537,20 +539,20 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-300">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
                     <span>FATIGUE</span>
                     <span className={`transition-colors duration-200 ${
                       fatiguePercent >= 90 ? 'text-red-400 font-bold text-sm' :
-                      fatiguePercent >= 80 ? 'text-orange-400 font-semibold' : 'text-gray-300'
+                      fatiguePercent >= 80 ? 'text-orange-400 font-semibold' : 'text-text-secondary'
                     }`}>
                       {Math.ceil(playerCharacter.fatigue)} / {Math.ceil(playerCharacter.maxFatigue)}
                     </span>
                   </div>
-                  <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
+                  <div className="relative w-full h-2.5 progress-track overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.7),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.4),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
                     {/* Inner track with padding for inset effect */}
-                    <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
+                    <div className="absolute inset-0.3 progress-fill opacity-30" />
                     {/* Progress fill - FIXED: simpler positioning */}
                     <div className="absolute inset-0.5 rounded-full overflow-hidden">
                       <div
@@ -571,17 +573,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-gray-300">
+                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
                     <span>EXPERIENCE</span>
                     <span className="text-blue-300">
                       {Math.ceil(playerCharacter.experience)} / {Math.ceil(playerCharacter.maxExperience)}
                     </span>
                   </div>
-                  <div className="relative w-full h-2.5 bg-slate-900/90 rounded-full overflow-hidden shadow-inner">
+                  <div className="relative w-full h-2.5 progress-track overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                   <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.7),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
+                   <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.4),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
                     {/* Inner track with padding for inset effect */}
-                    <div className="absolute inset-0.3 bg-slate-800/80 rounded-full" />
+                    <div className="absolute inset-0.3 progress-fill opacity-30" />
                     {/* Progress fill - FIXED: simpler positioning */}
                     <div className="absolute inset-0.5 rounded-full overflow-hidden">
                       <div
@@ -625,10 +627,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           {/* Actions */}
           <div className="mb-0">
             <div className="flex items-center justify-between mb-2 mt-1">
-              <h4 className="text-xs tracking-wider text-gray-300 uppercase">Actions</h4>
+              <h4 className="text-xs tracking-wider text-text-secondary uppercase">Actions</h4>
               <button
                 onClick={handleConfigClick}
-                className="p-1 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
+                className="p-1 text-text-muted surface-muted rounded transition-all hover:text-text-primary hover:shadow-md"
                 title="Configure action buttons"
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -646,39 +648,37 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
                         disabled={isDisabled || isStudyProcessing}
-                        className={`group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold transition-all duration-300 border rounded-xl overflow-hidden
-                                   ${isDisabled || isStudyProcessing
-                                     ? 'text-gray-500 bg-slate-800/40 border-gray-700/30 cursor-not-allowed'
-                                     : 'text-gray-300 bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-purple-600/80 hover:to-purple-700/60 hover:border-purple-400/70 hover:text-white hover:shadow-lg hover:shadow-purple-600/30 hover:scale-105 active:scale-95'
-                                   }`}
+                        data-disabled={isDisabled || isStudyProcessing}
+                        className={getOptimizedButtonClassName(
+                          `action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold overflow-hidden`
+                        )}
                         style={{ aspectRatio: '1 / 0.7' }}
                       >
                         {/* Hotkey indicator */}
-                        <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-purple-600/30 text-purple-300 text-[10px] font-bold rounded border border-purple-500/30">
+                        <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold border border-[rgba(75,119,104,0.35)] bg-[rgba(75,119,104,0.18)] text-[var(--accent-primary)]">
                           {index + 1}
                         </div>
                         <div
                           className="mb-0.5 text-base"
                           style={{
-                            filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))',
-                            textShadow: '0 0 8px rgba(255,255,255,0.4)'
+                            filter: 'drop-shadow(0 0 6px rgba(75,119,104,0.35))'
                           }}
                         >
                           {action.icon}
                         </div>
-                        <span className="text-[11px] leading-tight text-center">{action.name}</span>
+                        <span className="text-[11px] leading-tight text-center text-[var(--text-primary)]">{action.name}</span>
                       </button>
 
                       {/* Tooltip - smart positioning based on button position */}
                       {hoveredButton === index && (
-                        <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn ${
+                        <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 tooltip-surface pointer-events-none animate-fadeIn ${
                           index >= 2 ? 'right-0' : 'left-0'
                         }`}>
                           <p className="text-xs font-semibold text-white mb-1">{action.name}</p>
-                          <p className="text-[10px] text-gray-300 mb-2">{action.description}</p>
+                          <p className="text-[10px] text-text-secondary mb-2">{action.description}</p>
                           {!isDisabled ? (
                             <div className="flex items-center gap-2 text-[10px] text-purple-300">
-                              <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
+                              <kbd className="px-1 py-0.5 badge-pill" data-variant="accent">{index + 1}</kbd>
                               <span>Press to activate</span>
                             </div>
                           ) : (
@@ -704,36 +704,35 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         onClick={() => handleSkillClick(skillId)}
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
-                        className="group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold text-gray-300 transition-all duration-300 border rounded-xl overflow-hidden
-                                   bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50
-                                   hover:bg-gradient-to-br hover:from-blue-600/80 hover:to-blue-700/60 hover:border-blue-400/70 hover:text-white hover:shadow-lg hover:shadow-blue-600/30 hover:scale-105 active:scale-95"
+                        className={getOptimizedButtonClassName(
+                          'action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold overflow-hidden'
+                        )}
                         style={{ aspectRatio: '1 / 0.7' }}
                       >
                         {/* Hotkey indicator */}
-                        <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-blue-600/30 text-blue-300 text-[10px] font-bold rounded border border-blue-500/30">
+                        <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold border border-[rgba(75,119,104,0.35)] bg-[rgba(75,119,104,0.18)] text-[var(--accent-primary)]">
                           {index + 1}
                         </div>
                         <div
                           className="mb-0.5 text-base"
                           style={{
-                            filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))',
-                            textShadow: '0 0 8px rgba(255,255,255,0.4)'
+                            filter: 'drop-shadow(0 0 6px rgba(75,119,104,0.35))'
                           }}
                         >
                           {skill.icon}
                         </div>
-                        <span className="text-[11px] leading-tight text-center">{skill.name}</span>
+                        <span className="text-[11px] leading-tight text-center text-[var(--text-primary)]">{skill.name}</span>
                       </button>
 
                       {/* Tooltip - smart positioning based on button position */}
                       {hoveredButton === index && (
-                        <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn ${
+                        <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 tooltip-surface pointer-events-none animate-fadeIn ${
                           index >= 2 ? 'right-0' : 'left-0'
                         }`}>
                           <p className="text-xs font-semibold text-white mb-1">{skill.name}</p>
-                          <p className="text-[10px] text-gray-300 mb-2">{skill.description}</p>
+                          <p className="text-[10px] text-text-secondary mb-2">{skill.description}</p>
                           <div className="flex items-center gap-2 text-[10px] text-blue-300">
-                            <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
+                            <kbd className="px-1 py-0.5 badge-pill" data-variant="accent">{index + 1}</kbd>
                             <span>Press to activate</span>
                           </div>
                         </div>
@@ -747,46 +746,30 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
         </div>
 
         {/* Enhanced Tab Navigation */}
-        <div className="flex p-1 mx-2 mt-1 mb-2 bg-slate-800 border border-slate-600/60 rounded-xl shrink-0">
+        <div className="tab-strip shrink-0 mx-2 mt-1 mb-2">
           <button
             onClick={() => handleTabClick('narrator')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
-              activeTab === 'narrator'
-                ? 'text-white bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg shadow-blue-600/30 transform scale-105'
-                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
-            }`}
+            className={`tab-button text-xs font-bold ${activeTab === 'narrator' ? 'is-active' : ''}`}
           >
-            <span className="relative z-10">Narrator</span>
+            Narrator
           </button>
           <button
             onClick={() => handleTabClick('inventory')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
-              activeTab === 'inventory'
-                ? 'text-white bg-gradient-to-r from-emerald-600 to-emerald-700 shadow-lg shadow-emerald-600/30 transform scale-105'
-                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
-            }`}
+            className={`tab-button text-xs font-bold ${activeTab === 'inventory' ? 'is-active' : ''}`}
           >
-            <span className="relative z-10">Inventory</span>
+            Inventory
           </button>
           <button
             onClick={() => handleTabClick('study')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
-              activeTab === 'study'
-                ? 'text-white bg-gradient-to-r from-purple-600 to-purple-700 shadow-lg shadow-purple-600/30 transform scale-105'
-                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
-            }`}
+            className={`tab-button text-xs font-bold ${activeTab === 'study' ? 'is-active' : ''}`}
           >
-            <span className="relative z-10">Study</span>
+            Study
           </button>
           <button
             onClick={() => handleTabClick('sources')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 relative overflow-hidden ${
-              activeTab === 'sources'
-                ? 'text-white bg-gradient-to-r from-amber-600 to-amber-700 shadow-lg shadow-amber-600/30 transform scale-105'
-                : 'text-slate-400 hover:bg-slate-700/40 hover:text-slate-200 active:scale-95'
-            }`}
+            className={`tab-button text-xs font-bold ${activeTab === 'sources' ? 'is-active' : ''}`}
           >
-            <span className="relative z-10">Sources</span>
+            Sources
           </button>
         </div>
 
@@ -828,7 +811,15 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                     // Switch to study tab
                     setActiveTab('study');
                   }}
-                  onInventoryUpdate={() => {}}
+                  onEat={onEat}
+                  onInventoryUpdate={() => {
+                    // Dispatch inventory update event for quest/work offer progress tracking
+                    window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+                    // Call the parent onInventoryUpdate if it exists
+                    if (onInventoryUpdate) {
+                      onInventoryUpdate();
+                    }
+                  }}
                   deployVesselToMap={deployVesselToMap}
                   deployBridgeToMap={deployBridgeToMap}
                   playerX={controlledIconX}

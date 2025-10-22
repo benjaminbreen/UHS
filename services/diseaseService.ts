@@ -183,6 +183,50 @@ class DiseaseService {
   }
 
   /**
+   * Check if a specific disease is available in a given era/region/year
+   */
+  private isDiseaseAvailable(
+    disease: Disease,
+    era: HistoricalEra,
+    region: CulturalZone,
+    currentYear: number
+  ): boolean {
+    const legacyEraName = this.mapEraToLegacyName(era);
+
+    // Check era availability
+    if (!disease.availableEras.includes(legacyEraName as any)) return false;
+
+    // Check region availability
+    if (!disease.availableRegions.includes(region)) return false;
+
+    // Check year constraints
+    if (disease.startYear && currentYear < disease.startYear) return false;
+    if (disease.endYear && currentYear > disease.endYear) return false;
+
+    // Apply Columbian Exchange restrictions
+    if (!diseaseModule) return false;
+    const restrictions = diseaseModule.COLUMBIAN_EXCHANGE_RESTRICTIONS || {
+      exchangeYear: 1492,
+      preContactNewWorld: [],
+      preContactOldWorld: []
+    };
+
+    if (currentYear < restrictions.exchangeYear) {
+      const isNewWorld = ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'].includes(region);
+      const isOldWorld = !isNewWorld;
+
+      if (isNewWorld && restrictions.preContactNewWorld.includes(disease.id)) {
+        return false;
+      }
+      if (isOldWorld && restrictions.preContactOldWorld.includes(disease.id)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Assign a specific disease to an entity (used by WorldWeaver)
    */
   public assignSpecificDisease(
@@ -192,25 +236,30 @@ class DiseaseService {
     region: CulturalZone,
     currentYear: number
   ): CharacterHealth | undefined {
+    // Check if module is loaded - if not, it means preload wasn't called
+    if (!diseaseModule) {
+      console.error(`[DiseaseService] Cannot assign disease - module not loaded. Call preloadDiseaseModule() first.`);
+      return undefined;
+    }
+
     // Find the disease by ID
-    ensureDiseaseModule();
-    const disease = (diseaseModule?.DISEASE_DATABASE?.diseases || []).find(d => d.id === diseaseId);
-    
+    const disease = (diseaseModule.DISEASE_DATABASE?.diseases || []).find(d => d.id === diseaseId);
+
     if (!disease) {
       console.error(`[DiseaseService] Disease ${diseaseId} not found in database`);
       return undefined;
     }
-    
+
     // Check if disease is available in this era/region
     const isAvailable = this.isDiseaseAvailable(disease, era, region, currentYear);
-    
+
     if (!isAvailable) {
       console.warn(`[DiseaseService] Disease ${diseaseId} not available in ${era} ${region} ${currentYear}`);
-      // Still assign it if specifically requested by WorldWeaver
+      console.warn(`[DiseaseService] Assigning anyway as specifically requested by WorldWeaver`);
     }
-    
+
     const activeDisease = this.createActiveDisease(disease, currentYear);
-    
+
     const health: CharacterHealth = {
       currentDiseases: [activeDisease],
       immunities: [],
@@ -218,7 +267,7 @@ class DiseaseService {
       overallHealthStatus: this.calculateOverallHealthStatus([activeDisease]),
       lastHealthUpdate: this.createGameDate(currentYear)
     };
-    
+
     console.log(`[DiseaseService] Assigned ${disease.name} to entity via WorldWeaver request`);
     return health;
   }

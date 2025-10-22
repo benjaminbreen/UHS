@@ -75,7 +75,7 @@ interface MapViewportProps {
 const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, onFarmPanelChange, className, isStudyingStars = false }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
-        activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage, setToastMessage,
+        activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage, setToastMessage, toastDurationMs,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
         activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, activeFishingHutModal, setActiveFishingHutModal, inRuinRoguelike, setInRuinRoguelike, inMiningRoguelike, setInMiningRoguelike, miningRoguelikeData, setMiningRoguelikeData, useLlmForDescriptions, handleEncounter, setInfoModalTarget, showToast,
         setActiveMiningModal, setActivePoi, debugSettings,
@@ -530,9 +530,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     useEffect(() => {
         const handleWorldWeaverToast = (event: CustomEvent) => {
             const { message } = event.detail;
-            // Use a simple toast message for WorldWeaver notifications
             setToastMessage(message);
-            setTimeout(() => setToastMessage(null), 4000);
+            setTimeout(() => setToastMessage(null), 5500);
         };
 
         window.addEventListener('showGameToast', handleWorldWeaverToast as EventListener);
@@ -1877,6 +1876,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         onEnterRailroadStation={handleStationClick}
                         onEnterHarborDistrict={handleHarborClick}
                         toastMessage={toastMessage}
+                        toastDuration={toastDurationMs}
                         season={season}
                         timeOfDay={currentTimeOfDay}
                         dayOfYear={gameDate ? getDayOfYear(gameDate) : 180}

@@ -33,8 +33,16 @@ const MiningModal: React.FC<MiningModalProps> = ({ structure, playerCharacter, o
   const richness = getDepositRichness(remaining);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="ff-panel w-full max-w-lg" onClick={e => e.stopPropagation()}>
+    <div
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface"
+      onClick={onClose}
+    >
+      <div
+        data-surface="modal-panel"
+        className="ff-panel theme-surface w-full max-w-lg"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="p-6">
           <div className="flex justify-between items-center mb-4 pb-3 border-b border-blue-500/30">
             <h3 className="text-xl font-semibold text-blue-400">⛏️ {name}</h3>

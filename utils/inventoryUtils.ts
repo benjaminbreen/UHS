@@ -274,6 +274,60 @@ export function addItemToInventory(inventory: Item[], itemToAdd: Item): Item[] {
 }
 
 /**
+ * Removes items from inventory by name and quantity, handling stacked items properly.
+ * This is the complement to addItemToInventory() and follows the same quantity logic.
+ *
+ * @param inventory The current inventory array
+ * @param itemName The name of the item to remove (case-insensitive)
+ * @param quantityToRemove The quantity to remove (default: 1)
+ * @returns Object with new inventory array and array of removed item IDs
+ *
+ * @example
+ * // Remove 5 apples from inventory
+ * const result = removeItemFromInventory(inventory, "Apple", 5);
+ * // Returns: { inventory: [...], removedIds: ["id1", "id2"] }
+ */
+export function removeItemFromInventory(
+    inventory: Item[],
+    itemName: string,
+    quantityToRemove: number = 1
+): { inventory: Item[], removedIds: string[] } {
+    const newInventory = [...inventory];
+    const removedIds: string[] = [];
+    let remainingToRemove = quantityToRemove;
+
+    // Find and remove items in order
+    for (let i = newInventory.length - 1; i >= 0 && remainingToRemove > 0; i--) {
+        const item = newInventory[i];
+
+        // Case-insensitive name match
+        if (item.name.toLowerCase() === itemName.toLowerCase()) {
+            const itemQuantity = item.quantity || 1;
+
+            if (itemQuantity <= remainingToRemove) {
+                // Remove entire stack
+                removedIds.push(item.id);
+                newInventory.splice(i, 1);
+                remainingToRemove -= itemQuantity;
+            } else {
+                // Partial removal - decrement quantity
+                newInventory[i] = {
+                    ...item,
+                    quantity: itemQuantity - remainingToRemove
+                };
+                remainingToRemove = 0;
+                // Note: We don't add to removedIds because item still exists
+            }
+        }
+    }
+
+    return {
+        inventory: newInventory,
+        removedIds
+    };
+}
+
+/**
  * Assembles a starting package of items for a character based on their profession.
  * @param profession The character's profession key.
  * @returns An object containing inventory and equipped items.

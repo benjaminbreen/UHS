@@ -21,7 +21,7 @@ export interface CharacterSpecification {
   age?: number;
   gender?: 'male' | 'female';
   profession?: string;
-  health?: 'healthy' | 'average' | 'unhealthy' | 'sickly';
+  health?: 'healthy' | 'average' | 'unhealthy' | 'sickly' | 'sick';
   socialClass?: 'peasant' | 'commoner' | 'merchant' | 'noble';
   traits?: string[];
   disease?: string; // Disease ID like BUBONIC_PLAGUE

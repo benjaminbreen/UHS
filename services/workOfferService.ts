@@ -1,0 +1,670 @@
+/**
+ * services/workOfferService.ts - Generate and manage simple work offers
+ */
+import { GoogleGenAI, Type } from "@google/genai";
+import { NpcEntity, PlayerCharacter, MapData, AnimalEntity } from '../types';
+import { TerrainStructure } from '../types/structures';
+import { WorkOffer, WorkTaskType } from '../types/workOffer';
+import { getStructureLocation, calculateDistance, findStructuresInRadius } from './structureUtils';
+import { wasAnimalKilled, getActiveWorkOffers } from './workOfferStorage';
+import { removeItemFromInventory } from '../utils/inventoryUtils';
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+/**
+ * Detect if player is asking for work in their message
+ */
+export function detectWorkRequest(playerInput: string): boolean {
+  const workKeywords = [
+    'work', 'job', 'task', 'help', 'earn', 'money',
+    'coins', 'hire', 'employ', 'pay', 'quest', 'favor',
+    'need', 'gold', 'silver', 'employment'
+  ];
+
+  const lowerInput = playerInput.toLowerCase();
+  return workKeywords.some(keyword => lowerInput.includes(keyword));
+}
+
+/**
+ * Get direction from player to a location
+ */
+function getDirection(playerX: number, playerY: number, targetX: number, targetY: number): string {
+  const dx = targetX - playerX;
+  const dy = targetY - playerY;
+
+  // Determine primary direction
+  let direction = '';
+
+  if (Math.abs(dy) > Math.abs(dx)) {
+    direction = dy < 0 ? 'North' : 'South';
+  } else {
+    direction = dx > 0 ? 'East' : 'West';
+  }
+
+  // Add secondary direction for diagonals
+  if (Math.abs(dx) > 5 && Math.abs(dy) > 5) {
+    if (dy < 0 && dx > 0) direction = 'Northeast';
+    else if (dy < 0 && dx < 0) direction = 'Northwest';
+    else if (dy > 0 && dx > 0) direction = 'Southeast';
+    else if (dy > 0 && dx < 0) direction = 'Southwest';
+  }
+
+  return direction;
+}
+
+// LLM response schema
+const workOfferSchema = {
+  type: Type.OBJECT,
+  properties: {
+    hasWork: {
+      type: Type.BOOLEAN,
+      description: "Whether the NPC has work to offer (should almost always be true unless NPC is injured/dying)"
+    },
+    taskType: {
+      type: Type.STRING,
+      description: "Type of task: fetch_item, deliver_to_location, buy_from_location, kill_animal, gather_resource, explore_location, or collect_animal_products"
+    },
+    description: {
+      type: Type.STRING,
+      description: "The full work request in the NPC's voice, including deadline if applicable"
+    },
+    requiredItem: {
+      type: Type.STRING,
+      description: "Item name if task requires fetching/buying an item"
+    },
+    requiredQuantity: {
+      type: Type.NUMBER,
+      description: "How many of the item needed (default 1)"
+    },
+    targetLocationName: {
+      type: Type.STRING,
+      description: "Name of location if task requires going somewhere (use actual structure names provided)"
+    },
+    targetAnimal: {
+      type: Type.STRING,
+      description: "Animal type if task is to hunt/kill an animal"
+    },
+    payment: {
+      type: Type.NUMBER,
+      description: "How many coins to pay (5-50 range, based on difficulty)"
+    },
+    deadlineHours: {
+      type: Type.NUMBER,
+      description: "Hours until deadline (12-72), 0 if no deadline"
+    }
+  },
+  required: ["hasWork", "taskType", "description", "payment"]
+};
+
+/**
+ * Maximum number of active work offers allowed per NPC
+ */
+export const MAX_OFFERS_PER_NPC = 2;
+
+/**
+ * Generate a work offer using LLM
+ */
+export async function generateWorkOffer(
+  npc: NpcEntity,
+  playerCharacter: PlayerCharacter,
+  mapData: MapData | null,
+  terrainStructures: TerrainStructure[],
+  gameTimeHours: number,
+  playerPosition?: { x: number; y: number },
+  nearbyAnimals?: AnimalEntity[]
+): Promise<WorkOffer | null> {
+  if (!mapData) return null;
+
+  // Check if NPC already has too many active offers
+  const allActiveOffers = getActiveWorkOffers();
+  const npcActiveOffers = allActiveOffers.filter(offer => offer.npcId === npc.id);
+
+  if (npcActiveOffers.length >= MAX_OFFERS_PER_NPC) {
+    // Return a special "no work available" result
+    return null;
+  }
+
+  // Find nearby structures
+  const playerPos = playerPosition || { x: 0, y: 0 };
+  const nearby = findStructuresInRadius(terrainStructures, playerPos, 50); // Within 50 tiles
+
+  // Categorize structures for context-aware task generation
+  const marketplaces: string[] = [];
+  const ruins: string[] = [];
+  const religious: string[] = [];
+  const workshops: string[] = [];
+  const other: string[] = [];
+
+  nearby.forEach(s => {
+    const loc = getStructureLocation(s);
+    if (!loc) return;
+
+    const distance = calculateDistance(playerPos, loc);
+    const direction = getDirection(playerPos.x, playerPos.y, loc.x, loc.y);
+    const locationStr = `${s.name || s.structureType} (${direction}, ${Math.round(distance)} tiles away)`;
+
+    const type = (s.structureType || '').toLowerCase();
+    const name = (s.name || '').toLowerCase();
+
+    if (type.includes('market') || type.includes('bazaar') || name.includes('market')) {
+      marketplaces.push(locationStr);
+    } else if (type.includes('ruin') || name.includes('ruin') || type.includes('ancient')) {
+      ruins.push(locationStr);
+    } else if (type.includes('temple') || type.includes('shrine') || type.includes('church') || type.includes('mosque') || type.includes('monastery') || name.includes('holy')) {
+      religious.push(locationStr);
+    } else if (type.includes('workshop') || type.includes('smithy') || type.includes('forge') || type.includes('mill')) {
+      workshops.push(locationStr);
+    } else {
+      other.push(locationStr);
+    }
+  });
+
+  // Build structured location context
+  let structureContext = '';
+  if (marketplaces.length > 0) {
+    structureContext += '**MARKETPLACES** (good for buying goods):\n' + marketplaces.map(s => `- ${s}`).join('\n') + '\n\n';
+  }
+  if (ruins.length > 0) {
+    structureContext += '**RUINS/ANCIENT SITES** (good for exploration/investigation quests):\n' + ruins.map(s => `- ${s}`).join('\n') + '\n\n';
+  }
+  if (religious.length > 0) {
+    structureContext += '**RELIGIOUS SITES** (good for delivery/pilgrimage tasks):\n' + religious.map(s => `- ${s}`).join('\n') + '\n\n';
+  }
+  if (workshops.length > 0) {
+    structureContext += '**WORKSHOPS/CRAFTERS** (good for delivery of materials):\n' + workshops.map(s => `- ${s}`).join('\n') + '\n\n';
+  }
+  if (other.length > 0) {
+    structureContext += '**OTHER LOCATIONS**:\n' + other.map(s => `- ${s}`).join('\n');
+  }
+
+  // Build animal context for hunting quests
+  let animalContext = '';
+  if (nearbyAnimals && nearbyAnimals.length > 0) {
+    // Count animal types
+    const animalCounts: Record<string, number> = {};
+    nearbyAnimals.forEach(animal => {
+      const species = animal.speciesName || 'Unknown';
+      animalCounts[species] = (animalCounts[species] || 0) + 1;
+    });
+
+    const animalList = Object.entries(animalCounts)
+      .map(([species, count]) => `- ${count}x ${species}`)
+      .join('\n');
+
+    if (animalList) {
+      animalContext = `\n**NEARBY ANIMALS** (available for hunting/collecting quests):\n${animalList}\n`;
+    }
+  }
+
+  // Build player inventory context
+  const inventoryItems = playerCharacter.inventory.map(item => item.name).join(', ');
+
+  const prompt = `
+You are ${npc.name}, a ${npc.profession || 'person'} in ${mapData.localArea || 'this area'}.
+
+Your Details:
+- Age: ${npc.age}
+- Wealth: ${(npc as any).wealthLevel || 'moderate'}
+- Profession: ${npc.profession}
+
+Player Details:
+- Name: ${playerCharacter.name}
+- Has items: ${inventoryItems || 'nothing'}
+- Reputation: ${playerCharacter.mapReputation || 50}/100
+
+Nearby Locations:
+${structureContext || '- No major structures nearby'}
+${animalContext}
+TASK: The player is asking you for work. Create a SIMPLE, SINGLE-OBJECTIVE task for them.
+
+CRITICAL LOCATION RULES:
+1. **RUINS/ANCIENT SITES** → Use taskType "explore_location"
+   - Create culturally-specific, historically interesting exploration quests
+   - Ask player to "investigate" or "explore" and bring back "anything interesting"
+   - NEVER ask to "buy" things from ruins
+   - Payment: 30-50 coins (exploration is risky)
+
+2. **MARKETPLACES** → Use "buy_from_location"
+   - Ask to buy specific trade goods (silk, spices, tools, etc.)
+   - NOT basic materials like stone/wood
+
+3. **WORKSHOPS/CRAFTERS** → Use "deliver_to_location"
+   - Deliver raw materials they need for their craft
+
+4. **RELIGIOUS SITES** → Use "deliver_to_location" or "fetch_item"
+   - Offerings, sacred items, pilgrimage tasks
+
+5. **ANIMALS/WILDLIFE** → Use "kill_animal" or "collect_animal_products"
+   - kill_animal: "Hunt the wolf terrorizing travelers" (targetAnimal: "Wolf")
+   - collect_animal_products: "Bring me 3 wolf pelts" (requiredItem: "Wolf Pelt", requiredQuantity: 3)
+   - ONLY use animals from the NEARBY ANIMALS list above!
+   - Products: pelts, hides, meat, antlers, tusks, feathers, bones
+
+TASK VARIETY - Mix it up! Don't always ask for the same thing:
+- Scholars/Historians: exploration of ruins, fetch rare books, deliver documents
+- Craftsmen: deliver materials, gather specific resources
+- Merchants: buy trade goods from markets (NOT stone/wood)
+- Guards/Soldiers: hunt dangerous animals, patrol areas
+- Farmers: gather crops, scare animals, deliver produce
+- Religious: offerings, sacred items, pilgrimage deliveries
+- Nobles: luxury goods from markets, investigation of rumors
+
+GOOD EXAMPLES:
+✓ Scholar + Ruins: "I've heard tales of the ${ruins.length > 0 ? ruins[0].split('(')[0].trim() : 'ancient ruins'}. Investigate it and bring me any artifacts or writings you find. 40 coins." (explore_location)
+✓ Merchant + Market: "Go to the marketplace and buy me 3 bolts of fine silk. I'll pay 25 coins." (buy_from_location)
+✓ Blacksmith: "Bring me 5 iron ore from the mines. 20 coins." (gather_resource)
+✓ Priest: "Deliver these sacred scrolls to the temple. 15 coins." (deliver_to_location)
+✓ Guard + Animals: "Wolves have been attacking travelers on the north road. Hunt one down. 30 coins." (kill_animal, targetAnimal: "Wolf")
+✓ Tanner + Animals: "I need 3 deer hides for my leather work. Bring them to me. 25 coins." (collect_animal_products, requiredItem: "Deer Hide", requiredQuantity: 3)
+
+BAD EXAMPLES:
+✗ "Buy 3 coils of rope from the ruins" (ruins aren't shops!)
+✗ "Fetch me 10 limestone" (too boring, always stone)
+✗ "Get stone from quarry" (too generic, overdone)
+
+Create the work offer now. Be creative and profession-appropriate!
+`.trim();
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-lite',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: workOfferSchema
+      }
+    });
+
+    let text = response.text.trim();
+
+    // Remove code fences if present
+    const fenceRegex = /^```(\w*)?\s*\n?([\s\S]*?)\n?\s*```$/;
+    const match = text.match(fenceRegex);
+    if (match && match[2]) {
+      text = match[2].trim();
+    }
+
+    const data = JSON.parse(text);
+
+    if (!data.hasWork) {
+      return null;
+    }
+
+    // Find the target location if specified
+    let targetLocation: WorkOffer['targetLocation'] | undefined;
+    if (data.targetLocationName && nearby.length > 0) {
+      const targetStructure = nearby.find(s =>
+        s.name?.toLowerCase().includes(data.targetLocationName.toLowerCase()) ||
+        s.structureType?.toLowerCase().includes(data.targetLocationName.toLowerCase())
+      );
+
+      if (targetStructure) {
+        const loc = getStructureLocation(targetStructure);
+        if (loc) {
+          targetLocation = {
+            x: loc.x,
+            y: loc.y,
+            name: data.targetLocationName,
+            radius: 5 // Must be within 5 tiles
+          };
+        }
+      }
+    }
+
+    // Create work offer
+    const taskType = data.taskType as WorkTaskType;
+    const offer: WorkOffer = {
+      id: `work-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      npcId: npc.id,
+      npcName: npc.name,
+      npcLocation: {
+        x: npc.x,
+        y: npc.y,
+        mapSeed: mapData.seed.toString()
+      },
+      taskType,
+      description: data.description,
+      requiredItem: data.requiredItem,
+      requiredQuantity: data.requiredQuantity || 1,
+      targetLocation,
+      targetAnimal: data.targetAnimal,
+      acceptsAnyItem: taskType === 'explore_location', // Exploration quests accept any item
+      payment: Math.max(5, Math.min(50, data.payment || 10)),
+      deadline: data.deadlineHours ? data.deadlineHours : undefined,
+      offerTime: gameTimeHours,
+      accepted: false,
+      completed: false,
+      failed: false
+    };
+
+    return offer;
+
+  } catch (error) {
+    console.error('Error generating work offer:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if a work offer has been completed
+ */
+export function checkWorkCompletion(
+  offer: WorkOffer,
+  playerCharacter: PlayerCharacter,
+  playerLocation: { x: number; y: number },
+  currentGameHours: number
+): 'completed' | 'in_progress' | 'failed' {
+  // Check deadline first
+  if (offer.deadline && (currentGameHours - offer.offerTime) > offer.deadline) {
+    return 'failed';
+  }
+
+  switch (offer.taskType) {
+    case 'fetch_item':
+    case 'buy_from_location':
+      // Check if player has required item in inventory
+      const hasItem = playerCharacter.inventory.some(item =>
+        item.name.toLowerCase() === offer.requiredItem?.toLowerCase() &&
+        item.quantity >= (offer.requiredQuantity || 1)
+      );
+      return hasItem ? 'completed' : 'in_progress';
+
+    case 'deliver_to_location':
+      // Check if player is at target location AND has required item
+      if (offer.targetLocation) {
+        const distance = calculateDistance(playerLocation, offer.targetLocation);
+        const atLocation = distance <= offer.targetLocation.radius;
+
+        // If delivery requires an item, verify player has it
+        const hasItem = offer.requiredItem
+          ? playerCharacter.inventory.some(item =>
+              item.name.toLowerCase() === offer.requiredItem?.toLowerCase() &&
+              item.quantity >= (offer.requiredQuantity || 1)
+            )
+          : true; // No item required, just need to reach location
+
+        return (atLocation && hasItem) ? 'completed' : 'in_progress';
+      }
+      return 'in_progress';
+
+    case 'gather_resource':
+      // Similar to fetch_item
+      const hasResource = playerCharacter.inventory.some(item =>
+        item.name.toLowerCase().includes(offer.requiredItem?.toLowerCase() || '') &&
+        item.quantity >= (offer.requiredQuantity || 1)
+      );
+      return hasResource ? 'completed' : 'in_progress';
+
+    case 'kill_animal':
+      // Check if the target animal was killed (tracked in localStorage)
+      if (offer.targetAnimal) {
+        return wasAnimalKilled(offer.id, offer.targetAnimal) ? 'completed' : 'in_progress';
+      }
+      return 'in_progress';
+
+    case 'collect_animal_products':
+      // Check if player has required animal products (pelts, hides, etc.)
+      const hasProducts = playerCharacter.inventory.some(item =>
+        item.name.toLowerCase() === offer.requiredItem?.toLowerCase() &&
+        item.quantity >= (offer.requiredQuantity || 1)
+      );
+      return hasProducts ? 'completed' : 'in_progress';
+
+    case 'explore_location':
+      // For exploration quests, player needs to visit the location and have ANY item to bring back
+      // We'll consider it completable if they have items in inventory
+      // (Actual completion happens when they talk to NPC with items)
+      return playerCharacter.inventory && playerCharacter.inventory.length > 0
+        ? 'completed'
+        : 'in_progress';
+
+    default:
+      return 'in_progress';
+  }
+}
+
+/**
+ * Complete a work offer and pay the player
+ */
+export function completeWorkOffer(
+  offer: WorkOffer,
+  playerCharacter: PlayerCharacter,
+  updateInventory?: (newInventory: any[]) => void
+): { success: boolean; message: string; coinsEarned: number; itemTaken?: string } {
+  let itemTaken: string | undefined;
+
+  // Handle exploration quests - take any one item from inventory
+  if (offer.taskType === 'explore_location' && updateInventory && playerCharacter.inventory) {
+    if (playerCharacter.inventory.length === 0) {
+      return {
+        success: false,
+        message: "You need to bring back something from your exploration!",
+        coinsEarned: 0
+      };
+    }
+
+    // Take the first item from inventory
+    const firstItem = playerCharacter.inventory[0];
+    itemTaken = firstItem.name;
+
+    const result = removeItemFromInventory(
+      playerCharacter.inventory,
+      firstItem.name,
+      1
+    );
+
+    updateInventory(result.inventory);
+
+    console.log(
+      `[WORK] Exploration quest completed. Removed 1x ${firstItem.name} from inventory. ` +
+      `New inventory size: ${result.inventory.length}`
+    );
+
+    return {
+      success: true,
+      message: `Fascinating! This ${firstItem.name} will be very useful. Thank you for exploring!`,
+      coinsEarned: offer.payment,
+      itemTaken: firstItem.name
+    };
+  }
+
+  // Remove required items if applicable (for standard quests)
+  if (offer.requiredItem && updateInventory && playerCharacter.inventory) {
+    // Use the new removeItemFromInventory utility that properly handles quantities
+    const result = removeItemFromInventory(
+      playerCharacter.inventory,
+      offer.requiredItem,
+      offer.requiredQuantity || 1
+    );
+
+    // Update inventory with the new array
+    updateInventory(result.inventory);
+
+    console.log(
+      `[WORK] Removed ${offer.requiredQuantity || 1}x ${offer.requiredItem}. ` +
+      `Items completely removed: ${result.removedIds.length}, ` +
+      `New inventory size: ${result.inventory.length}`
+    );
+  }
+
+  // Payment is handled by caller (adding to character.money)
+  // We just return the amount
+
+  return {
+    success: true,
+    message: `Thank you for completing the task! Here's your payment.`,
+    coinsEarned: offer.payment
+  };
+}
+
+/**
+ * Make a partial delivery of items toward a work offer
+ * Returns updated offer and whether it's now complete
+ */
+export function deliverItemsToWorkOffer(
+  offer: WorkOffer,
+  playerCharacter: PlayerCharacter,
+  quantityToDeliver: number,
+  updateInventory?: (newInventory: any[]) => void
+): { success: boolean; message: string; updatedOffer: WorkOffer; isComplete: boolean } {
+  if (!offer.requiredItem) {
+    return {
+      success: false,
+      message: 'This work doesn\'t require items.',
+      updatedOffer: offer,
+      isComplete: false
+    };
+  }
+
+  // Check how many the player has
+  const playerHas = playerCharacter.inventory?.filter(
+    item => item.name.toLowerCase() === offer.requiredItem?.toLowerCase()
+  ).reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
+
+  if (playerHas < quantityToDeliver) {
+    return {
+      success: false,
+      message: `You don't have ${quantityToDeliver} ${offer.requiredItem}.`,
+      updatedOffer: offer,
+      isComplete: false
+    };
+  }
+
+  // Remove items from inventory
+  if (updateInventory && playerCharacter.inventory) {
+    const result = removeItemFromInventory(
+      playerCharacter.inventory,
+      offer.requiredItem,
+      quantityToDeliver
+    );
+    updateInventory(result.inventory);
+  }
+
+  // Update delivered quantity
+  const previouslyDelivered = offer.deliveredQuantity || 0;
+  const newDeliveredQuantity = previouslyDelivered + quantityToDeliver;
+  const requiredTotal = offer.requiredQuantity || 1;
+
+  const updatedOffer: WorkOffer = {
+    ...offer,
+    deliveredQuantity: newDeliveredQuantity,
+    completed: newDeliveredQuantity >= requiredTotal
+  };
+
+  const remaining = requiredTotal - newDeliveredQuantity;
+  const isComplete = updatedOffer.completed;
+
+  console.log(
+    `[WORK] Delivered ${quantityToDeliver}x ${offer.requiredItem}. ` +
+    `Total: ${newDeliveredQuantity}/${requiredTotal}. Complete: ${isComplete}`
+  );
+
+  return {
+    success: true,
+    message: isComplete
+      ? `Perfect! That's all ${requiredTotal} ${offer.requiredItem}. The work is complete!`
+      : `Thank you. I've received ${quantityToDeliver} ${offer.requiredItem}. I still need ${remaining} more.`,
+    updatedOffer,
+    isComplete
+  };
+}
+
+/**
+ * Calculate if NPC should proactively offer work in their greeting
+ * Uses existing game data to add context hints without additional LLM calls
+ */
+export function calculateProactiveWorkContext(
+  npc: NpcEntity,
+  mapData: MapData | null,
+  nearbyAnimals: AnimalEntity[],
+  nearbyStructures: TerrainStructure[]
+): { shouldOffer: boolean; contextHint: string; probability: number } {
+
+  if (!mapData) {
+    return { shouldOffer: false, contextHint: "", probability: 0 };
+  }
+
+  // Fast checks using existing data
+  const dangerousAnimals = nearbyAnimals.filter(a =>
+    ['Wolf', 'Bear', 'Tiger', 'Lion', 'Leopard', 'Hyena'].includes(a.speciesName || '')
+  );
+
+  const hasRuinsNearby = nearbyStructures.some(s =>
+    (s.structureType || '').toLowerCase().includes('ruin') ||
+    (s.name || '').toLowerCase().includes('ruin') ||
+    (s.structureType || '').toLowerCase().includes('ancient')
+  );
+
+  const hasMarketNearby = nearbyStructures.some(s =>
+    (s.structureType || '').toLowerCase().includes('market') ||
+    (s.structureType || '').toLowerCase().includes('bazaar')
+  );
+
+  // Use existing personality traits
+  const personality = npc.personality;
+  const isBusinesslike = (personality.extraversion > 60 && personality.conscientiousness > 50);
+  const isFriendly = personality.agreeableness > 60;
+  const profession = (npc.profession || '').toLowerCase();
+
+  // Check profession types
+  const isGuard = profession.includes('guard') || profession.includes('soldier');
+  const isScholar = profession.includes('scholar') || profession.includes('scribe') || profession.includes('priest');
+  const isMerchant = profession.includes('merchant') || profession.includes('trader');
+  const isCraftsman = profession.includes('smith') || profession.includes('tanner') ||
+                      profession.includes('weaver') || profession.includes('potter');
+
+  let probability = 0;
+  let contextHint = "";
+
+  // URGENT: Dangerous animals + Guard/Soldier
+  if (dangerousAnimals.length > 0 && isGuard) {
+    probability = 80;
+    contextHint = "[You notice they look worried, glancing nervously toward the wilderness where dangerous animals have been spotted]";
+    return { shouldOffer: true, contextHint, probability };
+  }
+
+  // URGENT: Dangerous animals + any NPC if many animals
+  if (dangerousAnimals.length >= 3) {
+    probability = 60;
+    contextHint = "[They seem distressed, clearly troubled by the dangerous wildlife in the area]";
+    return { shouldOffer: true, contextHint, probability };
+  }
+
+  // OPPORTUNISTIC: Ruins + Scholar
+  if (hasRuinsNearby && isScholar) {
+    probability = 55;
+    contextHint = "[They seem eager to discuss something, their eyes occasionally drifting toward the ancient ruins nearby]";
+    return { shouldOffer: true, contextHint, probability };
+  }
+
+  // BUSINESSLIKE: Merchant + Market nearby
+  if (hasMarketNearby && isMerchant) {
+    probability = 45;
+    contextHint = "[They size you up with a practiced, businesslike eye]";
+    return { shouldOffer: true, contextHint, probability };
+  }
+
+  // PRACTICAL: Craftsman sees potential work
+  if (isCraftsman && nearbyAnimals.length > 0) {
+    probability = 40;
+    contextHint = "[They glance at you with professional interest, as if assessing your capabilities]";
+    return { shouldOffer: true, contextHint, probability };
+  }
+
+  // GENERAL: Very businesslike personality
+  if (isBusinesslike && !isFriendly) {
+    probability = 30;
+    contextHint = "[They regard you with a direct, no-nonsense gaze]";
+    return { shouldOffer: true, contextHint, probability };
+  }
+
+  // FRIENDLY: High agreeableness, might ask for help casually
+  if (isFriendly && personality.extraversion > 50) {
+    probability = 25;
+    contextHint = "[They seem friendly and open, as if they've been hoping to talk to someone]";
+    return { shouldOffer: true, contextHint, probability };
+  }
+
+  // No proactive offer
+  return { shouldOffer: false, contextHint: "", probability: 0 };
+}

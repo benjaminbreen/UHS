@@ -17,9 +17,17 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
 
   // Track last time we applied effects (every game minute)
   const lastEffectTime = useRef<string>('');
+  const toastTracker = useRef<{ cold: boolean; hot: boolean; wet: boolean }>({
+    cold: false,
+    hot: false,
+    wet: false
+  });
 
   useEffect(() => {
-    if (!weather || !playerCharacter) return;
+    if (!weather || !playerCharacter) {
+      toastTracker.current = { cold: false, hot: false, wet: false };
+      return;
+    }
 
     // Don't apply weather effects when modals are open (player is "paused")
     if (isAnyModalOpen) return;
@@ -34,31 +42,44 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
     
     // Get current status effects
     const currentEffects = playerCharacter.statusEffects || [];
-    const newEffects: StatusEffect[] = [...currentEffects];
-    
-    // Remove expired weather effects
-    const weatherEffectTypes = ['feeling_cold', 'feeling_hot', 'feeling_wet'];
-    const activeWeatherEffects = newEffects.filter(e => 
-      weatherEffectTypes.includes(e.type)
-    );
-    
-    // Clear old weather effects
-    const filteredEffects = newEffects.filter(e => 
-      !weatherEffectTypes.includes(e.type)
-    );
+    let updatedEffects: StatusEffect[] = [...currentEffects];
+    let effectsChanged = false;
+
+    const hasEffect = (type: StatusEffect['type']) =>
+      updatedEffects.some(effect => effect.type === type);
+
+    const addEffect = (effect: StatusEffect, trackerKey: 'cold' | 'hot' | 'wet', toastMessage: string, toastType: 'warning' | 'info') => {
+      if (!hasEffect(effect.type)) {
+        updatedEffects = [...updatedEffects, effect];
+        effectsChanged = true;
+      }
+      if (!toastTracker.current[trackerKey]) {
+        showToast(toastMessage, toastType);
+        toastTracker.current[trackerKey] = true;
+      }
+    };
+
+    const removeEffect = (type: StatusEffect['type'], trackerKey: 'cold' | 'hot' | 'wet') => {
+      if (hasEffect(type)) {
+        updatedEffects = updatedEffects.filter(effect => effect.type !== type);
+        effectsChanged = true;
+      }
+      toastTracker.current[trackerKey] = false;
+    };
     
     // Apply cold damage (below 20°F)
     if (weather.condition === 'cold') {
-      // Add feeling_cold status
-      if (!activeWeatherEffects.find(e => e.type === 'feeling_cold')) {
-        filteredEffects.push({
+      addEffect(
+        {
           type: 'feeling_cold',
-          duration: -1, // Permanent until weather changes
+          duration: -1,
           source: 'Cold Weather'
-        });
-        showToast('❄️ You are feeling cold! Find shelter or warm clothing.', 'warning');
-      }
-      
+        },
+        'cold',
+        '❄️ You are feeling cold! Find shelter or warm clothing.',
+        'warning'
+      );
+
       // Apply cold damage every minute (reduced from 1 to 0.2)
       const coldDamage = 0.2; // ~12 health/hour instead of 60/hour
       updates.health = Math.max(0, (playerCharacter.health || 100) - coldDamage);
@@ -69,65 +90,55 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
         showToast('⚠️ You are freezing! Your health is critically low!', 'error');
       }
     } else {
-      // Remove feeling_cold if weather improved
-      const coldIndex = filteredEffects.findIndex(e => e.type === 'feeling_cold');
-      if (coldIndex >= 0) {
-        filteredEffects.splice(coldIndex, 1);
-      }
+      removeEffect('feeling_cold', 'cold');
     }
     
     // Apply hot effects (increased fatigue)
     if (weather.condition === 'hot') {
-      // Add feeling_hot status
-      if (!activeWeatherEffects.find(e => e.type === 'feeling_hot')) {
-        filteredEffects.push({
+      addEffect(
+        {
           type: 'feeling_hot',
           duration: -1,
           source: 'Hot Weather'
-        });
-        showToast('🌡️ You are feeling hot! Movement will be more tiring.', 'warning');
-      }
+        },
+        'hot',
+        '🌡️ You are feeling hot! Movement will be more tiring.',
+        'warning'
+      );
       
       // Extra fatigue every minute in hot weather (reduced from 0.5 to 0.1)
       const extraFatigue = 0.1; // 6 fatigue/hour instead of 30/hour
       updates.fatigue = Math.min(100, (playerCharacter.fatigue || 0) + extraFatigue);
       shouldUpdate = true;
     } else {
-      // Remove feeling_hot
-      const hotIndex = filteredEffects.findIndex(e => e.type === 'feeling_hot');
-      if (hotIndex >= 0) {
-        filteredEffects.splice(hotIndex, 1);
-      }
+      removeEffect('feeling_hot', 'hot');
     }
     
     // Apply humidity/rain effects
     if (weather.condition === 'humid' || 
-        (weather.precipitation === 'rain' && weather.intensity > 0.2)) {
-      // Add feeling_wet status
-      if (!activeWeatherEffects.find(e => e.type === 'feeling_wet')) {
-        filteredEffects.push({
+        (weather.precipitation === 'rain' && weather.intensity > 0.9)) {
+      addEffect(
+        {
           type: 'feeling_wet',
           duration: -1,
           source: weather.precipitation === 'rain' ? 'Rain' : 'Humidity'
-        });
-        showToast('💧 You are feeling wet! Movement will be more tiring.', 'info');
-      }
+        },
+        'wet',
+        '💧 You are feeling wet! Movement will be more tiring.',
+        'info'
+      );
       
       // Extra fatigue in wet conditions (reduced from 0.3 to 0.08)
       const extraFatigue = 0.08; // ~5 fatigue/hour instead of 18/hour
       updates.fatigue = Math.min(100, (playerCharacter.fatigue || 0) + extraFatigue);
       shouldUpdate = true;
     } else {
-      // Remove feeling_wet
-      const wetIndex = filteredEffects.findIndex(e => e.type === 'feeling_wet');
-      if (wetIndex >= 0) {
-        filteredEffects.splice(wetIndex, 1);
-      }
+      removeEffect('feeling_wet', 'wet');
     }
     
     // Update status effects if changed
-    if (JSON.stringify(filteredEffects) !== JSON.stringify(currentEffects)) {
-      updates.statusEffects = filteredEffects;
+    if (effectsChanged) {
+      updates.statusEffects = updatedEffects;
       shouldUpdate = true;
     }
     

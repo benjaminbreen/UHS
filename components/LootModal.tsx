@@ -50,8 +50,16 @@ const LootModal: React.FC<LootModalProps> = ({ opponent, onClose, onTakeItem, on
     }, []);
     
     return (
-        <div className="modal-overlay" onClick={handleClose}>
-            <div className="ff-panel w-full max-w-lg p-6" onClick={stopPropagation}>
+        <div
+            data-surface="modal-overlay"
+            className="modal-overlay theme-surface"
+            onClick={handleClose}
+        >
+            <div
+                data-surface="modal-panel"
+                className="ff-panel theme-surface w-full max-w-lg p-6"
+                onClick={stopPropagation}
+            >
                 <h3 className="text-center text-2xl font-press-start mb-4 text-amber-400">
                     Looting {opponent.name}
                 </h3>

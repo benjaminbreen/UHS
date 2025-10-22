@@ -1,7 +1,7 @@
 /**
  * hooks/useUIState.ts - Custom hook to manage all UI-related state and logic.
  */
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
@@ -17,6 +17,8 @@ import { dispatchItemAcquired } from '../utils/itemEventDispatcher';
 import { executeSkill } from '../services/skillService';
 import { generateDmResponse, summarizeConversation } from '../services/llmService';
 import { executeCrafting } from '../services/craftingService';
+import { executeEating } from '../services/eatingService';
+import { EatingResult } from '../types/eatingTypes';
 import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
 import { diseaseService } from '../services/diseaseService';
 import { parseDateString } from '../utils/dateUtils';
@@ -32,6 +34,7 @@ import gameSoundsService from '../services/gameSoundsService';
 import { getDaysInMonth } from '../utils/dateUtils';
 import { TimeAdvancementRequest } from '../services/timeAdvancementService';
 import { railroadNetworkService } from '../services/railroadNetworkService';
+import { getActiveWorkOffers, recordAnimalKill } from '../services/workOfferStorage';
 
 /**
  * Parse time advancement commands from player input
@@ -151,6 +154,8 @@ export const useUIState = () => {
     const [portraitModalCharacter, setPortraitModalCharacter] = useState<PlayerCharacter | NpcEntity | null>(null);
     const [isCraftingModalOpen, setIsCraftingModalOpen] = useState(false);
     const [craftingModalData, setCraftingModalData] = useState<CraftingModalData | null>(null);
+    const [isEatingModalOpen, setIsEatingModalOpen] = useState(false);
+    const [eatingModalData, setEatingModalData] = useState<{ item: Item } | null>(null);
     const [selectedPrimarySource, setSelectedPrimarySource] = useState<any>(null);
     const [diseaseContractedModalData, setDiseaseContractedModalData] = useState<{
         disease: any;
@@ -187,6 +192,7 @@ export const useUIState = () => {
     // Top nav panels state
     const [showJournal, setShowJournal] = useState<boolean>(false);
     const [showQuestsPanel, setShowQuestsPanel] = useState<boolean>(false);
+    const [highlightedWorkOfferId, setHighlightedWorkOfferId] = useState<string | null>(null);
     const [showGameModePanel, setShowGameModePanel] = useState<boolean>(false);
 
     // Language Family Tree modal state
@@ -302,6 +308,9 @@ export const useUIState = () => {
     
     // Notifications
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastDurationMs, setToastDurationMs] = useState<number>(5500);
+    const toastTimerRef = useRef<number | null>(null);
+    const lastToastRef = useRef<{ message: string; timestamp: number } | null>(null);
     const [panelNotificationItem, setPanelNotificationItem] = useState<Item | null>(null);
     const [floatingTextMessages, setFloatingTextMessages] = useState<FloatingTextMessage[]>([]);
 
@@ -351,12 +360,12 @@ export const useUIState = () => {
     const isAnyModalOpen = useMemo(() =>
         isSettingsModalOpen || isAboutModalOpen || isPauseModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
-        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen || showJournal || showQuestsPanel || showGameModePanel ||
+        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || isEatingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen || showJournal || showQuestsPanel || showGameModePanel ||
         showInitialScenarioModal || showDeathModal || showNpcDeathModal || showDiseaseProgressionModal || showEventModal || showFactionsModal ||
         (!!diseaseContractedModalData && diseaseContractedModalData.isOpen) || !!railroadStationModalData || !!harborModalData || showLanguageTree,
         [isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen, showJournal, showQuestsPanel, showGameModePanel,
+         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, isEatingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen, showJournal, showQuestsPanel, showGameModePanel,
          showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal, diseaseContractedModalData, railroadStationModalData, harborModalData, showLanguageTree]
     );
 
@@ -369,19 +378,37 @@ export const useUIState = () => {
         setContainerPrompt(prev => ({ ...prev, isVisible: false }));
     }, []);
 
-    const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
-        // Check if this is a container prompt - if so, use container prompt instead
+    type ToastType = 'success' | 'warning' | 'error' | 'info';
+
+    const showToast = useCallback((message: string, options?: ToastType | number | { type?: ToastType; duration?: number }, maybeDuration?: number) => {
         if (message.toLowerCase().includes('press e') && message.toLowerCase().includes('container')) {
             showContainerPrompt(message);
             return;
         }
-        
-        // Play appropriate sound based on toast type
+
+        let resolvedDuration = 2500;
+
+        if (typeof options === 'string') {
+            if (typeof maybeDuration === 'number') {
+                resolvedDuration = maybeDuration;
+            }
+        } else if (typeof options === 'number') {
+            resolvedDuration = options;
+        } else if (options && typeof options === 'object') {
+            if (typeof options.duration === 'number') resolvedDuration = options.duration;
+        }
+
+        resolvedDuration = Math.max(1500, resolvedDuration);
+
+        const now = Date.now();
+        if (lastToastRef.current && lastToastRef.current.message === message && now - lastToastRef.current.timestamp < resolvedDuration) {
+            return;
+        }
+        lastToastRef.current = { message, timestamp: now };
+
         import('../services/gameSoundsService').then(({ default: gameSounds }) => {
-            // Analyze message content for specific sound effects
             const lowerMessage = message.toLowerCase();
-            
-            // Check for specific game events first
+
             if (lowerMessage.includes('embarked') || lowerMessage.includes('disembarked')) {
                 gameSounds.playEmbarkSound();
             } else if (lowerMessage.includes('level up') || lowerMessage.includes('level!')) {
@@ -391,7 +418,6 @@ export const useUIState = () => {
             } else if (lowerMessage.includes('healed') || lowerMessage.includes('health restored')) {
                 gameSounds.playHealingSound();
             } else if (lowerMessage.includes('item') || lowerMessage.includes('acquired') || lowerMessage.includes('picked up')) {
-                // Determine item type from message
                 if (lowerMessage.includes('gold') || lowerMessage.includes('coin')) {
                     gameSounds.playItemPickupSound('gold');
                 } else if (lowerMessage.includes('weapon') || lowerMessage.includes('sword') || lowerMessage.includes('dagger')) {
@@ -410,13 +436,29 @@ export const useUIState = () => {
             } else if (lowerMessage.includes('discovered') || lowerMessage.includes('found')) {
                 gameSounds.playDiscoverySound();
             }
-            // No default notification sound - only play sounds for specific events
         }).catch(err => {
             console.error('Failed to play sound:', err);
         });
-        
+
+        if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = null;
+        }
+
+        setToastDurationMs(resolvedDuration);
         setToastMessage(message);
-        setTimeout(() => setToastMessage(null), 3000);
+        toastTimerRef.current = window.setTimeout(() => {
+            setToastMessage(null);
+            toastTimerRef.current = null;
+        }, resolvedDuration);
+    }, [showContainerPrompt]);
+
+    useEffect(() => {
+        return () => {
+            if (toastTimerRef.current) {
+                clearTimeout(toastTimerRef.current);
+            }
+        };
     }, []);
 
     // Function to show floating text at specific screen coordinates
@@ -428,7 +470,7 @@ export const useUIState = () => {
             type,
             x,
             y,
-            duration: duration || 2000
+            duration: duration || 20000
         };
         
         setFloatingTextMessages(prev => [...prev, newMessage]);
@@ -617,7 +659,7 @@ export const useUIState = () => {
 
         addGameLogEntry(LogService.createItemAcquiredLog(item.name, item.quantity, `from a ${interactionModalData.title}`, gameDate, formattedTime));
         setPanelNotificationItem(item);
-        setTimeout(() => setPanelNotificationItem(null), 5000);
+        setTimeout(() => setPanelNotificationItem(null), 3000);
 
     }, [playerCharacter, setPlayerCharacter, addGameLogEntry, gameDate, formattedTime, interactionModalData]);
 
@@ -1500,7 +1542,7 @@ export const useUIState = () => {
     const handleCombatVictory = useCallback((opponent: EncounterableEntity) => {
         const xpGained = 10 * (opponent.stats.level || 1);
         let itemsGained: Item[] = [];
-        
+
         if (isAnimal(opponent)) {
             const animalData = ANIMAL_DATA[opponent.baseId];
             if (animalData) {
@@ -1511,11 +1553,23 @@ export const useUIState = () => {
                     }
                 });
             }
+
+            // Track animal kills for active work offers
+            const activeWorkOffers = getActiveWorkOffers();
+            const killAnimalOffers = activeWorkOffers.filter(offer =>
+                offer.taskType === 'kill_animal' &&
+                offer.targetAnimal?.toLowerCase() === opponent.speciesName.toLowerCase()
+            );
+
+            killAnimalOffers.forEach(offer => {
+                recordAnimalKill(offer.id, opponent.speciesName);
+                console.log(`[Work Offer] Recorded ${opponent.speciesName} kill for offer ${offer.id}`);
+            });
         }
-        
-        setVictoryDetails({ 
-            xpGained, 
-            itemsGained, 
+
+        setVictoryDetails({
+            xpGained,
+            itemsGained,
             opponentName: isAnimal(opponent) ? opponent.speciesName : opponent.name,
             opponentEmoji: opponent.emoji,
             opponent: opponent
@@ -1523,13 +1577,13 @@ export const useUIState = () => {
 
         if (playerCharacter) {
             setPlayerCharacter(p => p ? {...p, experience: p.experience + xpGained} : p);
-            
+
             // Show floating text for XP gain
             const screenCenterX = window.innerWidth / 2;
             const screenCenterY = window.innerHeight / 2 + 50; // Slightly below center
             showFloatingText(`+${xpGained} XP`, 'experience', screenCenterX, screenCenterY, 2500);
         }
-        
+
         setCombatant(null);
     }, [playerCharacter, setPlayerCharacter, showFloatingText]);
 
@@ -1547,7 +1601,7 @@ export const useUIState = () => {
                 addItemsToInventory(itemsGained);
                 showToast(`Acquired ${itemsGained.length} item(s)`);
                 setPanelNotificationItem(itemsGained[0]);
-                setTimeout(() => setPanelNotificationItem(null), 5000);
+                setTimeout(() => setPanelNotificationItem(null), 3000);
             }
             // FIX: Remove animal from map
             setAnimals(prev => prev.filter(a => a.id !== opponent.id));
@@ -1620,10 +1674,10 @@ export const useUIState = () => {
         setIsCraftingModalOpen(true);
     }, []);
 
-    const handleExecuteCrafting = useCallback(async (intent: string): Promise<CraftingResult | null> => {
+    const handleExecuteCrafting = useCallback(async (intent: string, method: 'COMBINE' | 'DISAGGREGATE', items: Item[]): Promise<CraftingResult | null> => {
         if (!craftingModalData) return null;
         try {
-            const result = await executeCrafting(craftingModalData.method, craftingModalData.items, intent);
+            const result = await executeCrafting(method, items, intent);
             if (result.success && result.outcome.consumedItemIds.length > 0) {
                 removeItemsFromInventory(result.outcome.consumedItemIds);
             }
@@ -1644,6 +1698,78 @@ export const useUIState = () => {
         }
     }, [craftingModalData, removeItemsFromInventory, addItemsToInventory, showToast]);
 
+    const onEat = useCallback((item: Item) => {
+        setEatingModalData({ item });
+        setIsEatingModalOpen(true);
+    }, []);
+
+    const handleExecuteEating = useCallback(async (): Promise<EatingResult | null> => {
+        if (!eatingModalData) return null;
+        try {
+            const result = await executeEating(eatingModalData.item, playerCharacter);
+
+            if (result.success) {
+                // Apply health and fatigue changes with bounds checking
+                const newHealth = Math.max(0, Math.min(
+                    playerCharacter.maxHealth,
+                    playerCharacter.health + result.healthChange
+                ));
+                const newFatigue = Math.max(0, Math.min(
+                    playerCharacter.maxFatigue,
+                    playerCharacter.fatigue + result.fatigueChange
+                ));
+
+                // Add +1 XP
+                const newExperience = playerCharacter.experience + 1;
+
+                // Update character
+                const updatedCharacter = {
+                    ...playerCharacter,
+                    health: newHealth,
+                    fatigue: newFatigue,
+                    experience: newExperience
+                };
+                setPlayerCharacter(updatedCharacter);
+                onCharacterUpdate?.(updatedCharacter);
+
+                // Remove item from inventory (decrease quantity or remove completely)
+                const item = eatingModalData.item;
+                if (item.stackable && item.quantity > 1) {
+                    // Decrease quantity
+                    const updatedInventory = playerCharacter.inventory.map(invItem =>
+                        invItem.id === item.id
+                            ? { ...invItem, quantity: invItem.quantity - 1 }
+                            : invItem
+                    );
+                    updatedCharacter.inventory = updatedInventory;
+                    setPlayerCharacter(updatedCharacter);
+                } else {
+                    // Remove item completely
+                    removeItemsFromInventory([item.id]);
+                }
+
+                showToast(`Ate ${item.name}. ${result.description}`);
+            }
+
+            return result;
+        } catch (error) {
+            console.error("Eating execution failed:", error);
+            showToast("Something went wrong while trying to eat that item.");
+            return null;
+        }
+    }, [eatingModalData, playerCharacter, setPlayerCharacter, onCharacterUpdate, removeItemsFromInventory, showToast]);
+
+    // Function to open quest panel with highlighted work offer
+    const openQuestPanelWithWorkOffer = useCallback((workOfferId: string) => {
+        setHighlightedWorkOfferId(workOfferId);
+        setShowQuestsPanel(true);
+
+        // Clear highlight after 3 seconds
+        setTimeout(() => {
+            setHighlightedWorkOfferId(null);
+        }, 3000);
+    }, []);
+
     return {
         // State
         hoveredDevData, pinnedDevData, isTooltipPinnedOpen,
@@ -1654,16 +1780,17 @@ export const useUIState = () => {
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
         isCampModalOpen,
-        showJournal, showQuestsPanel, showGameModePanel,
+        showJournal, showQuestsPanel, highlightedWorkOfferId, showGameModePanel,
         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal,
         showLanguageTree, selectedLanguageId,
-        isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, panelNotificationItem,
+        isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem,
         isRightSidebarVisible, setIsRightSidebarVisible,
         floatingTextMessages, containerPrompt,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,
         isPortraitModalOpen, portraitModalCharacter,
         isCraftingModalOpen, craftingModalData,
+        isEatingModalOpen, eatingModalData,
         activePoi,
         poiToastData,
         inRuinRoguelike,
@@ -1687,7 +1814,7 @@ export const useUIState = () => {
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
         closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
         setIsCampModalOpen,
-        setShowJournal, setShowQuestsPanel, setShowGameModePanel,
+        setShowJournal, setShowQuestsPanel, openQuestPanelWithWorkOffer, setShowGameModePanel,
         setShowInitialScenarioModal, setShowDeathModal, setShowNpcDeathModal, setShowDiseaseProgressionModal, setShowEventModal, setShowFactionsModal,
         setShowLanguageTree, setSelectedLanguageId,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
@@ -1697,6 +1824,7 @@ export const useUIState = () => {
         handleLevelUp,
         setIsPortraitModalOpen, setPortraitModalCharacter,
         onCraft, handleExecuteCrafting,
+        onEat, handleExecuteEating, setIsEatingModalOpen,
         setActivePoi,
         setPoiToastData,
         setContainerModalData,

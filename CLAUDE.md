@@ -1,5 +1,14 @@
 # Universal History Simulator - Development Notes
 
+## ⚠️ INCOMPLETE: Light Mode Implementation
+**Status**: Partially implemented but not working correctly across all components.
+
+**To fix properly, need**:
+1. Browser DevTools inspection of broken elements (right-click → Inspect)
+2. Screenshot showing which CSS rules are applied vs crossed out
+3. Specific identification of which elements are still broken (text colors, backgrounds, etc.)
+
+**Current issue**: 4 conflicting styling layers (Tailwind CDN config, inline styles in index.html, index.css, component classNames) - can't debug without seeing actual computed styles in browser.
 
 ## Quick Reference - Essential Types
 

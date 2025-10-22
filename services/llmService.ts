@@ -20,6 +20,7 @@ import { WeatherService, WeatherState, weatherService } from './weatherService';
 import { dialectContinuumService } from './dialectContinuumService';
 import { atmosphericContextService } from './atmosphericContextService';
 import { getCropNutrientEffects, evaluateCropRotation } from './cropNutrientService';
+import { getWorkOffersForNpc } from './workOfferStorage';
 
 // Cache for historical events to avoid regenerating them every dialogue
 interface HistoricalEventCache {
@@ -639,6 +640,41 @@ export async function generateEncounterDialogue(
         `;
     };
 
+    // Get work offers for this NPC (both active and completed)
+    const npcWorkOffers = isNpc(target) ? getWorkOffersForNpc(target.id) : [];
+    const activeWorkOffers = npcWorkOffers.filter(o => o.accepted && !o.completed && !o.failed);
+    const completedWorkOffers = npcWorkOffers.filter(o => o.completed);
+
+    const workOfferContext = (() => {
+        if (npcWorkOffers.length === 0) return '';
+
+        let context = '\n**WORK YOU ASSIGNED TO THIS PLAYER:**\n';
+
+        if (activeWorkOffers.length > 0) {
+            context += '\nOUTSTANDING WORK ORDERS (Remember these!):\n';
+            activeWorkOffers.forEach(offer => {
+                const progress = offer.requiredItem ?
+                    `needs ${offer.requiredQuantity || 1}x ${offer.requiredItem}` :
+                    offer.targetAnimal ?
+                    `needs to kill ${offer.requiredQuantity || 1}x ${offer.targetAnimal}` :
+                    `needs to ${offer.description}`;
+                context += `- "${offer.description}" (${progress})\n`;
+                context += `  Payment promised: ${offer.payment} coins\n`;
+            });
+            context += '\nIMPORTANT: You should remember you asked them to do this work! Reference it naturally if relevant.\n';
+        }
+
+        if (completedWorkOffers.length > 0) {
+            context += '\nWORK THEY COMPLETED FOR YOU:\n';
+            completedWorkOffers.forEach(offer => {
+                context += `- Completed: "${offer.description}" - You paid them ${offer.payment} coins\n`;
+            });
+            context += 'Remember: They already did this work and you paid them.\n';
+        }
+
+        return context;
+    })();
+
     // Analyze social dynamics based on player appearance
     const socialDynamicsAnalysis = (() => {
         const playerAge = playerCharacter.age || 25;
@@ -710,6 +746,7 @@ export async function generateEncounterDialogue(
         - Health: ${target.health?.currentDiseases?.length > 0 ? `Sick with ${target.health.currentDiseases[0].disease.name}` : 'Healthy'}
         - Wealth: ${target.wealthLevel || 'modest'}
         ${previousSummaries ? `- Previous meeting: ${previousSummaries}` : '- First encounter with this person'}
+        ${workOfferContext}
 
         **CURRENT CONDITIONS:**
         Time: ${mapData.timeOfDay || 'Day'}

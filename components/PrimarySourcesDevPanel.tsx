@@ -215,13 +215,13 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 rounded-lg border border-slate-700 w-full max-w-7xl h-[90vh] flex flex-col">
+      <div className="surface-card rounded-lg border border-surface-card shadow-surface-card w-full max-w-7xl h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <div className="flex items-center gap-3">
             <Database className="w-6 h-6 text-amber-400" />
-            <h2 className="text-xl font-semibold text-white">Primary Sources Dev Panel</h2>
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+            <h2 className="text-xl font-semibold text-text-primary">Primary Sources Dev Panel</h2>
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
               <span>{stats.totalSources} sources</span>
               <span>•</span>
               <span>{stats.loadedShards}/{stats.totalShards} shards</span>
@@ -229,7 +229,7 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="text-text-secondary hover:text-text-primary transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -243,8 +243,8 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
               onClick={() => setViewMode('sources')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 viewMode === 'sources' 
-                  ? 'bg-amber-600 text-white' 
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? 'bg-amber-600 text-text-primary' 
+                  : 'btn-secondary text-text-primary hover:shadow-md'
               }`}
             >
               <FileText className="w-4 h-4 inline mr-2" />
@@ -254,8 +254,8 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
               onClick={() => setViewMode('shards')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 viewMode === 'shards' 
-                  ? 'bg-amber-600 text-white' 
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? 'bg-amber-600 text-text-primary' 
+                  : 'btn-secondary text-text-primary hover:shadow-md'
               }`}
             >
               <Database className="w-4 h-4 inline mr-2" />
@@ -264,7 +264,7 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
             <button
               onClick={loadAllShards}
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Reload
@@ -274,20 +274,20 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
           {/* Search and Filters */}
           <div className="flex gap-4 items-center">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-secondary" />
               <input
                 type="text"
                 placeholder="Search sources by title, author, keywords..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className="w-full pl-10 pr-4 py-2 surface-muted border border-surface-muted rounded-lg text-text-primary text-sm focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
               />
             </div>
             
             <select
               value={selectedEra}
               onChange={(e) => setSelectedEra(e.target.value as HistoricalEra | 'ALL')}
-              className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-500"
+              className="px-3 py-2 surface-muted border border-surface-muted rounded-lg text-text-primary text-sm focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
             >
               {eras.map(era => (
                 <option key={era} value={era}>{era}</option>
@@ -297,7 +297,7 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value as CulturalZone | 'ALL')}
-              className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-500"
+              className="px-3 py-2 surface-muted border border-surface-muted rounded-lg text-text-primary text-sm focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
             >
               {zones.map(zone => (
                 <option key={zone} value={zone}>{zone}</option>
@@ -307,17 +307,17 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
 
           {/* Quick Stats */}
           <div className="flex gap-4 text-sm">
-            <div className="bg-slate-800 rounded-lg px-3 py-2">
-              <span className="text-slate-400">Authors: </span>
-              <span className="text-white font-medium">{stats.uniqueAuthors}</span>
+            <div className="surface-muted rounded-lg px-3 py-2">
+              <span className="text-text-secondary">Authors: </span>
+              <span className="text-text-primary font-medium">{stats.uniqueAuthors}</span>
             </div>
-            <div className="bg-slate-800 rounded-lg px-3 py-2">
-              <span className="text-slate-400">Avg Keywords: </span>
-              <span className="text-white font-medium">{stats.avgKeywordsPerSource}</span>
+            <div className="surface-muted rounded-lg px-3 py-2">
+              <span className="text-text-secondary">Avg Keywords: </span>
+              <span className="text-text-primary font-medium">{stats.avgKeywordsPerSource}</span>
             </div>
-            <div className="bg-slate-800 rounded-lg px-3 py-2">
-              <span className="text-slate-400">Load Success: </span>
-              <span className="text-white font-medium">
+            <div className="surface-muted rounded-lg px-3 py-2">
+              <span className="text-text-secondary">Load Success: </span>
+              <span className="text-text-primary font-medium">
                 {stats.totalShards > 0 ? Math.round((stats.loadedShards / stats.totalShards) * 100) : 0}%
               </span>
             </div>
@@ -328,7 +328,7 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-slate-400 flex items-center gap-3">
+              <div className="text-text-secondary flex items-center gap-3">
                 <RefreshCw className="w-6 h-6 animate-spin" />
                 Loading all shards...
               </div>
@@ -338,17 +338,17 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
               {filteredSources.map((source) => (
                 <div
                   key={source.id}
-                  className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 hover:border-amber-500/50 transition-all cursor-pointer group"
+                  className="surface-muted border border-surface-muted rounded-lg p-4 hover:border-amber-500/50 transition-all cursor-pointer group"
                   onClick={() => handleSourceClick(source)}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">
                       {source.title}
                     </h3>
-                    <Eye className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                    <Eye className="w-4 h-4 text-text-muted group-hover:text-amber-400 transition-colors" />
                   </div>
                   
-                  <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
+                  <div className="flex items-center gap-4 text-xs text-text-muted mb-2">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-3 h-3" /> {source.author}
                     </span>
@@ -360,34 +360,34 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
                     </span>
                   </div>
                   
-                  <p className="text-sm text-slate-300 mb-2 line-clamp-2">
+                  <p className="text-sm text-text-secondary mb-2 line-clamp-2">
                     {source.excerpt}
                   </p>
                   
                   <div className="flex items-center gap-2">
-                    <Tag className="w-3 h-3 text-slate-500" />
+                    <Tag className="w-3 h-3 text-text-muted" />
                     <div className="flex flex-wrap gap-1">
                       {source.keywords.slice(0, 5).map((keyword, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-slate-700 rounded text-xs text-slate-300">
+                        <span key={idx} className="px-2 py-1 surface-muted rounded text-xs text-text-secondary">
                           {keyword}
                         </span>
                       ))}
                       {source.keywords.length > 5 && (
-                        <span className="px-2 py-1 text-xs text-slate-400">
+                        <span className="px-2 py-1 text-xs text-text-secondary">
                           +{source.keywords.length - 5} more
                         </span>
                       )}
                     </div>
                   </div>
                   
-                  <div className="mt-2 text-xs text-slate-600">
+                  <div className="mt-2 text-xs text-text-secondary">
                     ID: {source.id} | Era: {source.era}
                   </div>
                 </div>
               ))}
               
               {filteredSources.length === 0 && (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-text-secondary">
                   <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No sources found matching your criteria.</p>
                 </div>
@@ -400,13 +400,13 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
                   key={shard.name}
                   className={`rounded-lg border p-4 ${
                     shard.loadedSuccessfully 
-                      ? 'bg-slate-800/50 border-slate-700 hover:border-green-500/50' 
+                      ? 'surface-muted border border-surface-muted hover:border-green-500/50' 
                       : 'bg-red-900/20 border-red-700/50'
                   } transition-all`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h3 className={`font-semibold ${
-                      shard.loadedSuccessfully ? 'text-white' : 'text-red-400'
+                      shard.loadedSuccessfully ? 'text-text-primary' : 'text-red-400'
                     }`}>
                       {shard.name}
                     </h3>
@@ -419,11 +419,11 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
                     </div>
                   </div>
                   
-                  <div className="text-sm text-slate-400 mb-2">
-                    <code className="bg-slate-900/50 px-2 py-1 rounded text-xs">{shard.path}</code>
+                  <div className="text-sm text-text-secondary mb-2">
+                    <code className="bg-[color:var(--surface-tooltip-bg)] px-2 py-1 rounded text-xs text-text-primary">{shard.path}</code>
                   </div>
                   
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
+                  <div className="flex items-center gap-4 text-xs text-text-muted">
                     <span>Era: {shard.era}</span>
                     <span>Zone: {shard.zone}</span>
                     <span>Sources: {shard.sourceCount}</span>
@@ -432,7 +432,7 @@ export const PrimarySourcesDevPanel: React.FC<PrimarySourcesDevPanelProps> = ({
               ))}
               
               {filteredShards.length === 0 && (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-text-secondary">
                   <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No shards found matching your criteria.</p>
                 </div>

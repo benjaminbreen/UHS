@@ -619,9 +619,14 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
   /* --------------------------------- render -------------------------------- */
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface"
+      onClick={onClose}
+    >
       <div
-        className="ff-panel w-full max-w-[92rem] h-full sm:h-[95vh] sm:h-[95dvh] md:h-[90vh] flex flex-col overflow-hidden"
+        data-surface="modal-panel"
+        className="ff-panel theme-surface w-full max-w-[92rem] h-full sm:h-[95vh] sm:h-[95dvh] md:h-[90vh] flex flex-col overflow-hidden"
         style={{
           maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
           marginTop: 'env(safe-area-inset-top)',

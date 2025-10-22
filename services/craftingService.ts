@@ -77,36 +77,64 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
         CREATE MULTIPLE ITEMS when disaggregating (typically 2-10 items). Use stackable:true for small similar items.
         ALWAYS consume the original item and create logical component items.` : `
         
-        COMBINATION RULES:
-        - ALMOST ALL items can be combined in some way. It's just that many combinations will result in something silly or stupid. But some are valuable! Be creative and practical. Assume that water can be added to any combination, it is not a required item. You can make a soup out of anything, for instance. 
-        - Consider if items can logically work together
-        - Materials + tools = crafted items
-        - Similar materials can be combined
-        - Tools can modify other items
-        
-        VESSEL CRAFTING EXAMPLES (category: "Vessel"):
-        - Wood + pelt/hide/rope = simple kayak or canoe (small, single person)
-        - Logs + rope/vines = basic raft (larger, can carry cargo)
-        - Wood planks + cloth/sail material = sailboat (medium, wind-powered)
-        - Wood + oars/paddles = rowboat (medium, oar-powered)
-        - Single log = improvised log raft (basic flotation)
+        COMBINATION RULES - BE CREATIVE AND PERMISSIVE:
+        - ALMOST EVERYTHING can be combined to create something! Even unexpected combinations should produce results.
+        - Default to SUCCESS - only say "no" if physically impossible (e.g., combining two abstract concepts)
+        - Think like a creative craftsperson, alchemist, cook, and inventor rolled into one
+        - Unusual combinations are ENCOURAGED - they make the game fun and emergent!
 
-        BRIDGE CRAFTING EXAMPLES (category: "Bridge"):
-        - 2+ logs = simple log bridge (spans 1 water tile, deployable)
-        - Log + rope = rope bridge (lighter, spans 1 water tile, deployable)
-        - Multiple logs + multiple ropes = sturdy bridge (more durable, spans 1 water tile)
-        
-        TOOL CATEGORIES BY FUNCTION:
-        - Vessels: kayak, canoe, raft, sailboat, rowboat, log_raft (enable sea travel)
-        - Cutting: axe, saw, knife, chisel (enable tree chopping, crafting)
-        - Digging: shovel, hoe, pickaxe (enable ground digging, mining)
-        - Building: hammer, chisel, drill (enable construction)
-        - Hunting: bow, spear, trap (enable animal hunting)`}
-        
-        1. For ${method}, analyze: Can this action be performed with these items?
-        2. If YES: Create logical resulting items. BaseId should be item name in UPPERCASE with spaces as underscores.
-        3. If NO: Explain why briefly. Return empty consumedItemIds array.
-        4. RESPOND ONLY with valid JSON matching the schema.
+        CREATIVE COMBINATION EXAMPLES:
+
+        LIQUIDS + ORGANIC MATERIALS (infusions, extracts, waters):
+        - Water + rose petals = rose water (fragrant liquid, beauty/cooking uses)
+        - Water + lavender = lavender water (calming infusion)
+        - Water + herbs = herbal tea or tincture
+        - Water + fruit = fruit juice or flavored water
+        - Wine + flowers = floral wine
+        - Oil + flowers = perfumed oil
+        - Water + anything organic = some kind of infusion, soup, or extract
+
+        FOOD COMBINATIONS (be very permissive):
+        - Any food + any food = mixed dish, salad, stew, or strange combination
+        - Flour + water = dough
+        - Grain + water = porridge
+        - Meat + vegetables = stew
+        - Any ingredients = experimental dish (even if odd-tasting!)
+
+        MATERIALS + MATERIALS:
+        - Fabric + fabric = larger cloth, patchwork, or bandages
+        - Wood + wood = larger wooden object, bundle of sticks
+        - Metal + metal = metal ingot or combined piece
+        - Rope + rope = longer rope
+        - Similar materials always combine into more of that material
+
+        TOOLS + MATERIALS:
+        - Knife + wood = carved wood, wood shavings, wooden object
+        - Knife + cloth = cut cloth pieces, strips, patterns
+        - Hammer + metal = shaped metal, flattened metal
+        - Needle + thread + cloth = sewn item
+        - Any tool can be used creatively on any material
+
+        PRACTICAL CRAFTING:
+        - Wood + pelt/hide/rope = kayak, canoe, raft (category: "Vessel")
+        - Logs + rope = raft or bridge (category: "Vessel" or "Bridge")
+        - Metal + wood = tools, weapons, or implements
+        - Plant fibers = rope, cordage, or fabric
+
+        EXPERIMENTAL COMBINATIONS:
+        - Powder + liquid = paste, mixture, potion
+        - Container + contents = filled container
+        - Two similar items = better version or more quantity
+        - Decorative items + practical items = decorated practical item
+
+        IMPORTANT: If items CAN physically touch/mix/combine in any way, CREATE SOMETHING.
+        Only return failure for truly impossible combinations (like "idea + number").`}
+
+        1. For ${method}, determine: What can be created from these items?
+        2. Be creative! Almost everything should produce SOMETHING, even if unusual or experimental.
+        3. Create logical resulting items. BaseId should be item name in UPPERCASE with spaces as underscores.
+        4. Only return success=false for physically impossible combinations (very rare).
+        5. RESPOND ONLY with valid JSON matching the schema.
     `;
     
     try {

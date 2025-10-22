@@ -109,7 +109,11 @@ const MobileQuickStats: React.FC<MobileQuickStatsProps> = ({ player, onStatClick
   ];
   
   return (
-    <div style={containerStyle}>
+    <div
+      data-surface="mobile-quick-stats"
+      className="mobile-quick-stats theme-surface"
+      style={containerStyle}
+    >
       {stats.map(stat => (
         <div 
           key={stat.id}

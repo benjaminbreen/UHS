@@ -299,7 +299,7 @@ const AppContent: React.FC = () => {
     }, []);
 
     // Get hooks FIRST before defining callbacks that depend on them
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, showInitialScenarioModal, setShowInitialScenarioModal, showDeathModal, setShowDeathModal, showNpcDeathModal, setShowNpcDeathModal, showDiseaseProgressionModal, setShowDiseaseProgressionModal, showEventModal, setShowEventModal, showFactionsModal, setShowFactionsModal, showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId, showFactoryPanel } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, highlightedWorkOfferId, showGameModePanel, setShowGameModePanel, showInitialScenarioModal, setShowInitialScenarioModal, showDeathModal, setShowDeathModal, showNpcDeathModal, setShowNpcDeathModal, showDiseaseProgressionModal, setShowDiseaseProgressionModal, showEventModal, setShowEventModal, showFactionsModal, setShowFactionsModal, showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId, showFactoryPanel } = useUI();
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog } = useGame();
 
@@ -887,7 +887,10 @@ const AppContent: React.FC = () => {
     }
 
     return (
-      <div className="bg-slate-200 text-slate-800 dark:bg-slate-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden transition-colors duration-300">
+      <div
+        data-surface="app-shell"
+        className="app-shell theme-surface flex flex-col h-screen overflow-hidden transition-colors duration-300"
+      >
         {/* Quest Notifications */}
         <QuestNotificationToast />
 
@@ -931,12 +934,12 @@ const AppContent: React.FC = () => {
                     onMenuClick={() => setMobileSidebarOpen(true)}
                 />
             )}
-            <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-0 md:p-0 lg:p-1 xl:p-0 gap-0 sm:gap-1 md:gap-1 lg:gap-1 xl:gap-1 h-full max-h-full">
+            <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-0 md:p-0 lg:p-0 xl:p-0 gap-0 sm:gap-0 md:gap-0 lg:gap-0 xl:gap-0 h-full max-h-full">
                 {/* Desktop sidebar toggle */}
                 {!isLeftSidebarExpanded && (
                     <button 
                         onClick={() => setIsLeftSidebarExpanded(true)}
-                        className="hidden sm:flex absolute top-1/2 -translate-y-1/2 left-2 z-30 w-8 h-16 items-center justify-center bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 rounded-r-lg border-y border-r border-slate-600/80 transition-all shadow-lg animate-pulseGlow"
+                        className="hidden sm:flex absolute top-1/2 -translate-y-1/2 left-2 z-30 w-8 h-16 items-center justify-center surface-muted text-text-secondary rounded-r-lg border border-surface-muted hover:shadow-md transition-all shadow-lg animate-pulseGlow"
                         aria-label="Expand Sidebar"
                         title="Expand Sidebar"
                     >
@@ -949,7 +952,7 @@ const AppContent: React.FC = () => {
                 {/* Mobile menu buttons - larger and better positioned */}
                 <button 
                     onClick={() => setMobileMenuOpen(mobileMenuOpen === 'left' ? null : 'left')}
-                    className="sm:hidden fixed top-16 left-0 z-40 w-12 h-12 flex items-center justify-center bg-slate-900/95 active:bg-slate-700 text-slate-200 rounded-r-lg border border-slate-500/60 shadow-xl backdrop-blur-sm"
+                    className="sm:hidden fixed top-16 left-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-r-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
                     aria-label="Toggle Left Menu"
                 >
                     {mobileMenuOpen === 'left' ? (
@@ -965,7 +968,7 @@ const AppContent: React.FC = () => {
                 
                 <button 
                     onClick={() => setMobileMenuOpen(mobileMenuOpen === 'right' ? null : 'right')}
-                    className="sm:hidden fixed top-16 right-0 z-40 w-12 h-12 flex items-center justify-center bg-slate-900/95 active:bg-slate-700 text-slate-200 rounded-l-lg border border-slate-500/60 shadow-xl backdrop-blur-sm"
+                    className="sm:hidden fixed top-16 right-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-l-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
                     aria-label="Toggle Right Menu"
                 >
                     {mobileMenuOpen === 'right' ? (
@@ -1268,6 +1271,11 @@ const AppContent: React.FC = () => {
         <QuestsPanel
           isOpen={showQuestsPanel}
           onClose={() => setShowQuestsPanel(false)}
+          highlightedWorkOfferId={highlightedWorkOfferId}
+          currentGameHours={gameTimeHours}
+          currentMapSeed={currentMapSeed?.toString()}
+          playerCharacter={playerCharacter}
+          onUpdatePlayer={setPlayerCharacter}
           onNavigateToQuest={(x, y) => {
             console.log('Centering map on quest at:', x, y);
             // Center the map view on the quest location WITHOUT moving the player

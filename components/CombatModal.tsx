@@ -23,6 +23,7 @@ import {
 } from '../services/backgroundSelectionService';
 import WeatherEffects from './WeatherEffects';
 import { entityHealthService } from '../services/entityHealthService';
+import { getActiveWorkOffers, recordAnimalKill } from '../services/workOfferStorage';
 
 interface CombatModalProps {
   combatant: EncounterableEntity;
@@ -73,10 +74,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
       health = storedHealth.current;
       console.log(`[Combat] Restored ${comb.id} health: ${health}/${storedHealth.max}`);
     } else {
-      // Use original health calculation
-      health = typeof comb.health === 'number' ? comb.health :
-               (comb.health && typeof comb.health === 'object' && 'current' in comb.health) ? comb.health.current :
-               comb.maxHealth || 100;
+      // Health is now always a number in the entity type
+      health = comb.health || comb.maxHealth || 100;
     }
 
     return { ...comb, health };
@@ -101,6 +100,23 @@ const CombatModal: React.FC<CombatModalProps> = ({
       // Remove dead entities from tracking
       entityHealthService.removeEntity(opponent.id);
       console.log(`[Combat] Removed dead entity ${opponent.id} from tracking`);
+
+      // Track animal kills for work offers
+      if (isAnimal(opponent)) {
+        const animal = opponent as AnimalEntity;
+        const activeOffers = getActiveWorkOffers();
+
+        // Check if any active work offers require killing this animal type
+        activeOffers.forEach(offer => {
+          if (offer.taskType === 'kill_animal' && offer.targetAnimal) {
+            // Case-insensitive match for animal species
+            if (offer.targetAnimal.toLowerCase() === animal.speciesName.toLowerCase()) {
+              recordAnimalKill(offer.id, animal.speciesName);
+              console.log(`[WORK] Recorded kill of ${animal.speciesName} for work offer ${offer.id}`);
+            }
+          }
+        });
+      }
     }
 
     // Record combat memory for NPCs
@@ -189,9 +205,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
   
   // Helper to safely get health value from opponent
   const getOpponentHealth = (opp: typeof opponent): number => {
-    if (typeof opp.health === 'number') return opp.health;
-    if (opp.health && typeof opp.health === 'object' && 'current' in opp.health) return opp.health.current;
-    return 0;
+    return opp.health || 0;
   };
 
   // Handle click anywhere to dismiss dialogue
@@ -566,8 +580,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         onCharacterUpdate(p => ({ ...p, health: Math.max(0, p.health - damageTaken), statusEffects: newStatusEffects }));
     } else {
         setOpponent(o => {
-          const currentHealth = typeof o.health === 'number' ? o.health : (o.health?.current || 0);
-          return { ...o, health: Math.max(0, currentHealth - damageTaken), statusEffects: newStatusEffects };
+          return { ...o, health: Math.max(0, o.health - damageTaken), statusEffects: newStatusEffects };
         });
     }
   };

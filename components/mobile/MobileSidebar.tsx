@@ -240,8 +240,17 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
   
   return (
     <>
-      <div style={overlayStyle} onClick={onClose} />
-      <div style={sidebarStyle}>
+      <div
+        data-surface="modal-overlay"
+        className="modal-overlay theme-surface mobile-sidebar-overlay"
+        style={overlayStyle}
+        onClick={onClose}
+      />
+      <div
+        data-surface="modal-panel"
+        className="mobile-sidebar theme-surface"
+        style={sidebarStyle}
+      >
         <div 
           style={handleStyle}
           onTouchStart={handleSwipeDown}

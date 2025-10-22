@@ -6,19 +6,24 @@ interface CraftingModalProps {
     isOpen: boolean;
     onClose: () => void;
     items: Item[];
+    playerInventory?: Item[]; // Full inventory for multi-select
     method?: 'COMBINE' | 'DISAGGREGATE'; // Made optional, will be selectable in modal
-    onExecuteCrafting: (intent: string, method: 'COMBINE' | 'DISAGGREGATE') => Promise<CraftingResult | null>;
+    onExecuteCrafting: (intent: string, method: 'COMBINE' | 'DISAGGREGATE', items: Item[]) => Promise<CraftingResult | null>;
 }
 
-const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, method: initialMethod, onExecuteCrafting }) => {
+const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, playerInventory, method: initialMethod, onExecuteCrafting }) => {
     const [intent, setIntent] = useState('');
     const [result, setResult] = useState<CraftingResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [method, setMethod] = useState<'COMBINE' | 'DISAGGREGATE'>(initialMethod || 'COMBINE');
+    const [additionalItems, setAdditionalItems] = useState<Set<string>>(new Set());
 
     const handleConfirm = async () => {
         setIsLoading(true);
-        const craftResult = await onExecuteCrafting(intent, method);
+        // Combine initial items with additionally selected items
+        const selectedAdditional = playerInventory?.filter(item => additionalItems.has(item.id)) || [];
+        const allItems = [...items, ...selectedAdditional];
+        const craftResult = await onExecuteCrafting(intent, method, allItems);
         setResult(craftResult);
         setIsLoading(false);
     };
@@ -27,6 +32,7 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
         setResult(null);
         setIntent('');
         setMethod('COMBINE'); // Reset to default
+        setAdditionalItems(new Set());
         onClose();
     };
 
@@ -102,6 +108,58 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
                         </div>
                     ))}
                 </div>
+
+                {/* Multi-select for combining single item */}
+                {method === 'COMBINE' && items.length === 1 && playerInventory && (
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Select items to combine with:
+                        </label>
+                        <div className="max-h-48 overflow-y-auto bg-slate-800/50 rounded-lg border border-slate-600 p-2">
+                            {playerInventory
+                                .filter(invItem => !items.some(selectedItem => selectedItem.id === invItem.id))
+                                .map(invItem => (
+                                    <div
+                                        key={invItem.id}
+                                        className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                                            additionalItems.has(invItem.id)
+                                                ? 'bg-blue-700/40 border border-blue-400'
+                                                : 'hover:bg-slate-700/50'
+                                        }`}
+                                        onClick={() => {
+                                            const newSet = new Set(additionalItems);
+                                            if (newSet.has(invItem.id)) {
+                                                newSet.delete(invItem.id);
+                                            } else {
+                                                newSet.add(invItem.id);
+                                            }
+                                            setAdditionalItems(newSet);
+                                        }}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={additionalItems.has(invItem.id)}
+                                            onChange={() => {}}
+                                            className="pointer-events-none"
+                                        />
+                                        <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                                            <GenerativeItemIcon item={invItem} size={32} />
+                                        </div>
+                                        <span className="text-sm text-slate-200 flex-1">{invItem.name}</span>
+                                        {invItem.quantity > 1 && (
+                                            <span className="text-xs text-slate-400">x{invItem.quantity}</span>
+                                        )}
+                                    </div>
+                                ))}
+                        </div>
+                        {additionalItems.size > 0 && (
+                            <p className="text-xs text-blue-400 mt-2">
+                                {additionalItems.size} additional item{additionalItems.size !== 1 ? 's' : ''} selected
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 {method === 'COMBINE' && (
                     <div className="mb-6">
                         <label htmlFor="crafting-intent" className="block text-sm font-medium text-slate-300 mb-2">Intent (Optional):</label>
@@ -120,8 +178,16 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
     };
 
     return (
-        <div className="modal-overlay" onClick={handleClose}>
-            <div className="ff-panel w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
+        <div
+            data-surface="modal-overlay"
+            className="modal-overlay theme-surface"
+            onClick={handleClose}
+        >
+            <div
+                data-surface="modal-panel"
+                className="ff-panel theme-surface w-full max-w-lg p-6"
+                onClick={e => e.stopPropagation()}
+            >
                 <h3 className="text-center text-2xl font-press-start mb-6 text-amber-400">
                     {result ? 'Crafting Result' : `Crafting: ${method}`}
                 </h3>

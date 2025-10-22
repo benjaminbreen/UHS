@@ -772,8 +772,17 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
     
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-primary-lg w-full max-w-4xl flex flex-col animate-popIn" style={{maxHeight: '90vh'}} onClick={e => e.stopPropagation()}>
+        <div
+            data-surface="modal-overlay"
+            className="modal-overlay theme-surface"
+            onClick={onClose}
+        >
+            <div
+                data-surface="modal-panel"
+                className="theme-surface bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-primary-lg w-full max-w-4xl flex flex-col animate-popIn"
+                style={{maxHeight: '90vh'}}
+                onClick={e => e.stopPropagation()}
+            >
                  <header className="relative w-full h-[260px] rounded-t-xl overflow-hidden shrink-0">
                     {renderBanner()}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/60 to-transparent"></div>

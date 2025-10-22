@@ -141,8 +141,16 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
     }, [structureType, structure, culturalZone, era]);
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="ff-panel w-full max-w-4xl" onClick={e => e.stopPropagation()}>
+        <div
+            data-surface="modal-overlay"
+            className="modal-overlay theme-surface"
+            onClick={onClose}
+        >
+            <div
+                data-surface="modal-panel"
+                className="ff-panel theme-surface w-full max-w-4xl"
+                onClick={e => e.stopPropagation()}
+            >
                 <div className="p-6">
                     <header className="flex items-center gap-4 mb-4 pb-4 border-b border-blue-500/30">
                         <div className="w-20 h-20 flex-shrink-0">

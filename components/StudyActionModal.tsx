@@ -43,14 +43,16 @@ const StudyActionModal: React.FC<StudyActionModalProps> = ({
 
   return (
     <div
-      className="modal-overlay"
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="study-modal-title"
     >
       <div
-        className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 w-full max-w-2xl p-6 flex flex-col animate-popIn"
+        data-surface="modal-panel"
+        className="theme-surface bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 w-full max-w-2xl p-6 flex flex-col animate-popIn"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

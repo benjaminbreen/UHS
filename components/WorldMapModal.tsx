@@ -105,14 +105,16 @@ const WorldMapModal: React.FC<WorldMapModalProps> = ({ isOpen, onClose, cachedMa
 
   return (
     <div 
-        className="modal-overlay"
+        data-surface="modal-overlay"
+        className="modal-overlay theme-surface"
         onClick={onClose}
         role="dialog"
         aria-modal="true"
         aria-labelledby="world-map-title"
     >
       <div 
-        className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 flex flex-col w-full h-full max-w-6xl max-h-[90vh] p-6 animate-popIn"
+        data-surface="modal-panel"
+        className="theme-surface bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 flex flex-col w-full h-full max-w-6xl max-h-[90vh] p-6 animate-popIn"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4 pb-3 border-b border-blue-500/30">

@@ -20,6 +20,7 @@ import LumberCampBanner from './LumberCampBanner';
 import ProcessingInterface, { ProcessingRecipe } from './ProcessingInterface';
 import { getProcessingRecipes, getProcessingDuration } from '../services/poiProcessingService';
 import { getFactoryTypeFromStructure } from '../services/factoryDataService';
+import { getOptimizedButtonClassName, getSafariOptimizedClassName } from '../utils/safariUtils';
 
 const POITypeIcon: React.FC<{ type: string }> = ({ type }) => {
   const iconMap: Record<string, string> = {
@@ -109,6 +110,11 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
   const [isMobile, setIsMobile] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [tradeDialogue, setTradeDialogue] = useState<string>('');
+  const buildPoiButtonClass = (tone: 'neutral' | 'accent' | 'warn' = 'neutral', enabled = true) => {
+    const toneClass = tone === 'accent' ? 'poi-button--accent' : tone === 'warn' ? 'poi-button--warn' : '';
+    const classes = ['poi-button', toneClass, enabled ? '' : 'opacity-60 cursor-not-allowed'];
+    return getOptimizedButtonClassName(classes.filter(Boolean).join(' '));
+  };
   
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -619,15 +625,18 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
       }
     }
 
-    const bannerProps = {
-      structure: enhancedStructure,
-      era: yearString, // Pass actual year number string, not enum
-      culturalZone: currentCulturalZone || 'european',
-      climate: mapData?.climate || 'temperate' as const,
-      season: mapData?.season || 'spring' as const,
-      timeOfDay: mapData?.timeOfDay || 'day' as const,
-      width: 1000,
-      height: 340,
+  const bannerHeight = isMobile ? 220 : 280;
+  const bannerWidth = isMobile ? 760 : 1000;
+
+  const bannerProps = {
+    structure: enhancedStructure,
+    era: yearString, // Pass actual year number string, not enum
+    culturalZone: currentCulturalZone || 'european',
+    climate: mapData?.climate || 'temperate' as const,
+    season: mapData?.season || 'spring' as const,
+    timeOfDay: mapData?.timeOfDay || 'day' as const,
+    width: bannerWidth,
+    height: bannerHeight,
       seed: mapData?.seed || 12345,
       adjacentBiomes: mapData?.adjacentBiomes || ['grassland' as const],
       isRuined: false
@@ -678,22 +687,20 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
     <AnimatePresence>
       {/* Toast positioned at bottom-center, slides up from bottom */}
       <div className={`fixed z-50 ${getPositionStyles()} transition-transform duration-300 ease-out`}>
-        <div className={`
-          ${isMobile 
-            ? 'w-[95vw] max-h-[70vh]' 
-            : 'w-[1000px] max-w-[95vw] max-h-[60vh]'
-          } 
-          bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-300/50 dark:border-slate-600/50 overflow-hidden
-        `}>
+        <div
+          data-surface="modal-panel"
+          className={getSafariOptimizedClassName(`
+            ${isMobile ? 'w-[95vw] max-h-[70vh]' : 'w-[1000px] max-w-[95vw] max-h-[60vh]'}
+            theme-surface border rounded-3xl shadow-2xl overflow-hidden transition-colors duration-300
+          `)}
+        >
           
           {/* POI Banner - Only on desktop */}
           {!isMobile && (
-            <div className="relative h-[240px] overflow-hidden rounded-t-2xl">
+            <div className="relative overflow-hidden" style={{ height: `${bannerHeight}px` }}>
               {/* SVG Banner Component - Offset to show quarry structure, not sky */}
-              <div className="absolute inset-0">
-                <div className="w-full h-full relative" style={{ top: '-10px' }}>
-                  {renderBanner(structure)}
-                </div>
+              <div className="absolute inset-0 poi-banner">
+                {renderBanner(structure)}
               </div>
               
               {/* Text overlay with gradient background for readability */}
@@ -755,13 +762,13 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-300/50 dark:border-slate-700/50">
                 <div className="flex items-center gap-3">
                   <POITypeIcon type={structure.type || 'quarry'} />
-                  <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+                  <h2 className="text-xl font-bold text-text-primary">
                     {structure.name || getDefaultPOIName(structure.type || 'quarry')}
                   </h2>
                 </div>
                 <button
                   onClick={handleClose}
-                  className="text-slate-600/70 dark:text-white/70 hover:text-slate-800 dark:hover:text-white transition-colors p-1.5 rounded-full bg-slate-300/50 dark:bg-slate-800/50 hover:bg-slate-400/50 dark:hover:bg-slate-700/50"
+                  className={getOptimizedButtonClassName('nav-button nav-button--compact flex items-center justify-center')}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -776,23 +783,26 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 
                 {/* Description */}
                 <div>
-                  <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed">
+                  <p className="text-text-secondary text-sm leading-relaxed">
                     {description}
                   </p>
                 </div>
 
                 {/* Worker Dialogue - Only show in main view */}
                 {currentView === 'main' && dialogue && (
-                  <div className="bg-slate-800/60 rounded-lg p-3">
+                  <div className="poi-dialogue">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-700/30 flex items-center justify-center flex-shrink-0">
-                        <span className="text-amber-400 text-lg">👤</span>
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'var(--surface-chip-bg)' }}
+                      >
+                        <span className="text-lg">👤</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-amber-300 font-medium text-sm mb-1">
+                        <p className="text-sm font-semibold text-[var(--text-secondary)] mb-1">
                           {dialogue?.speaker || 'Worker'}
                         </p>
-                        <p className="text-gray-300 text-lg italic leading-relaxed">
+                        <p className="text-sm italic text-[var(--text-primary)] leading-relaxed">
                           "{dialogue?.greeting || 'Welcome!'}"
                         </p>
                       </div>
@@ -802,16 +812,19 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 
                 {/* Trade Dialogue - Show in buy/sell views */}
                 {(currentView === 'buy' || currentView === 'sell') && tradeDialogue && (
-                  <div className="bg-slate-800/60 rounded-lg p-3">
+                  <div className="poi-dialogue">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-700/30 flex items-center justify-center flex-shrink-0">
-                        <span className="text-amber-400 text-lg">👤</span>
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'var(--surface-chip-bg)' }}
+                      >
+                        <span className="text-lg">👤</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-amber-300 font-medium text-sm mb-1">
+                        <p className="text-sm font-semibold text-[var(--text-secondary)] mb-1">
                           Worker
                         </p>
-                        <p className="text-gray-300 text-xs italic leading-relaxed">
+                        <p className="text-sm italic text-[var(--text-primary)] leading-relaxed">
                           "{tradeDialogue}"
                         </p>
                       </div>
@@ -828,18 +841,19 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                     {/* Fortress-specific Actions */}
                     {getStructureType(structure) === 'fortress' && (
                   <div>
-                    <h3 className="text-slate-800 dark:text-white font-medium text-sm mb-3">Fortress Actions</h3>
+                    <h3 className="text-text-primary font-medium text-sm mb-3">Fortress Actions</h3>
                     <div className="space-y-2">
                       <button
                         onClick={handleEnterFortress}
                         disabled={!onEnterBuilding}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-disabled={!onEnterBuilding}
+                        className={buildPoiButtonClass('neutral', !!onEnterBuilding)}
                         title={!onEnterBuilding ? 'Interior system not available' : 'Click to enter fortress'}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-text-primary mb-1">
                           🏛️ {currentEra === HistoricalEra.PREHISTORY ? 'Ask to see the War Leader' : 'Ask to see the Commander'} {!onEnterBuilding && '(Disabled)'}
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           {currentEra === HistoricalEra.PREHISTORY
                             ? 'Request an audience with the clan war leader'
                             : 'Request an audience with the fortress commander'}
@@ -853,12 +867,12 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                             // TODO: Trigger enlistment dialogue
                             showToast?.('Enlistment system coming soon!');
                           }}
-                          className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                          className={buildPoiButtonClass()}
                         >
-                          <div className="text-white font-medium text-sm mb-1">
+                          <div className="text-sm font-medium text-text-primary mb-1">
                             ⚔️ Inquire about Enlistment
                           </div>
-                          <div className="text-gray-400 text-xs leading-tight">
+                          <div className="text-xs text-text-secondary leading-tight">
                             {currentEra === HistoricalEra.ANTIQUITY
                               ? 'Ask about joining the garrison forces'
                               : 'Ask about joining the military forces'}
@@ -873,12 +887,12 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                             // TODO: Trigger supply trade dialogue
                             showToast?.('Military supply trading coming soon!');
                           }}
-                          className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                          className={buildPoiButtonClass()}
                         >
-                          <div className="text-white font-medium text-sm mb-1">
+                          <div className="text-sm font-medium text-text-primary mb-1">
                             📦 Request Supplies
                           </div>
-                          <div className="text-gray-400 text-xs leading-tight">
+                          <div className="text-xs text-text-secondary leading-tight">
                             {currentEra === HistoricalEra.ANTIQUITY
                               ? 'Ask for garrison provisions'
                               : 'Ask for military supplies or provisions'}
@@ -892,7 +906,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {/* Mill-specific Actions */}
                 {getStructureType(structure) === 'mill' && (
                   <div>
-                    <h3 className="text-white font-medium text-sm mb-3">Mill Services</h3>
+                    <h3 className="text-text-primary font-medium text-sm mb-3">Mill Services</h3>
                     <div className="space-y-2">
                       <button
                         onClick={() => {
@@ -900,42 +914,37 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                           setProcessingType('mill');
                         }}
                         disabled={!hasInventoryItem('grain')}
-                        className={`w-full p-3 rounded-lg transition-all text-left border ${
-                          hasInventoryItem('grain')
-                            ? 'bg-slate-700/50 hover:bg-slate-600/60 border-slate-600 cursor-pointer'
-                            : 'bg-slate-800/30 border-slate-700/50 cursor-not-allowed opacity-50'
-                        }`}
+                        data-disabled={!hasInventoryItem('grain')}
+                        className={buildPoiButtonClass('neutral', hasInventoryItem('grain'))}
                       >
-                        <div className={`font-medium text-sm mb-1 ${
-                          hasInventoryItem('grain') ? 'text-white' : 'text-gray-500'
-                        }`}>
+                        <div className="font-medium text-sm mb-1 text-text-primary">
                           🌾 Mill Your Grain
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           Process raw grain into flour for a fee {!hasInventoryItem('grain') && '(Need grain)'}
                         </div>
                       </button>
                       
                       <button
                         onClick={handleBuyClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-emerald-700/50 hover:bg-emerald-600/60 border border-emerald-600"
+                        className={buildPoiButtonClass('accent')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           🛒 Buy Grain & Flour
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Purchase processed grain products
                         </div>
                       </button>
                       
                       <button
                         onClick={handleSellClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600"
+                        className={buildPoiButtonClass('warn')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           💰 Sell Raw Grain
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Trade your grain harvest for coin
                         </div>
                       </button>
@@ -946,7 +955,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {/* Woodcutter-specific Actions */}
                 {(getStructureType(structure) === 'woodcutter' || getStructureType(structure) === 'lumber_camp') && (
                   <div>
-                    <h3 className="text-white font-medium text-sm mb-3">Woodcutter Services</h3>
+                    <h3 className="text-text-primary font-medium text-sm mb-3">Woodcutter Services</h3>
                     <div className="space-y-2">
                       <button
                         onClick={() => {
@@ -954,42 +963,37 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                           setProcessingType('sawmill');
                         }}
                         disabled={!hasInventoryItem('wood')}
-                        className={`w-full p-3 rounded-lg transition-all text-left border ${
-                          hasInventoryItem('wood')
-                            ? 'bg-slate-700/50 hover:bg-slate-600/60 border-slate-600 cursor-pointer'
-                            : 'bg-slate-800/30 border-slate-700/50 cursor-not-allowed opacity-50'
-                        }`}
+                        data-disabled={!hasInventoryItem('wood')}
+                        className={buildPoiButtonClass('neutral', hasInventoryItem('wood'))}
                       >
-                        <div className={`font-medium text-sm mb-1 ${
-                          hasInventoryItem('wood') ? 'text-white' : 'text-gray-500'
-                        }`}>
+                        <div className="font-medium text-sm mb-1 text-text-primary">
                           🪚 Saw Your Logs
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           Have your timber cut into planks and boards {!hasInventoryItem('wood') && '(Need logs)'}
                         </div>
                       </button>
                       
                       <button
                         onClick={handleBuyClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-emerald-700/50 hover:bg-emerald-600/60 border border-emerald-600"
+                        className={buildPoiButtonClass('accent')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           🛒 Buy Lumber & Planks
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Purchase finished wood products
                         </div>
                       </button>
                       
                       <button
                         onClick={handleSellClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600"
+                        className={buildPoiButtonClass('warn')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           💰 Sell Raw Logs
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Trade your timber for coin
                         </div>
                       </button>
@@ -1000,7 +1004,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {/* Quarry-specific Actions */}
                 {getStructureType(structure) === 'quarry' && (
                   <div>
-                    <h3 className="text-white font-medium text-sm mb-3">Quarry Services</h3>
+                    <h3 className="text-text-primary font-medium text-sm mb-3">Quarry Services</h3>
                     <div className="space-y-2">
                       <button
                         onClick={() => {
@@ -1008,42 +1012,37 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                           setProcessingType('quarry');
                         }}
                         disabled={!hasInventoryItem('stone')}
-                        className={`w-full p-3 rounded-lg transition-all text-left border ${
-                          hasInventoryItem('stone')
-                            ? 'bg-slate-700/50 hover:bg-slate-600/60 border-slate-600 cursor-pointer'
-                            : 'bg-slate-800/30 border-slate-700/50 cursor-not-allowed opacity-50'
-                        }`}
+                        data-disabled={!hasInventoryItem('stone')}
+                        className={buildPoiButtonClass('neutral', hasInventoryItem('stone'))}
                       >
-                        <div className={`font-medium text-sm mb-1 ${
-                          hasInventoryItem('stone') ? 'text-white' : 'text-gray-500'
-                        }`}>
+                        <div className="font-medium text-sm mb-1 text-text-primary">
                           ✨ Polish Your Stones
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           Have raw stone cut and polished {!hasInventoryItem('stone') && '(Need raw stone)'}
                         </div>
                       </button>
                       
                       <button
                         onClick={handleBuyClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-emerald-700/50 hover:bg-emerald-600/60 border border-emerald-600"
+                        className={buildPoiButtonClass('accent')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           🛒 Buy Cut Stone
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Purchase finished stone blocks
                         </div>
                       </button>
                       
                       <button
                         onClick={handleSellClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600"
+                        className={buildPoiButtonClass('warn')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           💰 Sell Raw Stone
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Trade uncut stone for coin
                         </div>
                       </button>
@@ -1054,7 +1053,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {/* Mine-specific Actions */}
                 {(getStructureType(structure) === 'mine' || getStructureType(structure) === 'mining_colony') && (
                   <div>
-                    <h3 className="text-white font-medium text-sm mb-3">⛏️ Mining Operations</h3>
+                    <h3 className="text-text-primary font-medium text-sm mb-3">⛏️ Mining Operations</h3>
 
                     {/* Deposit Status */}
                     {(() => {
@@ -1071,18 +1070,21 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                       const richness = getDepositRichness(remaining);
 
                       return (
-                        <div className="mb-3 p-3 bg-slate-800/60 rounded-lg border border-slate-700/50">
-                          <p className="text-gray-400 text-xs mb-1">Currently extracting:</p>
-                          <p className="text-white font-medium mb-2">
+                        <div className="mb-3 poi-dialogue">
+                          <p className="text-xs text-text-secondary mb-1">Currently extracting:</p>
+                          <p className="text-sm font-semibold text-text-primary mb-2">
                             {oreType ? oreType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown Ore'}
                           </p>
-                          <p className="text-gray-400 text-xs mb-2">
-                            Deposit Status: <span className={richness.color + ' font-bold'}>{richness.text}</span>
-                            <span className="text-gray-500"> ({remaining.toLocaleString()} units)</span>
+                          <p className="text-xs text-text-secondary mb-2">
+                            Deposit Status:{' '}
+                            <span className={richness.color + ' font-bold'}>{richness.text}</span>
+                            <span className="text-text-muted"> ({remaining.toLocaleString()} units)</span>
                           </p>
-                          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600">
-                            <div className="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-300"
-                                 style={{ width: `${Math.min(100, (remaining / 20000) * 100)}%` }}></div>
+                          <div className="w-full h-2 bg-[rgba(148,163,184,0.25)] rounded-full overflow-hidden border border-[rgba(148,163,184,0.35)]">
+                            <div
+                              className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-300"
+                              style={{ width: `${Math.min(100, (remaining / 20000) * 100)}%` }}
+                            ></div>
                           </div>
                         </div>
                       );
@@ -1112,12 +1114,12 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                             showToast?.('Entering the mine shaft...');
                           }
                         }}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600"
+                        className={buildPoiButtonClass('warn')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           ⛏️ Enter the Mine
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Descend into the mine shaft to extract ore directly
                         </div>
                       </button>
@@ -1148,9 +1150,10 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                           }, 1500);
                         }}
                         disabled={isMining}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-disabled={isMining}
+                        className={buildPoiButtonClass('neutral', !isMining)}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-text-primary mb-1">
                           {isMining ? (
                             <span className="flex items-center gap-2">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -1160,7 +1163,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                             '💰 Pay for Quick Mining'
                           )}
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           Pay 5 gold to have the miners extract some ore for you
                         </div>
                       </button>
@@ -1170,42 +1173,37 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                           setProcessingType(getStructureType(structure) as any);
                         }}
                         disabled={!hasInventoryItem('ore')}
-                        className={`w-full p-3 rounded-lg transition-all text-left border ${
-                          hasInventoryItem('ore')
-                            ? 'bg-slate-700/50 hover:bg-slate-600/60 border-slate-600 cursor-pointer'
-                            : 'bg-slate-800/30 border-slate-700/50 cursor-not-allowed opacity-50'
-                        }`}
+                        data-disabled={!hasInventoryItem('ore')}
+                        className={buildPoiButtonClass('neutral', hasInventoryItem('ore'))}
                       >
-                        <div className={`font-medium text-sm mb-1 ${
-                          hasInventoryItem('ore') ? 'text-white' : 'text-gray-500'
-                        }`}>
+                        <div className="font-medium text-sm mb-1 text-text-primary">
                           🔥 Refine Your Ore
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           Smelt raw ore into metal ingots {!hasInventoryItem('ore') && '(Need ore)'}
                         </div>
                       </button>
                       
                       <button
                         onClick={handleBuyClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-emerald-700/50 hover:bg-emerald-600/60 border border-emerald-600"
+                        className={buildPoiButtonClass('accent')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           🛒 Buy Refined Metals
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Purchase smelted iron, copper, and precious metals
                         </div>
                       </button>
                       
                       <button
                         onClick={handleSellClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600"
+                        className={buildPoiButtonClass('warn')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           💰 Sell Raw Ore
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Trade unrefined ore for coin
                         </div>
                       </button>
@@ -1216,7 +1214,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {/* Factory-specific Actions */}
                 {getStructureType(structure) === 'factory' && (
                   <div>
-                    <h3 className="text-white font-medium text-sm mb-3">Workshop Services</h3>
+                    <h3 className="text-text-primary font-medium text-sm mb-3">Workshop Services</h3>
                     <div className="space-y-2">
                       <button
                         onClick={() => {
@@ -1271,36 +1269,36 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                           handleClose();
                           setShowFactoryContractModal(true);
                         }}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600 cursor-pointer"
+                        className={buildPoiButtonClass('warn')}
                       >
-                        <div className="text-white font-medium text-sm mb-1">
+                        <div className="text-sm font-medium text-white mb-1">
                           💼 Ask for Work
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs leading-tight text-white/90">
                           Negotiate a labor contract with the factory overseer
                         </div>
                       </button>
                       
                       <button
                         onClick={handleBuyClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-emerald-700/50 hover:bg-emerald-600/60 border border-emerald-600"
+                        className={buildPoiButtonClass('accent')}
                       >
                         <div className="text-white font-medium text-sm mb-1">
                           🛒 Buy Manufactured Goods
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           Purchase finished tools, textiles, and goods
                         </div>
                       </button>
                       
                       <button
                         onClick={handleSellClick}
-                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600"
+                        className={buildPoiButtonClass('warn')}
                       >
                         <div className="text-white font-medium text-sm mb-1">
                           💰 Sell Raw Materials
                         </div>
-                        <div className="text-gray-400 text-xs leading-tight">
+                        <div className="text-xs text-text-secondary leading-tight">
                           Trade materials and scrap for coin
                         </div>
                       </button>
@@ -1314,18 +1312,18 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {currentView === 'buy' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-white font-medium text-lg">Buy Items</h3>
+                      <h3 className="text-text-primary font-medium text-lg">Buy Items</h3>
                       <button
                         onClick={handleBackToMain}
-                        className="text-gray-400 hover:text-white text-sm px-3 py-1 rounded bg-slate-700/50 hover:bg-slate-600/50"
+                        className={getOptimizedButtonClassName('nav-button nav-button--compact')}
                       >
                         ← Back
                       </button>
                     </div>
 
 
-                    <div className="bg-slate-800/60 rounded-lg p-3 mb-4">
-                      <div className="text-amber-300 text-sm">
+                    <div className="poi-dialogue mb-4">
+                      <div className="text-sm text-text-secondary">
                         💰 Your Gold: {getPlayerGold()} coins
                       </div>
                     </div>
@@ -1353,10 +1351,10 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                               <div className="flex items-center gap-3">
                                 <span className="text-2xl">{itemDef.emoji || '📦'}</span>
                                 <div>
-                                  <div className={`font-medium text-sm ${canAfford ? 'text-white' : 'text-gray-400'}`}>
+                                  <div className={`font-medium text-sm ${canAfford ? 'text-text-primary' : 'text-text-muted'}`}>
                                     {itemDef.name}
                                   </div>
-                                  <div className="text-gray-400 text-xs">
+                                  <div className="text-xs text-white/90">
                                     {itemDef.description}
                                   </div>
                                 </div>
@@ -1379,18 +1377,18 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {currentView === 'sell' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-white font-medium text-lg">Sell Items</h3>
+                      <h3 className="text-text-primary font-medium text-lg">Sell Items</h3>
                       <button
                         onClick={handleBackToMain}
-                        className="text-gray-400 hover:text-white text-sm px-3 py-1 rounded bg-slate-700/50 hover:bg-slate-600/50"
+                        className={getOptimizedButtonClassName('nav-button nav-button--compact')}
                       >
                         ← Back
                       </button>
                     </div>
 
 
-                    <div className="bg-slate-800/60 rounded-lg p-3 mb-4">
-                      <div className="text-amber-300 text-sm">
+                    <div className="poi-dialogue mb-4">
+                      <div className="text-sm text-text-secondary">
                         🎒 Your Inventory: {getPlayerItems().length} items
                       </div>
                     </div>
@@ -1416,7 +1414,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                                 }
                               }
                             }}
-                            className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/30 hover:bg-amber-600/40 border border-amber-600 cursor-pointer"
+                            className={buildPoiButtonClass('warn')}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
@@ -1426,7 +1424,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                                     {item.name}
                                     {(item.quantity && item.quantity > 1) && ` (x${item.quantity})`}
                                   </div>
-                                  <div className="text-gray-400 text-xs">
+                                  <div className="text-xs text-white/90">
                                     {itemDef.description}
                                   </div>
                                 </div>
@@ -1440,7 +1438,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                         );
                       })}
                       {getPlayerItems().length === 0 && (
-                        <div className="text-center text-gray-400 py-8">
+                        <div className="text-center text-text-secondary py-8">
                           <p>No items to sell</p>
                         </div>
                       )}
@@ -1467,10 +1465,10 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
 
 
                 {/* Footer */}
-                <div className="flex justify-end items-center pt-3 border-t border-slate-300/50 dark:border-slate-700/50">
+                <div className="flex justify-end items-center pt-3 border-t" style={{ borderColor: 'var(--surface-muted-border)' }}>
                   <button
                     onClick={handleClose}
-                    className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-lg text-sm font-medium transition-colors"
+                    className={getOptimizedButtonClassName('nav-button nav-button--compact')}
                   >
                     Leave
                   </button>

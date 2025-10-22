@@ -52,6 +52,9 @@ import { isSafari } from '../utils/safariUtils';
 import { useNpcHelperMode } from './NpcHelperModeHandler';
 import { initiateHelperMode } from '../services/npcHelperService';
 import { LanguageFamilyTree } from './LanguageFamilyTree';
+import { WorkOffer } from '../types/workOffer';
+import { detectWorkRequest, generateWorkOffer, MAX_OFFERS_PER_NPC, deliverItemsToWorkOffer, calculateProactiveWorkContext, checkWorkCompletion, completeWorkOffer } from '../services/workOfferService';
+import { addWorkOffer, getWorkOffersForNpc, updateWorkOffer } from '../services/workOfferStorage';
 
 // Styles for animations
 const styles = `
@@ -214,6 +217,7 @@ interface EncounterModalProps {
   onInitiateCombat: (target: EncounterableEntity) => void;
   onOpenInfo: (target: EncounterableEntity) => void;
   onUpdateNpc?: (updatedNpc: NpcEntity) => void;
+  onUpdatePlayer?: (updatedPlayer: PlayerCharacter) => void;
 }
 
 /**
@@ -275,9 +279,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     onClose,
     onInitiateCombat,
     onOpenInfo,
-    onUpdateNpc
+    onUpdateNpc,
+    onUpdatePlayer
 }) => {
-    const { showToast, setCurrentEvent, setSelectedPrimarySource } = useUI();
+    const { showToast, setCurrentEvent, setSelectedPrimarySource, openQuestPanelWithWorkOffer, showFloatingText } = useUI();
     const { worldData } = useMap();
     const { gameDate, currentZone, currentRegion } = useGame();
 
@@ -318,7 +323,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const [hasCheckedForQuest, setHasCheckedForQuest] = useState(false);
     const [isLoadingQuest, setIsLoadingQuest] = useState(false);
     const [canCompleteQuest, setCanCompleteQuest] = useState<{ quest: Quest; objective: any } | null>(null);
-    
+
+    // Work offer states (simple quest system)
+    const [workOffer, setWorkOffer] = useState<WorkOffer | null>(null);
+    const [isGeneratingWork, setIsGeneratingWork] = useState(false);
+    const [deliveryQuantities, setDeliveryQuantities] = useState<Record<string, number>>({});
+
     // Internal monologue states
     const [showMonologue, setShowMonologue] = useState(false);
     const [monologueText, setMonologueText] = useState('');
@@ -359,7 +369,49 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const culturalZone = useMemo(() => {
         return mapLocationToCulture(currentZone || 'Europe', gameDate.year) as CulturalZone;
     }, [currentZone, gameDate.year]);
-    
+
+    // Calculate proactive work context for initial greeting
+    const workContext = useMemo(() => {
+        if (!isNpc(currentTarget) || !mapData) {
+            return { shouldOffer: false, contextHint: "", probability: 0 };
+        }
+
+        const npcPos = { x: currentTarget.x, y: currentTarget.y };
+
+        // Get nearby animals (within 50 tiles)
+        const nearbyAnimals = mapData.animals?.filter(animal => {
+            const dx = animal.x - npcPos.x;
+            const dy = animal.y - npcPos.y;
+            return Math.sqrt(dx * dx + dy * dy) <= 50;
+        }) || [];
+
+        // Get nearby structures (already available in mapData)
+        const nearbyStructures = mapData.terrainStructures || [];
+
+        return calculateProactiveWorkContext(currentTarget, mapData, nearbyAnimals, nearbyStructures);
+    }, [currentTarget, mapData]);
+
+    // Check for completable work offers
+    const completableOffers = useMemo(() => {
+        if (!isNpc(currentTarget) || !playerCharacter || !mapData) return [];
+
+        const npcOffers = getWorkOffersForNpc(currentTarget.id);
+        const playerPos = { x: currentTarget.x, y: currentTarget.y }; // Use NPC position as reference
+        const currentGameHours = gameDate ? (gameDate.year * 365 * 24 + gameDate.month * 30 * 24 + gameDate.day * 24) : 0;
+
+        return npcOffers
+            .filter(offer => offer.accepted && !offer.completed && !offer.failed)
+            .filter(offer => {
+                const status = checkWorkCompletion(
+                    offer,
+                    playerCharacter,
+                    playerPos,
+                    currentGameHours
+                );
+                return status === 'completed';
+            });
+    }, [currentTarget, playerCharacter, mapData, gameDate]);
+
     const hasFetchedInitialDialogue = useRef(false);
     const targetName = isNpc(target) ? (target.name || 'Unknown NPC') : (target.speciesName || 'Unknown Creature');
     
@@ -479,7 +531,17 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             if (isNpc(target)) {
                 // Generate appropriate greeting based on whether NPC knows the player
                 const hasMetBefore = currentTarget.memory?.conversationSummaries && currentTarget.memory.conversationSummaries.length > 0;
-                const greeting = hasMetBefore ? "I approach again." : "Hello.";
+                const baseGreeting = hasMetBefore ? "I approach again." : "Hello.";
+
+                // Add context hint if NPC should proactively offer work
+                const greeting = workContext.shouldOffer
+                    ? `${baseGreeting} ${workContext.contextHint}`
+                    : baseGreeting;
+
+                // Log proactive offer probability for debugging
+                if (workContext.shouldOffer) {
+                    console.log(`[Proactive Work] ${currentTarget.name} (${currentTarget.profession}) offering work at ${workContext.probability}% probability`);
+                }
 
                 generateEncounterDialogue(currentTarget, currentTarget.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage)
                     .then(response => {
@@ -721,7 +783,65 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
         return 'Earlier';
     };
-    
+
+    // Handle partial item delivery for work offers
+    const handlePartialDelivery = (offer: WorkOffer) => {
+        if (!playerCharacter || !onUpdatePlayer) return;
+
+        const quantityToDeliver = deliveryQuantities[offer.id] || 1;
+
+        const result = deliverItemsToWorkOffer(
+            offer,
+            playerCharacter,
+            quantityToDeliver,
+            (newInventory) => {
+                onUpdatePlayer({
+                    ...playerCharacter,
+                    inventory: newInventory
+                });
+            }
+        );
+
+        if (result.success) {
+            // Update the work offer in storage
+            updateWorkOffer(result.updatedOffer);
+
+            // Add delivery to conversation history
+            const deliveryEntry: DialogueEntry = {
+                speaker: 'system',
+                text: result.isComplete
+                    ? `${playerCharacter.name} delivered the final ${quantityToDeliver} ${offer.requiredItem}, completing the work order. Payment: ${offer.payment} coins.`
+                    : `${playerCharacter.name} delivered ${quantityToDeliver} ${offer.requiredItem} (${result.updatedOffer.deliveredQuantity}/${offer.requiredQuantity} total).`,
+                timestamp: new Date()
+            };
+            setHistory(prev => [...prev, deliveryEntry]);
+
+            // Show feedback
+            showToast(result.message, result.isComplete ? 'success' : 'info');
+
+            // If work is complete, pay the player
+            if (result.isComplete) {
+                const newMoney = (playerCharacter.money || 0) + offer.payment;
+                onUpdatePlayer({
+                    ...playerCharacter,
+                    money: newMoney
+                });
+                showToast(`+${offer.payment} coins earned!`, 'success');
+
+                // Dispatch event for quest panel refresh
+                window.dispatchEvent(new CustomEvent('workOfferCompleted', { detail: { offerId: offer.id } }));
+            } else {
+                // Dispatch event for quest panel update
+                window.dispatchEvent(new CustomEvent('workOfferUpdated', { detail: { offerId: offer.id } }));
+            }
+
+            // Reset quantity input for this offer
+            setDeliveryQuantities(prev => ({ ...prev, [offer.id]: 1 }));
+        } else {
+            showToast(result.message, 'error');
+        }
+    };
+
     // Handle sending message
     const handleSend = async () => {
         if (!playerInput.trim() || isLoading || !playerCharacter || npcWantsToLeave) return;
@@ -749,6 +869,74 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             }
         }
 
+        // Check for work request BEFORE processing dialogue
+        if (isNpc(currentTarget) && detectWorkRequest(playerInput)) {
+            setIsGeneratingWork(true);
+            try {
+                // Get nearby animals for hunting quests (use NPC position as reference since player is near them)
+                const npcPos = { x: (currentTarget as NpcEntity).x, y: (currentTarget as NpcEntity).y };
+                const nearbyAnimals = mapData?.animals?.filter(animal => {
+                    const dx = animal.x - npcPos.x;
+                    const dy = animal.y - npcPos.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    return distance <= 50; // Within 50 tiles
+                }) || [];
+
+                const offer = await generateWorkOffer(
+                    currentTarget as NpcEntity,
+                    playerCharacter,
+                    mapData,
+                    mapData?.terrainStructures || [],
+                    gameDate ? (gameDate.year * 365 * 24 + gameDate.month * 30 * 24 + gameDate.day * 24) : 0,
+                    npcPos,
+                    nearbyAnimals
+                );
+
+                if (offer) {
+                    setWorkOffer(offer);
+                    setPlayerInput('');
+                    setIsGeneratingWork(false);
+                    return; // Don't generate normal dialogue
+                } else {
+                    // Could be max offers OR generation failure
+                    // Check which one to provide better feedback
+                    const npcOffers = getWorkOffersForNpc((currentTarget as NpcEntity).id);
+                    const activeCount = npcOffers.filter(o => o.accepted && !o.completed && !o.failed).length;
+
+                    let rejectionText: string;
+                    if (activeCount >= MAX_OFFERS_PER_NPC) {
+                        // Max offers reached
+                        rejectionText = `I appreciate your interest, but I already have you working on some tasks. Please complete those before I can offer you more work.`;
+                    } else {
+                        // Generation failure or NPC genuinely has no work
+                        rejectionText = `I don't have any work for you right now. Perhaps check back later?`;
+                    }
+
+                    const rejectionEntry: DialogueEntry = {
+                        speaker: 'npc',
+                        text: rejectionText,
+                        timestamp: new Date()
+                    };
+                    setHistory(prev => [...prev, rejectionEntry]);
+                    setPlayerInput('');
+                    setIsGeneratingWork(false);
+                    return; // Don't continue to normal dialogue
+                }
+            } catch (error) {
+                console.error('Error generating work offer:', error);
+                // Show error feedback to player
+                const errorEntry: DialogueEntry = {
+                    speaker: 'npc',
+                    text: `I'm having trouble thinking of work right now. Perhaps try again in a moment?`,
+                    timestamp: new Date()
+                };
+                setHistory(prev => [...prev, errorEntry]);
+                setPlayerInput('');
+                setIsGeneratingWork(false);
+                return;
+            }
+        }
+
         const newPlayerEntry: DialogueEntry = {
             speaker: 'player',
             text: displayText,
@@ -759,7 +947,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         const currentInput = actualInput; // Use modified input for NPC response
         setPlayerInput('');
         setIsLoading(true);
-        
+
         // Check for threatening language
         const threatWords = ['kill', 'murder', 'attack', 'hurt', 'harm', 'destroy', 'beat', 'strike', 'stab', 'slash'];
         const inputLower = currentInput.toLowerCase();
@@ -794,28 +982,67 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 setReputationChange(response.reputationChange);
                 const expr = mapRepDeltaToExpr(response.reputationChange);
                 if (expr) flashPortrait(expr);
-                
+
                 const oldReputation = playerCharacter.mapReputation || 50;
                 const newReputation = Math.max(0, Math.min(100, oldReputation + response.reputationChange));
-                
-                // Update player character reputation directly
-                playerCharacter.mapReputation = newReputation;
-                
+
+                // Update player character reputation - use callback to trigger re-render
+                const updatedCharacter = {
+                    ...playerCharacter,
+                    mapReputation: newReputation,
+                    reputation: Math.min(100, (playerCharacter.reputation || 50) + response.reputationChange)
+                };
+
+                // Show floating text for reputation gain
+                if (response.reputationChange > 0) {
+                    const screenCenterX = window.innerWidth / 2;
+                    const screenCenterY = window.innerHeight / 2;
+                    showFloatingText(`+${response.reputationChange} Reputation`, 'success', screenCenterX, screenCenterY - 20, 3000);
+                }
+
                 // Log significant reputation changes
                 if (Math.abs(response.reputationChange) >= 50) {
                     console.log(`[REPUTATION] Major change: ${response.reputationChange}`);
                 }
-                
+
                 // Show reputation change for longer if it's significant
                 const displayDuration = Math.abs(response.reputationChange) >= 50 ? 5000 : 3000;
                 setTimeout(() => setReputationChange(null), displayDuration);
-                
+
+                // Handle work offer payment (coins earned) - add to updatedCharacter
+                if ((response as any).coinsEarned) {
+                    updatedCharacter.currency = (playerCharacter.currency || 0) + (response as any).coinsEarned;
+
+                    const screenCenterX = window.innerWidth / 2;
+                    const screenCenterY = window.innerHeight / 2;
+                    showFloatingText(`+${(response as any).coinsEarned} Coins`, 'gold', screenCenterX, screenCenterY + 20, 3000);
+                }
+
+                // Update player character via callback
+                if (onUpdatePlayer) {
+                    onUpdatePlayer(updatedCharacter);
+                }
+
                 // Check if reputation has hit zero - trigger jail scenario
                 if (newReputation <= 0 && response.shouldCallAuthorities) {
                     setTimeout(() => {
                         onClose(history);
                         // TODO: Trigger arrest scenario
                     }, 2000);
+                }
+            } else if ((response as any).coinsEarned) {
+                // Handle work payment without reputation change
+                const updatedCharacter = {
+                    ...playerCharacter,
+                    currency: (playerCharacter.currency || 0) + (response as any).coinsEarned
+                };
+
+                const screenCenterX = window.innerWidth / 2;
+                const screenCenterY = window.innerHeight / 2;
+                showFloatingText(`+${(response as any).coinsEarned} Coins`, 'gold', screenCenterX, screenCenterY + 20, 3000);
+
+                if (onUpdatePlayer) {
+                    onUpdatePlayer(updatedCharacter);
                 }
             }
             
@@ -2045,6 +2272,256 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Work Offer UI */}
+                                        {workOffer && !workOffer.accepted && (
+                                            <div className="mb-3 p-4 bg-blue-900/20 border border-blue-500/50 rounded-lg animate-slide-up">
+                                                <div className="flex items-start gap-2 mb-2">
+                                                    <span className="text-2xl">💼</span>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-blue-300 mb-1">Work Offer</h3>
+                                                        <p className="text-sm text-slate-200 mb-2">{workOffer.description}</p>
+
+                                                        <div className="space-y-1 text-xs text-slate-400 mb-3">
+                                                            {workOffer.targetLocation && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <MapPin size={12} />
+                                                                    <span>Location: {workOffer.targetLocation.name}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex items-center gap-1">
+                                                                <span>💰</span>
+                                                                <span className="text-amber-400 font-semibold">Payment: {workOffer.payment} coins</span>
+                                                            </div>
+                                                            {workOffer.deadline && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <Clock size={12} />
+                                                                    <span>Deadline: {workOffer.deadline} hours</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    workOffer.accepted = true;
+                                                                    addWorkOffer(workOffer);
+                                                                    const workOfferId = workOffer.id;
+                                                                    showToast(`Accepted work from ${workOffer.npcName}`);
+
+                                                                    // Add work acceptance to conversation history
+                                                                    const acceptanceEntry: DialogueEntry = {
+                                                                        speaker: 'system',
+                                                                        text: `${playerCharacter.name} accepted the work offer: "${workOffer.description}"`,
+                                                                        timestamp: new Date()
+                                                                    };
+                                                                    const updatedHistory = [...history, acceptanceEntry];
+
+                                                                    setWorkOffer(null);
+
+                                                                    // Dispatch event for quest panel refresh
+                                                                    window.dispatchEvent(new CustomEvent('workOfferAccepted', { detail: { offerId: workOfferId } }));
+
+                                                                    // Close encounter modal with full history and open quest panel with highlight
+                                                                    onClose(updatedHistory);
+                                                                    openQuestPanelWithWorkOffer(workOfferId);
+                                                                }}
+                                                                className="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                            >
+                                                                ✓ Accept
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setWorkOffer(null)}
+                                                                className="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                            >
+                                                                ✗ Decline
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Completable Work Offers */}
+                                        {isNpc(currentTarget) && completableOffers.map(offer => (
+                                            <div key={offer.id} className="mb-3 p-4 bg-green-900/20 border border-green-500/50 rounded-lg animate-slide-up">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-green-300 font-semibold flex items-center gap-2">
+                                                        <span className="text-2xl">✓</span>
+                                                        <span>Work Complete!</span>
+                                                    </h4>
+                                                    <span className="text-yellow-300 font-mono text-lg">+{offer.payment} coins</span>
+                                                </div>
+
+                                                <p className="text-green-200/80 text-sm mb-3">{offer.description}</p>
+
+                                                {/* Show what will be taken for exploration quests */}
+                                                {offer.taskType === 'explore_location' && playerCharacter.inventory && playerCharacter.inventory.length > 0 && (
+                                                    <div className="text-xs text-green-300/70 mb-3 flex items-center gap-1">
+                                                        <span>📦</span>
+                                                        <span>Will take: {playerCharacter.inventory[0]?.name || 'first item from inventory'}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Show what will be taken for item-based quests */}
+                                                {offer.requiredItem && (
+                                                    <div className="text-xs text-green-300/70 mb-3 flex items-center gap-1">
+                                                        <span>📦</span>
+                                                        <span>Will take: {offer.requiredQuantity || 1}x {offer.requiredItem}</span>
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    onClick={() => {
+                                                        const result = completeWorkOffer(
+                                                            offer,
+                                                            playerCharacter,
+                                                            (newInventory) => {
+                                                                onUpdatePlayer?.({
+                                                                    ...playerCharacter,
+                                                                    inventory: newInventory
+                                                                });
+                                                            }
+                                                        );
+
+                                                        if (result.success) {
+                                                            // Add coins
+                                                            const newMoney = (playerCharacter.money || 0) + result.coinsEarned;
+                                                            onUpdatePlayer?.({
+                                                                ...playerCharacter,
+                                                                money: newMoney
+                                                            });
+
+                                                            // Mark as completed
+                                                            updateWorkOffer({ ...offer, completed: true });
+
+                                                            // Add to history
+                                                            const completionEntry: DialogueEntry = {
+                                                                speaker: 'system',
+                                                                text: `${playerCharacter.name} completed the work: "${offer.description}". Payment: ${offer.payment} coins.${result.itemTaken ? ` (Took ${result.itemTaken})` : ''}`,
+                                                                timestamp: new Date()
+                                                            };
+                                                            setHistory(prev => [...prev, completionEntry]);
+
+                                                            // Show toast
+                                                            showToast(result.message, 'success');
+
+                                                            // Dispatch event
+                                                            window.dispatchEvent(new CustomEvent('workOfferCompleted', {
+                                                                detail: { offerId: offer.id }
+                                                            }));
+                                                        } else {
+                                                            showToast(result.message, 'error');
+                                                        }
+                                                    }}
+                                                    className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <span>✓</span>
+                                                    <span>Complete Work & Collect {offer.payment} Coins</span>
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {/* Active Work Offers - Partial Delivery UI */}
+                                        {isNpc(currentTarget) && (() => {
+                                            const activeOffers = getWorkOffersForNpc(currentTarget.id).filter(
+                                                offer => offer.accepted && !offer.completed && !offer.failed && offer.requiredItem
+                                            );
+
+                                            if (activeOffers.length === 0) return null;
+
+                                            return activeOffers.map(offer => {
+                                                const deliveredSoFar = offer.deliveredQuantity || 0;
+                                                const totalRequired = offer.requiredQuantity || 1;
+                                                const remaining = totalRequired - deliveredSoFar;
+
+                                                // Calculate how many the player has
+                                                const playerHas = playerCharacter.inventory?.filter(
+                                                    item => item.name.toLowerCase() === offer.requiredItem?.toLowerCase()
+                                                ).reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
+
+                                                const maxCanDeliver = Math.min(playerHas, remaining);
+                                                const currentQuantity = deliveryQuantities[offer.id] || 1;
+
+                                                return (
+                                                    <div key={offer.id} className="mb-3 p-4 bg-purple-900/20 border border-purple-500/50 rounded-lg animate-slide-up">
+                                                        <div className="flex items-start gap-2">
+                                                            <span className="text-2xl">📦</span>
+                                                            <div className="flex-1">
+                                                                <h3 className="font-semibold text-purple-300 mb-1">Active Work: {offer.description}</h3>
+
+                                                                <div className="space-y-2 text-sm">
+                                                                    {/* Progress Bar */}
+                                                                    <div>
+                                                                        <div className="flex justify-between text-xs text-slate-400 mb-1">
+                                                                            <span>Progress: {deliveredSoFar} / {totalRequired} {offer.requiredItem}</span>
+                                                                            <span>{Math.round((deliveredSoFar / totalRequired) * 100)}%</span>
+                                                                        </div>
+                                                                        <div className="w-full bg-slate-700 rounded-full h-2">
+                                                                            <div
+                                                                                className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                                                                                style={{ width: `${(deliveredSoFar / totalRequired) * 100}%` }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Player Inventory Status */}
+                                                                    <div className="text-xs text-slate-300">
+                                                                        You have: <span className="text-blue-400 font-semibold">{playerHas} {offer.requiredItem}</span>
+                                                                        {playerHas < remaining && (
+                                                                            <span className="text-amber-400 ml-2">(Need {remaining - playerHas} more)</span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Delivery Controls */}
+                                                                    {playerHas > 0 && remaining > 0 && (
+                                                                        <div className="flex items-center gap-2 mt-2">
+                                                                            <label className="text-xs text-slate-400">Deliver:</label>
+                                                                            <input
+                                                                                type="number"
+                                                                                min="1"
+                                                                                max={maxCanDeliver}
+                                                                                value={currentQuantity}
+                                                                                onChange={(e) => {
+                                                                                    const val = parseInt(e.target.value) || 1;
+                                                                                    const clamped = Math.max(1, Math.min(maxCanDeliver, val));
+                                                                                    setDeliveryQuantities(prev => ({ ...prev, [offer.id]: clamped }));
+                                                                                }}
+                                                                                className="w-20 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-sm text-white"
+                                                                            />
+                                                                            <span className="text-xs text-slate-400">/ {maxCanDeliver} available</span>
+                                                                            <button
+                                                                                onClick={() => handlePartialDelivery(offer)}
+                                                                                disabled={currentQuantity > maxCanDeliver || currentQuantity < 1}
+                                                                                className="ml-auto px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                                            >
+                                                                                Deliver Items
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Payment Info */}
+                                                                    <div className="text-xs text-amber-400 flex items-center gap-1 mt-2">
+                                                                        <span>💰</span>
+                                                                        <span>Payment when complete: {offer.payment} coins</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
+
+                                        {isGeneratingWork && (
+                                            <div className="mb-3 p-3 bg-blue-900/20 border border-blue-500/50 rounded-lg">
+                                                <div className="text-sm text-blue-300 flex items-center gap-2">
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                                                    <span>Considering work opportunities...</span>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="flex gap-2 sm:gap-3">
                                             <input
                                                 type="text"

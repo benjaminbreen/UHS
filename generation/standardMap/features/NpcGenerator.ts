@@ -488,18 +488,19 @@ function createNpc(
         }
         
         const shouldHaveDisease = Math.random() < diseaseChance;
-        
-        let health = undefined;
+
+        // Disease health is separate from combat health
+        let diseaseHealth = undefined;
         if (shouldHaveDisease) {
-            health = diseaseService.assignDiseasesToEntity(
+            diseaseHealth = diseaseService.assignDiseasesToEntity(
                 { health: undefined } as any,
                 context.era,
                 context.culturalZone,
                 context.year
             );
-            
-            if (health && health.currentDiseases.length > 0) {
-                const disease = health.currentDiseases[0].disease;
+
+            if (diseaseHealth && diseaseHealth.currentDiseases.length > 0) {
+                const disease = diseaseHealth.currentDiseases[0].disease;
                 console.log(`[NPC Disease Spawn] ${name} (${role}, ${socialClass}) spawned with ${disease.name} at (${x}, ${y}) - ${(diseaseChance*100).toFixed(0)}% chance in ${context.era}`);
                 if (disease.symptoms && disease.symptoms.length > 0) {
                     console.log(`  → Symptoms: ${disease.symptoms.join(', ')}`);
@@ -543,7 +544,7 @@ function createNpc(
                 ? generateWorkplaceName({ name, profession: role, role } as NpcEntity, context.culturalZone, context.era)
                 : structure?.name,
             inventory: newInventory,
-            health, // Add disease health with potential disease
+            diseaseHealth, // Add disease health with potential disease (separate from combat health)
             attributes, // Add generated attribute badges
         };
 

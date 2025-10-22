@@ -28,345 +28,32 @@
     }
   </style>
 
-  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            amber: {
-              300: '#fcd34d',
-              400: '#fbbf24',
-              500: '#f59e0b',
-              600: '#d97706',
-            },
-            purple: {
-              300: '#c4b5fd',
-              400: '#a78bfa',
-              500: '#8b5cf6',
-              600: '#7c3aed',
-            }
-          },
-          fontFamily: {
-            'press-start': ['"Press Start 2P"', 'cursive'],
-            'lora': ['"Lora"', 'serif'],
-            'cinzel': ['"Cinzel"', 'serif'],
-          },
-          backgroundImage: {
-            'modal-bg-gradient': 'radial-gradient(circle at top, rgba(30, 64, 175, 0.9) 0%, rgba(17, 24, 39, 0.95) 60%, rgba(15, 23, 42, 0.98) 100%)',
-            'modal-bg-gradient-light': 'radial-gradient(circle at top, rgba(226, 232, 240, 0.95) 0%, rgba(241, 245, 249, 0.98) 60%, rgba(255, 255, 255, 1) 100%)',
-            'sidebar-gradient': 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(51, 65, 85, 0.85) 100%)',
-            'sidebar-gradient-light': 'linear-gradient(145deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.9) 50%, rgba(226, 232, 240, 0.85) 100%)',
-            'config-panel-gradient': 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%)',
-            'config-panel-gradient-light': 'linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%)',
-            'map-container-gradient': 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.8) 100%)',
-            'map-container-gradient-light': 'linear-gradient(145deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.8) 100%)',
-            'ambiance-panel-gradient': 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%)',
-            'ambiance-panel-gradient-light': 'linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.7) 100%)',
-            'tabs-gradient': 'linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(30, 41, 59, 0.5))',
-            'tabs-gradient-light': 'linear-gradient(135deg, rgba(248, 250, 252, 0.7), rgba(241, 245, 249, 0.5))',
-            'tab-active-gradient': 'linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(59, 130, 246, 0.1))',
-            'tab-active-amber-gradient': 'linear-gradient(135deg, rgba(251, 191, 24, 0.2), rgba(245, 158, 11, 0.1))',
-            'tab-active-purple-gradient': 'linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(139, 92, 246, 0.1))',
-            'explore-button-gradient': 'linear-gradient(135deg, #16a34a, #15803d, #166534)',
-            'explore-button-gradient-light': 'linear-gradient(135deg, #059669, #047857, #065f46)',
-            'map-vignette-gradient': 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.15) 80%, rgba(0,0,0,0.25) 100%)',
-            'map-vignette-gradient-light': 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.05) 80%, rgba(0,0,0,0.1) 100%)',
-            'time-dawn': 'radial-gradient(ellipse at 50% -20%, #4c1d95 0%, #7c2d12 25%, #1e3a8a 60%, #0f172a 100%)',
-            'time-day': 'radial-gradient(ellipse at 50% -25%, #60a5fa 0%, #3b82f6 30%, #1e40af 70%, #1e3a8a 100%)',
-            'time-dusk': 'radial-gradient(ellipse at 50% -20%, #7f1d1d 0%, #c026d3 25%, #4c1d95 60%, #0f172a 100%)',
-            'time-night': 'radial-gradient(ellipse at 50% -15%, #312e81 0%, #1e293b 40%, #0f172a 100%)',
-          },
-          boxShadow: {
-            'glow-primary': '0 0 15px rgba(96, 165, 250, 0.3)',
-            'glow-primary-lg': '0 0 30px rgba(59, 130, 246, 0.5), inset 0 0 20px rgba(59, 130, 246, 0.2), 0 8px 32px rgba(0,0,0,0.5)',
-            'glow-blue': '0 0 25px rgba(59, 130, 246, 0.6), inset 0 0 15px rgba(59, 130, 246, 0.2)',
-            'glow-amber': '0 0 15px rgba(251, 191, 24, 0.4)',
-            'glow-purple': '0 0 15px rgba(167, 139, 250, 0.4)',
-            'glow-history': '0 0 15px rgba(251, 191, 24, 0.4)',
-            'glow-journal': '0 0 15px rgba(167, 139, 250, 0.4)',
-            'map-frame': 'inset 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 100px rgba(0, 0, 0, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 3px rgba(148, 163, 184, 0.2)',
-            'map-frame-light': 'inset 0 0 50px rgba(0, 0, 0, 0.2), inset 0 0 100px rgba(0, 0, 0, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(148, 163, 184, 0.4)',
-            'sidebar-left': '2px 0 20px rgba(0,0,0,0.3), inset -1px 0 0 rgba(255,255,255,0.1)',
-            'sidebar-right': '-2px 0 20px rgba(0,0,0,0.3), inset 1px 0 0 rgba(255,255,255,0.1)',
-            'sidebar-left-light': '2px 0 20px rgba(0,0,0,0.1), inset -1px 0 0 rgba(0,0,0,0.1)',
-            'sidebar-right-light': '-2px 0 20px rgba(0,0,0,0.1), inset 1px 0 0 rgba(0,0,0,0.1)',
-            'glass-morphism': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-            'glass-morphism-light': '0 8px 32px 0 rgba(255, 255, 255, 0.25)',
-          },
-          keyframes: {
-            logoGlow: {
-              '0%': { filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5)) drop-shadow(0 0 10px rgba(96, 165, 250, 0.3))' },
-              '50%': { filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5)) drop-shadow(0 0 20px rgba(251, 191, 36, 0.4)) drop-shadow(0 0 30px rgba(52, 211, 153, 0.2))' },
-              '100%': { filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5)) drop-shadow(0 0 20px rgba(52, 211, 153, 0.4))' },
-            },
-            modalFadeIn: { 
-              from: { opacity: '0', backdropFilter: 'blur(0px)' }, 
-              to: { opacity: '1', backdropFilter: 'blur(8px)' } 
-            },
-            popIn: {
-              '0%': { opacity: '0', transform: 'scale(0.85) translateY(20px)' },
-              '60%': { opacity: '1', transform: 'scale(1.02) translateY(-5px)' },
-              '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
-            },
-            panelSlideUp: {
-              from: { transform: 'translateY(110%) scale(0.95)', opacity: '0' },
-              to: { transform: 'translateY(0) scale(1)', opacity: '1' },
-            },
-            toastIn: {
-              from: { transform: 'translateY(120%)', opacity: '0' },
-              to: { transform: 'translateY(0)', opacity: '1' },
-            },
-            growAndBounce: {
-                '0%': { transform: 'scaleX(0)' },
-                '70%': { transform: 'scaleX(calc(var(--final-width, 0) * 1.05))' },
-                '100%': { transform: 'scaleX(var(--final-width, 0))' },
-            },
-             spriteAttackForward: {
-                '0%, 100%': { transform: 'translateX(0)' },
-                '50%': { transform: 'translateX(var(--walk-distance, 40px))' },
-            },
-            spriteFlee: {
-                'from': { transform: 'translateX(0) scaleX(var(--flee-direction, 1))', opacity: '1'},
-                'to': { transform: 'translateX(var(--flee-distance, 150px)) scaleX(var(--flee-direction, 1))', opacity: '0'},
-            },
-            spriteDamaged: {
-                '0%, 100%': { filter: 'brightness(1)', transform: 'translateX(0)' },
-                '25%': { filter: 'brightness(2) saturate(2)', transform: 'translateX(var(--direction, 1) * -8px) rotate(-5deg)' },
-                '75%': { filter: 'brightness(1.5)', transform: 'translateX(var(--direction, 1) * 4px)' },
-            },
-            ff6ItemUse: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-10px) scale(1.05)' },
-            },
-            screenShake: {
-                '0%, 100%': { transform: 'translate(0, 0)' },
-                '10%, 30%, 50%, 70%, 90%': { transform: 'translate(-2px, 2px)' },
-                '20%, 40%, 60%, 80%': { transform: 'translate(2px, -2px)' },
-            },
-            damageSplatAnim: {
-                '0%': { transform: 'translateY(0) scale(0.5)', opacity: '0' },
-                '20%': { transform: 'translateY(-20px) scale(1.2)', opacity: '1' },
-                '80%': { transform: 'translateY(-50px) scale(0.9)', opacity: '1' },
-                '100%': { transform: 'translateY(-60px) scale(0.8)', opacity: '0' },
-            },
-            glowingDoor: {
-              '0%': { boxShadow: '0 0 5px #f59e0b' },
-              '50%': { boxShadow: '0 0 20px #f59e0b, 0 0 30px #f59e0b' },
-              '100%': { boxShadow: '0 0 5px #f59e0b' },
-            },
-            lavaRippleAnimation: { 
-              '0%': { 'stop-color': '#ff4500' }, 
-              '33%': { 'stop-color': '#dc143c' }, 
-              '66%': { 'stop-color': '#ff0000' }, 
-              '100%': { 'stop-color': '#ff4500' },
-            },
-            'reef-fish-swim': {
-              '0%': { transform: 'translateX(0) translateY(0)' },
-              '25%': { transform: 'translateX(3px) translateY(-2px)' },
-              '50%': { transform: 'translateX(6px) translateY(0)' },
-              '75%': { transform: 'translateX(3px) translateY(2px)' },
-              '100%': { transform: 'translateX(0) translateY(0)' },
-            },
-            riseSteam: { 
-              '0%': { transform: 'translateY(0px) scale(0.8)', opacity: '0.7' }, 
-              '100%': { transform: 'translateY(-10px) scale(1.2)', opacity: '0' }, 
-            },
-            bubbleRise: { 
-              '0%': { transform: 'translateY(0px) scale(0.1)', opacity: '0' }, 
-              '20%': { opacity: '0.7' }, 
-              '100%': { transform: 'translateY(-10px) scale(0.6)', opacity: '0' }, 
-            },
-            circlingBirdAnimationV2: { 
-              '0%': { transform: 'translate(0px, 8px) rotate(0deg) scale(0.6)', opacity: '0' }, 
-              '5%': { opacity: '0.1' }, 
-              '20%': { opacity: '0.7' }, 
-              '50%': { transform: 'translate(0px, -8px) rotate(180deg) scale(0.8)', opacity: '0.9' }, 
-              '80%': { opacity: '0.7' }, 
-              '95%': { opacity: '0.1' }, 
-              '100%': { transform: 'translate(0px, 8px) rotate(360deg) scale(0.6)', opacity: '0' }, 
-            },
-            snow: { '0%': { transform: 'translateY(-10px) translateX(0px)', opacity: '0' }, '10%': { opacity: '1' }, '90%': { opacity: '1' }, '100%': { transform: 'translateY(300px) translateX(20px)', opacity: '0' } },
-            rain: { '0%': { transform: 'translateY(-10px)', opacity: '0.8' }, '100%': { transform: 'translateY(300px)', opacity: '0' } },
-            smoke: { '0%': { transform: 'translateY(0px) translateX(0px)', opacity: '0.8' }, '50%': { transform: 'translateY(-20px) translateX(5px)', opacity: '0.6' }, '100%': { transform: 'translateY(-40px) translateX(10px)', opacity: '0' } },
-            fallLeaves: { '0%': { transform: 'translateY(0px) translateX(0px) rotate(0deg)', opacity: '1' }, '100%': { transform: 'translateY(30px) translateX(15px) rotate(90deg)', opacity: '0' } },
-            'ff6-idle-bob': {
-              '0%, 100%': { transform: 'translateY(0)' },
-              '50%': { transform: 'translateY(-2px)' },
-            },
-            'animal-idle': {
-                '0%, 100%': { transform: 'scaleY(1) translateY(0)' },
-                '50%': { transform: 'scaleY(1.02) translateY(-1px)' },
-            },
-            'ff6-pointer-bob': {
-                '0%, 100%': { transform: 'translateX(0)' },
-                '50%': { transform: 'translateX(-4px)' },
-            },
-            pulseGlow: {
-              '0%, 100%': { boxShadow: '0 0 20px rgba(96, 165, 250, 0.4)' },
-              '50%': { boxShadow: '0 0 35px rgba(96, 165, 250, 0.7), 0 0 15px rgba(251, 191, 24, 0.3)' }
-            },
-            skillGlowPulse: {
-              '0%': { transform: 'scale(0.5)', opacity: '0.7' },
-              '100%': { transform: 'scale(4)', opacity: '0' },
-            },
-            'sprite-arm-swing': {
-              '0%, 100%': { transform: 'rotate(0deg)' },
-              '30%': { transform: 'rotate(-60deg)'},
-              '70%': { transform: 'rotate(20deg)'}
-            },
-            'sprite-idle-bob': {
-                '0%, 100%': { transform: 'translateY(0) scaleY(1)' },
-                '50%': { transform: 'translateY(-0.5px) scaleY(1.02)' },
-            },
-            'damaged-recoil': {
-                '0%': { transform: 'translateX(0)', filter: 'brightness(1)' },
-                '30%': { transform: 'translateX(-8px) rotate(-3deg)', filter: 'brightness(2.5) contrast(1.5)' },
-                '100%': { transform: 'translateX(0)', filter: 'brightness(1)' },
-            },
-            'defend-stance': {
-                'to': { transform: 'translateX(-2px) scale(0.98)', filter: 'brightness(0.9)' },
-            },
-            'item-use-hop': {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-6px)' },
-            },
-            'flee-anim': {
-                'to': { transform: 'translateX(80px) scaleX(0.5)', opacity: '0' },
-            },
-            walkForward: {
-                '0%': { transform: 'translateX(0)' },
-                '50%': { transform: 'translateX(var(--walk-distance, 40px))' },
-                '100%': { transform: 'translateX(0)' },
-            },
-            strike: {
-                '0%, 100%': { transform: 'rotate(0)' },
-                '50%': { transform: 'rotate(-45deg)' },
-            },
-            jump: {
-                '0%, 100%': { transform: 'translateY(0) rotate(0)' },
-                '25%': { transform: 'translateY(-15px) rotate(-5deg)' },
-                '50%': { transform: 'translateY(-20px) rotate(0)' },
-                '75%': { transform: 'translateY(-15px) rotate(5deg)' },
-            },
-            buttonHover: {
-              '0%': { transform: 'translateY(0) scale(1)' },
-              '100%': { transform: 'translateY(-2px) scale(1.02)' },
-            },
-            gentleFloat: {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-3px)' },
-            },
-            // Enhanced starfield movement
-            'move-twink-back': {
-              from: { backgroundPosition: '0 0' },
-              to: { backgroundPosition: '-10000px 5000px' }
-            }
-          },
-          animation: {
-            logoGlow: 'logoGlow 4s ease-in-out infinite',
-            modalFadeIn: 'modalFadeIn 0.4s ease-out forwards',
-            popIn: 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-            panelSlideUp: 'panelSlideUp 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-            toastIn: 'toastIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-            'grow-and-bounce': 'growAndBounce 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-            'sprite-attack-forward': 'spriteAttackForward 0.4s ease-in-out',
-            'sprite-damaged': 'spriteDamaged 0.4s linear',
-            'sprite-flee': 'spriteFlee 1.2s ease-in forwards',
-            'ff6-item-use': 'ff6ItemUse 0.5s ease-in-out',
-            'screen-shake': 'screenShake 0.3s linear',
-            'glowing-door-anim': 'glowingDoor 2s ease-in-out infinite',
-            'lava-ripple-1': 'lavaRippleAnimation 6s ease-in-out infinite',
-            'lava-ripple-2': 'lavaRippleAnimation 6s ease-in-out infinite -2s',
-            'lava-ripple-3': 'lavaRippleAnimation 6s ease-in-out infinite -4s',
-            'reef-fish-yellow': 'reef-fish-swim 4s ease-in-out infinite',
-            'reef-fish-purple': 'reef-fish-swim 5s ease-in-out infinite reverse',
-            'steam-wisp': 'riseSteam 3s ease-out infinite',
-            'bubble-rise': 'bubbleRise 2.5s linear infinite',
-            'circling-bird': 'circlingBirdAnimationV2 var(--bird-duration, 14s) linear infinite',
-            'snow': 'snow 4s linear infinite',
-            'rain': 'rain 1.5s linear infinite',
-            'smoke': 'smoke 3s ease-out infinite',
-            'fall-leaves': 'fallLeaves 5s ease-out infinite',
-            'ff6-idle-bob': 'ff6-idle-bob 2s ease-in-out infinite',
-            'animal-idle': 'animal-idle 2.5s ease-in-out infinite',
-            'ff6-pointer-bob': 'ff6-pointer-bob 0.7s ease-in-out infinite',
-            'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
-            'skill-glow-pulse': 'skillGlowPulse 1s ease-out forwards',
-            'walk-forward': 'walkForward 0.6s ease-in-out',
-            'strike': 'strike 0.5s ease-out',
-            'jump': 'jump 0.5s ease-in-out',
-            'button-hover': 'buttonHover 0.2s ease-out forwards',
-            'gentle-float': 'gentleFloat 3s ease-in-out infinite',
-            'move-twink-back': 'move-twink-back var(--duration, 200s) linear infinite',
-             'sprite-arm-swing': 'sprite-arm-swing 0.6s ease-in-out',
-            'sprite-idle-bob': 'sprite-idle-bob 3.5s ease-in-out infinite',
-            'damaged-recoil': 'damaged-recoil 0.4s ease-out',
-            'defend-stance': 'defend-stance 0.3s ease-out forwards',
-            'item-use-hop': 'item-use-hop 0.5s ease-in-out',
-            'flee-anim': 'flee-anim 0.6s ease-in forwards'
-          },
-        },
-      },
-    }
-  </script>
+
   <style>
     html {
         overflow-x: hidden;
     }
-    
-    /* Light Mode Defaults */
+
+    /* FF6-Style Combat Variables - Light mode defaults */
     :root {
-      --ff-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 60%, rgba(241, 245, 249, 0.92) 100%);
-      --ff-border: #cbd5e1;
-      --ff-border-glow: rgba(148, 163, 184, 0.3);
-      --ff-button-bg: linear-gradient(145deg, #ffffff, #f1f5f9);
-      --ff-button-hover-bg: linear-gradient(145deg, #f8fafc, #e2e8f0);
-      --ff-text: #0f172a;
-      --ff-header-text: #92400e;
-      --panel-bg: rgba(255, 255, 255, 0.95);
-      --panel-border: rgba(203, 213, 225, 0.6);
-      --toast-bg: linear-gradient(145deg, #60a5fa, #3b82f6);
-      --modal-overlay-bg: rgba(241, 245, 249, 0.85);
-      --sidebar-border-color: rgba(148, 163, 184, 0.3);
-
-      /* Additional light mode variables */
-      --bg-primary: rgb(248 250 252);
-      --bg-secondary: rgb(241 245 249);
-      --text-primary: rgb(15 23 42);
-      --text-secondary: rgb(71 85 105);
-      --border-color: rgb(203 213 225);
-
-      /* Light mode gradients */
-      --sidebar-gradient: linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
-      --modal-gradient: linear-gradient(to bottom, rgba(255, 255, 255, 1), rgba(248, 250, 252, 0.98));
-      --panel-gradient: linear-gradient(to bottom, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.85));
-      --overlay-gradient: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(248, 250, 252, 0.8));
-
-      /* Light mode shadows */
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-
-      /* Button and interactive element colors */
-      --button-bg: rgb(241 245 249);
-      --button-hover: rgb(226 232 240);
-      --button-active: rgb(203 213 225);
-      --button-text: rgb(30 41 59);
-
-      /* Accent colors for light mode */
-      --accent-primary: rgb(59 130 246);
-      --accent-secondary: rgb(99 102 241);
-      --accent-success: rgb(34 197 94);
-      --accent-warning: rgb(251 146 60);
-      --accent-danger: rgb(239 68 68);
+      --ff-bg: radial-gradient(circle at top, rgba(248, 246, 243, 0.98) 0%, rgba(243, 241, 237, 0.95) 60%, rgba(239, 236, 234, 0.92) 100%);
+      --ff-border: #BCBAB5;
+      --ff-border-glow: rgba(90, 155, 140, 0.3);
+      --ff-button-bg: linear-gradient(145deg, #FAFAF8, #F3F1ED);
+      --ff-button-hover-bg: linear-gradient(145deg, #F8F6F3, #EFECEA);
+      --ff-text: #1a1a1a;
+      --ff-header-text: #5A9B8C;
+      --panel-bg: rgba(250, 250, 248, 0.95);
+      --panel-border: rgba(212, 209, 204, 0.6);
+      --toast-bg: linear-gradient(145deg, #5A9B8C, #4D8577);
+      --modal-overlay-bg: rgba(248, 246, 243, 0.85);
+      --sidebar-border-color: rgba(212, 209, 204, 0.3);
     }
-    
-    /* Dark Mode Overrides */
+
+    /* Dark mode combat overrides */
     html.dark {
       --ff-bg: radial-gradient(circle at top, rgba(30, 64, 175, 0.9) 0%, rgba(17, 24, 39, 0.95) 60%, rgba(15, 23, 42, 0.98) 100%);
       --ff-border: #4f8fef;
@@ -380,37 +67,6 @@
       --toast-bg: linear-gradient(145deg, #1e3a8a, #312e81);
       --modal-overlay-bg: rgba(15, 23, 42, 0.9);
       --sidebar-border-color: rgba(255,255,255,0.1);
-
-      /* Additional dark mode variables - ensure these override light mode */
-      --bg-primary: rgb(15 23 42) !important;
-      --bg-secondary: rgb(30 41 59) !important;
-      --text-primary: rgb(243 244 246) !important;
-      --text-secondary: rgb(156 163 175) !important;
-      --border-color: rgb(51 65 85) !important;
-
-      /* Dark mode gradients */
-      --sidebar-gradient: linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)) !important;
-      --modal-gradient: linear-gradient(to bottom, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95)) !important;
-      --panel-gradient: linear-gradient(to bottom, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.9)) !important;
-      --overlay-gradient: linear-gradient(to bottom, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85)) !important;
-
-      /* Dark mode shadows */
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
-      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important;
-      --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4) !important;
-
-      /* Dark mode button colors */
-      --button-bg: rgb(51 65 85) !important;
-      --button-hover: rgb(71 85 105) !important;
-      --button-active: rgb(100 116 139) !important;
-      --button-text: rgb(226 232 240) !important;
-
-      /* Accent colors for dark mode */
-      --accent-primary: rgb(96 165 250) !important;
-      --accent-secondary: rgb(129 140 248) !important;
-      --accent-success: rgb(74 222 128) !important;
-      --accent-warning: rgb(251 191 36) !important;
-      --accent-danger: rgb(248 113 113) !important;
     }
     
     /* Enhanced Scrollbar Styling */
@@ -485,58 +141,46 @@
       }
     }
 
-    /* Enhanced Button System */
-    .ff-action-button { 
-      padding: 0.75rem 1.5rem; 
-      background: var(--ff-button-bg); 
-      color: var(--ff-text); 
-      font-family: 'Press Start 2P', cursive; 
-      font-size: 0.65rem; 
-      border: 1px solid var(--ff-border); 
-      border-radius: 0.5rem; 
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 15px var(--ff-border-glow); 
+    /* Modern Button System */
+    .ff-action-button {
       position: relative;
-      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.65rem 1.45rem;
+      background: var(--button-primary-bg);
+      color: var(--button-primary-text);
+      border: 1px solid var(--button-primary-border);
+      border-radius: 0.75rem;
+      font-family: var(--font-ui, 'Plus Jakarta Sans', 'Inter', 'Segoe UI', sans-serif);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.015em;
+      text-transform: none;
+      box-shadow: var(--button-primary-shadow);
+      transition: background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     }
-    
-    .ff-action-button::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s;
+
+    .ff-action-button:hover {
+      background: var(--button-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 20px 38px rgba(15, 23, 42, 0.2);
     }
-    
-    .ff-action-button:hover { 
-      background: var(--ff-button-hover-bg); 
-      transform: translateY(-2px) scale(1.02); 
-      box-shadow: 0 8px 16px rgba(0,0,0,0.4), 0 0 25px var(--ff-border-glow);
-      animation: button-hover 0.2s ease-out forwards;
-    }
-    
-    .ff-action-button:hover::before {
-      left: 100%;
-    }
-    
+
     .ff-action-button:active {
       transform: translateY(0) scale(0.98);
-      transition: all 0.1s;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
     }
-    
-    .ff-action-button:disabled { 
-      background: #4b5563; 
-      color: #9ca3af; 
-      cursor: not-allowed; 
-      box-shadow: none; 
+
+    .ff-action-button:disabled {
+      background: rgba(148, 163, 184, 0.22);
+      color: rgba(148, 163, 184, 0.72);
+      border-color: rgba(148, 163, 184, 0.22);
+      cursor: not-allowed;
+      box-shadow: none;
       transform: none;
-    }
-    
-    .dark .ff-action-button { 
-      color: white; 
+      filter: saturate(0.6);
     }
 
     /* Enhanced Modal System */

@@ -10,6 +10,7 @@ export const CharacterProfileModal = React.lazy(() => import('./CharacterProfile
 export const CityModal = React.lazy(() => import('./CityModal'));
 export const CombatModal = React.lazy(() => import('./CombatModal'));
 export const CraftingModal = React.lazy(() => import('./CraftingModal'));
+export const EatingResultModal = React.lazy(() => import('./EatingResultModal'));
 export const EncounterModal = React.lazy(() => import('./EncounterModalUpdated'));
 export const LootModal = React.lazy(() => import('./LootModal'));
 export const MarketplaceModal = React.lazy(() => import('./MarketplaceModal'));
@@ -44,6 +45,7 @@ export const LazyCharacterProfileModal = withSuspense(CharacterProfileModal);
 export const LazyCityModal = withSuspense(CityModal);
 export const LazyCombatModal = withSuspense(CombatModal);
 export const LazyCraftingModal = withSuspense(CraftingModal);
+export const LazyEatingResultModal = withSuspense(EatingResultModal);
 export const LazyEncounterModal = withSuspense(EncounterModal);
 export const LazyLootModal = withSuspense(LootModal);
 export const LazyMarketplaceModal = withSuspense(MarketplaceModal);

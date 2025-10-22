@@ -112,6 +112,7 @@ interface TopNavBarPolishedProps {
 const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived }) => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel } = useUI();
   const { currentMode } = useEventSystem();
+  const modeTheme = currentMode ? GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] : undefined;
   const { setControlledIconX, setControlledIconY } = usePlayer();
   const { 
     currentMapSeed,
@@ -414,33 +415,16 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
     if (isMobile) setIsMobileMenuOpen(false);
   };
 
-  const getButtonColorClasses = (color: string, isActive = false) => {
-    const colors: Record<string, string> = {
-      slate: isActive
-        ? 'bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-700 border border-slate-400 dark:border-slate-500'
-        : 'bg-slate-200/90 dark:bg-slate-700/90 hover:bg-slate-300 dark:hover:bg-slate-600 border border-slate-300/50 dark:border-slate-600/50',
-      blue: isActive
-        ? 'bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700'
-        : 'bg-blue-500/90 dark:bg-blue-600/90 hover:bg-blue-600 dark:hover:bg-blue-700',
-      green: isActive
-        ? 'bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700'
-        : 'bg-green-500/90 dark:bg-green-600/90 hover:bg-green-600 dark:hover:bg-green-700',
-      purple: isActive
-        ? 'bg-purple-500 dark:bg-purple-600 hover:bg-purple-600 dark:hover:bg-purple-700'
-        : 'bg-purple-500/90 dark:bg-purple-600/90 hover:bg-purple-600 dark:hover:bg-purple-700',
-      gray: isActive
-        ? 'bg-gray-400 dark:bg-gray-600 hover:bg-gray-500 dark:hover:bg-gray-700'
-        : 'bg-gray-300/90 dark:bg-gray-700/90 hover:bg-gray-400 dark:hover:bg-gray-600',
-      indigo: isActive
-        ? 'bg-indigo-500 dark:bg-indigo-600 hover:bg-indigo-600 dark:hover:bg-indigo-700'
-        : 'bg-indigo-500/90 dark:bg-indigo-600/90 hover:bg-indigo-600 dark:hover:bg-indigo-700',
-    };
-    return colors[color] || colors.slate;
+  const getButtonColorClasses = (_color: string, isActive = false) => {
+    return `relative nav-button nav-button--compact${isActive ? ' nav-button--active' : ''}`;
   };
 
   return (
-    <>
-      <nav className={getSafariOptimizedClassName("relative w-full shadow-xl bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-b border-slate-300/50 dark:border-slate-700/50 z-60")}>
+      <>
+        <nav
+          data-surface="top-nav"
+          className={getSafariOptimizedClassName("top-nav theme-surface relative w-full border-b z-60")}
+        >
         <div className="px-2 sm:px-4 py-2">
           {/* Main Navigation Row */}
           <div className="flex items-center justify-between gap-2">
@@ -449,17 +433,16 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               <style jsx="true">{`
                 @keyframes subtleGlow {
                   0%, 100% { opacity: 0.7; }
-                  50% { opacity: 1; }
+                  50% { opacity: 0.9; }
                 }
                 .subtle-glow {
-                  animation: subtleGlow 4s ease-in-out infinite;
-                  filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.3));
+                  animation: subtleGlow 5s ease-in-out infinite;
                 }
               `}</style>
               
               <a
                 href="/"
-                className="font-press-start mr-8 text-lg sm:text-lg lg:text-lg bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-green-400 to-emerald-400 subtle-glow hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.6)] transition-all duration-300 cursor-pointer no-underline"
+                className="brand-mark mr-8 text-sm sm:text-base lg:text-lg subtle-glow transition-all duration-300 cursor-pointer no-underline"
               >
                 HISTORY SIMULATOR
               </a>
@@ -470,35 +453,36 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               {/* Game Mode Display */}
               <div className="relative">
                 <button
-                  className={`px-3 ml-4 py-1.5 text-xs font-medium
-                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ?
-                      `${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].bgColor} ${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].borderColor} border` :
-                      'bg-gradient-to-r from-slate-200/80 to-slate-100/80 dark:from-slate-700/60 dark:to-slate-600/60 border border-slate-400/50 dark:border-slate-500/40'
-                    }
-                    hover:from-slate-300/80 hover:to-slate-200/80 dark:hover:from-slate-600/70 dark:hover:to-slate-500/70
-                    rounded-lg transition-all duration-200
-                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ?
-                      GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].color :
-                      'text-slate-700 dark:text-slate-200'
-                    } hover:text-slate-800 dark:hover:text-white flex items-center gap-1.5`}
+                  className={getOptimizedButtonClassName(`nav-button nav-button--compact flex items-center gap-1.5 ml-4 ${modeTheme ? 'nav-button--active' : ''} ${showGameModePanel ? ' nav-button--active' : ''}`)}
+                  data-active={modeTheme || showGameModePanel ? true : undefined}
+                  style={
+                    modeTheme
+                      ? {
+                          background: 'linear-gradient(135deg, rgba(50, 56, 92, 0.88), rgba(30, 41, 59, 0.84))',
+                          borderColor: 'rgba(75, 119, 104, 0.65)',
+                          color: 'var(--surface-chip-active-text)',
+                        }
+                      : undefined
+                  }
                   onMouseEnter={() => setShowGameModeTooltip(true)}
                   onMouseLeave={() => setShowGameModeTooltip(false)}
                   onClick={() => setShowGameModePanel(!showGameModePanel)}
                 >
-                  {currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
-                    React.createElement(GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].icon, { className: "w-3.5 h-3.5" }) :
-                    <Trophy className="w-3.5 h-3.5" />
+                  {modeTheme ? 
+                    React.createElement(modeTheme.icon, { className: `w-3.5 h-3.5 ${modeTheme.color} drop-shadow-sm` }) :
+                    <Trophy className="w-3.5 h-3.5 text-[var(--accent-primary)] drop-shadow-sm" />
                   }
-                  <span>{currentMode ? currentMode.name : 'Select Mode'}</span>
+                  <span className={`${modeTheme ? `${modeTheme.color} font-semibold` : 'text-[var(--text-primary)] font-semibold'}`}>
+                    {currentMode ? currentMode.name : 'Select Mode'}
+                  </span>
                   <ChevronDown className={`w-3 h-3 transition-transform ${showGameModePanel ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {/* Tooltip */}
                   {showGameModeTooltip && !showGameModePanel && currentMode && (
-                    <div className="absolute top-full left-0 mt-2 p-2 bg-slate-800 border border-slate-600
-                      rounded-lg shadow-xl z-50 w-64 pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200">
-                      <p className="text-xs text-slate-300">{currentMode.description}</p>
-                      <p className="text-[10px] text-slate-500 mt-1">Click for more details</p>
+                    <div className="absolute top-full left-0 mt-2 p-3 tooltip-surface z-50 w-64 pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200">
+                      <p className="text-xs text-text-primary">{currentMode.description}</p>
+                      <p className="text-[10px] text-text-muted mt-1">Click for more details</p>
                     </div>
                   )}
                 </div>
@@ -507,16 +491,12 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               <div className="relative ml-2">
                 <button
                   onClick={() => setIsPauseModalOpen(prev => !prev)}
-                  className={getOptimizedButtonClassName(`
-                    px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 rounded-md
-                    transition-all duration-200 flex items-center gap-1.5
-                    bg-slate-200/40 dark:bg-slate-700/40 hover:bg-slate-300/60 dark:hover:bg-slate-600/60
-                    shadow-sm hover:shadow-md hover:scale-105
-                    ${isPauseModalOpen ? 'ring-2 ring-blue-500/50 bg-blue-200/40 dark:bg-blue-900/30' : ''}
-                  `)}
+                  className={getOptimizedButtonClassName(`nav-button nav-button--compact flex items-center gap-1.5 ${isPauseModalOpen ? 'nav-button--active' : ''}`)}
+                  data-active={isPauseModalOpen}
                   title={isPauseModalOpen ? "Resume (Space)" : "Pause (Space)"}
                 >
                   {isPauseModalOpen ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                  <span>{isPauseModalOpen ? 'Resume' : 'Pause'}</span>
                 </button>
               </div>
 
@@ -524,13 +504,8 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               <div className="relative ml-1">
                 <button
                   onClick={() => setShowJournal(prev => !prev)}
-                  className={getOptimizedButtonClassName(`
-                    px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
-                    transition-all duration-200 flex items-center gap-1.5
-                    bg-slate-200/60 dark:bg-slate-700/60 hover:bg-slate-300/60 dark:hover:bg-slate-600/60
-                    shadow-sm hover:shadow-md hover:scale-105
-                    ${showJournal ? 'ring-2 ring-amber-500/50 bg-amber-200/40 dark:bg-amber-900/30' : ''}
-                  `)}
+                  className={getOptimizedButtonClassName(`nav-button nav-button--compact flex items-center gap-1.5 ${showJournal ? 'nav-button--active' : ''}`)}
+                  data-active={showJournal}
                   title="Field Journal (⌘J)"
                 >
                   <FileText className="w-4 h-4" />
@@ -539,7 +514,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
                 {/* Helpful UI text when active */}
                 {showJournal && (
-                  <span className="absolute -right-2 top-full mt-1 text-[10px] text-slate-400 whitespace-nowrap animate-pulse">
+                  <span className="absolute -right-2 top-full mt-1 text-[10px] text-[var(--text-muted)] whitespace-nowrap animate-pulse">
                     click to close
                   </span>
                 )}
@@ -560,7 +535,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                         }}
                       />
                       <div 
-                        className="worldweaver-liquid-rise absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-400/30 via-green-400/20 to-transparent"
+                        className="worldweaver-liquid-rise absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-400/80 via-green-400/20 to-transparent"
                       />
                     </div>
                   )}
@@ -582,12 +557,12 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                     disabled={isProcessingWorldWeaver}
                     className={`
                       w-full pl-10 pr-4 py-2 text-sm
-                      bg-white/70 dark:bg-slate-800/50 backdrop-blur-sm
+                      bg-white/10 dark:bg-slate-800/50 backdrop-blur-xs
                       border rounded-lg
-                      text-slate-700 dark:text-gray-200 placeholder-slate-500 dark:placeholder-gray-500
+                      text-emerald-600 dark:text-gray-100 placeholder-slate-500 dark:placeholder-gray-500
                       transition-colors duration-150
                       ${isProcessingWorldWeaver
-                        ? 'border-green-400/50 shadow-lg shadow-green-400/20 animate-pulse'
+                        ? 'border-green-400/50 shadow-lg shadow-green-400/40 animate-pulse'
                         : worldWeaverFocused
                         ? 'border-green-500/50 shadow-lg shadow-green-500/10 ring-1 ring-green-500/20'
                         : 'border-slate-400/50 dark:border-slate-600/50 hover:border-slate-500/50 dark:hover:border-slate-500/50'
@@ -602,7 +577,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       disabled={isProcessingWorldWeaver}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     >
-                      <div className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs text-white font-medium transition-colors">
+                      <div className="px-2 py-1 bg-green-600/50 hover:bg-green-700 rounded text-xs text-white font-medium transition-colors">
                         Create
                       </div>
                     </button>
@@ -612,27 +587,22 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
             )}
 
             {/* Desktop Navigation Buttons - aligned to right */}
-            <div className="hidden md:flex items-center gap-2 pr-2">
+            <div className="hidden md:flex items-center gap-3 pr-2">
               {/* Primary Source Search */}
               <PrimarySourceSearch />
               
               {/* Game Actions */}
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/30 rounded-lg">
+              <div className="flex items-center gap-1.5 px-2 py-0 shadow-sm">
                 {NAV_BUTTON_GROUPS.game.map(button => {
                   const Icon = button.icon;
                   return (
                     <button
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
-                      className={getOptimizedButtonClassName(`
-                        px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
-                        transition-all duration-200 flex items-center gap-1.5
-                        ${getButtonColorClasses(button.color)}
-                        shadow-sm hover:shadow-md hover:scale-105
-                      `)}
+                      className={getOptimizedButtonClassName(getButtonColorClasses(button.color))}
                       title={button.label}
                     >
-                      <Icon className="w-4 h-4" />
+                      
                       <span className={`${button.id === 'quests' ? 'hidden md:inline' : 'hidden lg:inline'}`}>{button.label}</span>
                     </button>
                   );
@@ -640,7 +610,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               </div>
 
               {/* Info Actions */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 px-2 py-1 surface-muted rounded-xl border border-surface-muted shadow-sm">
                 {NAV_BUTTON_GROUPS.info.map(button => {
                   const Icon = button.icon;
                   const isActive = button.id === 'api' && showAPITracker;
@@ -648,12 +618,8 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                     <button
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
-                      className={getOptimizedButtonClassName(`
-                        relative px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
-                        transition-all duration-200 flex items-center gap-1.5
-                        ${getButtonColorClasses(button.color, isActive)}
-                        shadow-sm hover:shadow-md hover:scale-105
-                      `)}
+                      className={getOptimizedButtonClassName(getButtonColorClasses(button.color, isActive))}
+                      data-active={isActive}
                       title={button.label}
                     >
                       <Icon className="w-4 h-4" />
@@ -672,7 +638,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 bg-slate-300/50 dark:bg-slate-800/50 hover:bg-slate-400/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-gray-300 rounded-lg transition-all duration-200 border border-slate-400/50 dark:border-slate-600/50"
+              className="md:hidden nav-button nav-button--compact"
               aria-label="Toggle Menu"
             >
               {isMobileMenuOpen ? (

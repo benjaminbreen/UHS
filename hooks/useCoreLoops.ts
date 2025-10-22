@@ -40,6 +40,8 @@ import { calculateDiseaseGameplayRestrictions, shouldPlayerDieFromDisease, check
 import { DiseaseProgressionEvent } from '../services/diseaseNotificationService';
 import { Disease } from '../types/diseaseTypes';
 import { NpcEntity } from '../types/npcTypes';
+import { getActiveWorkOffers, updateWorkOffer, cleanupOrphanedWorkOffers } from '../services/workOfferStorage';
+import { checkWorkCompletion, completeWorkOffer } from '../services/workOfferService';
 
 interface DeathInfo {
   type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
@@ -296,7 +298,62 @@ const useCoreLoops = (
         if (newMinutes === 0) {
           setGameTimeHours((prevHours) => {
             const newHours = (prevHours + 1) % 24;
-            
+
+            // Check work offer completion EVERY HOUR (not just at midnight)
+            const currentGameHours = (gameDate.year * 365 * 24) + (gameDate.month * 30 * 24) + (gameDate.day * 24) + newHours;
+            const activeOffers = getActiveWorkOffers();
+
+            activeOffers.forEach(offer => {
+              const status = checkWorkCompletion(
+                offer,
+                playerCharacter,
+                { x: controlledIconX, y: controlledIconY },
+                currentGameHours
+              );
+
+              if (status === 'completed' && !offer.completed) {
+                // Mark as completed (use spread operator to avoid mutation)
+                const updatedOffer = {
+                  ...offer,
+                  completed: true
+                };
+
+                // Remove items immediately to prevent consumption
+                completeWorkOffer(
+                  updatedOffer,
+                  playerCharacter,
+                  (newInventory) => {
+                    setPlayerCharacter(prev => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        inventory: newInventory
+                      };
+                    });
+                    // Dispatch inventory update event for progress tracking
+                    window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+                  }
+                );
+
+                updateWorkOffer(updatedOffer);
+                showToast(`Task complete! Return to ${offer.npcName} at (${offer.npcLocation.x}, ${offer.npcLocation.y}) for payment.`);
+
+                // Dispatch event for quest panel refresh
+                window.dispatchEvent(new CustomEvent('workOfferCompleted', { detail: { offerId: offer.id } }));
+              } else if (status === 'failed' && !offer.failed) {
+                // Mark as failed (use spread operator to avoid mutation)
+                const updatedOffer = {
+                  ...offer,
+                  failed: true
+                };
+                updateWorkOffer(updatedOffer);
+                showToast(`Task failed: ${offer.description}`);
+
+                // Dispatch event for quest panel refresh
+                window.dispatchEvent(new CustomEvent('workOfferFailed', { detail: { offerId: offer.id } }));
+              }
+            });
+
             if (newHours === 0) {
               setGameDate((prevDate) => {
                 let { day, month, year } = prevDate;
@@ -308,6 +365,13 @@ const useCoreLoops = (
                     month = 1;
                     year++;
                   }
+                }
+
+                // Cleanup orphaned work offers once per day (NPCs that no longer exist)
+                // Pass current map seed to avoid false positives when player travels between maps
+                const orphanedCount = cleanupOrphanedWorkOffers(npcs, currentMapSeed);
+                if (orphanedCount > 0) {
+                  showToast(`${orphanedCount} work offer${orphanedCount > 1 ? 's' : ''} failed due to NPC disappearance.`);
                 }
 
                 // Disease progression on new day for player character

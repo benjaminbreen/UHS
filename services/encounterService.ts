@@ -7,6 +7,9 @@ import { SpecialMapData, SpecialMapArchetype } from '../types/specialMapTypes';
 import { generateEncounterDialogue as generateLlmDialogue } from './llmService';
 import { REGION_SPECIFIC_DISTRICTS, CULTURAL_ZONE_DISTRICTS } from '../constants/gameData/governmentDistricts';
 import { calculateDiseaseGameplayRestrictions } from './diseaseProgressionService';
+import { getWorkOffersForNpc, removeWorkOffer } from './workOfferStorage';
+import { completeWorkOffer } from './workOfferService';
+import { removeItemFromInventory } from '../utils/inventoryUtils';
 // Removed unused import of specialMapAugmentation
 
 type EncounterableEntity = AnimalEntity | NpcEntity;
@@ -86,6 +89,68 @@ export function generateEncounterDialogue(
     mapData: MapData | null,
     useRealLanguage: boolean
 ): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }> {
+
+    // Check for completed work offers when conversation starts
+    if ('id' in target && target.id) {
+        const workOffers = getWorkOffersForNpc(target.id);
+        const completedOffer = workOffers.find(offer => offer.completed && offer.accepted && !offer.failed);
+
+        if (completedOffer) {
+            // Player is talking to the NPC who gave them work - they exist!
+            // No need to validate NPC existence since we're literally interacting with them.
+            // The work offer system already ensures players can only collect payment from
+            // the specific NPC who gave them the work (via target.id matching).
+
+            // ANTI-EXPLOIT: Verify required items were actually removed
+            // Items should have been removed when task completed in useCoreLoops
+            // If player still has them, it indicates a potential exploit or bug
+            if (completedOffer.requiredItem && playerCharacter.inventory) {
+                const stillHasItems = playerCharacter.inventory.some(item =>
+                    item.name.toLowerCase() === completedOffer.requiredItem?.toLowerCase() &&
+                    item.quantity >= (completedOffer.requiredQuantity || 1)
+                );
+
+                if (stillHasItems) {
+                    // Suspicious! Items weren't removed. Log warning
+                    console.warn(
+                        '[WORK EXPLOIT DETECTED] Player still has required items at payment time.',
+                        'Work ID:', completedOffer.id,
+                        'Required:', completedOffer.requiredItem,
+                        'Quantity:', completedOffer.requiredQuantity
+                    );
+
+                    // Remove the items now (they should have been removed at completion)
+                    const result = removeItemFromInventory(
+                        playerCharacter.inventory,
+                        completedOffer.requiredItem,
+                        completedOffer.requiredQuantity || 1
+                    );
+
+                    // Update inventory with the corrected inventory
+                    playerCharacter.inventory = result.inventory;
+
+                    // Still pay them, but log the exploit attempt
+                    console.warn(
+                        `[WORK] Items removed at payment (should have been removed earlier). ` +
+                        `Removed ${result.removedIds.length} item stacks`
+                    );
+                }
+            }
+
+            // Remove the work offer
+            removeWorkOffer(completedOffer.id);
+
+            // Return payment dialogue with data for EncounterModalUpdated to process
+            const npc = target as NpcEntity;
+            const paymentMessage = `Excellent work, ${playerCharacter.name}! I can see you've completed the task. Here's your payment of ${completedOffer.payment} coins as promised. Your reputation has improved in this area.`;
+
+            return Promise.resolve({
+                text: paymentMessage,
+                reputationChange: 5, // Reputation boost
+                coinsEarned: completedOffer.payment
+            } as any);
+        }
+    }
 
     // Calculate disease visibility for NPC reactions
     const diseaseRestrictions = calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);

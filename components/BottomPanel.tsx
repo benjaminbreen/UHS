@@ -27,6 +27,7 @@ interface BottomPanelProps {
     onEnterRailroadStation?: (tile: Tile) => void;
     onEnterHarborDistrict?: (tile: Tile) => void;
     toastMessage: string | null;
+    toastDuration?: number;
     season?: Season;
     timeOfDay?: TimeOfDay;
     dayOfYear?: number;
@@ -97,13 +98,13 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
 const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = React.memo(({ title, subtitle, icon }) => {
     const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
     return (
-        <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} bg-slate-800/40 rounded-lg ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'} border border-slate-700/50 backdrop-blur-sm`)}>
+        <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} surface-muted border backdrop-blur-sm ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'}`)}>
             {icon && (
                 <div className={`${isMobile ? 'text-xl' : 'text-2xl'} drop-shadow-lg`}>{icon}</div>
             )}
             <div>
-                <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-400 font-medium uppercase tracking-wide`}>{title}</p>
-                <p className={`${isMobile ? 'text-sm' : 'text-base'} text-slate-200 font-semibold capitalize`}>{subtitle}</p>
+                <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-text-secondary font-medium uppercase tracking-wide`}>{title}</p>
+                <p className={`${isMobile ? 'text-sm' : 'text-base'} text-text-primary font-semibold capitalize`}>{subtitle}</p>
             </div>
         </div>
     );
@@ -149,38 +150,31 @@ const LocationDisplayWithPreview: React.FC<{
     }
 
     return (
-        <div className={getSafariOptimizedClassName(`relative group bg-slate-800/30 rounded-lg ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'} border border-slate-700/50 overflow-hidden backdrop-blur-sm transition-all duration-300 hover:bg-slate-800/20 hover:border-slate-600/60`)}>
+        <div className={getSafariOptimizedClassName(`relative group
+            surface-muted rounded-lg ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'}
+            border border-surface-muted overflow-hidden backdrop-blur-lg transition-all duration-300
+            hover:shadow-md`)}>
             {/* Background preview layer - more visible, especially on hover */}
             {backgroundUrl && isImageLoaded && (
                 <div
-                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 group-hover:opacity-90"
+                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 group-hover:opacity-100"
                     style={{
                         backgroundImage: `url(${backgroundUrl})`,
-                        opacity: 0.4,
-                        filter: 'brightness(1.2) saturate(1.2) contrast(1.1)'
+                        opacity: 0.58,
+                        filter: 'brightness(.9) saturate(1.32) contrast(1.08)'
                     }}
                 />
             )}
 
             {/* Loading state indicator */}
             {isImageLoading && (
-                <div className="absolute inset-0 bg-slate-700/50 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-400 border-t-transparent"></div>
+                <div className="absolute inset-0 surface-muted flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 dark:border-blue-400 border-t-transparent"></div>
                 </div>
             )}
 
             {/* Enhanced gradient overlay with better visibility */}
-            <div
-                className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-75"
-                style={{
-                    background: `linear-gradient(to right,
-                        rgba(15, 23, 42, 0.90) 0%,
-                        rgba(15, 23, 42, 0.75) 20%,
-                        rgba(15, 23, 42, 0.40) 50%,
-                        rgba(15, 23, 42, 0.75) 80%,
-                        rgba(15, 23, 42, 0.90) 100%)`
-                }}
-            />
+            <div className="absolute inset-0 location-preview-overlay transition-opacity duration-500 group-hover:opacity-90" />
 
             {/* Content layer with enhanced styling */}
             <div className="relative z-10 flex items-center justify-center text-center">
@@ -188,13 +182,13 @@ const LocationDisplayWithPreview: React.FC<{
                     <div className={`${isMobile ? 'text-xl mr-2' : 'text-2xl mr-3'} drop-shadow-xl`}>{icon}</div>
                 )}
                 <div>
-                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-300 font-medium uppercase tracking-wider`}>
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-text-secondary font-medium uppercase tracking-wider`}>
                         {title}
                     </p>
                     <p
-                        className={`${isMobile ? 'text-sm' : 'text-base'} text-slate-100 font-bold capitalize mt-0.5`}
+                        className={`${isMobile ? 'text-sm' : 'text-base'} text-text-primary font-semibold capitalize mt-1`}
                         style={{
-                            textShadow: '0 0 12px rgba(147, 197, 253, 0.6), 0 0 25px rgba(147, 197, 253, 0.4), 1px 1px 3px rgba(0,0,0,0.8)'
+                            textShadow: '0 0 12px rgba(147, 197, 253, 0.6), 0 0 25px rgba(147, 197, 253, 0.3), 1px 1px 3px rgba(0,0,0,0.4)'
                         }}
                     >
                         {subtitle}
@@ -216,7 +210,7 @@ const ContextualAlert: React.FC<{ message: string }> = ({ message }) => {
                 // Animal nearby - green theme
                 return {
                     background: "bg-gradient-to-r from-green-900/30 to-emerald-900/30",
-                    border: "border-green-600/40",
+                    border: "border-green-600/30",
                     textColor: "text-green-200",
                     animation: ""
                 };
@@ -240,10 +234,10 @@ const ContextualAlert: React.FC<{ message: string }> = ({ message }) => {
         } else {
             // Default fallback
             return {
-                background: "bg-gradient-to-r from-slate-900/30 to-slate-800/30",
-                border: "border-slate-600/30",
-                textColor: "text-slate-300",
-                animation: ""
+                background: 'surface-muted',
+                border: 'border-surface-muted',
+                textColor: 'text-text-secondary',
+                animation: ''
             };
         }
     };
@@ -251,7 +245,8 @@ const ContextualAlert: React.FC<{ message: string }> = ({ message }) => {
     const style = getNotificationStyle(message);
 
     return (
-        <div className={getSafariOptimizedClassName(`flex items-center justify-center ${style.background} rounded-lg px-4 py-2 border ${style.border} backdrop-blur-sm transition-all duration-300 ${style.animation}`)}>
+        <div className={getSafariOptimizedClassName(`flex items-center justify-center ${style.background} rounded-lg px-4 py-2
+            border ${style.border} backdrop-blur-sm transition-all duration-300 ${style.animation}`)}>
             <p className={`${style.textColor} font-medium text-center text-sm`}>{message}</p>
         </div>
     );
@@ -276,6 +271,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     onEnterPalace,
     onEnterRailroadStation,
     toastMessage,
+    toastDuration = 2500,
     season = 'summer',
     timeOfDay = 'Day',
     dayOfYear = 180,
@@ -307,9 +303,27 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     const [useFahrenheit, setUseFahrenheit] = useState<boolean>(false);
     const [previewBackgroundUrl, setPreviewBackgroundUrl] = useState<string | null>(null);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+    const [localToast, setLocalToast] = useState<string | null>(null);
+    const [showLocalToast, setShowLocalToast] = useState(false);
 
     // Mobile detection for main component
     const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
+
+    useEffect(() => {
+        if (!toastMessage) return;
+
+        const displayDuration = Math.max(1500, toastDuration);
+        setLocalToast(toastMessage);
+        requestAnimationFrame(() => setShowLocalToast(true));
+
+        const hideTimer = window.setTimeout(() => setShowLocalToast(false), Math.max(1000, displayDuration - 400));
+        const cleanupTimer = window.setTimeout(() => setLocalToast(null), displayDuration + 200);
+
+        return () => {
+            clearTimeout(hideTimer);
+            clearTimeout(cleanupTimer);
+        };
+    }, [toastMessage, toastDuration]);
 
     // Create stable keys for dependencies
     const weatherKey = weather ? `${weather.precipitation}-${weather.special}` : 'none';
@@ -517,7 +531,9 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     </div>
 
                     <div className="hidden sm:flex justify-end">
-                        <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
+                        <div className="text-right text-text-secondary italic text-xs sm:text-sm max-w-xs
+                            surface-muted rounded-lg px-3 py-2 sm:px-4 sm:py-3
+                            border border-surface-muted">
                             Return to the surface with your collected ore.
                         </div>
                     </div>
@@ -527,7 +543,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
         if (isSpecialMap) {
             return (
-                <div className="w-full h-full flex items-center justify-between px-8 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-800/90">
+                <div className="w-full h-full flex items-center justify-between px-8 bg-gradient-to-r from-background-tertiary via-background-secondary to-background-tertiary">
                     <LocationDisplay
                         title="Special Map"
                         subtitle="Interior Space"
@@ -546,7 +562,9 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     </div>
 
                     <div className="hidden sm:flex justify-end">
-                        <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
+                        <div className="text-right text-text-secondary italic text-xs sm:text-sm max-w-xs
+                            surface-muted rounded-lg px-3 py-2 sm:px-4 sm:py-3
+                            border border-surface-muted">
                             Return to the main map outside this building.
                         </div>
                     </div>
@@ -706,21 +724,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     />
                 );
                 break;
-            // Mine functionality moved to POIToastModal - commented out to prevent duplicate UI
-            // case 'mine':
-            //     buttonText = 'Enter Mine';
-            //     buttonIcon = '⛏️';
-            //     locationIcon = '⛏️';
-            //     onClickAction = () => structure && onEnterMine(structure);
-            //     helperText = "Interact with the mining colony, trade ores, and gather information.";
-            //     contextualInfo = (
-            //         <LocationDisplay
-            //             title="Mining Colony"
-            //             subtitle={structure?.name || "Resource extraction site"}
-            //             icon={locationIcon}
-            //         />
-            //     );
-            //     break;
+     
         }
 
 
@@ -742,7 +746,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
                 {/* Show helper text on mobile too, but with adapted styling */}
                 <div className={isMobile ? "flex justify-center" : "hidden sm:flex justify-end"}>
-                    <div className={`text-center ${isMobile ? '' : 'text-right'} text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30`}>
+                    <div className={`text-center ${isMobile ? '' : 'text-right'}
+                        text-text-secondary italic text-xs sm:text-sm max-w-xs surface-muted border border-surface-muted`}>
                         {helperText}
                         {isMobile && <div className="text-[10px] mt-1 opacity-70">Tap button or press Enter</div>}
                     </div>
@@ -875,7 +880,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         }
 
         return (
-             <div className={isMobile ? "w-full flex flex-col gap-3 p-3 mb-1" : "w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-1"}>
+             <div className={isMobile ? "w-full flex flex-col gap-3 p-3 mb-1" : "w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-0"}>
                  <div className="flex justify-start">
                      <button
                          onClick={onToggleAmbientText}
@@ -894,7 +899,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
                  <div className="flex items-center justify-center">
                     {showAmbientText ? (
-                        <div className="text-slate-400 text-center max-w-md animate-in fade-in duration-300">
+                        <div className="text-text-secondary text-center max-w-md animate-in fade-in duration-300">
                             {/* POV mode active - no placeholder text needed */}
                         </div>
                     ) : mineral ? (
@@ -949,8 +954,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                             </ActionButton>
                         </div>
                     ) : (
-                        <div className="text-slate-600 text-center">
-                            <p className="text-sm font-medium">Use arrow keys to explore</p>
+                        <div className="text-text-secondary text-center">
+                            <p className="text-sm font-md opacity-30">Use arrow keys to explore</p>
                         </div>
                     )}
                  </div>
@@ -961,7 +966,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     ) : (
                         <button
                             onClick={() => setUseFahrenheit(!useFahrenheit)}
-                            className="text-right text-slate-300 text-sm max-w-xs bg-slate-800/30 rounded-lg px-4 py-2 border border-slate-700/30 hover:bg-slate-800/40 transition-colors cursor-pointer"
+                            className="text-right text-text-secondary text-sm max-w-xs
+                                surface-muted border border-surface-muted rounded-lg px-4 py-2 hover:shadow-md transition-colors cursor-pointer"
                             title="Click to toggle between metric/imperial units"
                         >
                             <div className="font-semibold">
@@ -969,7 +975,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                             </div>
                             <div className="flex items-center justify-end gap-2 mt-0 ">
                                 <span className="text-lg">{weatherState.emoji}</span>
-                                <span className="font-bold text-slate-200">{weatherState.state}</span>
+                                <span className="font-bold text-text-primary">{weatherState.state}</span>
                             </div>
                         </button>
                     )}
@@ -978,30 +984,61 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         );
     }, [playerCharacter, mapData, playerX, playerY, showAmbientText, previewBackgroundUrl, contextualMessage, weatherDisplay, weatherState, useFahrenheit, onToggleAmbientText, onEnterGovernmentDistrict, onEnterHolySite, onEnterPalace, onEnterRuin, isSpecialMap, isGovernmentDistrictModalOpen, isInteriorMode, onExitSpecialMap, onExitGovernmentDistrict, onExitInterior, isOnContainer, onOpenContainer]);
 
+    const outerContainerClass = isMobile
+        ? 'fixed inset-x-0 bottom-0 z-50 pointer-events-none px-3 pb-3'
+        : 'absolute inset-x-0 z-30 pointer-events-none';
+
     return (
-        <div className={getSafariOptimizedClassName("fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md shadow-2xl transition-all duration-500 ease-in-out border-t border-slate-700/50 overflow-hidden")}>
-            {/* Animated background pattern */}
-            <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
-            </div>
-            
-            {/* Main content */}
-            <div className="relative z-10">
-                {actionableTile ? renderActionableContent : renderDefaultContent}
-            </div>
-            
-            {/* Toast message */}
-            {toastMessage && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-2">
-                    <div className={getSafariOptimizedClassName("px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xl border border-emerald-400/30 backdrop-blur-sm animate-in slide-in-from-bottom duration-300")}>
-                        <div className="flex items-center space-x-2">
-                            <span>✓</span>
-                            <span>{toastMessage}</span>
+        <div className={outerContainerClass}>
+            <div
+                data-surface="bottom-panel"
+                className={getSafariOptimizedClassName(
+                    `surface-bottom-panel pointer-events-auto w-full transition-all duration-300 ${
+                        isMobile ? 'px-4 pt-3' : 'px-5 pb-1'
+                    }`
+                )}
+                style={
+                    isMobile
+                        ? { paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)' }
+                        : undefined
+                }
+            >
+                <div className="relative">
+                    {actionableTile ? renderActionableContent : renderDefaultContent}
+
+                    {localToast && (
+                        <div
+                            className={getSafariOptimizedClassName(
+                                `absolute left-1/2 bottom-[calc(6rem+2vh)] -translate-x-1/2 z-[55]
+                                 transition-all duration-200 ease-out pointer-events-none
+                                 ${showLocalToast ? 'translate-y-0 opacity-30' : 'translate-y-4 opacity-0'}`
+                            )}
+                        >
+                            <div
+                                data-surface="toast"
+                                className="px-5 py-2 rounded-xl shadow-lg backdrop-blur-xl border"
+                                style={{
+                                    boxShadow: '0 24px 40px rgba(15, 23, 42, 0.08)'
+                                }}
+                            >
+                                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--toast-surface-text)' }}>
+                                    <span className="text-accent">✦</span>
+                                    <span>{localToast}</span>
+                                </div>
+                                <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(59,71,92,0.25)' }}>
+                                    <div
+                                        className="h-full"
+                                        style={{
+                                            background: 'var(--toast-progress-bg)',
+                                            animation: `toastProgress ${Math.max(500, toastDuration)}ms linear forwards`
+                                        }}
+                                    ></div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };

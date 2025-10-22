@@ -108,7 +108,11 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   };
   
   return (
-    <div style={containerStyle}>
+    <div
+      data-surface="mobile-header"
+      className="mobile-header theme-surface"
+      style={containerStyle}
+    >
       <div style={mainBarStyle}>
         <div style={infoStyle} onClick={handleTap}>
           <span>{formatDate(currentDate)}</span>

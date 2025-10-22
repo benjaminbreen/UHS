@@ -36,6 +36,7 @@ const LootModal = lazy(() => import('./LootModal'));
 const LevelUpModal = lazy(() => import('./LevelUpModal'));
 const PortraitModal = lazy(() => import('./portraits/PortraitModal'));
 const CraftingModal = lazy(() => import('./CraftingModal'));
+const EatingResultModal = lazy(() => import('./EatingResultModal'));
 const AboutModal = lazy(() => import('./AboutModal'));
 const DevBuildingModeModal = lazy(() => import('./DevBuildingModeModal'));
 const TerrainStructureModal = lazy(() => import('./TerrainStructureModal'));
@@ -97,6 +98,7 @@ const ModalHub: React.FC = () => {
         isLevelUpModalOpen, levelUpCharacter, handleLevelUp,
         isPortraitModalOpen, portraitModalCharacter, setIsPortraitModalOpen, setPortraitModalCharacter,
         isCraftingModalOpen, craftingModalData, handleExecuteCrafting, closeAllModals,
+        isEatingModalOpen, eatingModalData, handleExecuteEating, setIsEatingModalOpen,
         activeMiningModal, setActiveMiningModal,
         activePoi, setActivePoi,
         poiToastData, setPoiToastData,
@@ -350,6 +352,7 @@ const ModalHub: React.FC = () => {
                   setInfoModalTarget(target);
                 }}
                 onUpdateNpc={handleUpdateNpc}
+                onUpdatePlayer={onCharacterUpdate}
               />
             )}
             {combatant && playerCharacter && mapData && (
@@ -469,8 +472,19 @@ const ModalHub: React.FC = () => {
                         isOpen={isCraftingModalOpen}
                         onClose={() => closeAllModals()}
                         items={craftingModalData.items}
+                        playerInventory={playerCharacter.inventory}
                         method={craftingModalData.method}
                         onExecuteCrafting={handleExecuteCrafting}
+                    />
+                </Suspense>
+            )}
+            {isEatingModalOpen && eatingModalData && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                    <EatingResultModal
+                        isOpen={isEatingModalOpen}
+                        onClose={() => setIsEatingModalOpen(false)}
+                        item={eatingModalData.item}
+                        onExecuteEating={handleExecuteEating}
                     />
                 </Suspense>
             )}
