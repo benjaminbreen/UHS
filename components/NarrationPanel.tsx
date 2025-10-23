@@ -291,9 +291,9 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
           <>
             {/* Contextual tip at top - inside scrollable area */}
             {contextualSuggestion && (
-              <div className="mb-4">
-                <div className="surface-muted rounded-xl p-3 border border-blue-200/50">
-                  <p className="text-xs font-semibold text-[var(--accent-primary)] mb-1.5 flex items-center gap-1">
+              <div className="mt-2 mb-5">
+                <div className="surface-muted rounded-xl p-3 ">
+                  <p className="text-xs font-semibold text-[var(--accent-primary)] mb-2.5 flex items-center gap-1">
                     <span>💡</span> Tip
                   </p>
                   <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -307,7 +307,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 {/* Contextual prompts */}
                 {contextualSuggestion && (
                   <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-700">
-                    <p className="text-xs text-[var(--text-secondary)] font-semibold mb-2.5 text-left uppercase tracking-wide">
+                    <p className="text-xs text-[var(--text-secondary)] font-medium mb-2.5 text-left uppercase tracking-wide">
                       Try asking...
                     </p>
                     <div className="space-y-1.5">
@@ -333,7 +333,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               const base = `group relative ${bubblePad} rounded-xl transition-colors border`;
               const kind =
                 msg.sender === 'player'
-                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  ? 'bg-emerald-200 text-emerald-950 border-emerald-800'
                   : msg.sender === 'narrator-special'
                   ? 'bg-sky-100 text-sky-900 border-sky-300'
                   : msg.sender === 'narrator-ambient'
@@ -375,7 +375,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
       {/* Quick Command Buttons - Only show when input is focused OR rest warning appears */}
       {settings.showQuickReplies && (isInputFocused || showQuickCommandsDueToWarning) && (
         <div className="flex-shrink-0 px-3 py-2 border-t surface-muted animate-in slide-in-from-bottom-2 duration-300">
-          <p className="text-xs text-[var(--text-secondary)] font-semibold mb-2 flex items-center gap-1">
+          <p className="text-xs text-[var(--text-secondary)] font-medium mb-2 flex items-center gap-1">
             <span></span> Quick Commands
             {showQuickCommandsDueToWarning && (
               <span className="text-[10px] text-amber-400 animate-pulse ml-1">(suggested)</span>
@@ -388,7 +388,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('look around');
               }}
               disabled={isLoading}
-              className="badge-pill text-xs disabled:opacity-50"
+              className="badge-pill text-[10px] disabled:opacity-50"
               data-variant="accent"
             >
               Look Around
@@ -399,7 +399,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('rest for 1 hour');
               }}
               disabled={isLoading}
-              className="badge-pill text-xs disabled:opacity-50"
+              className="badge-pill text-[10px] disabled:opacity-50"
               data-variant="accent"
             >
               Rest 1 hour
@@ -410,7 +410,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('rest until dawn');
               }}
               disabled={isLoading}
-              className="badge-pill text-xs disabled:opacity-50"
+              className="badge-pill text-[10px] disabled:opacity-50"
               data-variant="accent"
             >
 
@@ -423,7 +423,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('skip 1 day');
               }}
               disabled={isLoading}
-              className="badge-pill text-xs disabled:opacity-50"
+              className="badge-pill text-[10px] disabled:opacity-50"
               data-variant="accent"
             >
               Skip Day
@@ -455,8 +455,8 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             autoCapitalize="off"
             inputMode="text"
             enterKeyHint="send"
-            className="flex-1 px-4 py-3 text-base text-[var(--text-primary)] placeholder-[var(--text-muted)] surface-muted rounded-xl
-                       focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-primary)]/35 focus:border-transparent
+            className="flex-1 px-4 py-3 text-base text-[var(--text-primary)] placeholder-[var(--text-muted)]rounded-xl
+                       focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-primary)]/35 focus:border-transparent rounded-xl
                        transition-all min-h-[48px] touch-manipulation"
             style={{ fontSize: '16px' }}
           />

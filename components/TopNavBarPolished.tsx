@@ -5,7 +5,7 @@ import {
   Cpu, ScrollText, MapPin, Compass, Activity,
   Zap, Download, History, AlertCircle, Sliders, Trophy, Target, Clock,
   Shield, Compass as CompassIcon, Coins, BookOpen, Crown, Home, Users, Scale,
-  Sun, Moon, FileText, Pause, Play
+  Sun, Moon, FileText, Pause, Play, Flag
 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
@@ -35,6 +35,7 @@ const NAV_BUTTON_GROUPS = {
     { id: 'world-map', icon: Globe, label: 'World Map', color: 'slate' },
   ],
   info: [
+    { id: 'end', icon: Flag, label: 'End', color: 'end' },
     { id: 'about', icon: Info, label: 'About', color: 'slate' },
     { id: 'settings', icon: Settings, label: 'Settings', color: 'slate' },
   ]
@@ -110,7 +111,7 @@ interface TopNavBarPolishedProps {
 }
 
 const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived }) => {
-  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel } = useUI();
+  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, triggerAssessmentReview, setShowSessionSummaryModal } = useUI();
   const { currentMode } = useEventSystem();
   const modeTheme = currentMode ? GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] : undefined;
   const { setControlledIconX, setControlledIconY } = usePlayer();
@@ -174,6 +175,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [showLLMHistory, setShowLLMHistory] = useState(false);
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
+  const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
   // Performance: Throttle API stats updates to every 3 seconds when tracker is visible
   useEffect(() => {
@@ -404,6 +406,10 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
       case 'settings':
         setIsSettingsModalOpen(true);
         break;
+      case 'end': {
+        setShowEndGameConfirm(true);
+        break;
+      }
       case 'api':
         setShowAPITracker(!showAPITracker);
         setApiStats(eventService.getAPIUsageStats());
@@ -620,6 +626,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       onClick={() => handleNavAction(button.id)}
                       className={getOptimizedButtonClassName(getButtonColorClasses(button.color, isActive))}
                       data-active={isActive}
+                      data-variant={button.id}
                       title={button.label}
                     >
                       <Icon className="w-4 h-4" />
@@ -741,6 +748,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                         transition-all duration-200 flex items-center gap-2
                         ${getButtonColorClasses(button.color)}
                       `}
+                      data-variant={button.id}
                     >
                       <Icon className="w-4 h-4" />
                       {button.label}
@@ -1067,6 +1075,48 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
           </div>
         )}
       </nav>
+
+      {showEndGameConfirm && (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-[color:var(--surface-modal-overlay-bg,rgba(15,23,42,0.55))]"
+            onClick={() => setShowEndGameConfirm(false)}
+          />
+          <div
+            className="relative z-[190] w-full max-w-md rounded-3xl border px-6 py-6 shadow-[0_32px_60px_rgba(15,23,42,0.28)]"
+            data-surface="modal-panel"
+          >
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-xl font-semibold text-[color:var(--text-primary)]">End Current Session?</h3>
+                <p className="text-sm leading-relaxed text-[color:var(--text-secondary)]">
+                  You&rsquo;ll open the assessment report with a full summary of your playthrough. You can continue afterwards without losing progress.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--accent-primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--button-primary-text)] shadow-[0_18px_36px_rgba(75,119,104,0.28)] transition hover:bg-[color:var(--accent-primary-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-primary-hover)]/60 focus-visible:ring-offset-2"
+                  onClick={() => {
+                    setShowEndGameConfirm(false);
+                    triggerAssessmentReview({ initiatedBy: 'player', trigger: 'manual_end' }, { openModal: false });
+                    setShowSessionSummaryModal(true);
+                  }}
+                >
+                  View Assessment
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex w-full items-center justify-center rounded-2xl border border-[color:var(--surface-muted-border)] bg-[color:var(--surface-muted-bg)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text-primary)] transition hover:bg-[color:var(--surface-muted-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--surface-muted-border)]/40 focus-visible:ring-offset-2"
+                  onClick={() => setShowEndGameConfirm(false)}
+                >
+                  Keep Playing
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <WorldWeaverModal

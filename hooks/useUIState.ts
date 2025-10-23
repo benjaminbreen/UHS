@@ -35,6 +35,16 @@ import { getDaysInMonth } from '../utils/dateUtils';
 import { TimeAdvancementRequest } from '../services/timeAdvancementService';
 import { railroadNetworkService } from '../services/railroadNetworkService';
 import { getActiveWorkOffers, recordAnimalKill } from '../services/workOfferStorage';
+import { buildAssessmentSummary, buildAssessmentRequest } from '../services/assessmentService';
+import {
+    AssessmentSession,
+    AssessmentLogState,
+    AssessmentNpcEncounterLog,
+    AssessmentPrimarySourceLog,
+    AssessmentPlayerInputLog
+} from '../types/assessment';
+
+const ASSESSMENT_STORAGE_KEY = 'uhs-assessment-session';
 
 /**
  * Parse time advancement commands from player input
@@ -156,7 +166,6 @@ export const useUIState = () => {
     const [craftingModalData, setCraftingModalData] = useState<CraftingModalData | null>(null);
     const [isEatingModalOpen, setIsEatingModalOpen] = useState(false);
     const [eatingModalData, setEatingModalData] = useState<{ item: Item } | null>(null);
-    const [selectedPrimarySource, setSelectedPrimarySource] = useState<any>(null);
     const [diseaseContractedModalData, setDiseaseContractedModalData] = useState<{
         disease: any;
         isOpen: boolean;
@@ -197,6 +206,7 @@ export const useUIState = () => {
 
     // Language Family Tree modal state
     const [showLanguageTree, setShowLanguageTree] = useState<boolean>(false);
+    const [showSessionSummaryModal, setShowSessionSummaryModal] = useState<boolean>(false);
     const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
 
     // Dev Tooltip
@@ -313,6 +323,26 @@ export const useUIState = () => {
     const lastToastRef = useRef<{ message: string; timestamp: number } | null>(null);
     const [panelNotificationItem, setPanelNotificationItem] = useState<Item | null>(null);
     const [floatingTextMessages, setFloatingTextMessages] = useState<FloatingTextMessage[]>([]);
+    const [showAssessmentModal, setShowAssessmentModal] = useState<boolean>(false);
+
+    const initialAssessmentState = () => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const stored = localStorage.getItem(ASSESSMENT_STORAGE_KEY);
+            if (!stored) return null;
+            return JSON.parse(stored) as { session: AssessmentSession; logs: AssessmentLogState };
+        } catch (error) {
+            console.warn('Failed to parse stored assessment session', error);
+            return null;
+        }
+    };
+
+    const storedAssessment = initialAssessmentState();
+
+    const [assessmentSession, setAssessmentSession] = useState<AssessmentSession | null>(storedAssessment?.session ?? null);
+    const [assessmentLogs, setAssessmentLogs] = useState<AssessmentLogState>(
+        storedAssessment?.logs ?? { npcEncounters: [], primarySources: [], playerInputs: [] }
+    );
 
     const setActiveMarketplaceModal = useCallback((data: { tile: Tile } | null) => {
         _setActiveMarketplaceModal(data);
@@ -386,7 +416,7 @@ export const useUIState = () => {
             return;
         }
 
-        let resolvedDuration = 2500;
+        let resolvedDuration = 5500;
 
         if (typeof options === 'string') {
             if (typeof maybeDuration === 'number') {
@@ -460,6 +490,219 @@ export const useUIState = () => {
             }
         };
     }, []);
+
+    const getDefaultAssessmentContext = useCallback((): AssessmentSession['context'] => ({
+        era: playerCharacter?.historicalEra || playerCharacter?.era,
+        culturalZone: playerCharacter?.culturalZone || currentZone,
+        role: playerCharacter?.profession || playerCharacter?.occupation
+    }), [playerCharacter, currentZone]);
+
+    const startAssessmentSession = useCallback((context?: AssessmentSession['context']) => {
+        setAssessmentLogs({ npcEncounters: [], primarySources: [], playerInputs: [] });
+        const session: AssessmentSession = {
+            id: `session-${Date.now()}`,
+            startedAt: new Date().toISOString(),
+            context: context ?? getDefaultAssessmentContext()
+        };
+        setAssessmentSession(session);
+    }, [getDefaultAssessmentContext]);
+
+    const endAssessmentSession = useCallback((metadata?: AssessmentSession['metadata']) => {
+        setAssessmentSession(prev => {
+            if (!prev) return prev;
+            const nextMetadata = metadata
+                ? { ...(prev.metadata ?? {}), ...metadata }
+                : prev.metadata;
+
+            if (prev.endedAt) {
+                if (!metadata) return prev;
+                return {
+                    ...prev,
+                    metadata: nextMetadata
+                };
+            }
+            return {
+                ...prev,
+                endedAt: new Date().toISOString(),
+                metadata: nextMetadata
+            };
+        });
+    }, []);
+
+    const recordNpcEncounter = useCallback((log: Omit<AssessmentNpcEncounterLog, 'timestamp'> & { timestamp?: string }) => {
+        const entry: AssessmentNpcEncounterLog = {
+            timestamp: log.timestamp || new Date().toISOString(),
+            npcId: log.npcId,
+            npcName: log.npcName,
+            location: log.location,
+            playerAction: log.playerAction,
+            outcome: log.outcome,
+            trustDelta: log.trustDelta,
+            notes: log.notes
+        };
+        setAssessmentLogs(prev => ({
+            ...prev,
+            npcEncounters: [...prev.npcEncounters, entry]
+        }));
+    }, []);
+
+    const recordPrimarySourceEvent = useCallback((log: Omit<AssessmentPrimarySourceLog, 'timestamp'> & { timestamp?: string }) => {
+        const entry: AssessmentPrimarySourceLog = {
+            timestamp: log.timestamp || new Date().toISOString(),
+            sourceId: log.sourceId,
+            sourceTitle: log.sourceTitle,
+            action: log.action,
+            metadata: log.metadata
+        };
+        setAssessmentLogs(prev => ({
+            ...prev,
+            primarySources: [...prev.primarySources, entry]
+        }));
+    }, []);
+
+    const recordPlayerInput = useCallback((log: Omit<AssessmentPlayerInputLog, 'timestamp'> & { timestamp?: string }) => {
+        const entry: AssessmentPlayerInputLog = {
+            timestamp: log.timestamp || new Date().toISOString(),
+            channel: log.channel,
+            text: log.text,
+            metadata: log.metadata
+        };
+        setAssessmentLogs(prev => ({
+            ...prev,
+            playerInputs: [...prev.playerInputs, entry]
+        }));
+    }, []);
+
+    const identifyPrimarySource = useCallback((source: any) => {
+        if (!source) return null;
+        const id =
+            source?.id ??
+            source?.sourceId ??
+            source?.slug ??
+            source?.key ??
+            source?.documentId ??
+            source?.title ??
+            source?.name;
+        const title =
+            source?.title ??
+            source?.name ??
+            source?.heading ??
+            source?.displayName ??
+            id ??
+            'Unknown source';
+
+        if (!id && !title) return null;
+        return {
+            id: String(id ?? title ?? 'unknown-source'),
+            title: String(title ?? id ?? 'Unknown source')
+        };
+    }, []);
+
+    const [selectedPrimarySource, _setSelectedPrimarySource] = useState<any>(null);
+
+    const setSelectedPrimarySource = useCallback((value: any | ((prev: any) => any)) => {
+        if (typeof value === 'function') {
+            _setSelectedPrimarySource(prev => {
+                const next = value(prev);
+                const prevIdentity = identifyPrimarySource(prev);
+                const nextIdentity = identifyPrimarySource(next);
+
+                if (prevIdentity && (!nextIdentity || nextIdentity.id !== prevIdentity.id)) {
+                    recordPrimarySourceEvent({
+                        sourceId: prevIdentity.id,
+                        sourceTitle: prevIdentity.title,
+                        action: 'close'
+                    });
+                }
+
+                if (nextIdentity) {
+                    recordPrimarySourceEvent({
+                        sourceId: nextIdentity.id,
+                        sourceTitle: nextIdentity.title,
+                        action: 'open'
+                    });
+                }
+
+                return next;
+            });
+            return;
+        }
+
+        const prevIdentity = identifyPrimarySource(selectedPrimarySource);
+        const nextIdentity = identifyPrimarySource(value);
+
+        if (prevIdentity && (!nextIdentity || nextIdentity.id !== prevIdentity.id)) {
+            recordPrimarySourceEvent({
+                sourceId: prevIdentity.id,
+                sourceTitle: prevIdentity.title,
+                action: 'close'
+            });
+        }
+
+        if (nextIdentity) {
+            recordPrimarySourceEvent({
+                sourceId: nextIdentity.id,
+                sourceTitle: nextIdentity.title,
+                action: 'open'
+            });
+        }
+
+        _setSelectedPrimarySource(value);
+    }, [identifyPrimarySource, recordPrimarySourceEvent, selectedPrimarySource]);
+
+    const triggerAssessmentReview = useCallback((metadata?: AssessmentSession['metadata'], options?: { openModal?: boolean }) => {
+        if (!assessmentSession) {
+            startAssessmentSession(getDefaultAssessmentContext());
+            if (options?.openModal !== false) {
+                setShowAssessmentModal(true);
+            }
+            return;
+        }
+
+        const mergedMetadata = {
+            trigger: metadata?.trigger ?? (options?.openModal === false ? 'prepared' : 'manual_end'),
+            ...metadata
+        };
+
+        endAssessmentSession(mergedMetadata);
+        if (options?.openModal !== false) {
+            setShowAssessmentModal(true);
+        }
+    }, [assessmentSession, endAssessmentSession, getDefaultAssessmentContext, startAssessmentSession]);
+
+    const closeAssessmentModal = useCallback((restartSession: boolean = true) => {
+        setShowAssessmentModal(false);
+        if (!restartSession) return;
+        if (assessmentSession?.endedAt) {
+            startAssessmentSession(getDefaultAssessmentContext());
+        }
+    }, [assessmentSession, startAssessmentSession, getDefaultAssessmentContext]);
+
+    useEffect(() => {
+        if (!assessmentSession && playerCharacter) {
+            startAssessmentSession(getDefaultAssessmentContext());
+        }
+    }, [assessmentSession, startAssessmentSession, getDefaultAssessmentContext, playerCharacter]);
+
+    useEffect(() => {
+        if (!assessmentSession) return;
+        const payload = JSON.stringify({ session: assessmentSession, logs: assessmentLogs });
+        try {
+            localStorage.setItem(ASSESSMENT_STORAGE_KEY, payload);
+        } catch (error) {
+            console.error('Failed to persist assessment session:', error);
+        }
+    }, [assessmentSession, assessmentLogs]);
+
+    const assessmentSummary = useMemo(() => {
+        if (!assessmentSession) return null;
+        return buildAssessmentSummary(assessmentSession, assessmentLogs);
+    }, [assessmentSession, assessmentLogs]);
+
+    const getAssessmentRequest = useCallback(() => {
+        if (!assessmentSession) return null;
+        return buildAssessmentRequest(assessmentSession, assessmentLogs);
+    }, [assessmentSession, assessmentLogs]);
 
     // Function to show floating text at specific screen coordinates
     const showFloatingText = useCallback((text: string, type: FloatingTextMessage['type'], x: number, y: number, duration?: number) => {
@@ -879,6 +1122,15 @@ export const useUIState = () => {
     const onSend = useCallback(async () => {
         if (!playerInput.trim() || !playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
 
+        recordPlayerInput({
+            channel: 'narration',
+            text: playerInput,
+            metadata: {
+                language: playerCharacter.culturalZone,
+                tokens: playerInput.length
+            }
+        });
+
         const userMessage: NarrationMessage = { sender: 'player', text: playerInput };
         setNarrationHistory(prev => [...prev, userMessage]);
         setPlayerInput('');
@@ -1211,7 +1463,7 @@ export const useUIState = () => {
         } finally {
             setIsNarratorLoading(false);
         }
-    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter, setGameTimeHours, setGameDate, formattedTime]);
+    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter, setGameTimeHours, setGameDate, formattedTime, recordPlayerInput]);
 
     const handleEncounter = useCallback((target: EncounterableEntity) => {
         // If it's an NPC, ensure we get the latest version from the npcs array
@@ -1299,6 +1551,8 @@ export const useUIState = () => {
                 eventBus.emit('guard:resolved', { npcId: encounterTarget.id });
             }
 
+            const targetSnapshot = encounterTarget;
+
             summarizeConversation(history).then(({ summary, sentiment }) => {
                 setRecentConversationSummary(summary);
                 
@@ -1321,6 +1575,40 @@ export const useUIState = () => {
                     }
                     return npc;
                 }));
+
+                if (targetSnapshot && isNpc(targetSnapshot)) {
+                    const lastPlayerLine = [...history].reverse().find(entry => entry.speaker === 'player');
+                    const location =
+                        controlledIconX !== null && controlledIconY !== null
+                            ? { x: controlledIconX, y: controlledIconY, mapArea: currentZone || undefined }
+                            : undefined;
+
+                    recordNpcEncounter({
+                        npcId: targetSnapshot.id,
+                        npcName: targetSnapshot.name,
+                        playerAction: lastPlayerLine?.text || 'conversation',
+                        outcome: sentiment ? `Conversation sentiment: ${sentiment}` : undefined,
+                        location,
+                        notes: summary
+                    });
+                }
+            }).catch(error => {
+                console.error('[Assessment] Failed to summarize conversation:', error);
+                if (targetSnapshot && isNpc(targetSnapshot)) {
+                    const fallbackSummary = history.map(entry => `${entry.speaker}: ${entry.text}`).join(' ');
+                    const location =
+                        controlledIconX !== null && controlledIconY !== null
+                            ? { x: controlledIconX, y: controlledIconY, mapArea: currentZone || undefined }
+                            : undefined;
+
+                    recordNpcEncounter({
+                        npcId: targetSnapshot.id,
+                        npcName: targetSnapshot.name,
+                        playerAction: 'conversation',
+                        location,
+                        notes: fallbackSummary
+                    });
+                }
             });
 
             // Add dialogue log entry with conversation memory
@@ -1348,7 +1636,7 @@ export const useUIState = () => {
             }
         }
         setEncounterTarget(null);
-    }, [encounterTarget, setNpcs, playerCharacter, addGameLogEntry, gameDate, formattedTime, localArea, mapData, setPlayerCharacter, controlledIconX, controlledIconY, currentZone]);
+    }, [encounterTarget, setNpcs, playerCharacter, addGameLogEntry, gameDate, formattedTime, localArea, mapData, setPlayerCharacter, controlledIconX, controlledIconY, currentZone, recordNpcEncounter]);
 
     const handleInitiateCombat = useCallback((target: EncounterableEntity) => {
         // If it's an NPC, ensure we have the latest version from the npcs array
@@ -1782,7 +2070,7 @@ export const useUIState = () => {
         isCampModalOpen,
         showJournal, showQuestsPanel, highlightedWorkOfferId, showGameModePanel,
         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal,
-        showLanguageTree, selectedLanguageId,
+        showLanguageTree, selectedLanguageId, showSessionSummaryModal,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem,
         isRightSidebarVisible, setIsRightSidebarVisible,
         floatingTextMessages, containerPrompt,
@@ -1816,7 +2104,7 @@ export const useUIState = () => {
         setIsCampModalOpen,
         setShowJournal, setShowQuestsPanel, openQuestPanelWithWorkOffer, setShowGameModePanel,
         setShowInitialScenarioModal, setShowDeathModal, setShowNpcDeathModal, setShowDiseaseProgressionModal, setShowEventModal, setShowFactionsModal,
-        setShowLanguageTree, setSelectedLanguageId,
+        setShowLanguageTree, setSelectedLanguageId, setShowSessionSummaryModal,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
         showFloatingText, removeFloatingText, showContainerPrompt, hideContainerPrompt,
         handleLooting, handleCloseLootModal, onTakeCoins,
@@ -1852,6 +2140,21 @@ export const useUIState = () => {
         markTooltipSeen,
         resetAllTooltips,
         toggleContextualTooltips,
+
+        // Assessment layer (phase 1)
+        assessmentSession,
+        assessmentLogs,
+        assessmentSummary,
+        getAssessmentRequest,
+        showAssessmentModal,
+        setShowAssessmentModal,
+        triggerAssessmentReview,
+        closeAssessmentModal,
+        startAssessmentSession,
+        endAssessmentSession,
+        recordNpcEncounter,
+        recordPrimarySourceEvent,
+        recordPlayerInput,
 
         // Actions passed down from Player/Game contexts
         onUseSkill,

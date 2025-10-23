@@ -337,7 +337,7 @@ body {
 }
 
 @keyframes toastProgress {
-  from { width: 100%; }
+  from { width: 10%; }
   to { width: 0%; }
 }
 

@@ -200,7 +200,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   // Loading state
   if (farmStateHook.isLoading || !farmStateHook.farmState) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+      <div className="fixed left-0 right-0 bottom-0 top-[72px] z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
         <div className="text-slate-400 text-lg">Loading farm...</div>
       </div>
     );
@@ -209,7 +209,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   // Error state
   if (farmStateHook.error) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+      <div className="fixed left-0 right-0 bottom-0 top-[72px] z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
         <div className="text-center">
           <div className="text-red-400 text-lg mb-4">Failed to load farm</div>
           <button
@@ -224,7 +224,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+    <div className="fixed left-0 right-0 bottom-0 top-[72px] z-50 flex bg-gradient-to-b from-slate-900 via-slate-950 to-black">
       {/* Transition overlay */}
       {farmStateHook.isTransitioning && (
         <div

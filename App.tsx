@@ -50,6 +50,8 @@ import GameSetupScreen from './components/GameSetupScreen';
 import RailroadStationModal from './components/RailroadStationModal';
 import { railroadNetworkService } from './services/railroadNetworkService';
 import { LoadingSkeleton } from './components/LoadingSkeleton';
+import AssessmentModal from './components/AssessmentModal';
+import SessionCompletionModal from './components/SessionCompletionModal';
 import JournalViewport from './components/JournalViewport';
 import QuestsPanel from './components/QuestsPanel';
 import { GameModePanel } from './components/GameModePanel';
@@ -281,27 +283,97 @@ const AppContent: React.FC = () => {
         setStatusWarning({ type, severity, currentValue, maxValue });
     }, []);
 
-    // Handle death callback
-    const handleDeath = React.useCallback((deathInfo: any) => {
-        setDeathCause(deathInfo);
-        setShowDeathModal(true);
-    }, []);
-
-    // Handle NPC death callback
-    const handleNpcDeath = React.useCallback((npc: any, disease: any) => {
-        setNpcDeathData({ npc, disease });
-        setShowNpcDeathModal(true);
-    }, []);
-
     // Handle disease progression events
     const handleDiseaseProgression = React.useCallback((events: DiseaseProgressionEvent[]) => {
         setDiseaseProgressionQueue(prev => [...prev, ...events]);
     }, []);
 
     // Get hooks FIRST before defining callbacks that depend on them
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, isRightSidebarVisible, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt, isPauseModalOpen, setIsPauseModalOpen, isCampModalOpen, setIsCampModalOpen, showToast, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, highlightedWorkOfferId, showGameModePanel, setShowGameModePanel, showInitialScenarioModal, setShowInitialScenarioModal, showDeathModal, setShowDeathModal, showNpcDeathModal, setShowNpcDeathModal, showDiseaseProgressionModal, setShowDiseaseProgressionModal, showEventModal, setShowEventModal, showFactionsModal, setShowFactionsModal, showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId, showFactoryPanel } = useUI();
+    const {
+        isLeftSidebarExpanded,
+        setIsLeftSidebarExpanded,
+        isRightSidebarVisible,
+        debugSettings,
+        isTestModeEnabled,
+        floatingTextMessages,
+        removeFloatingText,
+        containerPrompt,
+        hideContainerPrompt,
+        isPauseModalOpen,
+        setIsPauseModalOpen,
+        isCampModalOpen,
+        setIsCampModalOpen,
+        showToast,
+        showJournal,
+        setShowJournal,
+        showQuestsPanel,
+        setShowQuestsPanel,
+        highlightedWorkOfferId,
+        showGameModePanel,
+        setShowGameModePanel,
+        showInitialScenarioModal,
+        setShowInitialScenarioModal,
+        showDeathModal,
+        setShowDeathModal,
+        showNpcDeathModal,
+        setShowNpcDeathModal,
+        showDiseaseProgressionModal,
+        setShowDiseaseProgressionModal,
+        showEventModal,
+        setShowEventModal,
+        showFactionsModal,
+        setShowFactionsModal,
+        showLanguageTree,
+        setShowLanguageTree,
+        selectedLanguageId,
+        setSelectedLanguageId,
+        showSessionSummaryModal,
+        setShowSessionSummaryModal,
+        showFactoryPanel,
+        showAssessmentModal,
+        closeAssessmentModal,
+        assessmentSession,
+        assessmentLogs,
+        assessmentSummary,
+        getAssessmentRequest,
+        triggerAssessmentReview
+    } = useUI();
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog } = useGame();
+    const gameDateString = React.useMemo(() => {
+        if (!gameDate) return undefined;
+        const pad = (num: number) => String(num).padStart(2, '0');
+        return `${gameDate.year}-${pad(gameDate.month)}-${pad(gameDate.day)} ${formattedTime ?? ''}`.trim();
+    }, [gameDate, formattedTime]);
+
+    // Handle death callback
+    const handleDeath = React.useCallback((deathInfo: any) => {
+        setDeathCause(deathInfo);
+        triggerAssessmentReview({ initiatedBy: 'system', trigger: 'death', reason: deathInfo?.cause ?? 'death' }, { openModal: false });
+        setShowSessionSummaryModal(false);
+        setShowDeathModal(true);
+    }, [setShowDeathModal, triggerAssessmentReview, setShowSessionSummaryModal]);
+
+    // Handle NPC death callback
+    const handleNpcDeath = React.useCallback((npc: any, disease: any) => {
+        setNpcDeathData({ npc, disease });
+        setShowNpcDeathModal(true);
+    }, [setShowNpcDeathModal]);
+
+    const handleAssessmentModalClose = React.useCallback((restart = true) => {
+        closeAssessmentModal(showDeathModal ? false : restart);
+        setShowSessionSummaryModal(false);
+    }, [closeAssessmentModal, showDeathModal, setShowSessionSummaryModal]);
+
+    const openAssessmentModal = React.useCallback((metadata?: Record<string, unknown>) => {
+        setShowSessionSummaryModal(false);
+        triggerAssessmentReview(metadata, { openModal: true });
+    }, [setShowSessionSummaryModal, triggerAssessmentReview]);
+
+    const handleSessionSummaryClose = React.useCallback(() => {
+        setShowSessionSummaryModal(false);
+        closeAssessmentModal(true);
+    }, [setShowSessionSummaryModal, closeAssessmentModal]);
 
     // Camp modal handlers (defined AFTER hooks)
     const handleRest = React.useCallback((healingPercent: number, fatiguePercent: number) => {
@@ -1171,6 +1243,25 @@ const AppContent: React.FC = () => {
           onMessageComplete={removeFloatingText}
         />
 
+        <SessionCompletionModal
+          isOpen={showSessionSummaryModal}
+          session={assessmentSession}
+          summary={assessmentSummary}
+          onClose={handleSessionSummaryClose}
+          onViewAssessment={() => openAssessmentModal({ trigger: 'manual_end', initiatedBy: 'player' })}
+        />
+
+        <AssessmentModal
+          isOpen={showAssessmentModal}
+          onClose={handleAssessmentModalClose}
+          session={assessmentSession}
+          summary={assessmentSummary}
+          logs={assessmentLogs}
+          buildRequest={getAssessmentRequest}
+          player={playerCharacter}
+          gameDateString={gameDateString}
+        />
+
         {/* Death Modal */}
         {playerCharacter && (
           <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
@@ -1199,6 +1290,8 @@ const AppContent: React.FC = () => {
                 setShowDeathModal(false);
                 navigate('/'); // Navigate to main menu
               }}
+              onViewAssessment={() => openAssessmentModal({ trigger: 'death', initiatedBy: 'system' })}
+              assessmentSummary={assessmentSummary}
             />
           </Suspense>
         )}

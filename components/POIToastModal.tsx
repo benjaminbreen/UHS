@@ -115,6 +115,8 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
     const classes = ['poi-button', toneClass, enabled ? '' : 'opacity-60 cursor-not-allowed'];
     return getOptimizedButtonClassName(classes.filter(Boolean).join(' '));
   };
+  const bannerHeight = isMobile ? 220 : 280;
+  const bannerWidth = isMobile ? 760 : 1000;
   
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -624,9 +626,6 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
         yearString = year.toString();
       }
     }
-
-  const bannerHeight = isMobile ? 220 : 280;
-  const bannerWidth = isMobile ? 760 : 1000;
 
   const bannerProps = {
     structure: enhancedStructure,

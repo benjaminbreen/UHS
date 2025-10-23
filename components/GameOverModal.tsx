@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { Skull, Heart, Calendar, MapPin, RotateCcw, Home, Star, Compass, Swords, Mountain } from 'lucide-react';
+import { Skull, Heart, Calendar, MapPin, RotateCcw, Home, Star, Compass, Swords, Mountain, Sparkles, BookOpen, Users, MessageSquare } from 'lucide-react';
 import { Disease } from '../types/diseaseTypes';
 import gameSoundsService from '../services/gameSoundsService';
+import { AssessmentSummary } from '../types/assessment';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ interface GameOverModalProps {
   onRestart: () => void;
   onMainMenu: () => void;
   onRespawn?: (mode: 'descendant' | 'same-location' | 'random') => void;
+  onViewAssessment?: () => void;
+  assessmentSummary?: AssessmentSummary | null;
 }
 
 const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -38,7 +41,9 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
   achievements = [],
   onRestart,
   onMainMenu,
-  onRespawn
+  onRespawn,
+  onViewAssessment,
+  assessmentSummary
 }) => {
   // Play peaceful music when modal opens
   useEffect(() => {
@@ -317,8 +322,63 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
             </div>
           )}
 
+          {assessmentSummary && (
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Session Metrics</h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-gray-700/70 bg-gray-900/60 p-3">
+                  <div className="flex items-center gap-2 text-gray-200">
+                    <BookOpen className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs uppercase tracking-wide text-gray-400">Primary Sources</span>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {assessmentSummary.primarySourceInteractionCount}
+                  </p>
+                  <p className="text-[10px] text-gray-400">
+                    {Object.entries(assessmentSummary.primarySourceActionCounts)
+                      .map(([action, count]) => `${action}: ${count}`)
+                      .join(' · ') || 'Interactions logged'}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-gray-700/70 bg-gray-900/60 p-3">
+                  <div className="flex items-center gap-2 text-gray-200">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs uppercase tracking-wide text-gray-400">NPC Encounters</span>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {assessmentSummary.npcEncounterCount}
+                  </p>
+                  <p className="text-[10px] text-gray-400">
+                    {assessmentSummary.uniqueNpcCount} unique contacts
+                  </p>
+                </div>
+                <div className="rounded-lg border border-gray-700/70 bg-gray-900/60 p-3">
+                  <div className="flex items-center gap-2 text-gray-200">
+                    <MessageSquare className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs uppercase tracking-wide text-gray-400">Narration</span>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {assessmentSummary.playerInputCount}
+                  </p>
+                  <p className="text-[10px] text-gray-400">
+                    {assessmentSummary.playerInputWordCount} words recorded
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <div className="flex gap-4 pt-4">
+          <div className="flex flex-col gap-3 pt-4 sm:flex-row">
+            {onViewAssessment && (
+              <button
+                onClick={onViewAssessment}
+                className="flex-1 rounded-lg border border-purple-500/50 bg-purple-500/15 px-6 py-3 text-sm font-semibold text-purple-200 transition hover:bg-purple-500/25 flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-5 h-5" />
+                View Assessment Report
+              </button>
+            )}
             <button
               onClick={onRestart}
               className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
