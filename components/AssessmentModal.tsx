@@ -370,18 +370,23 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
   const portraitNode = useMemo(() => {
     if (!player) {
       return (
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white/60 text-sm">
+        <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/60 text-sm">
           No Portrait
         </div>
       );
     }
 
-    if (player.profileImage) {
+    // Only show image if profileImage exists and is a valid string
+    if (player.profileImage && typeof player.profileImage === 'string' && player.profileImage.length > 0) {
       return (
         <img
           src={player.profileImage}
           alt={player.name}
-          className="h-20 w-20 rounded-2xl border border-white/20 object-cover shadow-lg"
+          className="h-16 w-16 rounded-xl border border-white/20 object-cover shadow-lg"
+          onError={(e) => {
+            // Hide image on error and show initials instead
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
         />
       );
     }
@@ -396,7 +401,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
       : 'P';
 
     return (
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/20 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 text-white text-xl font-semibold shadow-lg">
+      <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 text-white text-lg font-semibold shadow-lg">
         {initials}
       </div>
     );
@@ -554,40 +559,45 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
         >
           <div className="relative overflow-hidden border-b border-[color:var(--surface-muted-border)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.22)_0%,rgba(15,23,42,0)_70%)]" />
-            <div className="relative px-6 py-6 space-y-6">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-4">
+            <div className="relative px-5 py-4 space-y-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-3">
                   {portraitNode}
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-3xl font-semibold tracking-tight text-white">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-2xl font-semibold tracking-tight text-white">
                         {player?.name || session?.context?.role || 'Session Assessment'}
                       </h2>
                       {session?.context?.role && (
-                        <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+                        <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
                           {session.context.role}
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.25em] text-white/60">
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-white/60">
                       {player?.profession && (
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                          Profession: {player.profession}
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                          {player.profession}
+                        </span>
+                      )}
+                      {player?.age && (
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                          Age {player.age}
                         </span>
                       )}
                       {session?.context?.culturalZone && (
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                          Zone: {session.context.culturalZone}
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                          {session.context.culturalZone}
                         </span>
                       )}
                       {gameDateString && (
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                          Game Date: {gameDateString}
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                          {gameDateString}
                         </span>
                       )}
                       {session?.context?.era && (
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                          Era: {session.context.era}
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                          {session.context.era}
                         </span>
                       )}
                     </div>
@@ -654,21 +664,6 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                {quickStats.map(stat => (
-                  <div
-                    key={stat.label}
-                    className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-white/80"
-                  >
-                    <stat.icon className="h-4 w-4 text-white/70" />
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.18em] text-white/60">{stat.label}</div>
-                      <div className="text-sm font-semibold text-white">{stat.value}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
               <div>
                 <button
                   type="button"
@@ -681,19 +676,19 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
                 {detailsExpanded && (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                      <p className="text-xs uppercase tracking-widest text-white/50">Session ID</p>
+                      <p className="text-xs uppercase text-white/50">Session ID</p>
                       <p className="mt-1 text-sm font-semibold text-white break-all">{session?.id ?? '—'}</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-widest text-white/50">Started</p>
+                      <p className="text-xs uppercase text-white/50">Started</p>
                       <p className="mt-1 text-sm font-semibold text-white">{session?.startedAt ? formatTimelineTime(session.startedAt) : '—'}</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-widest text-white/50">Ended</p>
+                      <p className="text-xs uppercase text-white/50">Ended</p>
                       <p className="mt-1 text-sm font-semibold text-white">{session?.endedAt ? formatTimelineTime(session.endedAt) : '—'}</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-widest text-white/50">Primary Source Actions</p>
+                      <p className="text-xs uppercase text-white/50">Primary Source Actions</p>
                       <p className="mt-1 text-sm font-semibold text-white">
                         {summary ? buildPrimarySourceCountSummary(summary.primarySourceActionCounts) : '—'}
                       </p>
@@ -726,43 +721,43 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-8 pt-6">
+          <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
             {activeTab === 'assessment' && (
-              <div className="space-y-6">
+              <div className="space-y-3">
                 {analysisState.status === 'loading' && (
-                  <div className="flex items-center justify-center rounded-2xl border border-dashed border-[color:var(--surface-muted-border)] bg-[color:var(--surface-muted-bg)]/80 p-10 text-[color:var(--text-secondary)]">
-                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                    Generating assessment summary…
+                  <div className="flex items-center justify-center rounded-xl border border-dashed border-[color:var(--surface-muted-border)] bg-[color:var(--surface-muted-bg)]/80 p-6 text-[color:var(--text-secondary)]">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating assessment…
                   </div>
                 )}
 
                 {analysisState.status === 'error' && (
-                  <div className="rounded-2xl border border-red-300/60 bg-red-100/70 p-6 text-sm text-red-900 dark:border-red-500/60 dark:bg-red-500/20 dark:text-red-200">
+                  <div className="rounded-xl border border-red-300/60 bg-red-100/70 p-4 text-sm text-red-900 dark:border-red-500/60 dark:bg-red-500/20 dark:text-red-200">
                     <p className="font-semibold">Unable to fetch analysis</p>
-                    <p className="mt-1 text-sm opacity-80">{analysisState.error}</p>
+                    <p className="mt-1 text-xs opacity-80">{analysisState.error}</p>
                   </div>
                 )}
 
                 {analysisState.status === 'ready' && analysisState.result && (
                   <>
-                    <div className="rounded-3xl border border-transparent bg-[color:var(--surface-card-bg)] p-6 shadow-[0_24px_48px_rgba(63,50,33,0.12)]">
-                      <p className="text-sm uppercase tracking-[0.2em] text-[color:var(--text-muted)]">
-                        LLM Narrative Summary
+                    <div className="rounded-xl border border-transparent bg-[color:var(--surface-card-bg)] p-4 shadow-sm">
+                      <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--text-muted)] mb-2">
+                        Expert Assessment
                       </p>
-                      <p className="mt-3 text-base leading-relaxed text-[color:var(--text-primary)]">
+                      <p className="text-sm leading-relaxed text-[color:var(--text-primary)]">
                         {analysisState.result.narrativeSummary}
                       </p>
                       {(analysisState.result.highlights?.length || analysisState.result.concerns?.length) && (
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
                           {analysisState.result.highlights && analysisState.result.highlights.length > 0 && (
-                            <div className="rounded-2xl border border-transparent bg-emerald-500/10 p-4 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/80 dark:text-emerald-200/80">
+                            <div className="rounded-xl border border-transparent bg-emerald-500/10 p-3 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800/80 dark:text-emerald-200/80 mb-1.5">
                                 Highlights
                               </p>
-                              <ul className="mt-2 space-y-1.5 text-sm leading-relaxed">
+                              <ul className="space-y-1 text-xs leading-relaxed">
                                 {analysisState.result.highlights.map((item, index) => (
-                                  <li key={`highlight-${index}`} className="flex items-start gap-2">
-                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                  <li key={`highlight-${index}`} className="flex items-start gap-1.5">
+                                    <span className="mt-1 h-1 w-1 rounded-full bg-emerald-500 flex-shrink-0" />
                                     <span>{item}</span>
                                   </li>
                                 ))}
@@ -770,14 +765,14 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
                             </div>
                           )}
                           {analysisState.result.concerns && analysisState.result.concerns.length > 0 && (
-                            <div className="rounded-2xl border border-transparent bg-amber-500/10 p-4 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-amber-800/80 dark:text-amber-200/80">
+                            <div className="rounded-xl border border-transparent bg-amber-500/10 p-3 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80 dark:text-amber-200/80 mb-1.5">
                                 Concerns
                               </p>
-                              <ul className="mt-2 space-y-1.5 text-sm leading-relaxed">
+                              <ul className="space-y-1 text-xs leading-relaxed">
                                 {analysisState.result.concerns.map((item, index) => (
-                                  <li key={`concern-${index}`} className="flex items-start gap-2">
-                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                  <li key={`concern-${index}`} className="flex items-start gap-1.5">
+                                    <span className="mt-1 h-1 w-1 rounded-full bg-amber-500 flex-shrink-0" />
                                     <span>{item}</span>
                                   </li>
                                 ))}
@@ -788,24 +783,24 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
                       )}
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                       {analysisState.result.scores.map(score => (
                         <div
                           key={score.category}
-                          className="rounded-2xl border border-transparent bg-[color:var(--surface-muted-bg)] p-5 shadow-sm"
+                          className="rounded-xl border border-transparent bg-[color:var(--surface-muted-bg)] p-3 shadow-sm"
                         >
-                          <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                          <p className="text-xs font-semibold text-[color:var(--text-primary)]">
                             {score.category}
                           </p>
-                          <div className="mt-3 flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-[color:var(--text-primary)]">
+                          <div className="mt-2 flex items-baseline gap-1.5">
+                            <span className="text-2xl font-bold text-[color:var(--text-primary)]">
                               {Number.isInteger(score.score) ? score.score : score.score.toFixed(1)}
                             </span>
-                            <span className="text-sm text-[color:var(--text-secondary)]">
+                            <span className="text-xs text-[color:var(--text-secondary)]">
                               / {score.outOf}
                             </span>
                           </div>
-                          <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
+                          <p className="mt-2 text-xs leading-relaxed text-[color:var(--text-secondary)]">
                             {score.rationale}
                           </p>
                         </div>
@@ -818,6 +813,22 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
 
             {activeTab === 'activity' && (
               <div className="space-y-4">
+                {/* Session Statistics */}
+                <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  {quickStats.map(stat => (
+                    <div
+                      key={stat.label}
+                      className="flex items-center gap-2 rounded-xl border border-[color:var(--surface-muted-border)] bg-[color:var(--surface-muted-bg)] p-3"
+                    >
+                      <stat.icon className="h-4 w-4 text-[color:var(--accent-primary)]" />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--text-muted)]">{stat.label}</div>
+                        <div className="text-sm font-semibold text-[color:var(--text-primary)]">{stat.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 {timelineEvents.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-[color:var(--surface-muted-border)] bg-[color:var(--surface-muted-bg)]/70 p-8 text-center text-sm text-[color:var(--text-secondary)]">
                     No logged events for this session yet.

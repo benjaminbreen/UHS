@@ -8,6 +8,7 @@ import { WorkOffer, WorkTaskType } from '../types/workOffer';
 import { getStructureLocation, calculateDistance, findStructuresInRadius } from './structureUtils';
 import { wasAnimalKilled, getActiveWorkOffers } from './workOfferStorage';
 import { removeItemFromInventory } from '../utils/inventoryUtils';
+import { learningObjectivesService } from './learningObjectivesService';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -62,7 +63,7 @@ const workOfferSchema = {
     },
     taskType: {
       type: Type.STRING,
-      description: "Type of task: fetch_item, deliver_to_location, buy_from_location, kill_animal, gather_resource, explore_location, or collect_animal_products"
+      description: "Type of task: fetch_item, deliver_to_location, buy_from_location, kill_animal, gather_resource, explore_location, collect_animal_products, investigate_and_report, compare_perspectives, debate_topic, or source_analysis"
     },
     description: {
       type: Type.STRING,
@@ -91,6 +92,19 @@ const workOfferSchema = {
     deadlineHours: {
       type: Type.NUMBER,
       description: "Hours until deadline (12-72), 0 if no deadline"
+    },
+    debateTopic: {
+      type: Type.STRING,
+      description: "For debate_topic quests: the specific historical topic to discuss"
+    },
+    targetNpcs: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "For compare_perspectives quests: list of NPC profession types to speak with (e.g., ['peasant', 'noble'])"
+    },
+    historicalContext: {
+      type: Type.STRING,
+      description: "For educational quests: explanation of why this task matters historically"
     }
   },
   required: ["hasWork", "taskType", "description", "payment"]
@@ -199,8 +213,75 @@ export async function generateWorkOffer(
   // Build player inventory context
   const inventoryItems = playerCharacter.inventory.map(item => item.name).join(', ');
 
+  // Educational mode enhancement
+  const educationalContext = (() => {
+    // Check if educational mode is active
+    if (!learningObjectivesService.isEducationalMode()) return '';
+
+    const objectives = learningObjectivesService.getCurrentObjectives();
+    const settings = learningObjectivesService.getSettings();
+
+    if (!settings) return '';
+
+    const hasHistoricalThinking = objectives.includes('historical-thinking');
+    const hasCultural = objectives.includes('cultural-comparison');
+    const hasPrimarySources = objectives.includes('primary-sources');
+
+    return `
+**🎓 EDUCATIONAL QUEST GENERATION**
+
+You can offer ANALYTICAL QUESTS that require historical thinking:
+
+**New Educational Quest Types:**
+
+1. **investigate_and_report** - Historical Investigation
+   - Ask player to visit location AND bring back detailed observations
+   - Example: "Explore the ${ruins.length > 0 ? ruins[0].split('(')[0].trim() : 'ancient ruins'} and report what the architecture reveals about past civilizations. Note building materials, layout, decorative elements. Bring back ANY artifact you find. 40 coins for your research."
+   - Use with ruins/ancient sites
+   - requiredItem: NOT SPECIFIED (acceptsAnyItem: true via explore_location behavior)
+   - historicalContext: Explain what we might learn from this investigation
+
+2. **compare_perspectives** - Perspective Quest
+   - Ask player to speak with NPCs from different social classes
+   - Example: "I need you to ask both a peasant farmer AND a noble about the new tax policy. Return and tell me how their views differ. This will help me understand the full picture. 35 coins."
+   - targetNpcs: ["peasant", "noble"] or ["merchant", "priest"] etc.
+   - historicalContext: Explain why different perspectives matter
+
+3. **debate_topic** - Debate Quest
+   - Ask player to think about a historical issue, then discuss it
+   - Example: "Think carefully about whether the king's war is justified. Consider the costs to common folk versus the potential benefits. When you return, we'll discuss your views. 30 coins for serious thought."
+   - debateTopic: Specific historical question relevant to ${mapData.timeSlice} ${mapData.localArea}
+   - historicalContext: Frame the historical debate
+
+4. **source_analysis** - Primary Source Analysis
+   - Ask player to find a document/artifact and analyze it
+   - Example: "Find the old land deed in the monastery archives. Study it carefully - what does it tell us about property rights 100 years ago? Bring it here and we'll discuss. 45 coins."
+   - requiredItem: Specific document name
+   - historicalContext: What historical insights this source provides
+
+**Enhanced Standard Quests:**
+When creating fetch/delivery/exploration quests, EXPLAIN the historical significance:
+❌ "Go to the ruins and bring me something"
+✅ "The ruins were built during the ${parseInt(mapData.timeSlice) - 200}-${parseInt(mapData.timeSlice) - 100} period. Exploring them could reveal ${hasPrimarySources ? 'valuable primary sources about' : 'insights into'} trade networks and religious practices. Bring me any artifact - even a pottery shard can tell us about cultural exchange. 40 coins."
+
+**Quest Dialogue Framing:**
+- Frame ALL quests as intellectually engaging
+- Explain WHY the task matters historically or socially
+- Hint at what the player should observe or consider
+- For debate quests, present multiple viewpoints
+
+**Current Learning Objectives:** ${objectives.join(', ')}
+${hasHistoricalThinking ? '- Emphasize cause-and-effect, historical context, analysis' : ''}
+${hasCultural ? '- Highlight cultural differences, worldviews, comparative perspectives' : ''}
+${hasPrimarySources ? '- Include document/artifact analysis tasks, source interpretation' : ''}
+
+**IMPORTANT**: Mix educational and standard quests. Don't make EVERY quest educational - maybe 1 in 3 quests should be educational.
+`;
+  })();
+
   const prompt = `
 You are ${npc.name}, a ${npc.profession || 'person'} in ${mapData.localArea || 'this area'}.
+${educationalContext}
 
 Your Details:
 - Age: ${npc.age}
@@ -328,13 +409,20 @@ Create the work offer now. Be creative and profession-appropriate!
       requiredQuantity: data.requiredQuantity || 1,
       targetLocation,
       targetAnimal: data.targetAnimal,
-      acceptsAnyItem: taskType === 'explore_location', // Exploration quests accept any item
+      acceptsAnyItem: taskType === 'explore_location' || taskType === 'investigate_and_report', // Exploration/investigation quests accept any item
       payment: Math.max(5, Math.min(50, data.payment || 10)),
       deadline: data.deadlineHours ? data.deadlineHours : undefined,
       offerTime: gameTimeHours,
       accepted: false,
       completed: false,
-      failed: false
+      failed: false,
+      // Educational quest fields
+      requiresDialogue: taskType === 'debate_topic' || taskType === 'investigate_and_report' || taskType === 'source_analysis',
+      debateTopic: data.debateTopic,
+      targetNpcs: data.targetNpcs,
+      requiresAnalysis: taskType === 'source_analysis',
+      historicalContext: data.historicalContext,
+      conversationCount: 0
     };
 
     return offer;
@@ -418,6 +506,36 @@ export function checkWorkCompletion(
         ? 'completed'
         : 'in_progress';
 
+    // NEW EDUCATIONAL QUEST TYPES:
+    case 'investigate_and_report':
+      // Requires having an item AND having talked to the NPC about it
+      // The conversationCount is incremented when player talks to quest giver
+      const hasItemForReport = playerCharacter.inventory && playerCharacter.inventory.length > 0;
+      const hasDiscussedFindings = (offer.conversationCount || 0) >= 2; // At least 2 dialogue exchanges
+      return (hasItemForReport && hasDiscussedFindings) ? 'completed' : 'in_progress';
+
+    case 'debate_topic':
+      // Requires meaningful dialogue with the quest giver
+      // conversationCount is incremented during encounter
+      const hasDebated = (offer.conversationCount || 0) >= 3; // At least 3 exchanges for debate
+      return hasDebated ? 'completed' : 'in_progress';
+
+    case 'compare_perspectives':
+      // Check if player has talked to required NPCs
+      // For now, simplified: requires player to return and discuss
+      // TODO: Implement NPC conversation tracking system
+      // For MVP, we'll mark as completed after dialogue with quest giver
+      const hasGatheredPerspectives = (offer.conversationCount || 0) >= 2;
+      return hasGatheredPerspectives ? 'completed' : 'in_progress';
+
+    case 'source_analysis':
+      // Requires having the document AND discussing it
+      const hasDocument = offer.requiredItem && playerCharacter.inventory.some(
+        item => item.name.toLowerCase() === offer.requiredItem?.toLowerCase()
+      );
+      const hasAnalyzed = (offer.conversationCount || 0) >= 2;
+      return (hasDocument && hasAnalyzed) ? 'completed' : 'in_progress';
+
     default:
       return 'in_progress';
   }
@@ -466,6 +584,74 @@ export function completeWorkOffer(
       coinsEarned: offer.payment,
       itemTaken: firstItem.name
     };
+  }
+
+  // Handle educational quest types
+  if (offer.taskType === 'investigate_and_report' && updateInventory && playerCharacter.inventory) {
+    // Similar to explore_location, take any one item
+    if (playerCharacter.inventory.length === 0) {
+      return {
+        success: false,
+        message: "You need to bring back evidence from your investigation!",
+        coinsEarned: 0
+      };
+    }
+
+    const firstItem = playerCharacter.inventory[0];
+    itemTaken = firstItem.name;
+
+    const result = removeItemFromInventory(
+      playerCharacter.inventory,
+      firstItem.name,
+      1
+    );
+
+    updateInventory(result.inventory);
+
+    return {
+      success: true,
+      message: `Excellent analysis! Your insights about this ${firstItem.name} are valuable. Here's your payment.`,
+      coinsEarned: offer.payment,
+      itemTaken: firstItem.name
+    };
+  }
+
+  if (offer.taskType === 'debate_topic') {
+    // No items required, completion based on dialogue
+    return {
+      success: true,
+      message: `Your thoughtful analysis of ${offer.debateTopic || 'this issue'} demonstrates strong historical understanding. Well done!`,
+      coinsEarned: offer.payment
+    };
+  }
+
+  if (offer.taskType === 'compare_perspectives') {
+    // No items required, completion based on gathering perspectives
+    return {
+      success: true,
+      message: `Thank you for gathering those different perspectives. Your report helps me understand the complexity of the situation.`,
+      coinsEarned: offer.payment
+    };
+  }
+
+  if (offer.taskType === 'source_analysis' && updateInventory && playerCharacter.inventory) {
+    // Source analysis requires specific document
+    if (offer.requiredItem) {
+      const result = removeItemFromInventory(
+        playerCharacter.inventory,
+        offer.requiredItem,
+        1
+      );
+
+      updateInventory(result.inventory);
+
+      return {
+        success: true,
+        message: `Your analysis of the ${offer.requiredItem} was insightful. You've demonstrated strong primary source interpretation skills.`,
+        coinsEarned: offer.payment,
+        itemTaken: offer.requiredItem
+      };
+    }
   }
 
   // Remove required items if applicable (for standard quests)

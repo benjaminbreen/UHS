@@ -18,6 +18,7 @@ import { spatialDescriptionService } from '../services/spatialDescriptionService
 import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart, Clock, Send, User, Home, ShoppingBag, ScrollText } from 'lucide-react';
 import NpcQuestPanel from './NpcQuestPanel';
 import NpcMedicalPanel from './NpcMedicalPanel';
+import { learningObjectivesService } from '../services/learningObjectivesService';
 import NpcHouseholdPanel from './NpcHouseholdPanel';
 import DiseaseContractedModal from './DiseaseContractedModal';
 import { useUI } from '../contexts/UIContext';
@@ -976,7 +977,60 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 language: response.language
             };
             setHistory(prev => [...prev, newNpcEntry]);
-            
+
+            // NEW: Track educational interactions
+            if (learningObjectivesService.isEducationalMode()) {
+                const objectives: ('historical-thinking' | 'cultural-comparison' | 'social-structures')[] = [];
+
+                // Analyze player input for educational markers
+                const inputLower = currentInput.toLowerCase();
+
+                if (inputLower.match(/why|how|because|caused|resulted/)) {
+                    objectives.push('historical-thinking');
+                }
+                if (inputLower.match(/different|compare|contrast|perspective/)) {
+                    objectives.push('cultural-comparison');
+                }
+                if (inputLower.match(/class|noble|peasant|power|authority/)) {
+                    objectives.push('social-structures');
+                }
+
+                if (objectives.length > 0) {
+                    try {
+                        learningObjectivesService.trackAction(
+                            `Engaged with ${currentTarget.name} (${currentTarget.profession || currentTarget.role})`,
+                            `Discussed: ${currentInput.substring(0, 100)}...`,
+                            objectives
+                        );
+                    } catch (error) {
+                        console.warn('[Educational Tracking] Failed to track action:', error);
+                    }
+                }
+            }
+
+            // NEW: Track conversationCount for educational quests
+            if ('id' in currentTarget && currentTarget.id) {
+                try {
+                    const npcWorkOffers = getWorkOffersForNpc(currentTarget.id);
+                    const educationalOffers = npcWorkOffers.filter(offer =>
+                        offer.requiresDialogue &&
+                        offer.accepted &&
+                        !offer.completed
+                    );
+
+                    educationalOffers.forEach(offer => {
+                        const updatedOffer = {
+                            ...offer,
+                            conversationCount: (offer.conversationCount || 0) + 1
+                        };
+                        updateWorkOffer(updatedOffer);
+                        console.log(`[Educational Quest] Incremented conversation count for ${offer.taskType}: ${updatedOffer.conversationCount}`);
+                    });
+                } catch (error) {
+                    console.warn('[Educational Quest] Failed to update conversation count:', error);
+                }
+            }
+
             // Handle reputation changes from LLM response
             if (response.reputationChange && playerCharacter) {
                 setReputationChange(response.reputationChange);

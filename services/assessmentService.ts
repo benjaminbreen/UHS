@@ -6,6 +6,8 @@ import {
   AssessmentSamples,
   AssessmentLLMResult
 } from '../types/assessment';
+import { learningObjectivesService } from './learningObjectivesService';
+import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 
 const SAMPLE_LIMIT = {
   npcEncounters: 100,
@@ -13,7 +15,7 @@ const SAMPLE_LIMIT = {
   playerInputs: 200
 };
 
-const TEXT_SAMPLE_CHAR_LIMIT = 2000;
+const TEXT_SAMPLE_CHAR_LIMIT = 4000;
 
 function clampSamples<T>(items: T[], limit: number): T[] {
   return items.length > limit ? items.slice(0, limit) : items;
@@ -138,9 +140,12 @@ const formatDuration = (ms?: number | null) => {
   return `${totalMinutes}m of in-game time`;
 };
 
-export async function requestAssessmentAnalysis(request: AssessmentRequest): Promise<AssessmentLLMResult> {
-  const { summary, logs } = request;
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+export async function requestAssessmentAnalysis(request: AssessmentRequest): Promise<AssessmentLLMResult> {
+  const { summary, logs, session } = request;
+
+  // Calculate basic metrics for the prompt
   const avgWordsPerEntry = summary.playerInputCount > 0
     ? summary.playerInputWordCount / summary.playerInputCount
     : 0;
@@ -150,148 +155,166 @@ export async function requestAssessmentAnalysis(request: AssessmentRequest): Pro
     return count + reasoningKeywords.reduce((inner, keyword) => inner + (text.includes(keyword) ? 1 : 0), 0);
   }, 0);
 
-  const firstPersonHits = logs.playerInputs.reduce(
-    (count, entry) => count + (firstPersonRegex.test(entry.text) ? 1 : 0),
-    0
-  );
-
   const anachronismHits = logs.playerInputs.reduce((count, entry) => {
     const text = entry.text.toLowerCase();
     return count + (anachronisticKeywords.some(keyword => text.includes(keyword)) ? 1 : 0);
   }, 0);
 
-  const primarySourceFactor = Math.min(1, summary.primarySourceInteractionCount / 6);
-  const uniqueNpcFactor = Math.min(1, summary.uniqueNpcCount / 6);
-  const reasoningFactor = Math.min(1, reasoningHits / 10);
-  const dialogueDepthFactor = Math.min(1, avgWordsPerEntry / 80);
-  const inputCadenceFactor = Math.min(1, summary.playerInputCount / 15);
-  const firstPersonFactor = logs.playerInputs.length > 0
-    ? firstPersonHits / logs.playerInputs.length
-    : 0;
-  const anachronismFactor = Math.min(1, anachronismHits / 4);
+  const isEducationalMode = learningObjectivesService.isEducationalMode();
 
-  const historicalAccuracyScore = clampScore(
-    1 +
-    4 * (
-      0.55 * primarySourceFactor +
-      0.25 * uniqueNpcFactor +
-      0.2 * Math.min(1, summary.playerInputWordCount / 600)
-    )
-  );
+  // Sample player inputs for concrete examples (limit to 10 most substantial)
+  const playerInputSamples = logs.playerInputs
+    .sort((a, b) => b.text.length - a.text.length)
+    .slice(0, 10)
+    .map(input => input.text);
 
-  const criticalThinkingScore = clampScore(
-    1 +
-    4 * (
-      0.45 * reasoningFactor +
-      0.3 * dialogueDepthFactor +
-      0.25 * inputCadenceFactor
-    )
-  );
+  // Sample NPC encounters for context
+  const npcSamples = logs.npcEncounters
+    .slice(0, 10)
+    .map(enc => `${enc.npcName || 'NPC'}: ${enc.playerAction}`);
 
-  const historicalReasoningScore = clampScore(
-    1 +
-    4 * (
-      0.5 * primarySourceFactor +
-      0.35 * reasoningFactor +
-      0.15 * uniqueNpcFactor
-    )
-  );
+  // Build educational context if applicable
+  const eduContext = isEducationalMode ? learningObjectivesService.getProgress() : null;
 
-  const roleplayingScore = clampScore(
-    1 +
-    4 * (
-      0.5 * Math.min(1, firstPersonFactor + 0.15) +
-      0.25 * uniqueNpcFactor +
-      0.25 * Math.max(0, 1 - anachronismFactor)
-    )
-  );
+  const prompt = `You are an expert historian and tough-but-fair professor grading a student's performance in a historical simulation game. ${isEducationalMode ? 'This is EDUCATIONAL MODE - be especially demanding, as you would be with a graduate student. This student signed up for a challenge.' : 'Be constructive but don\'t hold back your honest critique.'}
 
-  const highlights: string[] = [];
-  const concerns: string[] = [];
+**SESSION OVERVIEW:**
+- Duration: ${formatDuration(summary.durationMs)}
+- Player inputs: ${summary.playerInputCount} entries (${summary.playerInputWordCount} words, avg ${avgWordsPerEntry.toFixed(1)} words/entry)
+- NPC encounters: ${summary.npcEncounterCount} total (${summary.uniqueNpcCount} unique NPCs)
+- Primary sources consulted: ${summary.primarySourceInteractionCount}
+- Anachronisms detected: ${anachronismHits}
+- Analytical keywords used: ${reasoningHits} occurrences
+- Historical period: ${session.context?.era || 'Unknown'}
+- Cultural zone: ${session.context?.culturalZone || 'Unknown'}
+- Player role: ${session.context?.role || 'Unknown'}
 
-  if (summary.primarySourceInteractionCount >= 4) {
-    highlights.push('Strong engagement with primary sources helped anchor decisions in historical evidence.');
-  }
-  if (summary.uniqueNpcCount >= 3) {
-    highlights.push('You met a diverse set of historical actors, which generally improves contextual awareness.');
-  }
-  if (avgWordsPerEntry >= 60 || reasoningHits >= 6) {
-    highlights.push('Player narration shows analytical depth, weaving reasoning keywords and longer reflections.');
-  }
-  if (firstPersonFactor > 0.6) {
-    highlights.push('Roleplaying voice stays tightly focused on the character perspective.');
-  }
+${playerInputSamples.length > 0 ? `
+**SAMPLE PLAYER INPUTS:**
+${playerInputSamples.map((input, i) => `${i+1}. "${input.substring(0, 200)}${input.length > 200 ? '...' : ''}"`).join('\n')}
+` : ''}
 
-  if (summary.primarySourceInteractionCount <= 1) {
-    concerns.push('Primary source usage was limited; consider consulting more documents to triangulate evidence.');
-  }
-  if (avgWordsPerEntry < 25) {
-    concerns.push('Narration entries are quite brief. Expanding descriptions can surface richer historical insight.');
-  }
-  if (anachronismHits > 0) {
-    concerns.push('Detected a few anachronistic references (e.g., modern technologies). Try aligning vocabulary with the period.');
-  }
-  if (summary.npcEncounterCount === 0) {
-    concerns.push('No NPC encounters were logged. Dialogues often expose cultural nuance and situational detail.');
-  }
+${npcSamples.length > 0 ? `
+**SAMPLE NPC INTERACTIONS:**
+${npcSamples.map((enc, i) => `${i+1}. ${enc}`).join('\n')}
+` : ''}
 
-  const narrativeSummary = [
-    `Across ${formatDuration(summary.durationMs)}, you recorded ${summary.playerInputCount} narration entries totaling ${summary.playerInputWordCount} words.`,
-    `You interacted with ${summary.npcEncounterCount} NPCs (${summary.uniqueNpcCount} unique) and touched ${summary.primarySourceInteractionCount} primary-source artifacts.`,
-    `Analytical signals (keywords such as “because” or “therefore”) appeared ${reasoningHits} time${reasoningHits === 1 ? '' : 's'}, and ${
-      firstPersonHits
-    } entries used first-person framing.`
-  ].join(' ');
+${isEducationalMode && eduContext ? `
+**EDUCATIONAL OBJECTIVES TRACKING:**
+${eduContext.map(obj => `- ${obj.objectiveId}: ${obj.progress}% (${obj.evidenceCollected.length} pieces of evidence)`).join('\n')}
+` : ''}
 
-  const scores = [
-    {
-      category: 'Historical Accuracy',
-      score: historicalAccuracyScore,
-      outOf: 5,
-      rationale: historicalAccuracyScore >= 4
-        ? 'Frequent reference to primary sources and varied NPC encounters grounded decision-making.'
-        : 'Increase reliance on period sources and contextual NPC exchanges to bolster accuracy.'
-    },
-    {
-      category: 'Critical Thinking',
-      score: criticalThinkingScore,
-      outOf: 5,
-      rationale: criticalThinkingScore >= 4
-        ? 'Narration shows sustained analytical language and reflective pacing.'
-        : 'Add more connective reasoning (“because… therefore…”) to make historical logic explicit.'
-    },
-    {
-      category: 'Historical Reasoning',
-      score: historicalReasoningScore,
-      outOf: 5,
-      rationale: historicalReasoningScore >= 4
-        ? 'Primary evidence was leveraged to contextualize choices and build causal arguments.'
-        : 'Weigh multiple documents or testimonies when explaining outcomes to deepen reasoning.'
-    },
-    {
-      category: 'Roleplaying Fidelity',
-      score: roleplayingScore,
-      outOf: 5,
-      rationale: roleplayingScore >= 4
-        ? 'Voice and choices stayed consistent with a historically situated character.'
-        : 'Favor first-person, period-aware language and avoid modern references to strengthen immersion.'
+**YOUR TASK:**
+Write a 2-3 paragraph assessment that is:
+1. **Witty and engaging** - use metaphors, historical analogies, dry humor
+2. **Specific and concrete** - reference actual player choices and actions from the samples above
+3. **Critical but constructive** - point out exactly what they did wrong/right with examples
+4. **Opinionated** - don't hedge. If they half-assed something, say so. If they impressed you, say so.
+5. **Historically informed** - show your expertise by referencing what a historian would expect
+${isEducationalMode ? '\n6. **UNCOMPROMISING** - Educational mode means high standards. Be harsh but fair. Make them work for praise.' : ''}
+
+Then provide 4 scores (1-5) with brief, pointed rationales:
+- **Historical Accuracy**: Did they engage with primary sources, talk to diverse NPCs, demonstrate period knowledge?
+- **Critical Thinking**: Did they analyze causes/effects, ask "why", connect dots, or just drift through?
+- **Historical Reasoning**: Did they build arguments from evidence or just go with gut feelings?
+- **Roleplaying Fidelity**: Did they stay in character and period, or constantly break immersion?
+
+${isEducationalMode ? `Then add 3 additional educational scores based on their learning objective progress.` : ''}
+
+Format your response as JSON:
+{
+  "narrativeSummary": "Your 2-3 paragraph witty, critical assessment here...",
+  "scores": [
+    {"category": "Historical Accuracy", "score": 3.5, "outOf": 5, "rationale": "Brief pointed critique"},
+    {"category": "Critical Thinking", "score": 2.0, "outOf": 5, "rationale": "Brief pointed critique"},
+    {"category": "Historical Reasoning", "score": 4.0, "outOf": 5, "rationale": "Brief pointed critique"},
+    {"category": "Roleplaying Fidelity", "score": 3.0, "outOf": 5, "rationale": "Brief pointed critique"}
+  ],
+  "highlights": ["Specific thing they did well with example"],
+  "concerns": ["Specific thing they need to improve with example"]
+}
+
+Be specific. Be witty. Be harsh${isEducationalMode ? ' (ESPECIALLY harsh - this is educational mode!)' : ''}. But be fair.`;
+
+  try {
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-lite',
+      contents: prompt
+    });
+
+    const text = response.text || '';
+
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonText = text;
+    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/```\n?([\s\S]*?)\n?```/) || text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1] || jsonMatch[0];
     }
-  ];
 
-  return {
-    scores,
-    narrativeSummary,
-    highlights: highlights.length ? highlights : undefined,
-    concerns: concerns.length ? concerns : undefined,
-    rawResponse: JSON.stringify({
-      summary,
-      metrics: {
-        avgWordsPerEntry,
-        reasoningHits,
-        firstPersonHits,
-        anachronismHits
-      },
-      generatedAt: new Date().toISOString()
-    })
-  };
+    const result = JSON.parse(jsonText);
+
+    let scores = result.scores || [];
+    let highlights = result.highlights || [];
+    let concerns = result.concerns || [];
+    let narrativeSummary = result.narrativeSummary || '';
+
+    // Add educational mode scores if applicable
+    if (isEducationalMode && eduContext) {
+      const objectives = learningObjectivesService.getCurrentObjectives();
+
+      objectives.forEach(objId => {
+        const objProgress = eduContext.find(p => p.objectiveId === objId);
+        const config = learningObjectivesService.getObjectiveConfig(objId);
+
+        if (objProgress && config) {
+          const evidenceCount = objProgress.evidenceCollected.length;
+          const score = clampScore(1 + (objProgress.progress / 100) * 4);
+
+          scores.push({
+            category: config.name,
+            score: score,
+            outOf: 5,
+            rationale: evidenceCount > 3
+              ? `${evidenceCount} pieces of evidence. Actually engaged with this objective.`
+              : `Only ${evidenceCount} pieces of evidence. Expected more.`
+          });
+        }
+      });
+    }
+
+    return {
+      scores,
+      narrativeSummary,
+      highlights: highlights.length ? highlights : undefined,
+      concerns: concerns.length ? concerns : undefined,
+      rawResponse: JSON.stringify({
+        summary,
+        llmAnalysis: result,
+        educationalMode: isEducationalMode,
+        objectiveProgress: eduContext,
+        generatedAt: new Date().toISOString()
+      })
+    };
+
+  } catch (error) {
+    console.error('[Assessment] LLM call failed:', error);
+
+    // Fallback to basic analysis if LLM fails
+    return {
+      scores: [
+        {
+          category: 'Session Overview',
+          score: 3,
+          outOf: 5,
+          rationale: 'Assessment generation failed. Please try again.'
+        }
+      ],
+      narrativeSummary: `Session lasted ${formatDuration(summary.durationMs)} with ${summary.npcEncounterCount} NPC encounters and ${summary.primarySourceInteractionCount} primary sources consulted. Assessment analysis unavailable due to technical error.`,
+      rawResponse: JSON.stringify({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        summary,
+        generatedAt: new Date().toISOString()
+      })
+    };
+  }
 }

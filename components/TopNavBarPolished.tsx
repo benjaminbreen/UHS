@@ -27,6 +27,7 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { questService } from '../services/questService';
 import { themeService } from '../services/themeService';
 import { journalService } from '../services/journalService';
+import { learningObjectivesService } from '../services/learningObjectivesService';
 
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
@@ -177,6 +178,11 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
+  // Educational mode state
+  const [isEducationalMode, setIsEducationalMode] = useState(
+    learningObjectivesService.isEducationalMode()
+  );
+
   // Performance: Throttle API stats updates to every 3 seconds when tracker is visible
   useEffect(() => {
     if (!showAPITracker) return;
@@ -224,6 +230,18 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
       setIsDarkMode(theme === 'dark');
     });
     return unsubscribe;
+  }, []);
+
+  // Subscribe to educational mode changes
+  useEffect(() => {
+    const checkEducationalMode = () => {
+      const eduMode = learningObjectivesService.isEducationalMode();
+      setIsEducationalMode(eduMode);
+    };
+
+    // Check every 2 seconds for educational mode state changes
+    const interval = setInterval(checkEducationalMode, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   // Subscribe to journal auto-open events
@@ -417,6 +435,30 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
       case 'theme':
         themeService.toggleTheme();
         break;
+      case 'toggle-educational-mode': {
+        const currentlyEnabled = learningObjectivesService.isEducationalMode();
+
+        if (currentlyEnabled) {
+          // Disable educational mode
+          learningObjectivesService.clearSession();
+          localStorage.removeItem('educationalMode');
+          setIsEducationalMode(false);
+          console.log('[TopNavBar] Educational mode disabled');
+        } else {
+          // Enable educational mode
+          localStorage.setItem('educationalMode', 'true');
+          learningObjectivesService.initializeSession({
+            learningObjectives: ['historical-thinking', 'cultural-comparison', 'social-structures'],
+            assessmentFrequency: 'occasional',
+            difficulty: 'realistic',
+            sessionLength: 'extended',
+            trackingEnabled: true
+          });
+          setIsEducationalMode(true);
+          console.log('[TopNavBar] Educational mode enabled');
+        }
+        break;
+      }
     }
     if (isMobile) setIsMobileMenuOpen(false);
   };
@@ -525,6 +567,35 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   </span>
                 )}
               </div>
+
+              {/* Educational Mode Indicator & Toggle */}
+              {isEducationalMode ? (
+                <div className="relative ml-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/30 border border-purple-600/50 rounded-lg">
+                    <BookOpen size={16} className="text-purple-400" />
+                    <span className="text-sm text-purple-300 font-medium">Educational Mode</span>
+                    <button
+                      onClick={() => handleNavAction('toggle-educational-mode')}
+                      className="text-xs text-purple-400 hover:text-purple-300 underline ml-1 transition-colors"
+                      title="Disable educational mode"
+                    >
+                      Disable
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative ml-2">
+                  <button
+                    onClick={() => handleNavAction('toggle-educational-mode')}
+                    className={getOptimizedButtonClassName('nav-button nav-button--compact flex items-center gap-1.5')}
+                    title="Enable educational mode for enhanced historical analysis"
+                  >
+                    <BookOpen size={16} className="text-slate-400" />
+                    <span className="text-sm text-slate-300 hidden xl:inline">Enable Educational Mode</span>
+                    <span className="text-sm text-slate-300 xl:hidden">Edu Mode</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* WorldWeaver Input - Desktop (Centered with flex-1) */}

@@ -21,6 +21,7 @@ import { dialectContinuumService } from './dialectContinuumService';
 import { atmosphericContextService } from './atmosphericContextService';
 import { getCropNutrientEffects, evaluateCropRotation } from './cropNutrientService';
 import { getWorkOffersForNpc } from './workOfferStorage';
+import { learningObjectivesService } from './learningObjectivesService';
 
 // Cache for historical events to avoid regenerating them every dialogue
 interface HistoricalEventCache {
@@ -728,7 +729,80 @@ export async function generateEncounterDialogue(
         return reaction.length > 0 ? reaction.join('; ') : 'neutral appearance - standard cautious interaction';
     })();
 
+    // Educational mode enhancement
+    const educationalEnhancement = (() => {
+        // Check if educational mode is active
+        if (!learningObjectivesService.isEducationalMode()) return '';
+
+        const objectives = learningObjectivesService.getCurrentObjectives();
+        const settings = learningObjectivesService.getSettings();
+
+        if (!settings) return '';
+
+        const objectiveDescriptions = objectives.map(obj => {
+            const config = learningObjectivesService.getObjectiveConfig(obj);
+            return config ? `- ${config.name}: ${config.description}` : '';
+        }).filter(Boolean).join('\n    ');
+
+        const intensityPrompts = {
+            'forgiving': 'Gently weave in educational content. Be natural and conversational.',
+            'realistic': 'Challenge the player to think historically while maintaining realism.',
+            'hardcore': 'Deeply engage with historical analysis. Push the player to demonstrate understanding.'
+        };
+
+        return `
+**🎓 EDUCATIONAL MODE ACTIVE**
+
+**Learning Objectives for this Session:**
+${objectiveDescriptions}
+
+**Your Educational Role:**
+${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
+
+**Specific Educational Behaviors:**
+
+1. **Historical Context Integration**
+   - Reference specific events affecting ${mapData.localArea} in ${mapData.timeSlice}
+   - Mention real political situations, trade conditions, or social tensions
+   - Example: Don't just say "times are hard" - specify WHY (war taxes, crop failure, plague, etc.)
+
+2. **Socratic Questioning**
+   - When appropriate, ask the player what THEY think about situations
+   - "What do you make of the new land policies?"
+   - "How would your life differ if you were born a peasant instead?"
+   - "What do you think caused this conflict?"
+
+3. **Multiple Perspectives**
+   - Acknowledge that different social classes have different views
+   - "The nobles say one thing, but we commoners know another..."
+   - "As a ${target.profession}, I see it differently than a ${playerCharacter.profession} would"
+
+4. **Primary Source Hints**
+   - Reference documents, artifacts, or oral traditions when relevant
+   - "I've heard the merchants read from official proclamations..."
+   - "The old scrolls in the monastery mention..."
+
+5. **Causal Analysis**
+   - Explain WHY things are the way they are historically
+   - Connect current situations to historical causes
+   - "Ever since the king raised taxes for the war..."
+
+**IMPORTANT BALANCE:**
+- Stay IN CHARACTER - don't break immersion
+- Be natural - this should feel like conversation, not a lecture
+- Only include educational elements when contextually appropriate
+- Maintain historical authenticity above all else
+
+**Response Guidelines:**
+- Include 1-2 historically specific details per response
+- Ask a thought-provoking question every 2-3 exchanges
+- Reference social structures or power dynamics when relevant
+
+`;
+    })();
+
     const prompt = `
+        ${educationalEnhancement}
         CONTEXT: ${mapData.localArea}, Year ${mapData.timeSlice}
         ROLE: ${target.name}, ${target.age}yo ${target.role}
         ${getSpecialMapIntroduction()}
@@ -1152,6 +1226,9 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const { playerCharacter, mapData, npcs, animals, terrainStructures, playerX, playerY, viewMode, interiorContext, currentVessel } = context;
 
+    // Check if educational mode is active
+    const isEducationalMode = learningObjectivesService.isEducationalMode();
+
     // Load tamed animals for accurate context
     const tamedAnimals = loadTamedAnimals();
 
@@ -1212,7 +1289,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     const metaKeywords = ['game', 'ChatGPT', 'simulation', 'software', 'developer', 'code', 'AI', 'reality', 'app', 'developer'];
     const isMetaQuestion = metaKeywords.some(kw => playerQuery.toLowerCase().includes(kw));
     const isComplexQuery = playerQuery.toLowerCase().includes('what are') || playerQuery.toLowerCase().includes('explain') || playerQuery.length > 50;
-    
+
     let personaInstruction = '';
     if (isMetaQuestion) {
         personaInstruction = "Adopt the persona of the author Henry James. Respond with a complex, multi-clause sentence, focusing on introspection, consciousness, and the subtle nuances of perception. Your prose should be dense and analytical, exploring the very nature of the player's query as a construct of observation within this simulated reality.";
@@ -1222,7 +1299,46 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         personaInstruction = "Respond as a direct and concise narrator. Provide a brief, two- or three-sentence answer that directly addresses the player's simple question.";
     }
 
+    // Educational mode enhancement
+    const educationalEnhancement = isEducationalMode ? `
+**🎓 EDUCATIONAL MODE ACTIVE - ENHANCED DIDACTIC NARRATION:**
+
+You are now operating as a HISTORIAN-NARRATOR - think of yourself as a professor leading a field trip through history. Your responses must be information-dense and pedagogically valuable while maintaining immersion.
+
+**Required Enhancements:**
+
+1. **Historical Contextualization**: Briefly situate player observations within broader historical patterns. For example, if they see a market, mention what commodities were significant in this era/region and why.
+
+2. **Cite Secondary Sources When Relevant**: When describing significant historical phenomena, cite actual scholarly works in parenthetical format. Examples:
+   - "(As Fernand Braudel argued in *The Mediterranean*, port cities were crucial nodes of exchange...)"
+   - "(Recent scholarship by Timothy Brook has shown that Ming-era markets...)"
+   - "(Following E.P. Thompson's analysis in *The Making of the English Working Class*...)"
+
+3. **Explain the "Why"**: Don't just describe WHAT the player sees - explain WHY it exists this way. What historical forces shaped this?
+
+4. **Comparative Context**: When appropriate, briefly compare to other regions/eras. "Unlike the Mediterranean world, where..."
+
+5. **Primary Source Integration**: If relevant, mention what contemporary sources from this era might say about what the player observes.
+
+6. **Material Culture Analysis**: When describing objects/places, explain their social/economic significance. A silk robe isn't just clothing - it's a marker of trade networks, status, artisan guilds, etc.
+
+**Tone Balance:**
+- Remain narratively engaging (still "you see..." format)
+- But inject scholarly insight naturally
+- Think: "Public History" or "Museum Audio Guide by an Expert Historian"
+- Information-dense but not overwhelming
+
+**Example Transformation:**
+
+*Normal Mode*: "You see a bustling market with merchants selling spices and textiles."
+
+*Educational Mode*: "You see a bustling market alive with merchants hawking spices - pepper from the Malabar Coast, cinnamon from Ceylon - and silk textiles. This commercial vitality reflects what historians call the 'commercial revolution' of this era (see Janet Abu-Lughod's *Before European Hegemony*), when Eurasian trade networks intensified dramatically. The silk here likely traveled the maritime routes documented in Ibn Battuta's *Rihla*, passing through dozens of intermediaries."
+
+` : '';
+
     const prompt = `
+        ${educationalEnhancement}
+
         You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query.
 
         IMPORTANT ENVIRONMENTAL AWARENESS: Pay special attention to the Immediate Position, Current Time, Surrounding Terrain and Weather sections.
@@ -1269,7 +1385,10 @@ export async function generateObservationText(context: PlayerContext): Promise<s
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const { viewMode, currentTile, ambianceContext } = context;
     const { timeOfDay, climate, historicalEra } = ambianceContext;
-    
+
+    // Check if educational mode is active
+    const isEducationalMode = learningObjectivesService.isEducationalMode();
+
     // Load tamed animals for observation context
     const tamedAnimals = loadTamedAnimals();
     const tamedAnimalsDescription = tamedAnimals.length > 0 
@@ -1290,7 +1409,31 @@ export async function generateObservationText(context: PlayerContext): Promise<s
     const weatherContext = getWeatherContext(context.mapData, context);
     const timeContext = getTimeContext(context);
 
+    // Educational mode enhancement for observation
+    const educationalObservationEnhancement = isEducationalMode ? `
+**🎓 EDUCATIONAL MODE - ENHANCED OBSERVATION:**
+
+When describing what the player observes, adopt a more scholarly, information-dense approach:
+
+1. **Material Culture Analysis**: When describing objects, buildings, or clothing, briefly explain their historical significance and social meaning.
+
+2. **Historical Context**: Connect sensory details to broader historical patterns. Why does this landscape look this way? What economic/political forces shaped it?
+
+3. **Cite When Relevant**: If describing something historically significant, mention relevant scholarship or primary sources in parentheses.
+
+4. **Comparative Perspective**: Briefly note how this scene differs from other regions/eras when relevant.
+
+**Example:**
+
+*Normal*: "You see a sprawling wetland, reeds swaying in the breeze."
+
+*Educational*: "You see a sprawling wetland, its extensive reed beds reflecting centuries of deltaic sedimentation. These wetlands, similar to those described by Roman naturalist Pliny the Elder, served as crucial buffer zones between settled agriculture and the sea - what environmental historians call 'transitional ecologies' (see Petra van Dam's work on wetland reclamation)."
+
+` : '';
+
     const prompt = `
+        ${educationalObservationEnhancement}
+
         You are the narrator for an immersive, text-based, raw and unflinching, super-historically-accurate educational historical simulation game. Describe what the player character experiences through their senses. Be precise, crisp (no purple prose!) yet evocative.
 
         CONTEXT:

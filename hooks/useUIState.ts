@@ -325,24 +325,19 @@ export const useUIState = () => {
     const [floatingTextMessages, setFloatingTextMessages] = useState<FloatingTextMessage[]>([]);
     const [showAssessmentModal, setShowAssessmentModal] = useState<boolean>(false);
 
-    const initialAssessmentState = () => {
-        if (typeof window === 'undefined') return null;
-        try {
-            const stored = localStorage.getItem(ASSESSMENT_STORAGE_KEY);
-            if (!stored) return null;
-            return JSON.parse(stored) as { session: AssessmentSession; logs: AssessmentLogState };
-        } catch (error) {
-            console.warn('Failed to parse stored assessment session', error);
-            return null;
-        }
-    };
+    // IMPORTANT: Assessment logs should NOT persist across page reloads
+    // Each game session should start with clean assessment state
+    // Clear any stored assessment data on initialization
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem(ASSESSMENT_STORAGE_KEY);
+    }
 
-    const storedAssessment = initialAssessmentState();
-
-    const [assessmentSession, setAssessmentSession] = useState<AssessmentSession | null>(storedAssessment?.session ?? null);
-    const [assessmentLogs, setAssessmentLogs] = useState<AssessmentLogState>(
-        storedAssessment?.logs ?? { npcEncounters: [], primarySources: [], playerInputs: [] }
-    );
+    const [assessmentSession, setAssessmentSession] = useState<AssessmentSession | null>(null);
+    const [assessmentLogs, setAssessmentLogs] = useState<AssessmentLogState>({
+        npcEncounters: [],
+        primarySources: [],
+        playerInputs: []
+    });
 
     const setActiveMarketplaceModal = useCallback((data: { tile: Tile } | null) => {
         _setActiveMarketplaceModal(data);
@@ -684,15 +679,9 @@ export const useUIState = () => {
         }
     }, [assessmentSession, startAssessmentSession, getDefaultAssessmentContext, playerCharacter]);
 
-    useEffect(() => {
-        if (!assessmentSession) return;
-        const payload = JSON.stringify({ session: assessmentSession, logs: assessmentLogs });
-        try {
-            localStorage.setItem(ASSESSMENT_STORAGE_KEY, payload);
-        } catch (error) {
-            console.error('Failed to persist assessment session:', error);
-        }
-    }, [assessmentSession, assessmentLogs]);
+    // NOTE: Removed localStorage persistence for assessment logs
+    // Assessment data should only exist during the current session, not persist across reloads
+    // This prevents cross-session data pollution and confusion
 
     const assessmentSummary = useMemo(() => {
         if (!assessmentSession) return null;

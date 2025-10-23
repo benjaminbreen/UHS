@@ -243,19 +243,45 @@ const AppContent: React.FC = () => {
         
         // Fall back to old URL parsing
         const config = parseURLConfig(location.pathname);
-        
+
         // Initialize seed if provided in URL
         if (config.seed) {
             SeedManager.getInstance(config.seed);
             console.log('[App] Initialized seed from URL:', config.seed);
         }
-        
+
         // PHASE 3: Store game mode preference if provided using unified restoration
         if (config.gameMode) {
             shareableStateService.setGameModeForRestoration(config.gameMode);
             console.log('[App] Stored game mode preference:', config.gameMode);
         }
-        
+
+        // NEW: Store educational mode if detected from /edu suffix in URL
+        if (config.educationalMode) {
+            localStorage.setItem('educationalMode', 'true');
+            console.log('[App] Educational mode enabled from /edu URL suffix');
+
+            // Initialize learning objectives service with default settings
+            // Using setTimeout to ensure this runs after the component mounts
+            setTimeout(() => {
+                (async () => {
+                    try {
+                        const { learningObjectivesService } = await import('./services/learningObjectivesService');
+                        learningObjectivesService.initializeSession({
+                            learningObjectives: ['historical-thinking', 'cultural-comparison', 'social-structures'],
+                            assessmentFrequency: 'occasional',
+                            difficulty: 'realistic',
+                            sessionLength: 'extended',
+                            trackingEnabled: true
+                        });
+                        console.log('[App] Learning objectives service initialized with default educational settings');
+                    } catch (error) {
+                        console.error('[App] Failed to initialize educational mode:', error);
+                    }
+                })();
+            }, 0);
+        }
+
         return config;
     }, []); // Only parse once on mount
     

@@ -468,7 +468,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   {playerCharacter.diseaseHealth?.currentDiseases?.length ? (
                     <div className="mb-2">
                       {/* Disease badges */}
-                      <div className="flex flex-wrap gap-1 mb-2">
+                      <div className="flex flex-wrap gap-1 mb-1">
                         {playerCharacter.diseaseHealth.currentDiseases.map((d: any, index: number) => (
                           <span
                             key={index}
@@ -496,7 +496,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                     </div>
                   ) : (
                     /* Status when no disease */
-                    <p className="mb-2 text-xs italic text-[var(--accent-primary)]">
+                    <p className="mb-1 text-xs italic text-[var(--accent-primary)]">
                       {statusInfo.text}
                     </p>
                   )}
@@ -504,9 +504,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               </div>
 
               {/* Enhanced Progress Bars with Skeumorphic Effects */}
-              <div className="space-y-3 mt-3">
+              <div className="space-y-1.5 -mt-2">
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
+                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
                     <span>HEALTH</span>
                     <span className={`transition-colors duration-200 ${
                       healthPercent < 10 ? 'text-red-400 font-bold text-sm' :
@@ -517,9 +517,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                   <div className="relative w-full h-2.5 progress-track overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.4),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.2),inset_0_-1px_1px_rgba(255,255,255,0.1)]" />
                     {/* Inner track with padding for inset effect */}
-                    <div className="absolute inset-0.5 progress-fill opacity-30" />
+                    <div className="absolute inset-0.5 progress-fill opacity-10" />
                     {/* Progress fill - FIXED: simpler positioning */}
                     <div className="absolute inset-0.5 rounded-full overflow-hidden">
                       <div
@@ -527,7 +527,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                         style={{
                           '--final-width': `${healthPercent}%`,
                           width: `${healthPercent}%`,
-                          background: `linear-gradient(to right, #ef4444 0%, #fb923c 50%, #eab308 100%)`,
+                          background: `linear-gradient(to right, #ef4444 10%, #fb923c 60%, #eab308 100%)`,
                           backgroundSize: `${healthPercent > 0 ? 100 / (healthPercent / 100) : 100}% 100%`,
                           backgroundPosition: '0 0'
                         }}
@@ -539,7 +539,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
+                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
                     <span>FATIGUE</span>
                     <span className={`transition-colors duration-200 ${
                       fatiguePercent >= 90 ? 'text-red-400 font-bold text-sm' :
@@ -550,7 +550,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                   <div className="relative w-full h-2.5 progress-track overflow-hidden shadow-inner">
                     {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.4),inset_0_-1px_2px_rgba(255,255,255,0.15)]" />
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.4),inset_0_-1px_2px_rgba(255,255,255,0.1)]" />
                     {/* Inner track with padding for inset effect */}
                     <div className="absolute inset-0.3 progress-fill opacity-30" />
                     {/* Progress fill - FIXED: simpler positioning */}
@@ -573,7 +573,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
+                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-text-secondary">
                     <span>EXPERIENCE</span>
                     <span className="text-blue-300">
                       {Math.ceil(playerCharacter.experience)} / {Math.ceil(playerCharacter.maxExperience)}
@@ -626,7 +626,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
 
           {/* Actions */}
           <div className="mb-0">
-            <div className="flex items-center justify-between mb-2 mt-1">
+            <div className="flex items-center justify-between mb-1 mt-1">
               <h4 className="text-xs tracking-wider text-text-secondary uppercase">Actions</h4>
               <button
                 onClick={handleConfigClick}
@@ -636,7 +636,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 <Settings className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-3">
               {activeTab === 'study' ? (
                 // Study-specific action buttons - enhanced
                 STUDY_ACTIONS.map((action, index) => {
@@ -746,7 +746,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
         </div>
 
         {/* Enhanced Tab Navigation */}
-        <div className="tab-strip shrink-0 mx-2 mt-1 mb-2">
+        <div className="tab-strip shrink-0 mx-1 mt-0 mb-1">
           <button
             onClick={() => handleTabClick('narrator')}
             className={`tab-button text-xs font-bold ${activeTab === 'narrator' ? 'is-active' : ''}`}

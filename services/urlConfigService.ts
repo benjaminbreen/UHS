@@ -28,6 +28,7 @@ export interface URLGameConfig {
   seed?: string;
   profession?: string;
   healthStatus?: 'sick' | 'healthy' | 'sickly' | 'unhealthy';
+  educationalMode?: boolean; // NEW: Educational mode flag from /edu suffix
 }
 
 /**
@@ -37,13 +38,23 @@ export function parseURLConfig(pathname: string): URLGameConfig {
   const config: URLGameConfig = {};
 
   // Remove leading slash and split by /
-  const segments = pathname.replace(/^\//, '').split('/').filter(Boolean);
+  let segments = pathname.replace(/^\//, '').split('/').filter(Boolean);
 
   console.log('[URLConfig] Parsing URL:', pathname);
   console.log('[URLConfig] Segments:', segments);
 
   if (segments.length === 0) {
     return config;
+  }
+
+  // Check for /edu suffix on ANY segment
+  const hasEduSuffix = segments.some(seg => seg.toLowerCase() === 'edu');
+  if (hasEduSuffix) {
+    config.educationalMode = true;
+    // Remove 'edu' from segments so it doesn't interfere with other parsing
+    segments = segments.filter(seg => seg.toLowerCase() !== 'edu');
+    console.log('[URLConfig] Educational mode detected from /edu suffix');
+    console.log('[URLConfig] Cleaned segments:', segments);
   }
 
   // Parse date range (first segment)
@@ -70,6 +81,11 @@ export function parseURLConfig(pathname: string): URLGameConfig {
   // These can appear in any order after the geography segment (or after date if no geography)
   for (let i = startIndex; i < segments.length; i++) {
     const segment = segments[i];
+
+    // Skip 'edu' segment (already processed above)
+    if (segment.toLowerCase() === 'edu') {
+      continue;
+    }
 
     // Try to parse as health status first (most specific)
     const healthStatus = parseHealthStatus(segment);
