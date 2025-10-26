@@ -5,19 +5,402 @@
       "title": "Diary of a Madman",
       "author": "Lu Xun",
       "year": 1918,
-      "excerpt": "I have only just realized that I have been living all these years in a place where for four thousand years they have been eating people.",
+      "excerpt": "I have only just realized that I have been living all these years in a place where four thousand years they have been eating people.",
       "longExcerpt": "Tonight the moon is very bright. I have not seen it for over thirty years, so today when I saw it I felt in unusually high spirits. I begin to realize that during the past thirty-odd years I have been in the dark; but now I must be extremely careful. Otherwise why should the dogs have looked at me twice? I have only just realized that I have been living all these years in a place where for four thousand years they have been eating people. Eat people. It is a terrible discovery.",
-      "era": "MODERN",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EAST_ASIAN"],
+      "keywords": ["lu xun", "diary", "madman", "chinese literature", "may fourth movement"],
+      "wikisourceTitle": "Diary_of_a_Madman_(Lu_Xun)",
+      "citation": {
+        "originalPublication": "New Youth magazine, 1918",
+        "modernSource": "Translated by William A. Lyell"
+      }
+    },
+    {
+      "id": "hersey-hiroshima",
+      "title": "Hiroshima",
+      "author": "John Hersey",
+      "year": 1946,
+      "excerpt": "A tremendous flash of light cut across the sky. Mr. Tanimoto has a distinct recollection that it traveled from east to west.",
+      "longExcerpt": "At exactly fifteen minutes past eight in the morning, on August 6, 1945, Japanese time, at the moment when the atomic bomb flashed above Hiroshima, Miss Toshiko Sasaki, a clerk in the personnel department of the East Asia Tin Works, had just sat down at her place in the plant office. A tremendous flash of light cut across the sky. Mr. Tanimoto has a distinct recollection that it traveled from east to west, from the city toward the hills. It seemed a sheet of sun. This landmark piece of journalism documented the experiences of six survivors of the atomic bombing through meticulous interviews conducted one year after the attack, bringing human faces to nuclear warfare.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EAST_ASIAN"],
+      "keywords": ["hiroshima", "atomic bomb", "world war ii", "japan", "nuclear warfare", "hersey"],
+      "wikisourceTitle": "Hiroshima_(Hersey)",
+      "citation": {
+        "originalPublication": "The New Yorker, August 31, 1946",
+        "modernSource": "Alfred A. Knopf, 1946"
+      }
+    },
+    {
+      "id": "japan-surrender",
+      "title": "Japanese Instrument of Surrender",
+      "author": "Empire of Japan",
+      "year": 1945,
+      "excerpt": "We hereby proclaim the unconditional surrender to the Allied Powers of the Japanese Imperial General Headquarters.",
+      "longExcerpt": "We, acting by command of and in behalf of the Emperor of Japan, the Japanese Government and the Japanese Imperial General Headquarters, hereby accept the provisions set forth in the declaration issued by the heads of the Governments of the United States, China, and Great Britain on 26 July 1945 at Potsdam, and subsequently adhered to by the Union of Soviet Socialist Republics. We hereby proclaim the unconditional surrender to the Allied Powers of the Japanese Imperial General Headquarters and of all Japanese armed forces and all armed forces under the Japanese control wherever situated. This historic document was signed aboard the USS Missouri in Tokyo Bay on September 2, 1945, ending World War II.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EAST_ASIAN"],
+      "keywords": ["japan", "surrender", "world war ii", "tokyo bay", "macarthur", "hirohito"],
+      "wikisourceTitle": "Japanese_Instrument_of_Surrender",
+      "citation": {
+        "originalPublication": "Tokyo Bay, September 2, 1945",
+        "modernSource": "National Archives"
+      }
+    },
+    {
+      "id": "gandhi-quit-india",
+      "title": "Quit India Speech",
+      "author": "Mohandas Gandhi",
+      "year": 1942,
+      "excerpt": "Here is a mantra, a short one, that I give you: Do or Die. We shall either free India or die in the attempt.",
+      "longExcerpt": "I believe that in the history of the world, there has not been a more genuinely democratic struggle for freedom than ours. Here is a mantra, a short one, that I give you. You may imprint it on your hearts and let every breath of yours give expression to it. The mantra is: 'Do or Die.' We shall either free India or die in the attempt; we shall not live to see the perpetuation of our slavery. Take a pledge with God as witness that you will not rest till India is free. This speech on August 8, 1942 launched the Quit India Movement, leading to the arrest of Gandhi and tens of thousands of Congress members, but ultimately hastening Indian independence.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SOUTH_ASIAN"],
+      "keywords": ["gandhi", "quit india", "independence", "british raj", "congress", "do or die"],
+      "wikisourceTitle": "Quit_India_speech",
+      "citation": {
+        "originalPublication": "Bombay, August 8, 1942",
+        "modernSource": "Collected Works of Mahatma Gandhi, Vol. 76"
+      }
+    },
+    {
+      "id": "nehru-tryst-destiny",
+      "title": "Tryst with Destiny",
+      "author": "Jawaharlal Nehru",
+      "year": 1947,
+      "excerpt": "At the stroke of the midnight hour, when the world sleeps, India will awake to life and freedom.",
+      "longExcerpt": "Long years ago we made a tryst with destiny, and now the time comes when we shall redeem our pledge, not wholly or in full measure, but very substantially. At the stroke of the midnight hour, when the world sleeps, India will awake to life and freedom. A moment comes, which comes but rarely in history, when we step out from the old to the new, when an age ends, and when the soul of a nation, long suppressed, finds utterance. This historic speech by India's first Prime Minister was delivered to the Constituent Assembly on the eve of Indian independence from British rule, August 14, 1947.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SOUTH_ASIAN"],
+      "keywords": ["nehru", "india", "independence", "partition", "freedom", "midnight", "destiny"],
+      "wikisourceTitle": "Tryst_with_Destiny",
+      "citation": {
+        "originalPublication": "New Delhi, August 14, 1947",
+        "modernSource": "Indian Constituent Assembly Records"
+      }
+    },
+    {
+      "id": "mao-little-red-book",
+      "title": "Quotations from Chairman Mao Tse-tung",
+      "author": "Mao Zedong",
+      "year": 1964,
+      "excerpt": "Political power grows out of the barrel of a gun.",
+      "longExcerpt": "Every Communist must grasp the truth: Political power grows out of the barrel of a gun. Our principle is that the Party commands the gun, and the gun must never be allowed to command the Party. The people, and the people alone, are the motive force in the making of world history. All reactionaries are paper tigers. In appearance, the reactionaries are terrifying, but in reality they are not so powerful. From a long-term point of view, it is not the reactionaries but the people who are really powerful. This collection of Mao's quotations became one of the most printed books in history during the Cultural Revolution.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EAST_ASIAN"],
+      "keywords": ["mao", "little red book", "china", "communism", "cultural revolution", "quotations"],
+      "wikisourceTitle": "Quotations_from_Chairman_Mao_Tse-tung",
+      "internetArchiveId": "quotationsfromch00mao",
+      "citation": {
+        "originalPublication": "Beijing, 1964",
+        "modernSource": "Foreign Languages Press, 1966"
+      }
+    },
+    {
+      "id": "ho-chi-minh-declaration",
+      "title": "Declaration of Independence of Vietnam",
+      "author": "Ho Chi Minh",
+      "year": 1945,
+      "excerpt": "All men are created equal. They are endowed by their Creator with certain inalienable rights.",
+      "longExcerpt": "All men are created equal. They are endowed by their Creator with certain inalienable rights; among these are Life, Liberty, and the pursuit of Happiness. This immortal statement was made in the Declaration of Independence of the United States of America in 1776. In a broader sense, this means: All the peoples on the earth are equal from birth, all the peoples have a right to live, to be happy and free. Nevertheless, for more than eighty years, the French imperialists have violated our Fatherland and oppressed our fellow-citizens. Vietnam has the right to be a free and independent country. This declaration, read by Ho Chi Minh in Hanoi's Ba Dinh Square on September 2, 1945, proclaimed Vietnamese independence and began with quotes from the American and French declarations.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EAST_ASIAN"],
+      "keywords": ["ho chi minh", "vietnam", "independence", "declaration", "french", "colonialism"],
+      "wikisourceTitle": "Declaration_of_Independence_of_Vietnam",
+      "citation": {
+        "originalPublication": "Hanoi, September 2, 1945",
+        "modernSource": "Vietnam News Agency"
+      }
+    },
+    {
+      "id": "japan-constitution-article-9",
+      "title": "Constitution of Japan: Article 9",
+      "author": "Japanese Diet",
+      "year": 1947,
+      "excerpt": "The Japanese people forever renounce war as a sovereign right of the nation.",
+      "longExcerpt": "Aspiring sincerely to an international peace based on justice and order, the Japanese people forever renounce war as a sovereign right of the nation and the threat or use of force as means of settling international disputes. In order to accomplish the aim of the preceding paragraph, land, sea, and air forces, as well as other war potential, will never be maintained. The right of belligerency of the state will not be recognized. This pacifist clause, drafted during the American occupation, remains one of the most distinctive features of Japan's post-WWII constitution and has shaped Japanese foreign policy for over 75 years.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EAST_ASIAN"],
+      "keywords": ["japan", "constitution", "article 9", "pacifism", "war", "occupation", "macarthur"],
+      "wikisourceTitle": "Constitution_of_Japan",
+      "citation": {
+        "originalPublication": "Tokyo, May 3, 1947",
+        "modernSource": "Japanese National Diet"
+      }
+    },
+    {
+      "id": "sukarno-bandung-speech",
+      "title": "Let a New Asia and a New Africa Be Born!",
+      "author": "Sukarno",
+      "year": 1955,
+      "excerpt": "This is the first intercontinental conference of colored peoples in the history of mankind!",
+      "longExcerpt": "This is the first intercontinental conference of colored peoples in the history of mankind! Sisters and Brothers, how terrifically dynamic is our time! The peoples of Asia and Africa have been until recently just objects of history. Now they have become subjects of history. We, the peoples of Asia and Africa, 1,400,000,000 strong, far more than half the human population of the world, we can mobilize what I have called the Moral Violence of Nations in favor of peace. We can demonstrate to the minority of the world which lives on the other continents that we, the majority, are for peace. Indonesian President Sukarno's opening speech at the Bandung Conference launched the Non-Aligned Movement and Third World solidarity.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EAST_ASIAN"],
+      "keywords": ["sukarno", "bandung", "conference", "indonesia", "non-aligned", "third world", "decolonization"],
+      "citation": {
+        "originalPublication": "Bandung, Indonesia, April 18, 1955",
+        "modernSource": "Indonesian Ministry of Foreign Affairs"
+      }
+    },
+    {
+      "id": "tagore-gitanjali",
+      "title": "Gitanjali (Song Offerings)",
+      "author": "Rabindranath Tagore",
+      "year": 1910,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "Where the mind is without fear and the head is held high; Where knowledge is free.",
+      "longExcerpt": "Where the mind is without fear and the head is held high; Where knowledge is free; Where the world has not been broken up into fragments by narrow domestic walls; Where words come out from the depth of truth; Where tireless striving stretches its arms towards perfection; Where the clear stream of reason has not lost its way into the dreary desert sand of dead habit; Where the mind is led forward by thee into ever-widening thought and action— Into that heaven of freedom, my Father, let my country awake. This collection of devotional poems by India's first Nobel Prize winner in Literature blends spiritual mysticism with aspirations for Indian independence and enlightenment.",
+      "keywords": [
+        "tagore",
+        "gitanjali",
+        "poetry",
+        "india",
+        "bengal",
+        "spirituality",
+        "nobel prize"
+      ],
+      "wikisourceTitle": "Gitanjali",
+      "isStandard": true,
+      "citation": {
+        "translator": "Rabindranath Tagore (self-translated from Bengali)",
+        "originalPublication": "London, 1912 (Bengali original 1910)",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "ambedkar-annihilation-of-caste",
+      "title": "Annihilation of Caste",
+      "author": "B.R. Ambedkar",
+      "year": 1936,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "Caste is not a physical object. It is a notion; it is a state of the mind. The destruction of caste does not mean the destruction of a physical barrier. It means a notional change.",
+      "longExcerpt": "Caste is not a physical object like a wall of bricks or a line of barbed wire which prevents the Hindus from co-mingling and which has, therefore, to be pulled down. Caste is a notion; it is a state of the mind. The destruction of caste does not mean the destruction of a physical barrier. It means a notional change. The real remedy lies in destroying the belief in the sanctity of the Shastras. You must give up the Hindu religion. Nothing can emancipate the outcaste except the destruction of the caste system. Why do I want the caste system to be annihilated? Because I believe that the caste system is the greatest hindrance to India's social and moral progress. This undelivered speech by the architect of India's constitution became the foundational text for Dalit rights and anti-caste activism.",
+      "keywords": [
+        "ambedkar",
+        "caste",
+        "dalit",
+        "india",
+        "social reform",
+        "discrimination",
+        "hinduism"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "India, 1936",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "sun-yat-sen-three-principles",
+      "title": "The Three Principles of the People",
+      "author": "Sun Yat-sen",
+      "year": 1924,
+      "era": "MODERN_ERA",
       "culturalZones": [
         "EAST_ASIAN"
       ],
+      "excerpt": "The people's nationalism, the people's democracy, the people's livelihood - these are the three great principles.",
+      "longExcerpt": "What is the Three Principles of the People? The simplest definition is the people's nationalism, the people's democracy, and the people's livelihood. What do we mean by the people's nationalism? We Chinese were once a great nation. But now we are a sub-colony, lower even than Annam or Korea. The European powers do not even need to send troops to China; they control us through economic power. What is the people's democracy? It means government of all the people, by all the people, for all the people. And the people's livelihood? It means that land and capital should be controlled so that the many do not suffer from the greed of the few. These lectures by the founder of the Republic of China articulated his vision for Chinese nationalism, democracy, and socialism, forming the ideological foundation for both the Kuomintang and influencing Chinese Communist thought.",
       "keywords": [
-        "diary",
-        "madman"
+        "sun yat-sen",
+        "three principles",
+        "china",
+        "nationalism",
+        "democracy",
+        "republic",
+        "kuomintang"
       ],
-      "wikisourceTitle": "Diary_of_a_Madman",
+      "isStandard": true,
       "citation": {
-        "originalPublication": "Lu Xun, 1918"
+        "translator": "Frank W. Price",
+        "originalPublication": "Canton/Shanghai, 1924",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "zhou-enlai-bandung-speech",
+      "title": "Speech at the Bandung Conference",
+      "author": "Zhou Enlai",
+      "year": 1955,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The Chinese delegation has come to seek common ground, not to create conflict. We seek unity, not division.",
+      "longExcerpt": "The Chinese delegation has come here to seek common ground, not to create conflict. The population of Asia totals more than 1,400,000,000, or more than half of the world's total population. The Asian-African countries have long been subjected to colonial rule and still suffer from the after-effects of colonialism. We seek unity, not division. Although we come from different countries with different political and social systems, we share the common experience of imperialism and the common desire for peace and development. China advocates the Five Principles of Peaceful Coexistence: mutual respect for sovereignty and territorial integrity, mutual non-aggression, non-interference in each other's internal affairs, equality and mutual benefit, and peaceful coexistence. This speech by China's Premier at the Bandung Conference demonstrated China's diplomatic shift and helped establish the Non-Aligned Movement.",
+      "keywords": [
+        "zhou enlai",
+        "bandung",
+        "china",
+        "non-aligned",
+        "peaceful coexistence",
+        "diplomacy",
+        "third world"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Bandung, Indonesia, April 19, 1955",
+        "modernSource": "Chinese Foreign Ministry Archives"
+      }
+    },
+    {
+      "id": "natsume-soseki-kokoro",
+      "title": "Kokoro",
+      "author": "Natsume Sōseki",
+      "year": 1914,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Loneliness is the price we have to pay for being born in this modern age, so full of freedom, independence, and our own egotistical selves.",
+      "longExcerpt": "Loneliness is the price we have to pay for being born in this modern age, so full of freedom, independence, and our own egotistical selves. I was educated in the Meiji era, when Japan rushed to modernize and adopt Western ways. We abandoned our old customs, our old certainties. My teacher Sensei carries a secret guilt from his youth - a betrayal of a friend that haunts him still. When Emperor Meiji died, General Nogi committed suicide following his lord to death, in the old samurai way. My teacher followed him. What does it mean to be modern? What do we lose when we gain the world? This novel by Japan's greatest modern writer explores the psychological isolation and moral confusion of Meiji-era modernization.",
+      "keywords": [
+        "natsume soseki",
+        "kokoro",
+        "japan",
+        "meiji",
+        "modernization",
+        "loneliness",
+        "literature"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "Edwin McClellan",
+        "originalPublication": "Tokyo, 1914",
+        "modernSource": "Public domain in some jurisdictions"
+      }
+    },
+    {
+      "id": "ngo-dinh-diem-declaration",
+      "title": "Proclamation of the Republic of Vietnam",
+      "author": "Ngo Dinh Diem",
+      "year": 1955,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The National Assembly has voted to depose Bao Dai and establish the Republic of Vietnam. I accept the mandate of the people.",
+      "longExcerpt": "The National Assembly, representing the will of the Vietnamese people, has voted to depose the puppet emperor Bao Dai and to establish the Republic of Vietnam. I, Ngo Dinh Diem, accept the mandate of the people to serve as the first President of the Republic. For too long, our country was divided and weakened by colonialism and foreign interference. The French ruled us for nearly a century. Now communists from the North seek to impose their dictatorship upon us. We in the South choose freedom, democracy, and independence. We will build a new Vietnam based on the traditional values of our civilization combined with modern democratic institutions. We seek the support of all free nations in our struggle against communist aggression. This proclamation established South Vietnam as a republic, setting the stage for the Vietnam War.",
+      "keywords": [
+        "ngo dinh diem",
+        "south vietnam",
+        "republic",
+        "vietnam war",
+        "independence",
+        "anti-communism"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Saigon, October 26, 1955",
+        "modernSource": "Republic of Vietnam Archives"
+      }
+    },
+    {
+      "id": "park-chung-hee-revolution",
+      "title": "Proclamation of the Military Revolution",
+      "author": "Park Chung-hee",
+      "year": 1961,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "We have risen to save the nation from the chaos of corruption and inefficiency. Our revolution will bring order, development, and strength to Korea.",
+      "longExcerpt": "Fellow citizens: At dawn today, the military has risen to save the nation from the brink of collapse. The corrupt and inefficient civilian government has brought our country to ruin. We face communist aggression from the North while our own government steals from the people. This revolution has six pledges: First, to fight communism. Second, to observe the UN Charter and strengthen ties with the Free World. Third, to eliminate corruption. Fourth, to solve unemployment and rebuild the economy. Fifth, to strengthen our capability for reunification. Sixth, to hand over power to honest and capable civilians after these goals are achieved. We will build a strong, modern Korea through discipline, hard work, and national unity. This coup proclamation by future President Park Chung-hee initiated South Korea's authoritarian developmental state that transformed it into an economic powerhouse.",
+      "keywords": [
+        "park chung-hee",
+        "south korea",
+        "coup",
+        "military",
+        "development",
+        "authoritarianism"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Seoul, May 16, 1961",
+        "modernSource": "ROK National Archives"
+      }
+    },
+    {
+      "id": "suharto-new-order",
+      "title": "Establishment of the New Order",
+      "author": "Suharto",
+      "year": 1966,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The New Order is born from the struggle to save Pancasila and the 1945 Constitution from communist destruction.",
+      "longExcerpt": "The New Order is born from the struggle to save Pancasila and the 1945 Constitution from communist destruction. On September 30, 1965, the PKI (Indonesian Communist Party) attempted a coup. They murdered six generals. But the Indonesian people rose up and destroyed the communist conspiracy. We have learned that Guided Democracy under President Sukarno allowed communism to flourish. The New Order will be different: we will implement Pancasila purely and consistently; we will achieve economic development; we will maintain political stability; we will eliminate corruption, collusion, and nepotism. Indonesia will take its rightful place among the developing nations through discipline and hard work. This speech marked Suharto's assumption of power in Indonesia, beginning 32 years of authoritarian rule that emphasized economic development and anti-communism.",
+      "keywords": [
+        "suharto",
+        "indonesia",
+        "new order",
+        "coup",
+        "anti-communism",
+        "pancasila"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Jakarta, March 11, 1966",
+        "modernSource": "Indonesian State Archives"
+      }
+    },
+    {
+      "id": "burmese-independence-speech",
+      "title": "Independence Speech of Burma",
+      "author": "U Nu",
+      "year": 1948,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "After 62 years of British rule, Burma is free. We face the future as an independent nation.",
+      "longExcerpt": "At this solemn and historic moment, Burma achieves its independence. After 62 years of British colonial rule, after three years of brutal Japanese occupation, we stand free. We have chosen to leave the British Commonwealth and chart our own course as a sovereign nation. Burma was once a great kingdom - the kingdom of Anawrahta, of Bayinnaung. We were conquered and colonized, but our spirit was never broken. Now we must build a new Burma: a democratic Burma, a socialist Burma, a Buddhist Burma. We face many challenges - ethnic divisions, communist insurgencies, economic devastation from war. But we are determined to succeed. Burma will be a land where all peoples - Burmans, Karens, Shans, Kachins, all - live together in peace and prosperity. This speech by Burma's first Prime Minister marked independence on January 4, 1948.",
+      "keywords": [
+        "burma",
+        "myanmar",
+        "independence",
+        "u nu",
+        "british colonialism",
+        "decolonization"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Rangoon, Burma, January 4, 1948",
+        "modernSource": "Burmese National Archives"
+      }
+    },
+    {
+      "id": "singapore-separation",
+      "title": "Proclamation of Singapore",
+      "author": "Lee Kuan Yew",
+      "year": 1965,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Singapore shall be forever a sovereign democratic and independent nation. For me, it is a moment of anguish because all my life I have believed in merger and the unity of these two territories.",
+      "longExcerpt": "Singapore shall be forever a sovereign democratic and independent nation, founded upon the principles of liberty and justice and ever seeking the welfare and happiness of her people in a more just and equal society. For me, it is a moment of anguish because all my life I have believed in merger and the unity of these two territories. We are going to have a multiracial nation in Singapore. This is not a Malay nation, not a Chinese nation, not an Indian nation. Everybody will have his place: equal language, culture, religion. We are going to build a multiracial society where race, language, and religion will not divide us. We have no natural resources. Our only resource is our people. We will succeed through hard work, discipline, and merit. This tearful speech announced Singapore's separation from Malaysia and independence as a city-state.",
+      "keywords": [
+        "singapore",
+        "lee kuan yew",
+        "independence",
+        "separation",
+        "malaysia",
+        "multiracial"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Singapore, August 9, 1965",
+        "modernSource": "Singapore National Archives"
       }
     }
   ]

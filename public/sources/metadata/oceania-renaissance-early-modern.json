@@ -5,19 +5,11 @@
       "title": "Kumulipo",
       "author": "Hawaiian priests",
       "year": 1700,
-      "era": "EARLY_MODERN",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
       "excerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened.",
-      "longExcerpt": "The Kumulipo is the sacred creation chant of the Hawaiian people, a genealogical prayer chant that traces the origins of the universe and the lineage of Hawaiian royalty. The chant begins in primordial darkness and describes the emergence of life forms in genealogical sequence.\n\nO ke au i kahuli wela ka honua (At the time when the earth became hot)\nO ke au i kahuli lole ka lani (At the time when the heavens turned about)\nO ke au i kuka'iaka ka la (At the time when the sun was darkened)\nE ho'omalamalama i ka malama (To cause the moon to shine)\nO ke au o Makali'i ka po (The time of the rise of the Pleiades)\nO ka walewale ho'okumu honua ia (The slime, this was the source of the earth)\nO ke kumu o ka lipo, i lipo ai (The source of the darkness that made darkness)\nO ke kumu o ka Po, i po ai (The source of the night that made night)\n\nThe chant continues through multiple generations, describing the birth of sea creatures, land plants, animals, and eventually humans. Each section represents a different era or 'wa' of creation. The first seven wa describe the emergence of lower life forms in the darkness. Sea creatures appear first: coral polyps, starfish, sea cucumbers, and various shellfish. Then come seaweeds and rushes, followed by land plants.\n\nIn Hawaiian cosmology, all life forms are related through genealogical connections. The chant establishes these relationships: 'Hanau ka 'uku-ko'ako'a, hanau kana, he 'ako'ako'a, puka' (Born was the coral polyp, born was the coral, came forth). This pattern continues throughout, with each life form giving birth to related forms.\n\nThe eighth wa marks the transition from darkness (po) to light (ao) with the birth of the first humans. From this point, the chant becomes a genealogical record of the ali'i (chiefs), tracing their lineage back through the gods to the primordial forces of creation. The name Kumulipo itself means 'beginning in deep darkness.'\n\nThe chant was traditionally recited during important ceremonies, particularly during the Makahiki season (winter months) and at the birth or investiture of high-ranking ali'i. Its recitation could take hours, as the full chant contains over 2,000 lines. The version we know today was commissioned by King Kalakaua in 1889 and translated by Queen Liliuokalani while she was imprisoned after the overthrow of the Hawaiian Kingdom.",
-      "keywords": [
-        "creation",
-        "Hawaii",
-        "genealogy",
-        "cosmology",
-        "chant"
-      ],
+      "longExcerpt": "The Kumulipo is the sacred creation chant of the Hawaiian people, a genealogical prayer chant that traces the origins of the universe and the lineage of Hawaiian royalty. O ke au i kahuli wela ka honua (At the time when the earth became hot), O ke au i kahuli lole ka lani (At the time when the heavens turned about), O ke au i kuka'iaka ka la (At the time when the sun was darkened). The chant begins in primordial darkness and describes the emergence of life forms in genealogical sequence, from coral polyps to sea creatures, land plants, animals, and eventually humans. The version we know today was commissioned by King Kalakaua in 1889 and translated by Queen Liliuokalani while imprisoned after the overthrow of the Hawaiian Kingdom.",
+      "keywords": ["creation", "hawaii", "genealogy", "cosmology", "chant", "kumulipo"],
       "contextualKeywords": [
         {
           "keyword": "Pele",
@@ -40,21 +32,11 @@
       "title": "The Three Voyages of Captain Cook",
       "author": "James Cook",
       "year": 1773,
-      "era": "RENAISSANCE_EARLY-MODERN",
-      "culturalZones": [
-        "OCEANIA"
-      ],
-      "excerpt": "The inhabitants of this country are the miserablest people in the world. The Hodmadods of Monomatapa, though a nasty people, yet for wealth are gentlemen to these; who have no houses and skin garments, sheep, poultry, and fruits of the earth.",
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The inhabitants of this country are the miserablest people in the world. The Hodmadods of Monomatapa, though a nasty people, yet for wealth are gentlemen to these.",
       "longExcerpt": "The inhabitants of this country are the miserablest people in the world. The Hodmadods of Monomatapa, though a nasty people, yet for wealth are gentlemen to these; who have no houses and skin garments, sheep, poultry, and fruits of the earth. This ethnocentric description of Aboriginal Australians from Cook's 1773 voyage reflects European prejudices while documenting first contact with Pacific peoples.",
-      "keywords": [
-        "exploration",
-        "Pacific",
-        "Australia",
-        "Tahiti",
-        "navigation",
-        "discovery",
-        "contact"
-      ],
+      "keywords": ["cook", "exploration", "pacific", "australia", "tahiti", "navigation", "discovery", "contact"],
       "wikisourceTitle": "The_Three_Voyages_of_Captain_James_Cook_Round_the_World",
       "internetArchiveId": "threevoyagesofca01cook",
       "citation": {
@@ -68,27 +50,98 @@
       "title": "A Voyage to the South Sea",
       "author": "William Bligh",
       "year": 1792,
-      "era": "RENAISSANCE_EARLY-MODERN",
-      "culturalZones": [
-        "OCEANIA"
-      ],
-      "excerpt": "The breadfruit grows on a tree about the size of a common oak. When properly baked, its taste is insipid, with a slight sweetness somewhat resembling that of the crumb of wheaten bread mixed with Jerusalem artichoke.",
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The breadfruit grows on a tree about the size of a common oak. When properly baked, its taste is insipid, with a slight sweetness.",
       "longExcerpt": "The breadfruit grows on a tree about the size of a common oak. When properly baked, its taste is insipid, with a slight sweetness somewhat resembling that of the crumb of wheaten bread mixed with Jerusalem artichoke. This account from 1792 documents Bligh's mission to transport breadfruit from Tahiti to the West Indies, a voyage that led to the famous mutiny on the Bounty.",
-      "keywords": [
-        "Tahiti",
-        "breadfruit",
-        "mutiny",
-        "Bounty",
-        "Pacific",
-        "navigation",
-        "botany"
-      ],
+      "keywords": ["bligh", "tahiti", "breadfruit", "mutiny", "bounty", "pacific", "navigation", "botany"],
       "wikisourceTitle": "A_Voyage_to_the_South_Sea",
       "internetArchiveId": "voyagetosouthsea00blig",
       "citation": {
         "translator": null,
         "originalPublication": "London, 1792",
         "modernSource": "George Nicol, 1792"
+      }
+    },
+    {
+      "id": "tasman-journal",
+      "title": "Journal of Abel Janszoon Tasman",
+      "author": "Abel Tasman",
+      "year": 1642,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "We have discovered a great land in the South Sea. Whether this is a part of the unknown Southern continent remains to be seen.",
+      "longExcerpt": "We have discovered a great land in the South Sea. Whether this is a part of the unknown Southern continent remains to be seen. On December 13, 1642, we sighted high mountainous land. We sailed along the coast seeking a suitable anchorage. The natives came toward us in two prows who called out to us in a loud voice, but we could not understand them. They blew several times on an instrument that produced a sound like a Moorish trumpet. We answered them with similar sounds from our ship. When we sent a boat to seek fresh water, four more prows approached, and one rammed our boat. Three of our men were killed. We named this place Murderers' Bay. This journal documents Tasman's 1642-1643 voyage for the Dutch East India Company, during which he became the first European to sight Tasmania (Van Diemen's Land) and New Zealand.",
+      "keywords": ["tasman", "new zealand", "tasmania", "dutch", "exploration", "van diemen", "murderers bay"],
+      "wikisourceTitle": "Abel_Tasman's_Journal",
+      "citation": {
+        "originalPublication": "Batavia, 1642-1643",
+        "modernSource": "Dutch East India Company Archives, translated 1898"
+      }
+    },
+    {
+      "id": "dampier-new-holland",
+      "title": "A Voyage to New Holland",
+      "author": "William Dampier",
+      "year": 1699,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The inhabitants of New Holland are the miserablest people in the world.",
+      "longExcerpt": "The inhabitants of New Holland are the miserablest people in the world. The Hodmadods of Monomatapa, though a nasty people, yet for wealth are gentlemen to these. They have no houses but lie in the open air without any covering, the earth being their bed and the heaven their canopy. They have no garments but a piece of bark tied like a girdle about their waists. They have no sheep, poultry or fruits of the earth. I did not perceive that they did worship anything. Their weapons are a long straight pole sharpened at one end. They have no nets or vessels to catch fish. I saw some of them climb trees to eat the gum that drips from them. This 1699 account by English explorer and pirate William Dampier provided one of the earliest European descriptions of Aboriginal Australians and the Australian continent.",
+      "keywords": ["dampier", "new holland", "australia", "aboriginal", "exploration", "pirate", "ethnography"],
+      "wikisourceTitle": "A_Voyage_to_New_Holland",
+      "internetArchiveId": "voyagetonewholland00damp",
+      "citation": {
+        "originalPublication": "London, 1703",
+        "modernSource": "James Knapton, 1703"
+      }
+    },
+    {
+      "id": "quiros-memorial",
+      "title": "Memorial of Pedro Fernández de Quirós",
+      "author": "Pedro Fernández de Quirós",
+      "year": 1608,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "I discovered a land as large as all Europe, with excellent climate and fertile soil - the Great South Land.",
+      "longExcerpt": "I discovered a land as large as all Europe, with excellent climate and fertile soil, inhabited by people of good disposition. This is the Great South Land, Terra Australis del Espíritu Santo. In the name of the Holy Trinity and of the Most Holy Virgin, I took possession of this land for His Majesty the King of Spain. The land produces excellent timber, fresh water flows abundantly, the air is healthy, and the natives, though naked, are handsome and well-proportioned. They wear ornaments of mother-of-pearl and have gardens of roots and fruits. With proper settlement and conversion to the True Faith, this land could become the greatest jewel in His Majesty's crown. This memorial by Portuguese navigator Quirós, sailing for Spain, described his 1606 landing in Vanuatu, which he believed was the fabled Great Southern Continent.",
+      "keywords": ["quiros", "vanuatu", "spanish", "exploration", "terra australis", "pacific", "espiritu santo"],
+      "citation": {
+        "originalPublication": "Madrid, 1608",
+        "modernSource": "Archivo General de Indias, Seville"
+      }
+    },
+    {
+      "id": "la-perouse-journal",
+      "title": "Voyage de La Pérouse autour du monde",
+      "author": "Jean-François de Galaup, comte de Lapérouse",
+      "year": 1797,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "At Botany Bay we found the English establishing a colony. We exchanged civilities with Governor Phillip.",
+      "longExcerpt": "At Botany Bay we found the English establishing a colony of convicts. We anchored on January 26, 1788, the same day the First Fleet arrived. We exchanged civilities with Governor Phillip and provided him with letters to carry back to Europe, as we were continuing our voyage around the Pacific. The natives watched our interactions with great curiosity. They seem little interested in European goods, refusing even iron tools. They appear satisfied with their mode of life. We departed Botany Bay in March. This would be the last communication received from our expedition. This French scientific expedition led by La Pérouse disappeared without trace after leaving Botany Bay. The wrecks were not discovered until 1826 on the reefs of Vanikoro in the Solomon Islands. These journals, sent home before the ships were lost, provide valuable observations of early European-Aboriginal contact.",
+      "keywords": ["la perouse", "botany bay", "french", "exploration", "first fleet", "australia", "shipwreck"],
+      "wikisourceTitle": "Voyage_de_La_Pérouse",
+      "internetArchiveId": "voyagedelaprouse01lap",
+      "citation": {
+        "translator": "Julius S. Gassner",
+        "originalPublication": "Paris, 1797",
+        "modernSource": "Imprimerie de la République, 1797"
+      }
+    },
+    {
+      "id": "maori-creation-chant",
+      "title": "Ranginui and Papatūānuku Creation Chant",
+      "author": "Māori oral tradition",
+      "year": 1700,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "In the beginning, Ranginui the Sky Father and Papatūānuku the Earth Mother were locked in tight embrace.",
+      "longExcerpt": "In the beginning, Ranginui the Sky Father and Papatūānuku the Earth Mother were locked in tight embrace. Their children lived in darkness between them, crushed and unable to move. The children debated what to do. Tūmatauenga, the god of war, proposed killing their parents. But Tāne Mahuta, god of the forests, said: 'No, let us instead push them apart.' One by one the children tried to separate their parents, but failed. Finally Tāne lay on his back, placed his feet against Ranginui, and pushed with all his strength. Slowly, painfully, he forced his parents apart. Ranginui was pushed into the sky, while Papatūānuku remained below. Light flooded into the world for the first time. But Ranginui and Papatūānuku wept for their separation - Ranginui's tears fall as rain, while Papatūānuku's sighs rise as morning mist. This Māori creation narrative explains the origins of the world and the separation of earth and sky.",
+      "keywords": ["maori", "creation", "ranginui", "papatuanuku", "tane mahuta", "mythology", "cosmology"],
+      "citation": {
+        "originalPublication": "Oral tradition, recorded late 18th century",
+        "modernSource": "Recorded by early European missionaries and ethnographers"
       }
     }
   ]

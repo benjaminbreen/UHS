@@ -5,18 +5,11 @@
       "title": "Kilwa Chronicle",
       "author": "Anonymous",
       "year": 1520,
-      "era": "EARLY_MODERN",
-      "culturalZones": [
-        "SUB_SAHARAN_AFRICAN"
-      ],
-      "excerpt": "Ships come from India and from the lands of the Arabs bringing goods to trade for gold.",
-      "keywords": [
-        "trade",
-        "Swahili coast",
-        "Indian Ocean",
-        "Islam",
-        "commerce"
-      ],
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "Ships come from India and from the lands of the Arabs bringing goods to trade for gold. The Sultan of Kilwa controls the gold trade from Sofala. His palace is built of coral stone and lime mortar, with carved wooden doors imported from India. The mosque can hold a thousand worshippers. The people wear fine cotton from Gujarat and silk from China.",
+      "longExcerpt": "Ships come from India and from the lands of the Arabs bringing goods to trade for gold. The Sultan of Kilwa controls the gold trade from Sofala. His palace is built of coral stone and lime mortar, with carved wooden doors imported from India. The mosque can hold a thousand worshippers. The people wear fine cotton from Gujarat and silk from China. There are great merchants who come from Cambay and Sofala and Mombasa. The Sultan sits in state on carpets and cushions, and his ministers stand before him. The city's wealth comes from the trade in gold and ivory, which is brought from the interior. The great houses are built of stone and lime, three or four stories high, with terraces on the roofs. The lesser houses are built of mud and thatch. In the marketplace, traders sell cloth from India, porcelain from China, brass from Arabia, and beads from Cambay. The Sultan maintains a fleet of dhows to patrol the coast and to trade with distant ports.",
+      "keywords": ["trade", "swahili coast", "indian ocean", "islam", "commerce", "kilwa"],
       "contextualKeywords": [
         {
           "keyword": "Kilwa",
@@ -38,35 +31,24 @@
       },
       "wikisourceTitle": null,
       "internetArchiveId": null,
-      "isStandard": true,
-      "longExcerpt": "Ships come from India and from the lands of the Arabs bringing goods to trade for gold. This historical source from 1520 provides valuable insight into the sub-saharan-africa region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "isStandard": true
     },
     {
       "id": "leo-africanus-africa",
       "title": "The History and Description of Africa",
       "author": "Leo Africanus",
       "year": 1526,
-      "era": "RENAISSANCE_EARLY-MODERN",
-      "culturalZones": [
-        "SUB_SAHARAN_AFRICAN"
-      ],
-      "excerpt": "In Timbuktu there are numerous judges, teachers and priests, all properly appointed by the king. He greatly honors learning. Many hand-written books imported from Barbary are also sold. There is more profit made from this commerce than from all other merchandise.",
-      "longExcerpt": "In Timbuktu there are numerous judges, teachers and priests, all properly appointed by the king. He greatly honors learning. Many hand-written books imported from Barbary are also sold. There is more profit made from this commerce than from all other merchandise. The inhabitants are very rich, especially the strangers who have settled in the country; so much so that the current king has given two of his daughters in marriage to two brothers, both businessmen. This famous account from 1526 describes the intellectual and commercial wealth of Timbuktu at its height as a center of Islamic learning and trans-Saharan trade.",
-      "keywords": [
-        "Timbuktu",
-        "books",
-        "learning",
-        "trade",
-        "wealth",
-        "Mali",
-        "scholarship"
-      ],
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "In Timbuktu there are numerous judges, teachers and priests, all properly appointed by the king. He greatly honors learning. Many hand-written books imported from Barbary are sold. There is more profit made from this commerce than from all other merchandise.",
+      "longExcerpt": "In Timbuktu there are numerous judges, teachers and priests, all properly appointed by the king. He greatly honors learning. Many hand-written books imported from Barbary are also sold. There is more profit made from this commerce than from all other merchandise. The inhabitants are very rich, especially the strangers who have settled in the country; so much so that the current king has given two of his daughters in marriage to two brothers, both businessmen. The rich king of Timbuktu has great store of scepters and plates, some of gold, and some of silver. The houses of Timbuktu are huts made of chalk and covered with thatch, but there is a most stately temple to be seen, and a princely palace built by a cunning architect. Here are great numbers of religious teachers, judges, and learned men, who are bountifully maintained at the king's expense. Various manuscripts and written books are brought from Barbary and sold for more money than any other merchandise. The coin of Timbuktu is gold without any stamp or inscription, but in other places they use certain shells brought from the kingdom of Persia. The king possesses many plates and scepters of gold, some whereof weigh 1,300 pounds.",
+      "keywords": ["timbuktu", "books", "learning", "trade", "wealth", "mali", "scholarship"],
       "contextualKeywords": [
         {
           "keyword": "Sankore",
           "conditions": {
             "culturalZone": "SUB_SAHARAN_AFRICAN",
-            "era": "RENAISSANCE_EARLY-MODERN"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -83,27 +65,109 @@
       "title": "The Book of Duarte Barbosa",
       "author": "Duarte Barbosa",
       "year": 1516,
-      "era": "RENAISSANCE_EARLY-MODERN",
-      "culturalZones": [
-        "SUB_SAHARAN_AFRICAN"
-      ],
-      "excerpt": "The King of Kilwa wears silk robes richly worked with gold thread. A golden anklet was on his leg, and he had many rings on his fingers. They trade with Sofala, whence they bring back gold, and from Cambay and India they get beads and cotton cloth.",
-      "longExcerpt": "The King of Kilwa wears silk robes richly worked with gold thread. A golden anklet was on his leg, and he had many rings on his fingers. They trade with Sofala, whence they bring back gold, and from Cambay and India they get beads and cotton cloth. The houses are lofty and well built of stone and mortar, with terraces, and the streets are very narrow. This Portuguese account from 1516 provides one of the earliest European descriptions of the wealthy Swahili city-states, their architecture, dress, and extensive Indian Ocean trade networks.",
-      "keywords": [
-        "Kilwa",
-        "gold",
-        "silk",
-        "Sofala",
-        "India",
-        "Swahili",
-        "trade"
-      ],
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "The King of Kilwa wears silk robes richly worked with gold thread. A golden anklet was on his leg, and he had many rings on his fingers. They trade with Sofala, whence they bring back gold, and from Cambay and India they get beads and cotton cloth. The houses are lofty and well built of stone and mortar, with terraces, and the streets are very narrow.",
+      "longExcerpt": "The King of Kilwa wears silk robes richly worked with gold thread. A golden anklet was on his leg, and he had many rings on his fingers. They trade with Sofala, whence they bring back gold, and from Cambay and India they get beads and cotton cloth. The houses are lofty and well built of stone and mortar, with terraces, and the streets are very narrow. The King has a palace in the town, very fair and with many windows. The doors are all well carved and painted. Before the palace there is a great court walled round with a stone wall. These Moors are black, and some of them tawny; some of them speak Arabic, but the more part use the language of the country. They dress in very fine silk and cotton garments, which they buy at Mombasa from the merchants who come from Cairo. The merchants who visit the coast are very honorable, and they trade justly without fraud. The goods which they bring are cloth of various kinds, and they exchange these for gold, ivory, wax, and ambergris. The King receives duties on all merchandise which enters or leaves the port. In this city of Kilwa are many great lords and merchants, and here is found much fine gold.",
+      "keywords": ["kilwa", "gold", "silk", "sofala", "india", "swahili", "trade"],
       "wikisourceTitle": "The_Book_of_Duarte_Barbosa",
       "internetArchiveId": "bookofduartebar00barb",
       "citation": {
         "translator": "Mansel Longworth Dames",
         "originalPublication": "Lisbon, c. 1516",
         "modernSource": "Hakluyt Society, 1918"
+      }
+    },
+    {
+      "id": "afonso-kongo-letters",
+      "title": "Letters of Afonso I of Kongo to the King of Portugal",
+      "author": "Afonso I Mvemba a Nzinga",
+      "year": 1526,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "Each day the traders are kidnapping our people - children of this country, sons of our nobles and vassals, even people of our own family. This corruption and depravity is so widespread that our land is entirely depopulated. We need in this kingdom only priests and schoolteachers, and no merchandise, unless it is wine and flour for Mass. It is our wish that this Kingdom not be a place for the trade or transport of slaves.",
+      "longExcerpt": "Each day the traders are kidnapping our people - children of this country, sons of our nobles and vassals, even people of our own family. This corruption and depravity is so widespread that our land is entirely depopulated. We need in this kingdom only priests and schoolteachers, and no merchandise, unless it is wine and flour for Mass. It is our wish that this Kingdom not be a place for the trade or transport of slaves. Many of our subjects eagerly lust after Portuguese merchandise which Your subjects bring into our domain. To satisfy this inordinate appetite, they seize many of our black free subjects. They sell them. After having taken these prisoners secretly or at night, they sell them to white men who are in our Kingdom. And to avoid this we need from those Kingdoms no other than priests and people to teach in schools, and no other goods but wine and flour for holy sacrament. That is why we beg of Your Highness to help and assist us in this matter, commanding your factors that they should not send here either merchants or wares, because it is our will that in these Kingdoms there should not be any trade of slaves nor outlet for them. And we beg Your Highness that all the ships which come to our ports should come only to bring us priests and people to teach in schools, and that they should bring no merchandise to sell. Concerning what is written above, we wish it to be ordained by Your Highness that our nobles and fidalgos should be punished severely for this offense.",
+      "keywords": ["afonso", "kongo", "slavery", "portugal", "letters", "christianity", "depopulation"],
+      "citation": {
+        "originalPublication": "Kingdom of Kongo, 1526",
+        "modernSource": "Portuguese National Archives, Lisbon"
+      }
+    },
+    {
+      "id": "olfert-dapper-benin",
+      "title": "Description of Benin City",
+      "author": "Olfert Dapper",
+      "year": 1668,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "The town seems to be very great. When you enter into it, you go into a great broad street which is seven or eight times broader than the Warmoes street in Amsterdam. The King's palace is a collection of buildings which occupy as much space as the town of Harlem. It is divided into many magnificent apartments, and has fine and long galleries. The walls are made of red clay, very well polished, appearing to be covered with shining marble.",
+      "longExcerpt": "The town seems to be very great. When you enter into it, you go into a great broad street which is seven or eight times broader than the Warmoes street in Amsterdam. The King's palace is a collection of buildings which occupy as much space as the town of Harlem. It is divided into many magnificent apartments, and has fine and long galleries, especially one to the right from the gate which is very long. The walls are made of red clay, very well polished, appearing to be covered with shining marble. The city is wealthy and industrious. It is so well governed that theft is unknown and the people live in such security that they have no doors to their houses. Benin is governed by a powerful king who commands a great army. The inhabitants of this town, especially the common people, are very civil and good-natured, condescending to what Europeans require of them. The women go naked, except for a cloth tied about their waist. The men are clothed from the waist down. Their armor is made of elephants' leather, with shields of the same. They have iron and wooden darts, and some have bows and arrows. The king has many noblemen about him who serve as his councillors and captains. The town is well arranged, with long, straight streets that extend as far as the eye can see.",
+      "keywords": ["benin", "oba", "palace", "city", "netherlands", "architecture", "kingdom"],
+      "citation": {
+        "originalPublication": "Amsterdam, 1668",
+        "modernSource": "Description of Africa by Olfert Dapper"
+      }
+    },
+    {
+      "id": "askia-mohammed-letter",
+      "title": "Correspondence of Askia Mohammed with al-Maghili",
+      "author": "Askia Mohammed I of Songhai",
+      "year": 1498,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "Tell me about the status of free persons who were wrongfully enslaved and of the children of free people who were wrongfully born into slavery.",
+      "longExcerpt": "Tell me about the status of free persons who were wrongfully enslaved and of the children of free people who were wrongfully born into slavery. Among us are people who claim that their ancestors were free persons who were wrongfully enslaved. Is it lawful for them to reclaim their freedom, or not? What about Muslims who are kept as slaves? Is it permissible? What is the judgment on the selling of free Muslims? What about one who raids free people and sells them into slavery? Tell me also about the land tax and what is obligatory on Muslims regarding it. What is the law concerning the poll tax on non-Muslims? How should judges be appointed, and what are the requirements for witnesses in court? What are the duties of market inspectors in ensuring fair trade?",
+      "keywords": ["askia mohammed", "songhai", "islam", "slavery", "law", "scholarship", "empire"],
+      "citation": {
+        "originalPublication": "Gao, Songhai Empire, c. 1498",
+        "modernSource": "Translated from Arabic, various collections"
+      }
+    },
+    {
+      "id": "barbot-guinea",
+      "title": "A Description of the Coasts of North and South Guinea",
+      "author": "Jean Barbot",
+      "year": 1682,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "The natives of this coast are generally well-shaped, robust and strong, of a good constitution, and very black.",
+      "longExcerpt": "The natives of this coast are generally well-shaped, robust and strong, of a good constitution, and very black. They are a very sharp, subtle people, who do not transact any business without great circumspection and thoughtfulness. They are very industrious and laborious, applying themselves to agriculture, fishing, hunting, and to mechanic trades. The Blacks on the Gold Coast are clever and sharp-witted, much more so than those on the Slave Coast. They will not suffer themselves to be cheated in trade. The trade in slaves is the most profitable here, but also most difficult and troublesome, on account of the great care and strict watch which must be kept over them lest they mutiny and murder the ship's crew. They have strict laws governing commerce, and their kings exact tribute from foreign traders.",
+      "keywords": ["barbot", "guinea", "gold coast", "slave trade", "commerce", "west africa"],
+      "wikisourceTitle": "A_Description_of_the_Coasts_of_North_and_South_Guinea",
+      "citation": {
+        "originalPublication": "Paris, 1682",
+        "modernSource": "Awnsham and John Churchill, 1732"
+      }
+    },
+    {
+      "id": "ottobah-cugoano-narrative",
+      "title": "Thoughts and Sentiments on the Evil of Slavery",
+      "author": "Ottobah Cugoano",
+      "year": 1787,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "I was kidnapped and carried off from my native country with about eighteen or twenty more boys and girls.",
+      "longExcerpt": "I was kidnapped and carried off from my native country with about eighteen or twenty more boys and girls. We were marched about twenty miles to a castle on the coast where we were kept in a dungeon below ground in the most deplorable condition. The castle was my prison for three days, where I heard the groans and cries of many more fellow captives. At last, I was conducted into the hold of a ship. I now saw myself deprived of all chance of returning to my native country or even the least glimpse of hope of gaining the shore. The stench and filth were most intolerable. The dreadful fear of being separated from my companions, and of dying in this miserable condition, overwhelmed my soul. I was soon put down under the decks, and there I received such a salutation in my nostrils as I had never experienced in my life.",
+      "keywords": ["cugoano", "slavery", "kidnapping", "abolition", "fante", "ghana", "narrative"],
+      "wikisourceTitle": "Thoughts_and_Sentiments_on_the_Evil_of_Slavery",
+      "citation": {
+        "originalPublication": "London, 1787",
+        "modernSource": "Self-published, 1787"
+      }
+    },
+    {
+      "id": "great-zimbabwe-monomotapa",
+      "title": "Account of the Kingdom of Monomotapa",
+      "author": "João dos Santos",
+      "year": 1609,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "The natives call these edifices Symbaoe, which in their language signifies a royal court.",
+      "longExcerpt": "In the middle of this country is a fortress built of stones of marvelous size, without any lime showing, joined in excellent order. The natives call these edifices Symbaoe, which in their language signifies a royal court, for every place where the King resides is so called. The wall is more than twenty-five hands in thickness, and the height is not so great considering the thickness. Above the door of the edifice is an inscription which some Moorish merchants who were there could not read, nor say what writing it was. These structures are held by the natives in great veneration. This edifice is almost surrounded by hills, upon which are others resembling it in the fashioning of the stone and the absence of mortar, and one of them is a tower more than twelve fathoms high.",
+      "keywords": ["great zimbabwe", "monomotapa", "mutapa", "stone", "fortress", "shona", "kingdom"],
+      "citation": {
+        "originalPublication": "Lisbon, 1609",
+        "modernSource": "Ethiopia Oriental by João dos Santos"
       }
     }
   ]

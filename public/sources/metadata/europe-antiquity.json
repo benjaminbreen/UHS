@@ -1,6 +1,195 @@
 {
   "sources": [
     {
+      "id": "otzi-iceman-alps",
+      "title": "Ötzi the Iceman: A Copper Age Hunter",
+      "author": "Copper Age European (archaeological evidence)",
+      "year": -3300,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The frozen body preserved in the Ötztal Alps for 5,300 years reveals a 45-year-old man carrying a copper axe, flint dagger, bow and arrows, and wearing sophisticated layered clothing of leather and grass. His stomach contained ibex meat and einkorn wheat. Two arrows lodged in his back suggest a violent death.",
+      "longExcerpt": "Ötzi the Iceman, discovered in 1991 at 3,210 meters in the Ötztal Alps on the Austrian-Italian border, is Europe's oldest naturally preserved human, dating to approximately 3300 BCE. The glacier preserved his body, clothing, and equipment with extraordinary detail, providing unprecedented insight into Copper Age European life. His equipment demonstrates sophisticated technology: a copper axe with yew handle (copper working was just emerging), a longbow of yew wood still unfinished, a quiver with 14 arrows (only 2 fletched and ready), a flint dagger with ash handle and grass sheath, and a birch bark container holding charcoal embers wrapped in maple leaves for transporting fire. His clothing reveals advanced textile production: a cloak woven from grass, leather coat made from goat and sheep hides sewn with sinew, leather belt with attached pouch, leggings, loincloth, bearskin cap, and shoes with bearskin soles, deer hide uppers, and grass insulation. Tattoos on his joints (61 total) suggest acupuncture-like medical treatment. His last meal (ibex, deer, einkorn wheat, plums) and pollen evidence indicate he traveled from low valleys to high mountains in spring. Most dramatically, arrowheads in his shoulder and back, defensive cuts on hands, and head trauma reveal he was murdered—fleeing attackers before bleeding to death. Ötzi transforms our understanding of Copper Age Europeans from abstract archaeological cultures to a specific individual with a personal history, occupation (possibly shepherd or trader), and violent death.",
+      "keywords": [
+        "otzi",
+        "iceman",
+        "copper age",
+        "alps",
+        "mummy",
+        "neolithic"
+      ],
+      "wikipediaArticle": "Ötzi",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Ötztal Alps, c. 3300 BCE",
+        "modernSource": "South Tyrol Museum of Archaeology, Bolzano"
+      }
+    },
+    {
+      "id": "newgrange-passage-tomb",
+      "title": "Newgrange Passage Tomb",
+      "author": "Neolithic Irish (archaeological evidence)",
+      "year": -3200,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The massive stone monument, older than Stonehenge and the Egyptian pyramids, features a 19-meter passage leading to a cruciform chamber. On the winter solstice sunrise, light penetrates through a roof-box above the entrance, illuminating the chamber for 17 minutes—an astronomical precision maintained for 5,200 years.",
+      "longExcerpt": "Newgrange in Ireland's Boyne Valley, constructed around 3200 BCE, represents one of Europe's most sophisticated Neolithic monuments. The circular mound measures 85 meters in diameter and originally stood 13.5 meters high, constructed from approximately 200,000 tons of stone—a massive community effort requiring coordinated labor and planning. The monument's white quartz facade (with rounded granite boulders forming a lower band) would have gleamed visibly for miles. Its defining feature is astronomical precision: the roof-box above the entrance was specifically designed so that at winter solstice sunrise, the sun's rays penetrate 19 meters down the passage to illuminate the central chamber. This alignment, maintained with remarkable accuracy across 5,200 years, demonstrates advanced astronomical knowledge and sophisticated surveying capabilities. The passage and chamber are lined with massive stones bearing intricate megalithic art: spirals, concentric circles, lozenges, and serpentine patterns carved with stone tools. Some stones weigh over 40 tons, quarried and transported significant distances. The chamber's corbelled roof, built without mortar, remains watertight after five millennia. Newgrange was clearly a sacred site, likely associated with ancestors, seasonal rituals, and cosmological beliefs. It predates the Egyptian pyramids by 500 years and Stonehenge by 1,000 years, demonstrating that Neolithic Europeans were capable of monumental architecture, complex social organization, astronomical science, and sophisticated artistic expression centuries before Mediterranean civilizations.",
+      "keywords": [
+        "newgrange",
+        "ireland",
+        "passage tomb",
+        "neolithic",
+        "winter solstice",
+        "megalithic art"
+      ],
+      "wikipediaArticle": "Newgrange",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "County Meath, Ireland, c. 3200 BCE",
+        "modernSource": "O'Kelly, Michael. Newgrange: Archaeology, Art and Legend. Thames & Hudson, 1982"
+      }
+    },
+    {
+      "id": "skara-brae-orkney",
+      "title": "Skara Brae: A Neolithic Village",
+      "author": "Neolithic Orcadians (archaeological evidence)",
+      "year": -3100,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Eight stone houses, connected by covered passageways and buried in midden heaps for insulation, preserve complete Neolithic interiors. Stone furniture—beds, dressers, seats, storage boxes—reveal domestic life 5,100 years ago. Shell beads, carved stone balls, and pottery suggest a thriving community before sudden abandonment around 2500 BCE.",
+      "longExcerpt": "Skara Brae on Orkney's west coast is northern Europe's best-preserved Neolithic village, inhabited from approximately 3100 to 2500 BCE. The settlement consists of eight clustered stone houses, remarkably intact because they were buried in sand and midden for millennia. The absence of wood in treeless Orkney meant everything was built in stone, creating an extraordinary snapshot of Neolithic domestic life. Each house follows similar design: a central hearth, stone beds on either side (the right-hand bed typically larger, perhaps for the household head), a stone dresser facing the entrance (likely for displaying valued possessions), and stone storage boxes set into the floor. Houses were connected by low, covered stone passages, with the entire complex tunneled into midden heaps that provided insulation. The community shared a sophisticated drainage system, suggesting coordinated planning. Artifacts reveal diverse activities: pottery manufacture, flint knapping, bone tool production, and enigmatic carved stone balls whose purpose remains mysterious. Shell beads, pendants, and pins indicate personal adornment. Evidence suggests the inhabitants herded cattle and sheep, grew barley and wheat, fished, and collected shellfish. The village's sudden abandonment around 2500 BCE (possibly due to climate change or sand encroachment) left it frozen in time. Skara Brae demonstrates that Neolithic Atlantic communities achieved remarkable levels of comfort, organization, and cultural sophistication, challenging assumptions about 'primitive' prehistoric life. UNESCO World Heritage status recognizes it as a uniquely preserved window into Stone Age European society.",
+      "keywords": [
+        "skara brae",
+        "orkney",
+        "neolithic",
+        "village",
+        "scotland",
+        "stone houses"
+      ],
+      "wikipediaArticle": "Skara_Brae",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Orkney, Scotland, c. 3100-2500 BCE",
+        "modernSource": "Childe, V. Gordon. Skara Brae: A Pictish Village in Orkney. Kegan Paul, 1931"
+      }
+    },
+    {
+      "id": "stonehenge-monument",
+      "title": "Stonehenge: Astronomical Observatory and Sacred Site",
+      "author": "Neolithic and Bronze Age Britons (archaeological evidence)",
+      "year": -2500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The iconic stone circle's massive sarsen stones, weighing up to 25 tons, were transported 25 km from Marlborough Downs. The smaller bluestones came from Wales, 250 km away. The monument's alignment with summer solstice sunrise and winter solstice sunset demonstrates sophisticated astronomical knowledge. Cremated human remains suggest it served as an elite burial ground for centuries.",
+      "longExcerpt": "Stonehenge on Salisbury Plain evolved through multiple construction phases from 3000 to 1600 BCE, but its iconic form with massive sarsen trilithons dates to approximately 2500 BCE. The monument's construction required extraordinary effort: the largest sarsen stones weigh 25 tons and were dragged 25 km from Marlborough Downs, then precisely shaped using sarsen hammerstones and ground smooth. The smaller bluestones (up to 4 tons) were transported 250 km from the Preseli Hills in Wales—either by human effort or, debated recently, by glacial movement then repositioned by humans. The engineering sophistication is remarkable: mortise-and-tenon joints connect lintels to uprights, and curved lintels create a continuous ring. The monument's astronomical alignments have been demonstrated: the main axis aligns with summer solstice sunrise and winter solstice sunset, while other stones mark lunar extremes. Recent excavations at nearby Durrington Walls revealed a massive Neolithic village where builders likely lived, feasting on pigs brought from across Britain. Isotope analysis of cremated remains buried at Stonehenge shows some individuals traveled from Wales, suggesting it drew pilgrims from afar. The site clearly served multiple functions: astronomical observatory, ceremonial center, healing temple (suggested by evidence of injured individuals), and elite burial ground. Stonehenge represents the pinnacle of British Neolithic monument building, demonstrating that Late Neolithic societies commanded immense resources, sophisticated knowledge, and ideological commitment to create one of prehistory's most iconic structures.",
+      "keywords": [
+        "stonehenge",
+        "england",
+        "megalith",
+        "astronomy",
+        "neolithic",
+        "bronze age"
+      ],
+      "wikipediaArticle": "Stonehenge",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Wiltshire, England, c. 3000-1600 BCE",
+        "modernSource": "Parker Pearson, Mike. Stonehenge: A New Understanding. The Experiment, 2013"
+      }
+    },
+    {
+      "id": "bell-beaker-culture",
+      "title": "Bell Beaker Culture: Pottery and Migration",
+      "author": "Bell Beaker people (archaeological evidence)",
+      "year": -2800,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Distinctive bell-shaped pottery vessels appear simultaneously across Atlantic Europe from Portugal to Britain, the Rhine, and Central Europe around 2800-1800 BCE. Associated with this pottery are copper daggers, stone wristguards for archery, and V-perforated buttons. DNA analysis reveals massive population replacement in Britain, with 90% of ancestry changing as Bell Beaker peoples arrived.",
+      "longExcerpt": "The Bell Beaker phenomenon represents one of Europe's most widespread and enigmatic archaeological cultures, flourishing from approximately 2800 to 1800 BCE. Named for distinctive inverted bell-shaped pottery vessels often found in burials, the culture spread from the Iberian Peninsula across Atlantic and Central Europe to Britain, the Netherlands, Germany, and beyond. For decades, archaeologists debated whether Bell Beaker represented a culture (spread by ideas and trade) or a people (spread by migration). Recent ancient DNA studies have revolutionized understanding: in Britain, Bell Beaker arrival around 2450 BCE coincided with near-total population replacement, with up to 90% of ancestry changing as newcomers arrived from the continent. This represents one of prehistory's most dramatic population turnovers. Bell Beaker peoples brought new technologies: copper metallurgy (daggers, awls, ornaments), archery equipment (stone wristguards to protect from bowstring snap), and distinctive personal ornaments (V-perforated buttons). Bell Beaker burials show individual interments with rich grave goods (unlike earlier collective Neolithic tombs), suggesting changed social structures emphasizing individual status. The beakers themselves often contain residues of alcoholic drinks (mead or beer), suggesting ritual consumption. Some scholars interpret Bell Beaker as a 'package' of prestige goods and practices adopted by aspiring elites. The culture's appearance correlates with the spread of steppe ancestry and Indo-European languages into Western Europe, fundamentally transforming the genetic and cultural landscape of Bronze Age Europe.",
+      "keywords": [
+        "bell beaker",
+        "bronze age",
+        "migration",
+        "pottery",
+        "copper",
+        "dna"
+      ],
+      "wikipediaArticle": "Bell_Beaker_culture",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Western and Central Europe, c. 2800-1800 BCE",
+        "modernSource": "Olalde et al. The Beaker phenomenon and the genomic transformation of northwest Europe. Nature 555, 2018"
+      }
+    },
+    {
+      "id": "amesbury-archer-burial",
+      "title": "The Amesbury Archer: A Bell Beaker Burial",
+      "author": "Bell Beaker culture (archaeological evidence)",
+      "year": -2300,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The richest Bronze Age burial in Britain contains a man buried with approximately 100 objects: copper knives, gold hair ornaments, stone wristguards, flint tools, and five Bell Beaker pots. Isotope analysis of his teeth proves he grew up in the Alps, traveling to Britain around 2300 BCE—just 3 km from Stonehenge. A damaged knee suggests lifelong pain.",
+      "longExcerpt": "The Amesbury Archer, discovered in 2002 just 3 km from Stonehenge and dating to approximately 2300 BCE, represents the richest Bronze Age burial found in Britain. The man was buried with approximately 100 grave goods—an extraordinary assemblage demonstrating immense wealth and status. His equipment included: five Bell Beaker pots (more than any other British burial), three copper knives (metal was rare and precious), two sandstone bracers (archer's wristguards), 16 flint arrowheads, a cache of metalworking tools (suggesting he was a smith), bone pins, a pair of gold hair ornaments (the earliest gold objects found in Britain), and a mysterious shale belt ring. Oxygen isotope analysis of his tooth enamel revealed he grew up in the Alpine region of Central Europe, migrating to Britain as an adult around 2300 BCE. His arrival coincides precisely with the appearance of Bell Beaker culture in Britain and the arrival of steppe-related ancestry that would replace 90% of Britain's Neolithic population. His skeleton reveals he suffered from a serious knee injury that would have caused lifelong disability and pain, yet he was clearly a person of immense prestige. The grave contained a younger man (the 'Archer's Companion') nearby with similar isotope signatures, possibly a relative. The Amesbury Archer represents a pivotal moment in British prehistory: the transition from Neolithic to Bronze Age, the arrival of metalworking, possible connection to Stonehenge's final phase, and the migration that transformed Britain's genetic landscape. He was not just an individual but potentially a culture-bearer who introduced revolutionary technologies.",
+      "keywords": [
+        "amesbury archer",
+        "bronze age",
+        "bell beaker",
+        "burial",
+        "england",
+        "migration"
+      ],
+      "wikipediaArticle": "Amesbury_Archer",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Amesbury, England, c. 2300 BCE",
+        "modernSource": "Fitzpatrick, Andrew. The Amesbury Archer and the Boscombe Bowmen. Wessex Archaeology, 2011"
+      }
+    },
+    {
+      "id": "corded-ware-culture",
+      "title": "Corded Ware Culture: Steppe Migrations into Europe",
+      "author": "Corded Ware people (archaeological evidence)",
+      "year": -2900,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Named for distinctive cord-impressed pottery decoration, this culture spread explosively across Northern Europe from the Rhine to the Volga around 2900-2350 BCE. DNA analysis reveals these peoples carried steppe ancestry from the Pontic-Caspian region, likely speaking Indo-European languages. Battle-axes, individual burials, and pastoral economies mark a break from earlier Neolithic traditions.",
+      "longExcerpt": "The Corded Ware culture (2900-2350 BCE) represents one of the most significant transformations in European prehistory. Named for pottery decorated with twisted cord impressions, the culture appeared suddenly across a vast territory from the Netherlands to the Volga, from Scandinavia to Switzerland. For over a century, archaeologists debated its origins—some arguing for local development, others for migration. Ancient DNA has decisively resolved the question: Corded Ware peoples carried significant ancestry from the Pontic-Caspian steppe (modern Ukraine/Russia), associated with Yamnaya pastoralists. This migration, beginning around 2900 BCE, brought steppe ancestry (and likely Indo-European languages) into Central and Northern Europe, fundamentally changing the genetic landscape. Corded Ware peoples introduced new burial practices: individual graves (replacing collective Neolithic tombs), gender-specific positioning (men on right side facing west, women on left facing east), and battle-axes as male status symbols. Their economy emphasized cattle herding and mobility over the farming that dominated earlier Neolithic Europe. Corded Ware sites show less evidence of permanent settlements than their Neolithic predecessors, suggesting more mobile pastoral lifestyles. The culture's material uniformity across vast distances implies shared identity, perhaps linguistic and cultural. Corded Ware eventually evolved into regional variants (including Bell Beakers in Western Europe), but the genetic legacy persists: modern Europeans carry substantial Corded Ware ancestry. This migration may represent the moment Indo-European languages spread across much of Europe, reshaping the continent's linguistic, genetic, and cultural foundations for millennia to come.",
+      "keywords": [
+        "corded ware",
+        "indo-european",
+        "migration",
+        "steppe",
+        "bronze age",
+        "pottery"
+      ],
+      "wikipediaArticle": "Corded_Ware_culture",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Northern and Central Europe, c. 2900-2350 BCE",
+        "modernSource": "Haak et al. Massive migration from the steppe was a source for Indo-European languages in Europe. Nature 522, 2015"
+      }
+    },
+    {
       "id": "iliad-homer",
       "title": "The Iliad",
       "author": "Homer",
@@ -24,14 +213,14 @@
         {
           "keyword": "war",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         },
         {
           "keyword": "hero",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -66,13 +255,13 @@
         {
           "keyword": "journey",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         },
         {
           "keyword": "sea",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         }
@@ -107,13 +296,13 @@
         {
           "keyword": "history",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         },
         {
           "keyword": "customs",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -147,14 +336,14 @@
         {
           "keyword": "democracy",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         },
         {
           "keyword": "plague",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -190,21 +379,21 @@
         {
           "keyword": "philosophy",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         },
         {
           "keyword": "ruler",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         },
         {
           "keyword": "justice",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -238,14 +427,14 @@
         {
           "keyword": "citizen",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         },
         {
           "keyword": "state",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -279,14 +468,14 @@
         {
           "keyword": "conquest",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         },
         {
           "keyword": "gaul",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -320,13 +509,13 @@
         {
           "keyword": "nature",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         },
         {
           "keyword": "science",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         }
@@ -361,13 +550,13 @@
         {
           "keyword": "tribes",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         },
         {
           "keyword": "barbarians",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         }
@@ -402,14 +591,14 @@
         {
           "keyword": "emperor",
           "conditions": {
-            "era": "CLASSICAL",
+            "era": "ANTIQUITY",
             "culturalZone": "EUROPEAN"
           }
         },
         {
           "keyword": "stoicism",
           "conditions": {
-            "era": "CLASSICAL"
+            "era": "ANTIQUITY"
           }
         }
       ],

@@ -173,7 +173,7 @@
           "keyword": "Constantinople",
           "conditions": {
             "culturalZone": "MENA",
-            "era": "EARLY_MODERN"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -405,6 +405,230 @@
       "citation": {
         "translator": "Franz Rosenthal",
         "originalPublication": "Tunisia, 1377"
+      }
+    },
+    {
+      "id": "dome-rock-inscriptions",
+      "title": "Inscriptions of the Dome of the Rock",
+      "author": "Umayyad caliphate (architectural evidence)",
+      "year": 691,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "In the name of God, the Merciful, the Compassionate. There is no god but God alone, without partner. Say: He is God, One, God the Eternal. He has not begotten and has not been begotten, and no one is equal to Him.",
+      "longExcerpt": "The Dome of the Rock in Jerusalem, completed in 691-692 CE under Umayyad Caliph Abd al-Malik, bears one of the earliest monumental Arabic inscriptions in Islamic architecture. The 240-meter frieze running around the interior and exterior of the octagonal arcade contains Quranic verses and declarations of Islamic faith, establishing the building as both a political statement and religious monument. The inscriptions emphasize the oneness of God and the prophethood of Muhammad, while also serving as the earliest datable Islamic calligraphic art. The building itself marks the transition from early Islamic rule to the establishment of distinctly Islamic architectural forms, synthesizing Byzantine, Sassanian, and nascent Islamic styles. Its construction on the Temple Mount represents the Umayyad caliphate's assertion of authority in a contested religious landscape, while the inscriptions provide crucial evidence of early Islamic theological articulation in public space.",
+      "keywords": [
+        "architecture",
+        "jerusalem",
+        "calligraphy",
+        "stone",
+        "building",
+        "gold",
+        "mosque"
+      ],
+      "wikipediaArticle": "Dome_of_the_Rock",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Jerusalem, 691-692 CE",
+        "modernSource": "Grabar, Oleg. The Shape of the Holy: Early Islamic Jerusalem. Princeton, 1996"
+      }
+    },
+    {
+      "id": "sahih-bukhari-hadith",
+      "title": "Sahih al-Bukhari: On Daily Life",
+      "author": "Muhammad al-Bukhari",
+      "year": 846,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The Prophet said: 'The best of you are those who are best to their families, and I am the best among you to my family.' He also said: 'When one of you eats food, let him eat with his right hand, and when he drinks, let him drink with his right hand, for Satan eats with his left hand and drinks with his left hand.'",
+      "longExcerpt": "Sahih al-Bukhari, compiled by Muhammad ibn Ismail al-Bukhari (810-870 CE), is one of the most authoritative hadith collections in Sunni Islam. Completed around 846 CE after sixteen years of travel across the Islamic world, Bukhari evaluated approximately 600,000 hadith narrations and selected 7,275 as authentic (sahih). The collection preserves detailed accounts of the Prophet Muhammad's words and actions as transmitted through chains of narrators, providing insight into early Islamic society, law, ethics, and daily life. These hadith formed the basis for Islamic jurisprudence and social practice, covering everything from prayer rituals to commercial transactions, family relations to political governance. Bukhari's rigorous methodology—requiring unbroken chains of trustworthy transmitters—established standards for Islamic scholarship that influenced religious and historical scholarship for centuries. The collection thus serves as both religious text and invaluable historical source documenting 7th-9th century Arabian and Islamic culture.",
+      "keywords": [
+        "prayer",
+        "food",
+        "marriage",
+        "trade",
+        "law",
+        "scholars",
+        "books"
+      ],
+      "wikipediaArticle": "Sahih_al-Bukhari",
+      "isStandard": true,
+      "citation": {
+        "translator": "M. Muhsin Khan",
+        "originalPublication": "Central Asia, c. 846 CE",
+        "modernSource": "Dar-us-Salam Publications"
+      }
+    },
+    {
+      "id": "al-khwarizmi-algebra",
+      "title": "The Compendious Book on Calculation by Completion and Balancing",
+      "author": "Muhammad ibn Musa al-Khwarizmi",
+      "year": 820,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "When I considered what people generally want in calculating, I found that it always is a number. I also observed that every number is composed of units, and that any number may be divided into units. Moreover, I found that every number which may be expressed from one to ten, surpasses the preceding by one unit: afterwards the ten is doubled or tripled just as before the units were: thus arise twenty, thirty, etc.",
+      "longExcerpt": "Al-Khwarizmi's mathematical treatise, written around 820 CE in Baghdad during the Abbasid Caliphate's golden age, introduced algebraic methods that revolutionized mathematics. Working at the House of Wisdom (Bayt al-Hikma), al-Khwarizmi synthesized Greek, Indian, and Persian mathematical knowledge, creating systematic methods for solving linear and quadratic equations. The book's title gave us the word 'algebra' (al-jabr), while al-Khwarizmi's name became 'algorithm.' He presented both geometric and algebraic proofs, making abstract mathematics accessible for practical applications in commerce, inheritance law, and land surveying. His decimal place-value system, adapted from Indian mathematics, gradually replaced Roman numerals in Europe. The work exemplifies the Abbasid translation movement's impact, where scholars in Baghdad, Basra, and other centers preserved and advanced ancient knowledge while developing new scientific methods that would later flow to medieval Europe through Islamic Spain and Sicily.",
+      "keywords": [
+        "mathematics",
+        "calculations",
+        "baghdad",
+        "scholars",
+        "books",
+        "numbers",
+        "merchants"
+      ],
+      "wikipediaArticle": "The_Compendious_Book_on_Calculation_by_Completion_and_Balancing",
+      "isStandard": true,
+      "citation": {
+        "translator": "Frederic Rosen",
+        "originalPublication": "Baghdad, c. 820 CE",
+        "modernSource": "Oriental Translation Fund, 1831"
+      }
+    },
+    {
+      "id": "al-tabari-history",
+      "title": "The History of Prophets and Kings",
+      "author": "Muhammad ibn Jarir al-Tabari",
+      "year": 915,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "In this year [656], the people of Egypt, Kufa, and Basra marched against Uthman, complaining of the actions of his governors. They besieged him in his house in Medina. After many days, they broke in and killed him while he was reading the Quran.",
+      "longExcerpt": "Al-Tabari's monumental universal history, completed around 915 CE, spans from creation to 915 CE in 39 volumes. Writing in Baghdad during the Abbasid period, al-Tabari (839-923 CE) compiled accounts from earlier historians, transmitting them through chains of authorities (isnad) similar to hadith methodology. His coverage of the early Islamic period, the Umayyad and Abbasid caliphates provides irreplaceable detail about political intrigue, military campaigns, administrative organization, and religious disputes. Unlike later synthesized histories, al-Tabari preserved multiple contradictory accounts, allowing readers to evaluate evidence. His work documents the first fitna (civil war), the Abbasid revolution, the reign of Harun al-Rashid, and conflicts with Byzantines, Berbers, and Central Asian peoples. The history became the foundation for all subsequent Islamic historiography, translated and excerpted across the medieval Islamic world. It offers unparalleled insight into how 9th-10th century Muslim scholars understood their own past and constructed historical narratives.",
+      "keywords": [
+        "war",
+        "baghdad",
+        "caliphs",
+        "battle",
+        "government",
+        "merchants",
+        "soldiers"
+      ],
+      "wikipediaArticle": "History_of_the_Prophets_and_Kings",
+      "isStandard": true,
+      "citation": {
+        "translator": "Various (The History of al-Tabari series)",
+        "originalPublication": "Baghdad, c. 915 CE",
+        "modernSource": "SUNY Press, 1985-2007"
+      }
+    },
+    {
+      "id": "usama-ibn-munqidh-memoirs",
+      "title": "The Book of Contemplation: Memoirs of a Syrian Prince",
+      "author": "Usama ibn Munqidh",
+      "year": 1188,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The Franks—God curse them!—possess none of the virtues of men except courage. No one is more entitled to precedence in warfare than they. But their medical knowledge! I shall relate some instances of it that I witnessed. A Frankish knight was struck by a lance through his leg. A Syrian physician applied a poultice to draw the pus. But then came their own physician. 'Which would you prefer,' he asked the knight, 'to live with one leg or die with two?' 'To live with one,' he replied. So the physician sent for a strong knight and a sharp axe. The leg was severed with one blow, but death came shortly after.",
+      "longExcerpt": "Usama ibn Munqidh's autobiography, written around 1188 when he was 93 years old, provides a rare Muslim perspective on the Crusades. Born into the ruling family of Shaizar in Syria in 1095—the year before the First Crusade began—Usama lived through the entire first century of Crusader presence in the Levant. His memoirs combine adventure tales of hunting and warfare with astute ethnographic observations of the Frankish invaders. He describes diplomatic missions, military encounters, and cultural exchanges with both sympathy and criticism, noting Frankish military prowess while mocking their medicine and bathing practices. His accounts of Frankish-Muslim coexistence in the Crusader states reveal a complex world of alliances, betrayals, trade, and cultural contact beyond the simplistic narratives of religious warfare. Writing at Saladin's court in Damascus, Usama represents the cultivated Syrian-Arab aristocracy—warrior, poet, and scholar—whose world was transformed by the Crusades. His work is invaluable for understanding how educated Muslims perceived and adapted to Frankish presence in the medieval Levant.",
+      "keywords": [
+        "crusades",
+        "warfare",
+        "syria",
+        "franks",
+        "knights",
+        "medicine",
+        "physicians",
+        "hunting"
+      ],
+      "wikipediaArticle": "Usama_ibn_Munqidh",
+      "isStandard": true,
+      "citation": {
+        "translator": "Paul M. Cobb",
+        "originalPublication": "Damascus, c. 1188 CE",
+        "modernSource": "Penguin Classics, 2008"
+      }
+    },
+    {
+      "id": "ibn-al-athir-crusades",
+      "title": "The Complete History: On the Fall of Jerusalem",
+      "author": "Ibn al-Athir",
+      "year": 1231,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "In this year [1099] the Franks took Jerusalem. They killed more than seventy thousand people in the Aqsa Mosque. Among them were a large number of imams and scholars, devout and ascetic men who had left their homelands to live in pious retreat in this holy place. The Franks took from the Dome of the Rock more than forty silver candelabra, each weighing three thousand six hundred dirhams, and a great silver lamp weighing forty Syrian pounds, as well as a hundred and fifty smaller candelabra and more than twenty gold ones.",
+      "longExcerpt": "Ibn al-Athir (1160-1233), writing in Mosul and Aleppo, composed one of medieval Islam's most comprehensive universal histories. His 'Complete History' (al-Kamil fi al-Tarikh) covers world history from creation to 1231 CE, with particular focus on the Crusades, Ayyubid dynasty, and the Mongol invasions he witnessed personally. Unlike earlier chroniclers, Ibn al-Athir organized material thematically by region rather than strict chronology, allowing sustained narrative threads. His account of the First Crusade and fall of Jerusalem in 1099 provides the most detailed Muslim perspective on these traumatic events, written a century after they occurred but drawing on earlier sources now lost. He describes Saladin's reconquest of Jerusalem in 1187 in detail, having personally known many participants. His treatment of the Mongol conquests—which he witnessed devastating Iran and approaching the Arab heartlands—conveys genuine terror at civilization's potential collapse. Ibn al-Athir represents 13th-century Islamic historiography at its height: comprehensive, analytical, and increasingly aware of global interconnections as the medieval Islamic world faced unprecedented challenges.",
+      "keywords": [
+        "crusades",
+        "jerusalem",
+        "history",
+        "saladin",
+        "mongols",
+        "warfare"
+      ],
+      "wikipediaArticle": "The_Complete_History",
+      "isStandard": true,
+      "citation": {
+        "translator": "D.S. Richards",
+        "originalPublication": "Mosul/Aleppo, 1231 CE",
+        "modernSource": "Ashgate Publishing, 2006-2008"
+      }
+    },
+    {
+      "id": "ibn-taymiyyah-fatwa",
+      "title": "Fatwa on the Mongols",
+      "author": "Ibn Taymiyyah",
+      "year": 1300,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "These Tatars who came [the Mongols] have converted to Islam, yet they do not follow the Sharia. They rule by the law of Genghis Khan (al-Yasa), and they judge by it rather than by the Book and the Sunna. Therefore, fighting them is obligatory until they submit to the rule of God and His Messenger, so that they do not rule except by what He has revealed.",
+      "longExcerpt": "Ibn Taymiyyah (1263-1328), one of Islam's most influential and controversial scholars, wrote this fatwa around 1300 during the Mamluk-Mongol conflicts. Born in Harran (now Turkey), his family fled Mongol invasions to Damascus, where he witnessed the Mongol Il-Khanate's attacks on Mamluk Syria. Despite the Il-Khans' nominal conversion to Islam in 1295, they retained the Mongol legal code (Yasa) alongside Sharia, creating a hybrid system Ibn Taymiyyah deemed unacceptable. His fatwa provided religious justification for Mamluk jihad against the Mongols, arguing that rulers who fail to implement Sharia comprehensively are legitimate military targets even if they claim Islam. This position was revolutionary and controversial, as it empowered religious scholars to declare Muslim rulers apostates—a principle later invoked by various reformist and militant movements. Ibn Taymiyyah's broader works emphasized return to Quran and Hadith, rejection of later theological innovations, and strict monotheism. His ideas influenced Wahhabism, Salafism, and modern Islamic reformist movements, making his 13th-14th century writings remarkably relevant to contemporary Islamic political thought.",
+      "keywords": [
+        "mongols",
+        "law",
+        "war",
+        "damascus",
+        "scholars",
+        "soldiers",
+        "rulers"
+      ],
+      "wikipediaArticle": "Ibn_Taymiyyah",
+      "isStandard": true,
+      "citation": {
+        "translator": "Various",
+        "originalPublication": "Damascus, c. 1300 CE",
+        "modernSource": "Majmu al-Fatawa collection"
+      }
+    },
+    {
+      "id": "mamluk-furusiyya-manual",
+      "title": "A Mamluk Manual of Horsemanship and Military Arts",
+      "author": "Muhammad ibn Isa ibn Ismail al-Aqsara'i",
+      "year": 1368,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The horseman should know that the lance is the noblest of weapons and the most effective in battle. When charging, he must lower his lance at the proper moment—neither too early, which tires the arm, nor too late, which wastes the momentum. The lance should be held firmly but not rigidly, allowing it to pivot slightly on impact to avoid breaking.",
+      "longExcerpt": "This furusiyya (cavalry manual), written in 1368 by Muhammad al-Aqsara'i, represents the culmination of Mamluk military expertise. The Mamluk sultanate (1250-1517) relied on a unique military system: enslaved boys, primarily Turkic and Circassian, were purchased, converted to Islam, and trained intensively in martial arts before being freed to serve as elite cavalry. This created a professional warrior caste whose technical knowledge was systematically documented in furusiyya literature. Al-Aqsara'i's manual covers lance combat, swordsmanship, archery from horseback, mounted games (particularly polo-like exercises), horse breeding and care, and battlefield tactics. The text reveals sophisticated understanding of leverage, momentum, muscle memory, and graduated training methods. Lavishly illustrated manuscripts show cavalry techniques, siege warfare, and military formations. These manuals served both practical military training and courtly display, as Mamluk emirs competed in equestrian games demonstrating their martial prowess. The furusiyya tradition represents a remarkable fusion of Central Asian steppe warfare techniques with Islamic scholarly book culture, creating one of the medieval world's most advanced military training systems.",
+      "keywords": [
+        "soldiers",
+        "cavalry",
+        "horses",
+        "weapons",
+        "swords",
+        "arrows",
+        "training"
+      ],
+      "wikipediaArticle": "Furusiyya",
+      "isStandard": true,
+      "citation": {
+        "translator": "Various",
+        "originalPublication": "Cairo, 1368 CE",
+        "modernSource": "Faris, Nabih. Arab Archery. Princeton, 1945"
       }
     }
   ]

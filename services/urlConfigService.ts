@@ -2,9 +2,19 @@
  * URL Configuration Service
  * Handles parsing and generating URLs for game configuration
  * URL format: /:dateRange?/:geography?/:gameMode?/:seed?/:profession?/:healthStatus?
+ *
+ * Geography can be:
+ * - Cultural zone: "europe", "mena", "eastasia", etc.
+ * - Region (exact): "iberia", "balkans", "arabia", etc.
+ * - Fuzzy region: Any substring matching a region name (e.g., "arabia" → "Arabian Peninsula")
+ *   - Automatically finds matching region and selects a random map area within it
+ * - Map area (exact): "north-china-plain", "paris-basin", etc.
+ *
  * Examples:
  * - /1348-1350/europe/survival/ABC12345
  * - /1492/americas/exploration
+ * - /1755/arabia/edu (fuzzy: "arabia" → "Arabian Peninsula" → random map area)
+ * - /1600/balkans/survival (fuzzy: "balkans" → "Balkans" → random map area)
  * - /random/random/random
  * - /europe/1600/merchant/sick
  * - /mena/1700-1800/blacksmith
@@ -13,6 +23,7 @@
 import { HistoricalEra, CulturalZone, Region } from '../types';
 import { GameModeId } from '../constants/gameData/gameModes';
 import { findZoneForMapArea, findSimilarMapArea } from './zoneDetectionService';
+import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 
 export interface URLGameConfig {
   dateRange?: {
@@ -57,24 +68,48 @@ export function parseURLConfig(pathname: string): URLGameConfig {
     console.log('[URLConfig] Cleaned segments:', segments);
   }
 
-  // Parse date range (first segment)
-  if (segments[0]) {
-    config.dateRange = parseDateRange(segments[0]);
-  }
+  // Smart parsing: try to determine if segment 0 is a date or geography
+  let startIndex = 1; // Where to start parsing other segments
+  const potentialDate = parseDateRange(segments[0]);
+  const potentialGeography = parseGeography(segments[0]);
 
-  // Parse geography (second segment) - but only if it's actually geography
-  // If segment 2 is NOT geography, we'll treat it as profession/gamemode/etc
-  let startIndex = 2; // Where to start parsing other segments
-  if (segments[1]) {
-    const geography = parseGeography(segments[1]);
-    if (geography) {
-      config.geography = geography;
-      startIndex = 2; // Geography was found, start at segment 3
-    } else {
-      // Segment 2 is NOT geography, so treat it as profession/gamemode/etc
-      startIndex = 1; // Start parsing from segment 2
-      console.log('[URLConfig] Segment 2 is not geography, treating as profession/gamemode/health');
+  // If segment 0 looks like BOTH a date and geography, prefer date
+  // If it's only one or the other, use that
+  if (potentialDate) {
+    // Segment 0 is a date
+    config.dateRange = potentialDate;
+
+    // Now check segment 1 for geography
+    if (segments[1]) {
+      const geography = parseGeography(segments[1]);
+      if (geography) {
+        config.geography = geography;
+        startIndex = 2; // Start parsing other segments from position 2
+      } else {
+        // Segment 1 is NOT geography, so treat it as profession/gamemode/etc
+        startIndex = 1;
+        console.log('[URLConfig] Segment 1 is not geography, treating as profession/gamemode/health');
+      }
     }
+  } else if (potentialGeography) {
+    // Segment 0 is geography (not a date)
+    config.geography = potentialGeography;
+    console.log('[URLConfig] Segment 0 recognized as geography (not date):', potentialGeography);
+
+    // Check if segment 1 might be a date
+    if (segments[1]) {
+      const dateFromSecondSegment = parseDateRange(segments[1]);
+      if (dateFromSecondSegment) {
+        config.dateRange = dateFromSecondSegment;
+        startIndex = 2;
+      } else {
+        startIndex = 1; // Start parsing other segments from position 1
+      }
+    }
+  } else {
+    // Segment 0 is neither date nor geography - might be profession/gamemode
+    startIndex = 0;
+    console.log('[URLConfig] Segment 0 not recognized as date or geography');
   }
 
   // Parse remaining segments intelligently (game mode, seed, profession, health status)
@@ -178,6 +213,57 @@ function unslugify(slug: string): string {
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+/**
+ * Search for regions that contain the search string (fuzzy matching)
+ * Returns a random map area from a matching region
+ *
+ * Example: "arabia" → finds "Arabian Peninsula" in "MENA" → returns random map area like "Hejaz Interior"
+ *
+ * IMPORTANT: Returns zoneName as it appears in GEOGRAPHICAL_DATA keys
+ * (e.g., "MENA", not "Middle East and North Africa")
+ */
+function findMapAreaFromFuzzyRegion(searchTerm: string): {
+  mapArea: string;
+  zoneName: string;  // Actual key from GEOGRAPHICAL_DATA
+  regionName: string;
+} | null {
+  const lowerSearch = searchTerm.toLowerCase();
+  const matchingRegions: Array<{ zoneName: string; regionName: string; mapAreas: string[] }> = [];
+
+  // Search through all zones and regions in GEOGRAPHICAL_DATA
+  // zoneName here is the actual key from GEOGRAPHICAL_DATA (e.g., "MENA", "Europe", "East Asia")
+  for (const [zoneName, zoneData] of Object.entries(GEOGRAPHICAL_DATA)) {
+    for (const [regionName, regionData] of Object.entries(zoneData)) {
+      // Check if region name contains the search term (case-insensitive)
+      if (regionName.toLowerCase().includes(lowerSearch)) {
+        // Get all map area names from this region
+        const mapAreas = Object.keys(regionData);
+        if (mapAreas.length > 0) {
+          matchingRegions.push({ zoneName, regionName, mapAreas });
+        }
+      }
+    }
+  }
+
+  if (matchingRegions.length === 0) {
+    return null;
+  }
+
+  // Randomly select one of the matching regions
+  const selectedRegion = matchingRegions[Math.floor(Math.random() * matchingRegions.length)];
+
+  // Randomly select a map area from that region
+  const randomMapArea = selectedRegion.mapAreas[Math.floor(Math.random() * selectedRegion.mapAreas.length)];
+
+  console.log(`[URLConfig] Fuzzy region match: "${searchTerm}" → "${selectedRegion.regionName}" in zone "${selectedRegion.zoneName}" → map area "${randomMapArea}"`);
+
+  return {
+    mapArea: randomMapArea,
+    zoneName: selectedRegion.zoneName,  // This is the actual GEOGRAPHICAL_DATA key
+    regionName: selectedRegion.regionName
+  };
 }
 
 /**
@@ -321,9 +407,39 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     return { culturalZone: zone as CulturalZone };
   }
 
-  // Check for just region (backward compatibility)
+  // Check for just region - but also select a random map area from that region!
   const region = regionMap[lowerSegment];
   if (region) {
+    // Use fuzzy matching to find a random map area within this region
+    const fuzzyMatch = findMapAreaFromFuzzyRegion(lowerSegment);
+    if (fuzzyMatch) {
+      // Map GEOGRAPHICAL_DATA keys to CulturalZone enum
+      // IMPORTANT: Keys must match those in constants/gameData/geography.ts
+      const zoneMapping: Record<string, CulturalZone> = {
+        'Europe': 'EUROPEAN',
+        'East Asia': 'EAST_ASIAN',
+        'MENA': 'MENA',
+        'South Asia': 'SOUTH_ASIAN',
+        'Sub Saharan Africa': 'SUB_SAHARAN_AFRICAN',
+        'North America': 'NORTH_AMERICAN_COLONIAL',
+        'South America': 'SOUTH_AMERICAN',
+        'Oceania': 'OCEANIA'
+      };
+      const culturalZone = zoneMapping[fuzzyMatch.zoneName];
+      if (culturalZone) {
+        console.log('[URLConfig] Exact region match enhanced with random map area:', {
+          region,
+          culturalZone,
+          mapArea: fuzzyMatch.mapArea
+        });
+        return {
+          culturalZone,
+          region,
+          mapArea: fuzzyMatch.mapArea
+        } as any;
+      }
+    }
+    // Fallback: return just region if fuzzy matching fails
     return { region };
   }
 
@@ -335,14 +451,13 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
   const zoneInfo = findZoneForMapArea(mapAreaName);
   if (zoneInfo) {
     console.log('[URLConfig] Found zone for map area:', zoneInfo);
-    // Map zone name to CulturalZone enum
+    // Map GEOGRAPHICAL_DATA keys to CulturalZone enum
     const zoneMapping: Record<string, CulturalZone> = {
       'Europe': 'EUROPEAN',
       'East Asia': 'EAST_ASIAN',
-      'Middle East and North Africa': 'MENA',
+      'MENA': 'MENA',
       'South Asia': 'SOUTH_ASIAN',
-      'Sub-Saharan Africa': 'SUB_SAHARAN_AFRICAN',
-      'North America (Pre-Columbian)': 'NORTH_AMERICAN_PRE_COLUMBIAN',
+      'Sub Saharan Africa': 'SUB_SAHARAN_AFRICAN',
       'North America': 'NORTH_AMERICAN_COLONIAL',
       'South America': 'SOUTH_AMERICAN',
       'Oceania': 'OCEANIA'
@@ -365,10 +480,9 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
     const zoneMapping: Record<string, CulturalZone> = {
       'Europe': 'EUROPEAN',
       'East Asia': 'EAST_ASIAN',
-      'Middle East and North Africa': 'MENA',
+      'MENA': 'MENA',
       'South Asia': 'SOUTH_ASIAN',
-      'Sub-Saharan Africa': 'SUB_SAHARAN_AFRICAN',
-      'North America (Pre-Columbian)': 'NORTH_AMERICAN_PRE_COLUMBIAN',
+      'Sub Saharan Africa': 'SUB_SAHARAN_AFRICAN',
       'North America': 'NORTH_AMERICAN_COLONIAL',
       'South America': 'SOUTH_AMERICAN',
       'Oceania': 'OCEANIA'
@@ -379,6 +493,34 @@ function parseGeography(segment: string): URLGameConfig['geography'] | undefined
       return {
         culturalZone,
         mapArea: mapAreaName
+      } as any;
+    }
+  }
+
+  // NEW: Try fuzzy region matching (e.g., "arabia" → "Arabian Peninsula" → random map area)
+  const fuzzyRegionMatch = findMapAreaFromFuzzyRegion(segment);
+  if (fuzzyRegionMatch) {
+    // Map GEOGRAPHICAL_DATA keys to CulturalZone enum
+    const zoneMapping: Record<string, CulturalZone> = {
+      'Europe': 'EUROPEAN',
+      'East Asia': 'EAST_ASIAN',
+      'MENA': 'MENA',
+      'South Asia': 'SOUTH_ASIAN',
+      'Sub Saharan Africa': 'SUB_SAHARAN_AFRICAN',
+      'North America': 'NORTH_AMERICAN_COLONIAL',
+      'South America': 'SOUTH_AMERICAN',
+      'Oceania': 'OCEANIA'
+    };
+
+    const culturalZone = zoneMapping[fuzzyRegionMatch.zoneName];
+    if (culturalZone) {
+      console.log('[URLConfig] Using fuzzy region match result:', {
+        culturalZone,
+        mapArea: fuzzyRegionMatch.mapArea
+      });
+      return {
+        culturalZone,
+        mapArea: fuzzyRegionMatch.mapArea
       } as any;
     }
   }
@@ -533,6 +675,13 @@ export function getExampleURLs(): string[] {
     '/mena/1700-1800/blacksmith', // Blacksmith in MENA, random year 1700-1800
     '/1600/europe/survival/SEED123/potter/sickly', // Full specification with seed
     '/europe/1600/sick', // Sick character, random profession
-    '/1800/southasia/weaver/healthy' // Healthy weaver in South Asia
+    '/1800/southasia/weaver/healthy', // Healthy weaver in South Asia
+    // NEW: Fuzzy region matching examples
+    '/1755/arabia/edu', // "arabia" → "Arabian Peninsula" → random map area (e.g., Hejaz Interior, Najd Plateau)
+    '/1600/balkans/survival', // "balkans" → "Balkans" region → random map area
+    '/1400/france/commerce', // "france" → "France" region → random map area
+    '/1200/britain/scholarship', // "britain" → "British Isles" → random map area
+    '/800/scandinavia/exploration', // "scandinavia" → "Scandinavia and Baltic" → random map area
+    '/1500/iberia/diplomacy' // "iberia" → "Iberia" region → random map area
   ];
 }

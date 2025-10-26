@@ -7,7 +7,7 @@
       "year": 1950,
       "excerpt": "Stone upon stone, and man, where was he? Air upon air, and man, where was he?",
       "longExcerpt": "I climbed to Macchu Picchu, city of stone staircases, and asked: Stone upon stone, and man, where was he? Air upon air, and man, where was he? Ancient America, sunken bride, your fingers reaching from jungle cathedrals toward empty heights of gods. But through the centuries I see the slave, the servant, sleeping in the fields, buried with a handful of corn. I see the laborer, the weaver, the silent potter. Rise up with me, my brother, from the depths of your disseminated sorrow.",
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -26,7 +26,7 @@
       "title": "Manifesto of the 1930 Revolution",
       "author": "Getúlio Vargas",
       "year": 1930,
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -54,7 +54,7 @@
       "title": "Speeches to the Descamisados",
       "author": "Eva Perón",
       "year": 1950,
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -82,7 +82,7 @@
       "title": "Last Radio Address",
       "author": "Salvador Allende",
       "year": 1973,
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -110,7 +110,7 @@
       "title": "One Hundred Years of Solitude",
       "author": "Gabriel García Márquez",
       "year": 1967,
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -138,7 +138,7 @@
       "title": "Oil Nationalization Decree",
       "author": "Lázaro Cárdenas",
       "year": 1938,
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -166,7 +166,7 @@
       "title": "Residence on Earth",
       "author": "Pablo Neruda",
       "year": 1935,
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -187,6 +187,168 @@
         "translator": "Donald D. Walsh",
         "originalPublication": "Santiago, Chile, 1935",
         "modernSource": "New Directions Publishing, 1973"
+      }
+    },
+    {
+      "id": "freyre-masters-and-slaves",
+      "title": "The Masters and the Slaves",
+      "author": "Gilberto Freyre",
+      "year": 1933,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The Brazilian Big House represented the integration of three races - Portuguese, African, and indigenous - creating a unique tropical civilization.",
+      "longExcerpt": "The Brazilian Big House of the sugar plantation was more than an economic unit. It was the center of a patriarchal civilization that brought together three races: the Portuguese master, the African slave, and the indigenous peoples who had been here for millennia. Every Big House had its slave quarters, its chapel, its sugar mill. The Portuguese colonizer adapted to the tropics by incorporating African and indigenous knowledge, foods, and customs. Brazilian cuisine combined manioc from the Indians, palm oil from Africa, and Portuguese spices. The result was a civilization unlike any in Europe or Africa - genuinely tropical, genuinely American, genuinely mixed. This groundbreaking work by Brazilian sociologist Gilberto Freyre analyzed Brazil's colonial society and the complex racial mixing that shaped Brazilian identity.",
+      "keywords": [
+        "brazil",
+        "slavery",
+        "race relations",
+        "colonial",
+        "plantation",
+        "mixed race",
+        "sociology"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "Samuel Putnam",
+        "originalPublication": "Rio de Janeiro, 1933",
+        "modernSource": "University of California Press"
+      }
+    },
+    {
+      "id": "bolivar-jamaica-letter",
+      "title": "Letter from Jamaica",
+      "author": "Simón Bolívar",
+      "year": 1815,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The hatred that the Spanish regime has engendered in us is greater than the ocean between us.",
+      "longExcerpt": "We are moreover neither Indian nor European, but a species midway between the legitimate proprietors of this country and the Spanish usurpers. Americans by birth and Europeans by law, we find ourselves engaged in a dual conflict: against the natives and against the invaders. The hatred that the Spanish regime has engendered in us is greater than the ocean between us. Success will crown our efforts because the destiny of America has been irrevocably decided. The ties that bound us to Spain have been severed. More than anyone, we are convinced of the impossibility of restoring them. This prophetic letter by South America's great liberator, written from exile in Jamaica, outlined his vision for Spanish American independence and warned of the challenges facing the new republics.",
+      "keywords": [
+        "bolivar",
+        "independence",
+        "jamaica letter",
+        "spanish america",
+        "liberation",
+        "colonialism"
+      ],
+      "wikisourceTitle": "Letter_from_Jamaica",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Kingston, Jamaica, September 6, 1815",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "mariategui-seven-essays",
+      "title": "Seven Interpretative Essays on Peruvian Reality",
+      "author": "José Carlos Mariátegui",
+      "year": 1928,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The indigenous question is not a racial problem but an economic and social one - the problem of land.",
+      "longExcerpt": "Those who propose the indigenous question as a racial problem are ignorant of the economic and social reality of Peru. The indigenous question is rooted in the land tenure system. The problem of the Indian is the problem of four million Peruvians who constitute the backbone of the nation. The semifeudal system of the haciendas keeps the indigenous population in servitude. Only agrarian reform - the redistribution of land - can solve the indigenous question. Any other approach is superficial. The solution to Peru's indigenous question lies in economic transformation, not in administrative measures or philanthropic charity. This influential work by Peru's leading Marxist thinker analyzed Peruvian society through the lens of indigenous land rights and class struggle.",
+      "keywords": [
+        "mariategui",
+        "peru",
+        "indigenous rights",
+        "land reform",
+        "marxism",
+        "economy",
+        "social justice"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "Marjory Urquidi",
+        "originalPublication": "Lima, Peru, 1928",
+        "modernSource": "University of Texas Press, 1971"
+      }
+    },
+    {
+      "id": "che-guevara-motorcycle-diaries",
+      "title": "The Motorcycle Diaries",
+      "author": "Ernesto 'Che' Guevara",
+      "year": 1952,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "I now know, by an almost fatalistic conformity with the facts, that my destiny is to travel.",
+      "longExcerpt": "I now know, by an almost fatalistic conformity with the facts, that my destiny is to travel. The stars guide me on this trip of 5,000 miles through South America. In Chile I saw the copper miners, exploited by American companies, living in hovels. In Peru I visited the leper colony, cut off from society, the patients left to die slowly. In Colombia the peasants work land they will never own. Everywhere I see the same pattern: foreign companies extracting wealth, local oligarchies collaborating, and the masses living in poverty. This is not several countries - this is one homeland, artificially divided, systematically exploited. A revolution is not just about changing governments; it is about transforming these fundamental injustices. This travel diary by a 23-year-old Argentine medical student documented his motorcycle journey across South America that radicalized him into becoming Che Guevara, revolutionary icon.",
+      "keywords": [
+        "che guevara",
+        "motorcycle diaries",
+        "south america",
+        "revolution",
+        "travel",
+        "argentina",
+        "social justice"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Buenos Aires, 1993 (written 1952)",
+        "modernSource": "Ocean Press"
+      }
+    },
+    {
+      "id": "martin-fierro",
+      "title": "El Gaucho Martín Fierro",
+      "author": "José Hernández",
+      "year": 1872,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Aquí me pongo a cantar / Al compás de la vigüela / Que el hombre que lo desvela / Una pena extraordinaria / Como la ave solitaria / Con el cantar se consuela.",
+      "longExcerpt": "Aquí me pongo a cantar / Al compás de la vigüela / Que el hombre que lo desvela / Una pena extraordinaria / Como la ave solitaria / Con el cantar se consuela. (Here I set myself to sing / To the beat of my guitar / For a man beset by grief / As lonely as a bird / Finds comfort in his song.) Martín Fierro tells of a gaucho conscripted into military service to fight Indians on the frontier, his ranch seized, his family destroyed. He deserts and becomes an outlaw, living on the pampas beyond civilization's reach. The poem captures the vanishing world of the gaucho - the free horseman of the Argentine plains - as modernization and state power enclosed the open frontier. This epic poem became Argentina's national literary treasure, celebrating gaucho culture and critiquing the modernizing state.",
+      "keywords": [
+        "martin fierro",
+        "gaucho",
+        "argentina",
+        "pampas",
+        "epic poem",
+        "frontier",
+        "literature"
+      ],
+      "wikisourceTitle": "El_gaucho_Martín_Fierro",
+      "isStandard": true,
+      "citation": {
+        "translator": "C.E. Ward",
+        "originalPublication": "Buenos Aires, 1872",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "sarmiento-facundo",
+      "title": "Facundo: Civilization and Barbarism",
+      "author": "Domingo Faustino Sarmiento",
+      "year": 1845,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The Argentine Republic has two faces: the city, which represents European civilization, and the pampa, which represents American barbarism.",
+      "longExcerpt": "The Argentine Republic has two faces: Buenos Aires, the city, which represents European civilization, learning, law, and progress; and the pampa, the endless plain, which represents American barbarism, the gaucho, violence, and dictatorship. The caudillo Facundo Quiroga embodied the barbarism of the interior. He ruled through personal charisma and violence, rejecting written law and constitutional order. Under Rosas, this barbarism has conquered Buenos Aires itself. Argentina's future depends on whether civilization can triumph over barbarism - whether we will become a modern nation like the United States or France, or remain trapped in the violence and backwardness of the pampa. Education is the key. Written while in Chilean exile, this influential essay by future Argentine president Sarmiento analyzed the conflict between urban modernity and rural caudillismo that shaped 19th-century Latin American politics.",
+      "keywords": [
+        "sarmiento",
+        "facundo",
+        "argentina",
+        "civilization and barbarism",
+        "caudillo",
+        "gaucho",
+        "education"
+      ],
+      "wikisourceTitle": "Facundo",
+      "isStandard": true,
+      "citation": {
+        "translator": "Mary Mann",
+        "originalPublication": "Santiago, Chile, 1845",
+        "modernSource": "Public domain"
       }
     }
   ]

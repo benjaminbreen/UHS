@@ -5,7 +5,7 @@
       "title": "Codex Mendoza",
       "author": "Aztec scribes (tlacuilos)",
       "year": 1541,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
@@ -41,7 +41,7 @@
       "title": "Popol Vuh",
       "author": "K'iche' Maya",
       "year": 1550,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
@@ -77,7 +77,7 @@
       "title": "A Short Account of the Destruction of the Indies",
       "author": "Bartolomé de las Casas",
       "year": 1552,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
@@ -113,7 +113,7 @@
       "title": "The Florentine Codex, Book 12",
       "author": "Nahua elders of Tlatelolco, compiled by Bernardino de Sahagún",
       "year": 1577,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
@@ -150,7 +150,7 @@
       "title": "Royal Commentaries of the Incas",
       "author": "Garcilaso de la Vega",
       "year": 1609,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
@@ -193,7 +193,7 @@
       "title": "Letter on the First Voyage",
       "author": "Christopher Columbus",
       "year": 1493,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
@@ -221,7 +221,7 @@
       "title": "A Description of New England",
       "author": "John Smith",
       "year": 1616,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],

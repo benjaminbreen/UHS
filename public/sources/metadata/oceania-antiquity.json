@@ -5,7 +5,7 @@
       "title": "Dreamtime Stories",
       "author": "Aboriginal Australians",
       "year": -40000,
-      "era": "ANCIENT",
+      "era": "ANTIQUITY",
       "culturalZones": [
         "OCEANIA"
       ],
@@ -69,6 +69,127 @@
         "modernSource": "University of Chicago Press, 1951"
       },
       "wikipediaArticle": "Kumulipo"
+    },
+    {
+      "id": "lapita-pottery-oceania",
+      "title": "Lapita Pottery and the Austronesian Expansion",
+      "author": "Lapita culture (archaeological evidence)",
+      "year": -1500,
+      "era": "ANTIQUITY",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "Lapita pottery, characterized by distinctive dentate-stamped geometric designs, marks the archaeological trail of Austronesian seafarers who colonized the remote Pacific islands between 1600-500 BCE. These people sailed outrigger canoes across thousands of kilometers of open ocean, carrying with them pigs, chickens, dogs, taro, yams, and breadfruit. The pottery sherds, found from the Bismarck Archipelago to Samoa and Tonga, represent humanity's greatest maritime expansion before European exploration. Analysis of the pottery shows a gradual simplification of designs as groups moved eastward, documenting the colonization sequence across Melanesia and into western Polynesia.",
+      "longExcerpt": "Lapita pottery, characterized by distinctive dentate-stamped geometric designs created by pressing carved tools into wet clay, marks the archaeological trail of Austronesian seafarers who colonized the remote Pacific islands between approximately 1600-500 BCE. These master navigators sailed double-hulled outrigger canoes across thousands of kilometers of open ocean, using stars, wave patterns, bird flight, and cloud formations to navigate, carrying with them a 'transported landscape' of domesticated animals (pigs, chickens, dogs) and crop plants (taro, yams, breadfruit, coconuts, bananas). The pottery sherds, found at over 200 sites from the Bismarck Archipelago through the Solomon Islands, Vanuatu, New Caledonia, Fiji, Samoa, and Tonga, represent humanity's greatest maritime expansion before European exploration, comparable in scope to the Polynesian settlement of the Eastern Pacific that followed. Analysis of pottery styles shows a gradual simplification and loss of decorative complexity as groups moved eastward, documenting the colonization sequence and suggesting progressive loss of cultural contact with homeland populations. The Lapita people were the ancestors of modern Polynesians, and genetic studies confirm that Polynesians carry DNA from both the Austronesian seafarers who originated in Taiwan around 3000 BCE and the Papuan populations they encountered in Near Oceania. Associated archaeological remains include shell fishhooks, obsidian tools traded across thousands of kilometers, adzes, and evidence of stilt houses built over lagoons. By 500 BCE, Lapita culture had transformed into ancestral Polynesian culture in Tonga and Samoa, from where subsequent voyages would eventually settle every habitable island in the Pacific Triangle, from Hawaii to Easter Island to New Zealand.",
+      "keywords": ["lapita", "pottery", "polynesia", "melanesia", "austronesian", "navigation", "archaeology", "migration", "oceanic expansion", "outrigger"],
+      "wikipediaArticle": "Lapita_culture",
+      "citation": {
+        "originalPublication": "Western Pacific islands, c. 1600-500 BCE",
+        "modernSource": "Archaeological excavations since 1950s, major studies by Patrick Kirch, Matthew Spriggs"
+      },
+      "defaultTab": "wikipedia",
+      "isStandard": true
+    },
+    {
+      "id": "bradshaw-gwion-rock-art",
+      "title": "Gwion Gwion (Bradshaw) Rock Paintings",
+      "author": "Ancient Aboriginal artists (archaeological evidence)",
+      "year": -15000,
+      "era": "ANTIQUITY",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The Gwion Gwion rock paintings of the Kimberley region in northwestern Australia depict elegant human figures engaged in ceremonies, hunting, and dancing. These paintings, potentially dating back 17,000 years or more, show people adorned with elaborate headdresses, tassels, and ornaments, carrying boomerangs, spears, and ceremonial objects. The figures are painted in a distinctive graceful style with fine brushwork using red, yellow, and white ochres. Over 100,000 individual figures have been documented across thousands of rock shelters. The paintings predate the younger Wandjina style that local Aboriginal groups attribute to their own ancestors, raising questions about cultural continuity and multiple waves of human occupation in Australia.",
+      "longExcerpt": "The Gwion Gwion rock paintings (formerly called Bradshaw paintings after the European who first reported them in 1891) of the Kimberley region in northwestern Australia depict elegant human figures engaged in ceremonies, hunting, and dancing. Recent dating using radiocarbon analysis of wasp nests overlying and underlying the paintings suggests they are at least 17,000 years old, and possibly much older - among the oldest figurative art in Australia. The paintings show people adorned with elaborate headdresses including multi-barbed spears and tassels, body decorations, armbands, belts, and bags, carrying boomerangs, spears, spearthrowers (woomeras), and ceremonial objects. The figures are rendered in a distinctive graceful, elongated style with fine brushwork using red, yellow, and white mineral pigments (ochres) mixed with water and applied with brushes made from human hair or plant fibers. Over 100,000 individual figures have been documented across thousands of rock shelters scattered through the rugged sandstone ranges. The paintings depict complex scenes of group activities: corroborees (ceremonial gatherings), hunting kangaroos and emus, fishing, collecting yams, and what appear to be ritual or social gatherings with dozens of figures. The art shows a sophisticated understanding of human anatomy and movement, with dynamic poses capturing running, dancing, and fighting. The paintings predate the more recent Wandjina style (last 4,000 years) that local Aboriginal groups such as the Ngarinyin, Worrorra, and Wunumbal people attribute to their own ancestors and maintain through repainting ceremonies. This has led to complex discussions about cultural continuity, multiple waves of human occupation in Australia, and the relationship between contemporary Aboriginal groups and the artists of 17,000+ years ago. Modern Aboriginal people in the region call the paintings Gwion Gwion and regard them as sacred, though they attribute their creation to earlier peoples or spirits.",
+      "keywords": ["gwion gwion", "bradshaw", "rock art", "kimberley", "australia", "aboriginal", "archaeology", "painting", "ancient art", "ochre"],
+      "wikipediaArticle": "Gwion_Gwion_rock_paintings",
+      "citation": {
+        "originalPublication": "Kimberley region, Australia, c. 17,000+ years ago",
+        "modernSource": "First documented by Joseph Bradshaw (1891), extensive research by Grahame Walsh and others"
+      },
+      "defaultTab": "wikipedia"
+    },
+    {
+      "id": "lake-mungo-burials",
+      "title": "Lake Mungo Human Remains",
+      "author": "Pleistocene Aboriginal Australians (archaeological evidence)",
+      "year": -40000,
+      "era": "ANTIQUITY",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "Lake Mungo in western New South Wales, Australia, contains some of the oldest evidence of modern human activity outside Africa. The remains of Mungo Lady (LM1), dated to approximately 42,000 years ago, represent the oldest known cremation in the world - her body was deliberately burned, then crushed and deposited in a pit, demonstrating sophisticated mortuary rituals and spiritual beliefs among Australia's earliest inhabitants. Mungo Man (LM3), dated to approximately 40,000 years ago, was buried lying on his back with his hands crossed over his groin, covered in red ochre gathered from quarries 200 kilometers away, showing long-distance trade networks and ceremonial burial practices.",
+      "longExcerpt": "Lake Mungo in the Willandra Lakes region of western New South Wales, Australia, contains some of the oldest evidence of modern human activity outside Africa and provides crucial insights into the beliefs and practices of Pleistocene Aboriginal Australians. The remains of Mungo Lady (LM1), discovered in 1968 and dated to approximately 42,000 years ago using optically stimulated luminescence, represent the oldest known cremation in the archaeological record worldwide. Her body was deliberately burned at temperatures exceeding 500°C, then the cremated bones were systematically crushed and deposited in a pit - demonstrating sophisticated mortuary rituals, control of fire technology, and spiritual beliefs about death and the afterlife among Australia's earliest inhabitants. Mungo Man (LM3), discovered in 1974 and dated to approximately 40,000 years ago, was buried lying on his back with his hands crossed over his groin, his entire body covered in red ochre (iron oxide pigment) gathered from quarries over 200 kilometers away. The use of ochre shows symbolic thinking, aesthetic sensibility, long-distance trade or movement networks, and ceremonial treatment of the deceased. These burials, along with numerous stone tools, food middens containing freshwater mussel shells and the bones of fish, birds, and marsupials including extinct megafauna, paint a picture of sophisticated hunter-gatherers who inhabited the shores of Lake Mungo during the Pleistocene when it was full of water. The lake has been dry for approximately 14,000 years as Australia's climate became more arid. The site demonstrates that the ancestors of Aboriginal Australians possessed complex culture, spirituality, and technology from the very earliest period of human occupation of Australia, challenging outdated theories that Aboriginal culture was 'primitive' or unchanging. The remains have been subject to custody disputes between scientists and local Aboriginal groups (the Paakantji, Ngyiampaa, and Mutthi Mutthi peoples), who argue the ancestors should be reburied according to traditional law. Mungo Man was finally returned to his Country in 2017.",
+      "keywords": ["lake mungo", "australia", "aboriginal", "burial", "cremation", "ochre", "pleistocene", "archaeology", "megafauna", "ancient humans"],
+      "wikipediaArticle": "Lake_Mungo_remains",
+      "citation": {
+        "originalPublication": "Lake Mungo, Australia, c. 42,000-40,000 years ago",
+        "modernSource": "Discovered by Jim Bowler (1968, 1974), extensive scientific analysis published in Nature and other journals"
+      },
+      "defaultTab": "wikipedia"
+    },
+    {
+      "id": "tabon-caves-philippines",
+      "title": "Tabon Caves and Early Filipino Populations",
+      "author": "Paleolithic Southeast Asians (archaeological evidence)",
+      "year": -47000,
+      "era": "ANTIQUITY",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The Tabon Caves on Palawan Island, Philippines, contain evidence of human occupation dating back 47,000 years, including the skull cap of 'Tabon Man' and hundreds of burial jars from the late Neolithic period. The caves yielded stone tools, jade ornaments, shell jewelry, and animal bones showing the inhabitants hunted pigs, deer, and sea turtles. The burial jars, dating from 890-710 BCE, are earthenware vessels painted with geometric red designs, containing disarticulated human bones along with jade beads, shell bracelets, and pottery - evidence of secondary burial practices where bodies were first exposed to decompose before the bones were collected and placed in jars.",
+      "longExcerpt": "The Tabon Caves, a complex of over 200 caves on Palawan Island in the southwestern Philippines, contain evidence of human occupation dating back at least 47,000 years, making this one of the oldest known sites of human habitation in Southeast Asia. The most famous find is the skull cap of 'Tabon Man' (actually possibly female), discovered by Robert Fox in 1962 in Tabon Cave and initially dated to 22,000-24,000 years ago, though subsequent discoveries in other caves pushed occupation dates to 47,000 years before present. The caves yielded an extensive assemblage of stone tools including flake tools and choppers, jade ornaments and pendants, shell jewelry including bracelets made from giant clams, and animal bones showing the inhabitants hunted wild pigs, deer, sea turtles, and gathered shellfish from the mangroves and reefs. The most spectacular finds are the burial jars discovered in Manunggul Cave, dating from approximately 890-710 BCE during the late Neolithic period. These earthenware vessels, painted with geometric red hematite designs including scroll and meander patterns, were used for secondary burial - a practice where bodies were first exposed to the elements to decompose, then the bones were collected, disarticulated, and placed in ceramic jars for final burial. The most famous jar lid features two human figures in a boat, one rowing and one with hands crossed (possibly deceased), interpreted as a representation of the journey to the afterlife. The jars contained human bones along with jade beads imported from Taiwan, shell bracelets, pottery vessels, and ornaments - evidence of complex mortuary rituals, belief in an afterlife, and extensive maritime trade networks connecting the Philippines to Taiwan, Vietnam, and island Southeast Asia. The Tabon Caves demonstrate continuity of human occupation in the Philippines from the Paleolithic through the Metal Age, and the burial practices show cultural links between ancient Filipinos and broader Austronesian peoples including the Lapita seafarers who colonized the Pacific.",
+      "keywords": ["tabon caves", "philippines", "palawan", "burial jars", "archaeology", "neolithic", "austronesian", "secondary burial", "jade", "manunggul"],
+      "wikipediaArticle": "Tabon_Caves",
+      "citation": {
+        "originalPublication": "Palawan, Philippines, c. 47,000 BCE - 700 BCE",
+        "modernSource": "Excavations by Robert Fox (1960s-70s), National Museum of the Philippines"
+      },
+      "defaultTab": "wikipedia"
+    },
+    {
+      "id": "hane-dune-site-marquesas",
+      "title": "Hane Dune Site: Colonization of the Marquesas",
+      "author": "Early Polynesian settlers (archaeological evidence)",
+      "year": 100,
+      "era": "ANTIQUITY",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The Hane dune site on Ua Huka in the Marquesas Islands represents one of the earliest sites of Polynesian settlement in eastern Polynesia, dated to approximately 100 CE. Excavations revealed the remains of post holes from houses, earth ovens lined with basalt stones, adzes made from basalt and pearl shell, fishhooks made from bone and shell, pig and chicken bones, and carbonized remains of breadfruit, coconut, and candlenut. The settlement was established by voyagers who sailed from West Polynesia (Samoa/Tonga region) across over 4,000 kilometers of open ocean. From the Marquesas, subsequent expeditions colonized Hawaii, Easter Island, and eventually New Zealand, completing the Polynesian Triangle.",
+      "longExcerpt": "The Hane dune site (Ha'atuatua) on Ua Huka in the Marquesas Islands represents one of the earliest sites of Polynesian settlement in eastern Polynesia, dated through radiocarbon analysis to approximately 100 CE (with a possible range of 100 BCE - 300 CE depending on calibration). Excavations by Robert Suggs in the 1950s and subsequent work by Barry Rolett revealed the material remains of the founding population: post holes and postholes from houses constructed with wooden frames and thatch roofs, earth ovens (umu) lined with basalt stones for cooking, adzes (cutting tools) made from basalt and giant clam (Tridacna) shell imported from western Polynesia, fishhooks made from bone and pearl shell, lei niho palaoa (whale tooth pendants), pig and chicken bones (the animals brought as provisions on the voyage), dog bones, and carbonized botanical remains including breadfruit, coconut, and candlenut (kukui). The settlement was established by master navigators who sailed from West Polynesia (the Samoa/Tonga region) across over 4,000 kilometers of open ocean, representing one of humanity's most remarkable feats of exploration and colonization. The Marquesas served as the launching point for subsequent Polynesian expansion: from here, expeditions sailed north to Hawaii (around 400 CE), southeast to Easter Island/Rapa Nui (around 800-1200 CE), and eventually southwest to New Zealand (around 1200-1300 CE), completing the vast Polynesian Triangle that stretches across 30 million square kilometers of the Pacific Ocean. The colonization required sophisticated navigation using stars, ocean swells, bird flight patterns, and cloud formations, as well as planned provisioning with domesticated animals and crop plants. The Hane site artifacts show continuity with earlier Lapita and Ancestral Polynesian culture - the adze forms, fishhook styles, and settlement patterns all derive from western Polynesian prototypes - but also show innovations developed in the Marquesan environment, including distinctive tattooing implements made from bird bone and human bone, and elaborate carved wooden tikis (human figures representing ancestors and gods) that became central to Polynesian religious culture.",
+      "keywords": ["marquesas", "polynesia", "hane", "colonization", "navigation", "archaeology", "eastern polynesia", "settlement", "fishhooks", "adzes"],
+      "wikipediaArticle": "Marquesas_Islands",
+      "citation": {
+        "originalPublication": "Ua Huka, Marquesas Islands, c. 100 CE",
+        "modernSource": "Excavations by Robert Suggs (1950s) and Barry Rolett, published in American Anthropologist and similar journals"
+      },
+      "defaultTab": "wikipedia"
+    },
+    {
+      "id": "kakadu-rock-art-australia",
+      "title": "Kakadu Rock Art Galleries",
+      "author": "Aboriginal Australians (archaeological evidence)",
+      "year": -20000,
+      "era": "ANTIQUITY",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "Kakadu National Park in Australia's Northern Territory contains one of the world's greatest concentrations of rock art, with over 5,000 documented art sites spanning at least 20,000 years of continuous cultural tradition. The paintings, executed in red and yellow ochre, white clay, and charcoal, show the evolution of Aboriginal life from the Ice Age through sea level rise and the arrival of Europeans. The oldest layer depicts extinct megafauna including giant kangaroos and thylacines. 'X-ray' style paintings show animals with internal organs, bones, and spiritual power visible. The most recent paintings depict European sailing ships, horses, and rifles, documenting the colonial encounter.",
+      "longExcerpt": "Kakadu National Park in Australia's Northern Territory contains one of the world's greatest concentrations of rock art, with over 5,000 documented art sites and an estimated 15,000 total sites spanning at least 20,000 years (and possibly up to 65,000 years based on recent dating controversies) of continuous cultural tradition. The rock shelters and overhangs served as galleries where successive generations of Bininj/Mungguy people painted spiritual narratives, teaching stories, and records of environmental change. The paintings, executed using red and yellow ochre (iron oxides), white clay (kaolin), and charcoal (black), were applied with brushes made from human hair, feathers, or chewed bark, and pigments were sometimes mixed with orchid sap or blood to improve adhesion. The art can be divided into several chronological styles: (1) Pre-Estuarine period paintings (before 8,000 years ago) showing animals now extinct including Genyornis (giant flightless bird), giant kangaroos, and thylacines (Tasmanian tigers that survived on the mainland until the Holocene), along with human handprints and stencils created by blowing ochre over hands pressed to rock; (2) Estuarine period art (8,000 - 1,500 years ago) showing fish, crocodiles, and marine resources that appeared when rising sea levels created coastal wetlands; (3) Freshwater period art (1,500 years ago to present) featuring the distinctive 'X-ray' style showing animals with internal organs, bones, eggs, and spiritual power visible - these paintings served as teaching tools for young people learning anatomy, hunting techniques, and sacred knowledge; (4) Contact period art (1800s onwards) depicting European sailing ships with sails and anchors, horses, cattle, rifles, and missionaries, documenting the traumatic colonial encounter and its devastating impact on Aboriginal populations. The art was not merely decorative but served vital cultural functions: recording clan territories, teaching seasonal hunting and gathering cycles, preserving Dreaming stories connecting people to ancestral beings and Country, and maintaining spiritual relationships with the land. Certain galleries could only be painted by initiated men or women during specific ceremonies, making the art sites sacred places. The continuous 20,000+ year artistic tradition at Kakadu represents one of the longest cultural continuities in human history, comparable to or exceeding the cave art traditions of Europe but continuing into the present day as contemporary Aboriginal artists maintain these traditions.",
+      "keywords": ["kakadu", "rock art", "arnhem land", "australia", "aboriginal", "x-ray art", "ochre", "archaeology", "dreamtime", "megafauna"],
+      "wikipediaArticle": "Kakadu_National_Park",
+      "citation": {
+        "originalPublication": "Kakadu/Arnhem Land, Australia, c. 20,000+ years ago to present",
+        "modernSource": "Archaeological and anthropological research by George Chaloupka, Paul Taçon, and others; ongoing cultural maintenance by Bininj/Mungguy traditional owners"
+      },
+      "defaultTab": "wikipedia",
+      "isStandard": true
+    },
+    {
+      "id": "moai-easter-island-rapa-nui",
+      "title": "Moai of Rapa Nui (Easter Island)",
+      "author": "Rapa Nui people (archaeological evidence)",
+      "year": 1200,
+      "era": "ANTIQUITY",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The moai of Rapa Nui (Easter Island) are monolithic human figures carved from volcanic tuff between approximately 1250-1500 CE, representing deified ancestors. Nearly 900 statues exist on the island, averaging 4 meters tall and weighing 14 tons, though the largest completed moai stands 10 meters and weighs 82 tons. The statues were carved at the Rano Raraku quarry where nearly 400 remain in various stages of completion. Once finished, moai were transported across the island using ropes and wooden sledges or 'walked' upright by rocking them side to side. They were erected on stone platforms (ahu) with their backs to the sea, gazing over villages to protect the inhabitants. Many originally wore topknots of red scoria (pukao) and had white coral eyes with obsidian or red scoria pupils inserted during ceremonies.",
+      "longExcerpt": "The moai of Rapa Nui (Easter Island) are monolithic human figures carved from compressed volcanic ash (tuff) at the Rano Raraku quarry between approximately 1250-1500 CE, representing deified ancestors (aringa ora, 'living faces') who were believed to possess mana (spiritual power) that protected and brought prosperity to their descendants. Nearly 900 statues exist across the island, averaging 4 meters in height and weighing 14 tons, though sizes range dramatically: the largest completed and erected moai stands 10 meters tall and weighs 82 tons, while the largest ever carved (never completed) measures 21 meters and would have weighed approximately 270 tons. The statues feature distinctive stylized characteristics: elongated heads with prominent brows, long noses, pursed lips, and elongated ears, with arms held close to the body and hands meeting at the abdomen. The statues were carved directly into the quarry walls at Rano Raraku where nearly 400 remain in various stages of completion, their backs still attached to bedrock or lying on the slopes. Once carved, the moai were detached from bedrock and transported across the island - the method remains debated, with theories including horizontal transport on wooden sledges using ropes made from fibrous plants, or 'walking' the statues upright by rocking them side to side using ropes in a technique demonstrated experimentally. They were erected on massive stone platforms (ahu) along the coast with their backs to the sea, gazing inland over villages to watch over and protect the inhabitants. Many originally wore topknots (pukao) of red scoria quarried from Puna Pau, weighing up to 12 tons, placed on their heads using ramps. During ceremonies, white coral eyes with obsidian or red scoria pupils were inserted in the eye sockets, ritually 'opening' the eyes and activating the statue's spiritual power. The moai-building period ended around 1500-1650 CE during an environmental and social crisis: the island's palm forests were completely deforested through a combination of human clearing for agriculture, rat predation on palm nuts preventing regeneration, and cutting trees for moai transport. This led to soil erosion, declining crop yields, inability to build ocean-going canoes, and violent conflict between clans. During this period of warfare and starvation, rival groups toppled each other's moai, and all standing statues were eventually knocked down. Modern restorations beginning in the 1950s re-erected many moai on their ahu. The moai represent both a remarkable artistic and engineering achievement and a cautionary tale about resource depletion and ecological collapse. Recent research suggests Rapa Nui society was more resilient than earlier 'ecocide' narratives claimed, adapting to environmental limits through innovations in agriculture and fishing, before Peruvian slavers and introduced diseases devastated the population in the 1860s.",
+      "keywords": ["moai", "easter island", "rapa nui", "statues", "ancestors", "archaeology", "polynesia", "ahu", "deforestation", "monoliths"],
+      "wikipediaArticle": "Moai",
+      "citation": {
+        "originalPublication": "Rapa Nui (Easter Island), c. 1250-1500 CE",
+        "modernSource": "Archaeological research by Thor Heyerdahl (1950s), Jo Anne Van Tilburg, Terry Hunt, and many others; modern restorations documented"
+      },
+      "defaultTab": "wikipedia"
     }
   ]
 }

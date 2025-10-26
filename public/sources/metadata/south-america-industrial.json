@@ -1,24 +1,31 @@
 {
   "sources": [
     {
-      "id": "rubber-boom-diary",
-      "title": "Diary of a Rubber Tapper",
-      "author": "Anonymous Seringueiro",
-      "year": 1905,
-      "excerpt": "Before dawn I walk the trails, cutting diagonal slashes in rubber trees, collecting white latex blood.",
-      "longExcerpt": "The Amazon has become hell. Before dawn I walk the jungle trails, cutting diagonal slashes in rubber trees, placing cups to collect the white latex blood. By noon the cups are full. I carry forty kilos back to camp. The rubber baron charges us for everything - food, tools, medicine - always more than we earn. We can never leave, always in debt. Men die from malaria, snake bites, exhaustion. The world wants rubber for its automobiles. We pay with our lives in this green prison.",
-      "era": "INDUSTRIAL",
+      "id": "euclides-da-cunha-sertoes",
+      "title": "Rebellion in the Backlands (Os Sertões)",
+      "author": "Euclides da Cunha",
+      "year": 1902,
+      "excerpt": "The jagunço is above all else a strong individual. He does not have the rachitic debility and the nerveless languor of the neurasthenic of the cities. His appearance, it is true, at first sight, would lead one to think the contrary. He does not have the flawless features, the graceful bearing, the correct build of the athlete. He is ugly, awkward, stooping. Hercules-Quasimodo reflects in his bearing the typical unprepossessing attributes of the weak.",
+      "longExcerpt": "The jagunço is above all else a strong individual. He does not have the rachitic debility and the nerveless languor of the neurasthenic of the cities. His appearance, it is true, at first sight, would lead one to think the contrary. He does not have the flawless features, the graceful bearing, the correct build of the athlete. He is ugly, awkward, stooping. Hercules-Quasimodo reflects in his bearing the typical unprepossessing attributes of the weak. But this is an illusion. All that is needed is for him to straighten up, for some surprising incident to arouse him, and the awkward fellow is transfigured. He becomes a different being. The man is capable of tremendous feats, of prolonged resistance. This sertanejo is, before everything else, a strong man. The drought does not dismay him. In the successive stages of his economic evolution, while the vaqueiro tends to disappear, swallowed up by civilization, the jagunço persists. He is a backwoodsman and a herder. A mixture of bravery and superstition. The very earth of the sertão makes him.",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
       "keywords": [
-        "diary",
-        "rubber",
-        "tapper"
+        "brazil",
+        "sertão",
+        "backlands",
+        "canudos",
+        "rebellion",
+        "sertanejo",
+        "drought"
       ],
-      "wikisourceTitle": "Diary_of_a_Rubber_Tapper",
+      "wikisourceTitle": "Rebellion_in_the_Backlands",
+      "internetArchiveId": "rebellioninbackl00cunh",
       "citation": {
-        "originalPublication": "Anonymous Seringueiro, 1905"
+        "translator": "Samuel Putnam",
+        "originalPublication": "Rio de Janeiro, 1902",
+        "modernSource": "University of Chicago Press, 1944"
       }
     },
     {
@@ -26,12 +33,12 @@
       "title": "Letter from Jamaica",
       "author": "Simón Bolívar",
       "year": 1815,
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "To form a stable government in America, one must use as foundation a constitution whose base is appropriate to the country, its history, location, and other circumstances.",
-      "longExcerpt": "To form a stable government in America, one must use as foundation a constitution whose base is appropriate to the country, its history, location, and other circumstances. This famous letter from 1815 outlines Bolívar's vision for Latin American independence and the challenges of creating new republics, written during his exile in Jamaica.",
+      "excerpt": "The destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed. The hatred that the Peninsula has inspired in us is greater than the ocean between us. We are neither Indians nor Europeans, but a species midway between the legitimate proprietors of this country and the Spanish usurpers. In no way are we Europeans; in no way are we Indians, but an intermediate species between the aborigines and the Spaniards. Americans by birth and European by law, we are placed in the dilemma of disputing with the natives our titles of possession and maintaining ourselves in the country where we were born, against the opposition of the invaders.",
+      "longExcerpt": "The destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed. The hatred that the Peninsula has inspired in us is greater than the ocean between us. We are neither Indians nor Europeans, but a species midway between the legitimate proprietors of this country and the Spanish usurpers. In no way are we Europeans; in no way are we Indians, but an intermediate species between the aborigines and the Spaniards. Americans by birth and European by law, we are placed in the dilemma of disputing with the natives our titles of possession and maintaining ourselves in the country where we were born, against the opposition of the invaders. More than anyone, I desire to see America fashioned into the greatest nation in the world, greatest not so much by virtue of her area and wealth as by her freedom and glory. Although I seek perfection for the government of my country, I cannot persuade myself that the New World can, at the moment, be organized as a great republic. What is even more difficult is to determine the type of government that will be most suitable to these countries. It is a grandiose idea to think of consolidating the New World into a single nation. The American states need the care of paternal governments to heal the sores and wounds of despotism and war.",
       "keywords": [
         "independence",
         "Bolívar",
@@ -54,12 +61,12 @@
       "title": "Proclamation to the Peruvians",
       "author": "José de San Martín",
       "year": 1821,
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "Peruvians! You have declared your independence. From this moment Peru is free and independent by the general will of the people and the justice of their cause.",
-      "longExcerpt": "Peruvians! You have declared your independence. From this moment Peru is free and independent by the general will of the people and the justice of their cause. This proclamation from July 1821 announced Peru's independence from Spain, delivered by the great liberator José de San Martín in Lima's main plaza.",
+      "excerpt": "Peru is from this moment free and independent by the general will of the people and the justice of its cause which God defends. Long live the country! Long live freedom! Long live our independence! From this day forward the inhabitants of Peru shall not be called Indians or natives; they are children and citizens of Peru and they shall be known as Peruvians.",
+      "longExcerpt": "Peru is from this moment free and independent by the general will of the people and the justice of its cause which God defends. Long live the country! Long live freedom! Long live our independence! From this day forward the inhabitants of Peru shall not be called Indians or natives; they are children and citizens of Peru and they shall be known as Peruvians. The nobility of Lima and the upper classes shall be preserved in their distinctions, privileges and titles. The heads of the municipalities shall continue to exercise their duties until elections are held. The property of all citizens, both native and foreign, shall be respected. All oppressive taxes and impositions of the Spanish government are hereby abolished. All decrees, orders and regulations of the previous government are null and void. The country is forever free from the Spanish yoke.",
       "keywords": [
         "Peru",
         "independence",
@@ -82,12 +89,12 @@
       "title": "Independence Proclamation of Brazil",
       "author": "Pedro I of Brazil",
       "year": 1822,
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "É tempo! Independência ou Morte! Estamos separados de Portugal! O Brasil está livre e independente!",
-      "longExcerpt": "É tempo! Independência ou Morte! Estamos separados de Portugal! O Brasil está livre e independente! This famous cry of 'Independence or Death!' on September 7, 1822, marked Brazil's declaration of independence from Portugal, proclaimed by Prince Pedro on the banks of the Ipiranga River near São Paulo.",
+      "excerpt": "É tempo! Independência ou Morte! Estamos separados de Portugal! O Brasil está livre e independente! Como é para o bem de todos e felicidade geral da Nação, estou pronto: diga ao povo que fico. Tell the people I remain. As of today our relations with Portugal are broken. No ties bind us any longer. By my blood, by my honor, by my God, I swear to bring about the freedom of Brazil!",
+      "longExcerpt": "É tempo! Independência ou Morte! Estamos separados de Portugal! O Brasil está livre e independente! Como é para o bem de todos e felicidade geral da Nação, estou pronto: diga ao povo que fico. Tell the people I remain. As of today our relations with Portugal are broken. No ties bind us any longer. By my blood, by my honor, by my God, I swear to bring about the freedom of Brazil! The Portuguese Cortes demand my return to Lisbon. They wish to reduce Brazil again to colonial status. This I cannot and will not allow. Brazil is too great, too rich in resources and population to be governed as a mere province. The time has come for this land to take its place among the independent nations of the world. I call upon all Brazilians, native-born and Portuguese-born alike, to unite under one banner - the banner of Brazilian independence.",
       "keywords": [
         "Brazil",
         "independence",
@@ -110,12 +117,12 @@
       "title": "The Posthumous Memoirs of Brás Cubas",
       "author": "Machado de Assis",
       "year": 1881,
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "Ao verme que primeiro roeu as frias carnes do meu cadáver dedico como saudosa lembrança estas memórias póstumas.",
-      "longExcerpt": "Ao verme que primeiro roeu as frias carnes do meu cadáver dedico como saudosa lembrança estas memórias póstumas. This groundbreaking novel from 1881 by Brazil's greatest writer offers a satirical view of 19th-century Brazilian society, narrated by a dead man looking back on his life with ironic detachment.",
+      "excerpt": "To the worm that first gnawed the cold flesh of my corpse I dedicate these posthumous memoirs with fond remembrance. I hesitated some time, not knowing whether to open these memoirs at the beginning or at the end, that is, whether to start with my birth or with my death. Since common usage would call for beginning with birth, two considerations led me to adopt a different method: the first is that I am not exactly a writer who is dead but a dead man who is a writer, for whom the grave was a second cradle; the second is that the work would thus be rendered more novel and more entertaining.",
+      "longExcerpt": "To the worm that first gnawed the cold flesh of my corpse I dedicate these posthumous memoirs with fond remembrance. I hesitated some time, not knowing whether to open these memoirs at the beginning or at the end, that is, whether to start with my birth or with my death. Since common usage would call for beginning with birth, two considerations led me to adopt a different method: the first is that I am not exactly a writer who is dead but a dead man who is a writer, for whom the grave was a second cradle; the second is that the work would thus be rendered more novel and more entertaining. Moses, who also described his own death, did not place it at the opening but at the close: a radical difference between this book and the Pentateuch. Having said that, I expire with the most ordinary of thoughts: that of death. It is time to rejoin the void. You who are reading me, if you are still alive when this page sees the light—and it is probable that you will be—you who are reading me, Virgilia the fair, Virgilia the golden, tell me, was she worth so much mourning?",
       "keywords": [
         "Brazil",
         "literature",
@@ -138,12 +145,12 @@
       "title": "Facundo: Civilization and Barbarism",
       "author": "Domingo Faustino Sarmiento",
       "year": 1845,
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "The Argentine Republic extends from the Andes to the Atlantic. The immense plains that surround it on all sides are the stage where gaucho life developed, a way of being that explains our national character.",
-      "longExcerpt": "The Argentine Republic extends from the Andes to the Atlantic. The immense plains that surround it on all sides are the stage where gaucho life developed, a way of being that explains our national character. This influential 1845 work by future Argentine president Sarmiento analyzes the conflict between urban civilization and rural traditions in post-independence Argentina.",
+      "excerpt": "The Argentine Republic is one and indivisible. Providence, which in its designs for the Argentine Republic has given it extraordinary gifts of wealth and power, has also given it a nature that requires a more perfect moral and material organization than that exhibited by other South American nations. The extent of the Argentine territory is such that a single province, Buenos Aires, has an area greater than that of three or four European states. The population is widely scattered. The immense plains, or pampas, extend from the Andes to the sea, and from the frontiers of Bolivia to Patagonia. Here was born the gaucho, that original product of Argentine soil.",
+      "longExcerpt": "The Argentine Republic is one and indivisible. Providence, which in its designs for the Argentine Republic has given it extraordinary gifts of wealth and power, has also given it a nature that requires a more perfect moral and material organization than that exhibited by other South American nations. The extent of the Argentine territory is such that a single province, Buenos Aires, has an area greater than that of three or four European states. The population is widely scattered. The immense plains, or pampas, extend from the Andes to the sea, and from the frontiers of Bolivia to Patagonia. Here was born the gaucho, that original product of Argentine soil. The vast solitude produces two distinct societies, two civilizations: the one Spanish, European, cultivated; the other barbarous, American, almost primitive. The revolution of 1810 found the interior provinces in this condition. The cities were Spanish; the countryside was native and barbarous. Cities are the centers of civilization, arts, refinement of manners, luxury. The countryside is the asylum of barbarism, ignorance, coarseness. This opposition between civilization and barbarism, between the city and the countryside, exists in all Argentine territories.",
       "keywords": [
         "Argentina",
         "gauchos",
@@ -162,32 +169,60 @@
       }
     },
     {
-      "id": "guerra-do-paraguai",
-      "title": "Diary of the Paraguayan War",
-      "author": "Alfredo d'Escragnolle Taunay",
-      "year": 1870,
-      "era": "INDUSTRIAL",
+      "id": "jose-marti-nuestra-america",
+      "title": "Nuestra América (Our America)",
+      "author": "José Martí",
+      "year": 1891,
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "A campanha do Paraguai foi terrível. Vimos homens morrerem não apenas de balas, mas de fome, doença e desespero. A guerra consumiu uma geração inteira.",
-      "longExcerpt": "A campanha do Paraguai foi terrível. Vimos homens morrerem não apenas de balas, mas de fome, doença e desespero. A guerra consumiu uma geração inteira. This diary from a Brazilian officer during the War of the Triple Alliance (1864-1870) provides a firsthand account of South America's deadliest conflict.",
+      "excerpt": "The conceited villager believes the entire world to be his village. Provided that he can be mayor, humiliate the rival who stole his sweetheart, or add to the savings in his strongbox, he considers the universal order good. The European or Yankee book cannot provide the key to the Hispanic-American enigma. Hate must be tried, and our nations must stand together. The scorn of our formidable neighbor who does not know us is Our America's greatest danger. And since the day of the visit is near, it is imperative that our neighbor know us, and soon, so that it will not scorn us.",
+      "longExcerpt": "The conceited villager believes the entire world to be his village. Provided that he can be mayor, humiliate the rival who stole his sweetheart, or add to the savings in his strongbox, he considers the universal order good. The European or Yankee book cannot provide the key to the Hispanic-American enigma. Hate must be tried, and our nations must stand together. The scorn of our formidable neighbor who does not know us is Our America's greatest danger. And since the day of the visit is near, it is imperative that our neighbor know us, and soon, so that it will not scorn us. How can the universities produce governors if not a single university in America teaches the rudiments of the art of government, the analysis of elements peculiar to the peoples of America? Out of context, the young go out into the world wearing Yankee or French spectacles, hoping to govern a people they do not know. We were a vision, with the chest of an athlete, the hands of a dandy, and the brain of a child. We were a masquerader in English breeches, Parisian vest, North American jacket, and Spanish cap.",
       "keywords": [
-        "Paraguay",
-        "war",
-        "Triple Alliance",
-        "Brazil",
-        "conflict",
-        "diary",
-        "military"
+        "cuba",
+        "independence",
+        "latin america",
+        "identity",
+        "anti-imperialism",
+        "nationalism",
+        "martí"
       ],
-      "wikisourceTitle": null,
-      "internetArchiveId": "paraguayanwar00taun",
+      "wikisourceTitle": "Nuestra_América",
       "citation": {
-        "translator": null,
-        "originalPublication": "Rio de Janeiro, 1870",
-        "modernSource": "Biblioteca Nacional do Brasil, 1946"
-      }
+        "originalPublication": "New York, January 1891",
+        "modernSource": "El Partido Liberal, Mexico City, 1891"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "martin-fierro",
+      "title": "El Gaucho Martín Fierro",
+      "author": "José Hernández",
+      "year": 1872,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Aquí me pongo a cantar al compás de la vigüela, que el hombre que lo desvela una pena estraordinaria, como la ave solitaria con el cantar se consuela. Here I set myself to sing to the beat of my guitar, for the man kept wakeful by extraordinary grief finds consolation in song, like the solitary bird.",
+      "longExcerpt": "Aquí me pongo a cantar al compás de la vigüela, que el hombre que lo desvela una pena estraordinaria, como la ave solitaria con el cantar se consuela. Here I set myself to sing to the beat of my guitar, for the man kept wakeful by extraordinary grief finds consolation in song, like the solitary bird. I am a gaucho, and take this to heart: I have neither dot nor line in the book of knowledge. I am wise without learned instruction, like every mother's son on our land. I have no schooling or high learning, but when I start to sing, my songs have no end. They spring from my very soul like birds from a nest in the woods. I sing of the gaucho's joys and of his wanderings and his hardships. I was happy on the pampas, with my children and my faithful wife. I knew no needs greater than those that God and nature gave me. Then came the Army draft, and I was taken by force to serve on the frontier fighting the Indians. When I returned, my ranch was in ruins, my wife had fled, and my sons were scattered like birds from a broken nest.",
+      "keywords": [
+        "argentina",
+        "gaucho",
+        "pampas",
+        "epic",
+        "poetry",
+        "frontier",
+        "hernández"
+      ],
+      "wikisourceTitle": "Martín_Fierro",
+      "internetArchiveId": "gauchomartnfie00hern",
+      "citation": {
+        "translator": "Walter Owen",
+        "originalPublication": "Buenos Aires, 1872",
+        "modernSource": "Imprenta de la Pampa, 1872"
+      },
+      "isStandard": true
     }
   ]
 }

@@ -1,15 +1,394 @@
 {
   "sources": [
     {
+      "id": "liangzhu-jade-cong",
+      "title": "Liangzhu Jade Cong Tubes",
+      "author": "Liangzhu culture (archaeological evidence)",
+      "year": -3000,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Mysterious jade tubes with circular inner holes within square outer forms, intricately carved with supernatural faces combining human and animal features. These ritual objects, requiring hundreds of hours to carve with primitive tools, demonstrate sophisticated jade-working technology and complex religious beliefs in late Neolithic China.",
+      "longExcerpt": "The Liangzhu culture (3300-2300 BCE) in the Yangtze River Delta region of China produced some of the world's most sophisticated Neolithic jade artifacts, particularly the enigmatic cong tubes. These ritual objects feature a square outer form with circular inner bore, decorated with intricate low-relief carvings of deity faces combining human and animal features—likely representing shamanic or divine figures central to Liangzhu cosmology. The technical achievement is extraordinary: using only sand, water, and bamboo drills, Liangzhu artisans could spend hundreds of hours carving a single cong from nephrite jade, one of the hardest stones. The culture's mastery of jade working remained unsurpassed for millennia. Recent excavations at Liangzhu city revealed sophisticated urban planning: a walled inner city of 300 hectares, massive water control systems including 11 dams (the world's oldest known hydraulic engineering), and social stratification evident in grave goods. Elite burials contain hundreds of jade objects while commoner graves have few or none. The largest cong tubes were clearly symbols of power and religious authority. Liangzhu jade influenced all subsequent Chinese jade working traditions and became central to concepts of virtue and cosmic order. The culture's collapse around 2300 BCE (possibly from catastrophic flooding) left these mysterious artifacts as testimony to China's earliest complex society, predating the Shang dynasty by 1,000 years.",
+      "keywords": [
+        "liangzhu",
+        "jade",
+        "neolithic",
+        "china",
+        "cong",
+        "yangtze"
+      ],
+      "wikipediaArticle": "Liangzhu_culture",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Yangtze Delta, China, c. 3300-2300 BCE",
+        "modernSource": "Liu, Li. The Chinese Neolithic. Cambridge University Press, 2004"
+      }
+    },
+    {
+      "id": "hongshan-jade-dragon",
+      "title": "Hongshan Jade Dragons",
+      "author": "Hongshan culture (archaeological evidence)",
+      "year": -3500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "C-shaped jade dragons with pig-like snouts and coiled serpent bodies represent China's earliest dragon imagery. These ritual objects, buried in elite graves in northeastern China, reveal that dragon symbolism—central to all later Chinese culture—emerged 5,500 years ago among Neolithic peoples.",
+      "longExcerpt": "The Hongshan culture (4700-2900 BCE) in northeastern China (Inner Mongolia, Liaoning) produced the world's earliest known dragon imagery in jade form around 3500 BCE. These C-shaped jade pendants, called 'pig-dragons' by archaeologists, feature coiled serpent-like bodies with prominent snouts resembling pigs or bears. They represent the origin of the dragon motif that would become central to Chinese civilization for the next 5,500 years. Hongshan jades demonstrate remarkable skill: using sand as abrasive and primitive drills, artisans carved hard nephrite jade into complex three-dimensional forms. The culture's ritual landscape included elaborate stone platforms and circular altars, suggesting organized religious practices. The famous Niuheliang site features a 'Goddess Temple' with clay female figurines larger than life-size and painted red—evidence of a possible mother goddess cult. Elite burials reveal stark social stratification: some individuals were interred with numerous jade objects (dragons, turtles, birds, cloud patterns) while others had none. The largest burial at Niuheliang contained over 20 jade objects. Hongshan culture demonstrates that complex society, craft specialization, long-distance jade trade networks, and sophisticated cosmological beliefs existed in northern China long before written records. The jade dragon motif, combining features of multiple animals into a supernatural composite, established patterns that persisted through Chinese history. These artifacts prove the dragon was not imported from other cultures but originated in China's Neolithic period.",
+      "keywords": [
+        "hongshan",
+        "jade",
+        "dragon",
+        "neolithic",
+        "china",
+        "inner mongolia"
+      ],
+      "wikipediaArticle": "Hongshan_culture",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Inner Mongolia/Liaoning, China, c. 4700-2900 BCE",
+        "modernSource": "Childs-Johnson, Elizabeth. Jades of the Hongshan Culture. Orientations, 1991"
+      }
+    },
+    {
+      "id": "yangshao-banpo-village",
+      "title": "Banpo Village: A Yangshao Neolithic Settlement",
+      "author": "Yangshao culture (archaeological evidence)",
+      "year": -4500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "This remarkably preserved village near Xi'an reveals Neolithic Chinese life 6,500 years ago: 46 semi-subterranean houses arranged around a central plaza, pottery kilns, burial grounds with 250 graves, and elaborate painted pottery featuring fish, human faces, and geometric designs. Evidence suggests a matrilineal society with communal organization.",
+      "longExcerpt": "Banpo village, excavated in the 1950s near modern Xi'an, is the most completely preserved Yangshao culture (5000-3000 BCE) settlement in China. The site reveals sophisticated Neolithic village planning: 46 semi-subterranean round and square houses with plastered floors, arranged around a central communal plaza; a defensive moat surrounding the settlement; six pottery kilns located outside the living area; and a cemetery with 250 burials (adults buried outside the moat, children in urns between houses). Houses ranged from small single-family dwellings (12-14 sq meters) to large communal structures (160 sq meters), suggesting complex social organization. The distinctive Yangshao painted pottery features bold geometric designs, stylized fish motifs, human faces with mysterious expressions, and intricate spiral patterns in black, red, and brown pigments. Some pots bear incised marks that may represent early proto-writing or clan symbols. The site's material culture reveals a farming economy based on millet cultivation, pig and dog domestication, hunting (deer bones), and fishing. Stone tools include axes, chisels, and grinding stones; bone needles suggest textile production. Some scholars have interpreted burial patterns and artifacts as evidence for matrilineal society, though this remains debated. Banpo demonstrates that by 4500 BCE, Yellow River valley communities had achieved settled agriculture, craft specialization, artistic sophistication, and complex social structures. The site represents the foundation from which Chinese civilization would emerge over the next 2,000 years.",
+      "keywords": [
+        "banpo",
+        "yangshao",
+        "neolithic",
+        "china",
+        "painted pottery",
+        "village"
+      ],
+      "wikipediaArticle": "Banpo",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Xi'an, China, c. 4500 BCE",
+        "modernSource": "Institute of Archaeology. Banpo: A Typical Yangshao Culture Site. Cultural Relics Publishing House, 1963"
+      }
+    },
+    {
+      "id": "dawenkou-culture-proto-writing",
+      "title": "Dawenkou Culture Pottery Symbols",
+      "author": "Dawenkou culture (archaeological evidence)",
+      "year": -2800,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Incised symbols on pottery vessels—including pictographs resembling later Chinese characters for 'sun,' 'mountain,' and numerals—represent possible proto-writing from 4,800 years ago. Elite burials reveal extreme social stratification, with some individuals interred with jade, ivory, and dozens of pottery vessels while others have no grave goods.",
+      "longExcerpt": "The Dawenkou culture (4100-2600 BCE) in Shandong province represents a crucial transition period in eastern China, showing increasing social complexity and possible proto-writing. Excavations have revealed numerous pottery vessels incised with symbols—some remarkably similar to later Chinese characters. A pot from the type site bears a symbol closely resembling the character for 'dan' (dawn/sun rising over horizon), while other vessels show numerals, mountain-like pictographs, and abstract marks that may represent clan names or owners' marks. While debate continues over whether these constitute true writing or simpler notation, they demonstrate sophisticated symbolic thought and possible early steps toward Chinese script. The culture's burial evidence reveals dramatic social stratification: elite tombs contain elaborate mortuary goods including jade cong tubes, ivory combs, carved turtle shells (perhaps for divination), and dozens of pottery vessels, while commoner graves are nearly empty. Some elite burials feature artificial cranial deformation and tooth extraction as status markers. Dawenkou pottery technology was advanced, featuring thin-walled vessels, black burnished surfaces, and distinctive eggshell-thin cups requiring extraordinary skill. The culture practiced both wet rice and millet agriculture, maintained extensive trade networks (jade from distant sources), and developed increasingly complex religious practices. Dawenkou's sophisticated pottery symbols, social hierarchy, and craft specialization suggest a society on the threshold of state formation—a precursor to the Longshan culture and eventually to Bronze Age Chinese civilization.",
+      "keywords": [
+        "dawenkou",
+        "proto-writing",
+        "pottery",
+        "neolithic",
+        "china",
+        "shandong"
+      ],
+      "wikipediaArticle": "Dawenkou_culture",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Shandong, China, c. 4100-2600 BCE",
+        "modernSource": "Underhill, Anne. Craft Production and Social Change in Northern China. Springer, 2002"
+      }
+    },
+    {
+      "id": "longshan-black-pottery",
+      "title": "Longshan Black Pottery and Urbanization",
+      "author": "Longshan culture (archaeological evidence)",
+      "year": -2500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Eggshell-thin black pottery vessels, some less than 1mm thick, demonstrate extraordinary ceramic technology. Longshan sites reveal China's first walled cities, evidence of warfare (mass burials with decapitated skeletons), oracle bone divination, and extreme social hierarchy—the immediate precursors to Bronze Age Chinese civilization.",
+      "longExcerpt": "The Longshan culture (3000-1900 BCE) in the Yellow River and adjacent regions represents the final Neolithic phase before China's Bronze Age dynasties. The culture is famous for its black pottery technology: using reduction firing in sealed kilns, potters created lustrous black surfaces on vessels so thin they're called 'eggshell pottery'—some less than 1mm thick, with walls thinner than modern teacups. Creating these without the potter's wheel (Longshan used slow rotation) required exceptional skill. The pottery's sophistication symbolizes broader cultural advances. Longshan sites show China's first city walls (rammed earth fortifications 5-9 meters thick), suggesting organized warfare and centralized authority. Excavations reveal disturbing evidence of violence: mass burials with decapitated and dismembered skeletons, burning destruction layers, and defensive architecture. The period saw increasing social stratification, with elite burials containing hundreds of pottery vessels, jade objects, and evidence of human sacrifice. Crucially, Longshan sites have yielded oracle bones (cattle scapulae with burn marks for divination)—the same tradition that later Shang dynasty scribes would use for writing China's earliest texts. Craft production became increasingly specialized, with separate pottery, stone tool, and bone workshops. The culture's agricultural intensification, urbanization, warfare, social hierarchy, and divination practices established patterns that would define Bronze Age Chinese civilization. Many scholars view late Longshan culture as the immediate precursor to (or even coeval with) the legendary Xia dynasty.",
+      "keywords": [
+        "longshan",
+        "black pottery",
+        "neolithic",
+        "china",
+        "urbanization",
+        "city walls"
+      ],
+      "wikipediaArticle": "Longshan_culture",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Yellow River region, China, c. 3000-1900 BCE",
+        "modernSource": "Chang, Kwang-chih. The Archaeology of Ancient China. Yale University Press, 1986"
+      }
+    },
+    {
+      "id": "erlitou-bronze-foundry",
+      "title": "Erlitou Bronze Foundry and Palace",
+      "author": "Erlitou culture (archaeological evidence)",
+      "year": -1900,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "China's earliest bronze foundry and palace complex mark the transition from Neolithic to Bronze Age. Sophisticated bronze ritual vessels (jue wine cups, ding tripod cauldrons), jade blade ceremonial weapons, and a 108-meter-long palace foundation reveal centralized state power emerging around 1900 BCE—possibly the legendary Xia dynasty.",
+      "longExcerpt": "The Erlitou culture (1900-1500 BCE) in Henan province represents a pivotal moment: China's first Bronze Age civilization. The type site near Luoyang features the earliest known palace complex in China—massive rammed-earth foundations for buildings up to 108 meters long, organized on central north-south axis following patterns that would define Chinese imperial architecture for 4,000 years. Most significantly, Erlitou contains China's earliest bronze foundry, where artisans cast ritual vessels including jue wine cups with three legs and two posts, ding tripod cauldrons, and ceremonial weapons. These weren't simple tools but sophisticated alloy castings requiring advanced metallurgical knowledge, specialized production facilities, and control over tin sources (tin doesn't occur naturally in the Yellow River valley). The bronze vessels were clearly status symbols and ritual implements, establishing patterns for the bronze ritual vessels that would become central to Shang and Zhou dynasty culture. Elite burials contain jade blades, turquoise-inlaid plaques, and other luxury items, while large storage pits suggest centralized control of grain surpluses. The site's scale (300 hectares), planned layout, specialized workshops, and monumental architecture all point to state-level society. Many Chinese archaeologists identify Erlitou with the legendary Xia dynasty, first of China's dynasties according to traditional histories but lacking contemporary written evidence. Whether or not Erlitou was 'Xia,' it undeniably represents the emergence of Chinese civilization as we recognize it: centralized political authority, bronze ritual technology, palace architecture, and social stratification that would characterize all subsequent dynasties.",
+      "keywords": [
+        "erlitou",
+        "bronze age",
+        "palace",
+        "china",
+        "xia dynasty",
+        "metallurgy"
+      ],
+      "wikipediaArticle": "Erlitou_culture",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Henan, China, c. 1900-1500 BCE",
+        "modernSource": "Liu, Li and Chen, Xingcan. The Archaeology of China. Cambridge University Press, 2012"
+      }
+    },
+    {
+      "id": "sanxingdui-bronze-masks",
+      "title": "Sanxingdui Bronze Masks and Statues",
+      "author": "Sanxingdui culture (archaeological evidence)",
+      "year": -1200,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Astonishing bronze masks with protruding eyes, massive ears, and supernatural features—unlike anything from contemporary Shang dynasty China. A 260cm bronze 'divine tree,' life-size bronze human figures, and hundreds of elephant tusks reveal a sophisticated but mysterious Bronze Age culture in Sichuan, unknown until its discovery in 1986.",
+      "longExcerpt": "The Sanxingdui culture in Sichuan province remained completely unknown until dramatic discoveries in 1986 revolutionized understanding of Bronze Age China. Two sacrificial pits yielded over 1,000 objects including bronze masks with grotesquely protruding cylindrical eyes (some extending 10cm from the face), massive ears, and supernatural features; a bronze 'divine tree' standing 3.96 meters tall with stylized birds perched on branches; life-size bronze human statues in ceremonial dress; jade blades and zhang ritual objects; hundreds of elephant tusks; and cowrie shells from distant oceans. The artifacts date to approximately 1200 BCE—contemporary with the Shang dynasty in central China, but stylistically completely different. Where Shang bronzes feature intricate abstract designs on ritual vessels, Sanxingdui created massive representational sculptures depicting gods, shamans, or ancestors. The culture clearly commanded sophisticated bronze casting technology, control over distant trade networks, and organized religion focused on deities radically different from those in the Yellow River valley. The site's location in the Chengdu plain suggests independent cultural development in Sichuan, challenging long-held assumptions that Chinese civilization developed from a single Yellow River center. Some scholars speculate Sanxingdui represents the ancient Shu kingdom mentioned in later texts. The culture's mysterious decline around 1000 BCE (possibly from warfare or flooding) left these extraordinary objects as evidence of Bronze Age cultural diversity in China—a parallel but distinct civilization practicing bronze metallurgy, jade working, and monumental religious art quite unlike their Shang dynasty contemporaries.",
+      "keywords": [
+        "sanxingdui",
+        "bronze age",
+        "masks",
+        "china",
+        "sichuan",
+        "bronze sculpture"
+      ],
+      "wikipediaArticle": "Sanxingdui",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Sichuan, China, c. 1200 BCE",
+        "modernSource": "Bagley, Robert. Sanxingdui, Sichuan Province: A Preliminary Evaluation. Arts Asiatiques 48, 1993"
+      }
+    },
+    {
+      "id": "mehrgarh-neolithic-settlement",
+      "title": "Mehrgarh: South Asia's First Farming Village",
+      "author": "Neolithic South Asians (archaeological evidence)",
+      "year": -7000,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "In the Baluchistan highlands of Pakistan, mud-brick structures reveal South Asia's transition to agriculture 9,000 years ago. Domesticated wheat and barley, early cattle herding, sophisticated bead-making from turquoise and lapis lazuli, and evidence of early dentistry (drilled teeth) demonstrate a complex Neolithic society predating the Indus civilization by 4,000 years.",
+      "longExcerpt": "Mehrgarh in modern Pakistan's Baluchistan region represents South Asia's earliest known farming settlement, dating from approximately 7000 BCE. The site reveals the region's transition from mobile hunter-gatherers to settled agriculturalists, predating the Indus Valley Civilization by four millennia. Early occupants cultivated domesticated wheat and barley (possibly independently domesticated or adopted from the Fertile Crescent), herded cattle and goats, and lived in mud-brick houses with multiple rooms and courtyards. The site's craft production was remarkably sophisticated: artisans created beads from turquoise, lapis lazuli, and shell using drilling and grinding techniques; produced fine ceramics with geometric painted designs; and worked copper into tools and ornaments by 4500 BCE. Most astonishingly, Mehrgarh teeth show evidence of primitive dentistry—eleven drilled molars, with drill holes perfectly cylindrical and extending deep into the tooth, suggesting treatment of caries or abscesses using flint-tipped drills. This is the world's earliest known dental work. Burials reveal social differentiation: some individuals interred with elaborate grave goods (beads, stone vessels, tools) while others had few. The settlement grew over millennia from a small village to a town of thousands. Material continuity suggests Mehrgarh populations eventually migrated to the Indus plains, forming the cultural foundation for later Harappan civilization. Mehrgarh demonstrates that South Asian Neolithic peoples developed agriculture, craft specialization, long-distance trade networks (lapis from Afghanistan), and technological innovation independently and earlier than previously recognized.",
+      "keywords": [
+        "mehrgarh",
+        "neolithic",
+        "pakistan",
+        "agriculture",
+        "baluchistan",
+        "indus"
+      ],
+      "wikipediaArticle": "Mehrgarh",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Baluchistan, Pakistan, c. 7000-2500 BCE",
+        "modernSource": "Jarrige, Jean-François. Mehrgarh Neolithic. Pragdhara 18, 2008"
+      }
+    },
+    {
+      "id": "harappa-indus-city",
+      "title": "Harappa: A Planned Indus Valley City",
+      "author": "Indus Valley Civilization (archaeological evidence)",
+      "year": -2600,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "One of South Asia's first cities features grid-planned streets, sophisticated drainage systems, standardized fired brick construction, massive granaries, and a citadel. Artifacts reveal trade networks extending to Mesopotamia, Afghanistan, and the Persian Gulf. The absence of palaces, temples, and weapons suggests an unusually egalitarian Bronze Age urban society.",
+      "longExcerpt": "Harappa in Punjab, Pakistan, was one of the Indus Valley Civilization's two major cities (alongside Mohenjo-daro), flourishing from approximately 2600-1900 BCE. The city housed an estimated 23,000-40,000 people in a planned settlement covering 150 hectares. Urban planning demonstrates remarkable sophistication: streets laid out in precise grid patterns oriented north-south and east-west; residential blocks with standardized fired brick construction (all bricks using consistent 1:2:4 ratio); advanced drainage systems with covered sewers running along streets; public and private wells providing clean water; and separate areas for craft production. The city's monumental structures include massive granaries with ventilation systems to prevent moisture, a citadel area with defensive walls, and large public buildings whose functions remain debated. Harappan artifacts reveal extensive trade: carnelian beads, copper tools, terracotta figurines, stone seals with undeciphered script and animal motifs (unicorn, bull, elephant), and weights following standardized measurement systems. Trade networks reached Mesopotamia (Indus seals found in Ur), Afghanistan (lapis lazuli), and coastal Arabia. Strikingly, Harappa lacks the palaces, monumental temples, royal tombs, and weapons arsenals typical of contemporary civilizations. Skeletal evidence shows good nutrition and relatively egalitarian health. This suggests a Bronze Age urban society with unusual social organization—possibly merchant oligarchies or corporate governance rather than divine kingship. Harappa's standardization across vast distances (brick sizes, weights, seals, city planning identical from Pakistan to Gujarat) implies centralized administration, yet the mechanisms remain mysterious without deciphered texts.",
+      "keywords": [
+        "harappa",
+        "indus valley",
+        "bronze age",
+        "pakistan",
+        "urban planning",
+        "drainage"
+      ],
+      "wikipediaArticle": "Harappa",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Punjab, Pakistan, c. 2600-1900 BCE",
+        "modernSource": "Kenoyer, Jonathan Mark. Ancient Cities of the Indus Valley Civilization. Oxford, 1998"
+      }
+    },
+    {
+      "id": "mohenjo-daro-great-bath",
+      "title": "Mohenjo-daro: The Great Bath and Bronze Age Urbanism",
+      "author": "Indus Valley Civilization (archaeological evidence)",
+      "year": -2500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "The largest Indus city features the 'Great Bath'—a monumental public pool 12 meters long, waterproofed with bitumen, fed by wells and sophisticated drainage. Multi-story houses with private bathrooms, weights and measures for commerce, bronze sculptures like the 'Dancing Girl,' and extensive craft workshops reveal advanced Bronze Age urban civilization.",
+      "longExcerpt": "Mohenjo-daro ('Mound of the Dead') in Sindh, Pakistan, was the Indus Valley Civilization's largest city, covering 250 hectares and housing perhaps 40,000 people at its peak (2500-1900 BCE). The city's defining monument is the Great Bath: a rectangular pool 12 meters long, 7 meters wide, and 2.4 meters deep, constructed from precisely fitted fired bricks sealed with bitumen for waterproofing. Staircases descend into the pool from both ends, and sophisticated drainage channels empty the water. Rooms surrounding the bath suggest ritual changing areas. The structure's purpose remains debated—possibly religious purification (anticipating later Hindu bathing rituals), public bathing facility, or elite social space. The residential quarters demonstrate advanced urban amenities: multi-story houses with internal courtyards, private wells and bathrooms, toilets connected to covered drains, and sophisticated waste management systems. Craft workshops produced carnelian beads (using etching technology unknown elsewhere), shell bangles, copper tools, cotton textiles (earliest evidence of cotton weaving), and faience ornaments. Artifacts include the famous 'Dancing Girl' bronze sculpture (showing a nude female in relaxed contrapposto pose), the 'Priest-King' steatite sculpture with trefoil-patterned robe, and thousands of seals with undeciphered script. The city's mysterious decline around 1900 BCE (possibly from shifting rivers, climate change, or disrupted trade) left it abandoned but remarkably preserved. Mohenjo-daro represents Bronze Age urbanism at its most sophisticated, with sanitation and city planning superior to many cities 3,000 years later.",
+      "keywords": [
+        "mohenjo-daro",
+        "indus valley",
+        "great bath",
+        "pakistan",
+        "bronze age",
+        "urban planning"
+      ],
+      "wikipediaArticle": "Mohenjo-daro",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Sindh, Pakistan, c. 2500-1900 BCE",
+        "modernSource": "Possehl, Gregory. The Indus Civilization: A Contemporary Perspective. AltaMira, 2002"
+      }
+    },
+    {
+      "id": "indus-script-seals",
+      "title": "Indus Valley Seals and Undeciphered Script",
+      "author": "Indus Valley Civilization (archaeological evidence)",
+      "year": -2500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "Over 4,000 stone seals carved with animals (unicorns, bulls, elephants, tigers) and inscriptions in an undeciphered script. Averaging 5 symbols, these seals likely marked goods for trade, identified merchants, or served administrative functions. The script's 400+ signs suggest a logo-syllabic writing system, but decipherment remains controversial and elusive.",
+      "longExcerpt": "The Indus Valley Civilization produced over 4,000 stamp seals, primarily carved from steatite (soapstone), featuring naturalistic animal motifs and inscriptions in an undeciphered script. Typical seals measure 2-3 cm square and depict single animals: the 'unicorn' (possibly a stylized bull shown in profile), humped zebu bulls, elephants, rhinoceros, tigers, crocodiles, and composite creatures. Above the animals appear short inscriptions, typically 5 symbols (ranging from 3-26 signs). The script uses approximately 400 distinct signs, suggesting a logo-syllabic system where some signs represent words and others represent syllables. Seals were likely used for administration and trade: impressions found on clay tags attached to goods, and seals discovered in Mesopotamia prove long-distance commerce. Some scholars argue the script represents an early Dravidian language, others suggest a language isolate, while skeptics question whether it's true writing or merely symbolic notation. Statistical analysis shows the inscriptions are too short for full linguistic decipherment using conventional methods. The seals' reverse sides feature perforated bosses for handling, often showing wear from repeated use. Certain symbols appear frequently (fish, jar, multiple vertical strokes likely representing numerals), while others are rare. The Great Bath at Mohenjo-daro yielded a seal with seven characters, prompting speculation about religious or administrative significance. The script's decipherment remains one of archaeology's great unsolved puzzles. If deciphered, these 4,000+ inscriptions would revolutionize understanding of Bronze Age South Asian society, religion, economy, and language.",
+      "keywords": [
+        "indus script",
+        "seals",
+        "writing",
+        "undeciphered",
+        "bronze age",
+        "harappan"
+      ],
+      "wikipediaArticle": "Indus_script",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Indus Valley region, Pakistan/India, c. 2600-1900 BCE",
+        "modernSource": "Parpola, Asko. Deciphering the Indus Script. Cambridge University Press, 1994"
+      }
+    },
+    {
+      "id": "dholavira-water-management",
+      "title": "Dholavira: Indus Water Management and Reservoirs",
+      "author": "Indus Valley Civilization (archaeological evidence)",
+      "year": -2650,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "This remote Indus city in Gujarat's arid region features the world's oldest known signboard (10 large symbols), sophisticated water conservation with 16 reservoirs collecting monsoon runoff, a stadium-like structure, and unique stone architecture. The elaborate water management system sustained 15,000 people in a desert environment for 1,500 years.",
+      "longExcerpt": "Dholavira on Gujarat's Khadir island represents one of the Indus Valley Civilization's five largest cities, flourishing from approximately 2650-1450 BCE. Located in an arid region receiving minimal rainfall, the city's survival depended on sophisticated water management: 16 massive reservoirs (some cut into rock bedding) captured seasonal monsoon runoff, with channels directing water into storage. These reservoirs could hold millions of liters, sustaining 15,000 inhabitants through dry seasons. The city's planning followed Harappan standards but with unique features: a three-part division (citadel, middle town, lower town), massive stone fortification walls (unlike the mud-brick typical elsewhere), and a mysterious stadium-like structure measuring 283 x 47 meters (possibly for ceremonies or assemblies). Most remarkably, Dholavira yielded the world's oldest known signboard: a wooden board with 10 large Indus script symbols, each 37 cm tall, apparently mounted above the city's north gate. This suggests public messaging or proclamations, implying literacy beyond administrative elites. The site's craft production focused on bead-making, shell working, and metallurgy. Dholavira's eventual abandonment around 1450 BCE coincided with the Indus civilization's general decline, possibly from prolonged drought, reduced monsoons, or earthquake-related river changes. The site demonstrates Indus peoples' remarkable adaptation to challenging environments through hydraulic engineering. Unlike river-dependent cities like Mohenjo-daro, Dholavira survived through water conservation technology, representing Bronze Age environmental management at its most sophisticated.",
+      "keywords": [
+        "dholavira",
+        "indus valley",
+        "water management",
+        "reservoirs",
+        "gujarat",
+        "signboard"
+      ],
+      "wikipediaArticle": "Dholavira",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Gujarat, India, c. 2650-1450 BCE",
+        "modernSource": "Bisht, R.S. Dholavira Excavations. Archaeological Survey of India, 1999"
+      }
+    },
+    {
+      "id": "lothal-indus-dockyard",
+      "title": "Lothal: An Indus Valley Port and Dockyard",
+      "author": "Indus Valley Civilization (archaeological evidence)",
+      "year": -2400,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "A sophisticated port city in Gujarat with the world's earliest known dockyard—a brick basin 214 meters long connected to an ancient channel reaching the sea. Warehouses stored goods for maritime trade with Mesopotamia, Persian Gulf, and Oman. Evidence includes fire altars, bead-making workshops, copper tools, and a ruler with precise decimal markings.",
+      "longExcerpt": "Lothal in Gujarat represents the Indus Valley Civilization's premier port city, flourishing from approximately 2400-1900 BCE. The site's defining feature is a massive brick-built dockyard: a rectangular basin measuring 214 x 36 meters with 4-meter-high walls, featuring a sophisticated entrance channel with spillway to regulate water levels. The dock connected via an ancient river channel to the Gulf of Khambhat and the Arabian Sea, facilitating maritime trade with Mesopotamia, Bahrain, Oman, and Persian Gulf ports. The structure's engineering demonstrates advanced understanding of tidal movements, siltation management, and harbor design. Adjacent warehouses (built on platforms to prevent flooding) stored trade goods: carnelian beads, copper ingots, ivory products, and shell ornaments. Lothal's bead-making industry was particularly sophisticated, producing micro-beads less than 1mm in diameter using drilling technology with copper tools, stone drill bits, and abrasives. The site yielded evidence of Indus religious practices: fire altars with burned remains, possible ritual bath structures, and terracotta figurines of a mother goddess. A remarkable artifact is an ivory ruler with precise decimal division markings (1.6mm intervals), suggesting standardized measurement for trade and construction. Persian Gulf seals found at Lothal prove direct contact with Mesopotamian commercial networks. The city's decline around 1900 BCE corresponded with geological changes: the river shifted course, the harbor silted up, and maritime trade routes disrupted. Lothal demonstrates the Indus civilization's maritime capabilities and integration into Bronze Age Indian Ocean trade networks, challenging earlier assumptions of isolated development.",
+      "keywords": [
+        "lothal",
+        "indus valley",
+        "dockyard",
+        "port",
+        "maritime trade",
+        "gujarat"
+      ],
+      "wikipediaArticle": "Lothal",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Gujarat, India, c. 2400-1900 BCE",
+        "modernSource": "Rao, S.R. Lothal and the Indus Civilization. Asia Publishing House, 1973"
+      }
+    },
+    {
+      "id": "rigveda-hymns",
+      "title": "Rigveda: Hymns of the Early Vedic Period",
+      "author": "Vedic poets (oral tradition)",
+      "year": -1500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "The oldest Sanskrit text preserves over 1,000 hymns to Vedic deities: Indra the warrior god, Agni the sacred fire, Soma the ritual drink, and the cosmic order (Rta). Composed orally by Indo-Aryan peoples in the Punjab region, these hymns reveal Bronze Age religion, chariot warfare, cattle-herding economies, and Sanskrit's earliest form.",
+      "longExcerpt": "The Rigveda, composed between approximately 1500-1200 BCE, is the oldest text in Sanskrit and one of the world's oldest religious works. Transmitted orally with extraordinary fidelity for millennia before being written down, the collection contains 1,028 hymns organized into 10 books (mandalas). The hymns praise Vedic deities, particularly Indra (warrior god who slays the serpent Vritra to release waters), Agni (divine fire mediating between humans and gods), and Soma (sacred intoxicating drink pressed from a mysterious plant). The texts reveal early Indo-Aryan culture in the Punjab region: pastoralist societies centered on cattle wealth, chariot warfare with horse-drawn vehicles, patriarchal social organization with emerging caste distinctions (though not yet rigid), and ritual sacrifices conducted by brahmin priests. The hymns describe the Sapta Sindhu (Seven Rivers, likely the Indus system and Punjab tributaries), suggesting geographical setting. Some hymns contain sophisticated philosophical speculation: the Nasadiya Sukta (Creation Hymn) questions cosmic origins with remarkable agnosticism. The language represents archaic Sanskrit, cognate with Avestan Persian and ancient Greek, proving the texts' antiquity and Indo-European heritage. Scholarly debate continues over the Rigveda's relationship to the Indus Valley Civilization's decline: did Indo-Aryan speakers migrate into a region where Harappan cities were already declining (climate change hypothesis), or did they contribute to the civilization's end (now largely dismissed)? Regardless, the Rigveda provides invaluable evidence for post-Harappan Bronze Age India and the foundations of Hindu religious traditions.",
+      "keywords": [
+        "rigveda",
+        "vedic",
+        "sanskrit",
+        "hinduism",
+        "indo-aryan",
+        "hymns"
+      ],
+      "wikipediaArticle": "Rigveda",
+      "isStandard": true,
+      "citation": {
+        "translator": "Wendy Doniger",
+        "originalPublication": "Punjab region, India/Pakistan, c. 1500-1200 BCE (oral composition)",
+        "modernSource": "The Rig Veda. Penguin Classics, 1981"
+      }
+    },
+    {
       "id": "bhagavad-gita",
       "title": "Bhagavad Gita",
       "author": "Vyasa (traditional)",
       "year": -400,
-      "era": "ANCIENT",
+      "era": "ANTIQUITY",
       "culturalZones": [
-        "EAST_ASIAN"
+        "SOUTH_ASIAN"
       ],
-      "excerpt": "Now I am become Death, the destroyer of worlds.",
+      "excerpt": "Now I am become Death, the destroyer of worlds. Arjuna, you must fight. But you will only be my instrument. All these warriors have already been destroyed by me. Whether you fight or not, they will die. Get up, win glory, conquer your enemies, and enjoy a prosperous kingdom. All these men are already destroyed. You are troubled by knowledge that is external; you do not see the soul. The soul is never born and never dies. Fire cannot burn it, water cannot wet it, wind cannot dry it. It is eternal, all-pervading, unchanging, immovable.",
+      "longExcerpt": "Now I am become Death, the destroyer of worlds. Arjuna, you must fight. But you will only be my instrument. All these warriors have already been destroyed by me. Whether you fight or not, they will die. Get up, win glory, conquer your enemies, and enjoy a prosperous kingdom. All these men are already destroyed. You are troubled by knowledge that is external; you do not see the soul. The soul is never born and never dies. Fire cannot burn it, water cannot wet it, wind cannot dry it. It is eternal, all-pervading, unchanging, immovable. Therefore, with full knowledge of the soul's true nature, you must fight. When a man gives up all desires that torment the heart and becomes content in the Self, then he is called wise. The enlightened person is unmoved by pain or pleasure. His mind is steady, free from anxiety. He has no selfish attachments. Such a person is not elated by good fortune nor depressed by bad. He is wise and fit for immortality. The man who casts off all desires and walks without desire, who is free from the sense of 'I' and 'mine,' attains peace. This is the state of the Self; having attained it, one is no longer deluded. Even at the hour of death, established in this state, one attains union with the Divine.",
       "keywords": [
         "Hinduism",
         "philosophy",
@@ -38,19 +417,19 @@
       },
       "wikisourceTitle": "Bhagavad_Gita",
       "internetArchiveId": "bhagavadgita00vyas",
-      "isStandard": true,
-      "longExcerpt": "Now I am become Death, the destroyer of worlds. This historical source from -400 provides valuable insight into the asia region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "isStandard": true
     },
     {
       "id": "arthashastra",
       "title": "Arthashastra",
       "author": "Kautilya (Chanakya)",
       "year": -300,
-      "era": "ANCIENT",
+      "era": "ANTIQUITY",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "In the happiness of his subjects lies the king's happiness; in their welfare his welfare.",
+      "excerpt": "In the happiness of his subjects lies the king's happiness; in their welfare his welfare. Whatever pleases himself he shall not consider as good, but whatever pleases his subjects he shall consider as good. A king who is in the field of battle is not the same as one who is enthroned in the court. When all the four expedients fail, then comes war. War is of two kinds: open war and concealed war. Making peace with one, having made war with another, is what is called double policy. Whoever is possessed of intellect, power, and personal bravery may conquer the whole earth.",
+      "longExcerpt": "In the happiness of his subjects lies the king's happiness; in their welfare his welfare. Whatever pleases himself he shall not consider as good, but whatever pleases his subjects he shall consider as good. A king who is in the field of battle is not the same as one who is enthroned in the court. When all the four expedients fail, then comes war. War is of two kinds: open war and concealed war. Making peace with one, having made war with another, is what is called double policy. Whoever is possessed of intellect, power, and personal bravery may conquer the whole earth. An enemy with whom one has made peace should not be attacked. Fire burns him who walks into it. The king who, having made peace on oath, violates that oath, will be despised both in this world and in the next. That king who, having made peace with one enemy on oath, attacks him in disregard of the oath, will be condemned by the people and will not attain heaven. The seeds of heroism are sown by good conduct. The king should maintain spies in the guise of householders, merchants, and ascetics. The king should also appoint secret agents among physicians, soothsayers, and fortune-tellers. Without a system of espionage, no king can either prosper or maintain himself. Therefore let the king always be watchful.",
       "keywords": [
         "governance",
         "economics",
@@ -63,7 +442,7 @@
           "keyword": "Pataliputra",
           "conditions": {
             "culturalZone": "SOUTH_ASIAN",
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -73,19 +452,19 @@
         "modernSource": "Penguin Classics"
       },
       "wikisourceTitle": "Arthashastra",
-      "internetArchiveId": "arthashastra00kaut",
-      "longExcerpt": "In the happiness of his subjects lies the king's happiness; in their welfare his welfare. This historical source from -300 provides valuable insight into the asia region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "internetArchiveId": "arthashastra00kaut"
     },
     {
       "id": "tirukkural",
       "title": "Tirukkural",
       "author": "Thiruvalluvar",
       "year": 300,
-      "era": "ANCIENT",
+      "era": "ANTIQUITY",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "The wound caused by fire will heal within, but the wound caused by words will never heal.",
+      "excerpt": "The wound caused by fire will heal within, but the wound caused by words will never heal. Even though you live in poverty, never beg from those who speak cruelly. It is better to beg from those who brandish a sword. Guard yourself against the harsh word; you may escape the wound of a sword. Refrain from uttering sharp words; even if you forget them, others will not. Even in poverty, live with grace. What good is wealth to those who scorn the poor? The wealth of those who do not practice kindness is like the gathering together of people to watch a beauty who has lost her modesty.",
+      "longExcerpt": "The wound caused by fire will heal within, but the wound caused by words will never heal. Even though you live in poverty, never beg from those who speak cruelly. It is better to beg from those who brandish a sword. Guard yourself against the harsh word; you may escape the wound of a sword. Refrain from uttering sharp words; even if you forget them, others will not. Even in poverty, live with grace. What good is wealth to those who scorn the poor? The wealth of those who do not practice kindness is like the gathering together of people to watch a beauty who has lost her modesty. What use is great wealth if you have no generosity? All the wealth that you own is only for giving. To pile up wealth and not share it is like hoarding water in a barren desert. Those who have no compassion for the poor may boast of their learning and their wealth, but both are like a painted tree that bears no fruit. The truly rich are those who give even when they have little. The truly poor are those who refuse to give even when they have much. Giving is the wealth of the wise; miserliness is the poverty of fools.",
       "keywords": [
         "ethics",
         "Tamil",
@@ -107,8 +486,7 @@
         "modernSource": "Various publishers"
       },
       "wikisourceTitle": "Tirukkural",
-      "internetArchiveId": null,
-      "longExcerpt": "The wound caused by fire will heal within, but the wound caused by words will never heal. This historical source from 300 provides valuable insight into the asia region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "internetArchiveId": null
     },
     {
       "id": "analects-confucius",
@@ -119,8 +497,8 @@
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "Is it not a pleasure, having learned something, to try it out at due intervals? Is it not a joy to have friends come from afar? Is one human who does not know yet does not resent it, not a gentleman?",
-      "longExcerpt": "Is it not a pleasure, having learned something, to try it out at due intervals? Is it not a joy to have friends come from afar? Is one human who does not know yet does not resent it, not a gentleman? These opening lines of the Analects encapsulate Confucian ideals about learning, friendship, and proper conduct. This foundational text of Chinese philosophy from around 500 BCE shaped East Asian thought for millennia, emphasizing moral cultivation, social harmony, and the importance of education.",
+      "excerpt": "Is it not a pleasure, having learned something, to try it out at due intervals? Is it not a joy to have friends come from afar? Is one human who does not know yet does not resent it, not a gentleman? The Master said, 'A young person is to be regarded with respect. How do we know that his future will not be equal to our present? If, however, by the time he is forty or fifty, he has made no name for himself, he need not be feared.' The Master said, 'The determined scholar and the man of virtue will not seek to live at the expense of injuring their virtue. They will even sacrifice their lives to preserve their virtue complete.' The Master said, 'I will not be afflicted at men's not knowing me; I will be afflicted that I do not know men.'",
+      "longExcerpt": "Is it not a pleasure, having learned something, to try it out at due intervals? Is it not a joy to have friends come from afar? Is one human who does not know yet does not resent it, not a gentleman? The Master said, 'A young person is to be regarded with respect. How do we know that his future will not be equal to our present? If, however, by the time he is forty or fifty, he has made no name for himself, he need not be feared.' The Master said, 'The determined scholar and the man of virtue will not seek to live at the expense of injuring their virtue. They will even sacrifice their lives to preserve their virtue complete.' The Master said, 'I will not be afflicted at men's not knowing me; I will be afflicted that I do not know men.' The Master said, 'He who exercises government by means of his virtue may be compared to the north polar star, which keeps its place and all the stars turn towards it.' The Master said, 'If the people be led by laws, and uniformity sought to be given them by punishments, they will try to avoid the punishment, but have no sense of shame. If they be led by virtue, and uniformity sought to be given them by the rules of propriety, they will have the sense of shame, and moreover will become good.'",
       "keywords": [
         "Confucius",
         "philosophy",
@@ -156,8 +534,8 @@
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "When the Grand Historian wrote this work, he was cut off from his generation. He dwelt in sorrow and anger, yet his will became all the stronger. He wished to set forth the true facts for later generations.",
-      "longExcerpt": "When the Grand Historian wrote this work, he was cut off from his generation. He dwelt in sorrow and anger, yet his will became all the stronger. He wished to set forth the true facts for later generations. This monumental historical work from 94 BCE covers over 2,000 years of Chinese history, from the Yellow Emperor to Emperor Wu of Han, establishing the template for all subsequent Chinese historical writing.",
+      "excerpt": "When the Grand Historian wrote this work, he was cut off from his generation. He dwelt in sorrow and anger, yet his will became all the stronger. He wished to set forth the true facts for later generations. I have examined the deeds of past ages, from the time of the Yellow Emperor down, and investigated the examples of rise and fall, of prosperity and decay, of good government and disorder. Where there was language I have quoted it; where no language was available, I have attempted to trace out the general meaning. I have brought together the scattered records and have set them in order by times and seasons.",
+      "longExcerpt": "When the Grand Historian wrote this work, he was cut off from his generation. He dwelt in sorrow and anger, yet his will became all the stronger. He wished to set forth the true facts for later generations. I have examined the deeds of past ages, from the time of the Yellow Emperor down, and investigated the examples of rise and fall, of prosperity and decay, of good government and disorder. Where there was language I have quoted it; where no language was available, I have attempted to trace out the general meaning. I have brought together the scattered records and have set them in order by times and seasons. I have carried my narrative down through the Qin to the present Emperor. The affairs of men are constantly changing; the past and the present are not the same. But if one penetrates beneath the outward forms, one may perceive that there is in human affairs an underlying constancy. My father said to me before he died, 'After I am gone, you will surely be made Grand Historian. When you become Grand Historian, do not forget what I have desired to expound and write.' I, your servant, bow my head and shed tears saying, 'Yes, yes, I dare not be remiss!' The humble and lowly I have flattered; the arrogant and violent I have censured. I have completed this historical work to illuminate all that heaven and earth contain.",
       "keywords": [
         "history",
         "China",
@@ -174,6 +552,149 @@
         "originalPublication": "Han dynasty, c. 94 BCE",
         "modernSource": "Columbia University Press, 1993"
       }
+    },
+    {
+      "id": "tao-te-ching",
+      "title": "Tao Te Ching",
+      "author": "Laozi",
+      "year": -400,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The Tao that can be told is not the eternal Tao. The name that can be named is not the eternal name. The nameless is the beginning of heaven and earth. The named is the mother of ten thousand things. Ever desireless, one can see the mystery. Ever desiring, one can see the manifestations. These two spring from the same source but differ in name; this appears as darkness. Darkness within darkness. The gate to all mystery. The highest good is like water. Water gives life to the ten thousand things and does not strive. It flows in places men reject and so is like the Tao.",
+      "longExcerpt": "The Tao that can be told is not the eternal Tao. The name that can be named is not the eternal name. The nameless is the beginning of heaven and earth. The named is the mother of ten thousand things. Ever desireless, one can see the mystery. Ever desiring, one can see the manifestations. These two spring from the same source but differ in name; this appears as darkness. Darkness within darkness. The gate to all mystery. The highest good is like water. Water gives life to the ten thousand things and does not strive. It flows in places men reject and so is like the Tao. In dwelling, be close to the land. In meditation, go deep in the heart. In dealing with others, be gentle and kind. In speech, be true. In ruling, be just. In business, be competent. In action, watch the timing. No fight: No blame. When the great Tao is forgotten, kindness and morality arise. When wisdom and intelligence are born, the great pretense begins. When there is no peace within the family, filial piety and devotion arise. When the country is confused and in chaos, loyal ministers appear. Truly, less is more. The sage seeks freedom from desire. He does not collect precious things. He learns not to hold on to ideas. He brings men back to what they have lost. He helps the ten thousand things find their own nature, but refrains from action.",
+      "keywords": [
+        "taoism",
+        "daoism",
+        "philosophy",
+        "china",
+        "laozi",
+        "wu wei",
+        "nature"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Zhou dynasty",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "ANTIQUITY"
+          }
+        }
+      ],
+      "wikisourceTitle": "Tao_Te_Ching",
+      "internetArchiveId": "taoteching00laoz",
+      "citation": {
+        "translator": "Stephen Mitchell",
+        "originalPublication": "China, c. 400 BCE",
+        "modernSource": "Harper & Row, 1988"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "dhammapada",
+      "title": "The Dhammapada",
+      "author": "Buddhist monks (traditional)",
+      "year": -300,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "All that we are is the result of what we have thought: it is founded on our thoughts, it is made up of our thoughts. If a man speaks or acts with an evil thought, pain follows him, as the wheel follows the foot of the ox that draws the carriage. If a man speaks or acts with a pure thought, happiness follows him, like a shadow that never leaves him. He abused me, he beat me, he defeated me, he robbed me—in those who harbor such thoughts hatred will never cease. He abused me, he beat me, he defeated me, he robbed me—in those who do not harbor such thoughts hatred will cease. For hatred does not cease by hatred at any time: hatred ceases by love, this is an old rule.",
+      "longExcerpt": "All that we are is the result of what we have thought: it is founded on our thoughts, it is made up of our thoughts. If a man speaks or acts with an evil thought, pain follows him, as the wheel follows the foot of the ox that draws the carriage. If a man speaks or acts with a pure thought, happiness follows him, like a shadow that never leaves him. He abused me, he beat me, he defeated me, he robbed me—in those who harbor such thoughts hatred will never cease. He abused me, he beat me, he defeated me, he robbed me—in those who do not harbor such thoughts hatred will cease. For hatred does not cease by hatred at any time: hatred ceases by love, this is an old rule. Many do not know that we must all come to an end here; but those who know it, their quarrels cease at once. As rain breaks through an ill-thatched house, passion will break through an unreflecting mind. As rain does not break through a well-thatched house, passion will not break through a well-reflecting mind. Let a man overcome anger by love, let him overcome evil by good; let him overcome the greedy by liberality, the liar by truth. Speak the truth, do not yield to anger; give, if thou art asked for little; by these three steps thou wilt go near the gods.",
+      "keywords": [
+        "buddhism",
+        "dhamma",
+        "meditation",
+        "karma",
+        "enlightenment",
+        "wisdom",
+        "ethics"
+      ],
+      "wikisourceTitle": "Dhammapada",
+      "internetArchiveId": "dhammapada00buddgoog",
+      "citation": {
+        "translator": "F. Max Müller",
+        "originalPublication": "Compiled c. 300 BCE, Pali Canon",
+        "modernSource": "Oxford University Press, 1881"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "rigveda",
+      "title": "Rigveda",
+      "author": "Anonymous Vedic priests",
+      "year": -1500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "Truth is one, though the wise call it by many names. They call it Agni, Yama, Matarisvan. In the beginning there was neither existence nor non-existence; there was no sky nor heaven beyond. What was contained, where, and in whose protection? Was there water, unfathomable and deep? There was neither death nor immortality then. There was no distinguishing sign of night nor of day. That one breathed, windless, by its own impulse. Other than that there was nothing beyond. Darkness was hidden by darkness in the beginning; with no distinguishing sign, all this was water.",
+      "longExcerpt": "Truth is one, though the wise call it by many names. They call it Agni, Yama, Matarisvan. In the beginning there was neither existence nor non-existence; there was no sky nor heaven beyond. What was contained, where, and in whose protection? Was there water, unfathomable and deep? There was neither death nor immortality then. There was no distinguishing sign of night nor of day. That one breathed, windless, by its own impulse. Other than that there was nothing beyond. Darkness was hidden by darkness in the beginning; with no distinguishing sign, all this was water. The life force that was covered with emptiness, that one arose through the power of heat. Desire came upon that one in the beginning; that was the first seed of mind. Poets seeking in their heart with wisdom found the bond of existence in non-existence. Who really knows? Who will here proclaim it? Whence was it produced? Whence is this creation? The gods came afterwards, with the creation of this universe. Who then knows whence it has arisen? Whence this creation has arisen—perhaps it formed itself, or perhaps it did not—the one who looks down on it, in the highest heaven, only he knows—or perhaps he does not know.",
+      "keywords": [
+        "vedas",
+        "hinduism",
+        "sanskrit",
+        "hymns",
+        "ritual",
+        "cosmology",
+        "ancient india"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Indo-Aryan",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN",
+            "era": "ANTIQUITY"
+          }
+        }
+      ],
+      "wikisourceTitle": "Rigveda",
+      "internetArchiveId": "rigveda01muel",
+      "citation": {
+        "translator": "Ralph T.H. Griffith",
+        "originalPublication": "Composed c. 1500-1200 BCE, oral tradition",
+        "modernSource": "E.J. Lazarus and Co., 1896"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "art-of-war",
+      "title": "The Art of War",
+      "author": "Sun Tzu",
+      "year": -500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "All warfare is based on deception. Hence, when we are able to attack, we must seem unable; when using our forces, we must appear inactive; when we are near, we must make the enemy believe we are far away; when far away, we must make him believe we are near. If your enemy is secure at all points, be prepared for him. If he is in superior strength, evade him. If your opponent is temperamental, seek to irritate him. Pretend to be weak, that he may grow arrogant. If he is taking his ease, give him no rest. If his forces are united, separate them. If sovereign and subject are in accord, put division between them. Attack him where he is unprepared, appear where you are not expected.",
+      "longExcerpt": "All warfare is based on deception. Hence, when we are able to attack, we must seem unable; when using our forces, we must appear inactive; when we are near, we must make the enemy believe we are far away; when far away, we must make him believe we are near. If your enemy is secure at all points, be prepared for him. If he is in superior strength, evade him. If your opponent is temperamental, seek to irritate him. Pretend to be weak, that he may grow arrogant. If he is taking his ease, give him no rest. If his forces are united, separate them. If sovereign and subject are in accord, put division between them. Attack him where he is unprepared, appear where you are not expected. If you know the enemy and know yourself, you need not fear the result of a hundred battles. If you know yourself but not the enemy, for every victory gained you will also suffer a defeat. If you know neither the enemy nor yourself, you will succumb in every battle. The general who wins a battle makes many calculations in his temple ere the battle is fought. The general who loses a battle makes but few calculations beforehand. Thus do many calculations lead to victory, and few calculations to defeat. By this means I can foresee who is likely to win or lose. In the practical art of war, the best thing of all is to take the enemy's country whole and intact; to shatter and destroy it is not so good.",
+      "keywords": [
+        "warfare",
+        "strategy",
+        "tactics",
+        "china",
+        "sun tzu",
+        "military",
+        "deception"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Warring States",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "ANTIQUITY"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Art_of_War_(Sun)",
+      "internetArchiveId": "artofwar00suntuoft",
+      "citation": {
+        "translator": "Lionel Giles",
+        "originalPublication": "China, c. 500 BCE",
+        "modernSource": "Luzac & Co., 1910"
+      },
+      "isStandard": true
     }
   ]
 }

@@ -199,7 +199,7 @@ export const useUIState = () => {
     const [showFactionsModal, setShowFactionsModal] = useState<boolean>(false);
 
     // Top nav panels state
-    const [showJournal, setShowJournal] = useState<boolean>(false);
+    const [showJournal, setShowJournal] = useState<boolean>(true);
     const [showQuestsPanel, setShowQuestsPanel] = useState<boolean>(false);
     const [highlightedWorkOfferId, setHighlightedWorkOfferId] = useState<string | null>(null);
     const [showGameModePanel, setShowGameModePanel] = useState<boolean>(false);

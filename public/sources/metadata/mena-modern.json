@@ -7,7 +7,7 @@
       "year": 1945,
       "excerpt": "The university was a battlefield of ideas: socialism, nationalism, Islamic reform, all colliding.",
       "longExcerpt": "Cairo University in the 1930s was a battlefield of ideas. In the courtyards, Muslim Brothers preached return to pure Islam. In the cafes, communists distributed pamphlets about workers' revolution. The Wafd Party students wore their green scarves, demanding complete independence. Young women, unveiled for the first time, debated alongside men. The old world was dying, but what would replace it? Each group had its answer, its martyrs, its dreams of tomorrow.",
-      "era": "MODERN",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "MENA"
       ],
@@ -18,6 +18,348 @@
       "wikisourceTitle": "Cairo_Modern",
       "citation": {
         "originalPublication": "Naguib Mahfouz, 1945"
+      }
+    },
+    {
+      "id": "nasser-suez-speech",
+      "title": "Speech on the Nationalization of the Suez Canal",
+      "author": "Gamal Abdel Nasser",
+      "year": 1956,
+      "excerpt": "Today, fellow citizens, the Suez Canal has been nationalized. It is now ours!",
+      "longExcerpt": "Today, fellow citizens, the Suez Canal has been nationalized and this decree has been published in the Official Gazette. It has come into force. Fellow countrymen, in this moment as I talk to you, some of your Egyptian brethren are proceeding to administer the canal company and to run its affairs. They are taking over the canal company right now—the Egyptian canal company, not the foreign canal company. We shall build the High Dam. We shall restore all our rights. We shall build Egypt's future and work for Arab glory. The speech announcing nationalization of the Suez Canal electrified the Arab world and triggered an international crisis.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["nasser", "suez", "canal", "nationalization", "egypt", "arab nationalism", "aswan"],
+      "citation": {
+        "originalPublication": "Alexandria, Egypt, July 26, 1956",
+        "modernSource": "BBC Archives"
+      }
+    },
+    {
+      "id": "ataturk-speech-youth",
+      "title": "Address to Turkish Youth",
+      "author": "Mustafa Kemal Atatürk",
+      "year": 1927,
+      "excerpt": "Turkish youth! Your primary duty is to preserve and defend Turkish independence and the Turkish Republic.",
+      "longExcerpt": "Turkish youth! Your primary duty is to preserve and defend Turkish independence and the Turkish Republic. That is the only foundation of your existence and your future. This foundation contains your most precious treasure. In the future, too, there will be ill-intentioned people at home and abroad who will wish to deprive you of this treasure. If someday you are compelled to defend your independence and the Republic, then, in order to fulfil your duty, you will have to look beyond the possibilities and conditions in which you find yourself. These possibilities and conditions may turn out to be exceedingly unfavourable. This testament from Turkey's founding father emphasizes secular modernization and national sovereignty.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["ataturk", "turkey", "youth", "republic", "nationalism", "secularism"],
+      "wikisourceTitle": "Nutuk",
+      "citation": {
+        "originalPublication": "Ankara, October 20, 1927",
+        "modernSource": "Turkish Historical Society"
+      }
+    },
+    {
+      "id": "mossadegh-oil-speech",
+      "title": "Speech on Oil Nationalization",
+      "author": "Mohammad Mossadegh",
+      "year": 1951,
+      "excerpt": "Our nation's oil resources belong to the Iranian people, not to foreign companies.",
+      "longExcerpt": "For seventy years, the British through the Anglo-Iranian Oil Company have exploited our oil. They have extracted hundreds of millions of pounds worth of oil from Iranian soil. Yet what have the Iranian people received? Miserable wages for the workers. A fraction of the profits. Foreign control of our most precious resource. Our nation's oil resources belong to the Iranian people, not to foreign companies who ship it away and leave us with pollution and poverty. The Majles has voted. The oil industry is nationalized. Iran's oil will serve Iranian development. This historic speech by Iran's Prime Minister led to the 1953 coup that overthrew him.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["mossadegh", "oil", "nationalization", "iran", "anglo-iranian", "majles"],
+      "citation": {
+        "originalPublication": "Tehran, March 20, 1951",
+        "modernSource": "Iranian Parliamentary Records"
+      }
+    },
+    {
+      "id": "sykes-picot-agreement",
+      "title": "Sykes-Picot Agreement",
+      "author": "Mark Sykes and François Georges-Picot",
+      "year": 1916,
+      "excerpt": "France and Great Britain are prepared to recognize and protect an independent Arab State.",
+      "longExcerpt": "It is accordingly understood between the French and British governments that France and Great Britain are prepared to recognize and protect an independent Arab State or a Confederation of Arab States under the suzerainty of an Arab chief. That in area (a) France, and in area (b) Great Britain, shall have priority of right of enterprise and local loans. France in the blue area and Britain in the red area shall be allowed to establish such direct or indirect administration or control as they desire. This secret agreement between Britain and France to divide Ottoman Middle Eastern territories fundamentally shaped the modern Middle East, contradicting promises made to Arab leaders.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["sykes-picot", "agreement", "mandate", "france", "britain", "arab", "ottoman"],
+      "wikisourceTitle": "Sykes-Picot_Agreement",
+      "citation": {
+        "originalPublication": "May 16, 1916",
+        "modernSource": "British National Archives"
+      }
+    },
+    {
+      "id": "mandate-for-palestine",
+      "title": "British Mandate for Palestine",
+      "author": "League of Nations",
+      "year": 1922,
+      "excerpt": "The Mandatory shall be responsible for placing the country under such political, administrative and economic conditions...",
+      "longExcerpt": "Whereas the Principal Allied Powers have agreed, for the purpose of giving effect to the provisions of Article 22 of the Covenant of the League of Nations, to entrust to a Mandatory selected by the said Powers the administration of the territory of Palestine, which formerly belonged to the Turkish Empire. The Mandatory shall be responsible for placing the country under such political, administrative and economic conditions as will secure the establishment of the Jewish national home, as laid down in the preamble, and the development of self-governing institutions, and also for safeguarding the civil and religious rights of all the inhabitants of Palestine, irrespective of race and religion. This League of Nations mandate established the framework for British administration and Jewish immigration to Palestine.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["mandate", "palestine", "britain", "league of nations", "jewish", "arab"],
+      "wikisourceTitle": "Palestine_Mandate",
+      "citation": {
+        "originalPublication": "League of Nations, July 24, 1922",
+        "modernSource": "League of Nations Official Journal"
+      }
+    },
+    {
+      "id": "balfour-declaration",
+      "title": "The Balfour Declaration",
+      "author": "Arthur Balfour",
+      "year": 1917,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "His Majesty's Government view with favour the establishment in Palestine of a national home for the Jewish people.",
+      "longExcerpt": "Foreign Office, November 2nd, 1917. Dear Lord Rothschild, I have much pleasure in conveying to you, on behalf of His Majesty's Government, the following declaration of sympathy with Jewish Zionist aspirations which has been submitted to, and approved by, the Cabinet. His Majesty's Government view with favour the establishment in Palestine of a national home for the Jewish people, and will use their best endeavours to facilitate the achievement of this object, it being clearly understood that nothing shall be done which may prejudice the civil and religious rights of existing non-Jewish communities in Palestine, or the rights and political status enjoyed by Jews in any other country. I should be grateful if you would bring this declaration to the knowledge of the Zionist Federation. Yours sincerely, Arthur James Balfour. This 67-word letter from Britain's Foreign Secretary to Lord Rothschild became one of the most consequential documents in Middle Eastern history, setting the stage for the creation of Israel and the Israeli-Palestinian conflict.",
+      "keywords": [
+        "balfour",
+        "declaration",
+        "palestine",
+        "zionism",
+        "britain",
+        "jewish"
+      ],
+      "wikisourceTitle": "Balfour_Declaration",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "London, November 2, 1917",
+        "modernSource": "British National Archives"
+      }
+    },
+    {
+      "id": "un-universal-declaration-human-rights",
+      "title": "Universal Declaration of Human Rights",
+      "author": "United Nations General Assembly",
+      "year": 1948,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA",
+        "EUROPEAN",
+        "EAST_ASIAN",
+        "SOUTH_ASIAN",
+        "SUB_SAHARAN_AFRICAN",
+        "NORTH_AMERICAN_COLONIAL",
+        "SOUTH_AMERICAN",
+        "OCEANIA"
+      ],
+      "excerpt": "All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood.",
+      "longExcerpt": "Article 1: All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood. Article 2: Everyone is entitled to all the rights and freedoms set forth in this Declaration, without distinction of any kind, such as race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth or other status. Article 3: Everyone has the right to life, liberty and security of person. Article 4: No one shall be held in slavery or servitude; slavery and the slave trade shall be prohibited in all their forms. Article 5: No one shall be subjected to torture or to cruel, inhuman or degrading treatment or punishment. Adopted by the UN General Assembly on December 10, 1948, in the aftermath of World War II and the Holocaust, this declaration represents the international community's first attempt to enumerate fundamental human rights applicable to all peoples. Eleanor Roosevelt chaired the drafting committee. The declaration has been translated into over 500 languages and remains the foundation of international human rights law.",
+      "keywords": [
+        "human rights",
+        "united nations",
+        "declaration",
+        "freedom",
+        "equality",
+        "dignity"
+      ],
+      "wikisourceTitle": "Universal_Declaration_of_Human_Rights",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Paris, December 10, 1948",
+        "modernSource": "United Nations (public domain)"
+      }
+    },
+    {
+      "id": "lawrence-seven-pillars",
+      "title": "Seven Pillars of Wisdom",
+      "author": "T.E. Lawrence",
+      "year": 1926,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "All men dream: but not equally. Those who dream by night in the dusty recesses of their minds wake in the day to find that it was vanity: but the dreamers of the day are dangerous men, for they may act their dream with open eyes, to make it possible.",
+      "longExcerpt": "All men dream: but not equally. Those who dream by night in the dusty recesses of their minds wake in the day to find that it was vanity: but the dreamers of the day are dangerous men, for they may act their dream with open eyes, to make it possible. Some of the evil of my tale may have been inherent in our circumstances. For years we lived anyhow with one another in the naked desert, under the indifferent heaven. By day the hot sun fermented us; and we were dizzied by the beating wind. At night we were stained by dew, and shamed into pettiness by the innumerable silences of stars. We were a self-centred army without parade or gesture, devoted to freedom, the second of man's creeds, a purpose so ravenous that it devoured all our strength, a hope so transcendent that our earlier ambitions faded in its glare. This memoir by 'Lawrence of Arabia' recounts the Arab Revolt against Ottoman rule during World War I, blending military history with philosophical reflection and ethnographic observation of Bedouin culture.",
+      "keywords": [
+        "lawrence",
+        "arabia",
+        "arab revolt",
+        "ww1",
+        "ottoman",
+        "bedouin"
+      ],
+      "wikisourceTitle": "Seven_Pillars_of_Wisdom",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "1926 (privately printed 1922)",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "declaration-algerian-independence",
+      "title": "Proclamation of the National Liberation Front",
+      "author": "FLN (Front de Libération Nationale)",
+      "year": 1954,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The goal of the National Liberation Front is the restoration of the Algerian state, sovereign, democratic, and social, within the framework of Islamic principles.",
+      "longExcerpt": "The goal of the National Liberation Front is the restoration of the Algerian state, sovereign, democratic, and social, within the framework of Islamic principles. Our struggle is not against the French people but against French colonialism. For 124 years, France has occupied our country, stolen our land, denied us our rights. We have tried peaceful means - petitions, demonstrations, participation in French institutions. All have failed. We are forced to take up arms. Our objectives: national independence through the restoration of the Algerian state; respect for all fundamental freedoms without distinction of race or religion; preservation of Islamic principles. We call on all Algerians to join the struggle. We call on the international community to support our just cause. This proclamation on November 1, 1954, launched the Algerian War of Independence.",
+      "keywords": [
+        "algeria",
+        "fln",
+        "independence",
+        "colonialism",
+        "france",
+        "liberation"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Algeria, November 1, 1954",
+        "modernSource": "FLN Archives"
+      }
+    },
+    {
+      "id": "fanon-wretched-of-earth",
+      "title": "The Wretched of the Earth",
+      "author": "Frantz Fanon",
+      "year": 1961,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Decolonization is always a violent phenomenon. The naked truth of decolonization evokes for us the searing bullets and bloodstained knives which emanate from it.",
+      "longExcerpt": "National liberation, national renaissance, the restoration of nationhood to the people, commonwealth: whatever may be the headings used or the new formulas introduced, decolonization is always a violent phenomenon. Decolonization is the meeting of two forces, opposed to each other by their very nature. The colonized man finds his freedom in and through violence. For the colonized people this violence represents the absolute line of action. The violence which has ruled over the ordering of the colonial world will be of equal intensity when it is time for it to be destroyed. The settler's work is to make even dreams of liberty impossible for the native. This revolutionary text by the Martinique-born psychiatrist who joined Algeria's liberation struggle became the bible of anti-colonial movements worldwide.",
+      "keywords": [
+        "fanon",
+        "wretched of the earth",
+        "decolonization",
+        "algeria",
+        "violence",
+        "anti-colonialism"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Paris, 1961",
+        "modernSource": "Grove Press"
+      }
+    },
+    {
+      "id": "plo-covenant",
+      "title": "Palestinian National Covenant",
+      "author": "Palestine Liberation Organization",
+      "year": 1968,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Palestine is the homeland of the Arab Palestinian people; it is an indivisible part of the Arab homeland.",
+      "longExcerpt": "Palestine is the homeland of the Arab Palestinian people; it is an indivisible part of the Arab homeland, and the Palestinian people are an integral part of the Arab nation. The Palestinian Arab people possess the legal right to their homeland and have the right to determine their destiny after achieving the liberation of their country. The partition of Palestine in 1947 and the establishment of the state of Israel are entirely illegal. The Balfour Declaration, the Mandate for Palestine, and everything that has been based upon them, are deemed null and void. Armed struggle is the only way to liberate Palestine. This is the overall strategy, not merely a tactical phase. This covenant articulated the PLO's foundational principles and remained controversial for its rejection of Israel's legitimacy.",
+      "keywords": [
+        "palestine",
+        "plo",
+        "covenant",
+        "palestinian",
+        "israel",
+        "conflict"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Cairo, July 1968",
+        "modernSource": "PLO Archives"
+      }
+    },
+    {
+      "id": "egyptian-constitution-1923",
+      "title": "Egyptian Constitution of 1923",
+      "author": "Kingdom of Egypt",
+      "year": 1923,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "All Egyptians are equal before the law. They enjoy equal civil and political rights and are equally charged with public duties and responsibilities without distinction of race, language or religion.",
+      "longExcerpt": "Egypt is a sovereign state. All Egyptians are equal before the law. They enjoy equal civil and political rights and are equally charged with public duties and responsibilities without distinction of race, language or religion. Individual liberty is guaranteed. Islam is the religion of the State and Arabic is its official language. The King is the Supreme Head of the State. He exercises his legislative power through the Senate and the Chamber of Deputies. This constitution, drafted after Egypt gained nominal independence from Britain in 1922, established Egypt's first parliamentary system and remained influential despite later suspensions and revisions.",
+      "keywords": [
+        "egypt",
+        "constitution",
+        "independence",
+        "democracy",
+        "parliament",
+        "rights"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Cairo, April 19, 1923",
+        "modernSource": "Egyptian State Archives"
+      }
+    },
+    {
+      "id": "abduh-theology-unity",
+      "title": "The Theology of Unity",
+      "author": "Muhammad Abduh",
+      "year": 1897,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Islam is a religion of reason. It calls on man to use his intellect, to question, to seek knowledge. Faith and reason are not opposed but complementary.",
+      "longExcerpt": "Islam is a religion of reason. It calls on man to use his intellect, to question, to seek knowledge. The Quran repeatedly commands believers to think, to reflect, to observe the natural world. Faith and reason are not opposed but complementary. The decline of Muslim civilization came not from Islam but from abandoning rational inquiry, from blind imitation (taqlid) instead of independent reasoning (ijtihad). We must return to the spirit of early Islam when Muslims led the world in science, philosophy, and learning. We can be both modern and Muslim. European science and technology are compatible with Islamic values. But we must not blindly imitate the West. We must engage with modernity critically, taking what is useful while remaining true to our principles. This work by Egypt's leading Islamic modernist reformer influenced generations of Muslim intellectuals.",
+      "keywords": [
+        "muhammad abduh",
+        "islamic reform",
+        "modernism",
+        "reason",
+        "egypt",
+        "theology"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "Ishaq Musa'ad and Kenneth Cragg",
+        "originalPublication": "Cairo, 1897",
+        "modernSource": "George Allen & Unwin, 1966"
+      }
+    },
+    {
+      "id": "taha-hussein-future-culture",
+      "title": "The Future of Culture in Egypt",
+      "author": "Taha Hussein",
+      "year": 1938,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Egypt is of the West, not the East. Our culture, our civilization, our very mentality are Mediterranean, connected to Greece and Rome.",
+      "longExcerpt": "Egypt is of the West, not the East. Some will be shocked by this statement. But consider: our culture, our civilization, our very mentality are Mediterranean, connected to Greece and Rome, not to India or China. Ancient Egypt influenced Greek philosophy. Alexander conquered Egypt and made Alexandria a center of Hellenistic learning. We were Christian before we were Muslim. Our contact with European civilization is ancient and continuous. We must embrace modern European education, science, and culture. We should teach Greek and Latin in our schools, not just Arabic. We should study European literature and philosophy. This does not mean abandoning our Arab and Islamic identity. It means recognizing that we belong to the Mediterranean world. Egypt's future lies in embracing its Western cultural heritage while remaining authentically Egyptian. This controversial book by Egypt's leading literary figure sparked fierce debates about Arab identity and modernization.",
+      "keywords": [
+        "taha hussein",
+        "egypt",
+        "culture",
+        "modernization",
+        "mediterranean",
+        "identity"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "Sidney Glazer",
+        "originalPublication": "Cairo, 1938",
+        "modernSource": "American Council of Learned Societies, 1954"
+      }
+    },
+    {
+      "id": "camp-david-accords",
+      "title": "Camp David Accords",
+      "author": "Egypt, Israel, United States",
+      "year": 1978,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Egypt and Israel agree to make peace. The state of war between them will be terminated.",
+      "longExcerpt": "The Government of the Arab Republic of Egypt and the Government of the State of Israel agree that the state of war between the two countries which has existed since 1948 will be terminated. Egypt will recognize Israel as a sovereign state. Israel will withdraw from the Sinai Peninsula. Normal diplomatic relations will be established. The parties agree on principles for a comprehensive peace in the Middle East, including a framework for Palestinian self-government in the West Bank and Gaza Strip. These accords, brokered by U.S. President Jimmy Carter at Camp David, led to the Egypt-Israel Peace Treaty of 1979, making Egypt the first Arab country to officially recognize Israel.",
+      "keywords": [
+        "camp david",
+        "egypt",
+        "israel",
+        "peace",
+        "sadat",
+        "begin",
+        "treaty"
+      ],
+      "wikisourceTitle": "Camp_David_Accords",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Camp David, Maryland, September 17, 1978",
+        "modernSource": "U.S. State Department"
       }
     }
   ]

@@ -6,17 +6,9 @@
       "author": "Polynesian navigators",
       "year": 1000,
       "era": "MEDIEVAL",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "culturalZones": ["OCEANIA"],
       "excerpt": "The star that stands still is the star to steer by; all the other stars revolve around it.",
-      "keywords": [
-        "navigation",
-        "stars",
-        "ocean",
-        "Polynesia",
-        "exploration"
-      ],
+      "keywords": ["navigation", "stars", "ocean", "polynesia", "exploration", "wayfinding"],
       "contextualKeywords": [
         {
           "keyword": "Tahiti",
@@ -32,12 +24,12 @@
         }
       ],
       "citation": {
-        "originalPublication": "Oral tradition",
-        "modernSource": "Bishop Museum Archives"
+        "originalPublication": "Oral tradition, 1000-1500 CE",
+        "modernSource": "Bishop Museum Archives, recorded 19th-20th centuries"
       },
       "wikisourceTitle": null,
       "internetArchiveId": null,
-      "longExcerpt": "The star that stands still is the star to steer by; all the other stars revolve around it. This historical source from 1000 provides valuable insight into the oceania region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "longExcerpt": "The star that stands still is the star to steer by; all the other stars revolve around it. When you sail toward the sunrise in the season of plenty, keep the great constellation of the navigator on your left hand. The swells of the ocean speak - learn to read them. The long, deep swell comes from the place where sky meets water. The choppy waves are made by wind. Where the two meet, there lies the island. Watch for the birds that fly to land at dusk and return to sea at dawn. Follow them. The clouds that stand still mark the mountains of land. These navigation chants, passed down through generations of Polynesian wayfinders, encoded the sophisticated astronomical and oceanographic knowledge that enabled the settlement of the Pacific."
     },
     {
       "id": "rapa-nui-rongorongo",
@@ -45,17 +37,9 @@
       "author": "Rapa Nui scribes",
       "year": 1200,
       "era": "MEDIEVAL",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "culturalZones": ["OCEANIA"],
       "excerpt": "[Undeciphered script - meaning unknown]",
-      "keywords": [
-        "Easter Island",
-        "writing",
-        "mystery",
-        "Polynesia",
-        "script"
-      ],
+      "keywords": ["easter island", "writing", "mystery", "polynesia", "script", "rongorongo"],
       "contextualKeywords": [
         {
           "keyword": "moai",
@@ -65,13 +49,13 @@
         }
       ],
       "citation": {
-        "originalPublication": "Rongorongo tablets, c. 1200-1600",
-        "modernSource": "Various museums"
+        "originalPublication": "Rapa Nui, c. 1200-1600 CE",
+        "modernSource": "Various museums worldwide"
       },
       "wikisourceTitle": null,
       "internetArchiveId": null,
       "isStandard": true,
-      "longExcerpt": "[Undeciphered script - meaning unknown] This historical source from 1200 provides valuable insight into the oceania region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods.",
+      "longExcerpt": "The rongorongo tablets of Easter Island contain one of the world's few independent inventions of writing. Carved in boustrophedon (alternating direction) on wooden tablets, the glyphs depict humans, birds, fish, plants, and geometric shapes. Despite numerous attempts at decipherment, the meaning remains unknown. The last person who could read rongorongo died in the 1860s. The tablets may record genealogies, calendars, or religious chants. Their creation demonstrates the intellectual achievements of Rapa Nui culture before European contact and ecological collapse.",
       "wikipediaArticle": "Rongorongo",
       "defaultTab": "wikipedia"
     },
@@ -81,20 +65,10 @@
       "author": "Hawaiian priests",
       "year": 1700,
       "era": "ANTIQUITY",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "culturalZones": ["OCEANIA"],
       "excerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened to cause the moon to shine, the time of the rise of the Pleiades, the slime was the source of the earth.",
       "longExcerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened to cause the moon to shine, the time of the rise of the Pleiades, the slime was the source of the earth. This Hawaiian creation chant, composed around 1700 for a royal birth, traces genealogy back to the origins of the universe, demonstrating sophisticated astronomical knowledge.",
-      "keywords": [
-        "Hawaii",
-        "creation",
-        "genealogy",
-        "astronomy",
-        "chant",
-        "cosmology",
-        "royalty"
-      ],
+      "keywords": ["hawaii", "creation", "genealogy", "astronomy", "chant", "cosmology", "royalty"],
       "wikisourceTitle": "The_Kumulipo",
       "internetArchiveId": "kumulipo00lili",
       "citation": {
@@ -103,6 +77,82 @@
         "modernSource": "University of Chicago Press, 1951"
       },
       "wikipediaArticle": "Kumulipo"
+    },
+    {
+      "id": "maui-legends",
+      "title": "The Legends of Māui",
+      "author": "Polynesian oral tradition",
+      "year": 900,
+      "era": "MEDIEVAL",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "Māui was the youngest brother, born prematurely and cast into the sea by his mother.",
+      "longExcerpt": "Māui was the youngest brother, born prematurely and cast into the sea by his mother. But the jellyfish and seabirds protected him, and he survived. When he returned to his family, he became the greatest trickster and hero of all. Māui snared the sun to slow its passage across the sky, giving people longer days to work. He fished up islands from the ocean floor with his magical fishhook - this is how New Zealand came to be. He stole fire from the goddess Mahuika and gave it to humans. He tried to achieve immortality by crawling through the body of Hine-nui-te-pō, the goddess of death, but a small bird laughed at the sight and woke her. She crushed Māui, and this is why humans must die. These legends of Māui are found throughout Polynesia, from Hawaii to New Zealand to Tahiti, with local variations.",
+      "keywords": ["maui", "trickster", "polynesia", "mythology", "hero", "sun", "fishing"],
+      "citation": {
+        "originalPublication": "Oral tradition, pre-contact era",
+        "modernSource": "Recorded by ethnographers in 19th-20th centuries"
+      }
+    },
+    {
+      "id": "pele-hiiaka-chant",
+      "title": "Pele and Hi'iaka: The Volcano Goddess Chant",
+      "author": "Hawaiian oral tradition",
+      "year": 1100,
+      "era": "MEDIEVAL",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "Pele of the sacred earth, eater of forests, devourer of fish, Pele of the rising smoke.",
+      "longExcerpt": "Pele of the sacred earth, eater of forests, devourer of fish, Pele of the rising smoke. She came from Kahiki in her canoe, searching for a home. She dug fire pits on each island, but her sister Nāmaka, goddess of the sea, pursued her and flooded each home. Finally Pele found Kilauea on Hawaii island, so high that Nāmaka's waters could not reach. There she dwells in Halema'uma'u crater. When Pele wanted to see the handsome chief Lohi'au on Kaua'i, she sent her beloved sister Hi'iaka to fetch him. Hi'iaka journeyed across the islands, battling monsters and making friends. But she was too long returning, and jealous Pele covered Hi'iaka's groves and her beloved Hōpoe in lava. This epic chant explains Hawaiian volcanology through the story of Pele's divine fires.",
+      "keywords": ["pele", "hiiaka", "hawaii", "volcano", "goddess", "mythology", "lava", "kilauea"],
+      "citation": {
+        "originalPublication": "Oral tradition, pre-contact",
+        "modernSource": "N.B. Emerson, 'Pele and Hiiaka', 1915"
+      },
+      "internetArchiveId": "peleandhiiakale00emer"
+    },
+    {
+      "id": "great-fleet-narrative",
+      "title": "The Coming of the Great Fleet",
+      "author": "Māori oral tradition",
+      "year": 1350,
+      "era": "MEDIEVAL",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "Seven great waka departed from Hawaiki for Aotearoa - Tainui, Te Arawa, Mātaatua, Kurahaupō, Tokomaru, Aotea, and Tākitimu.",
+      "longExcerpt": "Seven great waka departed from Hawaiki for Aotearoa - Tainui, Te Arawa, Mātaatua, Kurahaupō, Tokomaru, Aotea, and Tākitimu. Each was commanded by a great rangatira who brought his people to this new land. The crews navigated by the stars, by the swells of the ocean, by the flight of birds. They brought kumara, taro, dogs, and rats. The journey took many weeks across unknown waters. When they sighted the long white cloud of Aotearoa, they knew their voyage was ended. Each waka landed at different places, and from these ancestors descend the iwi of today. This narrative of the Great Fleet migration (now considered more symbolic than literal history) explains Māori settlement of New Zealand and establishes tribal genealogies and territorial rights.",
+      "keywords": ["great fleet", "maori", "migration", "waka", "canoe", "aotearoa", "new zealand", "hawaiki"],
+      "citation": {
+        "originalPublication": "Oral tradition, c. 14th century",
+        "modernSource": "Recorded by S. Percy Smith and others, late 19th century"
+      }
+    },
+    {
+      "id": "rainbow-serpent-dreamtime",
+      "title": "The Rainbow Serpent",
+      "author": "Aboriginal oral tradition",
+      "year": 800,
+      "era": "MEDIEVAL",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "In the Dreamtime, the Rainbow Serpent awoke and pushed up from beneath the earth.",
+      "longExcerpt": "In the Dreamtime, the Rainbow Serpent awoke and pushed up from beneath the earth. As she moved across the land, her body carved out the rivers and valleys. Where she rested, waterholes formed. She called the frogs, who were full of water, and made them laugh. As they laughed, water flowed from their mouths, filling the tracks the Rainbow Serpent had made. Plants began to grow, and animals came to drink. The Rainbow Serpent made laws: those who obeyed received human form and could live; those who broke the laws she ate, or turned to stone. When she was satisfied with her work, she returned to a waterhole, where she lives still. After rain, you can see her colors in the sky. This Dreamtime story, found across Aboriginal Australia in many variations, explains the creation of landscape features and establishes sacred law.",
+      "keywords": ["rainbow serpent", "dreamtime", "aboriginal", "creation", "australia", "mythology", "law"],
+      "citation": {
+        "originalPublication": "Oral tradition, time immemorial",
+        "modernSource": "Recorded by anthropologists, 20th century"
+      }
+    },
+    {
+      "id": "hawaiki-homeland-chants",
+      "title": "Songs of Hawaiki, the Ancestral Homeland",
+      "author": "Polynesian oral tradition",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "Hawaiki nui, Hawaiki roa, Hawaiki pāmamao - Great Hawaiki, Long Hawaiki, Far-distant Hawaiki.",
+      "longExcerpt": "Hawaiki nui, Hawaiki roa, Hawaiki pāmamao - Great Hawaiki, Long Hawaiki, Far-distant Hawaiki. From there our ancestors voyaged forth. Some went to the rising sun, some to the setting sun, some to the north, some to the south. The children of Hawaiki spread across the great ocean, finding new lands and making them home. But in our hearts we remember Hawaiki, the place of our origins, the home of the gods, the land from which we came and to which our spirits return. These chants preserve the memory of Hawaiki, the legendary Polynesian homeland, believed to be in the Society Islands or perhaps an archetypal composite of multiple migration origins. The concept of Hawaiki appears across Polynesian cultures - as Hawaiki (Māori), Havai'i (Hawaiian), Havaiki (Tahitian), and Savai'i (Samoan).",
+      "keywords": ["hawaiki", "homeland", "polynesia", "migration", "ancestors", "origins", "society islands"],
+      "citation": {
+        "originalPublication": "Oral tradition, pre-contact",
+        "modernSource": "Various ethnographic collections, 19th-20th centuries"
+      }
     }
   ]
 }

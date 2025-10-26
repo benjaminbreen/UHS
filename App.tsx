@@ -599,13 +599,14 @@ const AppContent: React.FC = () => {
             console.log('[URL_RESTORE] Step 3.5: Starting world generation from URL config');
             
             // Map cultural zone to the actual zone key used in GEOGRAPHICAL_DATA
+            // IMPORTANT: These must match the exact keys in constants/gameData/geography.ts
             const zoneMapping: Record<string, string> = {
                 'EUROPEAN': 'Europe',
-                'MENA': 'Middle East and North Africa',
+                'MENA': 'MENA',  // Fixed: was 'Middle East and North Africa'
                 'EAST_ASIAN': 'East Asia',
                 'SOUTH_ASIAN': 'South Asia',
-                'SUB_SAHARAN_AFRICAN': 'Sub-Saharan Africa',
-                'NORTH_AMERICAN_PRE_COLUMBIAN': 'North America (Pre-Columbian)',
+                'SUB_SAHARAN_AFRICAN': 'Sub Saharan Africa',  // Fixed: space not hyphen
+                'NORTH_AMERICAN_PRE_COLUMBIAN': 'North America',  // Fixed: no (Pre-Columbian) suffix
                 'NORTH_AMERICAN_COLONIAL': 'North America',
                 'SOUTH_AMERICAN': 'South America',
                 'OCEANIA': 'Oceania'

@@ -5,7 +5,7 @@
       "title": "Letter to the Spanish Sovereigns",
       "author": "Christopher Columbus",
       "year": 1493,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -47,7 +47,7 @@
       "title": "The Praise of Folly",
       "author": "Desiderius Erasmus",
       "year": 1511,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -88,7 +88,7 @@
       "title": "The Prince",
       "author": "Niccolò Machiavelli",
       "year": 1513,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -138,7 +138,7 @@
       "title": "Utopia",
       "author": "Thomas More",
       "year": 1516,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -179,7 +179,7 @@
       "title": "Ninety-Five Theses",
       "author": "Martin Luther",
       "year": 1517,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -220,7 +220,7 @@
       "title": "The Book of the Courtier",
       "author": "Baldassare Castiglione",
       "year": 1528,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -262,7 +262,7 @@
       "title": "The Prince",
       "author": "Niccolò Machiavelli",
       "year": 1532,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -279,7 +279,7 @@
           "keyword": "Florence",
           "conditions": {
             "culturalZone": "EUROPEAN",
-            "era": "EARLY_MODERN"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         },
         {
@@ -304,7 +304,7 @@
       "title": "Lives of the Most Excellent Painters",
       "author": "Giorgio Vasari",
       "year": 1550,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -346,7 +346,7 @@
       "title": "Hamlet",
       "author": "William Shakespeare",
       "year": 1603,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -379,7 +379,7 @@
       "title": "Don Quixote",
       "author": "Miguel de Cervantes",
       "year": 1605,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -413,7 +413,7 @@
       "title": "Don Quixote",
       "author": "Miguel de Cervantes",
       "year": 1605,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -455,7 +455,7 @@
       "title": "Dialogue Concerning the Two Chief World Systems",
       "author": "Galileo Galilei",
       "year": 1632,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -471,7 +471,7 @@
         {
           "keyword": "telescope",
           "conditions": {
-            "era": "EARLY_MODERN"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -489,7 +489,7 @@
       "title": "Discourse on Method",
       "author": "René Descartes",
       "year": 1637,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -531,7 +531,7 @@
       "title": "Treaty of Westphalia",
       "author": "Various European Powers",
       "year": 1648,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -570,7 +570,7 @@
       "title": "Leviathan",
       "author": "Thomas Hobbes",
       "year": 1651,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -610,7 +610,7 @@
       "title": "Candide",
       "author": "Voltaire",
       "year": 1759,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -626,7 +626,7 @@
         {
           "keyword": "Lisbon earthquake",
           "conditions": {
-            "era": "ENLIGHTENMENT"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -645,7 +645,7 @@
       "title": "The Social Contract",
       "author": "Jean-Jacques Rousseau",
       "year": 1762,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -661,7 +661,7 @@
         {
           "keyword": "general will",
           "conditions": {
-            "era": "ENLIGHTENMENT"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -679,7 +679,7 @@
       "title": "The Wealth of Nations",
       "author": "Adam Smith",
       "year": 1776,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -695,7 +695,7 @@
         {
           "keyword": "division of labor",
           "conditions": {
-            "era": "ENLIGHTENMENT"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -712,7 +712,7 @@
       "title": "Declaration of Independence",
       "author": "Thomas Jefferson et al.",
       "year": 1776,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -746,7 +746,7 @@
       "title": "Critique of Pure Reason",
       "author": "Immanuel Kant",
       "year": 1781,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -762,7 +762,7 @@
         {
           "keyword": "categorical imperative",
           "conditions": {
-            "era": "ENLIGHTENMENT"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -780,7 +780,7 @@
       "title": "The Prince",
       "author": "Niccolò Machiavelli",
       "year": 1513,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -808,7 +808,7 @@
       "title": "The Book of the Courtier",
       "author": "Baldassare Castiglione",
       "year": 1528,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],

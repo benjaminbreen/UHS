@@ -1,6 +1,223 @@
 {
   "sources": [
     {
+      "id": "narmer-palette",
+      "title": "The Narmer Palette",
+      "author": "Ancient Egyptian artists (archaeological evidence)",
+      "year": -3100,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The Narmer Palette depicts King Narmer wearing the white crown of Upper Egypt on one side and the red crown of Lower Egypt on the reverse, commemorating the unification of Egypt. The king is shown in the traditional pose of smiting enemies, asserting royal power over chaos.",
+      "longExcerpt": "The Narmer Palette, discovered at Hierakonpolis in 1898, is one of ancient Egypt's most important artifacts, dating to approximately 3100 BCE. This ceremonial siltstone palette stands 64 cm tall and depicts King Narmer (possibly the legendary Menes) wearing both the white crown of Upper Egypt and the red crown of Lower Egypt, symbolizing the unification of the Two Lands. The palette's intricate relief carving shows the king smiting enemies, inspecting decapitated foes, and depicted as a powerful bull destroying a fortified city. The artwork establishes iconographic conventions that would persist for 3,000 years: the king shown larger than other figures, the formal walking pose, the symbolic crowns, and hieroglyphic labels identifying figures and places. The palette represents the dawn of pharaonic civilization, when Egypt transitioned from prehistoric cultures to a unified territorial state with centralized kingship, monumental architecture, and hieroglyphic writing. It documents the moment when history began in the Nile Valley, capturing the ideology of divine kingship and cosmic order (ma'at) that would define Egyptian civilization.",
+      "keywords": [
+        "egypt",
+        "unification",
+        "narmer",
+        "kingship",
+        "hieroglyphs",
+        "palette"
+      ],
+      "wikipediaArticle": "Narmer_Palette",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Hierakonpolis, Egypt, c. 3100 BCE",
+        "modernSource": "Ashmolean Museum, Oxford"
+      }
+    },
+    {
+      "id": "royal-standard-of-ur",
+      "title": "The Royal Standard of Ur",
+      "author": "Sumerian artists (archaeological evidence)",
+      "year": -2600,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The Standard depicts two sides of Sumerian life: war and peace. On the 'war' side, the king's chariot tramples enemies while soldiers march prisoners before the ruler. On the 'peace' side, a banquet celebrates victory, with musicians playing lyres, servants bringing animals, and the king feasting with nobles.",
+      "longExcerpt": "The Royal Standard of Ur, excavated by Leonard Woolley from the Royal Cemetery of Ur in the 1920s, dates to approximately 2600 BCE during the Early Dynastic Period. This trapezoidal wooden box, inlaid with lapis lazuli, shell, and red limestone in intricate mosaic patterns, depicts Sumerian society at its zenith. The 'War' panel shows the world's earliest depiction of a phalanx formation, with soldiers in copper helmets carrying spears, four-wheeled chariots with solid wheels pulled by onagers (wild asses), and enemies trampled or paraded before the king. The 'Peace' panel shows the aftermath: a victory banquet with the king (shown larger) seated among nobles, servants bringing tribute animals, musicians playing bull-headed lyres, and goods arriving from distant lands. The Standard provides invaluable evidence for Early Dynastic warfare, social hierarchy, material culture, and artistic conventions. It captures the moment when Sumerian city-states competed for dominance in southern Mesopotamia, before Sargon of Akkad would unite the region. The level of craft specialization, imported materials (lapis from Afghanistan), and sophisticated artistic narrative demonstrates the complexity of the world's first urban civilization.",
+      "keywords": [
+        "ur",
+        "sumerian",
+        "warfare",
+        "banquet",
+        "mosaic",
+        "royal cemetery"
+      ],
+      "wikipediaArticle": "Standard_of_Ur",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Royal Cemetery of Ur, Iraq, c. 2600 BCE",
+        "modernSource": "British Museum"
+      }
+    },
+    {
+      "id": "great-pyramid-khufu",
+      "title": "The Great Pyramid of Khufu at Giza",
+      "author": "Old Kingdom Egyptian architects (archaeological evidence)",
+      "year": -2560,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The Great Pyramid originally stood 146.5 meters tall, built from approximately 2.3 million limestone blocks averaging 2.5 tons each. Internal passages lead to the King's Chamber, Queen's Chamber, and the mysterious Grand Gallery. Workers' graffiti found inside identifies crews with names like 'Friends of Khufu' and 'Drunkards of Menkaure.'",
+      "longExcerpt": "The Great Pyramid of Khufu (Cheops), completed around 2560 BCE, represents the apex of Old Kingdom architectural achievement and remains the last surviving Wonder of the Ancient World. Built over approximately 20 years during the Fourth Dynasty, the pyramid required extraordinary organizational capacity, mathematical precision, and labor coordination. Recent discoveries of workers' villages, bakeries producing thousands of loaves daily, and workers' graffiti inside the pyramid have revolutionized understanding of its construction. Rather than slave labor, evidence suggests rotating crews of skilled workers and seasonal laborers worked during Nile flood months when farming was impossible, fed by state-organized provisioning systems. The pyramid's astronomical alignments (aligned to true north within 3/60th of a degree), precise internal dimensions (the King's Chamber uses the royal cubit standard throughout), and sophisticated weight-relieving chambers above the burial chamber demonstrate advanced mathematical and engineering knowledge. Quarry marks and workers' inscriptions mention 'gangs' with names honoring the king, suggesting ideological motivation. The pyramid served not just as royal tomb but as a machine for the king's resurrection, a axis mundi connecting earth and sky, and a massive public works project binding the nation through collective effort in service of divine kingship.",
+      "keywords": [
+        "pyramid",
+        "giza",
+        "khufu",
+        "architecture",
+        "old kingdom",
+        "construction"
+      ],
+      "wikipediaArticle": "Great_Pyramid_of_Giza",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Giza, Egypt, c. 2560 BCE",
+        "modernSource": "Lehner, Mark. The Complete Pyramids. Thames & Hudson, 1997"
+      }
+    },
+    {
+      "id": "ebla-tablets",
+      "title": "The Royal Archives of Ebla",
+      "author": "Eblaite scribes (archaeological evidence)",
+      "year": -2500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "17,000 cuneiform tablets record the administration of Ebla: grain distributions, textile production, diplomatic correspondence with other kingdoms, vocabularies translating Sumerian into Eblaite, and treaties defining trade relationships. One tablet records: '1,000 units of silver for the purchase of lapis lazuli from the east.'",
+      "longExcerpt": "The royal archives of Ebla in northern Syria, discovered in 1975, comprise approximately 17,000 cuneiform tablets dating to 2500-2250 BCE, revealing a previously unknown major Bronze Age kingdom. The tablets document Ebla's extensive trade network reaching from Anatolia to Egypt, diplomatic relations with Mari and other Mesopotamian cities, and a sophisticated palace economy managing textile production, metal working, and agricultural surplus. The Eblaite language, a previously unknown Semitic language, was written using Sumerian cuneiform adapted for local use. Bilingual vocabularies (Sumerian-Eblaite) show cultural exchange and scribal education. The archives record monthly grain rations for palace workers, suggesting a redistributive economy supporting thousands; treaties and diplomatic marriages with neighboring kingdoms; and detailed accounts of textile production, with women workers forming the majority of the palace workforce. Place names mentioned in the tablets include many biblical locations, providing the earliest written evidence for cities like Hazor, Megiddo, and possibly Jerusalem. The Ebla archives revolutionized understanding of third-millennium Syria, demonstrating that sophisticated urban civilization existed throughout the Fertile Crescent, not just in the famous centers of Egypt and Mesopotamia.",
+      "keywords": [
+        "ebla",
+        "syria",
+        "cuneiform",
+        "trade",
+        "archives",
+        "semitic"
+      ],
+      "wikipediaArticle": "Ebla",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Ebla, Syria, c. 2500-2250 BCE",
+        "modernSource": "Pettinato, Giovanni. The Archives of Ebla. Doubleday, 1981"
+      }
+    },
+    {
+      "id": "pyramid-texts-egypt",
+      "title": "The Pyramid Texts",
+      "author": "Old Kingdom Egyptian priests (archaeological evidence)",
+      "year": -2400,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Utterance 273: 'O King, you are this Great Star, the Companion of Orion, who traverses the sky with Orion, who Navigates the Duat with Osiris. You ascend from the east of the sky, being renewed in your due season, and rejuvenated in your due time. The sky has born you with Orion, the year has made you as Osiris.'",
+      "longExcerpt": "The Pyramid Texts, inscribed on the walls of Fifth and Sixth Dynasty pyramids (c. 2400-2300 BCE), constitute the oldest corpus of religious literature in the world. First appearing in the pyramid of Unas (c. 2375 BCE), these hieroglyphic spells, hymns, and ritual utterances were designed to assist the deceased king's resurrection and ascension to the sky. The 759 utterances describe the king's journey after death: emerging from the tomb, ascending to the sky on a ladder or aboard the solar barque, joining the circumpolar stars that never set, and achieving divinity among the gods. The texts reveal complex Egyptian cosmology, with multiple sometimes contradictory traditions: the king as Osiris ruling the underworld (Duat), as Ra sailing across the sky, or as a star joining the imperishable ones. Cannibalistic imagery appears in the 'Cannibal Hymn,' where the king devours gods to absorb their powers. The texts mention specific ritual objects, offering formulas, and geographic locations, providing invaluable evidence for Old Kingdom religious practice. They represent the earliest attempt to systematize beliefs about death and afterlife, evolving later into the Coffin Texts and Book of the Dead. The Pyramid Texts capture the theological foundations of Egyptian civilization at its first peak.",
+      "keywords": [
+        "pyramid texts",
+        "egypt",
+        "religion",
+        "afterlife",
+        "hieroglyphs",
+        "old kingdom"
+      ],
+      "wikipediaArticle": "Pyramid_Texts",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "translator": "James P. Allen",
+        "originalPublication": "Saqqara, Egypt, c. 2400-2300 BCE",
+        "modernSource": "The Ancient Egyptian Pyramid Texts. SBL Press, 2005"
+      }
+    },
+    {
+      "id": "instructions-ptahhotep",
+      "title": "The Maxims of Ptahhotep",
+      "author": "Ptahhotep, vizier of Egypt",
+      "year": -2400,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Do not be proud of your knowledge. Consult the ignorant and the wise; the limits of art are not reached, no artist's skills are perfect. Good speech is more hidden than greenstone, yet may be found among maids at the grindstones. If you are a leader commanding the affairs of many, seek the most perfect way of doing things so that your conduct shall be blameless. Great is Ma'at, enduring and effective; it has not been disturbed since the time of Osiris.",
+      "longExcerpt": "The Maxims of Ptahhotep, attributed to the vizier Ptahhotep who served under Fifth Dynasty pharaoh Djedkare Isesi (c. 2400 BCE), represents the earliest example of Egyptian wisdom literature. Though surviving copies date to the Middle Kingdom (c. 2000 BCE), the text's language and content suggest Old Kingdom origins. The 37 maxims address proper behavior for officials serving in the royal bureaucracy, emphasizing humility, discretion, eloquence, respect for superiors, kindness to dependents, and self-control. Ptahhotep stresses ma'at (truth, justice, cosmic order) as the foundation of successful administration and good character. His advice is remarkably pragmatic: how to behave at banquets, treat one's wife, manage subordinates, speak in council, and advance one's career without arousing jealousy. The text reveals the values of Egypt's bureaucratic elite during the pyramid age: merit-based advancement, literacy as social capital, eloquence as power, and service to the king as the path to eternal remembrance. The maxims' sophistication demonstrates that by 2400 BCE, Egypt had developed not just monumental architecture but equally refined intellectual traditions, ethical philosophy, and literary culture.",
+      "keywords": [
+        "wisdom",
+        "egypt",
+        "ptahhotep",
+        "ethics",
+        "administration",
+        "ma'at"
+      ],
+      "wikipediaArticle": "The_Maxims_of_Ptahhotep",
+      "isStandard": true,
+      "citation": {
+        "translator": "Christian Jacq",
+        "originalPublication": "Egypt, c. 2400 BCE",
+        "modernSource": "The Maxims of Good Discourse. Aris & Phillips, 2006"
+      }
+    },
+    {
+      "id": "victory-stele-naram-sin",
+      "title": "Victory Stele of Naram-Sin",
+      "author": "Akkadian artists (archaeological evidence)",
+      "year": -2254,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The pink limestone stele depicts Naram-Sin ascending a mountain, trampling enemies beneath his feet. He wears the horned crown of divinity—the first Mesopotamian king to claim godhood during his lifetime. His soldiers march upward in diagonal registers while defeated Lullubi warriors fall, beg for mercy, or plunge from cliffs. Above, stars representing deities witness his victory.",
+      "longExcerpt": "The Victory Stele of Naram-Sin, carved around 2254 BCE, commemorates the Akkadian emperor's triumph over the Lullubi mountain people of the Zagros. Standing 2 meters tall, this pink limestone monument revolutionized Mesopotamian artistic conventions. Unlike earlier Sumerian art's horizontal registers, Naram-Sin's artist used diagonal composition to show the king ascending the sacred mountain, literally rising above his enemies and approaching the divine realm. Most dramatically, Naram-Sin wears the horned crown previously reserved for gods, proclaiming his divinity—a radical theological claim that his grandfather Sargon never made. The stele's artistic sophistication is remarkable: naturalistic anatomy, dynamic poses of falling warriors, detailed landscape elements, and hierarchical scale emphasizing the king's supremacy. The Akkadian Empire (2334-2154 BCE), founded by Sargon, was the world's first multi-ethnic territorial empire, uniting Sumerians and Akkadians under Semitic-speaking rulers. Naram-Sin represented the empire's zenith, campaigning from the Mediterranean to the Persian Gulf. This monument captures his ideology: the king as god-warrior, divinely sanctioned to impose order on chaos, conqueror of all peoples, ascendant to heaven. Later Babylonians and Elamites valued it so highly they captured it as war booty; it was found at Susa, where Elamite conquerors had carried it 1,000 years after its creation.",
+      "keywords": [
+        "akkadian",
+        "naram-sin",
+        "stele",
+        "warfare",
+        "divinity",
+        "empire"
+      ],
+      "wikipediaArticle": "Victory_Stele_of_Naram-Sin",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Sippar, Iraq, c. 2254 BCE",
+        "modernSource": "Louvre Museum, Paris"
+      }
+    },
+    {
+      "id": "palermo-stone-annals",
+      "title": "The Palermo Stone: Royal Annals of Egypt",
+      "author": "Fifth Dynasty Egyptian scribes (archaeological evidence)",
+      "year": -2500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Year: Building a 100-cubit ship of cedar wood. Year: Fashioning the statue 'Horus, Lord of Valor.' Year: Seventh occasion of the count. Inundation: 4 cubits, 5 palms, 1 finger. Estates: 35. Year: Traveling to smite the Troglodytes. Year: Building a ship of cedar wood, 'Praise of the Two Lands,' 100 cubits long, and two ships of meru wood, 100 cubits long.",
+      "longExcerpt": "The Palermo Stone and associated fragments preserve the oldest Egyptian historical records, inscribed during the Fifth Dynasty (c. 2500 BCE) but recording events from the First Dynasty onward. The black basalt slab(s) originally measured perhaps 2 meters wide and documented year-by-year annals of Egyptian kings from predynastic times through the Fifth Dynasty—covering some 700 years of history. Each horizontal register represents a king's reign, with individual compartments marking years, identified not by numbers but by significant events: 'Year of fighting the northerners,' 'Year of the Seventh Census of cattle,' 'Year of making the statue of the god.' The annals record Nile flood heights (crucial for predicting harvests), royal rituals (the Sed festival, following the god Sokar), military campaigns (to Nubia, Libya, Sinai), building projects (ships, temples, statues), and the biennial cattle census used for taxation. The fragments provide invaluable chronological framework for Egypt's first 700 years, documenting the evolution from small kingdoms to unified state, the development of royal rituals, early foreign expeditions, and Old Kingdom economic administration. The annals represent sophisticated historical consciousness and bureaucratic record-keeping, suggesting that by 2500 BCE, Egyptians understood themselves as heirs to centuries of tradition requiring preservation and commemoration.",
+      "keywords": [
+        "palermo stone",
+        "egypt",
+        "annals",
+        "chronology",
+        "nile flood",
+        "kingship"
+      ],
+      "wikipediaArticle": "Palermo_Stone",
+      "defaultTab": "wikipedia",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Egypt, c. 2500 BCE",
+        "modernSource": "Palermo Archaeological Museum and various collections"
+      }
+    },
+    {
       "id": "instructions-shuruppak",
       "title": "Instructions of Shuruppak",
       "author": "Shuruppak",
@@ -23,14 +240,14 @@
         {
           "keyword": "wisdom",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         },
         {
           "keyword": "advice",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -65,14 +282,14 @@
         {
           "keyword": "temple",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         },
         {
           "keyword": "building",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -110,21 +327,21 @@
         {
           "keyword": "ruler",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         },
         {
           "keyword": "king",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         },
         {
           "keyword": "death",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -165,7 +382,7 @@
         {
           "keyword": "flood",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -199,14 +416,14 @@
         {
           "keyword": "palace",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         },
         {
           "keyword": "administration",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -243,13 +460,13 @@
         {
           "keyword": "law",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         },
         {
           "keyword": "justice",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         }
@@ -285,14 +502,14 @@
         {
           "keyword": "pharaoh",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         },
         {
           "keyword": "letter",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -327,13 +544,13 @@
         {
           "keyword": "peace",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         },
         {
           "keyword": "treaty",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -374,7 +591,7 @@
         {
           "keyword": "gods",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         }
@@ -410,14 +627,14 @@
         {
           "keyword": "empire",
           "conditions": {
-            "era": "ANCIENT",
+            "era": "ANTIQUITY",
             "culturalZone": "NEAR_EASTERN"
           }
         },
         {
           "keyword": "siege",
           "conditions": {
-            "era": "ANCIENT"
+            "era": "ANTIQUITY"
           }
         }
       ],
@@ -485,6 +702,249 @@
         "modernSource": "British Museum, 1907"
       },
       "wikipediaArticle": "Behistun_Inscription"
+    },
+    {
+      "id": "dead-sea-scrolls-community-rule",
+      "title": "The Community Rule (Dead Sea Scrolls)",
+      "author": "Qumran Community",
+      "year": -100,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "And this is the rule for the men of the Community who devote themselves to turn from all evil and to hold fast to all that He commanded according to His will, to separate from the congregation of the men of injustice, to become a Community in Torah and in possessions, answering to the sons of Zadok, the priests who keep the Covenant, and to the multitude of the men of the Community who hold fast to the Covenant. They shall be ruled by the first directives in which the men of the Community began to be instructed, until the coming of a Prophet and the Messiahs of Aaron and Israel.",
+      "longExcerpt": "And this is the rule for the men of the Community who devote themselves to turn from all evil and to hold fast to all that He commanded according to His will, to separate from the congregation of the men of injustice, to become a Community in Torah and in possessions, answering to the sons of Zadok, the priests who keep the Covenant, and to the multitude of the men of the Community who hold fast to the Covenant. They shall be ruled by the first directives in which the men of the Community began to be instructed, until the coming of a Prophet and the Messiahs of Aaron and Israel. The Dead Sea Scrolls, discovered in caves near Qumran between 1947-1956, contain the oldest known biblical manuscripts and rules for a Jewish sectarian community living in the Judean Desert during the late Second Temple period. This Community Rule scroll describes the organization, beliefs, and practices of the Qumran community, possibly Essenes, who withdrew from Jerusalem society to live in strict purity awaiting divine intervention. The scrolls date from approximately 250 BCE to 70 CE, spanning the Hellenistic and early Roman periods.",
+      "keywords": ["dead sea scrolls", "qumran", "essenes", "judaism", "covenant", "messiah", "torah", "second temple"],
+      "wikipediaArticle": "Dead_Sea_Scrolls",
+      "citation": {
+        "originalPublication": "Qumran, Judean Desert, c. 100 BCE",
+        "modernSource": "Discovered 1947-1956, translated by Geza Vermes and others"
+      },
+      "defaultTab": "wikipedia",
+      "isStandard": true
+    },
+    {
+      "id": "strabo-geography-egypt",
+      "title": "Geography: On Egypt and the Nile",
+      "author": "Strabo",
+      "year": -7,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "The Nile flows from the south and from the parts beyond Egypt to the north, and empties into the sea which washes the coast of Egypt. It has two mouths, which are called the Pelusiac and the Canobic mouths, and between these are several other mouths. The land between the mouths is called Delta, from its resemblance to the letter Δ. Alexandria is situated on the western side of the Delta, on the narrow strip of land between the Mediterranean Sea and Lake Mareotis. It was founded by Alexander, who saw the advantages of the site, with its excellent harbors and fertile land. The city has magnificent public buildings and palaces, and the Museum and Library founded by the Ptolemies have made it the intellectual center of the world.",
+      "longExcerpt": "The Nile flows from the south and from the parts beyond Egypt to the north, and empties into the sea which washes the coast of Egypt. It has two mouths, which are called the Pelusiac and the Canobic mouths, and between these are several other mouths. The land between the mouths is called Delta, from its resemblance to the letter Δ, for the base of the Delta is formed by the sea-coast between Pelusium and Canobus, and its sides by the streams of the river up to the vertex where the stream divides. Alexandria is situated on the western side of the Delta, on the narrow strip of land between the Mediterranean Sea and Lake Mareotis. It was founded by Alexander the Great, who saw the excellent advantages of the site - two excellent harbors formed by the offshore island of Pharos connected by a causeway, abundant water from the Nile through canals, and fertile land surrounding the city. The city has magnificent public buildings including the great lighthouse (Pharos) counted among the Seven Wonders of the World, the royal palaces occupying a quarter of the city, and the Museum and Library founded by the Ptolemies which have made Alexandria the intellectual center of the civilized world, housing hundreds of thousands of scrolls and attracting scholars from all nations. The Egyptians are notably religious and preserve many ancient customs. The priests still maintain the temples and perform ancient rites, though now under Roman rule since the death of Cleopatra.",
+      "keywords": ["strabo", "geography", "egypt", "alexandria", "nile", "delta", "library", "ptolemies", "roman"],
+      "wikisourceTitle": "Geography_(Strabo)",
+      "citation": {
+        "translator": "H.L. Jones",
+        "originalPublication": "c. 7 BCE",
+        "modernSource": "Loeb Classical Library"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "diodorus-siculus-egypt",
+      "title": "Library of History: Egyptian Customs",
+      "author": "Diodorus Siculus",
+      "year": -36,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "The Egyptians believe that the universe consists of five elements - fire, earth, water, and air, and in addition to these, that which we call spirit, or the fifth essence, from which they say the gods are formed. Of all the customs of Egypt, the strangest concerns their treatment of the dead. When anyone dies, all his relatives and friends put dust upon their heads and go about the city lamenting until the body is buried. They neither bathe, nor drink wine, nor eat any food worth mentioning, nor do they wear fine clothes during this time. They have three classes of burial - the most expensive, the medium, and the cheapest. The first costs a talent of silver, the second twenty minae, and the third is very inexpensive indeed.",
+      "longExcerpt": "The Egyptians believe that the universe consists of five elements - fire, earth, water, and air, and in addition to these, that which we call spirit, or the fifth essence, from which they say the gods are formed. They claim that Egypt was the birthplace of the gods and that the Egyptians were the first people on earth to develop civilization, writing, and the sciences. Of all the customs of Egypt, the strangest concerns their treatment of the dead. When anyone dies, all his relatives and friends put dust upon their heads and go about the city lamenting until the body is buried. They neither bathe, nor drink wine, nor eat any food worth mentioning, nor do they wear fine clothes during this time. They have three classes of burial - the most expensive, the medium, and the cheapest. The first costs a talent of silver, the second twenty minae, and the third is very inexpensive indeed. For the most expensive burial, the embalmers first extract the brain through the nostrils with an iron hook, getting part of it out this way and the rest by pouring in drugs. Then they make a cut in the side with a sharp Ethiopian stone and take out all the internal organs except the heart and kidneys. After cleansing the cavity, they fill it with pure myrrh, cassia, and other spices, and sew it up again. When this is done, they steep the body in natron for seventy days. Then they wash it and wrap the whole body in bandages of fine linen cloth smeared with gum. The Egyptians venerate certain animals as sacred - the bull Apis at Memphis, the Mnevis bull at Heliopolis, cats at Bubastis, the crocodile in the Faiyum, and the ibis throughout Egypt. These animals are maintained at public expense and their deaths are mourned as great calamities.",
+      "keywords": ["diodorus", "egypt", "burial", "mummification", "customs", "hellenistic", "sacred animals", "apis bull"],
+      "citation": {
+        "translator": "C.H. Oldfather",
+        "originalPublication": "c. 36 BCE",
+        "modernSource": "Loeb Classical Library"
+      }
+    },
+    {
+      "id": "philo-flaccus",
+      "title": "Against Flaccus",
+      "author": "Philo of Alexandria",
+      "year": 38,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "Flaccus, who had been appointed governor of Egypt and Alexandria, at first governed with justice and moderation. But after the death of Tiberius Caesar and the accession of Gaius Caligula, he changed his policy and began to persecute the Jews of Alexandria. He permitted the Greeks to attack the synagogues and to set up images of the emperor in them, violating our most sacred laws. Then came the terrible pogrom. The mob attacked the Jewish quarters, plundering houses and shops, beating men and women in the streets, and burning our places of worship. We fled to the harbors and the tombs, seeking refuge wherever we could find it. More than four hundred houses were destroyed. Many of our people were killed, and their bodies dragged through the streets and trampled. Our women were forced to eat pork in the marketplace, and those who refused were tortured and killed.",
+      "longExcerpt": "Flaccus, who had been appointed governor of Egypt and Alexandria by Tiberius Caesar, at first governed with justice and moderation, maintaining good relations between the diverse communities of the city - Greeks, Egyptians, and Jews. But after the death of Tiberius and the accession of Gaius Caligula in 37 CE, Flaccus's political position became precarious, and seeking favor with the new emperor and the Greek population, he changed his policy dramatically and began to persecute the Jews of Alexandria. He permitted the Greeks to attack our synagogues and to set up images of the emperor in them as objects of worship, violating our most sacred laws which forbid graven images and worship of any being except the One God. He declared that we were foreigners without rights of citizenship, though we had lived in Alexandria for three centuries since its founding. Then came the terrible pogrom in the year 38 CE. The Greek mob, with the connivance of the governor, attacked the Jewish quarters of the city, plundering houses and shops, beating men and women in the streets, burning our places of worship, and seizing our goods. We fled to the harbors and even to the tombs and cemeteries, seeking refuge wherever we could find it. More than four hundred houses were destroyed by fire or pillage. Many of our people were killed, and their bodies dragged through the streets and trampled like refuse. Our women were forced to eat pork in the public marketplace, food forbidden by our Law, and those who refused were tortured with fire and the rack and killed before the eyes of their families. Thirty-eight members of the Jewish council of elders were arrested, dragged to the theater, stripped, and publicly flogged - an outrage never before inflicted on citizens. But divine justice overtook Flaccus. Within a year, he was arrested by order of Caligula, exiled to a barren island, and eventually executed - proof that God does not forget those who persecute His people.",
+      "keywords": ["philo", "alexandria", "jews", "persecution", "flaccus", "pogrom", "roman egypt", "antisemitism", "caligula"],
+      "internetArchiveId": "philojudaeus06phil",
+      "citation": {
+        "translator": "F.H. Colson",
+        "originalPublication": "Alexandria, c. 38-41 CE",
+        "modernSource": "Loeb Classical Library"
+      }
+    },
+    {
+      "id": "res-gestae-divi-augusti",
+      "title": "Res Gestae Divi Augusti (Deeds of the Divine Augustus)",
+      "author": "Augustus (Octavian)",
+      "year": 14,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "Below is a copy of the deeds of the deified Augustus by which he subjected the whole world to the rule of the Roman people, and of the expenditures which he made for the state and people of Rome. At the age of nineteen, on my own initiative and at my own expense, I raised an army with which I set free the state, which was oppressed by the domination of a faction. In my sixth and seventh consulships, after I had extinguished civil wars, I transferred the republic from my power to the authority of the senate and people of Rome. For this service I was named Augustus by decree of the senate. I extended the boundaries of all the provinces which were bordered by races not yet subject to our empire. The provinces of the Gauls, the Spains, and Germany I reduced to a state of peace. I added Egypt to the empire of the Roman people.",
+      "longExcerpt": "Below is a copy of the deeds of the deified Augustus by which he subjected the whole world to the rule of the Roman people, and of the expenditures which he made for the state and people of Rome. At the age of nineteen, on my own initiative and at my own expense, I raised an army with which I set free the state, which was oppressed by the domination of a faction. The senate enrolled me in its order by honorific resolutions, giving me the place of a consul in the giving of opinions, and gave me the imperium. It ordered me as propraetor to see to it that the state came to no harm, together with the consuls. In my sixth and seventh consulships, after I had extinguished civil wars, having obtained all things by universal consent, I transferred the republic from my power to the authority of the senate and people of Rome. For this service I was named Augustus by decree of the senate, and the doorposts of my house were publicly decked with laurels, a civic crown was fastened above my door, and a golden shield was set up in the Julian senate-house. I extended the boundaries of all the provinces which were bordered by races not yet subject to our empire. The provinces of the Gauls, the Spains, and Germany, bounded by the ocean from Gades to the mouth of the Elbe, I reduced to a state of peace. I brought the Alps under control. I added Egypt to the empire of the Roman people. When Cleopatra and Antony were defeated, Egypt passed to Rome. The temple of Janus, which our ancestors wished to be closed when there was peace throughout the whole empire, was closed three times during my principate, whereas before my birth it had been closed only twice in all recorded history. I gave three gladiatorial games in my own name and five in the name of my sons and grandsons; in these games about 10,000 men fought. I celebrated my victories with nine triumphs.",
+      "keywords": ["augustus", "res gestae", "rome", "egypt", "cleopatra", "empire", "civil war", "principate", "deification"],
+      "wikipediaArticle": "Res_Gestae_Divi_Augusti",
+      "citation": {
+        "translator": "Frederick W. Shipley",
+        "originalPublication": "Inscribed on temples throughout the empire, c. 14 CE",
+        "modernSource": "Loeb Classical Library"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "josephus-antiquities-herod",
+      "title": "Antiquities of the Jews: The Reign of Herod",
+      "author": "Flavius Josephus",
+      "year": 93,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "Herod was by nature a violent and cruel man, full of suspicion toward all men. He put to death many of the principal Jews, suspecting them of opposing his rule. He killed his wife Mariamne, whom he loved above all women, because he was persuaded by false accusations that she had committed adultery. Later, consumed by grief and madness, he called out her name and ordered his servants to bring her to him, having forgotten that she was dead. He killed his own sons Alexander and Aristobulus on suspicion of plotting against him. It was said that it was better to be Herod's pig than his son, for as a Jew he would not kill pigs, but he had no such scruple about his children.",
+      "longExcerpt": "Herod was by nature a violent and cruel man, full of suspicion toward all men, and he let nothing stand in the way of his ambition to secure his throne. Though he had obtained the kingdom of Judea from the Romans and was confirmed as king by Mark Antony and Octavian, he was always fearful of losing it. He put to death many of the principal Jews, suspecting them of favoring the Hasmonean family who had ruled before him. He eliminated all members of the Sanhedrin who opposed him. He killed the high priest Aristobulus, brother of his wife Mariamne, by having him drowned in the swimming pool at Jericho, because he feared the young man's popularity. He killed his beloved wife Mariamne herself, having been persuaded by his sister Salome and others that she had committed adultery, though the charges were false. After her death, he was consumed by grief and madness, calling out her name and ordering his servants to bring her to him, having forgotten in his delirium that he had ordered her execution. He fell into a deep melancholy and illness. Later he killed his own sons Alexander and Aristobulus, Mariamne's children, on suspicion that they were plotting to avenge their mother's death. He imprisoned them, tortured them, and finally strangled them in the city of Sebaste. Even Caesar Augustus, when he heard of these killings, remarked that it was better to be Herod's pig (hus) than his son (huios) - for as a Jew, Herod would not kill pigs to eat them, but he had no such scruple about killing his own children. Near the end of his life, he ordered the arrest of the most prominent men of Judea and commanded that they be killed the moment he died, so that there would be mourning in the nation when he passed, instead of rejoicing. But this order was not carried out. He died in great agony in the year 4 BCE, having ruled for 37 years. Despite his cruelty, he built magnificent structures including the great temple in Jerusalem, the port city of Caesarea, and fortresses throughout the land.",
+      "keywords": ["josephus", "herod", "judea", "jerusalem", "hasmonean", "temple", "rome", "mariamne", "cruelty"],
+      "wikisourceTitle": "The_Antiquities_of_the_Jews",
+      "internetArchiveId": "worksofflaviusjo00jose",
+      "citation": {
+        "translator": "William Whiston",
+        "originalPublication": "Written in Rome, c. 93-94 CE, covering events 37-4 BCE",
+        "modernSource": "Various editions since 1737"
+      }
+    },
+    {
+      "id": "pliny-natural-history-judea",
+      "title": "Natural History: On Judea and the Dead Sea",
+      "author": "Pliny the Elder",
+      "year": 77,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "Judaea is bounded by Arabia on the east, Syria on the north, Phoenicia and the sea on the west, and Egypt on the south. The Dead Sea, called by the Greeks Lake Asphaltites, produces nothing except bitumen. No creature can live in its waters, which will not support even the human body, but causes it to float like wood. Beyond this lake lie the Essenes, a people who live alone and are most remarkable of all in the whole world. They have no women and have renounced all sexual desire. They have no money and live among palm trees. Daily their numbers are replenished by crowds of strangers who come to adopt their way of life, driven by weariness of fortune. Thus through thousands of ages - incredible to relate - a race in which no one is born continues to exist. So fruitful to them is the repentance of others for their past lives.",
+      "longExcerpt": "Judaea is bounded by Arabia on the east, Syria on the north, Phoenicia and the sea on the west, and Egypt on the south. Jerusalem was the capital until it was destroyed by Titus during the Jewish War in 70 CE, the most famous city not only of Judaea but of the East. The Dead Sea, which the Greeks call Lake Asphaltites, produces nothing except bitumen, from which it takes its name. The lake is so dense with salt that no creature can live in its waters. It will not support even the human body when it tries to sink, but causes it to float like wood. The Emperor Vespasian visited it and tested this phenomenon, ordering men who could not swim to be thrown into the deep water with their hands tied behind their backs - they all floated as if driven upward by the wind. The lake is 100 miles long and 75 miles wide at its broadest. On the east, beyond this lake, but not on the shore itself, lie the Essenes, a people who live alone and are the most remarkable of all in the whole world. They have no women and have renounced all sexual desire. They have no money. They live among palm trees for companionship. Daily their numbers are replenished by crowds of strangers who come to adopt their way of life, driven there by weariness of fortune and the vicissitudes of life. Thus through thousands of ages - incredible to relate - a race in which no one is born continues to exist forever. So fruitful to them is the repentance of others for their past lives. Below the Essenes was the town of Engedi, second only to Jerusalem in fertility and palm groves, but now another heap of ruins. From there to the fortress of Masada, which stands on a rock and is also near the Dead Sea. These are the boundaries of Judaea.",
+      "keywords": ["pliny", "judea", "dead sea", "essenes", "jerusalem", "bitumen", "natural history", "vespasian", "masada"],
+      "wikisourceTitle": "Natural_History_(Pliny)",
+      "citation": {
+        "translator": "H. Rackham",
+        "originalPublication": "Rome, 77 CE",
+        "modernSource": "Loeb Classical Library"
+      }
+    },
+    {
+      "id": "martyrdom-perpetua-felicitas",
+      "title": "The Martyrdom of Perpetua and Felicitas",
+      "author": "Vibia Perpetua and others",
+      "year": 203,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "A few days later we were lodged in the prison, and I was very much afraid, because I had never experienced such darkness. What a day of horror! Terrible heat, owing to the crowds! Rough treatment by the soldiers! To crown all, I was tormented there by anxiety for my baby. Then Tertius and Pomponius, those blessed deacons who ministered to us, paid for us to be moved for a few hours to a better part of the prison to refresh ourselves. Leaving the dungeon we all went about our own business. I nursed my baby, who was already weak from hunger. I spoke anxiously to my mother about the child, tried to console my brother, and asked that my child might be allowed to remain with me in prison. My mother took the baby. I saw that my family was consumed with grief on my account, and I was tortured by their grief. These were my anxieties during those days. Then I obtained permission for my baby to stay with me in prison. At once I recovered my health and was relieved of my anxiety over the child. Suddenly the prison became a palace for me, and I loved being there rather than anywhere else.",
+      "longExcerpt": "A few days later we were lodged in the prison, and I was very much afraid, because I had never experienced such darkness. What a day of horror! Terrible heat, owing to the crowds! Rough treatment by the soldiers! To crown all, I was tormented there by anxiety for my baby. Then Tertius and Pomponius, those blessed deacons who ministered to us, paid for us to be moved for a few hours to a better part of the prison to refresh ourselves. Leaving the dungeon we all went about our own business. I nursed my baby, who was already weak from hunger. I spoke anxiously to my mother about the child, tried to console my brother, and asked that my child might be allowed to remain with me in prison. My mother took the baby. I saw that my family was consumed with grief on my account, and I was tortured by their grief. These were my anxieties during those days. Then I obtained permission for my baby to stay with me in prison. At once I recovered my health and was relieved of my anxiety over the child. Suddenly the prison became a palace for me, and I loved being there rather than anywhere else. This account from Roman North Africa describes the imprisonment and martyrdom of Perpetua, a young Christian noblewoman, and her slave Felicitas in Carthage in 203 CE. Part of the text is written in Perpetua's own hand, making it one of the earliest surviving writings by a Christian woman. They were eventually thrown to wild beasts in the arena during games celebrating the emperor's birthday.",
+      "keywords": ["perpetua", "martyrdom", "carthage", "christianity", "roman africa", "persecution", "women", "prison"],
+      "wikisourceTitle": "Passion_of_Saints_Perpetua_and_Felicity",
+      "citation": {
+        "translator": "W.H. Shewring",
+        "originalPublication": "Carthage, North Africa, 203 CE",
+        "modernSource": "Sheed & Ward, 1931"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "eusebius-church-history-egypt",
+      "title": "Ecclesiastical History: Persecution in Egypt",
+      "author": "Eusebius of Caesarea",
+      "year": 325,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "The persecution in Egypt was so severe that the very memory of it makes us shudder. Words cannot describe the outrages and tortures which the martyrs in Egypt and the Thebaid endured. They were torn apart with potsherds instead of iron claws until death released them. Women were tied by one foot and hoisted high in the air by machines, head downward, their bodies completely naked without even a covering, presenting thus the most shameful and brutal spectacle to all beholders. Others died fastened to trees and stumps. They took by the feet the most admirable martyrs of Christ, two at a time, and suspended them, head downward, making them completely naked. And when the wild beasts did not attack them, as they expected, they slew them with the sword. In all of Egypt and the Thebaid, countless numbers of men, women, and children, despising this temporal life, endured various deaths for our Savior's teaching.",
+      "longExcerpt": "The persecution in Egypt was so severe that the very memory of it makes us shudder. Words cannot describe the outrages and tortures which the martyrs in Egypt and the Thebaid endured. They were torn apart with potsherds instead of iron claws until death released them. Women were tied by one foot and hoisted high in the air by machines, head downward, their bodies completely naked without even a covering, presenting thus the most shameful and brutal spectacle to all beholders. Others died fastened to trees and stumps. They took by the feet the most admirable martyrs of Christ, two at a time, and suspended them, head downward, making them completely naked. And when the wild beasts did not attack them, as they expected, they slew them with the sword. In all of Egypt and the Thebaid, countless numbers of men, women, and children, despising this temporal life, endured various deaths for our Savior's teaching. Eusebius of Caesarea, called the 'Father of Church History,' wrote this account around 325 CE documenting the Great Persecution under Diocletian (303-311 CE) which was particularly severe in Egypt. The persecution ended when Constantine became emperor and issued the Edict of Milan in 313 CE granting religious tolerance to Christians.",
+      "keywords": ["eusebius", "persecution", "egypt", "martyrs", "diocletian", "christianity", "torture", "thebaid", "constantine"],
+      "citation": {
+        "translator": "Arthur Cushman McGiffert",
+        "originalPublication": "Caesarea, Palestine, c. 325 CE",
+        "modernSource": "Christian Classics Ethereal Library"
+      }
+    },
+    {
+      "id": "athanasius-life-antony",
+      "title": "Life of Antony",
+      "author": "Athanasius of Alexandria",
+      "year": 360,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "Antony was an Egyptian by race. His parents were well-born and prosperous, and because they were Christians, he too was raised in the Christian faith. When he was about eighteen or twenty years old, his parents died, leaving him with one very young sister. He took care of his home and his sister. But not six months after his parents' death, as he was going to church and thinking about how the apostles left everything and followed Christ, he heard the Lord saying in the Gospel: 'If you wish to be perfect, go and sell all that you have and give to the poor, and come follow me and you will have treasure in heaven.' So Antony went out immediately from the church and gave to the townspeople the property he had from his forebears, and the rest of his goods he sold and gave the considerable sum he collected to the poor. He placed his sister in a house of virgins, and from then on devoted himself outside his house to the discipline of the solitary life.",
+      "longExcerpt": "Antony was an Egyptian by race. His parents were well-born and prosperous, and because they were Christians, he too was raised in the Christian faith. When he was about eighteen or twenty years old, his parents died, leaving him with one very young sister and sole responsibility for the home and his sister. He took care of his home and his sister. But not six months after his parents' death, as he was going to church, he was thinking about how the apostles left everything and followed the Savior, and how in Acts people sold what they had and brought the money and placed it at the apostles' feet for distribution to the needy. And thinking what great hope is stored up for such people in heaven, he entered the church, and just then he heard the Lord saying in the Gospel: 'If you wish to be perfect, go and sell all that you have and give to the poor, and come follow me and you will have treasure in heaven.' So Antony, as if God had put him in mind of the saints and as if the reading had been directed especially to him, went out immediately from the church and gave to the townspeople the property he had from his forebears (three hundred fertile and very beautiful arourae), so that they would not trouble him or his sister in the least. And the rest of his goods, which were movable, he sold and collected a considerable sum of money and gave it to the poor, keeping a few things for his sister. This account by Athanasius describes how Antony of Egypt (251-356 CE) became the first Christian hermit, withdrawing to the Egyptian desert to live in solitude and prayer, establishing the model for Christian monasticism that would spread throughout the Mediterranean world.",
+      "keywords": ["athanasius", "antony", "monasticism", "egypt", "desert fathers", "hermit", "asceticism", "christianity"],
+      "wikisourceTitle": "Life_of_St._Anthony",
+      "citation": {
+        "translator": "Carolinne White",
+        "originalPublication": "Alexandria, c. 360 CE",
+        "modernSource": "Penguin Classics, 1998"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "egeria-pilgrimage",
+      "title": "Itinerary of Egeria",
+      "author": "Egeria",
+      "year": 384,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "In the name of Christ our God, we came to Mount Sinai early on the Sabbath. We arrived at the foot of the mountain at about the tenth hour. At the place where we arrived, there is now a church, and near the church is a very pleasant garden with abundant and excellent water, and in the garden is the Bush itself. We arrived there on the Saturday evening, and next morning, we celebrated the Sunday liturgy in the church. Then after the dismissal, the priest of that place, a holy old man who was a monk, said to us: 'Since you have taken so much trouble to come to this place, and it is now a holy day, we will show you all the places which are mentioned in the books of Moses.' We were very eager to see everything. So leaving the church, we came to the place where holy Moses was when God spoke to him from the burning bush.",
+      "longExcerpt": "In the name of Christ our God, we came to Mount Sinai early on the Sabbath. We arrived at the foot of the mountain at about the tenth hour. At the place where we arrived, there is now a church with a very pleasant garden attached to it, having abundant and excellent water. In the garden is the Bush itself from which the Lord spoke to Moses in the fire, and this Bush is still alive today and throws out shoots. We arrived there on the Saturday evening and said some prayers in the church, and next morning, being Sunday, we celebrated the liturgy in the church together with the priest and all the monks who live there. Then after the dismissal, the priest of that place, a holy old man who was a monk from his youth as they told us, said to us: 'Since you have taken so much trouble as to come to this place, and since it is now a holy day, if you are willing, we will show you all the places which are written in the books of Moses, for each place has a church built on it.' We were very eager to see everything. So leaving the church, we began to ascend the mountains one by one. These mountains are ascended with infinite difficulty, for you cannot go up them slowly in a spiral fashion, as we say like a snail shell, but you have to climb straight up each one as if going up a wall, and then you must come straight down each mountain until you reach the foot of the next one. This account by Egeria, a Christian woman from Spain or Gaul, describes her pilgrimage to the Holy Land, Egypt, and Sinai around 381-384 CE, providing invaluable details about early Christian holy sites, liturgy, and monasticism in the late Roman East.",
+      "keywords": ["egeria", "pilgrimage", "sinai", "holy land", "jerusalem", "travel", "women", "liturgy", "monks"],
+      "citation": {
+        "translator": "M.L. McClure and C.L. Feltoe",
+        "originalPublication": "Written 381-384 CE",
+        "modernSource": "Society for Promoting Christian Knowledge, 1919"
+      }
+    },
+    {
+      "id": "augustine-confessions-carthage",
+      "title": "Confessions: Student Life in Carthage",
+      "author": "Augustine of Hippo",
+      "year": 397,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "I came to Carthage, where a cauldron of unholy loves was seething and bubbling all around me. I was not yet in love, but I was in love with love, and from a hidden hunger, I hated myself for not feeling more intensely a sense of hunger. I sought what I might love, loving to love, and I hated security. The streets of Carthage seethed with the unchaste loves of students. I polluted the spring of friendship with the filth of concupiscence and I dimmed its luster with the slime of lust. Yet, foul and immoral as I was, I still craved to be thought elegant and urbane. I threw myself headlong into the love which I hoped would satisfy me. Yet I was beloved and I secretly attained the joy that enslaves. I was glad to be in bondage, tied with troublesome chains, so that I might be scourged with the red-hot iron rods of jealousy, suspicion, fear, anger, and strife.",
+      "longExcerpt": "I came to Carthage, where a cauldron of unholy loves was seething and bubbling all around me. I was not yet in love, but I was in love with love, and from a hidden hunger, I hated myself for not feeling more intensely a sense of hunger. I sought what I might love, loving to love, and I hated security and a life without snares. The streets of Carthage seethed with the unchaste loves of students. I polluted the spring of friendship with the filth of concupiscence and I dimmed its luster with the slime of lust. Yet, foul and immoral as I was, with my excessive vanity I still craved to be thought elegant and urbane. I threw myself headlong into the love which I hoped would satisfy me. My God, my mercy, how much gall You sprinkled over all that sweetness, and how good You were to do it! For I was beloved and I secretly attained the joy that enslaves. I was glad to be in bondage, tied with troublesome chains, so that I might be scourged with the red-hot iron rods of jealousy, suspicion, fear, anger, and strife. I was also captivated by theatrical shows, which were full of representations of my own miseries and of fuel for my fire. At Carthage I also joined a group of students called the 'Wreckers,' a title of ferocious devilishness, for they deliberately made a mockery of the timid modesty of freshmen by rousing them and needlessly terrifying them. Augustine of Hippo (354-430 CE), one of the most influential Christian theologians, describes his dissolute youth as a student of rhetoric in Carthage, North Africa's greatest city, before his conversion to Christianity.",
+      "keywords": ["augustine", "confessions", "carthage", "north africa", "student life", "rhetoric", "christianity", "conversion", "youth"],
+      "wikisourceTitle": "Confessions_(St._Augustine)",
+      "internetArchiveId": "confessionsofsa00augu",
+      "citation": {
+        "translator": "Edward Bouverie Pusey",
+        "originalPublication": "Hippo Regius, North Africa, c. 397-400 CE",
+        "modernSource": "Various editions"
+      }
+    },
+    {
+      "id": "procopius-secret-history",
+      "title": "The Secret History",
+      "author": "Procopius of Caesarea",
+      "year": 550,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "Justinian was in character exactly like those demons who take human form and enter cities to wreak destruction upon the human race, bringing famine, earthquakes, pestilence, and every other calamity upon mankind. Some of those who have been with Justinian at the palace late at night, men who were pure of spirit, have thought they saw a strange demoniac form in his place. One of them said that Justinian suddenly rose from his throne and walked about - for he could never remain sitting for long. Suddenly his head vanished while the rest of his body continued to pace back and forth. The man himself, thinking his eyes were failing him, stood there for a long time distressed. But when the head returned to the body, he could not believe what he had seen. Another said he stood beside the Emperor as he sat, and of a sudden the face changed into a shapeless mass of flesh. For neither eyebrows nor eyes were in their proper place, nor was any other feature recognizable. After a while, he saw the face return to its usual form.",
+      "longExcerpt": "Justinian was in character exactly like those demons who, they say, take human form and enter cities and countries to wreak destruction upon the human race, bringing famine, earthquakes, pestilence, and every other calamity upon mankind. Some of those who have been with Justinian at the palace late at night, men who were pure of spirit, have thought they saw a strange demoniac form in his place. One man said that the Emperor suddenly rose from his royal throne and walked about the room - for Justinian could never remain sitting for long - and at that instant his head suddenly disappeared, while the rest of his body continued to pace back and forth. The observer of this phenomenon, thinking his eyesight was failing him, stood there for a long time distressed and quite at a loss. But then, when the head returned to the body, he filled up the parts that had been lacking and believed he had been victim of an optical illusion. Another man said he stood beside the Emperor as he sat, and of a sudden the face changed into a shapeless mass of flesh, with neither eyebrows nor eyes in their proper place, nor was any other feature recognizable. After a while, he saw the face return to its usual form. Procopius of Caesarea (500-565 CE), official historian of Justinian's wars, wrote this secret and scathing account of Emperor Justinian and Empress Theodora, describing their tyranny, cruelty, and the catastrophes of their reign including the devastating Plague of Justinian that killed millions across the Byzantine Empire.",
+      "keywords": ["procopius", "justinian", "theodora", "byzantine", "constantinople", "secret history", "plague", "tyranny"],
+      "wikisourceTitle": "Secret_History_(Procopius)",
+      "citation": {
+        "translator": "H.B. Dewing",
+        "originalPublication": "Constantinople, c. 550 CE",
+        "modernSource": "Loeb Classical Library"
+      }
+    },
+    {
+      "id": "quran-surahs",
+      "title": "The Quran",
+      "author": "Recited by Muhammad",
+      "year": 632,
+      "era": "ANTIQUITY",
+      "culturalZones": ["MENA"],
+      "excerpt": "Read! In the name of your Lord who created. Created man from a clinging substance. Read! And your Lord is the Most Generous. Who taught by the pen. Taught man that which he knew not. In the name of Allah, the Entirely Merciful, the Especially Merciful. All praise is due to Allah, Lord of the worlds. The Entirely Merciful, the Especially Merciful. Sovereign of the Day of Recompense. It is You we worship and You we ask for help. Guide us to the straight path. The path of those upon whom You have bestowed favor, not of those who have evoked Your anger or of those who are astray.",
+      "longExcerpt": "Read! In the name of your Lord who created. Created man from a clinging substance. Read! And your Lord is the Most Generous. Who taught by the pen. Taught man that which he knew not. In the name of Allah, the Entirely Merciful, the Especially Merciful. All praise is due to Allah, Lord of the worlds. The Entirely Merciful, the Especially Merciful. Sovereign of the Day of Recompense. It is You we worship and You we ask for help. Guide us to the straight path. The path of those upon whom You have bestowed favor, not of those who have evoked Your anger or of those who are astray. The Quran, Islam's central religious text, was recited by the Prophet Muhammad in Mecca and Medina between approximately 610-632 CE and compiled into written form shortly after his death. Muslims believe it to be the verbatim word of God (Allah) as revealed to Muhammad through the angel Gabriel. It contains 114 chapters (suras) covering theology, law, morality, guidance for living, and narratives about earlier prophets. The Quran became the foundation of Islamic civilization and profoundly influenced world history, law, literature, and culture.",
+      "keywords": ["quran", "islam", "muhammad", "mecca", "medina", "revelation", "allah", "arabic", "scripture"],
+      "wikipediaArticle": "Quran",
+      "citation": {
+        "translator": "Saheeh International",
+        "originalPublication": "Recited 610-632 CE, compiled c. 650 CE",
+        "modernSource": "Various translations"
+      },
+      "isStandard": true
     }
   ]
 }

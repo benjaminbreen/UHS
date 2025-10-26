@@ -6001,6 +6001,7 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { id: 'OLD_PERSIAN', period: [-600, -330], weight: 90 },
       { id: 'MIDDLE_PERSIAN', period: [-330, 651], weight: 85 },
       { id: 'CLASSICAL_PERSIAN', period: [651, 1500], weight: 90 },
+      { id: 'MODERN_PERSIAN', period: [1500, 2100], weight: 90 },  // Added for modern era
       { id: 'CLASSICAL_ARABIC', period: [651, 1200], weight: 25 },
     ],
     namePatterns: [

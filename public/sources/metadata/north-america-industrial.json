@@ -5,32 +5,23 @@
       "title": "Haitian Declaration of Independence",
       "author": "Jean-Jacques Dessalines",
       "year": 1804,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "NORTH_AMERICAN_COLONIAL"
-      ],
-      "excerpt": "We must live independent or die. Let us swear to the whole universe, to ourselves, to renounce France forever, and to die rather than live under its domination.",
-      "longExcerpt": "Citizens, it is not enough to have expelled the barbarians who have bloodied our land for two centuries; it is not enough to have curbed the factions that one after another mocked the specter of liberty that France dangled before you. We must, with one last act of national authority, forever assure the empire of liberty in the country of our birth; we must take any hope of re-enslaving us away from the inhuman government that for so long kept us in the most humiliating torpor. In the end we must live independent or die.\n\nIndependence or death! Let these sacred words unite us and be the signal of battle and of our reunion. Citizens, my countrymen, on this solemn day I have brought together those courageous soldiers who, as liberty lay dying, have spilled their blood to save it; these generals who have guided your efforts against tyranny have not yet done enough for your happiness; the French name still haunts our land.\n\nEverything revives the memories of the cruelties of this barbarous people: our laws, our habits, our towns, everything still carries the stamp of the French. Indeed! There are still French in our island, and you believe yourself free and independent of that Republic which, it is true, has fought all the nations, but which has never defeated those who wanted to be free.\n\nAnd I, a single man, whose good fortune it is to have been the instrument by which the Almighty has delivered you from your afflictions, I who have seen sometimes with joy, sometimes with sorrow, the terrible blows of your avenging hands, I swear before posterity, which will one day be my judge, that I have done everything for your happiness.\n\nLet us swear to the whole universe, to ourselves, to renounce France forever, and to die rather than live under its domination. To fight until the last breath for the independence of our country!",
-      "keywords": [
-        "Haiti",
-        "revolution",
-        "independence",
-        "slavery",
-        "abolition",
-        "Dessalines"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "Citizens, it is not enough to have expelled the barbarians who have bloodied our land for two centuries; it is not enough to have curbed the factions that one after another mocked the specter of liberty that France dangled before you. We must, with one last act of national authority, forever assure the empire of liberty in the country of our birth. Let us swear to the whole universe, to ourselves, to renounce France forever, and to die rather than live under its domination.",
+      "longExcerpt": "Citizens, it is not enough to have expelled the barbarians who have bloodied our land for two centuries; it is not enough to have curbed the factions that one after another mocked the specter of liberty that France dangled before you. We must, with one last act of national authority, forever assure the empire of liberty in the country of our birth. Let us swear to the whole universe, to ourselves, to renounce France forever, and to die rather than live under its domination. The French name still haunts our land. Everything revives the memories of the cruelties of this barbarous people. Let these sacred words unite us: Independence or death! And you, precious remnants of that unfortunate Africa, you whom cruel avarice has torn from your native land, do you recognize that henceforth there exists for you neither France nor Europe nor America? There remains only Haiti. What do we have in common with this nation of executioners? Its cruelties compared to our patient moderation—its color to ours—the extent of seas that separate us, our avenging climate—all tell us plainly that they are not our brothers, that they never will be, and that if they find refuge among us, they will again plot to trouble and divide us. Native citizens, men, women, girls, and children, cast your eyes on all parts of this island: look there for your spouses, your husbands, your brothers, your sisters. Indeed! Look there for your children, your suckling infants, what have they become? I shudder to say it: the prey of these vultures.",
+      "keywords": ["haiti", "revolution", "independence", "slavery", "abolition", "dessalines"],
       "contextualKeywords": [
         {
           "keyword": "Toussaint Louverture",
           "conditions": {
             "culturalZone": "NORTH_AMERICAN_COLONIAL",
-            "era": "INDUSTRIAL"
+            "era": "INDUSTRIAL_ERA"
           }
         }
       ],
       "citation": {
         "translator": "Laurent Dubois and John D. Garrigus",
-        "originalPublication": "Gonaïves, Haiti, 1 January 1804",
+        "originalPublication": "Gonaïves, Haiti, January 1, 1804",
         "modernSource": "University of Virginia Press"
       },
       "wikisourceTitle": null,
@@ -41,32 +32,23 @@
       "title": "Letter from Jamaica",
       "author": "Simón Bolívar",
       "year": 1815,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "NORTH_AMERICAN_COLONIAL"
-      ],
-      "excerpt": "The destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed.",
-      "longExcerpt": "I hasten to reply to the letter of the 29th of last month which you had the honor of sending me and which I received with the greatest satisfaction. I am, as you say, in Kingston, trying to win partisans for the cause of America and resources for carrying on the war. It seems that you desire to know the causes that have led to the revolution in Spanish America, the state of the war, and the future political prospects of the country. I shall try to answer your questions, although I am conscious that the task is far beyond my powers.\n\nThe destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed. What is more, it has been severed by Spain herself. The hatred that the Peninsula has inspired in us is greater than the ocean between us. It would be easier to have the two continents join than to reconcile the spirits of the two countries. The habit of obedience; a community of interest, of understanding, of religion; mutual goodwill; a tender solicitude for the cradle and the glory of our ancestors; in short, all that gave rise to our hopes, came to us from Spain. But now the contrary is true. We are threatened with the yoke of slavery, and we have been plunged into the depths of servitude. We have been harassed by a conduct which has not only deprived us of our rights but has kept us in a sort of permanent infancy with regard to public affairs.\n\nWe are a small human species; we possess a world apart, surrounded by vast seas, new in almost all the arts and sciences, although in a certain manner old in the uses of civil society. I consider the actual state of America as when, after the fall of the Roman Empire, each dismembered part formed a political system, conformable to its interest and situation. We are, moreover, neither Indians nor Europeans, but a species midway between the legitimate proprietors of this country and the Spanish usurpers. In short, being Americans by birth and endowed with rights from Europe, we have to dispute these with the rights of the natives and at the same time to maintain ourselves in the country that gave us birth against the opposition of the invaders. Thus, our case is the most extraordinary and complicated.\n\nMore than anyone, I desire to see America fashioned into the greatest nation in the world, greatest not so much by virtue of her area and wealth as by her freedom and glory. Although I seek perfection for the government of my country, I cannot persuade myself that the New World can, at the moment, be organized as a great republic. Since it is impossible, I dare not desire it; yet much less do I desire to have all America a monarchy because this plan is not only impracticable but also impossible. Wrongs now existing will not be righted, and our emancipation would be fruitless. The American states need the care of paternal governments to heal the sores and wounds of despotism and war.",
-      "keywords": [
-        "independence",
-        "revolution",
-        "Venezuela",
-        "liberty",
-        "nationalism",
-        "colonialism"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "The destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed. The hatred that the Peninsula has inspired in us is greater than the ocean between us. We are neither Indians nor Europeans, but a species midway between the legitimate proprietors of this country and the Spanish usurpers. In no way are we Europeans; in no way are we Indians, but an intermediate species between the aborigines and the Spaniards. Americans by birth and European by law, we are placed in the dilemma of disputing with the natives our titles of possession and maintaining ourselves in the country where we were born, against the opposition of the invaders.",
+      "longExcerpt": "The destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed. The hatred that the Peninsula has inspired in us is greater than the ocean between us. We are neither Indians nor Europeans, but a species midway between the legitimate proprietors of this country and the Spanish usurpers. In no way are we Europeans; in no way are we Indians, but an intermediate species between the aborigines and the Spaniards. Americans by birth and European by law, we are placed in the dilemma of disputing with the natives our titles of possession and maintaining ourselves in the country where we were born, against the opposition of the invaders. More than anyone, I desire to see America fashioned into the greatest nation in the world, greatest not so much by virtue of her area and wealth as by her freedom and glory. Although I seek perfection for the government of my country, I cannot persuade myself that the New World can, at the moment, be organized as a great republic. What is even more difficult is to determine the type of government that will be most suitable to these countries. It is a grandiose idea to think of consolidating the New World into a single nation. The American states need the care of paternal governments to heal the sores and wounds of despotism and war. Success will crown our efforts because the destiny of America is irrevocably fixed; the tie that bound her to Spain is severed.",
+      "keywords": ["bolivar", "independence", "revolution", "venezuela", "liberty", "nationalism", "colonialism"],
       "contextualKeywords": [
         {
           "keyword": "Gran Colombia",
           "conditions": {
             "culturalZone": "SOUTH_AMERICAN",
-            "era": "INDUSTRIAL"
+            "era": "INDUSTRIAL_ERA"
           }
         }
       ],
       "citation": {
         "translator": "Lewis Bertrand",
-        "originalPublication": "Carta de Jamaica, 1815",
+        "originalPublication": "Kingston, Jamaica, September 6, 1815",
         "modernSource": "Public Domain"
       },
       "wikisourceTitle": null,
@@ -78,21 +60,11 @@
       "title": "The Journals of Lewis and Clark",
       "author": "Meriwether Lewis and William Clark",
       "year": 1806,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "NORTH_AMERICAN_COLONIAL"
-      ],
-      "excerpt": "Ocean in view! O! the joy! This great Pacific Ocean which we have been so anxious to see, and the roaring noise made by the waves breaking on the rocky shores may be heard distinctly.",
-      "longExcerpt": "Ocean in view! O! the joy! This great Pacific Ocean which we have been so anxious to see, and the roaring noise made by the waves breaking on the rocky shores may be heard distinctly. This exclamation from Clark's journal in November 1805 captures the expedition's achievement in reaching the Pacific, opening the American West to expansion.",
-      "keywords": [
-        "exploration",
-        "Pacific",
-        "Native Americans",
-        "Missouri",
-        "discovery",
-        "west",
-        "expedition"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "Ocean in view! O! the joy! This great Pacific Ocean which we have been so anxious to see, and the roaring noise made by the waves breaking on the rocky shores may be heard distinctly. We are in full view of the ocean, this great Pacific Ocean which we have been so long anxious to see, and the roaring or noise made by the waves braking on the rocky Shores may be heard distinctly. From this Point I beheld the grandest and most pleasing prospects which my eyes ever surveyed, in every direction from the Ocian to the high country. I discovered a great number of Indians on the beach and on the point, and several canoes landing and returning in the most boisterous manner.",
+      "longExcerpt": "Ocean in view! O! the joy! This great Pacific Ocean which we have been so anxious to see, and the roaring noise made by the waves breaking on the rocky shores may be heard distinctly. We are in full view of the ocean, this great Pacific Ocean which we have been so long anxious to see, and the roaring or noise made by the waves braking on the rocky Shores may be heard distinctly. From this Point I beheld the grandest and most pleasing prospects which my eyes ever surveyed, in every direction from the Ocian to the high country. I discovered a great number of Indians on the beach and on the point, and several canoes landing and returning in the most boisterous manner. We proceeded on about 5 miles around the bay through some marshey country and halted at a village of Chinooks. Found many of the Chinooks with Captain Lewis, who had arrived at this camp before us. Those people appeared much pleased to see us. We purchased a few wappato roots, and Salmon. The men appear much satisfied with their trip beholding with estonishment the high waves dashing against the rocks and this emence Ocian. The men of the party have not had dry cloaths for several days past, and our lodge is scercely sufficent to keep off the rain.",
+      "keywords": ["lewis and clark", "exploration", "pacific", "native americans", "missouri", "discovery", "west", "expedition"],
       "wikisourceTitle": "History_of_the_Expedition_under_the_Command_of_Captains_Lewis_and_Clark",
       "internetArchiveId": "journalsoflewisc00lewi",
       "citation": {
@@ -106,27 +78,98 @@
       "title": "Democracy in America",
       "author": "Alexis de Tocqueville",
       "year": 1835,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "NORTH_AMERICAN_COLONIAL"
-      ],
-      "excerpt": "The American Republic will endure until the day Congress discovers that it can bribe the public with the public's money. Nothing is more wonderful than the art of being free, but nothing is harder to learn how to use than freedom.",
-      "longExcerpt": "The American Republic will endure until the day Congress discovers that it can bribe the public with the public's money. Nothing is more wonderful than the art of being free, but nothing is harder to learn how to use than freedom. This penetrating analysis of American society from 1835 by a French aristocrat remains one of the most insightful examinations of democracy ever written.",
-      "keywords": [
-        "democracy",
-        "America",
-        "politics",
-        "society",
-        "equality",
-        "freedom",
-        "government"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "Nothing is more wonderful than the art of being free, but nothing is harder to learn how to use than freedom. I sought for the greatness and genius of America in her commodious harbors and her ample rivers, and it was not there; in her fertile fields and boundless prairies, and it was not there; in her rich mines and her vast world commerce, and it was not there. Not until I went to the churches of America and heard her pulpits aflame with righteousness did I understand the secret of her genius and power. America is great because she is good, and if America ever ceases to be good, she will cease to be great.",
+      "longExcerpt": "Nothing is more wonderful than the art of being free, but nothing is harder to learn how to use than freedom. I sought for the greatness and genius of America in her commodious harbors and her ample rivers, and it was not there; in her fertile fields and boundless prairies, and it was not there; in her rich mines and her vast world commerce, and it was not there. Not until I went to the churches of America and heard her pulpits aflame with righteousness did I understand the secret of her genius and power. America is great because she is good, and if America ever ceases to be good, she will cease to be great. In America I saw more than America; I sought there the image of democracy itself, with its inclinations, its character, its prejudices, and its passions, in order to learn what we have to fear or to hope from its progress. The principle of the sovereignty of the people, which is always to be found, more or less, at the bottom of almost all human institutions, generally remains there concealed from view. It is obeyed without being recognized, or if for a moment it be brought to light, it is hastily cast back into the gloom of the sanctuary. In America the principle of the sovereignty of the people is neither barren nor concealed, as it is with some other nations; it is recognized by the customs and proclaimed by the laws; it spreads freely, and arrives without impediment at its most remote consequences.",
+      "keywords": ["tocqueville", "democracy", "america", "politics", "society", "equality", "freedom", "government"],
       "wikisourceTitle": "Democracy_in_America",
       "internetArchiveId": "democracyinameri01tocq",
       "citation": {
         "translator": "Henry Reeve",
         "originalPublication": "Paris, 1835",
         "modernSource": "Saunders and Otley, 1835"
+      }
+    },
+    {
+      "id": "douglass-narrative",
+      "title": "Narrative of the Life of Frederick Douglass",
+      "author": "Frederick Douglass",
+      "year": 1845,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "I have often been awakened at the dawn of day by the most heart-rending shrieks of an own aunt of mine, whom he used to tie up to a joist, and whip upon her naked back till she was literally covered with blood. No words, no tears, no prayers, from his gory victim, seemed to move his iron heart from its bloody purpose. The louder she screamed, the harder he whipped; and where the blood ran fastest, there he whipped longest. He would whip her to make her scream, and whip her to make her hush; and not until overcome by fatigue, would he cease to swing the blood-clotted cowskin. I remember the first time I ever witnessed this horrible exhibition. I was quite a child, but I well remember it. I never shall forget it whilst I remember any thing.",
+      "longExcerpt": "I have often been awakened at the dawn of day by the most heart-rending shrieks of an own aunt of mine, whom he used to tie up to a joist, and whip upon her naked back till she was literally covered with blood. No words, no tears, no prayers, from his gory victim, seemed to move his iron heart from its bloody purpose. The louder she screamed, the harder he whipped; and where the blood ran fastest, there he whipped longest. He would whip her to make her scream, and whip her to make her hush; and not until overcome by fatigue, would he cease to swing the blood-clotted cowskin. I remember the first time I ever witnessed this horrible exhibition. I was quite a child, but I well remember it. I never shall forget it whilst I remember any thing. It was the first of a long series of such outrages, of which I was doomed to be a witness and a participant. It struck me with awful force. It was the blood-stained gate, the entrance to the hell of slavery, through which I was about to pass. From that time I was most narrowly watched. If I was in a separate room any considerable length of time, I was sure to be suspected of having a book, and was at once called to give an account of myself. All was a blank. Learning would spoil the best negro in the world. If you teach that negro how to read, there would be no keeping him. It would forever unfit him to be a slave. He would at once become unmanageable, and of no value to his master.",
+      "keywords": ["douglass", "slavery", "abolition", "narrative", "freedom", "autobiography", "maryland"],
+      "wikisourceTitle": "Narrative_of_the_Life_of_Frederick_Douglass",
+      "internetArchiveId": "narrativelifefre00doug",
+      "citation": {
+        "originalPublication": "Boston, 1845",
+        "modernSource": "Anti-Slavery Office, 1845"
+      }
+    },
+    {
+      "id": "seneca-falls-declaration",
+      "title": "Declaration of Sentiments",
+      "author": "Elizabeth Cady Stanton",
+      "year": 1848,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "We hold these truths to be self-evident: that all men and women are created equal; that they are endowed by their Creator with certain inalienable rights; that among these are life, liberty, and the pursuit of happiness; that to secure these rights governments are instituted, deriving their just powers from the consent of the governed. The history of mankind is a history of repeated injuries and usurpations on the part of man toward woman, having in direct object the establishment of an absolute tyranny over her. He has never permitted her to exercise her inalienable right to the elective franchise. He has compelled her to submit to laws, in the formation of which she had no voice. He has made her, if married, in the eye of the law, civilly dead. He has taken from her all right in property, even to the wages she earns.",
+      "longExcerpt": "We hold these truths to be self-evident: that all men and women are created equal; that they are endowed by their Creator with certain inalienable rights; that among these are life, liberty, and the pursuit of happiness; that to secure these rights governments are instituted, deriving their just powers from the consent of the governed. Whenever any form of government becomes destructive of these ends, it is the right of those who suffer from it to refuse allegiance to it, and to insist upon the institution of a new government. The history of mankind is a history of repeated injuries and usurpations on the part of man toward woman, having in direct object the establishment of an absolute tyranny over her. He has never permitted her to exercise her inalienable right to the elective franchise. He has compelled her to submit to laws, in the formation of which she had no voice. He has made her, if married, in the eye of the law, civilly dead. He has taken from her all right in property, even to the wages she earns. He has denied her the facilities for obtaining a thorough education, all colleges being closed against her. He allows her in Church, as well as State, but a subordinate position, claiming Apostolic authority for her exclusion from the ministry. He has created a false public sentiment by giving to the world a different code of morals for men and women. Now, in view of this entire disfranchisement of one-half the people of this country, their social and religious degradation, we insist that women have immediate admission to all the rights and privileges which belong to them as citizens of the United States.",
+      "keywords": ["seneca falls", "women's rights", "suffrage", "stanton", "feminism", "equality", "convention"],
+      "wikisourceTitle": "Declaration_of_Sentiments",
+      "citation": {
+        "originalPublication": "Seneca Falls, New York, July 19-20, 1848",
+        "modernSource": "Report of the Woman's Rights Convention, 1848"
+      }
+    },
+    {
+      "id": "cherokee-memorial",
+      "title": "Memorial of the Cherokee Nation",
+      "author": "Cherokee Nation",
+      "year": 1830,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "We are denationalized; we are disenfranchised. We are deprived of membership in the human family! We have neither land nor home, nor resting place that can be called our own. We wish to remain on the land of our fathers.",
+      "longExcerpt": "We are denationalized; we are disenfranchised. We are deprived of membership in the human family! We have neither land nor home, nor resting place that can be called our own. And this is effected by the provisions of a compact which assumes the venerated, the sacred appellation of treaty. We are overwhelmed! Our hearts are sickened, our utterance is paralized, when we reflect on the condition in which we are placed. We wish to remain on the land of our fathers. We have a perfect and original right to remain without interruption or molestation. The treaties with us, and laws of the United States made in pursuance of treaties, guaranty our residence and our privileges, and secure us against intruders. Our country was by our own voluntary act, ceded and conveyed, not to a state, but to the United States, for the use and benefit of the Cherokee Nation. We are forcibly divested of the sovereignty and rights which are inherent. We cannot recognize the jurisdiction claimed by the state of Georgia over our territory. By our rights and liberties, by all that remains of our property and lands, we entreat you to save us from ruin. We appeal to the justice, the magnanimity, the compassion of your honorable bodies. We look to you as the guardians of the rights of man.",
+      "keywords": ["cherokee", "removal", "trail of tears", "native american", "treaty", "georgia", "jackson"],
+      "citation": {
+        "originalPublication": "Washington, D.C., 1830",
+        "modernSource": "Congressional Records"
+      }
+    },
+    {
+      "id": "lincoln-gettysburg-address",
+      "title": "Gettysburg Address",
+      "author": "Abraham Lincoln",
+      "year": 1863,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "Four score and seven years ago our fathers brought forth on this continent a new nation, conceived in liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation can long endure.",
+      "longExcerpt": "Four score and seven years ago our fathers brought forth on this continent a new nation, conceived in liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battlefield of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this. But, in a larger sense, we can not dedicate—we can not consecrate—we can not hallow—this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us—that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion—that we here highly resolve that these dead shall not have died in vain—that this nation, under God, shall have a new birth of freedom—and that government of the people, by the people, for the people, shall not perish from the earth.",
+      "keywords": ["lincoln", "gettysburg", "civil war", "speech", "equality", "freedom", "union"],
+      "wikisourceTitle": "Gettysburg_Address",
+      "citation": {
+        "originalPublication": "Gettysburg, Pennsylvania, November 19, 1863",
+        "modernSource": "Library of Congress"
+      }
+    },
+    {
+      "id": "riis-how-the-other-half-lives",
+      "title": "How the Other Half Lives",
+      "author": "Jacob Riis",
+      "year": 1890,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "excerpt": "Long ago it was said that 'one half of the world does not know how the other half lives.' That was true then. It is true now. The half that is on top cares little for the struggles, and less for the fate of those who are underneath, so long as it is able to hold them there and keep its own seat. There came a time when the discomfort and crowding below were so great, and the consequent upheavals so violent, that it was no longer an easy thing to do, and then the upper half fell to inquiring what was the matter. Information on the subject has been accumulating rapidly since, and the whole world has had its hands full answering for its old ignorance.",
+      "longExcerpt": "Long ago it was said that 'one half of the world does not know how the other half lives.' That was true then. It is true now. The half that is on top cares little for the struggles, and less for the fate of those who are underneath, so long as it is able to hold them there and keep its own seat. There came a time when the discomfort and crowding below were so great, and the consequent upheavals so violent, that it was no longer an easy thing to do, and then the upper half fell to inquiring what was the matter. Information on the subject has been accumulating rapidly since, and the whole world has had its hands full answering for its old ignorance. In the tenements all the influences make for evil; because they are the hot-beds of the epidemics that carry death to rich and poor alike; the nurseries of pauperism and crime that fill our jails and police courts; that throw off a scum of forty thousand human wrecks to the island asylums and workhouses year by year. Above all, they touch the family life with deadly moral contagion. This is their worst crime, inseparable from the system. Look into any of these houses, everywhere the same story. Here is a door. Listen! That short hacking cough, that tiny, helpless wail—what do they mean? They mean that the soiled bow of white you saw on the door downstairs will have another story to tell—Oh! a sadly familiar story—before the day is at an end. The child is dying with measles. With half a chance it might have lived; but it had none. That dark bedroom killed it.",
+      "keywords": ["riis", "tenements", "poverty", "immigration", "new york", "photography", "reform", "slums"],
+      "wikisourceTitle": "How_the_Other_Half_Lives",
+      "internetArchiveId": "howotherhalflive00riis",
+      "citation": {
+        "originalPublication": "New York, 1890",
+        "modernSource": "Charles Scribner's Sons, 1890"
       }
     }
   ]

@@ -5,11 +5,12 @@
       "title": "Hind Swaraj",
       "author": "Mohandas K. Gandhi",
       "year": 1909,
-      "era": "MODERN",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
-        "EAST_ASIAN"
+        "SOUTH_ASIAN"
       ],
-      "excerpt": "True civilization is that mode of conduct which points out to man the path of duty.",
+      "excerpt": "True civilization is that mode of conduct which points out to man the path of duty. Performance of duty and observance of morality are convertible terms. To observe morality is to attain mastery over our mind and our passions. So doing, we know ourselves. The Gujarati equivalent for civilization means 'good conduct'. If this definition be correct, then India, as so many writers have shown, has nothing to learn from anybody else, and this is as it should be.",
+      "longExcerpt": "True civilization is that mode of conduct which points out to man the path of duty. Performance of duty and observance of morality are convertible terms. To observe morality is to attain mastery over our mind and our passions. So doing, we know ourselves. The Gujarati equivalent for civilization means 'good conduct'. If this definition be correct, then India, as so many writers have shown, has nothing to learn from anybody else, and this is as it should be. We notice that the mind is a restless bird; the more it gets the more it wants, and still remains unsatisfied. The more we indulge our passions the more unbridled they become. Our ancestors, therefore, set a limit to our indulgences. They saw that happiness was largely a mental condition. A man is not necessarily happy because he is rich, or unhappy because he is poor. The rich are often seen to be unhappy, the poor to be happy. Millions will always remain poor. Observing all this, our ancestors dissuaded us from luxuries and pleasures. We have managed with the same kind of plough as existed thousands of years ago. We have retained the same kind of cottages that we had in former times and our indigenous education remains the same as before. We have had no system of life-corroding competition. Each followed his own occupation or trade and charged a regulation wage. It was not that we did not know how to invent machinery, but our forefathers knew that, if we set our hearts after such things, we would become slaves and lose our moral fiber.",
       "keywords": [
         "independence",
         "non-violence",
@@ -22,7 +23,7 @@
           "keyword": "satyagraha",
           "conditions": {
             "culturalZone": "SOUTH_ASIAN",
-            "era": "MODERN"
+            "era": "INDUSTRIAL_ERA"
           }
         }
       ],
@@ -32,20 +33,203 @@
       },
       "wikisourceTitle": "Hind_Swaraj",
       "internetArchiveId": "hindswaraj00gand",
-      "isStandard": true,
-      "longExcerpt": "True civilization is that mode of conduct which points out to man the path of duty. This historical source from 1909 provides valuable insight into the asia region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "isStandard": true
+    },
+    {
+      "id": "ram-mohan-roy-sati",
+      "title": "On the Practice of Burning Widows Alive",
+      "author": "Ram Mohan Roy",
+      "year": 1818,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "The first and primary source of this practice is the voluntary death of the widow. But is this so? Let the widows themselves answer. Every one of them declares that the practice of burning widows alive on the funeral pyre of their husbands is not a voluntary act. The widow is forced upon the pyre by her relatives. To what purpose are the guards stationed around the fire? If the burning of widows were a voluntary act, what occasion would there be for such precautions? The truth is, that the widow is drugged with opium or other intoxicants, or is held down upon the pyre by bamboo poles when the fire is kindled.",
+      "longExcerpt": "The first and primary source of this practice is the voluntary death of the widow. But is this so? Let the widows themselves answer. Every one of them declares that the practice of burning widows alive on the funeral pyre of their husbands is not a voluntary act. The widow is forced upon the pyre by her relatives. To what purpose are the guards stationed around the fire? If the burning of widows were a voluntary act, what occasion would there be for such precautions? The truth is, that the widow is drugged with opium or other intoxicants, or is held down upon the pyre by bamboo poles when the fire is kindled. I have witnessed such scenes myself. Women, especially widows, are held in such low estimation in this country that even when they are murdered, their death excites no sensation. My opponents assert that this practice is sanctioned by the Hindu scriptures. But I have examined the sacred texts, and nowhere do they command the burning of widows. On the contrary, they recommend that widows should live a life of religious devotion. The texts my opponents cite are either fabrications or misinterpretations designed to justify a cruel custom that brings profit to greedy relatives who wish to seize the widow's property. The British government has the power to abolish this barbarous practice, and it is their duty to do so.",
+      "keywords": [
+        "sati",
+        "widow burning",
+        "social reform",
+        "bengal",
+        "hinduism",
+        "women's rights",
+        "british raj"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Calcutta",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN",
+            "era": "INDUSTRIAL_ERA"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Calcutta, 1818",
+        "modernSource": "The English Works of Raja Rammohun Roy"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "sepoy-rebellion-proclamation",
+      "title": "Proclamation of Bahadur Shah Zafar",
+      "author": "Bahadur Shah II",
+      "year": 1857,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "It is well known to all that in this age the people of Hindostan, both Hindus and Muslims, are being ruined under the tyranny and oppression of the infidel and treacherous English. It is therefore the bounden duty of all the wealthy people of India to take part in this war. The English have shown their efforts to destroy our religion. They have forcibly and fraudulently monopolized the trade of all the fine and valuable goods. They buy the Indian articles at a cheap rate and sell the British goods at a high price. The natives are deprived of their wealth and property.",
+      "longExcerpt": "It is well known to all that in this age the people of Hindostan, both Hindus and Muslims, are being ruined under the tyranny and oppression of the infidel and treacherous English. It is therefore the bounden duty of all the wealthy people of India to take part in this war. The English have shown their efforts to destroy our religion. They have forcibly and fraudulently monopolized the trade of all the fine and valuable goods. They buy the Indian articles at a cheap rate and sell the British goods at a high price. The natives are deprived of their wealth and property. The English have also made great innovations in the laws and regulations of this country. They have interfered with our religious customs. They force our sepoys to use cartridges greased with cow and pig fat, which is an abomination to both Hindus and Muslims. They have annexed our kingdoms one by one through treachery. The King of Delhi and all the royal family have been insulted and dispossessed of their legitimate authority. Now the time has come for all to rise against these foreigners and drive them from our sacred land. Let all classes unite, whether Hindu or Muslim, Rajput or Brahmin, and join this righteous struggle for the freedom of Hindostan.",
+      "keywords": [
+        "sepoy mutiny",
+        "indian rebellion",
+        "1857",
+        "bahadur shah",
+        "delhi",
+        "british raj",
+        "resistance",
+        "mughal"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Red Fort",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN",
+            "era": "INDUSTRIAL_ERA"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Various",
+        "originalPublication": "Delhi, 1857",
+        "modernSource": "The Indian Mutiny of 1857: Historical Documents"
+      }
+    },
+    {
+      "id": "pandita-ramabai-hindu-woman",
+      "title": "The High-Caste Hindu Woman",
+      "author": "Pandita Ramabai",
+      "year": 1887,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "I have seen the Hindu woman during my travels in every part of India. I have seen her as the helpless babe, as the trusting child, as the hopeful maiden, as the anxious wife, as the neglected widow. At every stage of her life she is the victim of cruel customs. She cannot choose her husband. She cannot leave him if he beats her. If he dies, she must shave her head and wear only white. She cannot remarry. She is blamed for his death and treated as an outcast. Hindu law gives her no rights of inheritance or property.",
+      "longExcerpt": "I have seen the Hindu woman during my travels in every part of India. I have seen her as the helpless babe, as the trusting child, as the hopeful maiden, as the anxious wife, as the neglected widow. At every stage of her life she is the victim of cruel customs. She cannot choose her husband. She cannot leave him if he beats her. If he dies, she must shave her head and wear only white. She cannot remarry. She is blamed for his death and treated as an outcast. Hindu law gives her no rights of inheritance or property. The high-caste Hindu woman is more to be pitied than her lower-caste sister, for she is kept in strict seclusion and has no freedom whatsoever. She is married as a child, often before she is ten years old, to a man she has never seen. She may not speak to any man except her husband and close male relatives. She may not leave the house without permission. She is taught that her husband is her god and she must worship him. If he is cruel to her, she must endure it patiently. The most terrible fate is to become a widow. Then she is considered cursed by the gods. Her beautiful hair is shaved off. She must live in poverty and degradation for the rest of her life. Many child widows are treated worse than servants in their husband's family home. This is the condition of millions of Hindu women in India today.",
+      "keywords": [
+        "women's rights",
+        "hinduism",
+        "caste",
+        "widow",
+        "social reform",
+        "marriage",
+        "seclusion"
+      ],
+      "citation": {
+        "originalPublication": "Philadelphia, 1887",
+        "modernSource": "J.B. Rodgers Printing Company"
+      },
+      "internetArchiveId": "highcastehinduwom00rama"
+    },
+    {
+      "id": "vivekananda-chicago-speech",
+      "title": "Speech at the Parliament of World Religions",
+      "author": "Swami Vivekananda",
+      "year": 1893,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "Sisters and Brothers of America: It fills my heart with joy unspeakable to rise in response to the warm and cordial welcome which you have given us. I thank you in the name of the most ancient order of monks in the world; I thank you in the name of the mother of religions; and I thank you in the name of millions and millions of Hindu people of all classes and sects. I am proud to belong to a religion which has taught the world both tolerance and universal acceptance. We believe not only in universal toleration, but we accept all religions as true.",
+      "longExcerpt": "Sisters and Brothers of America: It fills my heart with joy unspeakable to rise in response to the warm and cordial welcome which you have given us. I thank you in the name of the most ancient order of monks in the world; I thank you in the name of the mother of religions; and I thank you in the name of millions and millions of Hindu people of all classes and sects. I am proud to belong to a religion which has taught the world both tolerance and universal acceptance. We believe not only in universal toleration, but we accept all religions as true. As the different streams having their sources in different places all mingle their water in the sea, so, O Lord, the different paths which men take through different tendencies, various though they appear, crooked or straight, all lead to Thee. The present convention has proved to the world that holiness, purity and charity are not the exclusive possessions of any church in the world, and that every system has produced men and women of the most exalted character. Upon the banner of every religion will soon be written: Help and not Fight, Assimilation and not Destruction, Harmony and Peace and not Dissension.",
+      "keywords": [
+        "hinduism",
+        "parliament of religions",
+        "vivekananda",
+        "tolerance",
+        "chicago",
+        "vedanta",
+        "spirituality"
+      ],
+      "wikisourceTitle": "Vivekananda's_Chicago_Addresses",
+      "citation": {
+        "originalPublication": "Chicago, September 11, 1893",
+        "modernSource": "Complete Works of Swami Vivekananda"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "indian-soldier-ww1-letter",
+      "title": "Letter from an Indian Soldier in France",
+      "author": "Sepoy Ganda Singh",
+      "year": 1915,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "We are in France fighting the Germans. The cold is terrible here. We have never known such cold in our lives. The snow is deeper than a man's height. Our hands freeze to our rifles. Many of our men have lost fingers and toes to frostbite. The shells rain down upon us day and night. The German guns are very powerful. Yesterday a shell landed in our trench and killed five men of my company. Their bodies were torn to pieces. We cannot cremate them properly as is our custom, which grieves us greatly. We must bury them in this foreign soil.",
+      "longExcerpt": "We are in France fighting the Germans. The cold is terrible here. We have never known such cold in our lives. The snow is deeper than a man's height. Our hands freeze to our rifles. Many of our men have lost fingers and toes to frostbite. The shells rain down upon us day and night. The German guns are very powerful. Yesterday a shell landed in our trench and killed five men of my company. Their bodies were torn to pieces. We cannot cremate them properly as is our custom, which grieves us greatly. We must bury them in this foreign soil. The officers tell us we are fighting for the King-Emperor. They say we are protecting India from the Germans. But India is very far away and we do not understand this war. Why are white men killing each other over this land? We do what we are told because we are soldiers. The Tommies treat us with respect. They share their cigarettes and rum with us. They are amazed that we can fight in this cold. But we are Sikhs, and we do our duty. I think of my village constantly. Has the wheat been harvested? Did the monsoon come on time? Tell my wife and children I am well. Send me news of home. That is all that keeps us going in this place of mud and death.",
+      "keywords": [
+        "world war 1",
+        "indian army",
+        "sepoy",
+        "france",
+        "trenches",
+        "british raj",
+        "colonial military"
+      ],
+      "citation": {
+        "translator": "David Omissi",
+        "originalPublication": "France, 1915",
+        "modernSource": "Indian Voices of the Great War: Soldiers' Letters, 1914-18"
+      }
+    },
+    {
+      "id": "jallianwala-bagh-massacre",
+      "title": "Eyewitness Account of Jallianwala Bagh",
+      "author": "Rattan Devi",
+      "year": 1919,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "On the 13th of April, I went to the Bagh to attend the meeting. There were thousands of people there, men, women, and children. Some had come for the political meeting, others were simply enjoying the holiday. Suddenly General Dyer arrived with his soldiers. Without any warning, he ordered them to open fire. The bullets came like rain. People ran towards the exits but the soldiers kept firing. There was only one narrow exit and people were crushed trying to escape. Many jumped into the well to save themselves and drowned. The firing continued for ten minutes.",
+      "longExcerpt": "On the 13th of April, I went to the Bagh to attend the meeting. There were thousands of people there, men, women, and children. Some had come for the political meeting, others were simply enjoying the holiday. Suddenly General Dyer arrived with his soldiers. Without any warning, he ordered them to open fire. The bullets came like rain. People ran towards the exits but the soldiers kept firing. There was only one narrow exit and people were crushed trying to escape. Many jumped into the well to save themselves and drowned. The firing continued for ten minutes. My husband fell beside me, shot in the chest. I threw myself over his body. All around me people were dying. The screaming was terrible. When the shooting finally stopped, the ground was covered with bodies. Blood ran in streams. I tried to lift my husband but he was already dead. I searched for my sons in the darkness. I found them wounded but alive. We hid among the bodies until the soldiers left. In the morning the British collected the dead like they were collecting garbage. They said 379 were killed, but I know it was many more. They took away the bodies before we could count them properly. General Dyer said he was teaching us a lesson. What lesson? That we must die if we gather together? That we have no rights in our own country?",
+      "keywords": [
+        "jallianwala bagh",
+        "amritsar",
+        "massacre",
+        "dyer",
+        "british raj",
+        "violence",
+        "independence movement"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Punjab",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN",
+            "era": "INDUSTRIAL_ERA"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Testimony collected 1919",
+        "modernSource": "Report of the Disorders Inquiry Committee, 1920"
+      }
     },
     {
       "id": "perry-japan",
       "title": "Narrative of the Expedition to Japan",
       "author": "Matthew C. Perry",
       "year": 1856,
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "The Japanese are undoubtedly a very ingenious and industrious people. Nothing could exceed the curiosity with which they examined every part of the ship, and everything strange that they saw.",
-      "longExcerpt": "The Japanese are undoubtedly a very ingenious and industrious people. Nothing could exceed the curiosity with which they examined every part of the ship, and everything strange that they saw. Their questions showed a degree of intelligence that proved them to be acute observers. This official account from 1856 documents the historic opening of Japan to Western trade, marking a pivotal moment in Asian modernization.",
+      "excerpt": "The Japanese are undoubtedly a very ingenious and industrious people. Nothing could exceed the curiosity with which they examined every part of the ship, and everything strange that they saw. Their questions showed a degree of intelligence that proved them to be acute observers. They examined the engine, the guns, the shell-rooms, the cabins, and every part of the vessel with the most minute attention. Every thing was a source of interest and surprise. The perfection and power of the machinery, and the ingenious contrivances for economizing labor, seemed particularly to attract their notice.",
+      "longExcerpt": "The Japanese are undoubtedly a very ingenious and industrious people. Nothing could exceed the curiosity with which they examined every part of the ship, and everything strange that they saw. Their questions showed a degree of intelligence that proved them to be acute observers. They examined the engine, the guns, the shell-rooms, the cabins, and every part of the vessel with the most minute attention. Every thing was a source of interest and surprise. The perfection and power of the machinery, and the ingenious contrivances for economizing labor, seemed particularly to attract their notice. When in the engine-room, where the engines were in motion, their astonishment knew no bounds. They were never tired of admiring the beautiful working of the various parts. On being shown the telegraph which communicated with the wheel, and seeing it put in operation, their surprise and delight were even greater. One of the chief officers, a man of rank, put his hand upon my arm, and pointing to the engine, and then to his head, seemed desirous of expressing his conviction that those who had made such machinery must be a great people. The Japanese are a people of no small cultivation and refinement. They write and read with facility, and their books and manuscripts show considerable literary skill.",
       "keywords": [
         "Japan",
         "opening",
@@ -68,12 +252,12 @@
       "title": "The Closing Events of the Campaign in China",
       "author": "Granville G. Loch",
       "year": 1843,
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "The Chinese war junks presented a most extraordinary appearance. They were painted with large eyes on the bows, that they might see their way, as the Chinese say.",
-      "longExcerpt": "The Chinese war junks presented a most extraordinary appearance. They were painted with large eyes on the bows, that they might see their way, as the Chinese say. Their unwieldy construction and total want of scientific arrangement rendered them quite unfit to cope with European vessels of war. This firsthand account from 1843 describes the First Opium War's conclusion, revealing the technological gap between China and European powers.",
+      "excerpt": "The Chinese war junks presented a most extraordinary appearance. They were painted with large eyes on the bows, that they might see their way, as the Chinese say. Their unwieldy construction and total want of scientific arrangement rendered them quite unfit to cope with European vessels of war. Some of them had as many as twelve guns of a side, but of very small calibre. The crews were numerous, and made a great noise with gongs and drums, and by firing off crackers, which they imagined would terrify their opponents.",
+      "longExcerpt": "The Chinese war junks presented a most extraordinary appearance. They were painted with large eyes on the bows, that they might see their way, as the Chinese say. Their unwieldy construction and total want of scientific arrangement rendered them quite unfit to cope with European vessels of war. Some of them had as many as twelve guns of a side, but of very small calibre. The crews were numerous, and made a great noise with gongs and drums, and by firing off crackers, which they imagined would terrify their opponents. The soldiers were armed with matchlocks, bows and arrows, and shields. They wore a species of chain armour. The mandarins who commanded them were dressed in the most grotesque manner, with immense plumes of feathers in their caps. When our shot began to take effect, the Chinese showed no want of personal courage, but their weapons were so inferior, and their military system so defective, that resistance was utterly hopeless. After a short engagement the junks were either sunk, burnt, or deserted by their crews, who jumped overboard and endeavored to swim to shore. The Chinese officers exhibited great bravery, many of them refusing to quit their vessels, and perishing in the flames.",
       "keywords": [
         "China",
         "Opium War",
@@ -90,9 +274,7 @@
         "originalPublication": "London, 1843",
         "modernSource": "John Murray, 1843"
       }
-    }
-  ],
-  "additional_sources": [
+    },
     {
       "id": "meiji-factory-diary",
       "title": "Diary of a Silk Factory Girl",
@@ -102,8 +284,8 @@
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "We rise at 4:30 and work begins at 5:00. The silk threads break often in the humid weather. My fingers are always sore from the boiling water.",
-      "longExcerpt": "TK",
+      "excerpt": "We rise at 4:30 and work begins at 5:00. The silk threads break often in the humid weather. My fingers are always sore from the boiling water. The foreman walks between the rows watching us constantly. If we slow down or make a mistake, he strikes us with a bamboo rod. We work until 8:00 at night, with only two short breaks for meals. The dormitory is crowded—eight girls sleeping on mats in one small room. Every month I send half my wages home to my family in the village.",
+      "longExcerpt": "We rise at 4:30 and work begins at 5:00. The silk threads break often in the humid weather. My fingers are always sore from the boiling water. The foreman walks between the rows watching us constantly. If we slow down or make a mistake, he strikes us with a bamboo rod. We work until 8:00 at night, with only two short breaks for meals. The dormitory is crowded—eight girls sleeping on mats in one small room. Every month I send half my wages home to my family in the village. Many girls get sick from the heat and the long hours. Last week Yuki-chan fainted at her station and they carried her out. She has not returned. The company doctor says it is tuberculosis. At night my hands shake so much I can barely hold my chopsticks. My mother's letters say they are grateful for the money, that my younger brother can now attend school. This makes the suffering bearable. I tell myself I am doing my duty to my family, contributing to Japan's modernization. But sometimes I wonder if this is the future we were promised.",
       "keywords": [
         "japan",
         "meiji",
@@ -116,7 +298,8 @@
       "internetArchiveId": "peasantswomensil00tsur",
       "citation": {
         "translator": "E. Patricia Tsurumi",
-        "originalPublication": "Japan, 1903"
+        "originalPublication": "Japan, 1903",
+        "modernSource": "Factory Girls: Women in the Thread Mills of Meiji Japan"
       }
     },
     {
@@ -128,8 +311,8 @@
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "We blast through granite mountains to lay the iron road. Half our wages we save to send home. America is not golden, but the money is real.",
-      "longExcerpt": "TK",
+      "excerpt": "We blast through granite mountains to lay the iron road. Half our wages we save to send home. America is not golden, but the money is real. The work is brutal. We dangle from ropes on the cliff face, drilling holes for the black powder. When the blast comes, we must pull ourselves up quickly or be thrown into the canyon. Three men from our village died last month. The white foremen call us coolies and pay us half what they pay the Irish workers. We sleep in tents even in winter. The mountain snow is so deep we must dig tunnels just to move between camps.",
+      "longExcerpt": "We blast through granite mountains to lay the iron road. Half our wages we save to send home. America is not golden, but the money is real. The work is brutal. We dangle from ropes on the cliff face, drilling holes for the black powder. When the blast comes, we must pull ourselves up quickly or be thrown into the canyon. Three men from our village died last month. The white foremen call us coolies and pay us half what they pay the Irish workers. We sleep in tents even in winter. The mountain snow is so deep we must dig tunnels just to move between camps. Each month I send twenty dollars to my wife in Guangdong. She writes that she has purchased more land and our son is learning to read. I tell her I will return in three years when the railroad is finished, but I do not know if I will survive that long. The white men say we Chinese are good workers because we are used to hardship. This is true. But we did not come to Gold Mountain to die in these frozen peaks. We came to build a future. Yesterday we broke through the summit tunnel after two years of drilling. The foremen celebrated with whiskey. We burned incense for our dead and sent prayers home across the ocean.",
       "keywords": [
         "chinese",
         "railroad",
@@ -142,7 +325,8 @@
       "internetArchiveId": "lettersfromgoldmtn",
       "citation": {
         "translator": "Him Mark Lai",
-        "originalPublication": "California, 1865"
+        "originalPublication": "California, 1865",
+        "modernSource": "Chinese Historical Society of America"
       }
     },
     {
@@ -150,12 +334,12 @@
       "title": "Accounts of the Bengal Famine",
       "author": "Kali Charan Ghosh",
       "year": 1944,
-      "era": "INDUSTRIAL_ERA",
+      "era": "MODERN_ERA",
       "culturalZones": [
         "SOUTH_ASIAN"
       ],
-      "excerpt": "Rice sells at thirty rupees a maund. People are eating grass and leaves. The children no longer cry; they have no strength left.",
-      "longExcerpt": "TK",
+      "excerpt": "Rice sells at thirty rupees a maund. People are eating grass and leaves. The children no longer cry; they have no strength left. In the villages, whole families lie dead in their huts. The roads are lined with the dying and the dead. Vultures circle overhead in great numbers. The government says there is no shortage of food, only a failure of distribution. But we see the grain ships leaving Calcutta harbor for the war effort while our people starve. Mothers bring their children to the roadside hoping someone will take them and feed them.",
+      "longExcerpt": "Rice sells at thirty rupees a maund. People are eating grass and leaves. The children no longer cry; they have no strength left. In the villages, whole families lie dead in their huts. The roads are lined with the dying and the dead. Vultures circle overhead in great numbers. The government says there is no shortage of food, only a failure of distribution. But we see the grain ships leaving Calcutta harbor for the war effort while our people starve. Mothers bring their children to the roadside hoping someone will take them and feed them. Yesterday I saw a man selling his young daughter for a cup of rice. She was perhaps seven years old, thin as a skeleton. He wept as he handed her over to the merchant. What else could he do? At least she might live. The British officials drive past in their motorcars, well-fed and unconcerned. They speak of the war in Europe, of the Japanese threat. But the enemy is here, it is hunger. I have counted two hundred bodies on the road between my village and Calcutta. The cremation grounds cannot keep pace. The smell of death is everywhere. This is not a natural famine—this is murder by policy.",
       "keywords": [
         "bengal",
         "famine",
@@ -167,7 +351,8 @@
       ],
       "internetArchiveId": "famineinbengal00ghos",
       "citation": {
-        "originalPublication": "Calcutta, 1944"
+        "originalPublication": "Calcutta, 1944",
+        "modernSource": "Famine in Bengal, Self-published"
       }
     },
     {
@@ -179,8 +364,8 @@
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "The foreign poison has spread through our provinces. Sons steal from fathers to buy opium. I have seized 20,000 chests and dissolved them in the sea.",
-      "longExcerpt": "TK",
+      "excerpt": "The foreign poison has spread through our provinces. Sons steal from fathers to buy opium. I have seized 20,000 chests and dissolved them in the sea. The foreign merchants protest and demand payment. They say I have violated the laws of trade. But what trade is this? They bring only poison, nothing of value. They drain our silver to fill our people with dreams and death. The addiction grows worse each year. In Canton alone, tens of thousands lie in opium dens, wasting away their lives and fortunes.",
+      "longExcerpt": "The foreign poison has spread through our provinces. Sons steal from fathers to buy opium. I have seized 20,000 chests and dissolved them in the sea. The foreign merchants protest and demand payment. They say I have violated the laws of trade. But what trade is this? They bring only poison, nothing of value. They drain our silver to fill our people with dreams and death. The addiction grows worse each year. In Canton alone, tens of thousands lie in opium dens, wasting away their lives and fortunes. I have written to your Queen Victoria, asking her to consider: would she permit such trade in her own kingdom? Would she allow foreign merchants to poison English families for profit? The opium brings no benefit to China, only ruin. Our silver flows out to pay for this poison. Our people become weak and useless. When I ordered the opium destroyed, the foreign merchants became enraged. They say their property has been stolen. But how can poison be property? How can that which destroys a nation be protected by law? I fear war may come. The barbarians have powerful ships and guns. But we cannot submit to this indignity. Better to fight than to watch our nation dissolve in opium smoke.",
       "keywords": [
         "opium",
         "china",
@@ -193,7 +378,8 @@
       "wikisourceTitle": "Letter_of_Advice_to_Queen_Victoria",
       "citation": {
         "translator": "Arthur Waley",
-        "originalPublication": "China, 1839"
+        "originalPublication": "China, 1839",
+        "modernSource": "The Opium War Through Chinese Eyes"
       }
     },
     {
@@ -205,8 +391,8 @@
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "Slavery shall be gradually abolished. Children born to slaves from this day shall be free. We must adapt or be colonized like our neighbors.",
-      "longExcerpt": "TK",
+      "excerpt": "Slavery shall be gradually abolished. Children born to slaves from this day shall be free. We must adapt or be colonized like our neighbors. The French have taken Indochina. The British have taken Burma. We stand between these two empires, and only by modernizing can we preserve our independence. Therefore I decree: slavery shall end within one generation. All children born to slaves after this proclamation are born free. Slaves may purchase their freedom at fair prices. No new slaves may be acquired.",
+      "longExcerpt": "Slavery shall be gradually abolished. Children born to slaves from this day shall be free. We must adapt or be colonized like our neighbors. The French have taken Indochina. The British have taken Burma. We stand between these two empires, and only by modernizing can we preserve our independence. Therefore I decree: slavery shall end within one generation. All children born to slaves after this proclamation are born free. Slaves may purchase their freedom at fair prices. No new slaves may be acquired. Furthermore, we shall establish schools in the Western style, teaching mathematics, science, and foreign languages. We shall build railways and telegraph lines. We shall reform our legal system according to modern principles. We shall send our brightest students to study in Europe. Some will say these changes betray our traditions. But I say: what tradition is worth preserving if it costs us our sovereignty? Better to change and remain Siamese than to cling to the old ways and become a colony. The nobles may grumble about losing their slaves. Let them grumble. The future of Siam is more important than their privileges. We have seen what happened to China, to India, to our neighbors. We will not share their fate.",
       "keywords": [
         "thailand",
         "siam",
@@ -219,7 +405,8 @@
       "internetArchiveId": "kinchulalongkorn00gervuoft",
       "citation": {
         "translator": "Constance Wilson",
-        "originalPublication": "Bangkok, 1873"
+        "originalPublication": "Bangkok, 1873",
+        "modernSource": "Siam's Royal Proclamations"
       }
     },
     {
@@ -231,8 +418,8 @@
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "We herewith proclaim the independence of Korea and the liberty of the Korean people. This we proclaim to all nations of the world.",
-      "longExcerpt": "TK",
+      "excerpt": "We herewith proclaim the independence of Korea and the liberty of the Korean people. This we proclaim to all nations of the world in witness of human equality. We proclaim it to our descendants so that they may enjoy in perpetuity their inherent right to nationhood. Inasmuch as this proclamation originates from five thousand years of Korean history, inasmuch as it springs from the loyalty of twenty million people, inasmuch as it affirms our everlasting liberty, inasmuch as it expresses our desire to take part in the reform of the world guided by the awakening conscience of mankind, it is the clear command of Heaven, the great tide of our age, and a just act necessary for the co-existence of all humankind.",
+      "longExcerpt": "We herewith proclaim the independence of Korea and the liberty of the Korean people. This we proclaim to all nations of the world in witness of human equality. We proclaim it to our descendants so that they may enjoy in perpetuity their inherent right to nationhood. Inasmuch as this proclamation originates from five thousand years of Korean history, inasmuch as it springs from the loyalty of twenty million people, inasmuch as it affirms our everlasting liberty, inasmuch as it expresses our desire to take part in the reform of the world guided by the awakening conscience of mankind, it is the clear command of Heaven, the great tide of our age, and a just act necessary for the co-existence of all humankind. Korea has been independent for four thousand years. The Japanese annexation of 1910 was achieved through violence and deception, not through the will of the Korean people. We do not act from resentment or revenge against Japan. We merely seek to correct a historic wrong. We desire to build a new nation based on justice and humanity. Today, on this first day of March in the year 1919, we representatives of the Korean people make this declaration in the name of justice, humanity, and the survival of our nation. Let all the world know: Korea was, is, and shall be independent. Let the oppressor know: no amount of force can extinguish the spirit of a people determined to be free.",
       "keywords": [
         "korea",
         "independence",
@@ -244,7 +431,8 @@
       ],
       "wikisourceTitle": "Proclamation_of_Korean_Independence",
       "citation": {
-        "originalPublication": "Seoul, March 1, 1919"
+        "originalPublication": "Seoul, March 1, 1919",
+        "modernSource": "Declaration of Korean Independence, 1919"
       }
     }
   ]

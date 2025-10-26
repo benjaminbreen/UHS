@@ -6,19 +6,275 @@
       "author": "Chinua Achebe",
       "year": 1958,
       "excerpt": "The white man is very clever. He came quietly with his religion. We were amused and allowed him to stay.",
-      "longExcerpt": "The white man is very clever. He came quietly and peaceably with his religion. We were amused at his foolishness and allowed him to stay. Now he has won our brothers, and our clan can no longer act like one. He has put a knife on the things that held us together and we have fallen apart. The missionaries built a church in the Evil Forest, where we bury those who die of evil diseases. We laughed. But they did not die. Their god protected them. Now our young men sing their hymns.",
-      "era": "MODERN",
+      "longExcerpt": "The white man is very clever. He came quietly and peaceably with his religion. We were amused at his foolishness and allowed him to stay. Now he has won our brothers, and our clan can no longer act like one. He has put a knife on the things that held us together and we have fallen apart. The missionaries built a church in the Evil Forest, where we bury those who die of evil diseases. We laughed. But they did not die. Their god protected them. Now our young men sing their hymns. This groundbreaking novel depicts the collision between Igbo society and British colonialism in Nigeria, becoming one of the most widely read African novels worldwide.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["achebe", "things fall apart", "igbo", "nigeria", "colonialism", "missionaries"],
+      "wikisourceTitle": "Things_Fall_Apart",
+      "internetArchiveId": "thingsfallapart00ache",
+      "citation": {
+        "originalPublication": "London, 1958",
+        "modernSource": "Heinemann, 1958"
+      }
+    },
+    {
+      "id": "haile-selassie-league-speech",
+      "title": "Appeal to the League of Nations",
+      "author": "Haile Selassie I",
+      "year": 1936,
+      "excerpt": "I ask the fifty-two nations, who have given the Ethiopian people a promise to help them in their resistance to the aggressor, what are they willing to do?",
+      "longExcerpt": "I, Haile Selassie I, Emperor of Ethiopia, am here today to claim that justice which is due to my people, and the assistance promised to it eight months ago, when fifty nations asserted that aggression had been committed in violation of international treaties. Apart from the Kingdom of the Lord there is not on this earth any nation that is superior to any other. I ask the fifty-two nations, who have given the Ethiopian people a promise to help them in their resistance to the aggressor, what are they willing to do for Ethiopia? It is us today. It will be you tomorrow. This historic address condemned the Italian invasion of Ethiopia and warned the League of Nations that collective security had failed, presaging World War II.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["haile selassie", "ethiopia", "league of nations", "italy", "invasion", "collective security"],
+      "wikisourceTitle": "Appeal_to_the_League_of_Nations",
+      "citation": {
+        "originalPublication": "Geneva, Switzerland, June 30, 1936",
+        "modernSource": "League of Nations Archives"
+      }
+    },
+    {
+      "id": "nkrumah-ghana-independence",
+      "title": "Ghana Independence Speech",
+      "author": "Kwame Nkrumah",
+      "year": 1957,
+      "excerpt": "At long last, the battle has ended! And thus Ghana, your beloved country is free forever!",
+      "longExcerpt": "At long last, the battle has ended! And thus Ghana, your beloved country is free forever! We are going to demonstrate to the world, to the other nations, that we are prepared to lay our own foundation. Our independence is meaningless unless it is linked up with the total liberation of the African continent. We have awakened. We will not sleep anymore. Today, from now on, there is a new African in the world! This midnight speech on March 6, 1957, marked Ghana's independence from Britain, making it the first sub-Saharan African nation to gain independence and inspiring the pan-African movement.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["nkrumah", "ghana", "independence", "gold coast", "pan-africanism", "freedom"],
+      "citation": {
+        "originalPublication": "Accra, Ghana, March 6, 1957",
+        "modernSource": "Ghana Broadcasting Corporation"
+      }
+    },
+    {
+      "id": "lumumba-independence-speech",
+      "title": "Independence Speech of the Republic of the Congo",
+      "author": "Patrice Lumumba",
+      "year": 1960,
+      "excerpt": "We have known ironies, insults, blows that we endured morning, noon, and evening, because we are Negroes.",
+      "longExcerpt": "We have known ironies, insults, blows that we endured morning, noon, and evening, because we are Negroes. Who will forget that to a Black man one said 'tu', certainly not as to a friend, but because the more honorable 'vous' was reserved for whites alone? We have seen our lands seized in the name of allegedly legal laws which in fact recognized only that might is right. We have known that the law was never the same depending on whether it dealt with a white or a Black. Together, my brothers, my sisters, we are going to begin a new struggle, a sublime struggle, which will lead our country to peace, prosperity, and greatness. This powerful speech delivered on June 30, 1960, at the independence ceremony shocked Belgian officials by directly condemning colonialism rather than thanking Belgium.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["lumumba", "congo", "independence", "belgium", "colonialism", "zaire"],
+      "citation": {
+        "originalPublication": "Léopoldville, Belgian Congo, June 30, 1960",
+        "modernSource": "Congolese Independence Archives"
+      }
+    },
+    {
+      "id": "nyerere-ujamaa",
+      "title": "Ujamaa: The Basis of African Socialism",
+      "author": "Julius Nyerere",
+      "year": 1962,
+      "excerpt": "The foundation and the objective of African socialism is the extended family.",
+      "longExcerpt": "The foundation and the objective of African socialism is the extended family. The true African socialist does not look on one class of men as his brethren and another as his natural enemies. In traditional African society everybody was a worker. In traditional African society the individuals or the families within a tribe were 'rich' or 'poor' according to whether the whole tribe was rich or poor. Our first step must be to re-educate ourselves; to regain our former attitude of mind. Socialism is an attitude of mind. This essay by Tanzania's first president outlined a uniquely African approach to socialism based on traditional communal values, influencing post-independence development across the continent.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["nyerere", "ujamaa", "tanzania", "african socialism", "communalism", "extended family"],
+      "citation": {
+        "originalPublication": "Dar es Salaam, April 1962",
+        "modernSource": "Oxford University Press, 1968"
+      }
+    },
+    {
+      "id": "mandela-rivonia-trial",
+      "title": "I Am Prepared to Die",
+      "author": "Nelson Mandela",
+      "year": 1964,
+      "excerpt": "I have cherished the ideal of a democratic and free society. It is an ideal for which I am prepared to die.",
+      "longExcerpt": "During my lifetime I have dedicated myself to this struggle of the African people. I have fought against white domination, and I have fought against black domination. I have cherished the ideal of a democratic and free society in which all persons live together in harmony and with equal opportunities. It is an ideal which I hope to live for and to achieve. But if needs be, it is an ideal for which I am prepared to die. Above all, we want equal political rights, because without them our disabilities will be permanent. I know this sounds revolutionary to the whites in this country, because the majority of voters will be Africans. This makes the white man fear democracy. This speech from the dock at the Rivonia Trial on April 20, 1964, articulated Mandela's vision for a non-racial democracy and became a defining statement of the anti-apartheid struggle.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["mandela", "rivonia", "apartheid", "south africa", "anc", "prepared to die", "democracy"],
+      "wikisourceTitle": "I_Am_Prepared_to_Die",
+      "citation": {
+        "originalPublication": "Pretoria, South Africa, April 20, 1964",
+        "modernSource": "Rivonia Trial Transcript"
+      }
+    },
+    {
+      "id": "oau-charter",
+      "title": "Charter of the Organization of African Unity",
+      "author": "Organization of African Unity",
+      "year": 1963,
+      "excerpt": "We, the Heads of African States and Governments, convinced that it is the inalienable right of all people to control their own destiny.",
+      "longExcerpt": "We, the Heads of African States and Governments assembled in the City of Addis Ababa, Ethiopia; Convinced that it is the inalienable right of all people to control their own destiny; Conscious of the fact that freedom, equality, justice and dignity are essential objectives for the achievement of the legitimate aspirations of the African peoples; Determined to safeguard and consolidate the hard-won independence as well as the sovereignty and territorial integrity of our States, and to fight against neo-colonialism in all its forms; Dedicated to the general progress of Africa. This charter established the OAU, committing African nations to unity, solidarity, and the eradication of colonialism from the continent.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["oau", "organization of african unity", "charter", "pan-africanism", "addis ababa", "unity"],
+      "wikisourceTitle": "Charter_of_the_Organization_of_African_Unity",
+      "citation": {
+        "originalPublication": "Addis Ababa, Ethiopia, May 25, 1963",
+        "modernSource": "OAU Archives"
+      }
+    },
+    {
+      "id": "nkrumah-speak-freedom",
+      "title": "I Speak of Freedom",
+      "author": "Kwame Nkrumah",
+      "year": 1961,
+      "excerpt": "We face neither East nor West; we face forward.",
+      "longExcerpt": "We face neither East nor West; we face forward. We are not Communists. We are Socialists. We believe in the socialist theory of society. We do not believe that there is an inherent conflict between African culture and social progress. Political freedom is meaningless without economic emancipation. The independence of Ghana is meaningless unless it is linked with the total liberation of Africa. A State in the grip of neo-colonialism is not master of its own destiny. It is this factor which makes neo-colonialism such a serious threat to world peace. This collection of speeches and writings articulated Nkrumah's vision of pan-Africanism, non-alignment, and the need to combat neo-colonialism after independence.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "keywords": ["nkrumah", "speak of freedom", "pan-africanism", "neo-colonialism", "socialism", "ghana"],
+      "citation": {
+        "originalPublication": "London, 1961",
+        "modernSource": "Heinemann, 1961"
+      }
+    },
+    {
+      "id": "berlin-conference-act",
+      "title": "General Act of the Berlin Conference",
+      "author": "European Powers",
+      "year": 1885,
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "SUB_SAHARAN_AFRICAN"
       ],
+      "excerpt": "The Powers declare that in extending their authority in African territories, they will ensure the establishment of authority to protect freedom of trade and transit.",
+      "longExcerpt": "The Signatory Powers of the present Act recognize the obligation to insure the establishment of authority in the regions occupied by them on the coasts of the African Continent sufficient to protect existing rights, and, as the case may be, freedom of trade and of transit under the conditions agreed upon. All the Powers exercising sovereign rights or influence in the said territories bind themselves to watch over the preservation of the native tribes, and to care for the improvement of the conditions of their moral and material well-being. This document from the Berlin Conference of 1884-85 established the rules for European colonization of Africa, leading to the 'Scramble for Africa' that divided the continent among European powers with no African representation, fundamentally shaping modern African borders and conflicts.",
       "keywords": [
-        "things",
-        "fall",
-        "apart"
+        "berlin conference",
+        "scramble for africa",
+        "colonialism",
+        "partition",
+        "european imperialism"
       ],
-      "wikisourceTitle": "Things_Fall_Apart",
+      "wikisourceTitle": "General_Act_of_the_Berlin_Conference",
+      "isStandard": true,
       "citation": {
-        "originalPublication": "Chinua Achebe, 1958"
+        "originalPublication": "Berlin, February 26, 1885",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "steve-biko-write-what-i-like",
+      "title": "I Write What I Like",
+      "author": "Steve Biko",
+      "year": 1978,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The most potent weapon in the hands of the oppressor is the mind of the oppressed.",
+      "longExcerpt": "The most potent weapon in the hands of the oppressor is the mind of the oppressed. Black Consciousness is an attitude of mind and a way of life, the most positive call to emanate from the black world for a long time. Its essence is the realization by the black man of the need to rally together with his brothers around the cause of their oppression - the blackness of their skin - and to operate as a group to rid themselves of the shackles that bind them to perpetual servitude. The philosophy of Black Consciousness expresses group pride and the determination of the black to rise and attain the envisaged self. This collection of essays by South African anti-apartheid activist Steve Biko articulated the Black Consciousness philosophy that transformed resistance to apartheid before his death in police custody in 1977.",
+      "keywords": [
+        "steve biko",
+        "black consciousness",
+        "south africa",
+        "apartheid",
+        "resistance",
+        "philosophy"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "South Africa, 1978 (posthumous)",
+        "modernSource": "Heinemann Educational Books"
+      }
+    },
+    {
+      "id": "senghor-negritude",
+      "title": "On Négritude: Psychology of the African Negro",
+      "author": "Léopold Sédar Senghor",
+      "year": 1939,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "Négritude is the sum total of the values of the civilization of the African world.",
+      "longExcerpt": "Négritude is the sum total of the values of the civilization of the African world. It is not racialism; it is culture. It is not a state of mind, nor is it a state of grace, it is the simple recognition of the fact of being black, and the acceptance of this fact, of our destiny as black people, of our history and our culture. Emotion is Negro, as reason is Greek. The Negro is the man of nature. While the white European has devoted himself to analysis, to the use of matter, to reason, the African Negro has turned his attention to the Other - to God, to nature, to his fellow man. This essay by Senegalese poet and future president Senghor articulated the Négritude movement's philosophy, celebrating African cultural identity and rejecting colonial cultural assimilation.",
+      "keywords": [
+        "senghor",
+        "negritude",
+        "african culture",
+        "senegal",
+        "identity",
+        "philosophy",
+        "poetry"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Paris, 1939",
+        "modernSource": "Présence Africaine"
+      }
+    },
+    {
+      "id": "freedom-charter-south-africa",
+      "title": "The Freedom Charter",
+      "author": "Congress of the People",
+      "year": 1955,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "We, the people of South Africa, declare for all our country and the world to know: that South Africa belongs to all who live in it, black and white.",
+      "longExcerpt": "We, the people of South Africa, declare for all our country and the world to know: that South Africa belongs to all who live in it, black and white, and that no government can justly claim authority unless it is based on the will of all the people; that our people have been robbed of their birthright to land, liberty and peace by a form of government founded on injustice and inequality; that only a democratic state, based on the will of all the people, can secure to all their birthright without distinction of colour, race, sex or belief. The people shall govern! All national groups shall have equal rights! The land shall be shared among those who work it! All shall be equal before the law! This document, adopted at Kliptown on June 26, 1955, became the fundamental statement of principles for the anti-apartheid movement.",
+      "keywords": [
+        "freedom charter",
+        "south africa",
+        "anc",
+        "apartheid",
+        "democracy",
+        "equal rights"
+      ],
+      "wikisourceTitle": "Freedom_Charter",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Kliptown, South Africa, June 26, 1955",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "laye-african-child",
+      "title": "The African Child",
+      "author": "Camara Laye",
+      "year": 1953,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "I was a little boy playing round my father's hut. My father was sitting in the shadow, working at his goldsmith's trade.",
+      "longExcerpt": "I was a little boy playing round my father's hut. My father was sitting in the shadow, working at his goldsmith's trade. I loved to watch him work. He would take a piece of gold and heat it over the fire. The gold would begin to glow, to soften, to melt. Then my father would shape it - into a bracelet, a pendant, whatever the customer had ordered. He worked with such skill, such concentration. I would watch the gold transform under his hands, and I felt I was watching magic. My mother would call me: 'Stop bothering your father! Come help me!' But I was fascinated. This was my world - the courtyard, the forge, the mysterious adult world of work and skill. This autobiographical novel by Guinean writer Camara Laye portrays traditional West African life before and during French colonial rule, becoming one of the first major African novels published in Europe.",
+      "keywords": [
+        "camara laye",
+        "guinea",
+        "autobiography",
+        "childhood",
+        "traditional life",
+        "colonialism"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Paris, 1953",
+        "modernSource": "Librairie Plon"
+      }
+    },
+    {
+      "id": "kenyatta-facing-mount-kenya",
+      "title": "Facing Mount Kenya",
+      "author": "Jomo Kenyatta",
+      "year": 1938,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The Gikuyu people believe that God rests on Mount Kenya, the mountain of brightness, when he is inspecting the land which he has given to them.",
+      "longExcerpt": "The Gikuyu people believe that God, Ngai, rests on Mount Kenya, the mountain of brightness, Kere-Nyaga, when he is inspecting the land which he has given to them. At the beginning of things, when mankind started to populate the earth, the man Gikuyu, the founder of the tribe, was called by Ngai and told: 'Go to the center of the country, where the mugumo trees grow, and there you shall make your home.' Gikuyu went and found the place, and there he built his homestead. This anthropological study of Kikuyu culture and customs was written by Jomo Kenyatta while studying in London. It preserved traditional knowledge while also serving as political argument against colonial disruption of African societies. Kenyatta later became Kenya's first president.",
+      "keywords": [
+        "jomo kenyatta",
+        "kikuyu",
+        "kenya",
+        "anthropology",
+        "mount kenya",
+        "traditional culture"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "London, 1938",
+        "modernSource": "Secker & Warburg"
       }
     }
   ]

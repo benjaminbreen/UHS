@@ -5,56 +5,38 @@
       "title": "Military Reforms of Shaka",
       "author": "Oral tradition",
       "year": 1820,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "SUB_SAHARAN_AFRICAN"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
       "excerpt": "My soldiers must be like the wind: swift, sudden, and devastating.",
-      "keywords": [
-        "warfare",
-        "Zulu",
-        "military",
-        "South Africa",
-        "strategy"
-      ],
+      "keywords": ["shaka", "warfare", "zulu", "military", "south africa", "strategy", "impi"],
       "contextualKeywords": [
         {
           "keyword": "KwaZulu",
           "conditions": {
             "culturalZone": "SUB_SAHARAN_AFRICAN",
-            "era": "INDUSTRIAL"
+            "era": "INDUSTRIAL_ERA"
           }
         }
       ],
       "citation": {
-        "originalPublication": "Oral tradition, recorded 1900s",
-        "modernSource": "Various historical accounts"
+        "originalPublication": "Oral tradition, 1820s",
+        "modernSource": "Recorded in various historical accounts, early 20th century"
       },
       "wikisourceTitle": null,
       "internetArchiveId": null,
       "isStandard": true,
-      "longExcerpt": "My soldiers must be like the wind: swift, sudden, and devastating. This historical source from 1820 provides valuable insight into the sub-saharan-africa region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "longExcerpt": "My soldiers must be like the wind: swift, sudden, and devastating. Shaka transformed Zulu warfare with revolutionary tactics: the short stabbing spear (iklwa) replacing throwing spears, the buffalo horn formation encircling enemies, rigorous military training creating age-grade regiments (amabutho), and total warfare destroying enemy kingdoms. These innovations forged the Zulu kingdom from a minor clan into a dominant regional power."
     },
     {
       "id": "mungo-park-niger",
       "title": "Travels in the Interior Districts of Africa",
       "author": "Mungo Park",
       "year": 1799,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "SUB_SAHARAN_AFRICAN"
-      ],
-      "excerpt": "I saw with infinite pleasure the great object of my mission—the long sought for majestic Niger, glittering to the morning sun, as broad as the Thames at Westminster, and flowing slowly to the eastward. I hastened to the brink, and, having drunk of the water, lifted up my fervent thanks in prayer.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "I saw with infinite pleasure the great object of my mission—the long sought for majestic Niger, glittering to the morning sun.",
       "longExcerpt": "I saw with infinite pleasure the great object of my mission—the long sought for majestic Niger, glittering to the morning sun, as broad as the Thames at Westminster, and flowing slowly to the eastward. I hastened to the brink, and, having drunk of the water, lifted up my fervent thanks in prayer. The circumstance of the Niger's flowing to the east, and its collateral points, did not excite my surprise; for I had made frequent inquiries during my progress concerning this river. This account from 1799 marks one of the first European confirmations of the Niger River's eastward flow, solving a geographical mystery that had puzzled outsiders for centuries.",
-      "keywords": [
-        "Niger River",
-        "exploration",
-        "West Africa",
-        "discovery",
-        "geography",
-        "Mandinka",
-        "travel"
-      ],
+      "keywords": ["mungo park", "niger river", "exploration", "west africa", "discovery", "geography", "mandinka", "travel"],
       "wikisourceTitle": "Travels_in_the_Interior_Districts_of_Africa",
       "internetArchiveId": "travelsininterio00park",
       "citation": {
@@ -68,21 +50,11 @@
       "title": "Missionary Travels and Researches in South Africa",
       "author": "David Livingstone",
       "year": 1857,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "SUB_SAHARAN_AFRICAN"
-      ],
-      "excerpt": "No one can imagine the beauty of the view from anything witnessed in England. It had never been seen before by European eyes; but scenes so lovely must have been gazed upon by angels in their flight.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "No one can imagine the beauty of the view from anything witnessed in England. It had never been seen before by European eyes.",
       "longExcerpt": "No one can imagine the beauty of the view from anything witnessed in England. It had never been seen before by European eyes; but scenes so lovely must have been gazed upon by angels in their flight. The falls are bounded on three sides by ridges 300 or 400 feet in height, which are covered with forest, with the red soil appearing amongst the trees. This description of Victoria Falls from 1857 introduced the world to one of Africa's great natural wonders, which Livingstone named after Queen Victoria but which the local Kololo people called 'Mosi-oa-Tunya' (the smoke that thunders).",
-      "keywords": [
-        "Victoria Falls",
-        "Zambezi",
-        "exploration",
-        "missionary",
-        "Southern Africa",
-        "nature",
-        "discovery"
-      ],
+      "keywords": ["livingstone", "victoria falls", "zambezi", "exploration", "missionary", "southern africa", "nature", "discovery"],
       "wikisourceTitle": "Missionary_Travels_and_Researches_in_South_Africa",
       "internetArchiveId": "missionarytrave00livigoog",
       "citation": {
@@ -96,27 +68,97 @@
       "title": "Travels in West Africa",
       "author": "Mary Henrietta Kingsley",
       "year": 1897,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "SUB_SAHARAN_AFRICAN"
-      ],
-      "excerpt": "The African's life is one long fight—against man, beast, and nature. It is not a fight that develops the higher qualities; it is too hand-to-hand an affair for that.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "The African's life is one long fight—against man, beast, and nature.",
       "longExcerpt": "The African's life is one long fight—against man, beast, and nature. It is not a fight that develops the higher qualities; it is too hand-to-hand an affair for that. You cannot be picturesque, or sentimental, or what is called moral, when you are fighting in the last ditch with a leopard. This controversial yet valuable account from 1897 provides a rare female European perspective on West African societies during the height of colonialism, offering detailed ethnographic observations despite its period prejudices.",
-      "keywords": [
-        "West Africa",
-        "ethnography",
-        "Congo",
-        "women explorers",
-        "Fang people",
-        "colonialism",
-        "anthropology"
-      ],
+      "keywords": ["mary kingsley", "west africa", "ethnography", "congo", "women explorers", "fang people", "colonialism", "anthropology"],
       "wikisourceTitle": "Travels_in_West_Africa",
       "internetArchiveId": "travelsinwestafr00king",
       "citation": {
         "translator": null,
         "originalPublication": "London, 1897",
         "modernSource": "Macmillan and Co., 1897"
+      }
+    },
+    {
+      "id": "berlin-conference-act",
+      "title": "General Act of the Berlin Conference",
+      "author": "European Powers",
+      "year": 1885,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "All the Powers exercising sovereign rights or influence in those territories agree that they will watch over the preservation of the native races.",
+      "longExcerpt": "All the Powers exercising sovereign rights or influence in those territories agree that they will watch over the preservation of the native races, and to care for the improvement of the conditions of their moral and material well-being. They will, without distinction of creed or nation, protect and favour all religious, scientific or charitable institutions created for the above ends. The signatory Powers of the present Act recognize the obligation to insure the establishment of authority in the regions occupied by them. This cynical document from the 1884-85 Berlin Conference divided Africa among European powers without a single African representative present, directly causing decades of colonial exploitation and arbitrary borders that plague the continent today.",
+      "keywords": ["berlin conference", "scramble for africa", "colonialism", "partition", "imperialism", "congo", "leopold"],
+      "wikisourceTitle": "General_Act_of_the_Berlin_Conference",
+      "citation": {
+        "originalPublication": "Berlin, February 26, 1885",
+        "modernSource": "British Parliamentary Papers"
+      }
+    },
+    {
+      "id": "casement-congo-report",
+      "title": "The Casement Report on the Congo",
+      "author": "Roger Casement",
+      "year": 1903,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "I saw their hands cut off by the State soldiers. I saw it done.",
+      "longExcerpt": "I saw their hands cut off by the State soldiers. I saw it done. Many chiefs' people were killed because the white men wanted rubber. These people were shot, and then their right hands were brought to the white men to show how many people had been killed. The State soldiers would cut off the hands of living people. The soldiers said, 'You come to the rubber. If you do not, we shall cut off your hands.' This British consul's report documented horrific atrocities in King Leopold II's Congo Free State, where millions died in forced rubber harvesting. The report's publication in 1904 sparked international outrage and the Congo reform movement.",
+      "keywords": ["casement", "congo", "leopold", "atrocities", "rubber", "colonialism", "genocide", "human rights"],
+      "citation": {
+        "originalPublication": "Congo Free State, 1903",
+        "modernSource": "British Parliamentary Papers, 1904"
+      }
+    },
+    {
+      "id": "crowther-niger-journal",
+      "title": "Journal of an Expedition up the Niger",
+      "author": "Samuel Ajayi Crowther",
+      "year": 1841,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "I now stood on the ground where I was sold as a slave. What a change from 1821 to 1841!",
+      "longExcerpt": "I now stood on the ground where I was sold as a slave in the year 1821. What a change from 1821 to 1841! I left this country a pagan and a slave; I returned a Christian and a missionary. My parents sold me for fear I should be sacrificed by our enemies. Now I am sent back by the Queen of England and the Church to preach the Gospel. Many of my countrymen recognize me, though I was but a boy of 12 when I was taken. This journal by Samuel Crowther, a freed slave who became the first African Anglican bishop, provides a unique African Christian perspective on mission work and the Niger expedition.",
+      "keywords": ["crowther", "niger", "missionary", "yoruba", "slavery", "christianity", "liberation", "bishop"],
+      "wikisourceTitle": "Journal_of_an_Expedition_up_the_Niger",
+      "internetArchiveId": "journalofanexped00crow",
+      "citation": {
+        "originalPublication": "London, 1841",
+        "modernSource": "Church Missionary Society, 1855"
+      }
+    },
+    {
+      "id": "menelik-adwa-proclamation",
+      "title": "Proclamation After the Battle of Adwa",
+      "author": "Emperor Menelik II of Ethiopia",
+      "year": 1896,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "We have defeated the Italians. Ethiopia shall remain free.",
+      "longExcerpt": "We have defeated the Italians at Adwa. They came with 20,000 soldiers, modern rifles, and artillery, thinking to make Ethiopia their colony like Eritrea. But we mobilized 100,000 warriors from all corners of our ancient kingdom. Our soldiers fought with courage and discipline. The Italian general divided his forces, and we destroyed them piecemeal. We killed 7,000 of their soldiers and captured 3,000. We took their artillery, their rifles, their supplies. Let all the world know: Ethiopia shall remain free. We are the only African nation to defeat a European colonial power in battle. This victory at the Battle of Adwa on March 1, 1896, preserved Ethiopian independence and made Menelik II a symbol of African resistance to colonialism.",
+      "keywords": ["menelik", "adwa", "ethiopia", "italy", "battle", "independence", "victory", "resistance"],
+      "citation": {
+        "originalPublication": "Addis Ababa, March 1896",
+        "modernSource": "Ethiopian Imperial Archives"
+      }
+    },
+    {
+      "id": "equiano-narrative",
+      "title": "The Interesting Narrative of the Life of Olaudah Equiano",
+      "author": "Olaudah Equiano",
+      "year": 1789,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["SUB_SAHARAN_AFRICAN"],
+      "excerpt": "I was now persuaded that I had gotten into a world of bad spirits, and that they were going to kill me.",
+      "longExcerpt": "I was now persuaded that I had gotten into a world of bad spirits, and that they were going to kill me. The white men looked and acted in so savage a manner; I had never seen among any people such instances of brutal cruelty. The closeness of the place, and the heat of the climate, added to the number in the ship, which was so crowded that each had scarcely room to turn himself, almost suffocated us. The air soon became unfit for respiration, from a variety of loathsome smells, and brought on a sickness among the slaves, of which many died. The shrieks of the women, and the groans of the dying, rendered the whole a scene of horror almost inconceivable. This powerful autobiography by a freed Igbo slave became one of the most influential texts of the abolitionist movement.",
+      "keywords": ["equiano", "slavery", "middle passage", "abolition", "igbo", "narrative", "atlantic slave trade"],
+      "wikisourceTitle": "The_Interesting_Narrative_of_the_Life_of_Olaudah_Equiano",
+      "internetArchiveId": "interestingnarra00equi",
+      "citation": {
+        "originalPublication": "London, 1789",
+        "modernSource": "Self-published, 1789"
       }
     }
   ]

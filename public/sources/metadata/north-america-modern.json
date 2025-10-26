@@ -6,18 +6,299 @@
       "author": "John Steinbeck",
       "year": 1939,
       "excerpt": "And then the dispossessed were drawn west - from Kansas, Oklahoma, Texas, New Mexico.",
-      "longExcerpt": "The dust had settled on everything. It was in the food, in the water, in the very air they breathed. And then the dispossessed were drawn west - from Kansas, Oklahoma, Texas, New Mexico; from Nevada and Arkansas, families, tribes, dusted out, tractored out. Carloads, caravans, homeless and hungry; twenty thousand and fifty thousand and a hundred thousand. They streamed over the mountains, hungry and restless - restless as ants, scurrying to find work to do - to lift, to push, to pull, to pick, to cut.",
-      "era": "MODERN",
+      "longExcerpt": "The dust had settled on everything. It was in the food, in the water, in the very air they breathed. And then the dispossessed were drawn west - from Kansas, Oklahoma, Texas, New Mexico; from Nevada and Arkansas, families, tribes, dusted out, tractored out. Carloads, caravans, homeless and hungry; twenty thousand and fifty thousand and a hundred thousand. They streamed over the mountains, hungry and restless - restless as ants, scurrying to find work to do - to lift, to push, to pull, to pick, to cut. This powerful novel depicting the plight of Dust Bowl migrants became a symbol of Depression-era America and working-class struggle.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["steinbeck", "grapes of wrath", "dust bowl", "depression", "migrants", "oklahoma"],
+      "wikisourceTitle": "The_Grapes_of_Wrath",
+      "internetArchiveId": "grapeswrath00ste",
+      "citation": {
+        "originalPublication": "New York, April 14, 1939",
+        "modernSource": "The Viking Press, 1939"
+      }
+    },
+    {
+      "id": "fdr-pearl-harbor",
+      "title": "Address to Congress Requesting a Declaration of War",
+      "author": "Franklin D. Roosevelt",
+      "year": 1941,
+      "excerpt": "Yesterday, December 7th, 1941—a date which will live in infamy—the United States of America was suddenly and deliberately attacked.",
+      "longExcerpt": "Yesterday, December 7th, 1941—a date which will live in infamy—the United States of America was suddenly and deliberately attacked by naval and air forces of the Empire of Japan. The United States was at peace with that nation and, at the solicitation of Japan, was still in conversation with its government and its emperor looking toward the maintenance of peace in the Pacific. No matter how long it may take us to overcome this premeditated invasion, the American people in their righteous might will win through to absolute victory. With confidence in our armed forces, with the unbounding determination of our people, we will gain the inevitable triumph—so help us God. This speech to a joint session of Congress on December 8, 1941, led to the U.S. declaration of war against Japan.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["pearl harbor", "fdr", "roosevelt", "infamy", "world war ii", "japan", "declaration of war"],
+      "wikisourceTitle": "Day_of_Infamy_speech",
+      "citation": {
+        "originalPublication": "Washington, D.C., December 8, 1941",
+        "modernSource": "Congressional Record"
+      }
+    },
+    {
+      "id": "executive-order-9066",
+      "title": "Executive Order 9066",
+      "author": "Franklin D. Roosevelt",
+      "year": 1942,
+      "excerpt": "I hereby authorize and direct the Secretary of War to prescribe military areas from which any or all persons may be excluded.",
+      "longExcerpt": "Whereas the successful prosecution of the war requires every possible protection against espionage and against sabotage to national-defense material, national-defense premises, and national-defense utilities. Now, therefore, by virtue of the authority vested in me as President of the United States, I hereby authorize and direct the Secretary of War, and the Military Commanders whom he may from time to time designate, to prescribe military areas in such places and of such extent as he or the appropriate Military Commander may determine, from which any or all persons may be excluded. This order authorized the forced relocation and incarceration of approximately 120,000 Japanese Americans, two-thirds of whom were U.S. citizens, in internment camps during World War II.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["executive order 9066", "japanese internment", "world war ii", "civil liberties", "incarceration"],
+      "wikisourceTitle": "Executive_Order_9066",
+      "citation": {
+        "originalPublication": "Washington, D.C., February 19, 1942",
+        "modernSource": "Federal Register"
+      }
+    },
+    {
+      "id": "brown-v-board",
+      "title": "Brown v. Board of Education",
+      "author": "U.S. Supreme Court (Chief Justice Earl Warren)",
+      "year": 1954,
+      "excerpt": "We conclude that in the field of public education the doctrine of 'separate but equal' has no place.",
+      "longExcerpt": "Today, education is perhaps the most important function of state and local governments. In these days, it is doubtful that any child may reasonably be expected to succeed in life if he is denied the opportunity of an education. Such an opportunity, where the state has undertaken to provide it, is a right which must be made available to all on equal terms. We come then to the question presented: Does segregation of children in public schools solely on the basis of race deprive the children of the minority group of equal educational opportunities? We believe that it does. We conclude that in the field of public education the doctrine of 'separate but equal' has no place. Separate educational facilities are inherently unequal. This unanimous decision overturned Plessy v. Ferguson and declared racial segregation in public schools unconstitutional.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["brown v board", "segregation", "civil rights", "supreme court", "separate but equal", "warren"],
+      "wikisourceTitle": "Brown_v._Board_of_Education",
+      "citation": {
+        "originalPublication": "Washington, D.C., May 17, 1954",
+        "modernSource": "347 U.S. 483"
+      }
+    },
+    {
+      "id": "jfk-inaugural",
+      "title": "Inaugural Address",
+      "author": "John F. Kennedy",
+      "year": 1961,
+      "excerpt": "And so, my fellow Americans: ask not what your country can do for you—ask what you can do for your country.",
+      "longExcerpt": "Let the word go forth from this time and place, to friend and foe alike, that the torch has been passed to a new generation of Americans. In the long history of the world, only a few generations have been granted the role of defending freedom in its hour of maximum danger. I do not shrink from this responsibility—I welcome it. And so, my fellow Americans: ask not what your country can do for you—ask what you can do for your country. My fellow citizens of the world: ask not what America will do for you, but what together we can do for the freedom of man. This speech on January 20, 1961, called for civic engagement and international cooperation during the height of the Cold War.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["jfk", "kennedy", "inaugural", "ask not", "cold war", "torch has been passed"],
+      "wikisourceTitle": "John_F._Kennedy's_Inaugural_Address",
+      "citation": {
+        "originalPublication": "Washington, D.C., January 20, 1961",
+        "modernSource": "Presidential Papers"
+      }
+    },
+    {
+      "id": "eisenhower-farewell",
+      "title": "Farewell Address",
+      "author": "Dwight D. Eisenhower",
+      "year": 1961,
+      "excerpt": "We must guard against the acquisition of unwarranted influence by the military-industrial complex.",
+      "longExcerpt": "A vital element in keeping the peace is our military establishment. Our arms must be mighty, ready for instant action, so that no potential aggressor may be tempted to risk his own destruction. This conjunction of an immense military establishment and a large arms industry is new in the American experience. In the councils of government, we must guard against the acquisition of unwarranted influence, whether sought or unsought, by the military-industrial complex. The potential for the disastrous rise of misplaced power exists and will persist. We must never let the weight of this combination endanger our liberties or democratic processes. Eisenhower's final televised address as president on January 17, 1961, warned of the dangers posed by the growing military-industrial complex.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["eisenhower", "farewell", "military-industrial complex", "cold war", "warning"],
+      "wikisourceTitle": "Eisenhower's_farewell_address",
+      "citation": {
+        "originalPublication": "Washington, D.C., January 17, 1961",
+        "modernSource": "Presidential Papers"
+      }
+    },
+    {
+      "id": "mlk-dream-speech",
+      "title": "I Have a Dream",
+      "author": "Martin Luther King Jr.",
+      "year": 1963,
+      "excerpt": "I have a dream that one day this nation will rise up and live out the true meaning of its creed.",
+      "longExcerpt": "I am happy to join with you today in what will go down in history as the greatest demonstration for freedom in the history of our nation. I have a dream that one day this nation will rise up and live out the true meaning of its creed: 'We hold these truths to be self-evident, that all men are created equal.' I have a dream that my four little children will one day live in a nation where they will not be judged by the color of their skin but by the content of their character. And when this happens, when we allow freedom to ring, we will be able to speed up that day when all of God's children, black men and white men, Jews and Gentiles, Protestants and Catholics, will be able to join hands. This speech at the March on Washington for Jobs and Freedom on August 28, 1963, became a defining moment of the Civil Rights Movement.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["martin luther king", "mlk", "i have a dream", "civil rights", "march on washington", "equality"],
+      "wikisourceTitle": "I_Have_a_Dream",
+      "citation": {
+        "originalPublication": "Washington, D.C., August 28, 1963",
+        "modernSource": "March on Washington Archives"
+      }
+    },
+    {
+      "id": "malcolm-x-ballot-or-bullet",
+      "title": "The Ballot or the Bullet",
+      "author": "Malcolm X",
+      "year": 1964,
+      "excerpt": "It's time for us to submerge our differences and realize that it is best for us to first see that we have the same problem, a common problem.",
+      "longExcerpt": "The question tonight, as I understand it, is 'The Negro Revolt, and Where Do We Go From Here?' I don't see any American dream; I see an American nightmare. It's time for you and me to submerge our differences and realize that it is best for us to first see that we have the same problem, a common problem—a problem that will make you catch hell whether you're a Baptist, or a Methodist, or a Muslim, or a nationalist. I'm not here to argue or discuss anything that we differ about, because it's time for us to submerge our differences and realize that it is best for us to first see that we have the same problem. It isn't that time is running out—time has run out! This speech delivered in Cleveland on April 3, 1964, advocated for Black nationalism and self-defense as alternatives to nonviolent resistance.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["malcolm x", "ballot or the bullet", "civil rights", "black nationalism", "self-defense"],
+      "citation": {
+        "originalPublication": "Cleveland, Ohio, April 3, 1964",
+        "modernSource": "Malcolm X Speaks, 1965"
+      }
+    },
+    {
+      "id": "carson-silent-spring",
+      "title": "Silent Spring",
+      "author": "Rachel Carson",
+      "year": 1962,
+      "excerpt": "There was a strange stillness. The birds, for example—where had they gone?",
+      "longExcerpt": "There was once a town in the heart of America where all life seemed to live in harmony with its surroundings. Then a strange blight crept over the area and everything began to change. Some evil spell had settled on the community: mysterious maladies swept the flocks of chickens; the cattle and sheep sickened and died. Everywhere was a shadow of death. The farmers spoke of much illness among their families. In the town the doctors had become more and more puzzled by new kinds of sickness appearing among their patients. There had been several sudden and unexplained deaths, not only among adults but even among children. There was a strange stillness. The birds, for example—where had they gone? This landmark book exposed the dangers of pesticides, particularly DDT, and launched the modern environmental movement.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["NORTH_AMERICAN_COLONIAL"],
+      "keywords": ["rachel carson", "silent spring", "ddt", "pesticides", "environmental", "ecology"],
+      "wikisourceTitle": "Silent_Spring",
+      "internetArchiveId": "silentspring00cars",
+      "citation": {
+        "originalPublication": "Boston, September 27, 1962",
+        "modernSource": "Houghton Mifflin, 1962"
+      }
+    },
+    {
+      "id": "betty-friedan-feminine-mystique",
+      "title": "The Feminine Mystique",
+      "author": "Betty Friedan",
+      "year": 1963,
+      "era": "MODERN_ERA",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
+      "excerpt": "The problem lay buried, unspoken, for many years in the minds of American women. It was a strange stirring, a sense of dissatisfaction, a yearning that women suffered.",
+      "longExcerpt": "The problem lay buried, unspoken, for many years in the minds of American women. It was a strange stirring, a sense of dissatisfaction, a yearning that women suffered in the middle of the twentieth century in the United States. Each suburban wife struggled with it alone. As she made the beds, shopped for groceries, matched slipcover material, ate peanut butter sandwiches with her children, chauffeured Cub Scouts and Brownies, lay beside her husband at night - she was afraid to ask even of herself the silent question - 'Is this all?' The feminine mystique says that the highest value and the only commitment for women is the fulfillment of their own femininity through marriage and motherhood. But the mystique keeps women from finding out who they are. This landmark book sparked second-wave feminism by identifying 'the problem that has no name' - educated women's frustration with prescribed domestic roles.",
       "keywords": [
-        "grapes",
-        "wrath"
+        "betty friedan",
+        "feminine mystique",
+        "feminism",
+        "women's liberation",
+        "domesticity",
+        "gender roles"
       ],
-      "wikisourceTitle": "The_Grapes_of_Wrath",
+      "isStandard": true,
       "citation": {
-        "originalPublication": "John Steinbeck, 1939"
+        "originalPublication": "New York, February 19, 1963",
+        "modernSource": "W.W. Norton & Company"
+      }
+    },
+    {
+      "id": "declaration-sentiments",
+      "title": "Declaration of Sentiments",
+      "author": "Elizabeth Cady Stanton and others",
+      "year": 1848,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "We hold these truths to be self-evident: that all men and women are created equal.",
+      "longExcerpt": "We hold these truths to be self-evident: that all men and women are created equal; that they are endowed by their Creator with certain inalienable rights; that among these are life, liberty, and the pursuit of happiness. The history of mankind is a history of repeated injuries and usurpations on the part of man toward woman, having in direct object the establishment of an absolute tyranny over her. He has never permitted her to exercise her inalienable right to the elective franchise. He has compelled her to submit to laws, in the formation of which she had no voice. He has made her, if married, in the eye of the law, civilly dead. Now, in view of this entire disfranchisement of one-half the people of this country, we insist that women have immediate admission to all the rights and privileges which belong to them as citizens of the United States. This document from the Seneca Falls Convention launched the women's suffrage movement in America.",
+      "keywords": [
+        "seneca falls",
+        "declaration of sentiments",
+        "women's rights",
+        "suffrage",
+        "elizabeth cady stanton",
+        "feminism"
+      ],
+      "wikisourceTitle": "Declaration_of_Sentiments",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Seneca Falls, New York, July 19-20, 1848",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "thoreau-civil-disobedience",
+      "title": "Civil Disobedience",
+      "author": "Henry David Thoreau",
+      "year": 1849,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "That government is best which governs least. The only obligation which I have a right to assume is to do at any time what I think right.",
+      "longExcerpt": "I heartily accept the motto, 'That government is best which governs least'; and I should like to see it acted up to more rapidly and systematically. The only obligation which I have a right to assume is to do at any time what I think right. Must the citizen ever for a moment, or in the least degree, resign his conscience to the legislator? Why has every man a conscience, then? I think that we should be men first, and subjects afterward. Under a government which imprisons any unjustly, the true place for a just man is also a prison. I went to jail because I refused to pay the poll tax to a government that supported slavery and waged an unjust war against Mexico. This influential essay established the philosophical foundation for nonviolent resistance, inspiring Gandhi, King, and countless civil rights movements.",
+      "keywords": [
+        "thoreau",
+        "civil disobedience",
+        "nonviolent resistance",
+        "conscience",
+        "individualism",
+        "protest"
+      ],
+      "wikisourceTitle": "Civil_Disobedience",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "1849",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "frederick-douglass-fourth-july",
+      "title": "What to the Slave is the Fourth of July?",
+      "author": "Frederick Douglass",
+      "year": 1852,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "What, to the American slave, is your 4th of July? I answer: a day that reveals to him, more than all other days in the year, the gross injustice and cruelty to which he is the constant victim.",
+      "longExcerpt": "Fellow-citizens, pardon me, allow me to ask, why am I called upon to speak here to-day? What have I, or those I represent, to do with your national independence? Are the great principles of political freedom and of natural justice, embodied in that Declaration of Independence, extended to us? What, to the American slave, is your 4th of July? I answer: a day that reveals to him, more than all other days in the year, the gross injustice and cruelty to which he is the constant victim. To him, your celebration is a sham; your boasted liberty, an unholy license; your national greatness, swelling vanity; your sounds of rejoicing are empty and heartless; your denunciations of tyrants, brass fronted impudence; your shouts of liberty and equality, hollow mockery. This powerful speech delivered by the escaped slave and abolitionist orator exposed American hypocrisy regarding freedom and slavery.",
+      "keywords": [
+        "frederick douglass",
+        "slavery",
+        "abolition",
+        "fourth of july",
+        "hypocrisy",
+        "freedom"
+      ],
+      "wikisourceTitle": "What_to_the_Slave_Is_the_Fourth_of_July%3F",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Rochester, New York, July 5, 1852",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "gettysburg-address",
+      "title": "Gettysburg Address",
+      "author": "Abraham Lincoln",
+      "year": 1863,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.",
+      "longExcerpt": "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us - that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion - that we here highly resolve that these dead shall not have died in vain - that this nation, under God, shall have a new birth of freedom - and that government of the people, by the people, for the people, shall not perish from the earth. This 272-word speech, delivered at the dedication of the Soldiers' National Cemetery in Gettysburg, Pennsylvania, redefined the Civil War as a struggle for equality and democracy.",
+      "keywords": [
+        "lincoln",
+        "gettysburg",
+        "civil war",
+        "equality",
+        "democracy",
+        "freedom"
+      ],
+      "wikisourceTitle": "Gettysburg_Address",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Gettysburg, Pennsylvania, November 19, 1863",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "upton-sinclair-jungle",
+      "title": "The Jungle",
+      "author": "Upton Sinclair",
+      "year": 1906,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "They use everything about the hog except the squeal.",
+      "longExcerpt": "There was never the least attention paid to what was cut up for sausage. There would be meat that had tumbled out on the floor, in the dirt and sawdust, where the workers had tramped and spit. There would be meat stored in great piles in rooms, and the water from leaky roofs would drip over it, and thousands of rats would race about on it. These rats were nuisances, and the packers would put poisoned bread out for them; they would die, and then rats, bread, and meat would go into the hoppers together. They use everything about the hog except the squeal. This muckraking novel exposed horrific conditions in Chicago's meatpacking industry, leading to the Pure Food and Drug Act of 1906 and revolutionizing food safety regulation.",
+      "keywords": [
+        "upton sinclair",
+        "jungle",
+        "meatpacking",
+        "food safety",
+        "labor",
+        "progressive era",
+        "chicago"
+      ],
+      "wikisourceTitle": "The_Jungle",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "New York, February 26, 1906",
+        "modernSource": "Public domain"
       }
     }
   ]

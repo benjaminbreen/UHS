@@ -7,7 +7,7 @@
       "year": 1845,
       "excerpt": "The streets are generally unpaved, rough, dirty, filled with vegetable and animal refuse.",
       "longExcerpt": "Manchester, the classic type of a modern manufacturing town. The working-people's quarters are sharply separated from the sections of the city reserved for the middle-class. The streets are generally unpaved, rough, dirty, filled with vegetable and animal refuse, without sewers or gutters, but supplied with foul, stagnant pools instead. The atmosphere is poisoned by the smoke of a dozen tall factory chimneys. A horde of ragged women and children swarm about here, as filthy as the swine that thrive upon the garbage heaps.",
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "EUROPEAN"
       ],
@@ -20,6 +20,178 @@
       "wikisourceTitle": "The_Condition_of_the_Working_Class_in_England",
       "citation": {
         "originalPublication": "Friedrich Engels, 1845"
+      }
+    },
+    {
+      "id": "communist-manifesto",
+      "title": "Manifesto of the Communist Party",
+      "author": "Karl Marx and Friedrich Engels",
+      "year": 1848,
+      "excerpt": "A spectre is haunting Europe—the spectre of communism.",
+      "longExcerpt": "A spectre is haunting Europe—the spectre of communism. All the powers of old Europe have entered into a holy alliance to exorcise this spectre. The history of all hitherto existing society is the history of class struggles. Freeman and slave, patrician and plebeian, lord and serf, guild-master and journeyman, in a word, oppressor and oppressed, stood in constant opposition to one another. The modern bourgeois society that has sprouted from the ruins of feudal society has not done away with class antagonisms. The proletarians have nothing to lose but their chains. They have a world to win. Working men of all countries, unite!",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["communist", "manifesto", "marx", "engels", "proletariat", "revolution", "capitalism"],
+      "wikisourceTitle": "Manifesto_of_the_Communist_Party",
+      "internetArchiveId": "manifestoofcommu00marxuoft",
+      "citation": {
+        "translator": "Samuel Moore",
+        "originalPublication": "London, February 1848",
+        "modernSource": "Progress Publishers, Moscow, 1888"
+      }
+    },
+    {
+      "id": "wollstonecraft-rights-woman",
+      "title": "A Vindication of the Rights of Woman",
+      "author": "Mary Wollstonecraft",
+      "year": 1792,
+      "excerpt": "I wish to persuade women to endeavour to acquire strength, both of mind and body.",
+      "longExcerpt": "I wish to persuade women to endeavour to acquire strength, both of mind and body, and to convince them that the soft phrases, susceptibility of heart, delicacy of sentiment, and refinement of taste, are almost synonymous with epithets of weakness. My own sex, I hope, will excuse me, if I treat them like rational creatures, instead of flattering their fascinating graces. I wish to show that elegance is inferior to virtue, that the first object of laudable ambition is to obtain a character as a human being, regardless of the distinction of sex. This groundbreaking feminist text argues for women's education and rationality against Rousseau's views.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["vindication", "rights", "woman", "wollstonecraft", "feminism", "education", "equality"],
+      "wikisourceTitle": "A_Vindication_of_the_Rights_of_Woman",
+      "internetArchiveId": "vindicationofrigh00woll",
+      "citation": {
+        "originalPublication": "London, 1792",
+        "modernSource": "J. Johnson, 1792"
+      }
+    },
+    {
+      "id": "peoples-charter",
+      "title": "The People's Charter",
+      "author": "William Lovett and the London Working Men's Association",
+      "year": 1838,
+      "excerpt": "A vote for every man twenty-one years of age, of sound mind, and not undergoing punishment for crime.",
+      "longExcerpt": "We demand: A vote for every man twenty-one years of age, of sound mind, and not undergoing punishment for crime. The Ballot—To protect the elector in the exercise of his vote. No Property Qualification for Members of Parliament—thus enabling the constituencies to return the man of their choice. Payment of Members, thus enabling an honest tradesman, working man, or other person, to serve a constituency. Equal Constituencies, securing the same amount of representation for the same number of electors. Annual Parliaments, thus presenting the most effectual check to bribery and intimidation. These six demands of the Chartist movement mobilized millions of British workers in the 1840s.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["chartism", "peoples charter", "suffrage", "democracy", "britain", "reform", "workers"],
+      "wikisourceTitle": "The_People's_Charter",
+      "citation": {
+        "originalPublication": "London, May 8, 1838",
+        "modernSource": "London Working Men's Association"
+      }
+    },
+    {
+      "id": "darwin-origin-species",
+      "title": "On the Origin of Species",
+      "author": "Charles Darwin",
+      "year": 1859,
+      "excerpt": "There is grandeur in this view of life, with its several powers, having been originally breathed into a few forms or into one.",
+      "longExcerpt": "As many more individuals of each species are born than can possibly survive; and as, consequently, there is a frequently recurring struggle for existence, it follows that any being, if it vary however slightly in any manner profitable to itself, under the complex and sometimes varying conditions of life, will have a better chance of surviving, and thus be naturally selected. There is grandeur in this view of life, with its several powers, having been originally breathed into a few forms or into one; and that, whilst this planet has gone cycling on according to the fixed law of gravity, from so simple a beginning endless forms most beautiful and most wonderful have been, and are being, evolved.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["darwin", "evolution", "natural selection", "species", "biology", "science"],
+      "wikisourceTitle": "On_the_Origin_of_Species_(1859)",
+      "internetArchiveId": "originofspecies00darwuoft",
+      "citation": {
+        "originalPublication": "London, November 24, 1859",
+        "modernSource": "John Murray, 1859"
+      }
+    },
+    {
+      "id": "hugo-les-miserables",
+      "title": "Les Misérables",
+      "author": "Victor Hugo",
+      "year": 1862,
+      "excerpt": "So long as there shall exist, by virtue of law and custom, decrees of damnation pronounced by society...",
+      "longExcerpt": "So long as there shall exist, by virtue of law and custom, decrees of damnation pronounced by society, artificially creating hells amid the civilization of earth; so long as the three great problems of the century—the degradation of man through pauperism, the corruption of woman through hunger, the crippling of children through lack of light—are unsolved; so long as social asphyxia is possible in any part of the world; in other words, so long as ignorance and poverty exist on earth, books of the nature of Les Misérables cannot fail to be of use. This monumental novel depicts the struggles of ex-convict Jean Valjean and the 1832 June Rebellion in Paris.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["les miserables", "hugo", "france", "poverty", "revolution", "june rebellion"],
+      "wikisourceTitle": "Les_Misérables",
+      "internetArchiveId": "lesmisrables01hugo",
+      "citation": {
+        "translator": "Isabel F. Hapgood",
+        "originalPublication": "Paris, 1862",
+        "modernSource": "Thomas Y. Crowell & Co., 1887"
+      }
+    },
+    {
+      "id": "zola-germinal",
+      "title": "Germinal",
+      "author": "Émile Zola",
+      "year": 1885,
+      "excerpt": "Men spring up, a black avenging host, that is slowly germinating in the furrows.",
+      "longExcerpt": "Beneath the blazing sun, in his dreams, he saw the black avenging host of miners rising from the earth. Men spring up, a black avenging host, that is slowly germinating in the furrows, growing towards the harvests of the next century, and their germination will soon overturn the earth. This powerful novel depicts a coal miners' strike in northern France, exposing brutal working conditions and the violent suppression of labor organizing. Zola spent months researching in mining communities, creating a devastating portrait of industrial exploitation.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["germinal", "zola", "miners", "strike", "france", "labor", "coal"],
+      "wikisourceTitle": "Germinal_(Zola)",
+      "internetArchiveId": "germinal00zolauoft",
+      "citation": {
+        "translator": "Havelock Ellis",
+        "originalPublication": "Paris, 1885",
+        "modernSource": "Vizetelly & Co., 1894"
+      }
+    },
+    {
+      "id": "pankhurst-freedom-or-death",
+      "title": "Freedom or Death",
+      "author": "Emmeline Pankhurst",
+      "year": 1913,
+      "excerpt": "We are here, not because we are law-breakers; we are here in our efforts to become law-makers.",
+      "longExcerpt": "We are here, not because we are law-breakers; we are here in our efforts to become law-makers. Women had always fought for men, and for their children. Now they were ready to fight for their own human rights. The militancy of men, through all the centuries, has drenched the world with blood. The militancy of women has harmed no human life save the lives of those who fought the battle of righteousness. Time and time again we have presented our case to governments, have tried to get the matter settled by peaceful means, and we have been met with closed doors and treachery. This famous speech by the suffragette leader was delivered in Hartford, Connecticut while she was on a fundraising tour.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["pankhurst", "suffragette", "votes for women", "feminism", "britain", "speech"],
+      "wikisourceTitle": "Freedom_or_Death",
+      "internetArchiveId": "myownstory00pankuoft",
+      "citation": {
+        "originalPublication": "Hartford, Connecticut, November 13, 1913",
+        "modernSource": "Published in My Own Story, 1914"
+      }
+    },
+    {
+      "id": "taylor-principles-management",
+      "title": "The Principles of Scientific Management",
+      "author": "Frederick Winslow Taylor",
+      "year": 1911,
+      "excerpt": "In the past the man has been first; in the future the system must be first.",
+      "longExcerpt": "The principal object of management should be to secure the maximum prosperity for the employer, coupled with the maximum prosperity for each employé. In the past the man has been first; in the future the system must be first. This does not mean that great men are not needed. On the contrary, the first object of any good system must be that of developing first-class men. Scientific management involves a complete mental revolution on the part of working men. Under scientific management arbitrary power, arbitrary dictation, ceases. This influential book established modern factory management and time-motion studies, profoundly shaping 20th-century industrial organization.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["taylor", "scientific management", "taylorism", "efficiency", "factory", "industrial"],
+      "wikisourceTitle": "The_Principles_of_Scientific_Management",
+      "internetArchiveId": "principlesofscien00taylrich",
+      "citation": {
+        "originalPublication": "New York and London, 1911",
+        "modernSource": "Harper & Brothers, 1911"
+      }
+    },
+    {
+      "id": "dickens-hard-times",
+      "title": "Hard Times",
+      "author": "Charles Dickens",
+      "year": 1854,
+      "excerpt": "It was a town of red brick, or of brick that would have been red if the smoke and ashes had allowed it.",
+      "longExcerpt": "Coketown was a town of red brick, or of brick that would have been red if the smoke and ashes had allowed it; but as matters stood it was a town of unnatural red and black like the painted face of a savage. It was a town of machinery and tall chimneys, out of which interminable serpents of smoke trailed themselves for ever and ever, and never got uncoiled. It had a black canal in it, and a river that ran purple with ill-smelling dye. This novel satirizes industrial society, utilitarianism, and the mistreatment of workers in Victorian England through the story of Gradgrind's fact-obsessed education system and the fictional mill town of Coketown.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["dickens", "hard times", "coketown", "industrial", "victorian", "factory", "education"],
+      "wikisourceTitle": "Hard_Times",
+      "internetArchiveId": "hardtimes00dickuoft",
+      "citation": {
+        "originalPublication": "London, 1854",
+        "modernSource": "Bradbury & Evans, 1854"
+      }
+    },
+    {
+      "id": "owen-new-view-society",
+      "title": "A New View of Society",
+      "author": "Robert Owen",
+      "year": 1813,
+      "excerpt": "Any general character, from the best to the worst, may be given to any community by the application of proper means.",
+      "longExcerpt": "Any general character, from the best to the worst, from the most ignorant to the most enlightened, may be given to any community, even to the world at large, by the application of proper means; which means are to a great extent at the command and under the control of those who have influence in the affairs of men. Train any population rationally, and they will be rational. Furnish honest and useful employments to those so trained, and such employments they will greatly prefer to dishonest or injurious occupations. This work by the Welsh social reformer and factory owner laid out his vision for cooperative communities and rational education, influencing the early socialist movement.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["owen", "socialism", "factory reform", "education", "cooperation", "utopian"],
+      "wikisourceTitle": "A_New_View_of_Society",
+      "internetArchiveId": "newviewofsociety00owenrich",
+      "citation": {
+        "originalPublication": "London, 1813-1816",
+        "modernSource": "Cadell and Davies, 1813"
       }
     }
   ]

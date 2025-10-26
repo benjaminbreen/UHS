@@ -6,18 +6,481 @@
       "author": "George Orwell",
       "year": 1938,
       "excerpt": "It was the first time I had ever been in a town where the working class was in the saddle.",
-      "longExcerpt": "Barcelona in December 1936. It was the first time I had ever been in a town where the working class was in the saddle. Practically every building of any size had been seized by the workers and was draped with red flags or the red and black flag of the Anarchists. Every wall was scrawled with the hammer and sickle. Waiters and shop-walkers looked you in the face and treated you as an equal. Tipping was forbidden by law. There were no private motor cars, they had all been commandeered.",
-      "era": "MODERN",
+      "longExcerpt": "Barcelona in December 1936. It was the first time I had ever been in a town where the working class was in the saddle. Practically every building of any size had been seized by the workers and was draped with red flags or the red and black flag of the Anarchists. Every wall was scrawled with the hammer and sickle. Waiters and shop-walkers looked you in the face and treated you as an equal. Tipping was forbidden by law. There were no private motor cars, they had all been commandeered. This memoir chronicles Orwell's experiences fighting for the POUM militia during the Spanish Civil War and the devastating internecine conflicts among Republican factions.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["orwell", "homage", "catalonia", "spanish civil war", "anarchism", "poum"],
+      "wikisourceTitle": "Homage_to_Catalonia",
+      "internetArchiveId": "homage_to_catalonia",
+      "citation": {
+        "originalPublication": "London, April 1938",
+        "modernSource": "Secker & Warburg, 1938"
+      }
+    },
+    {
+      "id": "versailles-treaty",
+      "title": "Treaty of Versailles",
+      "author": "Allied and Associated Powers",
+      "year": 1919,
+      "excerpt": "Germany accepts the responsibility for causing all the loss and damage to which the Allied Governments have been subjected.",
+      "longExcerpt": "The Allied and Associated Governments affirm and Germany accepts the responsibility of Germany and her allies for causing all the loss and damage to which the Allied and Associated Governments and their nationals have been subjected as a consequence of the war imposed upon them by the aggression of Germany and her allies. Article 231, the notorious 'War Guilt Clause,' became one of the most controversial provisions of the treaty. The treaty imposed massive reparations on Germany, redrew European borders, created the League of Nations, and set the stage for political instability that contributed to World War II.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["versailles", "treaty", "world war i", "reparations", "war guilt", "league of nations"],
+      "wikisourceTitle": "Treaty_of_Versailles",
+      "citation": {
+        "originalPublication": "Versailles, June 28, 1919",
+        "modernSource": "League of Nations Treaty Series"
+      }
+    },
+    {
+      "id": "churchill-beaches-speech",
+      "title": "We Shall Fight on the Beaches",
+      "author": "Winston Churchill",
+      "year": 1940,
+      "excerpt": "We shall fight on the beaches, we shall fight on the landing grounds, we shall never surrender.",
+      "longExcerpt": "Even though large tracts of Europe and many old and famous States have fallen or may fall into the grip of the Gestapo and all the odious apparatus of Nazi rule, we shall not flag or fail. We shall go on to the end. We shall fight in France, we shall fight on the seas and oceans, we shall fight with growing confidence and growing strength in the air, we shall defend our island, whatever the cost may be. We shall fight on the beaches, we shall fight on the landing grounds, we shall fight in the fields and in the streets, we shall fight in the hills; we shall never surrender. This defiant speech to the House of Commons on June 4, 1940, delivered after the Dunkirk evacuation, rallied British resolve at Britain's darkest hour.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["churchill", "beaches", "dunkirk", "world war ii", "britain", "never surrender"],
+      "wikisourceTitle": "We_Shall_Fight_on_the_Beaches",
+      "citation": {
+        "originalPublication": "House of Commons, London, June 4, 1940",
+        "modernSource": "Hansard Parliamentary Records"
+      }
+    },
+    {
+      "id": "de-gaulle-june-18-appeal",
+      "title": "The Appeal of 18 June",
+      "author": "Charles de Gaulle",
+      "year": 1940,
+      "excerpt": "France has lost a battle! But France has not lost the war!",
+      "longExcerpt": "The leaders who, for many years past, have been at the head of the French armed forces, have set up a government. Alleging the defeat of our armies, this government has entered into negotiations with the enemy with a view to bringing about a cessation of hostilities. It is quite true that we were, and still are, overwhelmed by enemy mechanized forces, both on the ground and in the air. But has the last word been said? Must we abandon all hope? Is our defeat final and irremediable? To those questions I answer - No! France has lost a battle! But France has not lost the war! This radio broadcast from London called on French forces to continue the fight against Nazi Germany, establishing the Free French movement.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["de gaulle", "june 18", "appeal", "france", "resistance", "free french", "world war ii"],
+      "wikisourceTitle": "Appeal_of_18_June",
+      "citation": {
+        "originalPublication": "BBC Radio, London, June 18, 1940",
+        "modernSource": "BBC Archives"
+      }
+    },
+    {
+      "id": "churchill-iron-curtain",
+      "title": "The Sinews of Peace (Iron Curtain Speech)",
+      "author": "Winston Churchill",
+      "year": 1946,
+      "excerpt": "From Stettin in the Baltic to Trieste in the Adriatic, an iron curtain has descended across the Continent.",
+      "longExcerpt": "A shadow has fallen upon the scenes so lately lighted by the Allied victory. Nobody knows what Soviet Russia and its Communist international organization intends to do in the immediate future, or what are the limits, if any, to their expansive and proselytizing tendencies. From Stettin in the Baltic to Trieste in the Adriatic, an iron curtain has descended across the Continent. Behind that line lie all the capitals of the ancient states of Central and Eastern Europe. Warsaw, Berlin, Prague, Vienna, Budapest, Belgrade, Bucharest and Sofia, all these famous cities and the populations around them lie in what I must call the Soviet sphere. This speech at Westminster College in Fulton, Missouri, popularized the term 'Iron Curtain' and is considered a landmark statement of Cold War tensions.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["churchill", "iron curtain", "cold war", "soviet", "fulton", "containment"],
+      "wikisourceTitle": "Sinews_of_Peace",
+      "citation": {
+        "originalPublication": "Fulton, Missouri, March 5, 1946",
+        "modernSource": "Westminster College Archives"
+      }
+    },
+    {
+      "id": "universal-declaration-human-rights",
+      "title": "Universal Declaration of Human Rights",
+      "author": "United Nations General Assembly",
+      "year": 1948,
+      "excerpt": "All human beings are born free and equal in dignity and rights.",
+      "longExcerpt": "Whereas recognition of the inherent dignity and of the equal and inalienable rights of all members of the human family is the foundation of freedom, justice and peace in the world. Article 1: All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood. Article 2: Everyone is entitled to all the rights and freedoms set forth in this Declaration, without distinction of any kind, such as race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth or other status. Drafted by a committee chaired by Eleanor Roosevelt, this declaration established a common standard of human rights for all peoples and nations.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["human rights", "united nations", "declaration", "eleanor roosevelt", "dignity", "freedom"],
+      "wikisourceTitle": "Universal_Declaration_of_Human_Rights",
+      "citation": {
+        "originalPublication": "Paris, December 10, 1948",
+        "modernSource": "United Nations General Assembly Resolution 217A"
+      }
+    },
+    {
+      "id": "nuremberg-opening-statement",
+      "title": "Opening Statement for the United States at Nuremberg",
+      "author": "Robert H. Jackson",
+      "year": 1945,
+      "excerpt": "The wrongs which we seek to condemn and punish have been so calculated, so malignant, and so devastating.",
+      "longExcerpt": "The privilege of opening the first trial in history for crimes against the peace of the world imposes a grave responsibility. The wrongs which we seek to condemn and punish have been so calculated, so malignant, and so devastating, that civilization cannot tolerate their being ignored, because it cannot survive their being repeated. That four great nations, flushed with victory and stung with injury stay the hand of vengeance and voluntarily submit their captive enemies to the judgment of the law is one of the most significant tributes that Power has ever paid to Reason. This opening statement by U.S. Chief Prosecutor Jackson at the Nuremberg Trials established the legal foundation for prosecuting crimes against humanity and aggressive war.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["nuremberg", "trials", "jackson", "crimes against humanity", "war crimes", "nazis"],
+      "wikisourceTitle": "Jackson_at_Nuremberg",
+      "citation": {
+        "originalPublication": "Nuremberg, Germany, November 21, 1945",
+        "modernSource": "Trial of the Major War Criminals, Vol. II"
+      }
+    },
+    {
+      "id": "khrushchev-secret-speech",
+      "title": "On the Cult of Personality and Its Consequences",
+      "author": "Nikita Khrushchev",
+      "year": 1956,
+      "excerpt": "Comrades! Stalin acted not through persuasion, explanation and patient cooperation, but by imposing his concepts and demanding absolute submission.",
+      "longExcerpt": "Comrades! In the report of the Central Committee of the party at the 20th Congress, in a number of speeches by delegates to the Congress, quite a lot has been said about the cult of the individual and about its harmful consequences. Stalin acted not through persuasion, explanation, and patient cooperation with people, but by imposing his concepts and demanding absolute submission to his opinion. Whoever opposed this concept or tried to prove his viewpoint was doomed to removal from the leading collective and to subsequent moral and physical annihilation. This is especially true during the period following the 17th Party Congress. This 'Secret Speech' delivered at the 20th Party Congress denounced Stalin's purges and cult of personality, initiating de-Stalinization and shocking the Communist world.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["khrushchev", "secret speech", "stalin", "de-stalinization", "cult of personality", "soviet"],
+      "wikisourceTitle": "On_the_Cult_of_Personality",
+      "citation": {
+        "originalPublication": "Moscow, February 25, 1956",
+        "modernSource": "20th Congress of the Communist Party of the Soviet Union"
+      }
+    },
+    {
+      "id": "treaty-of-rome",
+      "title": "Treaty Establishing the European Economic Community",
+      "author": "European Economic Community Signatories",
+      "year": 1957,
+      "excerpt": "Determined to lay the foundations of an ever closer union among the peoples of Europe.",
+      "longExcerpt": "His Majesty the King of the Belgians, the President of the Federal Republic of Germany, the President of the French Republic, the President of the Italian Republic, Her Royal Highness the Grand Duchess of Luxembourg, Her Majesty the Queen of the Netherlands, determined to lay the foundations of an ever closer union among the peoples of Europe, resolved to ensure the economic and social progress of their countries by common action to eliminate the barriers which divide Europe, affirming as the essential objective of their efforts the constant improvements of the living and working conditions of their peoples. This treaty, signed by six nations in Rome, established the European Economic Community (EEC), the precursor to the European Union.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["EUROPEAN"],
+      "keywords": ["treaty of rome", "european economic community", "eec", "european union", "integration"],
+      "wikisourceTitle": "Treaty_of_Rome",
+      "citation": {
+        "originalPublication": "Rome, March 25, 1957",
+        "modernSource": "European Union Archives"
+      }
+    },
+    {
+      "id": "communist-manifesto",
+      "title": "The Communist Manifesto",
+      "author": "Karl Marx and Friedrich Engels",
+      "year": 1848,
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "EUROPEAN"
       ],
+      "excerpt": "A spectre is haunting Europe—the spectre of communism. The history of all hitherto existing society is the history of class struggles.",
+      "longExcerpt": "A spectre is haunting Europe—the spectre of communism. All the powers of old Europe have entered into a holy alliance to exorcise this spectre: Pope and Tsar, Metternich and Guizot, French Radicals and German police-spies. The history of all hitherto existing society is the history of class struggles. Freeman and slave, patrician and plebeian, lord and serf, guild-master and journeyman, in a word, oppressor and oppressed, stood in constant opposition to one another. The modern bourgeois society that has sprouted from the ruins of feudal society has not done away with class antagonisms. The proletarians have nothing to lose but their chains. They have a world to win. Workers of the world, unite! This revolutionary pamphlet became one of the most influential political texts in history, shaping socialist and communist movements worldwide.",
       "keywords": [
-        "homage",
-        "catalonia"
+        "marx",
+        "engels",
+        "communism",
+        "class struggle",
+        "proletariat",
+        "bourgeoisie",
+        "revolution"
       ],
-      "wikisourceTitle": "Homage_to_Catalonia",
+      "wikisourceTitle": "The_Communist_Manifesto",
+      "isStandard": true,
       "citation": {
-        "originalPublication": "George Orwell, 1938"
+        "originalPublication": "London, February 1848",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "lenin-state-and-revolution",
+      "title": "The State and Revolution",
+      "author": "Vladimir Lenin",
+      "year": 1917,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The state is a product of the irreconcilability of class antagonisms. The state arises where class antagonisms cannot be reconciled.",
+      "longExcerpt": "The state is a product and a manifestation of the irreconcilability of class antagonisms. The state arises where, when and insofar as class antagonism objectively cannot be reconciled. According to Marx, the state is an organ of class rule, an organ for the oppression of one class by another; it is the creation of 'order,' which legalizes and perpetuates this oppression by moderating the conflict between classes. The state is, therefore, by no means a power forced on society from without. The doctrine of the class struggle, applied by Marx to the question of the state and the socialist revolution, leads as a matter of course to the recognition of the political rule of the proletariat, of its dictatorship. Written in hiding during 1917, this text provided the theoretical foundation for the Bolshevik Revolution and Soviet state.",
+      "keywords": [
+        "lenin",
+        "bolshevik",
+        "revolution",
+        "state",
+        "dictatorship of proletariat",
+        "marxism"
+      ],
+      "wikisourceTitle": "The_State_and_Revolution",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Petrograd, 1918 (written August-September 1917)",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "emmeline-pankhurst-freedom-or-death",
+      "title": "Freedom or Death",
+      "author": "Emmeline Pankhurst",
+      "year": 1913,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "We are here, not because we are law-breakers; we are here in our efforts to become law-makers.",
+      "longExcerpt": "We are here, not because we are law-breakers; we are here in our efforts to become law-makers. Those of you who can will, I know, despise me because you have not been able to do this thing. I look upon myself as a prisoner of war. I am under no moral obligation to conform to, or in any way accept, the sentence imposed upon me. Women are very slow to rouse, but once they are aroused, once they are determined, nothing on earth and nothing in heaven will make women give way; it is impossible. You have left it to women in your land to work out their own salvation. Now, I want to say to you who think women cannot succeed, we have brought the government to this position, that it has to face this alternative: either women are to be killed or women are to have the vote. This speech delivered in Hartford, Connecticut, by the leader of Britain's suffragette movement articulated the militant tactics and moral justification of the women's suffrage movement.",
+      "keywords": [
+        "pankhurst",
+        "suffragette",
+        "women's suffrage",
+        "votes for women",
+        "feminism",
+        "militant"
+      ],
+      "wikisourceTitle": "Freedom_or_Death",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Hartford, Connecticut, November 13, 1913",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "de-beauvoir-second-sex",
+      "title": "The Second Sex: Introduction",
+      "author": "Simone de Beauvoir",
+      "year": 1949,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "One is not born, but rather becomes, a woman.",
+      "longExcerpt": "One is not born, but rather becomes, a woman. No biological, psychological, or economic fate determines the figure that the human female presents in society; it is civilization as a whole that produces this creature, intermediate between male and eunuch, which is described as feminine. If her functioning as a female is not enough to define woman, if we decline also to explain her through 'the eternal feminine,' and if nevertheless we admit, provisionally, that women do exist, then we must face the question: what is a woman? To state the question is, to me, to suggest, at once, a preliminary answer. The fact that I ask it is in itself significant. A man would never get the notion of writing a book on the peculiar situation of the human male. But if I wish to define myself, I must first of all say: 'I am a woman'; on this truth must be based all further discussion. This foundational feminist text analyzed women's oppression and established gender as a social construct rather than biological destiny.",
+      "keywords": [
+        "de beauvoir",
+        "second sex",
+        "feminism",
+        "gender",
+        "existentialism",
+        "women"
+      ],
+      "wikisourceTitle": "The_Second_Sex",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Paris, 1949",
+        "modernSource": "Gallimard (public domain in some jurisdictions)"
+      }
+    },
+    {
+      "id": "virginia-woolf-room",
+      "title": "A Room of One's Own",
+      "author": "Virginia Woolf",
+      "year": 1929,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "A woman must have money and a room of her own if she is to write fiction.",
+      "longExcerpt": "A woman must have money and a room of her own if she is to write fiction. Intellectual freedom depends upon material things. Women have always been poor, not for two hundred years merely, but from the beginning of time. Women, then, have not had a dog's chance of writing poetry. That is why I have laid so much stress on money and a room of one's own. Lock up your libraries if you like; but there is no gate, no lock, no bolt that you can set upon the freedom of my mind. This extended essay based on lectures given at Cambridge argued that economic independence and personal space are essential prerequisites for women's creative and intellectual work.",
+      "keywords": [
+        "virginia woolf",
+        "room of one's own",
+        "women writers",
+        "feminism",
+        "literature",
+        "economic independence"
+      ],
+      "wikisourceTitle": "A_Room_of_One's_Own",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "London, October 24, 1929",
+        "modernSource": "Hogarth Press (public domain)"
+      }
+    },
+    {
+      "id": "schuman-declaration",
+      "title": "The Schuman Declaration",
+      "author": "Robert Schuman",
+      "year": 1950,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "World peace cannot be safeguarded without the making of creative efforts proportionate to the dangers which threaten it.",
+      "longExcerpt": "World peace cannot be safeguarded without the making of creative efforts proportionate to the dangers which threaten it. The contribution which an organized and living Europe can bring to civilization is indispensable to the maintenance of peaceful relations. Europe will not be made all at once, or according to a single plan. It will be built through concrete achievements which first create a de facto solidarity. The pooling of coal and steel production should immediately provide for the setting up of common foundations for economic development as a first step in the federation of Europe. This declaration on May 9, 1950, proposed the European Coal and Steel Community, the first step toward European integration and what would become the European Union.",
+      "keywords": [
+        "schuman",
+        "declaration",
+        "european integration",
+        "coal and steel",
+        "peace",
+        "eu"
+      ],
+      "wikisourceTitle": "Schuman_Declaration",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Paris, May 9, 1950",
+        "modernSource": "French Foreign Ministry Archives"
+      }
+    },
+    {
+      "id": "declaration-rights-of-man",
+      "title": "Declaration of the Rights of Man and of the Citizen",
+      "author": "National Constituent Assembly of France",
+      "year": 1789,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Men are born and remain free and equal in rights. The aim of all political association is the preservation of the natural rights of man.",
+      "longExcerpt": "The representatives of the French people, constituted as a National Assembly, considering that ignorance, neglect, or contempt of the rights of man are the sole causes of public misfortunes and governmental corruption, have resolved to set forth in a solemn declaration the natural, inalienable and sacred rights of man. Article 1: Men are born and remain free and equal in rights. Article 2: The aim of all political association is the preservation of the natural and imprescriptible rights of man. These rights are liberty, property, security, and resistance to oppression. Article 3: The principle of all sovereignty resides essentially in the nation. Article 6: Law is the expression of the general will. All citizens have the right to contribute personally, or through their representatives, to its formation. This foundational document of the French Revolution established principles that influenced democratic movements worldwide.",
+      "keywords": [
+        "french revolution",
+        "rights of man",
+        "liberty",
+        "equality",
+        "france",
+        "declaration"
+      ],
+      "wikisourceTitle": "Declaration_of_the_Rights_of_Man_and_of_the_Citizen",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Paris, August 26, 1789",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "kafka-metamorphosis",
+      "title": "The Metamorphosis",
+      "author": "Franz Kafka",
+      "year": 1915,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "As Gregor Samsa awoke one morning from uneasy dreams he found himself transformed in his bed into a gigantic insect.",
+      "longExcerpt": "As Gregor Samsa awoke one morning from uneasy dreams he found himself transformed in his bed into a gigantic insect. He was lying on his hard, as it were armor-plated, back and when he lifted his head a little he could see his dome-like brown belly divided into stiff arched segments. What has happened to me? he thought. It was no dream. His room, a regular human bedroom, only rather too small, lay quiet between the four familiar walls. Gregor's eyes turned next to the window. 'What about sleeping a little longer and forgetting all this nonsense,' he thought, but it could not be done, for he was accustomed to sleep on his right side and in his present condition he could not turn himself over. This novella by the Prague-born writer became one of modernism's most iconic works, exploring alienation and dehumanization in modern society.",
+      "keywords": [
+        "kafka",
+        "metamorphosis",
+        "modernism",
+        "alienation",
+        "literature",
+        "czech"
+      ],
+      "wikisourceTitle": "The_Metamorphosis",
+      "isStandard": true,
+      "citation": {
+        "translator": "Willa and Edwin Muir",
+        "originalPublication": "Leipzig, 1915",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "solzhenitsyn-gulag-archipelago",
+      "title": "The Gulag Archipelago",
+      "author": "Aleksandr Solzhenitsyn",
+      "year": 1973,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The line dividing good and evil cuts through the heart of every human being. And who is willing to destroy a piece of his own heart?",
+      "longExcerpt": "In this book there are no fictitious names, no composite characters. Everything I have written is the truth. The Gulag was a country within a country, an almost invisible empire of prison camps that stretched from the Arctic to Central Asia. How many millions passed through? We will never know. The organs of state security arrested people at night. A knock on the door. The Black Maria waiting outside. The interrogations, the torture, the false confessions. Then the sentence: ten years, twenty-five years. For what crime? Article 58: counter-revolutionary activity. What did you do? Nothing. And that is the truth. Most were guilty of nothing. The line dividing good and evil cuts through the heart of every human being. And who is willing to destroy a piece of his own heart? This monumental work exposed the Soviet labor camp system and earned Solzhenitsyn the Nobel Prize.",
+      "keywords": [
+        "solzhenitsyn",
+        "gulag",
+        "soviet union",
+        "prison camps",
+        "totalitarianism",
+        "russia"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "Thomas P. Whitney",
+        "originalPublication": "Paris, 1973",
+        "modernSource": "Harper & Row"
+      }
+    },
+    {
+      "id": "havel-power-powerless",
+      "title": "The Power of the Powerless",
+      "author": "Václav Havel",
+      "year": 1978,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "You do not become a 'dissident' just because you decide one day to take up this most unusual career. You are thrown into it by your personal sense of responsibility.",
+      "longExcerpt": "Imagine the manager of a fruit-and-vegetable shop places in his window the slogan: 'Workers of the world, unite!' Why does he do it? He does it because these things must be done if one is to get along in life. It is one of the thousands of details that guarantee him a relatively tranquil life. Obviously the greengrocer does not put the slogan in his window because he has a particular interest in the world's workers uniting. But what if he refuses? He will be in trouble. His superiors will harass him. He could lose his job. The greengrocer lives within a lie. But he can choose to live within the truth. You do not become a 'dissident' just because you decide one day to take up this most unusual career. You are thrown into it by your personal sense of responsibility. This essay by the Czech playwright who became president theorized resistance to communist totalitarianism.",
+      "keywords": [
+        "havel",
+        "czechoslovakia",
+        "dissent",
+        "communism",
+        "power",
+        "resistance"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Prague, October 1978 (samizdat)",
+        "modernSource": "Hutchinson, 1985"
+      }
+    },
+    {
+      "id": "gramsci-prison-notebooks",
+      "title": "Prison Notebooks",
+      "author": "Antonio Gramsci",
+      "year": 1948,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The old world is dying, and the new world struggles to be born: now is the time of monsters.",
+      "longExcerpt": "All men are intellectuals, but not all men have in society the function of intellectuals. Every man carries on some form of intellectual activity; he participates in a particular conception of the world. The old world is dying, and the new world struggles to be born: now is the time of monsters. The state is the entire complex of practical and theoretical activities with which the ruling class not only justifies and maintains its dominance but manages to win the active consent of those over whom it rules. This is what I call hegemony. Hegemony is not maintained by force alone but by cultural leadership. The ruling class must create a common sense, a way of seeing the world that makes its rule seem natural and inevitable. These notebooks, written while imprisoned by Mussolini's fascist regime (1929-1935), profoundly influenced Western Marxism and political theory.",
+      "keywords": [
+        "gramsci",
+        "hegemony",
+        "italy",
+        "marxism",
+        "prison",
+        "fascism"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "Joseph A. Buttigieg",
+        "originalPublication": "Turin, 1948-1951 (written 1929-1935)",
+        "modernSource": "Columbia University Press"
+      }
+    },
+    {
+      "id": "solidarity-21-demands",
+      "title": "The 21 Demands of Solidarity",
+      "author": "Solidarity Trade Union",
+      "year": 1980,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "We demand the right to form independent trade unions. We demand the right to strike. We demand freedom of speech and press.",
+      "longExcerpt": "The Inter-Factory Strike Committee presents the following demands: 1. Acceptance of free trade unions independent of the Communist Party and of enterprises. 2. A guarantee of the right to strike. 3. Freedom of speech, the press and publication. 4. A return of former rights to people dismissed from work after the 1970 and 1976 strikes. 5. Publication in the mass media of information about the formation of the Inter-factory Strike Committee. 6. The undertaking of actions aimed at bringing the country out of its crisis situation. 7. Payment of strike pay for the duration of the strike. These demands, posted at the Lenin Shipyard in Gdańsk, Poland, launched the Solidarity movement that ultimately toppled communist rule in Eastern Europe.",
+      "keywords": [
+        "solidarity",
+        "poland",
+        "walesa",
+        "trade union",
+        "communism",
+        "strike"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Gdańsk, Poland, August 1980",
+        "modernSource": "Solidarity Archives"
+      }
+    },
+    {
+      "id": "remarque-all-quiet",
+      "title": "All Quiet on the Western Front",
+      "author": "Erich Maria Remarque",
+      "year": 1929,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "This book is to be neither an accusation nor a confession. It will simply tell of a generation of men who, even though they may have escaped its shells, were destroyed by the war.",
+      "longExcerpt": "This book is to be neither an accusation nor a confession, and least of all an adventure, for death is not an adventure to those who stand face to face with it. It will simply try to tell of a generation of men who, even though they may have escaped its shells, were destroyed by the war. We are at rest five miles behind the front. Yesterday we were relieved, and now our bellies are full of beef and haricot beans. We are satisfied and at peace. I am young, I am twenty years old; yet I know nothing of life but despair, death, fear, and fatuous superficiality cast over an abyss of sorrow. This anti-war novel, based on Remarque's WWI experiences, was banned and burned by the Nazis but became one of the greatest war novels ever written.",
+      "keywords": [
+        "remarque",
+        "world war i",
+        "anti-war",
+        "germany",
+        "western front",
+        "literature"
+      ],
+      "isStandard": true,
+      "citation": {
+        "translator": "A.W. Wheen",
+        "originalPublication": "Berlin, 1929",
+        "modernSource": "Public domain"
       }
     }
   ]

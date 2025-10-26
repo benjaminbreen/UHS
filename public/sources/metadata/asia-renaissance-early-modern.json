@@ -5,11 +5,12 @@
       "title": "Akbarnama",
       "author": "Abu'l-Fazl ibn Mubarak",
       "year": 1590,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "His Majesty's sole aim is to bring the world under universal peace.",
+      "excerpt": "His Majesty's sole aim is to bring the world under universal peace. He looks upon all religions with one eye of favor. Whether Hindu, Muslim, Zoroastrian, or Christian, he makes no distinction. From every region learned men arrive at his court, and his illustrious assembly is the meeting-place of the upright of all nations. The toleration that His Majesty displays towards all religions has been the cause of concord in the country. His Majesty is constantly ordering the abolition of oppressive taxes and regulations. He has abolished the tax on pilgrims. He has done away with the poll-tax on non-Muslims.",
+      "longExcerpt": "His Majesty's sole aim is to bring the world under universal peace. He looks upon all religions with one eye of favor. Whether Hindu, Muslim, Zoroastrian, or Christian, he makes no distinction. From every region learned men arrive at his court, and his illustrious assembly is the meeting-place of the upright of all nations. The toleration that His Majesty displays towards all religions has been the cause of concord in the country. His Majesty is constantly ordering the abolition of oppressive taxes and regulations. He has abolished the tax on pilgrims. He has done away with the poll-tax on non-Muslims. Those who return to Islam from other faiths are not received with honor, nor are those who go from Islam to other faiths pursued with enmity. His Majesty believes that to worship the One True God, to treat one's fellows with kindness, to honor one's parents, and to be grateful for benefits received—this is true religion. He summons theologians of every creed to debate before him, and gives audience to learned men of all persuasions—Sufi mystics, Brahmin priests, Jesuit fathers, Zoroastrian magi. In his court, Hindus and Muslims serve side by side, and men are promoted according to their merit rather than their faith. The nobles of his court include both Muslims and Rajputs, and he has married Hindu princesses to cement alliances. His vision is of an empire united not by force of arms alone, but by justice and tolerance.",
       "keywords": [
         "Mughal Empire",
         "Akbar",
@@ -22,7 +23,7 @@
           "keyword": "Fatehpur Sikri",
           "conditions": {
             "culturalZone": "SOUTH_ASIAN",
-            "era": "EARLY_MODERN"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         },
         {
@@ -39,19 +40,19 @@
       },
       "wikisourceTitle": null,
       "internetArchiveId": "akbarnama00abul",
-      "isStandard": true,
-      "longExcerpt": "His Majesty's sole aim is to bring the world under universal peace. This historical source from 1590 provides valuable insight into the asia region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "isStandard": true
     },
     {
       "id": "sikh-guru-granth",
       "title": "Guru Granth Sahib",
       "author": "Sikh Gurus",
       "year": 1604,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "Truth is high, but higher still is truthful living.",
+      "excerpt": "Truth is high, but higher still is truthful living. God is one, but He has innumerable forms. He is the creator of all and He himself takes the human form. There is no Hindu, there is no Muslim. We are all children of God. The temple and the mosque are the same. Pilgrimages, fasts, alms, and charity bring little merit; it is meditation on the Lord's Name which is supreme. Woman and man, God's light shines in all, and we are all born from the same source. Recognize the Lord's light within all, and do not ask about caste or creed.",
+      "longExcerpt": "Truth is high, but higher still is truthful living. God is one, but He has innumerable forms. He is the creator of all and He himself takes the human form. There is no Hindu, there is no Muslim. We are all children of God. The temple and the mosque are the same. Pilgrimages, fasts, alms, and charity bring little merit; it is meditation on the Lord's Name which is supreme. Woman and man, God's light shines in all, and we are all born from the same source. Recognize the Lord's light within all, and do not ask about caste or creed. There is no caste or class in the next world. If you love Him, attach yourself to Him; all else is mere display. What use are purifying baths at pilgrimage places, if the heart is still impure? One who reflects on the Word of the Guru shall be redeemed, while the faithless are caught in the noose of death. Without the Name, all religious rituals are useless. Without loving devotion, all learning is in vain. The mind which does not remember the Lord's Name is impure and filthy. One who earns honestly and shares with others, knows the right path. Breaking the bonds of worldly attachment, one merges in the Supreme Being. The Guru's word is the inner music; through it, one finds the gate of salvation.",
       "keywords": [
         "Sikhism",
         "religion",
@@ -79,19 +80,19 @@
         "modernSource": "SikhNet"
       },
       "wikisourceTitle": null,
-      "internetArchiveId": "gurugranthsahib00sikh",
-      "longExcerpt": "Truth is high, but higher still is truthful living. This historical source from 1604 provides valuable insight into the asia region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "internetArchiveId": "gurugranthsahib00sikh"
     },
     {
       "id": "hagakure",
       "title": "Hagakure",
       "author": "Yamamoto Tsunetomo",
       "year": 1716,
-      "era": "EARLY_MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "The way of the Samurai is found in death. When it comes to either/or, there is only the quick choice of death.",
+      "excerpt": "The way of the Samurai is found in death. When it comes to either/or, there is only the quick choice of death. It is not particularly difficult. Be determined and advance. To say that dying without reaching one's aim is to die a dog's death is the frivolous way of sophisticates. When pressed with the choice of life or death, it is not necessary to gain one's aim. We all want to live. And in large part we make our logic according to what we like. But not having attained our aim and continuing to live is cowardice. This is a thin dangerous line. To die without gaining one's aim is a dog's death and fanaticism. But there is no shame in this.",
+      "longExcerpt": "The way of the Samurai is found in death. When it comes to either/or, there is only the quick choice of death. It is not particularly difficult. Be determined and advance. To say that dying without reaching one's aim is to die a dog's death is the frivolous way of sophisticates. When pressed with the choice of life or death, it is not necessary to gain one's aim. We all want to live. And in large part we make our logic according to what we like. But not having attained our aim and continuing to live is cowardice. This is a thin dangerous line. To die without gaining one's aim is a dog's death and fanaticism. But there is no shame in this. This is the substance of the Way of the Samurai. If by setting one's heart right every morning and evening, one is able to live as though his body were already dead, he gains freedom in the Way. His whole life will be without blame, and he will succeed in his calling. A man who has attained the Way of strategy need not rely on the strength of his sword arm. He subdues the enemy without unsheathing his blade. In the words of the ancients, 'When one has made a decision to kill a person, even if one cannot succeed, there is no way but to keep trying. One must not think of the impossibility of succeeding.'",
       "keywords": [
         "samurai",
         "bushido",
@@ -104,7 +105,7 @@
           "keyword": "Edo",
           "conditions": {
             "culturalZone": "EAST_ASIAN",
-            "era": "EARLY_MODERN"
+            "era": "RENAISSANCE_EARLY_MODERN"
           }
         }
       ],
@@ -115,21 +116,20 @@
       },
       "wikisourceTitle": null,
       "internetArchiveId": "hagakure00yama",
-      "isStandard": true,
-      "longExcerpt": "The way of the Samurai is found in death. When it comes to either/or, there is only the quick choice of death. This historical source from 1716 provides valuable insight into the asia region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "isStandard": true
     },
     {
       "id": "baburnama",
       "title": "The Baburnama",
       "author": "Babur",
       "year": 1526,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EAST_ASIAN",
         "SOUTH_ASIAN"
       ],
-      "excerpt": "In the month of Ramadan of the year 899 (1494) and in the twelfth year of my age, I became ruler in the country of Fergana. The province of Fergana is situated in the fifth climate and at the limit of settled habitation.",
-      "longExcerpt": "In the month of Ramadan of the year 899 (1494) and in the twelfth year of my age, I became ruler in the country of Fergana. The province of Fergana is situated in the fifth climate and at the limit of settled habitation. This remarkable autobiography from 1526 by the founder of the Mughal Empire combines military history with detailed observations of nature, poetry, and the customs of India.",
+      "excerpt": "In the month of Ramadan of the year 899 (1494) and in the twelfth year of my age, I became ruler in the country of Fergana. The province of Fergana is situated in the fifth climate and at the limit of settled habitation. It is a small country, abounding in grain and fruits. Surrounded on all sides by mountains, nowhere can one ride out of it without ascending. In the east is Kashgar, in the west Samarkand, in the south the Hindu Kush mountains, beyond which lies Kabul. The town of Andijan is the capital of Fergana. The climate is temperate, the water supply good.",
+      "longExcerpt": "In the month of Ramadan of the year 899 (1494) and in the twelfth year of my age, I became ruler in the country of Fergana. The province of Fergana is situated in the fifth climate and at the limit of settled habitation. It is a small country, abounding in grain and fruits. Surrounded on all sides by mountains, nowhere can one ride out of it without ascending. In the east is Kashgar, in the west Samarkand, in the south the Hindu Kush mountains, beyond which lies Kabul. The town of Andijan is the capital of Fergana. The climate is temperate, the water supply good. There are many types of good fruit, especially grapes and melons. When the melons of Fergana ripen, no good melon is brought from elsewhere. In the gardens there are trees of all kinds, particularly the orange and the lemon. The people of Fergana are all Turks; not a man in town or bazar but knows Turkish. The speech of the people is the same as that set down in the Chaghatay books. It is the predominant tongue. Fergana is a fine country. It is like a garden for beauty and fertility. All round it are mountains, and in whatever direction one goes, one has to go uphill to get out of it.",
       "keywords": [
         "Mughal",
         "India",
@@ -152,13 +152,13 @@
       "title": "The Ain-i-Akbari",
       "author": "Abu'l-Fazl ibn Mubarak",
       "year": 1590,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "EAST_ASIAN",
         "SOUTH_ASIAN"
       ],
-      "excerpt": "His Majesty maintains that it is a religious act to worship fire and light; surly, ignorant men consider it forgetfulness of God. But the deep-sighted know better.",
-      "longExcerpt": "His Majesty maintains that it is a religious act to worship fire and light; surly, ignorant men consider it forgetfulness of God. But the deep-sighted know better. This comprehensive administrative document from 1590 details every aspect of Akbar's empire, from revenue systems to court ceremonies, providing an unparalleled view of Mughal governance.",
+      "excerpt": "His Majesty maintains that it is a religious act to worship fire and light; surly, ignorant men consider it forgetfulness of God. But the deep-sighted know better. The King has divided the day and night into four portions for prayer. At mid-day he worships the sun. In the evening, at sunset, he worships fire with incense and sandalwood. His Majesty directs the affairs of the empire from the Jharoka window, where petitioners may approach. The revenue administration is organized in detailed fashion. Land is surveyed and taxed according to cultivation and yield.",
+      "longExcerpt": "His Majesty maintains that it is a religious act to worship fire and light; surly, ignorant men consider it forgetfulness of God. But the deep-sighted know better. The King has divided the day and night into four portions for prayer. At mid-day he worships the sun. In the evening, at sunset, he worships fire with incense and sandalwood. His Majesty directs the affairs of the empire from the Jharoka window, where petitioners may approach. The revenue administration is organized in detailed fashion. Land is surveyed and taxed according to cultivation and yield. The empire is divided into provinces, each with its own governor and administrative staff. In the Ain, the regulations for the entire imperial household are given, from the stables to the treasury. There are detailed accounts of weights and measures, the organization of the army, and the hierarchy of imperial servants. The imperial household is divided into departments, each with its superintendent. There is the department of the treasury, the armory, the wardrobe, the jewel house, the library, the workshops for craftsmen. The army is organized in a decimal system. The mansabdars are ranked by the number of cavalry they must maintain. Every officer must present his troops for muster and their horses for branding. Revenue is collected from the peasants according to careful assessment of land quality and crop yields.",
       "keywords": [
         "Akbar",
         "Mughal",
@@ -174,6 +174,153 @@
         "translator": "H. Blochmann",
         "originalPublication": "India, 1590",
         "modernSource": "Asiatic Society of Bengal, 1873"
+      }
+    },
+    {
+      "id": "hunminjeongeum",
+      "title": "Hunminjeongeum (The Proper Sounds for the Instruction of the People)",
+      "author": "King Sejong the Great",
+      "year": 1446,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The sounds of our country's language are different from those of China and are not confluent with those of Chinese characters. Therefore, among the ignorant people, there have been many who, having something they want to put into words, have been unable to express their feelings in writing. I am distressed because of this, and have newly designed 28 letters. I wish only that everyone practice them at their ease and make them convenient for daily use. The initial sounds are seventeen consonants: ㄱ is modeled after the shape of the root of the tongue blocking the throat, ㄴ is modeled after the shape of the tongue touching the upper palate, ㅁ is modeled after the shape of the mouth, ㅅ is modeled after the shape of the teeth, ㅇ is modeled after the shape of the throat.",
+      "longExcerpt": "The sounds of our country's language are different from those of China and are not confluent with those of Chinese characters. Therefore, among the ignorant people, there have been many who, having something they want to put into words, have been unable to express their feelings in writing. I am distressed because of this, and have newly designed 28 letters. I wish only that everyone practice them at their ease and make them convenient for daily use. The initial sounds are seventeen consonants: ㄱ is modeled after the shape of the root of the tongue blocking the throat, ㄴ is modeled after the shape of the tongue touching the upper palate, ㅁ is modeled after the shape of the mouth, ㅅ is modeled after the shape of the teeth, ㅇ is modeled after the shape of the throat. The letters that make up the syllables are grouped together as if in blocks, not written linearly. This is to make them easier to understand and read. The middle sounds, or vowels, are eleven in number. Heaven, earth, and man are the basis of all things. The round form ㆍ represents heaven, the flat form ㅡ represents earth, and the upright form ㅣ represents man. From these three fundamental forms, all other vowel sounds are derived by combination. The design of the letters is based on the principle that the shape of each consonant reflects the shape of the speech organs when pronouncing that sound. This is a scientific and systematic approach to writing, making the alphabet easy to learn and use.",
+      "keywords": [
+        "korea",
+        "hangul",
+        "alphabet",
+        "sejong",
+        "literacy",
+        "writing",
+        "language"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Joseon",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Korea, 1446",
+        "modernSource": "National Museum of Korea"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "ricci-china-journals",
+      "title": "Journals of Matteo Ricci: China in the Sixteenth Century",
+      "author": "Matteo Ricci",
+      "year": 1615,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The Chinese are a people who above all others esteem learning and scholarship. The literati are honored above all others. No one would dare to treat a book with disrespect. They use no punishment against scholars save to take away their degree. The Chinese are naturally inclined to peaceful arts and have little regard for military glory. They believe that nothing more glorious can be achieved than to govern a kingdom with wisdom and justice. The whole country is divided into fifteen provinces, each governed by a viceroy. Justice is administered according to written laws.",
+      "longExcerpt": "The Chinese are a people who above all others esteem learning and scholarship. The literati are honored above all others. No one would dare to treat a book with disrespect. They use no punishment against scholars save to take away their degree. The Chinese are naturally inclined to peaceful arts and have little regard for military glory. They believe that nothing more glorious can be achieved than to govern a kingdom with wisdom and justice. The whole country is divided into fifteen provinces, each governed by a viceroy. Justice is administered according to written laws. The judges are all scholars who have passed examinations in the classics. The Chinese write their books from top to bottom of the page, beginning at the right and proceeding to the left. Their characters are not letters making up words, but each character represents a single word or idea. The number of these characters is prodigious, amounting to over seventy thousand, though a scholar needs to know only about ten thousand. Every three years examinations are held throughout the empire. Those who pass become eligible for office. The competition is fierce, and only a small number succeed. The emperor himself takes no wife save one, whom they call the empress, but he is permitted many concubines. All civil and military offices are filled by examination and merit, not by hereditary right.",
+      "keywords": [
+        "jesuit",
+        "china",
+        "ming dynasty",
+        "ricci",
+        "confucianism",
+        "missionary",
+        "cultural exchange"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Beijing",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN"
+          }
+        }
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "chinasixteenthce00ricc",
+      "citation": {
+        "translator": "Louis J. Gallagher",
+        "originalPublication": "Rome, 1615",
+        "modernSource": "Random House, 1953"
+      },
+      "isStandard": true
+    },
+    {
+      "id": "sakoku-edict",
+      "title": "Japanese Exclusion Edict",
+      "author": "Tokugawa Iemitsu",
+      "year": 1635,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Japanese ships are strictly forbidden to leave for foreign countries. No Japanese is permitted to go abroad. If there is anyone who attempts to do so secretly, he must be executed. The vessel involved must be impounded and its owner arrested. If any Japanese returns from overseas after residing there, he must be put to death. Furthermore, all Namban (Portuguese and Spanish) who propagate the doctrine of the Catholics, or bear this scandalous name, shall be imprisoned in the Onra, or common jail of the town. The whole race of the Portuguese, with their mothers, nurses, and whatever belongs to them, shall be banished to Macao.",
+      "longExcerpt": "Japanese ships are strictly forbidden to leave for foreign countries. No Japanese is permitted to go abroad. If there is anyone who attempts to do so secretly, he must be executed. The vessel involved must be impounded and its owner arrested. If any Japanese returns from overseas after residing there, he must be put to death. Furthermore, all Namban (Portuguese and Spanish) who propagate the doctrine of the Catholics, or bear this scandalous name, shall be imprisoned in the Onra, or common jail of the town. The whole race of the Portuguese, with their mothers, nurses, and whatever belongs to them, shall be banished to Macao. Whoever presumes to bring a letter from abroad, or to return after he has been sent from abroad, shall die with his family. No nobleman nor any soldier shall be suffered to purchase anything from the foreigner. No single trading city shall be permitted to purchase Chinese goods directly from Chinese merchants in China. All Chinese who wish to trade must come to the port of Nagasaki. Any person who propagates the Christian religion or who bears the Christian name shall be sent to Nagasaki and punished. The same rule applies to those who knowingly receive or shelter such persons. Rewards shall be given to informers. The Shogun's government will enforce these regulations strictly to preserve the peace and order of the realm.",
+      "keywords": [
+        "japan",
+        "sakoku",
+        "tokugawa",
+        "isolation",
+        "christianity",
+        "persecution",
+        "closed country"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Edo",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        },
+        {
+          "keyword": "Nagasaki",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Edo, Japan, 1635",
+        "modernSource": "Japan: A Documentary History, M.E. Sharpe, 2005"
+      }
+    },
+    {
+      "id": "kangxi-sacred-edict",
+      "title": "The Sacred Edict of the Kangxi Emperor",
+      "author": "Kangxi Emperor",
+      "year": 1670,
+      "era": "RENAISSANCE_EARLY_MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Esteem most highly filial piety and brotherly submission, in order to give due importance to the social relations. Behave with generosity toward your kindred, in order to illustrate harmony and benignity. Cultivate peace and concord in your neighborhoods, in order to prevent quarrels and litigations. Recognize the importance of husbandry and the culture of the mulberry tree, in order to ensure a sufficiency of clothing and food. Show that you prize moderation and economy, in order to prevent the lavish waste of your means. Give weight to academies and schools, in order to make correct the practice of the scholar.",
+      "longExcerpt": "Esteem most highly filial piety and brotherly submission, in order to give due importance to the social relations. Behave with generosity toward your kindred, in order to illustrate harmony and benignity. Cultivate peace and concord in your neighborhoods, in order to prevent quarrels and litigations. Recognize the importance of husbandry and the culture of the mulberry tree, in order to ensure a sufficiency of clothing and food. Show that you prize moderation and economy, in order to prevent the lavish waste of your means. Give weight to academies and schools, in order to make correct the practice of the scholar. Extirpate strange principles, in order to exalt the correct doctrine. Lecture on the laws, in order to warn the ignorant and obstinate. Elucidate propriety and yielding courtesy, in order to make manners and customs good. Labor diligently at your proper callings, in order to stabilize the will of the people. Instruct sons and younger brothers, in order that they may be preserved from doing what is wrong. Put a stop to false accusations, in order to protect the good and honest. Warn against sheltering deserters, in order to avoid being involved in their punishment. Fully remit your taxes, in order to avoid being pressed for payment. Unite in hundreds and tithings, in order to put an end to thefts and robbery. Remove enmity and anger, in order to show the importance due to the person and life.",
+      "keywords": [
+        "kangxi",
+        "qing dynasty",
+        "china",
+        "confucianism",
+        "sacred edict",
+        "moral instruction",
+        "governance"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Beijing",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "F.W. Baller",
+        "originalPublication": "Beijing, 1670",
+        "modernSource": "China Inland Mission, 1907"
       }
     }
   ]

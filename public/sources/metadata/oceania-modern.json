@@ -7,19 +7,378 @@
       "year": 1992,
       "excerpt": "The fiction of terra nullius is overturned. Indigenous land rights existed before and survive colonization.",
       "longExcerpt": "The High Court declares: Australia was not terra nullius - empty land - when Europeans arrived. The Meriam people of Murray Island have continuously occupied and cultivated their land for generations beyond memory. Their native title survives. This overturns two centuries of legal doctrine. Eddie Mabo did not live to see this victory, but his name echoes across the continent. From the Torres Strait to Tasmania, indigenous peoples reclaim what was never lost, only denied - their connection to country.",
-      "era": "MODERN",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["mabo", "terra nullius", "native title", "australia", "indigenous rights", "high court"],
+      "wikisourceTitle": "Mabo_v_Queensland",
+      "citation": {
+        "originalPublication": "Canberra, June 3, 1992",
+        "modernSource": "High Court of Australia (1992) 175 CLR 1"
+      }
+    },
+    {
+      "id": "treaty-of-waitangi",
+      "title": "Treaty of Waitangi",
+      "author": "British Crown and Māori Chiefs",
+      "year": 1840,
+      "excerpt": "Her Majesty the Queen of England confirms to the Chiefs and Tribes of New Zealand the full possession of their Lands and Estates.",
+      "longExcerpt": "Her Majesty the Queen of England confirms and guarantees to the Chiefs and Tribes of New Zealand and to the respective families and individuals thereof the full exclusive and undisturbed possession of their Lands and Estates Forests Fisheries and other properties which they may collectively or individually possess. The Queen of England extends to the Natives of New Zealand Her royal protection. This treaty, signed between the British Crown and Māori chiefs, remains foundational to New Zealand's constitutional arrangements and continues to shape debates about indigenous rights, resource management, and sovereignty in modern New Zealand.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["treaty of waitangi", "maori", "new zealand", "sovereignty", "indigenous", "crown"],
+      "wikisourceTitle": "Treaty_of_Waitangi",
+      "citation": {
+        "originalPublication": "Waitangi, New Zealand, February 6, 1840",
+        "modernSource": "Archives New Zealand"
+      }
+    },
+    {
+      "id": "kokoda-campaign",
+      "title": "Kokoda Trail Campaign Dispatches",
+      "author": "Australian War Memorial Records",
+      "year": 1942,
+      "excerpt": "Our soldiers fought the Japanese in conditions of unimaginable hardship along the Owen Stanley Range.",
+      "longExcerpt": "The fighting along the Kokoda Trail represented some of the most desperate combat of the Pacific War. Australian troops, many of them inexperienced militia, faced battle-hardened Japanese forces in mountainous jungle terrain. Supplies had to be carried by hand. The wounded were evacuated on stretchers through steep, muddy paths. Malaria and dysentery claimed as many casualties as combat. Yet the Australian forces, with crucial support from Papuan carriers known as 'fuzzy wuzzy angels,' held the line and pushed the Japanese back, preventing the capture of Port Moresby. The Kokoda campaign became a foundational myth in Australian military history, representing courage against overwhelming odds.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["kokoda", "trail", "australia", "world war ii", "papua new guinea", "japanese", "fuzzy wuzzy angels"],
+      "citation": {
+        "originalPublication": "Papua New Guinea, July-November 1942",
+        "modernSource": "Australian War Memorial Archives"
+      }
+    },
+    {
+      "id": "anzac-gallipoli-dispatch",
+      "title": "ANZAC Landing at Gallipoli - Official Dispatch",
+      "author": "General Sir Ian Hamilton",
+      "year": 1915,
+      "excerpt": "The Australian and New Zealand Army Corps has hoisted the British flag at the point we now call ANZAC Cove.",
+      "longExcerpt": "The Australian and New Zealand Army Corps has hoisted the British flag in the position assigned to them. The ANZAC troops, in their first major military action, have landed under murderous Turkish fire on steep cliffs instead of the intended beaches. Despite appalling casualties and confusion, they have established a foothold. The courage and tenacity shown by these colonial troops has exceeded all expectations. What was planned as a swift operation to capture the Dardanelles has become a desperate fight for survival on narrow beaches overlooked by Turkish positions. Though the Gallipoli campaign ended in evacuation and is counted a defeat, April 25th became ANZAC Day, the most solemn day of remembrance in Australia and New Zealand.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["anzac", "gallipoli", "australia", "new zealand", "world war i", "turkey", "landing"],
+      "citation": {
+        "originalPublication": "Gallipoli, April 25, 1915",
+        "modernSource": "Australian War Memorial Official History"
+      }
+    },
+    {
+      "id": "papua-new-guinea-independence",
+      "title": "Papua New Guinea Independence Speech",
+      "author": "Michael Somare",
+      "year": 1975,
+      "excerpt": "We are a Melanesian people. This is our land. Today we take our place among the independent nations of the world.",
+      "longExcerpt": "Fellow Papua New Guineans: We are a Melanesian people. This is our land, and we have lived here for more than 30,000 years. Today, September 16, 1975, we take our place among the independent nations of the world. We inherit a country of extraordinary diversity - more than 700 languages, hundreds of distinct cultures, from the Highlands to the coast, from small islands to vast river systems. Our challenge is to forge unity while celebrating this diversity, to develop our economy while protecting our land, to embrace the modern world while honoring our traditions. This speech by Papua New Guinea's first Prime Minister marked independence from Australia, creating the largest and most diverse Pacific Island nation.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["papua new guinea", "independence", "somare", "melanesia", "australia", "decolonization"],
+      "citation": {
+        "originalPublication": "Port Moresby, September 16, 1975",
+        "modernSource": "Papua New Guinea National Archives"
+      }
+    },
+    {
+      "id": "fiji-independence-speech",
+      "title": "Fiji Independence Declaration",
+      "author": "Ratu Sir Kamisese Mara",
+      "year": 1970,
+      "excerpt": "We are all Fijians now, whatever our race or origin. We stand united under the Southern Cross.",
+      "longExcerpt": "This is a day of joy and celebration for all the people of Fiji. After ninety-six years of British colonial rule, we stand as an independent nation. We are all Fijians now, whatever our race or origin - indigenous Fijians, Indo-Fijians, Europeans, Chinese, and all others who call these islands home. We face the future with confidence, knowing that our diversity is our strength. We stand united under the Southern Cross, committed to democracy, racial harmony, and economic progress. Our location in the Pacific gives us a special role as a bridge between nations. This speech by Fiji's first Prime Minister on October 10, 1970, expressed hopes for multiracial harmony that would be tested by subsequent coups.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["fiji", "independence", "mara", "pacific islands", "britain", "multiracial", "decolonization"],
+      "citation": {
+        "originalPublication": "Suva, Fiji, October 10, 1970",
+        "modernSource": "Fiji National Archives"
+      }
+    },
+    {
+      "id": "bikini-atoll-petition",
+      "title": "Petition to the United Nations from the People of Bikini",
+      "author": "Bikini Islanders",
+      "year": 1956,
+      "excerpt": "We pray that you will help us so that we may live again in our own land and be happy as we were before.",
+      "longExcerpt": "To the United Nations: We, the people of Bikini, believe that we were not treated fairly by the United States in connection with the atomic and hydrogen bomb tests. We were forced to leave our islands. They told us it would be for the good of all mankind. They promised we could return. Now our islands are poisoned with radiation. Our coconut trees are dead. The fish are dangerous to eat. We have been moved from island to island, never finding a new home. Our children are born in exile. We pray that you will help us so that we may live again in our own land and be happy as we were before. This petition highlighted the human cost of U.S. nuclear testing in the Pacific, where 67 atomic and hydrogen bombs were detonated at Bikini Atoll between 1946-1958.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["bikini atoll", "nuclear testing", "marshall islands", "united states", "radiation", "displacement", "pacific"],
+      "citation": {
+        "originalPublication": "Marshall Islands, 1956",
+        "modernSource": "United Nations Trusteeship Council Records"
+      }
+    },
+    {
+      "id": "apology-to-stolen-generations",
+      "title": "National Apology to the Stolen Generations",
+      "author": "Prime Minister Kevin Rudd",
+      "year": 2008,
+      "excerpt": "We apologise for the laws and policies of successive Parliaments that have inflicted profound grief and loss on our fellow Australians.",
+      "longExcerpt": "Today we honour the Indigenous peoples of this land, the oldest continuing cultures in human history. We reflect on their past mistreatment. We reflect in particular on the mistreatment of those who were Stolen Generations - this blemished chapter in our nation's history. To the mothers and the fathers, the brothers and the sisters, for the breaking up of families and communities, we say sorry. And for the indignity and degradation thus inflicted on a proud people and a proud culture, we say sorry. We the Parliament of Australia respectfully request that this apology be received in the spirit in which it is offered as part of the healing of the nation. This parliamentary apology addressed the forced removal of Aboriginal and Torres Strait Islander children from their families between 1910-1970.",
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "keywords": ["stolen generations", "apology", "australia", "indigenous", "aboriginal", "kevin rudd", "reconciliation"],
+      "wikisourceTitle": "National_Apology_to_the_Stolen_Generations",
+      "citation": {
+        "originalPublication": "Canberra, Australia, February 13, 2008",
+        "modernSource": "Commonwealth of Australia Parliamentary Debates"
+      }
+    },
+    {
+      "id": "rarotonga-treaty",
+      "title": "South Pacific Nuclear Free Zone Treaty",
+      "author": "South Pacific Forum",
+      "year": 1985,
+      "era": "MODERN_ERA",
       "culturalZones": [
         "OCEANIA"
       ],
+      "excerpt": "The Parties undertake not to manufacture or otherwise acquire, possess or have control over any nuclear explosive device.",
+      "longExcerpt": "The Parties to this Treaty, united in their commitment to a world at peace; deeply concerned about the continuing nuclear arms race and the threat to the environment posed by testing of nuclear weapons; convinced that the establishment of a Nuclear Free Zone in the South Pacific will contribute to the security and well-being of the peoples of the region; the Parties undertake not to manufacture or otherwise acquire, possess or have control over any nuclear explosive device by any means anywhere inside or outside the South Pacific Nuclear Free Zone. Each Party undertakes to prevent the stationing of any nuclear explosive device within its territory. This treaty, also known as the Treaty of Rarotonga, established the South Pacific as a nuclear-weapon-free zone, prohibiting nuclear testing, dumping of nuclear waste, and stationing of nuclear weapons.",
       "keywords": [
-        "mabo",
-        "queensland",
-        "legal",
-        "decision"
+        "rarotonga",
+        "nuclear free zone",
+        "south pacific",
+        "treaty",
+        "disarmament",
+        "pacific islands"
       ],
-      "wikisourceTitle": "Mabo_v_Queensland_Legal_Decision",
+      "wikisourceTitle": "South_Pacific_Nuclear_Free_Zone_Treaty",
+      "isStandard": true,
       "citation": {
-        "originalPublication": "High Court of Australia, 1992"
+        "originalPublication": "Rarotonga, Cook Islands, August 6, 1985",
+        "modernSource": "United Nations Treaty Collection"
+      }
+    },
+    {
+      "id": "katherine-mansfield-garden-party",
+      "title": "The Garden Party",
+      "author": "Katherine Mansfield",
+      "year": 1922,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "And after all the weather was ideal. They could not have had a more perfect day for a garden-party if they had ordered it.",
+      "longExcerpt": "And after all the weather was ideal. They could not have had a more perfect day for a garden-party if they had ordered it. Windless, warm, the sky without a cloud. Only the blue was veiled with a haze of light gold, as it is sometimes in early summer. The gardener had been up since dawn, mowing the lawns and sweeping them. As for the roses, you could not help feeling they understood that roses are the only flowers that impress people at garden-parties; the only flowers that everybody is certain of knowing. This modernist short story by New Zealand writer Katherine Mansfield explores class consciousness and mortality through a young woman's perspective on a society garden party disrupted by a working-class death nearby.",
+      "keywords": [
+        "katherine mansfield",
+        "new zealand",
+        "modernism",
+        "short story",
+        "class",
+        "literature"
+      ],
+      "wikisourceTitle": "The_Garden_Party_(Mansfield)",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "London, 1922",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "moruroa-protest-declaration",
+      "title": "Declaration Against French Nuclear Testing",
+      "author": "Pacific Islands Forum",
+      "year": 1995,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "We condemn France's resumption of nuclear testing at Moruroa Atoll. Our ocean is not France's laboratory.",
+      "longExcerpt": "The leaders of the Pacific Islands Forum condemn in the strongest possible terms France's decision to resume nuclear testing at Moruroa and Fangataufa atolls in French Polynesia. Between 1966 and 1996, France conducted 193 nuclear tests in our region, contaminating our ocean, our fish, our people. Our ocean is not France's laboratory. The health effects on Polynesian populations continue to emerge decades later. We stand in solidarity with our Tahitian brothers and sisters who have suffered the consequences of these tests. We call on France to immediately cease all nuclear testing and to provide full compensation and medical care to all affected populations. This represents the collective voice of Pacific Island nations against the resumption of French nuclear tests in 1995-96.",
+      "keywords": [
+        "moruroa",
+        "nuclear testing",
+        "france",
+        "french polynesia",
+        "tahiti",
+        "pacific",
+        "protest"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Pacific Islands Forum, 1995",
+        "modernSource": "Pacific Islands Forum Secretariat"
+      }
+    },
+    {
+      "id": "aboriginal-tent-embassy",
+      "title": "Aboriginal Tent Embassy Manifesto",
+      "author": "Aboriginal Activists",
+      "year": 1972,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "We demand land rights, not handouts. We are the traditional owners of this land. We never ceded sovereignty.",
+      "longExcerpt": "On January 26, 1972, Australia Day, four Aboriginal men erected a beach umbrella on the lawns opposite Parliament House in Canberra and proclaimed it the Aboriginal Embassy. We demand land rights, not handouts. We demand recognition of our status as the traditional owners of this land. We never ceded sovereignty through treaty or conquest. We demand compensation for lands stolen, for lives destroyed, for cultures suppressed. We demand control over our own affairs - our health, our education, our future. The Australian government treats foreign diplomats with respect while ignoring the First Peoples of this continent. If we are foreigners in our own land, then we need an embassy. The Tent Embassy became a powerful symbol of Aboriginal resistance and land rights activism, remaining on the Parliament House lawns for decades.",
+      "keywords": [
+        "aboriginal tent embassy",
+        "land rights",
+        "australia",
+        "indigenous",
+        "sovereignty",
+        "protest",
+        "canberra"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Canberra, Australia, January 26, 1972",
+        "modernSource": "National Museum of Australia"
+      }
+    },
+    {
+      "id": "witi-ihimaera-whale-rider",
+      "title": "The Whale Rider",
+      "author": "Witi Ihimaera",
+      "year": 1987,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "In the old days, the land felt a great emptiness. It was waiting. Waiting to be filled. Waiting for someone to love it. Waiting for a leader.",
+      "longExcerpt": "In the old days, the land felt a great emptiness. It was waiting. Waiting to be filled. Waiting for someone to love it. Waiting for a leader. And so the great whale Paikea came, carrying the ancestor on his back. The whale brought Paikea to New Zealand, to Whangara. And from Paikea descended the chiefs of Whangara, generation after generation. The firstborn son always became chief. But then a girl was born. Kahu. And her grandfather, who loved the old ways, could not accept that a girl might be the chosen one. But the whales knew. They had always known. This novel by Māori author Witi Ihimaera tells a story of tradition, leadership, and a girl's connection to her ancestors and the natural world.",
+      "keywords": [
+        "witi ihimaera",
+        "whale rider",
+        "maori",
+        "new zealand",
+        "tradition",
+        "indigenous",
+        "literature"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Auckland, New Zealand, 1987",
+        "modernSource": "Heinemann"
+      }
+    },
+    {
+      "id": "henry-lawson-drover-wife",
+      "title": "The Drover's Wife",
+      "author": "Henry Lawson",
+      "year": 1892,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "The two-roomed house is built of round timber, slabs, and stringy-bark, and floored with split slabs. A big bark kitchen standing at one end is larger than the house itself.",
+      "longExcerpt": "The two-roomed house is built of round timber, slabs, and stringy-bark, and floored with split slabs. A big bark kitchen standing at one end is larger than the house itself, verandah-less, dingy, and built of odds and ends. The woman's husband is a drover. He has been away for six months. She is alone with her four children in the Australian bush. Tonight there is a snake under the house. She sits up all night, watching, waiting, a stick in her hand. The children sleep. The dog watches with her. This is her life: drought, flood, fire, snakes, loneliness. Her husband will return, or he won't. The bush does not care. She endures. This iconic Australian short story captures the harsh realities of bush life and became a foundational text of Australian literature.",
+      "keywords": [
+        "henry lawson",
+        "drover's wife",
+        "australia",
+        "bush",
+        "outback",
+        "literature",
+        "pioneer"
+      ],
+      "wikisourceTitle": "The_Drover's_Wife",
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Sydney, 1892",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "maori-protest-1975",
+      "title": "Māori Land March Declaration",
+      "author": "Te Rōpū Mātakite / Whina Cooper",
+      "year": 1975,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "Not one more acre of Māori land shall be taken. We march to Parliament to say: the land is our life.",
+      "longExcerpt": "Not one more acre of Māori land shall be taken. We march from Te Hāpua to Wellington, from the far north to Parliament, to deliver this message to the government: the land is our life. When the Treaty of Waitangi was signed in 1840, Māori owned all of New Zealand - 66 million acres. Today we own less than 3 million acres. The rest has been taken - sold under duress, confiscated after the Land Wars, taken by the Crown through unjust legislation. We have been dispossessed of our birthright. Now we say: enough. We march led by our kuia, Whina Cooper, 79 years old, walking the length of the North Island. Thousands join us. We demand that the government stop the alienation of Māori land. We demand justice. This 1975 land march sparked a Māori renaissance and led to the creation of the Waitangi Tribunal.",
+      "keywords": [
+        "maori",
+        "land march",
+        "new zealand",
+        "whina cooper",
+        "indigenous rights",
+        "treaty of waitangi"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Wellington, New Zealand, October 13, 1975",
+        "modernSource": "New Zealand National Archives"
+      }
+    },
+    {
+      "id": "white-australia-policy",
+      "title": "Immigration Restriction Act 1901",
+      "author": "Commonwealth of Australia",
+      "year": 1901,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "The immigration of prohibited immigrants is forbidden. Any person who fails the dictation test in any European language may be prohibited.",
+      "longExcerpt": "The immigration of prohibited immigrants is forbidden. The Minister may order a dictation test to be applied to any immigrant. The test consists of not less than fifty words in any prescribed language. Any person who fails this test may be deemed a prohibited immigrant. This Act establishes what became known as the White Australia Policy. Its purpose is clear: to preserve Australia as a nation of British character and to exclude Asian, Pacific Islander, and other non-white immigrants. The dictation test, ostensibly language-neutral, is administered in obscure European languages to ensure failure by non-European applicants. This policy shaped Australian immigration for seventy years until its gradual dismantling began in the 1960s and formal abolition in 1973.",
+      "keywords": [
+        "white australia",
+        "immigration",
+        "racism",
+        "australia",
+        "policy",
+        "discrimination"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Canberra, December 23, 1901",
+        "modernSource": "Commonwealth of Australia"
+      }
+    },
+    {
+      "id": "reeves-long-white-cloud",
+      "title": "The Long White Cloud",
+      "author": "William Pember Reeves",
+      "year": 1898,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "New Zealand is distinguished as the country which has done more than any other to atone to a brave and interesting race for the wrongs inflicted on them by colonisation.",
+      "longExcerpt": "New Zealand is distinguished as the country which has done more than any other to atone to a brave and interesting race for the wrongs inflicted on them by colonisation. The Māori, though defeated in war, were never enslaved. The Treaty of Waitangi, for all its flaws, established principles of partnership. Māori retained their land rights - or should have. The wars that followed were tragic but less genocidal than conflicts elsewhere. Māori representation in Parliament was established in 1867. Schools were built. Yet still, injustice persisted. Land was taken through legal chicanery and military force. Disease devastated Māori populations. By 1896, Māori numbered only 42,000, down from perhaps 200,000 in 1840. Many believed they were a dying race. But they would prove resilient. This early history of New Zealand reflects Victorian assumptions about colonization while documenting Māori-Pākehā relations.",
+      "keywords": [
+        "new zealand",
+        "reeves",
+        "history",
+        "maori",
+        "colonization",
+        "treaty of waitangi"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "London, 1898",
+        "modernSource": "Public domain"
+      }
+    },
+    {
+      "id": "pacific-way-declaration",
+      "title": "The Pacific Way",
+      "author": "Ratu Sir Kamisese Mara",
+      "year": 1970,
+      "era": "MODERN_ERA",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "The Pacific Way means consensus, consultation, and the avoidance of confrontation. It is our traditional method of decision-making.",
+      "longExcerpt": "The Pacific Way means consensus, consultation, and the avoidance of confrontation. It is our traditional method of decision-making, and it should guide us as we build modern Pacific nations. We do not need to copy Western parliamentary procedures exactly. We can adapt democracy to Pacific values. In our traditional societies, chiefs consulted with their people. Decisions were made through discussion until agreement was reached. No one was forced. No one was excluded. This is the Pacific Way. As we gain independence from colonial powers, we must remember: we are not Europeans. We are Pacific Islanders. Our cultures have survived for thousands of years. We should preserve what is valuable in our traditions while adopting what is useful from the modern world. This philosophy, articulated by Fiji's prime minister, influenced post-independence governance across the Pacific Islands.",
+      "keywords": [
+        "pacific way",
+        "fiji",
+        "mara",
+        "pacific islands",
+        "consensus",
+        "tradition",
+        "governance"
+      ],
+      "isStandard": true,
+      "citation": {
+        "originalPublication": "Suva, Fiji, 1970s",
+        "modernSource": "Pacific Islands Forum publications"
       }
     }
   ]

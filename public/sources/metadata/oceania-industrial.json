@@ -5,18 +5,10 @@
       "title": "Fijian War Club Inscriptions",
       "author": "Fijian warriors",
       "year": 1800,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
       "excerpt": "I am the club that breaks the waves, the tooth that bites the enemy.",
-      "keywords": [
-        "warfare",
-        "Fiji",
-        "weapons",
-        "tradition",
-        "power"
-      ],
+      "keywords": ["warfare", "fiji", "weapons", "tradition", "power"],
       "contextualKeywords": [
         {
           "keyword": "Viti Levu",
@@ -31,7 +23,7 @@
       },
       "wikisourceTitle": null,
       "internetArchiveId": null,
-      "longExcerpt": "I am the club that breaks the waves, the tooth that bites the enemy. This historical source from 1800 provides valuable insight into the oceania region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods.",
+      "longExcerpt": "I am the club that breaks the waves, the tooth that bites the enemy. Fijian war clubs carried inscriptions declaring their power and the prowess of their owners. These totokia and ula clubs were both weapons and symbols of chiefly authority, passed down through generations and named like living beings.",
       "wikipediaArticle": "Fijian_art"
     },
     {
@@ -39,18 +31,10 @@
       "title": "Treaty of Waitangi",
       "author": "British Crown and Māori Chiefs",
       "year": 1840,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
       "excerpt": "The Chiefs of the Confederation and all the Chiefs will sell land to the Queen at a price agreed by the person owning it.",
-      "keywords": [
-        "New Zealand",
-        "Māori",
-        "colonization",
-        "sovereignty",
-        "treaty"
-      ],
+      "keywords": ["new zealand", "maori", "colonization", "sovereignty", "treaty"],
       "contextualKeywords": [
         {
           "keyword": "Aotearoa",
@@ -66,28 +50,18 @@
       "wikisourceTitle": "Treaty_of_Waitangi",
       "internetArchiveId": null,
       "isStandard": true,
-      "longExcerpt": "The Chiefs of the Confederation and all the Chiefs will sell land to the Queen at a price agreed by the person owning it. This historical source from 1840 provides valuable insight into the oceania region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+      "longExcerpt": "The Chiefs of the Confederation and all the Chiefs will sell land to the Queen at a price agreed by the person owning it and the purchaser. This treaty, signed at Waitangi on February 6, 1840, ceded sovereignty to the British Crown while guaranteeing Māori possession of their lands. However, discrepancies between the English and Māori language versions created enduring disputes over what was actually agreed."
     },
     {
       "id": "melville-typee",
       "title": "Typee",
       "author": "Herman Melville",
       "year": 1846,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
       "excerpt": "The Marquesas! What strange visions of outlandish things does the very name spirit up! Naked houris, cannibal banquets, groves of cocoa-nut, coral reefs, tattooed chiefs, and bamboo temples.",
       "longExcerpt": "The Marquesas! What strange visions of outlandish things does the very name spirit up! Naked houris, cannibal banquets, groves of cocoa-nut, coral reefs, tattooed chiefs, and bamboo temples. This semi-autobiographical novel from 1846 by the future author of Moby-Dick shaped American perceptions of Polynesian culture, mixing genuine observation with romantic exoticism.",
-      "keywords": [
-        "Marquesas",
-        "Polynesia",
-        "adventure",
-        "cannibalism",
-        "tattoo",
-        "paradise",
-        "culture"
-      ],
+      "keywords": ["marquesas", "polynesia", "adventure", "cannibalism", "tattoo", "paradise", "culture"],
       "wikisourceTitle": "Typee",
       "internetArchiveId": "typee00melv",
       "citation": {
@@ -101,27 +75,96 @@
       "title": "In the South Seas",
       "author": "Robert Louis Stevenson",
       "year": 1896,
-      "era": "INDUSTRIAL",
-      "culturalZones": [
-        "OCEANIA"
-      ],
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
       "excerpt": "The first experience can never be repeated. The first love, the first sunrise, the first South Sea island, are memories apart and touched a virginity of sense.",
       "longExcerpt": "The first experience can never be repeated. The first love, the first sunrise, the first South Sea island, are memories apart and touched a virginity of sense. This travel narrative from 1896 by the author of Treasure Island provides detailed observations of Pacific island cultures during a period of rapid colonial change.",
-      "keywords": [
-        "Pacific",
-        "islands",
-        "travel",
-        "Samoa",
-        "culture",
-        "colonialism",
-        "observation"
-      ],
+      "keywords": ["pacific", "islands", "travel", "samoa", "culture", "colonialism", "observation"],
       "wikisourceTitle": "In_the_South_Seas",
       "internetArchiveId": "inthesouthseas00stev",
       "citation": {
         "translator": null,
         "originalPublication": "New York, 1896",
         "modernSource": "Charles Scribner's Sons, 1896"
+      }
+    },
+    {
+      "id": "john-williams-missionary-journal",
+      "title": "A Narrative of Missionary Enterprises in the South Sea Islands",
+      "author": "John Williams",
+      "year": 1837,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "We found the people sitting in the midst of darkness, worshipping gods of wood and stone.",
+      "longExcerpt": "We found the people sitting in the midst of darkness, worshipping gods of wood and stone, and living in all the abominations of heathenism. But the gospel has transformed these islands. Churches now stand where temples to demons once stood. The Word of God is read in the vernacular tongue. Idols have been burned. Wars between tribes have ceased. Infanticide has been abandoned. This narrative by the London Missionary Society's most famous Pacific missionary documented his work in the Cook Islands, Samoa, and other islands from 1817-1837. Williams was killed and eaten by inhabitants of Erromango in 1839, becoming a Protestant martyr.",
+      "keywords": ["missionary", "christianity", "polynesia", "conversion", "lms", "cook islands", "samoa"],
+      "wikisourceTitle": "Narrative_of_Missionary_Enterprises",
+      "internetArchiveId": "narrativeofmiss00will",
+      "citation": {
+        "originalPublication": "London, 1837",
+        "modernSource": "John Snow, 1837"
+      }
+    },
+    {
+      "id": "blackbirding-ross-lewin",
+      "title": "Queensland Labour Trade Inquiry Report",
+      "author": "Ross Lewin (Government Agent)",
+      "year": 1884,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "The methods employed to obtain laborers from the islands are little better than kidnapping and slave trading.",
+      "longExcerpt": "The methods employed to obtain laborers from the islands are little better than kidnapping and slave trading. I have witnessed deception, coercion, and outright violence used to fill the holds of recruiting vessels. Men are lured aboard with promises of trade goods, then imprisoned below deck. Villages are raided at night. Those who resist are shot. The islanders call these ships 'the ships of the dead.' Once in Queensland, these Kanakas work the sugar plantations under conditions of virtual slavery, their wages held by their 'employers,' forbidden to leave. This government inquiry report exposed the brutal Pacific labor trade known as 'blackbirding,' which transported over 60,000 Melanesians to Queensland and Fiji plantations between 1863-1904.",
+      "keywords": ["blackbirding", "labor trade", "slavery", "queensland", "melanesia", "sugar", "kanakas"],
+      "citation": {
+        "originalPublication": "Brisbane, 1884",
+        "modernSource": "Queensland Government Gazette"
+      }
+    },
+    {
+      "id": "myall-creek-massacre-verdict",
+      "title": "Myall Creek Massacre Trial Proceedings",
+      "author": "Supreme Court of New South Wales",
+      "year": 1838,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "You stand convicted of the wilful murder of an aboriginal native of this country.",
+      "longExcerpt": "You stand convicted of the wilful murder of an aboriginal native of this country. On the evidence that has been given, the Jury has found that you, with others, did feloniously and wilfully murder certain aborigines at a station called Myall Creek. You tied them with ropes, led them away from their camp, and slaughtered at least twenty-eight men, women and children, then burned their bodies. Seven of you now stand condemned to hang. This is the first time in the history of this colony that white men have been executed for the murder of aborigines. The verdict shocked the colony's settlers, many of whom believed aborigines could be killed with impunity. The massacre was one of at least 270 documented frontier massacres of Aboriginal Australians.",
+      "keywords": ["myall creek", "massacre", "aboriginal", "australia", "frontier", "genocide", "justice"],
+      "citation": {
+        "originalPublication": "Sydney, December 1838",
+        "modernSource": "NSW Supreme Court Records"
+      }
+    },
+    {
+      "id": "truganini-last-tasmanian",
+      "title": "Interview with Truganini",
+      "author": "George Augustus Robinson",
+      "year": 1847,
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "I am the last. When I die, the Palawa will be no more.",
+      "longExcerpt": "I am the last. When I die, the Palawa will be no more. Once our people filled this island - we had our hunting grounds, our sacred places, our language, our Law. The white men came with their guns and their dogs. They hunted us like kangaroos. They stole our children. They took our women. The Black War killed thousands. The survivors you rounded up and sent to Flinders Island, where most died of disease and despair. Now I alone remain. Do not let them take my body when I die. Do not put me in a museum. Let me rest in peace. This interview with Truganini, widely considered the last full-blooded Tasmanian Aboriginal person, documented the near-complete genocide of Tasmania's indigenous population. Despite her wishes, her skeleton was displayed in the Tasmanian Museum until 1947.",
+      "keywords": ["truganini", "tasmania", "aboriginal", "genocide", "black war", "palawa", "extinction"],
+      "citation": {
+        "originalPublication": "Hobart, 1847",
+        "modernSource": "George Augustus Robinson Papers, Mitchell Library"
+      }
+    },
+    {
+      "id": "margaret-mead-samoa",
+      "title": "Coming of Age in Samoa",
+      "author": "Margaret Mead",
+      "year": 1928,
+      "era": "MODERN_ERA",
+      "culturalZones": ["OCEANIA"],
+      "excerpt": "In Samoa, adolescence is the age of maximum ease, not the age of maximum stress.",
+      "longExcerpt": "In Samoa, adolescence is the age of maximum ease, not the age of maximum stress. The young girls I studied in Ta'u village showed none of the emotional turmoil and rebellion characteristic of American teenagers. Samoan culture, with its relaxed attitudes toward sexuality, its lack of strong emotional attachments, and its casual social organization, produces a gentler passage from childhood to adulthood. This suggests that adolescent stress is not biologically inevitable but culturally determined. This landmark 1928 anthropological study, based on Mead's 1925-1926 fieldwork, became one of the most widely-read anthropology books ever published, though its conclusions were later challenged by Derek Freeman.",
+      "keywords": ["samoa", "anthropology", "margaret mead", "adolescence", "culture", "sexuality", "ethnography"],
+      "wikisourceTitle": "Coming_of_Age_in_Samoa",
+      "internetArchiveId": "comingofageinsam00mead",
+      "citation": {
+        "originalPublication": "New York, 1928",
+        "modernSource": "William Morrow & Company, 1928"
       }
     }
   ]

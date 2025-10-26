@@ -5,9 +5,9 @@
       "title": "Chronicle of Potosí",
       "author": "Bartolomé Arzáns de Orsúa y Vela",
       "year": 1705,
-      "excerpt": "This mountain of silver has consumed eight million Indian lives in its hellish mines.",
-      "longExcerpt": "Potosí, richest city in the Americas, built on a mountain of silver and indigenous blood. The Cerro Rico has yielded enough silver to build a bridge to Spain, they say. But at what cost? Eight million Indians have died in these mines, chewing coca leaves to survive the altitude, the cold, the sixteen-hour shifts. The city has 160,000 souls, 36 churches, 14 dance halls, 800 professional gamblers. Prices exceed those of Paris. A chicken costs eight reales, an Indian life is worth nothing.",
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "excerpt": "It is commonly said that enough silver has been taken from this mountain to build a bridge from Potosí to Madrid, and I believe that enough has been taken to build two bridges. The Imperial Villa of Potosí was founded in the year 1545. In 1611 it had 160,000 inhabitants. There are thirty-six magnificently built and adorned churches. The wealth extracted from the mines is beyond calculation. The Indians work in the mines under the mita system, forced labor that consumes their lives. Many die from the cold, the altitude, and the dangerous work. They chew coca leaves constantly to endure the hardship.",
+      "longExcerpt": "It is commonly said that enough silver has been taken from this mountain to build a bridge from Potosí to Madrid, and I believe that enough has been taken to build two bridges. The Imperial Villa of Potosí was founded in the year 1545. In 1611 it had 160,000 inhabitants. There are thirty-six magnificently built and adorned churches. The wealth extracted from the mines is beyond calculation. The Indians work in the mines under the mita system, forced labor that consumes their lives. Many die from the cold, the altitude, and the dangerous work. They chew coca leaves constantly to endure the hardship. The city is situated at such an altitude that the air is thin and strangers suffer from soroche, the mountain sickness. In the marketplace, goods from all parts of the world are sold. Silks from China, linens from Holland, tapestries from Flanders. The wealth of Potosí is legendary, yet the lives of the Indians who extract this wealth are worth less than the mules that carry the ore. It is said that more than eight million Indians have perished in these mines since they were opened.",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
@@ -25,12 +25,12 @@
       "title": "Letter to King Manuel I",
       "author": "Pero Vaz de Caminha",
       "year": 1500,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "Esta terra, Senhor, me parece que da ponta que mais contra o sul vimos até à outra ponta que contra o norte vem, será tamanha que haverá nela vinte ou vinte e cinco léguas por costa. Os homens são pardos, maneira de avermelhados, de bons rostos e bons narizes.",
-      "longExcerpt": "Esta terra, Senhor, me parece que da ponta que mais contra o sul vimos até à outra ponta que contra o norte vem, será tamanha que haverá nela vinte ou vinte e cinco léguas por costa. Os homens são pardos, maneira de avermelhados, de bons rostos e bons narizes. This letter from 1500 represents the first written description of Brazil by the Portuguese, documenting the discovery of the land and first encounters with indigenous peoples.",
+      "excerpt": "Esta terra, Senhor, me parece que da ponta que mais contra o sul vimos até à outra ponta que contra o norte vem, será tamanha que haverá nela vinte ou vinte e cinco léguas por costa. Os homens são pardos, maneira de avermelhados, de bons rostos e bons narizes, bem feitos. Andam nus, sem cobertura alguma. Não fazem o menor caso de encobrir ou de mostrar suas vergonhas; e nisso têm tanta inocência como em mostrar o rosto. Traziam arcos nas mãos, e suas setas. Vinham todos rijamente em direção ao batel; e Nicolau Coelho lhes fez sinal que pousassem os arcos. E eles os depuseram.",
+      "longExcerpt": "Esta terra, Senhor, me parece que da ponta que mais contra o sul vimos até à outra ponta que contra o norte vem, será tamanha que haverá nela vinte ou vinte e cinco léguas por costa. Os homens são pardos, maneira de avermelhados, de bons rostos e bons narizes, bem feitos. Andam nus, sem cobertura alguma. Não fazem o menor caso de encobrir ou de mostrar suas vergonhas; e nisso têm tanta inocência como em mostrar o rosto. Traziam arcos nas mãos, e suas setas. Vinham todos rijamente em direção ao batel; e Nicolau Coelho lhes fez sinal que pousassem os arcos. E eles os depuseram. Ali não pôde deles haver fala nem entendimento que aproveitasse, por o mar quebrar na costa. Somente arremessou-lhe um barrete vermelho e uma carapuça de linho que levava na cabeça, e um sombreiro preto. E um deles lhe arremessou um sombreiro de penas de ave, compridas, com uma copazinha de penas vermelhas e pardas, como de papagaio. A terra em si é de muito bons ares, assim frios e temperados. Águas são muitas; infindas. E em tal maneira é graciosa que, querendo-a aproveitar, dar-se-á nela tudo, por bem das águas que tem.",
       "keywords": [
         "Brazil",
         "discovery",
@@ -53,12 +53,12 @@
       "title": "Royal Commentaries of the Incas",
       "author": "Inca Garcilaso de la Vega",
       "year": 1609,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "I was born in the great city of Cuzco, head and court of the kingdom and empire of Peru. My father was Spanish, and my mother was an Inca princess, daughter of Tupac Inca Yupanqui.",
-      "longExcerpt": "I was born in the great city of Cuzco, head and court of the kingdom and empire of Peru. My father was Spanish, and my mother was an Inca princess, daughter of Tupac Inca Yupanqui. This mestizo chronicler's work from 1609 provides a unique perspective on Inca history and culture, combining indigenous oral traditions with Spanish colonial documentation.",
+      "excerpt": "I was born in the great city of Cuzco, head and court of the kingdom and empire of Peru. My father was Spanish, and my mother was an Inca princess, daughter of Tupac Inca Yupanqui. The Inca kings, in their government, did not build upon foundations of sand but upon foundations of stone, for their whole republic was based on truth and equity, and their laws were designed to prevent idleness, which is the root of all evil. They ordered that everyone should work for a living and that no one should eat bread earned by another's sweat.",
+      "longExcerpt": "I was born in the great city of Cuzco, head and court of the kingdom and empire of Peru. My father was Spanish, and my mother was an Inca princess, daughter of Tupac Inca Yupanqui. The Inca kings, in their government, did not build upon foundations of sand but upon foundations of stone, for their whole republic was based on truth and equity, and their laws were designed to prevent idleness, which is the root of all evil. They ordered that everyone should work for a living and that no one should eat bread earned by another's sweat. The Incas divided the lands into three parts: one for the Sun, one for the king, and one for the people. The lands of the Sun and the king were cultivated first, and the produce was stored in royal and sacred storehouses. The people's lands were divided among the married men according to the number of their wives and children. The Incas had judges to punish crimes, and they punished with great severity those who committed theft or murder. They had no jails, for they said that men who committed crimes should not be maintained at the expense of the republic, but should be put to death immediately. The empire stretched from the province of Pasto in the north to the river Maule in the south, a distance of more than a thousand leagues.",
       "keywords": [
         "Inca",
         "Peru",
@@ -81,12 +81,12 @@
       "title": "Letters from Brazil",
       "author": "José de Anchieta",
       "year": 1560,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "Os gentios desta terra são muito numerosos e de várias nações e línguas. Vivem em aldeias com suas mulheres e filhos, sem rei nem lei, apenas seguindo seus costumes antigos.",
-      "longExcerpt": "Os gentios desta terra são muito numerosos e de várias nações e línguas. Vivem em aldeias com suas mulheres e filhos, sem rei nem lei, apenas seguindo seus costumes antigos. These letters from Jesuit missionary José de Anchieta provide detailed observations of indigenous Brazilian cultures in the 16th century, documenting languages, customs, and early missionary activities.",
+      "excerpt": "Os gentios desta terra são muito numerosos e de várias nações e línguas. Vivem em aldeias com suas mulheres e filhos, sem rei nem lei, apenas seguindo seus costumes antigos. Têm uma língua que quase toda a costa entende, mas há também outras línguas entre eles que não se entendem. Suas casas são compridas, cobertas de palma ou cascas de árvores, nas quais vivem muitas famílias juntas. Comem carne humana dos inimigos que captivam na guerra, e dizem que não o fazem por gula, mas por vingança.",
+      "longExcerpt": "Os gentios desta terra são muito numerosos e de várias nações e línguas. Vivem em aldeias com suas mulheres e filhos, sem rei nem lei, apenas seguindo seus costumes antigos. Têm uma língua que quase toda a costa entende, mas há também outras línguas entre eles que não se entendem. Suas casas são compridas, cobertas de palma ou cascas de árvores, nas quais vivem muitas famílias juntas. Comem carne humana dos inimigos que captivam na guerra, e dizem que não o fazem por gula, mas por vingança. Não têm nenhum conhecimento de Deus, nem adoram coisa alguma, somente os trovões chamam Tupã, que quer dizer coisa divina. Creem em muitas agourações e sonhos. Têm feiticeiros, os quais dizem ter comunicação com os demônios. Quando adoecem, não usam remédios, mas chamam os feiticeiros, que chegam com grandes cerimônias e curas. A terra é muito sã e de bons ares. Há muitas frutas silvestres de que os índios vivem, e muitos palmitais dos quais tiram vinho. Os portugueses que aqui vivem fazem engenhos de açúcar, dos quais já há muitos na costa, e cada dia se fazem mais, porque a terra é muito própria para canas.",
       "keywords": [
         "Brazil",
         "Jesuits",
@@ -109,12 +109,12 @@
       "title": "La Araucana",
       "author": "Alonso de Ercilla",
       "year": 1569,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "No las damas, amor, no gentilezas de caballeros canto enamorados, ni las muestras, regalos y ternezas de amorosos afectos y cuidados, mas el valor, los hechos, las proezas de aquellos españoles esforzados.",
-      "longExcerpt": "No las damas, amor, no gentilezas de caballeros canto enamorados, ni las muestras, regalos y ternezas de amorosos afectos y cuidados, mas el valor, los hechos, las proezas de aquellos españoles esforzados. This epic poem from 1569 chronicles the Spanish conquest of Chile and the fierce resistance of the Mapuche people, written by a Spanish soldier who participated in the campaigns.",
+      "excerpt": "No las damas, amor, no gentilezas de caballeros canto enamorados, ni las muestras, regalos y ternezas de amorosos afectos y cuidados, mas el valor, los hechos, las proezas de aquellos españoles esforzados, que a la cerviz de Arauco no domada pusieron duro yugo por la espada. Chile, fértil provincia y señalada en la región antártica famosa, de remotas naciones respetada por fuerte, principal y poderosa; la gente que produce es tan granada, tan soberbia, gallarda y belicosa, que no ha sido por rey jamás regida ni a extranjero dominio sometida.",
+      "longExcerpt": "No las damas, amor, no gentilezas de caballeros canto enamorados, ni las muestras, regalos y ternezas de amorosos afectos y cuidados, mas el valor, los hechos, las proezas de aquellos españoles esforzados, que a la cerviz de Arauco no domada pusieron duro yugo por la espada. Chile, fértil provincia y señalada en la región antártica famosa, de remotas naciones respetada por fuerte, principal y poderosa; la gente que produce es tan granada, tan soberbia, gallarda y belicosa, que no ha sido por rey jamás regida ni a extranjero dominio sometida. Es Chile Norte Sur de gran longura, costa del nuevo mar, del Sur llamado; tendrá del Este a Oeste de angostura cien millas, por lo más ancho tomado. Bajo del polo Antártico en altura de veinte y siete grados, prolongado hasta do el mar océano y chileno mezclan sus aguas por angosto seno. La tierra es tan soberbia y tan extraña que puede hablar con las ya celebradas, el terreno es espacioso y de buen temple, el aire claro, alegre, y semejante al nuestro de España, muy cercano.",
       "keywords": [
         "Chile",
         "Mapuche",
@@ -137,12 +137,12 @@
       "title": "History of the Imperial Villa of Potosí",
       "author": "Bartolomé Arzáns de Orsúa",
       "year": 1705,
-      "era": "RENAISSANCE_EARLY-MODERN",
+      "era": "RENAISSANCE_EARLY_MODERN",
       "culturalZones": [
         "SOUTH_AMERICAN"
       ],
-      "excerpt": "This mountain of silver has enriched the world and cost the lives of countless Indians who died extracting its treasures. The wealth flows to Spain while the workers perish in the depths.",
-      "longExcerpt": "This mountain of silver has enriched the world and cost the lives of countless Indians who died extracting its treasures. The wealth flows to Spain while the workers perish in the depths. This chronicle from 1705 documents the brutal reality of colonial silver mining in Potosí, Bolivia, one of the richest and deadliest mining operations in history.",
+      "excerpt": "Esta montaña de plata ha enriquecido al mundo entero y ha costado la vida de innumerables indios que murieron extrayendo sus tesoros. La riqueza fluye a España mientras los trabajadores perecen en las profundidades. En las entrañas del cerro trabajan más de ocho mil indios de mita, que entran los lunes antes del amanecer y no salen hasta el sábado al anochecer. Llevan velas de sebo para alumbrarse en aquellas tinieblas y trabajan descalzos, pisando el agua helada que brota de las vetas. Muchos mueren allí mismo, sepultados por los derrumbes, o quedan tullidos para siempre.",
+      "longExcerpt": "Esta montaña de plata ha enriquecido al mundo entero y ha costado la vida de innumerables indios que murieron extrayendo sus tesoros. La riqueza fluye a España mientras los trabajadores perecen en las profundidades. En las entrañas del cerro trabajan más de ocho mil indios de mita, que entran los lunes antes del amanecer y no salen hasta el sábado al anochecer. Llevan velas de sebo para alumbrarse en aquellas tinieblas y trabajan descalzos, pisando el agua helada que brota de las vetas. Muchos mueren allí mismo, sepultados por los derrumbes, o quedan tullidos para siempre. Los mitayos bajan por escaleras de cuero hasta profundidades de más de doscientas varas, cargando a las espaldas los costales de mineral que pesan tres arrobas. El aire es tan escaso en aquellas galerías que las velas apenas arden y los hombres jadean como bestias. Los azogueros y dueños de minas se enriquecen mientras los indios consumen sus vidas. Se dice que con la plata extraída de este cerro se podría hacer un puente desde Potosí hasta Madrid, y con los huesos de los indios muertos se podría hacer otro puente igual.",
       "keywords": [
         "Potosí",
         "Bolivia",

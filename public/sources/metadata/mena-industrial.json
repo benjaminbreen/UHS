@@ -7,7 +7,7 @@
       "year": 1869,
       "excerpt": "The waters of the Mediterranean and Red Sea now mingle where once lay only desert sand.",
       "longExcerpt": "Today marks a new epoch in world commerce. The Empress Eugénie's yacht leads a procession of ships through the canal. French engineers, Egyptian laborers - a million and a half of them - have carved this waterway through the desert. The journey from London to Bombay is halved. East meets West not through conquest but commerce. Yet the fellaheen who dug with their bare hands, who died by thousands from cholera, are absent from the celebrations.",
-      "era": "INDUSTRIAL",
+      "era": "INDUSTRIAL_ERA",
       "culturalZones": [
         "MENA"
       ],
@@ -19,6 +19,190 @@
       "wikisourceTitle": "Opening_of_the_Suez_Canal",
       "citation": {
         "originalPublication": "Illustrated London News Correspondent, 1869"
+      }
+    },
+    {
+      "id": "shahnameh-rostam-sohrab",
+      "title": "Shahnameh: The Tragedy of Rostam and Sohrab",
+      "author": "Ferdowsi",
+      "year": 1010,
+      "excerpt": "It came to pass that on a certain day Rostam arose from his couch, and his mind was filled with forebodings.",
+      "longExcerpt": "It came to pass that on a certain day Rostam arose from his couch, and his mind was filled with forebodings. He bethought him of his son whom he had not seen, and he sighed in his spirit. Now Sohrab, his son, was troubled in spirit likewise, for he yearned after his father. And he questioned his mother concerning him, but she spake unto him words of comfort only. Yet Sohrab would not be comforted, and he went before Afrasiyab and craved his aid to find his father. This epic from Persia's greatest poet tells of unwitting father-son combat, embodying themes of fate, honor, and tragedy central to Persian culture for a millennium.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["shahnameh", "ferdowsi", "persian", "epic", "rostam", "sohrab", "iran", "poetry"],
+      "wikisourceTitle": "Shahnama_of_Firdausi",
+      "internetArchiveId": "cu31924026460285",
+      "citation": {
+        "translator": "Arthur George Warner & Edmond Warner",
+        "originalPublication": "Persia, c. 1010 CE",
+        "modernSource": "Kegan Paul, Trench, Trübner & Co., 1905-1925"
+      }
+    },
+    {
+      "id": "persian-constitution-1906",
+      "title": "Supplement to the Constitution of Persia",
+      "author": "Persian National Assembly (Majles)",
+      "year": 1907,
+      "excerpt": "The people of Persia are to enjoy equal rights before the Law.",
+      "longExcerpt": "Article 1. The official religion of Persia is Islam, according to the orthodox Jaafari doctrine of the Ithna Ashariyyah... Article 8. The people of Persia are to enjoy equal rights before the Law. Article 20. All publications, except heretical books and matters hurtful to the perspicuous religion, are free and exempt from censorship. Article 21. Societies and associations which are not productive of mischief to Religion or the State are free and exempt from interference. This revolutionary document from 1906-1907 established Persia's first constitution, limiting the absolute power of the Shah and guaranteeing civil rights during the Constitutional Revolution.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["persian", "constitution", "revolution", "iran", "majles", "democracy", "tehran", "constitutional"],
+      "wikisourceTitle": "Persian_Constitution_of_1906",
+      "citation": {
+        "originalPublication": "Tehran, December 30, 1906 & October 7, 1907",
+        "modernSource": "E.G. Browne translation, Cambridge University Press, 1910"
+      }
+    },
+    {
+      "id": "ibn-battuta-isfahan",
+      "title": "The Travels of Ibn Battuta in Persia",
+      "author": "Ibn Battuta",
+      "year": 1327,
+      "excerpt": "Isfahan is one of the largest and fairest of cities, but it is now in ruins for the greater part.",
+      "longExcerpt": "Isfahan is one of the largest and fairest of cities, but it is now in ruins for the greater part. The cause of this was the feud between the Sunnis and the Shi'ites, which continues still among them to this day, so that they never cease to fight. The bazaars however are magnificent. One bazaar is reserved for the jewelers; in it I counted three hundred and fifty jewel-cutting shops, all owned by Jews. In this city I met the pious Sheikh Majd ad-Din, dwelling in a hermitage outside the town, and I stayed with him for three days. This account from the great medieval Moroccan traveler provides rare eyewitness testimony of 14th century Persia under Mongol rule.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["ibn battuta", "isfahan", "persia", "travels", "mongols", "bazaar", "iran", "medieval"],
+      "wikisourceTitle": "Travels_of_Ibn_Battuta",
+      "internetArchiveId": "travelsofib00battuoft",
+      "citation": {
+        "translator": "H.A.R. Gibb",
+        "originalPublication": "Morocco/Persia, 1327",
+        "modernSource": "Cambridge University Press, 1958-1971"
+      }
+    },
+    {
+      "id": "rubaiyat-omar-khayyam",
+      "title": "Rubáiyát of Omar Khayyám",
+      "author": "Omar Khayyám",
+      "year": 1120,
+      "excerpt": "A Book of Verses underneath the Bough, A Jug of Wine, a Loaf of Bread—and Thou...",
+      "longExcerpt": "A Book of Verses underneath the Bough, A Jug of Wine, a Loaf of Bread—and Thou Beside me singing in the Wilderness— Oh, Wilderness were Paradise enow! The Worldly Hope men set their Hearts upon Turns Ashes—or it prospers; and anon, Like Snow upon the Desert's dusty Face, Lighting a little hour or two—is gone. These quatrains by the Persian mathematician-poet Omar Khayyám, translated by Edward FitzGerald in 1859, celebrate wine, love, and the fleeting nature of existence. FitzGerald's Victorian translation became immensely popular in the English-speaking world.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["rubaiyat", "omar khayyam", "persian", "poetry", "wine", "philosophy", "iran"],
+      "wikisourceTitle": "Rubáiyát_of_Omar_Khayyám_(tr._FitzGerald,_1st_ed.)",
+      "internetArchiveId": "rubaiyatomarkha00fitzgoog",
+      "citation": {
+        "translator": "Edward FitzGerald",
+        "originalPublication": "Persia, c. 1120 CE",
+        "modernSource": "Bernard Quaritch, London, 1859"
+      }
+    },
+    {
+      "id": "tanzimat-reform-edict",
+      "title": "Imperial Rescript of Gülhane (Tanzimat)",
+      "author": "Sultan Abdülmecid I",
+      "year": 1839,
+      "excerpt": "All the world knows that in the first days of the Ottoman monarchy, the glorious precepts of the Koran were always honored.",
+      "longExcerpt": "All the world knows that in the first days of the Ottoman monarchy, the glorious precepts of the Koran and the Laws of the Empire were always honored. Our Empire in consequence increased in strength and greatness. Therefore, full of confidence in the help of the Most High, we deem it right to seek by new institutions to give to the provinces composing the Ottoman Empire the benefit of a good administration. These institutions must principally relate to three points: The guarantees ensuring to our subjects perfect security for life, honor, and fortune. A regular system of assessing and levying taxes. An equally regular system for the levying of troops and the duration of their service. This historic decree launched the Tanzimat reform era, modernizing Ottoman governance.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["tanzimat", "ottoman", "reform", "sultan", "modernization", "turkey", "constitution"],
+      "wikisourceTitle": "Hatt-i_Sharif_of_Gülhane",
+      "citation": {
+        "originalPublication": "Constantinople, November 3, 1839",
+        "modernSource": "Translated in The American Journal of International Law, 1908"
+      }
+    },
+    {
+      "id": "muqaddimah-ibn-khaldun",
+      "title": "The Muqaddimah: An Introduction to History",
+      "author": "Ibn Khaldun",
+      "year": 1377,
+      "excerpt": "The past resembles the future more than one drop of water another.",
+      "longExcerpt": "It should be known that history is a discipline that has a great number of approaches. Its useful aspects are very many. Its goal is distinguished. History makes us acquainted with the conditions of past nations as they are reflected in their national character. It makes us acquainted with the biographies of the prophets and with the dynasties and policies of rulers. The past resembles the future more than one drop of water another. Therefore, it is necessary that the historian possess knowledge of the nature of events and how they come into being. This groundbreaking work by the Tunisian historian is considered one of the first works of social science and philosophy of history.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["muqaddimah", "ibn khaldun", "history", "philosophy", "sociology", "tunisia", "medieval"],
+      "wikisourceTitle": "The_Muqaddimah",
+      "internetArchiveId": "muqaddimahintro01ibnk",
+      "citation": {
+        "translator": "Franz Rosenthal",
+        "originalPublication": "Tunisia, 1377",
+        "modernSource": "Princeton University Press, 1958"
+      }
+    },
+    {
+      "id": "balfour-declaration",
+      "title": "The Balfour Declaration",
+      "author": "Arthur James Balfour",
+      "year": 1917,
+      "excerpt": "His Majesty's government view with favour the establishment in Palestine of a national home for the Jewish people.",
+      "longExcerpt": "Foreign Office, November 2nd, 1917. Dear Lord Rothschild, I have much pleasure in conveying to you, on behalf of His Majesty's Government, the following declaration of sympathy with Jewish Zionist aspirations which has been submitted to, and approved by, the Cabinet. His Majesty's Government view with favour the establishment in Palestine of a national home for the Jewish people, and will use their best endeavours to facilitate the achievement of this object, it being clearly understood that nothing shall be done which may prejudice the civil and religious rights of existing non-Jewish communities in Palestine. This brief letter from British Foreign Secretary Balfour to Lord Rothschild fundamentally shaped the modern Middle East.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["balfour", "declaration", "palestine", "zionism", "britain", "israel", "mandate"],
+      "wikisourceTitle": "Balfour_Declaration_1917",
+      "citation": {
+        "originalPublication": "London, November 2, 1917",
+        "modernSource": "British National Archives"
+      }
+    },
+    {
+      "id": "lady-montagu-ottoman-letters",
+      "title": "Letters from the Ottoman Empire",
+      "author": "Lady Mary Wortley Montagu",
+      "year": 1717,
+      "excerpt": "The Turkish ladies have at least as much wit and civility, nay, liberty, as ladies amongst us.",
+      "longExcerpt": "I went to see the Sultana Hafise, favourite of the late Emperor Mustafa. I was met at the door by two black eunuchs, who led me through a long gallery between two ranks of beautiful young girls. The Sultana herself was dressed in a caftan of gold brocade flowered with silver. The Turkish ladies have at least as much wit and civility, nay, liberty, as ladies amongst us. 'Tis very easy to see they have more liberty than we have. The veil is no restraint, since they can go abroad when they please, and are not obliged to answer questions or give any account of themselves. These vivid letters from the wife of the British ambassador provide rare Western female perspective on 18th-century Ottoman life.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["ottoman", "constantinople", "women", "harem", "turkey", "embassy", "letters"],
+      "wikisourceTitle": "Turkish_Embassy_Letters",
+      "internetArchiveId": "lettersoflady00montuoft",
+      "citation": {
+        "originalPublication": "Constantinople, 1717",
+        "modernSource": "Everyman's Library, 1906"
+      }
+    },
+    {
+      "id": "gordon-khartoum-journal",
+      "title": "The Journals of Major-Gen. C. G. Gordon at Khartoum",
+      "author": "Charles George Gordon",
+      "year": 1884,
+      "excerpt": "Dec 14. We are daily expecting British troops. The game is up, and Rule Britannia.",
+      "longExcerpt": "December 14, 1884. We are daily expecting British troops. We are ready to hold out forty days with ease. The game is up, and Rule Britannia. I am very sorry I cannot write more cheerfully. Our men are in good spirits. The Arabs hover round the lines like wolves. At any moment they may swoop down on the south fort. We have 60,000 rounds of ammunition. Food sufficient to 20 January, after which we must either receive relief or prepare to meet our God. These final journal entries from General Gordon, besieged in Khartoum by Mahdist forces, document the last days before the city fell and Gordon was killed, shocking Victorian Britain.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["gordon", "khartoum", "sudan", "mahdi", "siege", "british", "empire"],
+      "wikisourceTitle": "General_Gordon's_Khartoum_Journal",
+      "internetArchiveId": "journalsofmajor00gorduoft",
+      "citation": {
+        "originalPublication": "Khartoum, 1884",
+        "modernSource": "Kegan Paul, Trench & Co., 1885"
+      }
+    },
+    {
+      "id": "urabi-revolution-manifesto",
+      "title": "Manifesto of the Egyptian National Party",
+      "author": "Ahmed Urabi Pasha",
+      "year": 1882,
+      "excerpt": "Egypt for the Egyptians! We demand constitutional government and an end to foreign control.",
+      "longExcerpt": "Egypt for the Egyptians! We are not slaves to be bought and sold by Turkish pashas and European bankers. We demand constitutional government under our Khedive. We demand that native Egyptians be appointed to high office in our own country. For too long, Turks and Circassians have monopolized power while we, the sons of the soil, are excluded. The British and French control our finances, our railroads, our very future. We will no longer submit to dual control. Egypt shall be ruled by Egyptians, not by foreign bondholders. This nationalist manifesto from Colonel Ahmed Urabi led to the 1882 revolution, though it was crushed by British invasion.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["urabi", "egypt", "nationalism", "revolution", "british", "occupation", "khedive"],
+      "citation": {
+        "originalPublication": "Cairo, 1882",
+        "modernSource": "Alexander Schölch, 'Egypt for the Egyptians!'"
+      }
+    },
+    {
+      "id": "tobacco-protest-fatwa",
+      "title": "Fatwa Against the Tobacco Concession",
+      "author": "Mirza Hasan Shirazi",
+      "year": 1891,
+      "excerpt": "Today the use of tobacco and tanbaku is reckoned as war against the Imam of the Age.",
+      "longExcerpt": "In the Name of God the Compassionate and Merciful. Today the use of tobacco and tanbaku in any form is reckoned as war against the Imam of the Age—may God hasten his glad advent. This fatwa from the leading Shi'a cleric Mirza Hasan Shirazi sparked a mass boycott across Persia against the British tobacco monopoly granted by the Shah. Merchants closed their shops, water pipe smokers abandoned their qalians, and even the Shah's wives refused to smoke. Within months, the concession was cancelled—a remarkable early victory of popular protest against foreign economic control in Iran.",
+      "era": "INDUSTRIAL_ERA",
+      "culturalZones": ["MENA"],
+      "keywords": ["tobacco", "protest", "fatwa", "persia", "iran", "shirazi", "concession", "boycott"],
+      "citation": {
+        "originalPublication": "Samarra, Iraq, December 1891",
+        "modernSource": "Nikki Keddie, 'Religion and Rebellion in Iran'"
       }
     }
   ]
