@@ -207,28 +207,28 @@ const ContextualAlert: React.FC<{ message: string }> = ({ message }) => {
             const isAnimal = msg.startsWith('A ');
 
             if (isAnimal) {
-                // Animal nearby - green theme
+                // Animal nearby - success theme
                 return {
-                    background: "bg-gradient-to-r from-green-900/30 to-emerald-900/30",
-                    border: "border-green-600/30",
-                    textColor: "text-green-200",
+                    background: "bg-[var(--color-success)]/10",
+                    border: "border-[var(--color-success)]/30",
+                    textColor: "text-[var(--color-success)]",
                     animation: ""
                 };
             } else {
-                // NPC nearby - blue theme with subtle bounce animation
+                // NPC nearby - accent theme with subtle bounce animation
                 return {
-                    background: "bg-gradient-to-r from-blue-900/30 to-cyan-900/30",
-                    border: "border-blue-600/40",
-                    textColor: "text-blue-200",
+                    background: "bg-accent/10",
+                    border: "border-accent/40",
+                    textColor: "text-accent",
                     animation: "animate-bounce"
                 };
             }
         } else if (msg.includes('border')) {
-            // Border warning - use brown/amber theme but more subtle
+            // Border warning - warning theme
             return {
-                background: "bg-gradient-to-r from-amber-900/25 to-orange-900/25",
-                border: "border-amber-600/25",
-                textColor: "text-amber-300",
+                background: "bg-[var(--color-warning)]/10",
+                border: "border-[var(--color-warning)]/25",
+                textColor: "text-[var(--color-warning)]",
                 animation: ""
             };
         } else {

@@ -1,0 +1,169 @@
+[
+  {
+    "id": "astrocartographer",
+    "name": "Astrocartographer",
+    "description": "Map stellar markers to reveal connected ritual chambers.",
+    "effectType": "reveal_room",
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "unlockCondition": "Complete a discovery with the astronomy tag.",
+    "knowledgeRewardTag": "astronomy"
+  },
+  {
+    "id": "quipu_linguist",
+    "name": "Quipu Linguist",
+    "description": "Translate textile ledgers with reduced error margin.",
+    "effectType": "boost_translation",
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "unlockCondition": "Successfully decode a textile manuscript.",
+    "knowledgeRewardTag": "linguistics"
+  },
+  {
+    "id": "garrison_logistician",
+    "name": "Garrison Logistician",
+    "description": "Negotiate with sentries to lower combat difficulty this floor.",
+    "effectType": "combat_advantage",
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "unlockCondition": "Catalog at least one military artifact.",
+    "knowledgeRewardTag": "military"
+  },
+  {
+    "id": "brehon_mediator",
+    "name": "Brehon Mediator",
+    "description": "Invoke Gaelic law to pacify clan disputes and examine boundary stones safely.",
+    "effectType": "reveal_room",
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "unlockCondition": "Complete a discovery tagged with law."
+  },
+  {
+    "id": "dunhuang_curator",
+    "name": "Dunhuang Curator",
+    "description": "Carefully catalog manuscripts to gain bonus knowledge from library discoveries.",
+    "effectType": "knowledge_bonus",
+    "culturalZones": [
+      "EAST_ASIAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "unlockCondition": "Trigger a library discovery containing ritual or patronage tags."
+  },
+  {
+    "id": "desert_nav",
+    "name": "Desert Navigator",
+    "description": "Negotiate incense tariffs and reduce hazard when exploring caravan routes.",
+    "effectType": "reduce_hazard",
+    "culturalZones": [
+      "MENA"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "unlockCondition": "Log an economy-tagged discovery in an arid or guard chamber."
+  },
+  {
+    "id": "guild_quartermaster",
+    "name": "Guild Quartermaster",
+    "description": "Secure extra supplies; next storage discovery yields additional loot and knowledge.",
+    "effectType": "increase_loot",
+    "culturalZones": [
+      "NORTH_AMERICAN_COLONIAL",
+      "EUROPEAN"
+    ],
+    "eras": [
+      "RENAISSANCE_EARLY_MODERN"
+    ],
+    "unlockCondition": "Complete a discovery tagged with diplomacy or economy."
+  },
+  {
+    "id": "charter_advocate",
+    "name": "Charter Advocate",
+    "description": "Invoke common law precedents to gain additional insight from legal archives.",
+    "effectType": "knowledge_bonus",
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "unlockCondition": "Complete a discovery tagged with law.",
+    "knowledgeRewardTag": "law"
+  },
+  {
+    "id": "amarna_courier",
+    "name": "Amarna Courier",
+    "description": "Grease diplomatic routes; the next guard-room discovery yields extra goods.",
+    "effectType": "increase_loot",
+    "culturalZones": [
+      "MENA"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "unlockCondition": "Complete a discovery tagged with diplomacy.",
+    "knowledgeRewardTag": "diplomacy"
+  },
+  {
+    "id": "genji_patron",
+    "name": "Genji Patron",
+    "description": "Sponsor scriptorium artists to deepen your ritual understanding.",
+    "effectType": "knowledge_bonus",
+    "culturalZones": [
+      "EAST_ASIAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "unlockCondition": "Complete a discovery tagged with patronage.",
+    "knowledgeRewardTag": "patronage"
+  },
+  {
+    "id": "arthashastra_auditor",
+    "name": "Artha\u015b\u0101stra Auditor",
+    "description": "Conduct precise audits, revealing hidden storehouses in administrative centers.",
+    "effectType": "reveal_room",
+    "culturalZones": [
+      "SOUTH_ASIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "unlockCondition": "Complete a discovery tagged with governance.",
+    "knowledgeRewardTag": "governance"
+  },
+  {
+    "id": "tribute_counter",
+    "name": "Tribute Counter",
+    "description": "Track shipments to boost returns from storage discoveries.",
+    "effectType": "increase_loot",
+    "culturalZones": [
+      "NORTH_AMERICAN_COLONIAL"
+    ],
+    "eras": [
+      "RENAISSANCE_EARLY_MODERN"
+    ],
+    "unlockCondition": "Complete a discovery tagged with economy.",
+    "knowledgeRewardTag": "economy"
+  }
+]

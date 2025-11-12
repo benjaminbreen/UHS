@@ -18,6 +18,7 @@ import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { worldWeaverService } from '../services/worldWeaverService';
 import WorldWeaverModal from './WorldWeaverModal';
+import { eventBus } from '../services/eventBus';
 import { findZoneForMapArea } from '../utils/mapAreaLookup';
 import { normalizeZoneName, normalizeRegionName } from '../utils/worldWeaverHelpers';
 import type { CulturalZone } from '../types/characterData';
@@ -177,6 +178,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   const [showLLMHistory, setShowLLMHistory] = useState(false);
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
+  const [isRoguelikeActive, setIsRoguelikeActive] = useState(false);
 
   // Educational mode state
   const [isEducationalMode, setIsEducationalMode] = useState(
@@ -265,6 +267,14 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
     return () => window.removeEventListener('studyTabActivated', handleStudyTabActive);
   }, []);
 
+  useEffect(() => {
+    const handleRoguelikeToggle = (active?: boolean) => {
+      setIsRoguelikeActive(!!active);
+    };
+    eventBus.on('ruins.roguelike.active', handleRoguelikeToggle);
+    return () => eventBus.off('ruins.roguelike.active', handleRoguelikeToggle);
+  }, []);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -278,7 +288,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
       }
 
       // Space bar to toggle pause - BUT NOT when fishing modal is active (fishing uses spacebar)
-      if (e.key === ' ' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && !activeFishingHutModal) {
+      if (e.key === ' ' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && !activeFishingHutModal && !isRoguelikeActive) {
         e.preventDefault();
         setIsPauseModalOpen(prev => !prev);
       }
@@ -286,7 +296,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setIsPauseModalOpen, activeFishingHutModal]);
+  }, [setIsPauseModalOpen, activeFishingHutModal, isRoguelikeActive]);
   
   // Show modal when map finishes loading with pending scenario data
   useEffect(() => {
@@ -471,7 +481,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
       <>
         <nav
           data-surface="top-nav"
-          className={getSafariOptimizedClassName("top-nav theme-surface relative w-full border-b z-60")}
+          className={getSafariOptimizedClassName("top-nav theme-surface relative w-full border-b z-50")}
         >
         <div className="px-2 sm:px-4 py-2">
           {/* Main Navigation Row */}
@@ -490,13 +500,13 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               
               <a
                 href="/"
-                className="brand-mark mr-8 text-sm sm:text-base lg:text-lg subtle-glow transition-all duration-300 cursor-pointer no-underline"
+                className="brand-mark mr-4 text-xs sm:text-sm lg:text-base subtle-glow transition-all duration-300 cursor-pointer no-underline"
               >
                 HISTORY SIMULATOR
               </a>
               
               {/* Divider */}
-              <div className="hidden sm:block h-6 w-px bg-slate-600/40" />
+              <div className="hidden sm:block h-6 w-px bg-border-surface-muted" />
               
               {/* Game Mode Display */}
               <div className="relative">
@@ -506,21 +516,24 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   style={
                     modeTheme
                       ? {
-                          background: 'linear-gradient(135deg, rgba(50, 56, 92, 0.88), rgba(30, 41, 59, 0.84))',
-                          borderColor: 'rgba(75, 119, 104, 0.65)',
-                          color: 'var(--surface-chip-active-text)',
+                          background: 'var(--surface-muted-bg)',
+                          borderColor: 'var(--accent-primary)',
+                          color: 'var(--text-primary)',
                         }
                       : undefined
                   }
                   onMouseEnter={() => setShowGameModeTooltip(true)}
                   onMouseLeave={() => setShowGameModeTooltip(false)}
                   onClick={() => setShowGameModePanel(!showGameModePanel)}
+                  aria-label={currentMode ? `Current game mode: ${currentMode.name}. Click to change mode` : 'Select game mode'}
+                  aria-expanded={showGameModePanel}
+                  aria-haspopup="true"
                 >
-                  {modeTheme ? 
-                    React.createElement(modeTheme.icon, { className: `w-3.5 h-3.5 ${modeTheme.color} drop-shadow-sm` }) :
-                    <Trophy className="w-3.5 h-3.5 text-[var(--accent-primary)] drop-shadow-sm" />
+                  {modeTheme ?
+                    React.createElement(modeTheme.icon, { className: `w-3.5 h-3.5 text-accent drop-shadow-sm` }) :
+                    <Trophy className="w-3.5 h-3.5 text-accent drop-shadow-sm" />
                   }
-                  <span className={`${modeTheme ? `${modeTheme.color} font-semibold` : 'text-[var(--text-primary)] font-semibold'}`}>
+                  <span className="text-text-primary font-semibold">
                     {currentMode ? currentMode.name : 'Select Mode'}
                   </span>
                   <ChevronDown className={`w-3 h-3 transition-transform ${showGameModePanel ? 'rotate-180' : ''}`} />
@@ -571,12 +584,12 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               {/* Educational Mode Indicator & Toggle */}
               {isEducationalMode ? (
                 <div className="relative ml-2">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/30 border border-purple-600/50 rounded-lg">
-                    <BookOpen size={16} className="text-purple-400" />
-                    <span className="text-sm text-purple-300 font-medium">Educational Mode</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--accent-primary)]/10 border border-[color:var(--accent-primary)]/30 rounded-lg">
+                    <BookOpen size={16} className="text-[color:var(--accent-primary)]" />
+                    <span className="text-sm text-[color:var(--accent-primary)] font-medium">Educational Mode</span>
                     <button
                       onClick={() => handleNavAction('toggle-educational-mode')}
-                      className="text-xs text-purple-400 hover:text-purple-300 underline ml-1 transition-colors"
+                      className="text-xs text-[color:var(--accent-primary)] hover:opacity-80 underline ml-1 transition-colors"
                       title="Disable educational mode"
                     >
                       Disable
@@ -590,9 +603,9 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                     className={getOptimizedButtonClassName('nav-button nav-button--compact flex items-center gap-1.5')}
                     title="Enable educational mode for enhanced historical analysis"
                   >
-                    <BookOpen size={16} className="text-slate-400" />
-                    <span className="text-sm text-slate-300 hidden xl:inline">Enable Educational Mode</span>
-                    <span className="text-sm text-slate-300 xl:hidden">Edu Mode</span>
+                    <BookOpen size={16} className="text-text-muted" />
+                    <span className="text-sm text-text-secondary hidden xl:inline">Enable Educational Mode</span>
+                    <span className="text-sm text-text-secondary xl:hidden">Edu Mode</span>
                   </button>
                 </div>
               )}
@@ -601,26 +614,26 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
             {/* WorldWeaver Input - Desktop (Centered with flex-1) */}
             {!isMobile && (
               <div className="flex-1 max-w-lg mx-4">
-                <div className="relative">
+                <div className="relative worldweaver-container">
                   {/* Liquid-like loading animation overlay */}
                   {isProcessingWorldWeaver && (
                     <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-10">
-                      <div 
+                      <div
                         className="worldweaver-liquid-fill absolute inset-0"
                         style={{
                           background: 'linear-gradient(90deg, transparent 0%, rgba(52, 211, 153, 0.3) 50%, transparent 100%)',
                         }}
                       />
-                      <div 
+                      <div
                         className="worldweaver-liquid-rise absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-400/80 via-green-400/20 to-transparent"
                       />
                     </div>
                   )}
-                  
+
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Sparkles className={`w-4 h-4 transition-colors ${
-                      isProcessingWorldWeaver ? 'text-green-300 animate-pulse' :
-                      worldWeaverFocused ? 'text-green-400' : 'text-slate-500 dark:text-gray-500'
+                      isProcessingWorldWeaver ? 'text-[var(--color-success)] animate-pulse' :
+                      worldWeaverFocused ? 'text-[var(--color-success)]' : 'text-text-muted'
                     }`} />
                   </div>
                   <input
@@ -632,17 +645,19 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                     onKeyPress={(e) => e.key === 'Enter' && handleWorldWeaverSubmit()}
                     placeholder={isProcessingWorldWeaver ? "Creating your world..." : "Create world from text..."}
                     disabled={isProcessingWorldWeaver}
+                    aria-label="WorldWeaver: Create a custom world from text description"
+                    role="searchbox"
                     className={`
-                      w-full pl-10 pr-4 py-2 text-sm
-                      bg-white/10 dark:bg-slate-800/50 backdrop-blur-xs
+                      worldweaver-input w-full pl-10 pr-4 py-2 text-sm
+                      bg-[var(--surface-card-bg)] backdrop-blur-xs
                       border rounded-lg
-                      text-emerald-600 dark:text-gray-100 placeholder-slate-500 dark:placeholder-gray-500
-                      transition-colors duration-150
+                      text-text-primary placeholder-text-muted
+                      transition-all duration-300
                       ${isProcessingWorldWeaver
-                        ? 'border-green-400/50 shadow-lg shadow-green-400/40 animate-pulse'
+                        ? 'border-[var(--color-success)]/50 shadow-lg animate-pulse'
                         : worldWeaverFocused
-                        ? 'border-green-500/50 shadow-lg shadow-green-500/10 ring-1 ring-green-500/20'
-                        : 'border-slate-400/50 dark:border-slate-600/50 hover:border-slate-500/50 dark:hover:border-slate-500/50'
+                        ? 'border-[var(--color-success)]/40 shadow-lg ring-1 ring-[var(--color-success)]/20 worldweaver-glow-active'
+                        : 'border-[var(--border-normal)] hover:border-[var(--border-hover)] worldweaver-glow'
                       }
                       focus:outline-none
                     `}
@@ -654,7 +669,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       disabled={isProcessingWorldWeaver}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     >
-                      <div className="px-2 py-1 bg-green-600/50 hover:bg-green-700 rounded text-xs text-white font-medium transition-colors">
+                      <div className="px-2 py-1 bg-[var(--color-success)]/60 hover:bg-[var(--color-success)]/80 rounded text-xs text-white font-medium transition-colors">
                         Create
                       </div>
                     </button>
@@ -669,25 +684,27 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               <PrimarySourceSearch />
               
               {/* Game Actions */}
-              <div className="flex items-center gap-1.5 px-2 py-0 shadow-sm">
+              <div className="flex items-center gap-1.5 px-2 py-0 ">
                 {NAV_BUTTON_GROUPS.game.map(button => {
                   const Icon = button.icon;
+                  const displayLabel = button.id === 'world-map' ? 'Map' : button.label;
                   return (
                     <button
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
                       className={getOptimizedButtonClassName(getButtonColorClasses(button.color))}
                       title={button.label}
+                      aria-label={button.label}
                     >
-                      
-                      <span className={`${button.id === 'quests' ? 'hidden md:inline' : 'hidden lg:inline'}`}>{button.label}</span>
+                      <Icon className="w-4 h-4" aria-hidden="true" />
+                      <span className={`${button.id === 'quests' ? 'hidden md:inline' : 'hidden lg:inline'}`}>{displayLabel}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Info Actions */}
-              <div className="flex items-center gap-1.5 px-2 py-1 surface-muted rounded-xl border border-surface-muted shadow-sm">
+              <div className="flex items-center gap-1.5 px-2 py-1 surface-muted rounded-xl border border-surface-muted ">
                 {NAV_BUTTON_GROUPS.info.map(button => {
                   const Icon = button.icon;
                   const isActive = button.id === 'api' && showAPITracker;
@@ -699,10 +716,11 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       data-active={isActive}
                       data-variant={button.id}
                       title={button.label}
+                      aria-label={button.label}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-4 h-4" aria-hidden="true" />
                       {button.id === 'api' && apiStats.sessionCalls > 0 && (
-                        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">
+                        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full" aria-label={`${apiStats.sessionCalls} API calls`}>
                           {apiStats.sessionCalls}
                         </span>
                       )}
@@ -748,7 +766,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                 
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Sparkles className={`w-4 h-4 transition-colors ${
-                    isProcessingWorldWeaver ? 'text-green-300 animate-pulse' : 'text-slate-500 dark:text-gray-500'
+                    isProcessingWorldWeaver ? 'text-[var(--color-success)] animate-pulse' : 'text-text-muted'
                   }`} />
                 </div>
                 <input
@@ -758,10 +776,10 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   onKeyPress={(e) => e.key === 'Enter' && handleWorldWeaverSubmit()}
                   placeholder={isProcessingWorldWeaver ? "Creating your world..." : "Create world..."}
                   disabled={isProcessingWorldWeaver}
-                  className={`w-full pl-10 pr-4 py-2 text-sm bg-white/70 dark:bg-slate-800/50 border rounded-lg text-slate-700 dark:text-gray-200 placeholder-slate-500 dark:placeholder-gray-500 focus:outline-none transition-all duration-300 ${
+                  className={`w-full pl-10 pr-4 py-2 text-sm bg-background-secondary border rounded-lg text-text-primary placeholder-text-muted focus:outline-none transition-all duration-300 ${
                     isProcessingWorldWeaver
-                      ? 'border-green-400/50 shadow-lg shadow-green-400/20'
-                      : 'border-slate-400/50 dark:border-slate-600/50 focus:border-green-500/50'
+                      ? 'border-[var(--color-success)]/50 shadow-lg'
+                      : 'border-surface-muted focus:border-[var(--color-success)]/50'
                   }`}
                 />
               </div>
@@ -773,8 +791,8 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
         {isMobile && (
           <div className={`
             absolute top-full left-0 right-0 mt-1 mx-2
-            bg-white/95 dark:bg-slate-800/95 backdrop-blur-md
-            border border-slate-300/50 dark:border-slate-600/50 rounded-lg shadow-xl
+            surface-card backdrop-blur-md
+            border border-surface-muted rounded-lg shadow-xl
             transition-all duration-300 origin-top
             ${isMobileMenuOpen
               ? 'opacity-100 scale-y-100 pointer-events-auto'
@@ -784,7 +802,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
             <div className="p-3 space-y-2">
               {/* Game Actions */}
               <div className="space-y-1">
-                <div className="text-xs text-slate-500 dark:text-gray-400 font-medium px-2 pb-1">Game</div>
+                <div className="text-xs text-text-muted font-medium px-2 pb-1">Game</div>
                 {NAV_BUTTON_GROUPS.game.map(button => {
                   const Icon = button.icon;
                   return (
@@ -792,7 +810,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
                       className={`
-                        w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
+                        w-full px-3 py-2.5 text-sm font-medium text-text-primary rounded-lg
                         transition-all duration-200 flex items-center gap-2
                         ${getButtonColorClasses(button.color)}
                       `}
@@ -802,12 +820,12 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                     </button>
                   );
                 })}
-                
+
               </div>
 
               {/* Info Actions */}
-              <div className="space-y-1 pt-2 border-t border-slate-300/50 dark:border-slate-700/50">
-                <div className="text-xs text-slate-500 dark:text-gray-400 font-medium px-2 pb-1">Info</div>
+              <div className="space-y-1 pt-2 border-t border-surface-muted">
+                <div className="text-xs text-text-muted font-medium px-2 pb-1">Info</div>
                 {NAV_BUTTON_GROUPS.info.map(button => {
                   const Icon = button.icon;
                   return (
@@ -815,7 +833,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
                       className={`
-                        w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
+                        w-full px-3 py-2.5 text-sm font-medium text-text-primary rounded-lg
                         transition-all duration-200 flex items-center gap-2
                         ${getButtonColorClasses(button.color)}
                       `}

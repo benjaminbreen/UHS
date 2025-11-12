@@ -18,6 +18,7 @@ import { dialectContinuumService } from '../services/dialectContinuumService';
 import { FACTION_DATA } from '../constants/gameData/factions';
 import { FACTION_ICONS } from '../constants/gameData/factionIcons';
 import SimplePopulationChart from './charts/SimplePopulationChart';
+import { PROFESSIONS } from '../constants/characterData/professions';
 
 // Lazy load heavy chart components
 // PopulationChart replaced with SimplePopulationChart (no D3/Recharts dependency)
@@ -257,16 +258,48 @@ function extractPersonalityTrait(character: PlayerCharacter): string {
     return "A person of many talents and hidden depths.";
 }
 
-// Game mode color configuration
+// Game mode color configuration - Theme-aware, professional palette
 const GAME_MODE_COLORS = {
-    survival: { bg: 'from-red-600 to-red-700', hover: 'from-red-700 to-red-800', icon: 'text-red-400', headerBg: 'from-red-500 to-red-600' },
-    exploration: { bg: 'from-blue-600 to-blue-700', hover: 'from-blue-700 to-blue-800', icon: 'text-blue-400', headerBg: 'from-blue-500 to-blue-600' },
-    commerce: { bg: 'from-yellow-600 to-yellow-700', hover: 'from-yellow-700 to-yellow-800', icon: 'text-yellow-400', headerBg: 'from-yellow-500 to-yellow-600' },
-    scholarship: { bg: 'from-purple-600 to-purple-700', hover: 'from-purple-700 to-purple-800', icon: 'text-purple-400', headerBg: 'from-purple-500 to-purple-600' },
-    leadership: { bg: 'from-amber-600 to-amber-700', hover: 'from-amber-700 to-amber-800', icon: 'text-amber-400', headerBg: 'from-amber-500 to-amber-600' },
-    livelihood: { bg: 'from-green-600 to-green-700', hover: 'from-green-700 to-green-800', icon: 'text-green-400', headerBg: 'from-green-500 to-green-600' },
-    diplomacy: { bg: 'from-cyan-600 to-cyan-700', hover: 'from-cyan-700 to-cyan-800', icon: 'text-cyan-400', headerBg: 'from-cyan-500 to-cyan-600' },
-    legal: { bg: 'from-indigo-600 to-indigo-700', hover: 'from-indigo-700 to-indigo-800', icon: 'text-indigo-400', headerBg: 'from-indigo-500 to-indigo-600' }
+    survival: {
+        bg: 'surface-elevated border border-[color:var(--color-error)]/20',
+        hover: 'hover:border-[color:var(--color-error)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--color-error)]'
+    },
+    exploration: {
+        bg: 'surface-elevated border border-[color:var(--accent-primary)]/20',
+        hover: 'hover:border-[color:var(--accent-primary)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--accent-primary)]'
+    },
+    commerce: {
+        bg: 'surface-elevated border border-[color:var(--color-warning)]/20',
+        hover: 'hover:border-[color:var(--color-warning)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--color-warning)]'
+    },
+    scholarship: {
+        bg: 'surface-elevated border border-[color:var(--accent-secondary)]/20',
+        hover: 'hover:border-[color:var(--accent-secondary)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--accent-secondary)]'
+    },
+    leadership: {
+        bg: 'surface-elevated border border-[color:var(--color-warning)]/20',
+        hover: 'hover:border-[color:var(--color-warning)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--color-warning)]'
+    },
+    livelihood: {
+        bg: 'surface-elevated border border-[color:var(--color-success)]/20',
+        hover: 'hover:border-[color:var(--color-success)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--color-success)]'
+    },
+    diplomacy: {
+        bg: 'surface-elevated border border-[color:var(--accent-primary)]/20',
+        hover: 'hover:border-[color:var(--accent-primary)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--accent-primary)]'
+    },
+    legal: {
+        bg: 'surface-elevated border border-[color:var(--accent-secondary)]/20',
+        hover: 'hover:border-[color:var(--accent-secondary)]/40 hover:shadow-lg',
+        icon: 'text-[color:var(--accent-secondary)]'
+    }
 };
 
 // Season color configuration
@@ -312,16 +345,37 @@ function getPrizedPossession(playerCharacter: PlayerCharacter): string {
 function formatCulturalZone(zone: CulturalZone): string {
     const zoneNames: Record<CulturalZone, string> = {
         EUROPEAN: "Europea",
-        EAST_ASIAN: "East Asia", 
+        EAST_ASIAN: "East Asia",
         MENA: "Middle East & North Africa",
         SOUTH_ASIAN: "Indian Ocean World",
         SUB_SAHARAN_AFRICAN: "Sub-Saharan Africa",
         NORTH_AMERICAN_PRE_COLUMBIAN: "Pre-Columbian North America",
-        NORTH_AMERICAN_COLONIAL: "Colonial North America", 
+        NORTH_AMERICAN_COLONIAL: "Colonial North America",
         SOUTH_AMERICAN: "South America",
         OCEANIA: "Pacific & Oceania"
     };
     return zoneNames[zone] || zone;
+}
+
+function getProfessionKeyword(professionName: string, culturalZone: CulturalZone, era: HistoricalEra): string | null {
+    try {
+        const cultureData = PROFESSIONS[culturalZone];
+        if (!cultureData) return null;
+
+        const eraData = cultureData[era];
+        if (!eraData) return null;
+
+        // Search through all social classes
+        for (const socialClass of Object.values(eraData)) {
+            if (socialClass[professionName]) {
+                return socialClass[professionName].keywords || null;
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting profession keyword:', error);
+        return null;
+    }
 }
 
 const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
@@ -433,6 +487,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const [portraitExpression, setPortraitExpression] = React.useState<'neutral' | 'smile' | 'surprise' | 'scowl' | 'annoyed'>('neutral');
     const [showBottomSheet, setShowBottomSheet] = React.useState(false);
     const [expandedContext, setExpandedContext] = React.useState(false);
+    const [showProfessionTooltip, setShowProfessionTooltip] = React.useState(false);
     
     // Generate shareable URL when requested
     React.useEffect(() => {
@@ -517,6 +572,13 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         [gameMode, scenarioData.era, scenarioData.culturalZone, playerCharacter]
     );
 
+    // Get profession keyword for tooltip
+    const professionKeyword = useMemo(() => {
+        const professionName = playerCharacter.occupation || playerCharacter.profession;
+        if (!professionName) return null;
+        return getProfessionKeyword(professionName, scenarioData.culturalZone, scenarioData.era);
+    }, [playerCharacter.occupation, playerCharacter.profession, scenarioData.culturalZone, scenarioData.era]);
+
     // Handle native share if available
     const handleNativeShare = async () => {
         if (navigator.share && shareableURL) {
@@ -544,10 +606,8 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 )}
             >
 
-                {/* Sticky Header with gradient */}
-                <div className={`sticky top-0 z-20 bg-gradient-to-r ${
-                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.headerBg || 'from-amber-600 to-amber-700' : 'from-amber-600 to-amber-700'
-                } border-b-2 ${isSafari ? 'border-amber-800' : 'border-white/30 backdrop-blur-sm'}`}>
+                {/* Sticky Header - Professional, theme-aware */}
+                <div className="sticky top-0 z-20 surface-elevated border-b-2 border-[color:var(--border-normal)] backdrop-blur-sm">
                     <div className="flex items-center justify-between p-2.5">
                         <div className="flex items-center gap-5">
                             <div className="p-2 surface-muted rounded-lg shadow-sm">
@@ -585,10 +645,24 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     {/* Hero Section */}
                     <div className="mb-4 text-center md:text-left">
                         <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-1">
-                            You are <span className="text-amber-600 dark:text-amber-400">{playerCharacter.name}</span>
+                            You are <span className="text-[color:var(--accent-primary)] font-bold">{playerCharacter.name}</span>
                         </h1>
                         <p className="text-xl text-text-secondary">
-                            A <span className="text-emerald-600 dark:text-emerald-400">{playerCharacter.occupation || playerCharacter.profession || 'traveler'}</span> in the <span className={getSeasonColors(getSeasonFromDate(gameDate)) + ' font-semibold'}>{getSeasonFromDate(gameDate)}</span> of {formatYear(gameDate.year)}
+                            A <span
+                                className="relative inline-block"
+                                onMouseEnter={() => setShowProfessionTooltip(true)}
+                                onMouseLeave={() => setShowProfessionTooltip(false)}
+                            >
+                                <span className="text-[color:var(--color-success)] font-medium cursor-help border-b border-dotted border-[color:var(--color-success)]/40 hover:border-[color:var(--color-success)] transition-colors">
+                                    {playerCharacter.occupation || playerCharacter.profession || 'traveler'}
+                                </span>
+                                {professionKeyword && showProfessionTooltip && (
+                                    <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1.5 bg-slate-800 dark:bg-slate-900 text-white text-sm rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-600 dark:border-slate-700">
+                                        <span className="italic">"{professionKeyword}"</span>
+                                        <span className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800 dark:border-t-slate-900"></span>
+                                    </span>
+                                )}
+                            </span> in the <span className={getSeasonColors(getSeasonFromDate(gameDate)) + ' font-semibold'}>{getSeasonFromDate(gameDate)}</span> of {formatYear(gameDate.year)}
                         </p>
                     </div>
 
@@ -684,12 +758,12 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                                         {/* Health Status below portrait */}
                                         {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
-                                            <div className="mt-2 p-2 border border-red-400/30 dark:border-red-600/30 rounded text-center">
-                                                <span className="text-red-600 dark:text-red-400 text-xs tracking-wide font-medium block mb-1">HEALTH</span>
+                                            <div className="mt-2 p-2 border border-[color:var(--color-error)]/30 rounded text-center">
+                                                <span className="text-[color:var(--color-error)] text-xs tracking-wide font-medium block mb-1">HEALTH</span>
                                                 {playerCharacter.diseaseHealth.currentDiseases.map((disease, idx) => {
                                                     const isCritical = disease.disease.mortalityRate > 0.3 || disease.severity > 0.7;
                                                     return (
-                                                        <span key={idx} className={`block text-xs ${isCritical ? 'text-red-700 dark:text-red-400' : 'text-orange-700 dark:text-orange-400'}`}>
+                                                        <span key={idx} className={`block text-xs ${isCritical ? 'text-[color:var(--color-error)]' : 'text-[color:var(--color-warning)]'}`}>
                                                             {disease.disease.name}
                                                         </span>
                                                     );
@@ -719,7 +793,21 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                             </div>
                                             <div>
                                                 <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Occupation</div>
-                                                <div className="text-text-primary font-medium">{playerCharacter.occupation || playerCharacter.profession || 'Unknown'}</div>
+                                                <div className="relative inline-block">
+                                                    <div
+                                                        className="text-text-primary font-medium cursor-help hover:text-[color:var(--color-success)] transition-colors"
+                                                        onMouseEnter={() => setShowProfessionTooltip(true)}
+                                                        onMouseLeave={() => setShowProfessionTooltip(false)}
+                                                    >
+                                                        {playerCharacter.occupation || playerCharacter.profession || 'Unknown'}
+                                                    </div>
+                                                    {professionKeyword && showProfessionTooltip && (
+                                                        <span className="absolute left-0 top-full mt-1 px-3 py-1.5 bg-slate-800 dark:bg-slate-900 text-white text-xs rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-600 dark:border-slate-700">
+                                                            <span className="italic">"{professionKeyword}"</span>
+                                                            <span className="absolute left-4 bottom-full w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-slate-800 dark:border-b-slate-900"></span>
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div>
                                                 <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Social Class</div>
@@ -807,10 +895,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
                                 <Crown className={`w-5 h-5 shrink-0 ${
-                                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-400' : 'text-amber-400'
+                                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-[color:var(--accent-primary)]' : 'text-[color:var(--accent-primary)]'
                                 }`} />
                                 <h3 className={`font-semibold text-base ${
-                                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-amber-400' : 'text-amber-400'
+                                    gameMode ? GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.icon || 'text-[color:var(--accent-primary)]' : 'text-[color:var(--accent-primary)]'
                                 }`}>
                                     {gameMode ? gameMode.name : 'Game Mode: Selecting...'}
                                 </h3>
@@ -851,11 +939,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                                     {gameMode.challenges && gameMode.challenges.length > 0 && (
                                         <div>
-                                            <div className="text-orange-700 dark:text-orange-400 text-xs font-medium mb-2">KEY CHALLENGES</div>
+                                            <div className="text-[color:var(--color-warning)] text-xs font-medium mb-2">KEY CHALLENGES</div>
                                             <ul className="space-y-1">
                                                 {gameMode.challenges.slice(0, 3).map((challenge, idx) => (
                                                     <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
-                                                        <span className="text-orange-700 dark:text-orange-400 mt-0.5">•</span>
+                                                        <span className="text-[color:var(--color-warning)] mt-0.5">•</span>
                                                         <span>{challenge}</span>
                                                     </li>
                                                 ))}
@@ -924,9 +1012,9 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         }
                                         onClose();
                                     }}
-                                    className={`w-full px-5 py-4 text-text-primary font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-out text-lg ${
-                                        gameMode ? ` border-white/10 bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'} hover:${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'from-amber-700 to-amber-800'}` : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
-                                    }`}
+                                    className={`w-full px-5 py-4 text-text-primary font-bold rounded-lg shadow-lg transition-all duration-300 ease-out text-lg ${
+                                        gameMode ? `${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'surface-elevated'} ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'hover:shadow-xl'}` : 'surface-elevated hover:shadow-xl'
+                                    } bg-[color:var(--accent-primary)] hover:bg-[color:var(--accent-primary)]/90`}
                                 >
                                     Begin the Simulation
                                 </button>
@@ -1009,9 +1097,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 }
                                 onClose();
                             }}
-                            className={`w-full px-6 py-4 text-text-primary font-bold rounded-xl shadow-lg text-lg ${
-                                gameMode ? `bg-gradient-to-r ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'from-amber-600 to-amber-700'}` : 'bg-gradient-to-r from-amber-600 to-amber-700'
-                            }`}
+                            className="w-full px-6 py-4 text-white font-bold rounded-xl shadow-lg text-lg bg-[color:var(--accent-primary)] hover:bg-[color:var(--accent-primary)]/90 transition-all"
                         >
                             Begin the Simulation
                         </button>

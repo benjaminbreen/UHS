@@ -12,93 +12,93 @@ const TYPE_CONFIG: Record<GameLogEntry['type'], {
     label: string;
 }> = {
     'DIALOGUE': {
-        color: 'text-amber-300',
-        bgColor: 'bg-amber-900/10',
-        borderColor: 'border-amber-500/30',
+        color: 'text-[color:var(--color-warning)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--color-warning)]/30',
         icon: '💬',
         label: 'Dialogue'
     },
     'COMBAT': {
-        color: 'text-red-400',
-        bgColor: 'bg-red-900/10',
-        borderColor: 'border-red-500/30',
+        color: 'text-[color:var(--color-error)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--color-error)]/30',
         icon: '⚔️',
         label: 'Combat'
     },
     'MAP_ENTRY': {
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-900/10',
-        borderColor: 'border-blue-500/30',
+        color: 'text-[color:var(--accent-primary)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--accent-primary)]/30',
         icon: '🗺️',
         label: 'Location'
     },
     'SKILL_USE': {
-        color: 'text-green-400',
-        bgColor: 'bg-green-900/10',
-        borderColor: 'border-green-500/30',
+        color: 'text-[color:var(--color-success)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--color-success)]/30',
         icon: '🎯',
         label: 'Skill'
     },
     'ITEM_ACQUIRED': {
-        color: 'text-purple-400',
-        bgColor: 'bg-purple-900/10',
-        borderColor: 'border-purple-500/30',
+        color: 'text-[color:var(--accent-secondary)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--accent-secondary)]/30',
         icon: '📦',
         label: 'Item'
     },
     'TRADE': {
-        color: 'text-yellow-400',
-        bgColor: 'bg-yellow-900/10',
-        borderColor: 'border-yellow-500/30',
+        color: 'text-[color:var(--color-warning)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--color-warning)]/30',
         icon: '🤝',
         label: 'Trade'
     },
     'REST': {
-        color: 'text-indigo-400',
-        bgColor: 'bg-indigo-900/10',
-        borderColor: 'border-indigo-500/30',
+        color: 'text-[color:var(--accent-primary)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--accent-primary)]/30',
         icon: '🏕️',
         label: 'Rest'
     },
     'MILESTONE_COMBAT': {
-        color: 'text-orange-300',
-        bgColor: 'bg-gradient-to-r from-orange-900/20 to-red-900/10',
-        borderColor: 'border-orange-500/50',
+        color: 'text-[color:var(--color-warning)]',
+        bgColor: 'surface-elevated',
+        borderColor: 'border-[color:var(--color-warning)]/50',
         icon: '🏆',
         label: 'Combat Milestone'
     },
     'MILESTONE_EXPLORATION': {
-        color: 'text-cyan-300',
-        bgColor: 'bg-gradient-to-r from-cyan-900/20 to-blue-900/10',
-        borderColor: 'border-cyan-500/50',
+        color: 'text-[color:var(--accent-primary)]',
+        bgColor: 'surface-elevated',
+        borderColor: 'border-[color:var(--accent-primary)]/50',
         icon: '🌟',
         label: 'Exploration Milestone'
     },
     'MILESTONE_ACHIEVEMENT': {
-        color: 'text-emerald-300',
-        bgColor: 'bg-gradient-to-r from-emerald-900/20 to-green-900/10',
-        borderColor: 'border-emerald-500/50',
+        color: 'text-[color:var(--color-success)]',
+        bgColor: 'surface-elevated',
+        borderColor: 'border-[color:var(--color-success)]/50',
         icon: '✨',
         label: 'Achievement'
     },
     'QUEST_START': {
-        color: 'text-pink-400',
-        bgColor: 'bg-pink-900/10',
-        borderColor: 'border-pink-500/30',
+        color: 'text-[color:var(--accent-secondary)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--accent-secondary)]/30',
         icon: '📜',
         label: 'Quest Started'
     },
     'QUEST_COMPLETE': {
-        color: 'text-lime-400',
-        bgColor: 'bg-gradient-to-r from-lime-900/20 to-green-900/10',
-        borderColor: 'border-lime-500/50',
+        color: 'text-[color:var(--color-success)]',
+        bgColor: 'surface-elevated',
+        borderColor: 'border-[color:var(--color-success)]/50',
         icon: '✅',
         label: 'Quest Complete'
     },
     'STUDY': {
-        color: 'text-violet-400',
-        bgColor: 'bg-violet-900/10',
-        borderColor: 'border-violet-500/30',
+        color: 'text-[color:var(--accent-secondary)]',
+        bgColor: 'surface-muted',
+        borderColor: 'border-[color:var(--accent-secondary)]/30',
         icon: '🔬',
         label: 'Study'
     },
@@ -133,11 +133,11 @@ const LogEntry: React.FC<{
                     {(entry.details as DialogueEntry[]).map((line, index) => (
                         <div key={index} className="flex gap-2">
                             <span className={`shrink-0 text-xs font-semibold ${
-                                line.speaker === 'player' ? 'text-emerald-400' : 'text-violet-400'
+                                line.speaker === 'player' ? 'text-[color:var(--color-success)]' : 'text-[color:var(--accent-secondary)]'
                             }`}>
                                 {line.speaker === 'player' ? 'You:' : `${line.speaker}:`}
                             </span>
-                            <span className="text-xs text-slate-300 italic">"{line.text}"</span>
+                            <span className="text-xs text-text-primary italic">"{line.text}"</span>
                         </div>
                     ))}
                 </div>
@@ -146,14 +146,14 @@ const LogEntry: React.FC<{
 
         if (typeof entry.details === 'string') {
             return (
-                <div className="mt-3 pl-10 text-xs text-slate-400">
+                <div className="mt-3 pl-10 text-xs text-text-muted">
                     {entry.details}
                 </div>
             );
         }
 
         return (
-            <pre className="mt-3 ml-10 text-xs text-slate-500 bg-slate-900/50 p-2 rounded-md overflow-x-auto">
+            <pre className="mt-3 ml-10 text-xs text-text-muted surface-muted p-2 rounded-md overflow-x-auto">
                 {JSON.stringify(entry.details, null, 2)}
             </pre>
         );
@@ -161,12 +161,12 @@ const LogEntry: React.FC<{
 
     if (isCompact) {
         return (
-            <div className={`group flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-slate-800/30 cursor-pointer`}
+            <div className={`group flex items-start gap-2 px-2 py-1.5 rounded-md hover:surface-muted cursor-pointer`}
                  onClick={() => setIsExpanded(!isExpanded)}>
                 <span className="text-base mt-0.5">{config.icon}</span>
                 <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-300 truncate">{entry.summary}</p>
-                    <p className="text-[10px] text-slate-500">{timeInfo.time}</p>
+                    <p className="text-xs text-text-primary truncate">{entry.summary}</p>
+                    <p className="text-[10px] text-text-tertiary">{timeInfo.time}</p>
                 </div>
             </div>
         );
@@ -175,14 +175,14 @@ const LogEntry: React.FC<{
     return (
         <div className={`
             relative overflow-hidden rounded-lg border
-            ${isMilestone ? 'ring-1 ring-yellow-500/20' : ''}
+            ${isMilestone ? 'ring-1 ring-[color:var(--color-warning)]/20' : ''}
             ${config.bgColor} ${config.borderColor}
             transition-all duration-150 hover:border-opacity-60
         `}>
             {/* Milestone badge */}
             {isMilestone && (
                 <div className="absolute top-2 right-2">
-                    <span className="text-xs text-yellow-300 bg-yellow-900/50 px-2 py-0.5 rounded-full font-semibold">
+                    <span className="text-xs text-[color:var(--color-warning)] bg-[color:var(--color-warning)]/20 px-2 py-0.5 rounded-full font-semibold">
                         MILESTONE
                     </span>
                 </div>
@@ -208,7 +208,7 @@ const LogEntry: React.FC<{
                         </p>
 
                         {/* Timestamp */}
-                        <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-500">
+                        <div className="flex items-center gap-4 mt-2 text-[11px] text-text-tertiary">
                             <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
                                 {timeInfo.date}
@@ -226,8 +226,8 @@ const LogEntry: React.FC<{
                             onClick={() => setIsExpanded(!isExpanded)}
                             className={`
                                 flex-shrink-0 p-1.5 rounded-md
-                                bg-slate-800/50 hover:bg-slate-700/50
-                                text-slate-400 hover:text-slate-200
+                                surface-muted hover:surface-elevated
+                                text-text-muted hover:text-text-primary
                                 transition-colors
                             `}
                         >
@@ -314,21 +314,21 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
     }, [entries]);
 
     return (
-        <div className="flex flex-col h-full bg-slate-900/40">
+        <div className="flex flex-col h-full surface-card">
             {/* Header with controls */}
-            <div className="shrink-0 p-3 border-b border-slate-700/50 bg-slate-800/30">
+            <div className="shrink-0 p-3 border-b border-[color:var(--border-normal)] surface-muted">
                 {/* Search and primary controls */}
                 <div className="flex gap-2 mb-2">
                     <div className="flex-1 relative">
-                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                         <input
                             type="text"
                             placeholder="Search entries..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-800/50 border border-slate-600/50 rounded-md
-                                     placeholder-slate-500 text-slate-200
-                                     focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/20"
+                            className="w-full pl-9 pr-3 py-2 text-sm surface-elevated border border-[color:var(--border-normal)] rounded-md
+                                     placeholder-text-tertiary text-text-primary
+                                     focus:outline-none focus:border-[color:var(--accent-primary)]/50 focus:ring-1 focus:ring-[color:var(--accent-primary)]/20"
                         />
                     </div>
 
@@ -336,8 +336,8 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
                         onClick={() => setShowFilters(!showFilters)}
                         className={`px-3 py-2 text-sm rounded-md border transition-colors
                                   ${showFilters
-                                    ? 'bg-purple-600/20 border-purple-500/50 text-purple-300'
-                                    : 'bg-slate-800/50 border-slate-600/50 text-slate-300 hover:border-slate-500/50'}`}
+                                    ? 'bg-[color:var(--accent-primary)]/20 border-[color:var(--accent-primary)]/50 text-[color:var(--accent-primary)]'
+                                    : 'surface-elevated border-[color:var(--border-normal)] text-text-primary hover:border-[color:var(--border-hover)]'}`}
                     >
                         <Filter className="w-4 h-4" />
                     </button>
@@ -345,9 +345,9 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
                     <button
                         onClick={handleSave}
                         title="Export Gamelog"
-                        className="px-3 py-2 text-sm bg-slate-800/50 hover:bg-slate-700/50
-                                 border border-slate-600/50 hover:border-slate-500/50
-                                 rounded-md transition-colors text-slate-300"
+                        className="px-3 py-2 text-sm surface-elevated hover:surface-card
+                                 border border-[color:var(--border-normal)] hover:border-[color:var(--border-hover)]
+                                 rounded-md transition-colors text-text-primary"
                     >
                         <Download className="w-4 h-4" />
                     </button>
@@ -355,13 +355,13 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
 
                 {/* Filter controls (collapsible) */}
                 {showFilters && (
-                    <div className="pt-2 border-t border-slate-700/50 space-y-2 animate-fadeIn">
+                    <div className="pt-2 border-t border-[color:var(--border-normal)] space-y-2 animate-fadeIn">
                         <div className="flex gap-2">
                             <select
                                 value={filterType}
                                 onChange={e => setFilterType(e.target.value as any)}
-                                className="flex-1 px-2 py-1.5 text-xs bg-slate-800/50 border border-slate-600/50 rounded-md
-                                         text-slate-200 focus:outline-none focus:border-purple-400/50"
+                                className="flex-1 px-2 py-1.5 text-xs surface-elevated border border-[color:var(--border-normal)] rounded-md
+                                         text-text-primary focus:outline-none focus:border-[color:var(--accent-primary)]/50"
                             >
                                 <option value="all">All Types</option>
                                 {availableTypes.map(type => (
@@ -374,8 +374,8 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
                             <select
                                 value={sortOrder}
                                 onChange={e => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                className="px-2 py-1.5 text-xs bg-slate-800/50 border border-slate-600/50 rounded-md
-                                         text-slate-200 focus:outline-none focus:border-purple-400/50"
+                                className="px-2 py-1.5 text-xs surface-elevated border border-[color:var(--border-normal)] rounded-md
+                                         text-text-primary focus:outline-none focus:border-[color:var(--accent-primary)]/50"
                             >
                                 <option value="newest">Newest First</option>
                                 <option value="oldest">Oldest First</option>
@@ -384,8 +384,8 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
                             <select
                                 value={viewMode}
                                 onChange={e => setViewMode(e.target.value as 'detailed' | 'compact')}
-                                className="px-2 py-1.5 text-xs bg-slate-800/50 border border-slate-600/50 rounded-md
-                                         text-slate-200 focus:outline-none focus:border-purple-400/50"
+                                className="px-2 py-1.5 text-xs surface-elevated border border-[color:var(--border-normal)] rounded-md
+                                         text-text-primary focus:outline-none focus:border-[color:var(--accent-primary)]/50"
                             >
                                 <option value="detailed">Detailed View</option>
                                 <option value="compact">Compact View</option>
@@ -397,7 +397,7 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
                             {Object.entries(stats).slice(0, 5).map(([type, count]) => (
                                 <span
                                     key={type}
-                                    className="text-[10px] px-2 py-1 rounded-full bg-slate-800/50 border border-slate-700/50"
+                                    className="text-[10px] px-2 py-1 rounded-full surface-elevated border border-[color:var(--border-normal)]"
                                 >
                                     {TYPE_CONFIG[type as GameLogEntry['type']]?.icon} {count}
                                 </span>
@@ -410,20 +410,20 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
             {/* Scrollable content area */}
             <div
                 ref={scrollContainerRef}
-                className="flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-slate-600/50 scrollbar-track-slate-800/30"
+                className="flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-[color:var(--border-normal)] scrollbar-track-surface-muted"
             >
                 {Object.keys(groupedEntries).length > 0 ? (
                     <div className="space-y-4">
                         {Object.entries(groupedEntries).map(([dateKey, dateEntries]) => (
                             <div key={dateKey}>
                                 {/* Date header */}
-                                <div className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-sm mb-2">
+                                <div className="sticky top-0 z-10 surface-card/90 backdrop-blur-sm mb-2">
                                     <div className="flex items-center gap-2 py-1">
-                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent" />
-                                        <span className="text-xs font-semibold text-slate-400 px-2">
+                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[color:var(--border-normal)] to-transparent" />
+                                        <span className="text-xs font-semibold text-text-muted px-2">
                                             {formatDateHeader(dateKey)}
                                         </span>
-                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent" />
+                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[color:var(--border-normal)] to-transparent" />
                                     </div>
                                 </div>
 
@@ -443,8 +443,8 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center">
                         <div className="text-4xl mb-3 opacity-20">📜</div>
-                        <p className="text-sm text-slate-500">No entries found</p>
-                        <p className="text-xs text-slate-600 mt-1">
+                        <p className="text-sm text-text-tertiary">No entries found</p>
+                        <p className="text-xs text-text-tertiary mt-1">
                             {searchTerm && 'Try adjusting your search terms'}
                             {filterType !== 'all' && ' or filters'}
                         </p>
@@ -453,8 +453,8 @@ const GamelogPanel: React.FC<{ entries: GameLogEntry[] }> = ({ entries }) => {
             </div>
 
             {/* Footer with entry count */}
-            <div className="shrink-0 px-3 py-2 border-t border-slate-700/50 bg-slate-800/20">
-                <p className="text-xs text-slate-500 text-center">
+            <div className="shrink-0 px-3 py-2 border-t border-[color:var(--border-normal)] surface-muted">
+                <p className="text-xs text-text-tertiary text-center">
                     {Object.values(groupedEntries).flat().length} of {entries.length} entries shown
                 </p>
             </div>

@@ -54,7 +54,8 @@ const useCoreLoops = (
   onDeath?: (deathInfo: DeathInfo) => void,
   onNpcDeath?: (npc: NpcEntity, disease: Disease) => void,
   onDiseaseProgression?: (events: DiseaseProgressionEvent[]) => void,
-  onStatusWarning?: (type: 'health' | 'fatigue', severity: 'warning' | 'danger' | 'critical', currentValue: number, maxValue: number) => void
+  onStatusWarning?: (type: 'health' | 'fatigue', severity: 'warning' | 'danger' | 'critical', currentValue: number, maxValue: number) => void,
+  isPlayerOnFarm?: boolean
 ) => {
   const {
     setGameTimeMinutes,
@@ -304,11 +305,15 @@ const useCoreLoops = (
             const activeOffers = getActiveWorkOffers();
 
             activeOffers.forEach(offer => {
+              // Find the NPC who gave the quest for conversation tracking
+              const questGiverNpc = npcs.find(npc => npc.id === offer.npcId);
+
               const status = checkWorkCompletion(
                 offer,
                 playerCharacter,
                 { x: controlledIconX, y: controlledIconY },
-                currentGameHours
+                currentGameHours,
+                questGiverNpc // Pass the NPC for conversation tracking
               );
 
               if (status === 'completed' && !offer.completed) {
@@ -450,6 +455,40 @@ const useCoreLoops = (
     return () => clearInterval(clockInterval);
   }, [isAnyModalOpen]); // Remove playerCharacter to prevent frequent recreations
 
+  // Play Time Tracking - increment every minute
+  useEffect(() => {
+    // Initialize session start time if not set
+    if (playerCharacter && !playerCharacter.sessionStartTime) {
+      setPlayerCharacter(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          sessionStartTime: Date.now(),
+          totalPlayTimeMinutes: prev.totalPlayTimeMinutes || 0
+        };
+      });
+    }
+
+    const playTimeInterval = setInterval(() => {
+      if (!playerCharacter) return;
+
+      setPlayerCharacter(prev => {
+        if (!prev || !prev.sessionStartTime) return prev;
+
+        // Calculate session duration in minutes
+        const sessionDurationMs = Date.now() - prev.sessionStartTime;
+        const sessionMinutes = Math.floor(sessionDurationMs / 60000);
+
+        return {
+          ...prev,
+          totalPlayTimeMinutes: (prev.totalPlayTimeMinutes || 0) + 1
+        };
+      });
+    }, 60000); // Every 60 seconds (1 minute)
+
+    return () => clearInterval(playTimeInterval);
+  }, [playerCharacter?.id]); // Only re-run if player character changes
+
   // Drowning system - check every second when player is in water
   useEffect(() => {
     const drowningInterval = setInterval(() => {
@@ -510,7 +549,7 @@ const useCoreLoops = (
 
   // Health/Fatigue warning system - Check thresholds and trigger warnings
   useEffect(() => {
-    if (!playerCharacter || isAnyModalOpen) return;
+    if (!playerCharacter || isAnyModalOpen || isPlayerOnFarm) return;
 
     const healthPercent = (playerCharacter.health / playerCharacter.maxHealth) * 100;
     const fatiguePercent = (playerCharacter.fatigue / 100) * 100; // Assuming max fatigue is 100
@@ -570,7 +609,7 @@ const useCoreLoops = (
     if (fatiguePercent < 60) {
       fatigueWarningShown.current = null;
     }
-  }, [playerCharacter?.health, playerCharacter?.fatigue, isAnyModalOpen, onStatusWarning, setNarrationHistory]);
+  }, [playerCharacter?.health, playerCharacter?.fatigue, isAnyModalOpen, isPlayerOnFarm, onStatusWarning, setNarrationHistory]);
 
   // Clear animals when entering special or interior maps
   useEffect(() => {

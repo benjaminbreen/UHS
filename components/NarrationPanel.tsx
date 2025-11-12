@@ -208,7 +208,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
       className={[
         'group relative flex flex-col h-full rounded-2xl overflow-hidden surface-card theme-surface transition-colors',
         'shadow-lg border focus-within:ring-1 focus-within:ring-[color:var(--accent-primary)]/30',
-        isLoading ? 'ring-1 ring-amber-500/25' : ''
+        isLoading ? 'ring-1 ring-[color:var(--color-warning)]/25' : ''
       ].join(' ')}
       style={{ borderColor: 'var(--surface-card-border)' }}
     >
@@ -236,7 +236,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               type="checkbox"
               checked={settings.showQuickReplies}
               onChange={(e) => setSettings((s) => ({ ...s, showQuickReplies: e.target.checked }))}
-              className="accent-blue-500"
+              className="accent-[color:var(--accent-primary)]"
             />
           </label>
 
@@ -246,7 +246,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               type="checkbox"
               checked={settings.compact}
               onChange={(e) => setSettings((s) => ({ ...s, compact: e.target.checked }))}
-              className="accent-blue-500"
+              className="accent-[color:var(--accent-primary)]"
             />
           </label>
 
@@ -260,7 +260,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                   value={size}
                   checked={settings.textSize === size}
                   onChange={() => setSettings((s) => ({ ...s, textSize: size }))}
-                  className="accent-blue-500"
+                  className="accent-[color:var(--accent-primary)]"
                 />
                 <span className="uppercase">{size}</span>
               </label>
@@ -273,7 +273,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               type="checkbox"
               checked={settings.autoScroll}
               onChange={(e) => setSettings((s) => ({ ...s, autoScroll: e.target.checked }))}
-              className="accent-blue-500"
+              className="accent-[color:var(--accent-primary)]"
             />
           </label>
         </div>
@@ -294,7 +294,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               <div className="mt-2 mb-5">
                 <div className="surface-muted rounded-xl p-3 ">
                   <p className="text-xs font-semibold text-[var(--accent-primary)] mb-2.5 flex items-center gap-1">
-                    <span>💡</span> Tip
+                   Tip
                   </p>
                   <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                     {contextualSuggestion.tip}
@@ -345,12 +345,12 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
 
 
                   {msg.sender === 'narrator' && (
-                    <p className="text-xs text-amber-300 font-semibold mb-1 flex items-center gap-1">
+                    <p className="text-xs text-[color:var(--color-warning)] font-semibold mb-1 flex items-center gap-1">
                       <span>📜</span> Narrator
                     </p>
                   )}
                   {msg.sender === 'narrator-ambient' && (
-                    <p className="text-xs text-purple-300 font-semibold mb-1 flex items-center gap-1">
+                    <p className="text-xs text-[color:var(--accent-primary)] font-semibold mb-1 flex items-center gap-1">
                       <span></span> Ambiance
                     </p>
                   )}
@@ -361,7 +361,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
 
             {isLoading && (
               <div className={`${bubblePad} surface-muted rounded-xl animate-pulse`}>
-                <p className="text-xs text-amber-500 font-semibold mb-1 flex items-center gap-1">📜 The Narrator</p>
+                <p className="text-xs text-[color:var(--color-warning)] font-semibold mb-1 flex items-center gap-1">📜 The Narrator</p>
                 <p className="flex items-center gap-2 text-[var(--text-secondary)]">
                   <span className="animate-pulse">● ● ●</span>
                   <span className="text-xs">thinking…</span>
@@ -378,7 +378,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
           <p className="text-xs text-[var(--text-secondary)] font-medium mb-2 flex items-center gap-1">
             <span></span> Quick Commands
             {showQuickCommandsDueToWarning && (
-              <span className="text-[10px] text-amber-400 animate-pulse ml-1">(suggested)</span>
+              <span className="text-[10px] text-[color:var(--color-warning)] animate-pulse ml-1">(suggested)</span>
             )}
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -455,9 +455,11 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             autoCapitalize="off"
             inputMode="text"
             enterKeyHint="send"
-            className="flex-1 px-4 py-3 text-base text-[var(--text-primary)] placeholder-[var(--text-muted)]rounded-xl
-                       focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-primary)]/35 focus:border-transparent rounded-xl
-                       transition-all min-h-[48px] touch-manipulation"
+            className="flex-1 px-4 py-3 text-base text-text-primary placeholder-text-muted bg-background-secondary border-1 border-white/30 border-surface-muted rounded-xl
+                       shadow-[inset_0_2px_5px_rgba(0,0,0,0.2)]
+                       focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-[inset_0_2px_6px_rgba(0,0,0,0.15)]
+                       transition-all min-h-[48px] touch-manipulation
+                       disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ fontSize: '16px' }}
           />
           <button

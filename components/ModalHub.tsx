@@ -218,9 +218,12 @@ const ModalHub: React.FC = () => {
                     import('../services/saveGameService').then(({ saveGameService }) => {
                         const result = saveGameService.saveGame(
                             `Quick Save - ${new Date().toLocaleTimeString()}`,
-                            currentGameState
+                            {
+                                ...currentGameState,
+                                playTime: currentGameState.playerCharacter.totalPlayTimeMinutes || 0
+                            }
                         );
-                        
+
                         if (result.success) {
                             console.log('[ModalHub] Quick save successful');
                             // TODO: Show a toast notification

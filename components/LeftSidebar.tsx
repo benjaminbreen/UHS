@@ -81,7 +81,7 @@ const CollapsibleSection: React.FC<{ title: string, count?: number, children: Re
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center text-left font-semibold text-blue-500 dark:text-blue-300 mb-2 p-2 rounded-md surface-muted hover:shadow-md"
+        className="w-full flex justify-between items-center text-left font-semibold text-accent mb-2 p-2 rounded-md surface-muted hover:shadow-md"
       >
         <span className="flex items-center gap-2">
           {title}
@@ -759,11 +759,11 @@ const LeftSidebar: React.FC<{
       return (
         <div className="flex flex-col h-full">
           <div className="flex-1 space-y-4 text-sm text-[var(--text-primary)]">
-            <div className="surface-card rounded-2xl px-2 py-3" >
-              <h4 className="text-xs uppercase tracking-wider font-semibold text-[var(--text-secondary)] -mt-1 mb-3">Dominant Power</h4>
+            <div>
+              <h4 className="text-xs uppercase tracking-wider font-semibold text-[var(--text-secondary)] mb-2 px-1">Dominant Power</h4>
               <button
                 type="button"
-                className="w-full surface-muted rounded-xl px-3 py-2 flex items-center gap-3 text-left transition-shadow hover:shadow-md"
+                className="w-full surface-card rounded-xl px-3 py-2.5 flex items-center gap-3 text-left transition-all hover:shadow-md hover:scale-[1.01]"
                 onClick={() => onShowFactionsModal?.(factionData)}
                 onMouseEnter={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -809,8 +809,8 @@ const LeftSidebar: React.FC<{
 
               {majorCity && (
                 <>
-                  <div className=" rounded-2xl  mt-4" style={{ borderColor: 'var(--surface-card-border)' }}>
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2 px-1">
                       <h4 className="text-xs uppercase tracking-wider font-semibold text-[var(--text-secondary)]">Major City</h4>
                       {majorCity.foundingYear && (
                         <span className="text-[10px] text-[var(--text-muted)]">
@@ -818,10 +818,9 @@ const LeftSidebar: React.FC<{
                         </span>
                       )}
                     </div>
-                     <div className="surface-card rounded-2xl p-2  mt-2" style={{ borderColor: 'var(--surface-card-border)' }}>
                     <button
                       type="button"
-                      className="surface-card rounded-xl px-4 py-2 w-full text-left transition-shadow hover:shadow-md mb-4"
+                      className="surface-card rounded-xl px-4 py-2.5 w-full text-left transition-all hover:shadow-md hover:scale-[1.01] mb-3"
                       onClick={() => {
                         setCityHistoricalModalData({
                           cityName: majorCity.name,
@@ -879,23 +878,19 @@ const LeftSidebar: React.FC<{
                           );
 
                         })}
-
                       </div>
-
                     )}
-
-                    
                   </div>
-                       </div>
                 </>
               )}
 
               {/* Local Languages */}
               {localLanguages.length > 0 && (
-                <div className="surface-card rounded-2xl p-3 border mt-4" style={{ borderColor: 'var(--surface-card-border)' }}>
-                  <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2">
+                <div className="mt-4">
+                  <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2 px-1">
                     Local Languages
                   </h4>
+                  <div className="surface-card rounded-xl p-2">
                   <div className="space-y-2">
                     {localLanguages.map((lang, idx) => (
                       <button
@@ -914,11 +909,12 @@ const LeftSidebar: React.FC<{
                       </button>
                     ))}
                   </div>
+                  </div>
                 </div>
               )}
 
-              <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2 mt-5">Description</h4>
-              <p className="text-[0.85rem] text-[var(--text-primary)] leading-[1.55]">
+              <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2 mt-5 px-1">Description</h4>
+              <p className="text-[0.85rem] text-[var(--text-primary)] leading-[1.55] px-1">
                 {finalDesc}
               </p>
 
@@ -1026,7 +1022,7 @@ const LeftSidebar: React.FC<{
     if (tab === 'animals') {
       return (
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
-          <h4 className="text-sm font-semibold text-blue-500 flex justify-between items-center shrink-0">
+          <h4 className="text-sm font-semibold text-accent flex justify-between items-center shrink-0">
             <span>Observed Wildlife</span>
             <span className="badge-pill" data-variant="accent">
               {animals?.length || 0}
@@ -1059,7 +1055,7 @@ const LeftSidebar: React.FC<{
 
       return (
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
-          <h4 className="text-sm font-semibold text-blue-500 flex justify-between items-center shrink-0">
+          <h4 className="text-sm font-semibold text-accent flex justify-between items-center shrink-0">
             <span>Nearby People</span>
             <span className="badge-pill" data-variant="accent">
               {list.length}
@@ -1130,6 +1126,7 @@ const LeftSidebar: React.FC<{
             type="button"
             onClick={() => setActiveMapSubTab(tab.id)}
             className={`tab-button text-sm ${activeMapSubTab === tab.id ? 'is-active' : ''}`}
+            data-tab-type={tab.id}
           >
             {tab.label}
           </button>
@@ -1224,6 +1221,7 @@ const LeftSidebar: React.FC<{
                   type="button"
                   onClick={() => setActiveMajorTab(tab.id)}
                   className={`tab-button text-xs font-bold ${isActive ? 'is-active' : ''}`}
+                  data-tab-type={tab.id}
                 >
                   {tab.label}
                 </button>

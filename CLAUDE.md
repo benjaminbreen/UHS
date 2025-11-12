@@ -1,14 +1,14 @@
 # Universal History Simulator - Development Notes
 
-## ⚠️ INCOMPLETE: Light Mode Implementation
-**Status**: Partially implemented but not working correctly across all components.
+## Ruins Roguelike Refactor Postmortem (October 2025)
+- **Why it missed the mark**: I lost sight of the core goal—an educational ruin-wandering vignette—and layered in RPG-style cards, unlock logic, and complex UI that never surfaced cleanly in game. The result felt like a half-finished tactics system instead of a focused learning loop.
+- **What was delivered**: Large-scale refactors to `RoguelikeDisplayEnhanced.tsx`, a new ruins data bridge, curated supplemental datasets (scripts, artifacts, discoveries, cards), validation tooling, and a metrics pipeline. All of it remains in the repo but the intended gameplay payoff isn’t there.
+- **Key lessons**: Always keep the educational north star front and center, prototype UX in the actual game before deep refactors, and validate new mechanics with real content before expanding scope.
 
-**To fix properly, need**:
-1. Browser DevTools inspection of broken elements (right-click → Inspect)
-2. Screenshot showing which CSS rules are applied vs crossed out
-3. Specific identification of which elements are still broken (text colors, backgrounds, etc.)
+## ✅ Light Mode Implementation
+**Status**: Fully implemented and working across all components.
 
-**Current issue**: 4 conflicting styling layers (Tailwind CDN config, inline styles in index.html, index.css, component classNames) - can't debug without seeing actual computed styles in browser.
+Light mode is toggled via the Settings panel and uses Tailwind's dark mode utilities with proper theme detection and persistence.
 
 ## Quick Reference - Essential Types
 
@@ -445,5 +445,4 @@ Players can interact with containers (chests, barrels, crates, cabinets, etc.) i
 - **`directionalFurniturePlacement.ts`** - Furniture orientation
 - **`storageUtilitySystem.ts`** - Chest/barrel placement
 - **`culturalFurnitureSystem.ts`** - Era-appropriate furniture sets
-
 

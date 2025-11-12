@@ -38,8 +38,8 @@ interface Props {
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="flex justify-between items-center py-1 text-sm">
-    <span className="text-slate-400">{label}:</span>
-    <span className="text-white font-semibold text-right">{value}</span>
+    <span className="text-text-secondary">{label}:</span>
+    <span className="text-text-primary font-semibold text-right">{value}</span>
   </div>
 );
 
@@ -55,11 +55,11 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
 
   return (
     <div className="flex items-center gap-3 group relative">
-      <div className="w-40 text-sm text-slate-300 flex items-center gap-2">
+      <div className="w-40 text-sm text-text-secondary flex items-center gap-2">
         <Icon className="w-4 h-4" />
         <span className="font-medium">{label}</span>
       </div>
-      <div className="flex-1 h-3 rounded-full bg-slate-800/60 border border-slate-700/60 overflow-hidden">
+      <div className="flex-1 h-3 rounded-full bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
@@ -70,7 +70,7 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
         />
       </div>
       <div className="flex items-center gap-1">
-        <span className="w-8 text-right font-bold text-white">{value}</span>
+        <span className="w-8 text-right font-bold text-text-primary">{value}</span>
         {value > 8 && <span className="text-green-400 text-xs">▲</span>}
         {value < 5 && <span className="text-red-400 text-xs">▼</span>}
       </div>
@@ -78,10 +78,10 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
       {/* Tooltip */}
       {tooltip && (
         <div className="absolute left-0 bottom-full mb-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
-          <div className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 shadow-xl max-w-xs">
-            <div className="font-semibold text-white mb-1">{label} {value}</div>
-            <div className="text-slate-300">{tooltip}</div>
-            <div className="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+          <div className="bg-[var(--surface-tooltip-bg)] border border-[var(--surface-tooltip-border)] rounded-lg px-3 py-2 text-xs text-text-secondary shadow-xl max-w-xs">
+            <div className="font-semibold text-text-primary mb-1">{label} {value}</div>
+            <div className="text-text-secondary">{tooltip}</div>
+            <div className="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[var(--surface-tooltip-bg)]"></div>
           </div>
         </div>
       )}
@@ -109,7 +109,7 @@ export const CharacterOverviewTab: React.FC<Props> = ({
           title="Click to view full portrait"
           onClick={handleOpenPortrait}
         >
-          <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-700 bg-slate-900/70 shadow-xl">
+          <div className="aspect-square rounded-xl overflow-hidden border-2 border-[var(--border-normal)] bg-[var(--bg-secondary)] shadow-xl">
             <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-black/30 pointer-events-none" />
             <LazyPortrait
               character={character}
@@ -124,17 +124,17 @@ export const CharacterOverviewTab: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
+        <div className="p-4 rounded-lg surface-card">
           <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Vitals</h4>
           <div className="space-y-3">
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="flex items-center gap-1 text-red-400"><Heart className="w-4 h-4" /> Health</span>
-                <span className="text-white font-bold">
+                <span className="text-text-primary font-bold">
                   {Math.round(character.health)}/{Math.round(character.maxHealth)}
                 </span>
               </div>
-              <div className="h-3 rounded bg-slate-700 overflow-hidden">
+              <div className="h-3 rounded bg-[var(--surface-track-bg)] overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-red-600 to-red-400"
                   style={{ width: `${(character.health / character.maxHealth) * 100}%` }}
@@ -144,11 +144,11 @@ export const CharacterOverviewTab: React.FC<Props> = ({
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="flex items-center gap-1 text-amber-400"><Moon className="w-4 h-4" /> Fatigue</span>
-                <span className="text-white font-bold">
+                <span className="text-text-primary font-bold">
                   {Math.round(character.fatigue)}/{Math.round(character.maxFatigue || 100)}
                 </span>
               </div>
-              <div className="h-3 rounded bg-slate-700 overflow-hidden">
+              <div className="h-3 rounded bg-[var(--surface-track-bg)] overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-amber-500 to-orange-400"
                   style={{ width: `${(character.fatigue / (character.maxFatigue || 100)) * 100}%` }}
@@ -158,11 +158,11 @@ export const CharacterOverviewTab: React.FC<Props> = ({
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="flex items-center gap-1 text-cyan-400"><Star className="w-4 h-4" /> Experience</span>
-                <span className="text-white font-bold">
+                <span className="text-text-primary font-bold">
                   {Math.round(character.experience)}/{Math.round(character.maxExperience)}
                 </span>
               </div>
-              <div className="h-3 rounded bg-slate-700 overflow-hidden">
+              <div className="h-3 rounded bg-[var(--surface-track-bg)] overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
                   style={{ width: `${(character.experience / character.maxExperience) * 100}%` }}
@@ -172,7 +172,7 @@ export const CharacterOverviewTab: React.FC<Props> = ({
           </div>
 
           {character.diseaseHealth?.currentDiseases?.length ? (
-            <div className="pt-4 mt-4 border-t border-slate-700/60">
+            <div className="pt-4 mt-4 border-t border-[var(--border-normal)]">
               <h5 className="text-xs font-bold uppercase tracking-wider text-pink-300 mb-2">Conditions</h5>
               <div className="flex flex-wrap gap-2">
                 {character.diseaseHealth.currentDiseases.map((d, i) => (
@@ -234,14 +234,14 @@ export const CharacterOverviewTab: React.FC<Props> = ({
             if (modifications.length === 0) return null;
 
             return (
-              <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
+              <div className="p-4 rounded-lg surface-card">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   Body Modifications
                 </h4>
                 <div className="space-y-2">
                   {modifications.map((mod, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded bg-slate-900/50">
+                    <div key={index} className="flex items-center justify-between p-2 rounded bg-[var(--surface-muted-bg)]">
                       <div className="flex items-center gap-2">
                         {mod.type === 'tattoo' && <span className="text-lg">🖤</span>}
                         {mod.type === 'scarification' && <span className="text-lg">⚡</span>}
@@ -251,8 +251,8 @@ export const CharacterOverviewTab: React.FC<Props> = ({
                         {mod.type === 'piercing' && <span className="text-lg">💍</span>}
                         {mod.type === 'ash' && <span className="text-lg">⚱️</span>}
                         <div>
-                          <p className="text-sm font-semibold text-white">{mod.name}</p>
-                          <p className="text-xs text-slate-400 capitalize">{mod.type.replace('_', ' ')}</p>
+                          <p className="text-sm font-semibold text-text-primary">{mod.name}</p>
+                          <p className="text-xs text-text-secondary capitalize">{mod.type.replace('_', ' ')}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -270,7 +270,7 @@ export const CharacterOverviewTab: React.FC<Props> = ({
                     </div>
                   ))}
                   {modifications[0]?.significance && (
-                    <p className="text-xs text-slate-300 italic mt-2">
+                    <p className="text-xs text-text-secondary italic mt-2">
                       {modifications[0].significance}
                     </p>
                   )}
@@ -283,9 +283,9 @@ export const CharacterOverviewTab: React.FC<Props> = ({
 
       {/* Background */}
       <div className="space-y-5">
-        <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50 h-full">
+        <div className="p-4 rounded-lg surface-card h-full">
           <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-3">Background</h4>
-          <p className="text-slate-200/90 leading-relaxed italic whitespace-pre-wrap">
+          <p className="text-text-primary leading-relaxed italic whitespace-pre-wrap">
             {highlightedBackstory || character.backstory}
           </p>
         </div>
@@ -293,7 +293,7 @@ export const CharacterOverviewTab: React.FC<Props> = ({
 
       {/* Info + Top Stats */}
       <div className="space-y-5">
-        <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
+        <div className="p-4 rounded-lg surface-card">
           <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Character Info</h4>
           <div className="space-y-2">
             <DetailRow label="Level" value={character.level} />
@@ -302,53 +302,59 @@ export const CharacterOverviewTab: React.FC<Props> = ({
             <DetailRow label="Religion" value={character.religion || '—'} />
             <DetailRow label="Height" value={cmToFeetAndInches(character.appearance?.height)} />
             <DetailRow label="Weight" value={kgToLbs(character.appearance?.weight)} />
+            {character.totalPlayTimeMinutes !== undefined && character.totalPlayTimeMinutes > 0 && (
+              <DetailRow
+                label="Play Time"
+                value={`${Math.floor(character.totalPlayTimeMinutes / 60)}h ${character.totalPlayTimeMinutes % 60}m`}
+              />
+            )}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3">Quick Actions</h4>
+        <div className="p-4 rounded-lg surface-card">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3">Quick Actions</h4>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => handleTabChange('equipment')}
-              className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+              className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
             >
-              <div className="flex items-center gap-2 text-amber-300">
-                <Sword className="w-4 h-4" />
-                <span className="text-xs font-semibold">Equipment</span>
+              <div className="flex items-center gap-2">
+                <Sword className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-semibold text-text-primary">Equipment</span>
               </div>
             </button>
             <button
               onClick={() => handleTabChange('inventory')}
-              className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+              className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
             >
-              <div className="flex items-center gap-2 text-green-300">
-                <Backpack className="w-4 h-4" />
-                <span className="text-xs font-semibold">Inventory</span>
+              <div className="flex items-center gap-2">
+                <Backpack className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-semibold text-text-primary">Inventory</span>
               </div>
             </button>
             <button
               onClick={() => handleTabChange('health')}
-              className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+              className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
             >
-              <div className="flex items-center gap-2 text-red-300">
-                <Activity className="w-4 h-4" />
-                <span className="text-xs font-semibold">Full Stats</span>
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-red-400" />
+                <span className="text-xs font-semibold text-text-primary">Full Stats</span>
               </div>
             </button>
             <button
               onClick={() => handleTabChange('household')}
-              className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+              className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
             >
-              <div className="flex items-center gap-2 text-blue-300">
-                <House className="w-4 h-4" />
-                <span className="text-xs font-semibold">Household</span>
+              <div className="flex items-center gap-2">
+                <House className="w-4 h-4 text-green-400" />
+                <span className="text-xs font-semibold text-text-primary">Household</span>
               </div>
             </button>
           </div>
         </div>
 
-        <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
+        <div className="p-4 rounded-lg surface-card">
           <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Top Stats</h4>
           <div className="space-y-3">
             {Object.entries(character.stats)

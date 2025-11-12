@@ -12,6 +12,7 @@ import {
   Rarity,
 } from '../types';
 import { useUI } from '../contexts/UIContext';
+import { useSimpleTabNavigation } from '../hooks/useTabNavigation';
 import LazyPortrait from './portraits/LazyPortrait';
 import BeliefsPanel from './BeliefsPanel';
 import EquipmentPanel from './EquipmentPanel';
@@ -142,8 +143,8 @@ const RarityTag: React.FC<{ rarity: Rarity }> = ({ rarity }) => {
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="flex justify-between items-center py-1 text-sm">
-    <span className="text-slate-400">{label}:</span>
-    <span className="text-white font-semibold text-right">{value}</span>
+    <span className="text-text-secondary">{label}:</span>
+    <span className="text-text-primary font-semibold text-right">{value}</span>
   </div>
 );
 
@@ -182,11 +183,11 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
   
   return (
     <div className="flex items-center gap-3 group relative">
-      <div className="w-40 text-sm text-slate-300 flex items-center gap-2">
+      <div className="w-40 text-sm text-text-primary flex items-center gap-2">
         <Icon className="w-4 h-4" />
         <span className="font-medium">{label}</span>
       </div>
-      <div className="flex-1 h-3 rounded-full bg-slate-800/60 border border-slate-700/60 overflow-hidden">
+      <div className="flex-1 h-3 rounded-full bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
@@ -197,17 +198,17 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
         />
       </div>
       <div className="flex items-center gap-1">
-        <span className="w-8 text-right font-bold text-white">{value}</span>
+        <span className="w-8 text-right font-bold text-text-primary">{value}</span>
         {value > 8 && <span className="text-green-400 text-xs">▲</span>}
         {value < 5 && <span className="text-red-400 text-xs">▼</span>}
       </div>
       
       {/* Tooltip */}
-      <div className="absolute left-0 bottom-full mb-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
-        <div className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 shadow-xl max-w-xs">
-          <div className="font-semibold text-white mb-1">{label} {value}</div>
-          <div className="text-slate-300">{impact}</div>
-          <div className="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+      <div className="absolute left-0 bottom-full mb-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100]">
+        <div className="tooltip-surface px-3 py-2 text-xs shadow-xl max-w-xs">
+          <div className="font-semibold text-text-primary mb-1">{label} {value}</div>
+          <div className="text-text-secondary">{impact}</div>
+          <div className="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[var(--surface-tooltip-bg)]"></div>
         </div>
       </div>
     </div>
@@ -222,15 +223,35 @@ const TabBtn: React.FC<{ label: string; active: boolean; onClick: () => void; Ic
 }) => (
   <button
     onClick={onClick}
+    role="tab"
+    aria-selected={active}
+    aria-label={`${label} tab`}
+    tabIndex={active ? 0 : -1}
     className={[
-      'flex items-center gap-2 px-4 py-3 text-xs md:text-sm font-bold uppercase tracking-wider transition-colors shrink-0',
+      'relative flex items-center gap-2 px-5 py-3 text-xs md:text-sm font-semibold transition-all duration-200 shrink-0',
+      'focus:outline-none focus:ring-2 focus:ring-offset-1',
       active
-        ? 'text-white bg-slate-700/50 border-b-2 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,.25)]'
-        : 'text-slate-400 hover:text-white hover:bg-slate-800/40',
+        ? [
+            // Active tab - folder style with rounded top
+            'text-text-primary rounded-t-lg -mb-px z-10',
+            'surface-card border-t-2 border-x-2',
+            // Themed border
+            'border-[color:var(--accent-primary)]/40',
+            'shadow-[0_-2px_8px_rgba(0,0,0,0.08)]',
+            'dark:shadow-[0_-2px_12px_rgba(0,0,0,0.3)]',
+            'focus:ring-[color:var(--accent-primary)]',
+          ].join(' ')
+        : [
+            // Inactive tab - subtle, sits behind
+            'text-text-secondary bg-transparent',
+            'hover:text-text-primary hover:bg-[var(--surface-muted-bg)]',
+            'rounded-t-md border-b border-[var(--border-subtle)]',
+            'focus:ring-[var(--border-normal)]',
+          ].join(' '),
     ].join(' ')}
   >
-    <Icon className="w-4 h-4" />
-    {label}
+    <Icon className="w-4 h-4" aria-hidden="true" />
+    <span className="whitespace-nowrap">{label}</span>
   </button>
 );
 
@@ -386,6 +407,15 @@ const CharacterProfileModal: React.FC<Props> = ({
   const [active, setActive] = useState<
     'overview' | 'health' | 'equipment' | 'inventory' | 'beliefs' | 'history' | 'household'
   >(defaultTab);
+
+  // Arrow key navigation for tabs (Left/Right to switch, Home/End for first/last)
+  useSimpleTabNavigation<typeof active>({
+    tabs: ['overview', 'health', 'equipment', 'inventory', 'beliefs', 'history', 'household'],
+    activeTab: active,
+    onChange: setActive,
+    enabled: isOpen,
+    loop: true
+  });
 
   const [inventoryFilter, setInventoryFilter] = useState<'All' | 'Weapons' | 'Clothing' | 'Consumables' | 'Other'>('All');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -750,21 +780,21 @@ const CharacterProfileModal: React.FC<Props> = ({
   return (
     <div
       data-surface="modal-overlay"
-      className="modal-overlay theme-surface"
+      className="modal-overlay theme-surface z-[700]"
       onClick={onClose}
     >
       <div
         data-surface="modal-panel"
-        className="ff-panel theme-surface w-full max-w-7xl h-[93vh] flex flex-col text-slate-200"
+        className="ff-panel theme-surface w-full max-w-7xl h-[95vh] flex flex-col text-text-primary"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="shrink-0">
-          <div className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(1200px_300px_at_50%_-40%,rgba(59,130,246,.25),transparent)] pointer-events-none" />
-            <div className="flex items-center justify-between px-5 py-4 bg-slate-900/65 border-b-2 border-slate-700">
+          <div className="relative overflow-hidden surface-elevated">
+            <div className="absolute inset-0 bg-[radial-gradient(1200px_300px_at_50%_-40%,var(--accent-primary-rgb,.25),transparent)] pointer-events-none" />
+            <div className="flex items-center justify-between px-5 py-4 border-b-2 border-[color:var(--border-normal)]">
               <div className="flex items-center gap-4">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-600 shadow-lg bg-slate-800">
+                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[color:var(--border-normal)] shadow-lg surface-muted">
                   <LazyPortrait
                     character={character}
                     size={44}
@@ -774,26 +804,26 @@ const CharacterProfileModal: React.FC<Props> = ({
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-xl md:text-3xl font-bold text-white truncate">{character.name}</h2>
+                  <h2 className="text-lg md:text-2xl font-bold text-text-primary truncate">{character.name}</h2>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-xs font-semibold capitalize border border-amber-400/40 flex items-center gap-1">
+                    <span className="px-2 py-1 rounded bg-[color:var(--color-warning)]/20 text-[color:var(--color-warning)] text-sm font-semibold capitalize border border-[color:var(--color-warning)]/40 flex items-center gap-1">
                       <Shield className="w-3.5 h-3.5" />
                       {character.profession}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-xs font-semibold border border-blue-400/40 flex items-center gap-1">
+                    <span className="px-2 py-1 rounded bg-[color:var(--accent-primary)]/20 text-[color:var(--accent-primary)] text-sm font-semibold border border-[color:var(--accent-primary)]/40 flex items-center gap-1">
                       <Star className="w-3.5 h-3.5" /> Lv. {character.level}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-400/40 flex items-center gap-1">
+                    <span className="px-2 py-1 rounded bg-[color:var(--color-success)]/20 text-[color:var(--color-success)] text-sm font-semibold border border-[color:var(--color-success)]/40 flex items-center gap-1">
                       <Handshake className="w-3.5 h-3.5" /> {character.mapReputation ?? character.reputation ?? 0}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 text-xs font-semibold border border-yellow-400/40 flex items-center gap-1">
+                    <span className="px-2 py-1 rounded bg-[color:var(--color-warning)]/30 text-[color:var(--color-warning)] text-sm font-semibold border border-[color:var(--color-warning)]/40 flex items-center gap-1">
                       <Coins className="w-3.5 h-3.5" /> {character.currency ?? 0}
                     </span>
                     {/* Character Attributes - moved to badge row */}
                     {character.attributes && character.attributes.length > 0 && (
                       <div
                         onClick={handleToggleAttributeModal}
-                        className="flex-shrink-0 ml-auto rounded-lg hover:bg-slate-700/30 px-1 py-0.5 transition-all cursor-pointer"
+                        className="flex-shrink-0 ml-auto rounded-lg hover:bg-[var(--surface-muted-hover-bg)] px-1 py-0.5 transition-all cursor-pointer"
                         title="View all attributes"
                         role="button"
                         tabIndex={0}
@@ -813,8 +843,8 @@ const CharacterProfileModal: React.FC<Props> = ({
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-600
-                           bg-slate-800/70 text-slate-300 hover:text-white hover:bg-slate-700/70"
+                className="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border-normal)]
+                           bg-[var(--surface-muted-bg)] text-text-secondary hover:text-text-primary hover:bg-[var(--surface-muted-hover-bg)]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -825,13 +855,13 @@ const CharacterProfileModal: React.FC<Props> = ({
         {/* Body */}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[320px_1fr]">
           {/* Left: Party */}
-          <aside className="hidden md:flex flex-col gap-4 p-5 border-r-2 border-slate-700 bg-slate-800/30 min-h-0 overflow-y-auto">
-            <h3 className="font-press-start text-xl text-slate-300 text-center tracking-wider">PARTY</h3>
+          <aside className="hidden md:flex flex-col gap-4 p-5 border-r-2 border-surface-border surface-muted min-h-0 overflow-y-auto">
+            <h3 className="font-press-start text-lg text-text-secondary text-center tracking-wider">PARTY</h3>
 
             {/* Player card */}
-            <div className="p-4 rounded-lg bg-gradient-to-br from-slate-700/50 to-slate-800/40 border border-slate-600/50">
+            <div className="p-4 rounded-lg surface-card">
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-500 bg-slate-900 shadow-lg grid place-items-center">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[var(--border-normal)] bg-[var(--bg-secondary)] shadow-lg grid place-items-center">
                   <LazyPortrait
                     character={character}
                     size={80}
@@ -841,16 +871,16 @@ const CharacterProfileModal: React.FC<Props> = ({
                   />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-white font-bold text-lg truncate">{character.name}</div>
-                  <div className="text-amber-300 text-sm capitalize truncate">{character.profession}</div>
-                  <div className="text-blue-300 text-sm mt-1">Level {character.level}</div>
+                  <div className="text-text-primary font-bold text-lg truncate">{character.name}</div>
+                  <div className="text-[color:var(--color-warning)] text-sm capitalize truncate">{character.profession}</div>
+                  <div className="text-[color:var(--accent-primary)] text-sm mt-1">Level {character.level}</div>
                 </div>
               </div>
             </div>
 
             {/* Animal Companions (quick actions) */}
             <section className="space-y-2">
-              <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider text-center">Animal Companions</h4>
+              <h4 className="text-sm font-bold text-amber-600 uppercase tracking-wider text-center">Animal Companions</h4>
               {tamedAnimals.length ? (
                 tamedAnimals.map(a => {
                   const hp = (a.health / 10) * 100;
@@ -858,18 +888,18 @@ const CharacterProfileModal: React.FC<Props> = ({
                   return (
                     <div
                       key={a.id}
-                      className="group p-3 rounded-lg bg-gradient-to-br from-green-900/30 to-slate-800/40 border border-green-600/30 hover:border-green-500/60 transition"
+                      className="group p-3 rounded-lg bg-gradient-to-br from-green-900/30 to-blue-900/40 border border-green-600/30 hover:border-green-500/60 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-md bg-slate-900/70 border border-slate-600/60 grid place-items-center">
+                        <div className="w-8 h-8 rounded-md bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] grid place-items-center">
                           <PawPrint className="w-4 h-4 text-green-300" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-bold text-white truncate capitalize group-hover:text-green-300">
+                          <div className="text-sm font-bold text-text-primary truncate capitalize group-hover:text-green-400">
                             {a.name || a.speciesName}
                           </div>
-                          <div className="text-xs text-slate-400 truncate">{data?.type || 'animal'}</div>
-                          <div className="h-1 rounded bg-slate-700 mt-1 overflow-hidden">
+                          <div className="text-xs text-text-secondary truncate">{data?.type || 'animal'}</div>
+                          <div className="h-1 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] mt-1 overflow-hidden">
                             <div
                               className={`h-full rounded ${hp > 70 ? 'bg-emerald-500' : hp > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
                               style={{ width: `${hp}%` }}
@@ -877,7 +907,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           </div>
                         </div>
                         <button
-                          className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-slate-700 text-slate-300"
+                          className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-[var(--surface-muted-hover-bg)] text-text-secondary"
                           title="More"
                           onClick={() => {
                             setSelectedAnimal(a);
@@ -893,7 +923,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                             setSelectedAnimal(a);
                             setIsAnimalModalOpen(true);
                           }}
-                          className="px-2 py-1 text-xs border border-slate-600 rounded text-slate-300 hover:bg-slate-700"
+                          className="px-2 py-1 text-xs border border-[var(--border-normal)] rounded text-text-secondary hover:bg-[var(--surface-muted-hover-bg)]"
                         >
                           Details
                         </button>
@@ -908,7 +938,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                   );
                 })
               ) : (
-                <div className="text-center py-4 text-slate-500 text-sm italic">No animal companions</div>
+                <div className="text-center py-4 text-text-tertiary text-sm italic">No animal companions</div>
               )}
             </section>
           </aside>
@@ -916,7 +946,11 @@ const CharacterProfileModal: React.FC<Props> = ({
           {/* Right: Tabs + Content */}
           <main className="flex flex-col min-h-0">
             {/* Tabs */}
-            <div className="shrink-0 flex border-b-2 border-slate-700 bg-slate-800/60 overflow-x-auto">
+            <div
+              role="tablist"
+              aria-label="Character profile sections"
+              className="shrink-0 flex border-b-2 border-[var(--border-normal)] bg-[var(--surface-muted-bg)] overflow-x-auto"
+            >
               <TabBtn label="Overview" active={active === 'overview'} onClick={() => handleTabChange('overview')} Icon={Home} />
               <TabBtn label="Stats" active={active === 'health'} onClick={() => handleTabChange('health')} Icon={Activity} />
               <TabBtn label="Equipment" active={active === 'equipment'} onClick={() => handleTabChange('equipment')} Icon={Sword} />
@@ -927,7 +961,7 @@ const CharacterProfileModal: React.FC<Props> = ({
             </div>
 
             {/* Content (scrolls) */}
-            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/40">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
               {/* OVERVIEW ----------------------------------------------------- */}
               {active === 'overview' && (
                 <div className="p-5 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -939,8 +973,8 @@ const CharacterProfileModal: React.FC<Props> = ({
                         title="Click to view full portrait"
                         onClick={handleOpenPortrait}
                       >
-                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-700 bg-slate-900/70 shadow-xl">
-                          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-black/30 pointer-events-none" />
+                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-[var(--border-normal)] bg-[var(--bg-secondary)] shadow-xl">
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/10 pointer-events-none" />
                           <LazyPortrait
                             character={character}
                             size={300}
@@ -955,17 +989,17 @@ const CharacterProfileModal: React.FC<Props> = ({
                       </div>
                     )}
 
-                    <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
+                    <div className="p-4 rounded-lg surface-card">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Vitals</h4>
                       <div className="space-y-3">
                         <div>
                           <div className="flex justify-between text-sm mb-1">
                             <span className="flex items-center gap-1 text-red-400"><Heart className="w-4 h-4" /> Health</span>
-                            <span className="text-white font-bold">
+                            <span className="text-text-primary font-bold">
                               {Math.round(character.health)}/{Math.round(character.maxHealth)}
                             </span>
                           </div>
-                          <div className="h-3 rounded bg-slate-700 overflow-hidden">
+                          <div className="h-3 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-red-600 to-red-400"
                               style={{ width: `${(character.health / character.maxHealth) * 100}%` }}
@@ -975,11 +1009,11 @@ const CharacterProfileModal: React.FC<Props> = ({
                         <div>
                           <div className="flex justify-between text-sm mb-1">
                             <span className="flex items-center gap-1 text-amber-400"><Moon className="w-4 h-4" /> Fatigue</span>
-                            <span className="text-white font-bold">
+                            <span className="text-text-primary font-bold">
                               {Math.round(character.fatigue)}/{Math.round(character.maxFatigue || 100)}
                             </span>
                           </div>
-                          <div className="h-3 rounded bg-slate-700 overflow-hidden">
+                          <div className="h-3 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-amber-500 to-orange-400"
                               style={{ width: `${(character.fatigue / (character.maxFatigue || 100)) * 100}%` }}
@@ -989,11 +1023,11 @@ const CharacterProfileModal: React.FC<Props> = ({
                         <div>
                           <div className="flex justify-between text-sm mb-1">
                             <span className="flex items-center gap-1 text-cyan-400"><Star className="w-4 h-4" /> Experience</span>
-                            <span className="text-white font-bold">
+                            <span className="text-text-primary font-bold">
                               {Math.round(character.experience)}/{Math.round(character.maxExperience)}
                             </span>
                           </div>
-                          <div className="h-3 rounded bg-slate-700 overflow-hidden">
+                          <div className="h-3 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
                               style={{ width: `${(character.experience / character.maxExperience) * 100}%` }}
@@ -1003,7 +1037,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                       </div>
 
                       {character.diseaseHealth?.currentDiseases?.length ? (
-                        <div className="pt-4 mt-4 border-t border-slate-700/60">
+                        <div className="pt-4 mt-4 border-t border-[var(--border-subtle)]">
                           <h5 className="text-xs font-bold uppercase tracking-wider text-pink-300 mb-2">Conditions</h5>
                           <div className="flex flex-wrap gap-2">
                             {character.diseaseHealth.currentDiseases.map((d, i) => (
@@ -1067,14 +1101,14 @@ const CharacterProfileModal: React.FC<Props> = ({
                         if (modifications.length === 0) return null;
                         
                         return (
-                          <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
+                          <div className="p-4 rounded-lg surface-card">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3 flex items-center gap-2">
                               <Sparkles className="w-4 h-4" />
                               Body Modifications
                             </h4>
                             <div className="space-y-2">
                               {modifications.map((mod, index) => (
-                                <div key={index} className="flex items-center justify-between p-2 rounded bg-slate-900/50">
+                                <div key={index} className="flex items-center justify-between p-2 rounded bg-[var(--surface-muted-bg)]">
                                   <div className="flex items-center gap-2">
                                     {mod.type === 'tattoo' && <span className="text-lg">🖤</span>}
                                     {mod.type === 'scarification' && <span className="text-lg">⚡</span>}
@@ -1084,8 +1118,8 @@ const CharacterProfileModal: React.FC<Props> = ({
                                     {mod.type === 'piercing' && <span className="text-lg">💍</span>}
                                     {mod.type === 'ash' && <span className="text-lg">⚱️</span>}
                                     <div>
-                                      <p className="text-sm font-semibold text-white">{mod.name}</p>
-                                      <p className="text-xs text-slate-400 capitalize">{mod.type.replace('_', ' ')}</p>
+                                      <p className="text-sm font-semibold text-text-primary">{mod.name}</p>
+                                      <p className="text-xs text-text-secondary capitalize">{mod.type.replace('_', ' ')}</p>
                                     </div>
                                   </div>
                                   <div className="text-right">
@@ -1103,7 +1137,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                                 </div>
                               ))}
                               {modifications[0]?.significance && (
-                                <p className="text-xs text-slate-300 italic mt-2">
+                                <p className="text-xs text-text-secondary italic mt-2">
                                   {modifications[0].significance}
                                 </p>
                               )}
@@ -1116,9 +1150,9 @@ const CharacterProfileModal: React.FC<Props> = ({
 
                   {/* Background */}
                   <div className="space-y-5">
-                    <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50 h-full">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-3">Background</h4>
-                      <p className="text-slate-200/90 leading-relaxed italic whitespace-pre-wrap">
+                    <div className="p-4 rounded-lg border border-[var(--border-normal)] surface-card h-full">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-3">Background</h4>
+                      <p className="text-text-primary leading-relaxed italic whitespace-pre-wrap">
                         {highlightedBackstory || character.backstory}
                       </p>
                     </div>
@@ -1126,8 +1160,8 @@ const CharacterProfileModal: React.FC<Props> = ({
 
                   {/* Info + Top Stats */}
                   <div className="space-y-5">
-                    <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Character Info</h4>
+                    <div className="p-4 rounded-lg surface-card">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3">Character Info</h4>
                       <div className="space-y-2">
                         <DetailRow label="Level" value={character.level} />
                         <DetailRow label="Age" value={character.age} />
@@ -1139,50 +1173,50 @@ const CharacterProfileModal: React.FC<Props> = ({
                     </div>
 
                     {/* Quick Actions */}
-                    <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3">Quick Actions</h4>
+                    <div className="p-4 rounded-lg surface-card">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3">Quick Actions</h4>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() => handleTabChange('equipment')}
-                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                          className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
                         >
-                          <div className="flex items-center gap-2 text-amber-300">
-                            <Sword className="w-4 h-4" />
-                            <span className="text-xs font-semibold">Equipment</span>
+                          <div className="flex items-center gap-2">
+                            <Sword className="w-4 h-4 text-amber-400" />
+                            <span className="text-xs font-semibold text-text-primary">Equipment</span>
                           </div>
                         </button>
                         <button
                           onClick={() => handleTabChange('inventory')}
-                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                          className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
                         >
-                          <div className="flex items-center gap-2 text-green-300">
-                            <Backpack className="w-4 h-4" />
-                            <span className="text-xs font-semibold">Inventory</span>
+                          <div className="flex items-center gap-2">
+                            <Backpack className="w-4 h-4 text-blue-400" />
+                            <span className="text-xs font-semibold text-text-primary">Inventory</span>
                           </div>
                         </button>
                         <button
                           onClick={() => handleTabChange('health')}
-                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                          className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
                         >
-                          <div className="flex items-center gap-2 text-red-300">
-                            <Activity className="w-4 h-4" />
-                            <span className="text-xs font-semibold">Full Stats</span>
+                          <div className="flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-red-400" />
+                            <span className="text-xs font-semibold text-text-primary">Full Stats</span>
                           </div>
                         </button>
                         <button
                           onClick={() => handleTabChange('household')}
-                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                          className="p-2 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] transition-colors text-left"
                         >
-                          <div className="flex items-center gap-2 text-blue-300">
-                            <House className="w-4 h-4" />
-                            <span className="text-xs font-semibold">Household</span>
+                          <div className="flex items-center gap-2">
+                            <House className="w-4 h-4 text-green-400" />
+                            <span className="text-xs font-semibold text-text-primary">Household</span>
                           </div>
                         </button>
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Top Stats</h4>
+                    <div className="p-4 rounded-lg surface-card">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3">Top Stats</h4>
                       <div className="space-y-3">
                         {Object.entries(character.stats)
                           .sort((a, b) => b[1] - a[1])
@@ -1229,7 +1263,7 @@ const CharacterProfileModal: React.FC<Props> = ({
               {/* HEALTH ------------------------------------------------------- */}
               {active === 'health' && (
                 <div className="p-6 space-y-8">
-                  <div className="p-5 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/50 border border-slate-700/60">
+                  <div className="p-5 rounded-xl surface-card">
                     <h3 className="text-pink-400 font-bold uppercase tracking-wider mb-4">Current Health Status</h3>
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
@@ -1241,7 +1275,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                             </span>
                           }
                         />
-                        <div className="h-4 rounded bg-slate-700 overflow-hidden mb-4">
+                        <div className="h-4 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden mb-4">
                           <div
                             className="h-full bg-gradient-to-r from-red-600 to-red-400"
                             style={{ width: `${(character.health / character.maxHealth) * 100}%` }}
@@ -1255,7 +1289,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                             </span>
                           }
                         />
-                        <div className="h-4 rounded bg-slate-700 overflow-hidden">
+                        <div className="h-4 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-amber-500 to-yellow-400"
                             style={{ width: `${(character.fatigue / character.maxFatigue) * 100}%` }}
@@ -1264,7 +1298,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                       </div>
 
                       <div>
-                        <h4 className="font-semibold text-white mb-3">Disease Status</h4>
+                        <h4 className="font-semibold text-text-primary mb-3">Disease Status</h4>
                         {character.diseaseHealth?.currentDiseases?.length ? (
                           <div className="space-y-2">
                             {character.diseaseHealth.currentDiseases.map((d, i) => (
@@ -1283,7 +1317,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                                     Details
                                   </button>
                                 </div>
-                                <div className="text-xs text-slate-300 mt-1">
+                                <div className="text-xs text-text-secondary mt-1">
                                   Severity:{' '}
                                   <span
                                     className={
@@ -1303,7 +1337,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                         ) : (
                           <div className="p-4 rounded-lg bg-emerald-900/20 border border-emerald-600/40">
                             <span className="text-emerald-400 font-semibold">✅ Currently Healthy</span>
-                            <p className="text-xs text-slate-400 mt-1">No active diseases or infections</p>
+                            <p className="text-xs text-text-secondary mt-1">No active diseases or infections</p>
                           </div>
                         )}
                       </div>
@@ -1312,7 +1346,7 @@ const CharacterProfileModal: React.FC<Props> = ({
 
                   <div className="grid md:grid-cols-2 gap-8">
                     <div>
-                      <h3 className="text-slate-300 font-bold uppercase tracking-wider mb-4">Core Stats</h3>
+                      <h3 className="text-text-primary font-bold uppercase tracking-wider mb-4">Core Stats</h3>
                       <div className="space-y-4">
                         <StatBar label="Strength" value={character.stats.strength} Icon={Dumbbell} color="#ef4444" />
                         <StatBar label="Dexterity" value={character.stats.dexterity} Icon={Feather} color="#22c55e" />
@@ -1323,7 +1357,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-slate-300 font-bold uppercase tracking-wider mb-4">Personality</h3>
+                      <h3 className="text-text-primary font-bold uppercase tracking-wider mb-4">Personality</h3>
                       <div className="space-y-4">
                         <StatBar 
                           label="Openness" 
@@ -1381,18 +1415,18 @@ const CharacterProfileModal: React.FC<Props> = ({
               {/* INVENTORY (bigger images) ----------------------------------- */}
               {active === 'inventory' && (
                 <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-5 h-full">
-                  <div className="lg:col-span-2 flex flex-col rounded-lg border border-slate-700/60 bg-slate-800/45 min-h-0">
+                  <div className="lg:col-span-2 flex flex-col rounded-lg surface-card min-h-0">
                     <div className="flex justify-between items-center px-3 py-2 border-b border-slate-700/60">
-                      <h4 className="font-semibold text-lg text-green-300 flex items-center gap-2">
+                      <h4 className="font-semibold text-lg text-blue-300 flex items-center gap-2">
                         <Backpack className="w-5 h-5" /> Inventory
                       </h4>
-                      <div className="flex gap-1 p-1 rounded bg-slate-900/50">
+                      <div className="flex gap-1 p-1 rounded bg-[var(--surface-muted-bg)]">
                         {(['All', 'Weapons', 'Clothing', 'Consumables', 'Other'] as const).map(cat => (
                           <button
                             key={cat}
                             onClick={() => setInventoryFilter(cat)}
                             className={`px-2 py-0.5 text-xs rounded ${
-                              inventoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                              inventoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-[var(--surface-muted-bg)] text-text-secondary hover:bg-[var(--surface-muted-hover-bg)]'
                             }`}
                           >
                             {cat}
@@ -1406,35 +1440,35 @@ const CharacterProfileModal: React.FC<Props> = ({
                           key={item.id}
                           onClick={() => setSelectedItem(item)}
                           className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
-                            selectedItem?.id === item.id ? 'bg-blue-800/45 ring-1 ring-blue-500' : 'bg-slate-900/50 hover:bg-slate-700/50'
+                            selectedItem?.id === item.id ? 'bg-blue-600/20 ring-1 ring-blue-500' : 'bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)]'
                           }`}
                         >
                           <div className="w-14 h-14 shrink-0 grid place-items-center"> {/* larger row thumb */}
                             <GenerativeItemIcon item={item} size={56} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-white font-semibold truncate">{formatItemName(item.name)}</div>
-                            <div className="text-xs text-slate-400 truncate">{item.category}</div>
+                            <div className="text-text-primary font-semibold truncate">{formatItemName(item.name)}</div>
+                            <div className="text-xs text-text-secondary truncate">{item.category}</div>
                           </div>
-                          {item.stackable && item.quantity > 1 ? <span className="text-xs text-slate-400">x{item.quantity}</span> : null}
+                          {item.stackable && item.quantity > 1 ? <span className="text-xs text-text-secondary">x{item.quantity}</span> : null}
                           <RarityTag rarity={item.rarity} />
                         </div>
                       ))}
-                      {!filtered.length && <p className="text-center text-slate-500 italic py-8 text-sm">No items in this category.</p>}
+                      {!filtered.length && <p className="text-center text-text-tertiary italic py-8 text-sm">No items in this category.</p>}
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-slate-700/60 bg-slate-800/45 p-3 flex flex-col">
+                  <div className="rounded-lg surface-card p-3 flex flex-col">
                     {selectedItem ? (
                       <>
                         <div className="w-36 h-36 mx-auto my-3 grid place-items-center"> {/* bigger preview */}
                           <GenerativeItemIcon item={selectedItem} size={140} />
                         </div>
-                        <h5 className="text-lg font-bold text-white text-center mb-1">{formatItemName(selectedItem.name)}</h5>
-                        <p className="text-sm text-slate-400 italic text-center mb-3">
+                        <h5 className="text-lg font-bold text-text-primary text-center mb-1">{formatItemName(selectedItem.name)}</h5>
+                        <p className="text-sm text-text-secondary italic text-center mb-3">
                           {memoizedItemDescription}
                         </p>
-                        <div className="text-xs space-y-1 mb-4 p-2 rounded bg-slate-900/30">
+                        <div className="text-xs space-y-1 mb-4 p-2 rounded bg-[var(--surface-muted-bg)]">
                           <DetailRow label="Category" value={selectedItem.category} />
                           <DetailRow label="Value" value={`${selectedItem.value} 🪙`} />
                           <DetailRow label="Weight" value={`${selectedItem.weight} lbs`} />
@@ -1459,7 +1493,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                         </div>
                       </>
                     ) : (
-                      <div className="h-full grid place-items-center text-slate-500 italic">Select an item</div>
+                      <div className="h-full grid place-items-center text-text-tertiary italic">Select an item</div>
                     )}
                   </div>
                 </div>
@@ -1477,7 +1511,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                 <React.Suspense fallback={
                   <div className="p-6 text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-3"></div>
-                    <p className="text-slate-400 text-sm">Loading history...</p>
+                    <p className="text-text-secondary text-sm">Loading history...</p>
                   </div>
                 }>
                   <CharacterHistoryTab
@@ -1499,8 +1533,8 @@ const CharacterProfileModal: React.FC<Props> = ({
                   <h3 className="text-amber-400 font-bold uppercase tracking-wider">Current Household</h3>
 
                   {/* Summary card */}
-                  <div className="p-3 rounded-lg border border-slate-700/60 bg-slate-800/45">
-                    <p className="text-sm text-slate-400">
+                  <div className="p-3 rounded-lg surface-card">
+                    <p className="text-sm text-text-secondary">
                       Living in a{' '}
                       {character.wealthLevel === 'wealthy'
                         ? 'grand estate'
@@ -1519,19 +1553,19 @@ const CharacterProfileModal: React.FC<Props> = ({
                       <h4 className="text-blue-300 font-semibold uppercase tracking-wider text-xs">Household Members</h4>
                       <div className="grid md:grid-cols-2 gap-4">
                         {(character.family || []).map((m, i) => (
-                          <div key={`${m.relation}-${m.name}-${i}`} className="p-4 rounded-lg border border-slate-700/60 bg-gradient-to-br from-slate-800/55 to-slate-900/40">
+                          <div key={`${m.relation}-${m.name}-${i}`} className="p-4 rounded-lg surface-card">
                             <div className="flex justify-between mb-1">
                               <div>
-                                <div className="font-semibold text-white capitalize">{m.name}</div>
+                                <div className="font-semibold text-text-primary capitalize">{m.name}</div>
                                 <div className="text-xs text-blue-300 capitalize">{m.relation}</div>
                               </div>
-                              {'age' in m && <div className="text-xs text-slate-400">Age {m.age}</div>}
+                              {'age' in m && <div className="text-xs text-text-secondary">Age {m.age}</div>}
                             </div>
                             <div className="text-sm space-y-1">
                               {'profession' in m && (
                                 <div className="flex justify-between">
-                                  <span className="text-slate-400">Occupation:</span>
-                                  <span className="text-slate-300">{(m as any).profession}</span>
+                                  <span className="text-text-secondary">Occupation:</span>
+                                  <span className="text-text-primary">{(m as any).profession}</span>
                                 </div>
                               )}
                             </div>
@@ -1543,12 +1577,12 @@ const CharacterProfileModal: React.FC<Props> = ({
 
                   {/* Companion animals section */}
                   <div className="flex items-center justify-between">
-                    <h4 className="text-green-300 font-semibold uppercase tracking-wider text-xs flex items-center gap-2">
+                    <h4 className="text-blue-300 font-semibold uppercase tracking-wider text-xs flex items-center gap-2">
                       <PawPrint className="w-4 h-4" />
                       Companion Animals
                     </h4>
                     {tamedAnimals.length > 0 && (
-                      <span className="text-xs text-slate-400">{tamedAnimals.length} total</span>
+                      <span className="text-xs text-text-secondary">{tamedAnimals.length} total</span>
                     )}
                   </div>
 
@@ -1561,12 +1595,12 @@ const CharacterProfileModal: React.FC<Props> = ({
                           <div key={a.id} className="p-4 rounded-lg border border-green-700/40 bg-gradient-to-br from-green-900/25 to-slate-900/40">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="font-semibold text-white capitalize truncate">
+                                <div className="font-semibold text-text-primary capitalize truncate">
                                   {a.name || a.speciesName}
                                 </div>
-                                <div className="text-xs text-slate-400 capitalize truncate">{data?.type || 'animal'}</div>
+                                <div className="text-xs text-text-secondary capitalize truncate">{data?.type || 'animal'}</div>
                               </div>
-                              <div className="w-9 h-9 rounded-md bg-slate-900/70 border border-slate-600/60 grid place-items-center shrink-0">
+                              <div className="w-9 h-9 rounded-md bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] grid place-items-center shrink-0">
                                 <PawPrint className="w-5 h-5 text-green-300" />
                               </div>
                             </div>
@@ -1574,10 +1608,10 @@ const CharacterProfileModal: React.FC<Props> = ({
                             <div className="mt-3 space-y-2">
                               <div>
                                 <div className="flex justify-between text-xs mb-1">
-                                  <span className="text-slate-400">Health</span>
-                                  <span className="text-white">{Math.round(a.health)}/10</span>
+                                  <span className="text-text-secondary">Health</span>
+                                  <span className="text-text-primary">{Math.round(a.health)}/10</span>
                                 </div>
-                                <div className="h-2 rounded bg-slate-700 overflow-hidden">
+                                <div className="h-2 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
                                   <div
                                     className={`h-full rounded ${hp > 70 ? 'bg-emerald-500' : hp > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
                                     style={{ width: `${hp}%` }}
@@ -1590,7 +1624,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                                     setSelectedAnimal(a);
                                     setIsAnimalModalOpen(true);
                                   }}
-                                  className="px-3 py-1.5 text-xs border border-slate-600 rounded text-slate-200 hover:bg-slate-700"
+                                  className="px-3 py-1.5 text-xs border border-[var(--border-normal)] rounded text-text-secondary hover:bg-[var(--surface-muted-hover-bg)]"
                                 >
                                   Details
                                 </button>
@@ -1607,8 +1641,8 @@ const CharacterProfileModal: React.FC<Props> = ({
                       })}
                     </div>
                   ) : (
-                    <div className="p-6 rounded-lg border border-slate-700/60 bg-slate-800/45 text-center">
-                      <p className="text-sm text-slate-500 italic">No animal companions in your household.</p>
+                    <div className="p-6 rounded-lg surface-card text-center">
+                      <p className="text-sm text-text-tertiary italic">No animal companions in your household.</p>
                     </div>
                   )}
                 </div>
@@ -1618,7 +1652,7 @@ const CharacterProfileModal: React.FC<Props> = ({
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-[var(--border-normal)] bg-[var(--bg-secondary)]">
+        <div className="shrink-0 flex items-center justify-end gap-3 px-5 py-2 border-t border-[var(--border-normal)] bg-[var(--bg-secondary)]">
           <button onClick={onClose} className="btn-secondary" type="button">
             Close
           </button>
@@ -1651,20 +1685,20 @@ const CharacterProfileModal: React.FC<Props> = ({
         >
           <div
             data-surface="modal-panel"
-            className="theme-surface bg-modal-bg-gradient border border-slate-600 rounded-2xl text-slate-200 w-full max-w-md p-6 shadow-glow-blue"
+            className="theme-surface bg-modal-bg-gradient border border-[var(--border-normal)] rounded-2xl text-text-primary w-full max-w-md p-6 shadow-glow-blue"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between pb-2 mb-4 border-b border-slate-700">
+            <div className="flex items-start justify-between pb-2 mb-4 border-b border-[var(--border-normal)]">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-md bg-slate-900/70 border border-slate-600/60 grid place-items-center">
+                <div className="w-9 h-9 rounded-md bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] grid place-items-center">
                   <PawPrint className="w-5 h-5 text-green-300" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-blue-300 capitalize">{selectedAnimal.speciesName}</h3>
-                  <p className="text-xs text-slate-400 capitalize">{ANIMAL_DATA[selectedAnimal.baseId]?.type || 'animal'}</p>
+                  <p className="text-xs text-text-secondary capitalize">{ANIMAL_DATA[selectedAnimal.baseId]?.type || 'animal'}</p>
                 </div>
               </div>
-              <button onClick={() => setIsAnimalModalOpen(false)} className="text-3xl text-slate-400 hover:text-white">
+              <button onClick={() => setIsAnimalModalOpen(false)} className="text-3xl text-text-secondary hover:text-text-primary">
                 ×
               </button>
             </div>
@@ -1680,10 +1714,10 @@ const CharacterProfileModal: React.FC<Props> = ({
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Health</span>
-                  <span className="text-white">{Math.round(selectedAnimal.health)}/10</span>
+                  <span className="text-text-secondary">Health</span>
+                  <span className="text-text-primary">{Math.round(selectedAnimal.health)}/10</span>
                 </div>
-                <div className="h-2 rounded bg-slate-700 overflow-hidden">
+                <div className="h-2 rounded bg-[var(--surface-track-bg)] overflow-hidden">
                   <div
                     className={`h-full rounded ${
                       (selectedAnimal.health / 10) * 100 > 70 ? 'bg-emerald-500' : (selectedAnimal.health / 10) * 100 > 40 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1695,10 +1729,10 @@ const CharacterProfileModal: React.FC<Props> = ({
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Loyalty</span>
-                  <span className="text-white">{Math.round(selectedAnimal.loyalty)}/100</span>
+                  <span className="text-text-secondary">Loyalty</span>
+                  <span className="text-text-primary">{Math.round(selectedAnimal.loyalty)}/100</span>
                 </div>
-                <div className="h-2 rounded bg-slate-700 overflow-hidden">
+                <div className="h-2 rounded bg-[var(--surface-track-bg)] overflow-hidden">
                   <div
                     className={`h-full rounded ${selectedAnimal.loyalty > 70 ? 'bg-blue-500' : selectedAnimal.loyalty > 40 ? 'bg-purple-500' : 'bg-slate-500'}`}
                     style={{ width: `${selectedAnimal.loyalty}%` }}
@@ -1718,7 +1752,7 @@ const CharacterProfileModal: React.FC<Props> = ({
               >
                 Release Animal
               </button>
-              <button onClick={() => setIsAnimalModalOpen(false)} className="px-6 py-2 text-sm font-semibold bg-slate-600 hover:bg-slate-500 rounded text-white">
+              <button onClick={() => setIsAnimalModalOpen(false)} className="btn-secondary">
                 Close
               </button>
             </div>

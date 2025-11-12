@@ -1,0 +1,270 @@
+[
+  {
+    "id": "nasca_altar_alignment",
+    "room": "altar",
+    "structureTypes": [
+      "ceremonial_complex",
+      "temple"
+    ],
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "scriptedElements": [
+      "observations of solstice markers aligned with geoglyph lines",
+      "mention of ritual offerings of spondylus shells",
+      "question prompting reflection on agricultural cycles"
+    ],
+    "recommendedArtifacts": [
+      "nasca_ceremonial_vessel"
+    ],
+    "knowledgeTags": [
+      "ritual",
+      "astronomy",
+      "agriculture"
+    ]
+  },
+  {
+    "id": "inca_tallies",
+    "room": "library",
+    "structureTypes": [
+      "administrative_center",
+      "fortress"
+    ],
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "scriptedElements": [
+      "description of quipu color coding for labor levies",
+      "reference to mit'a obligations for road maintenance",
+      "question comparing imperial logistics with local needs"
+    ],
+    "recommendedArtifacts": [
+      "inca_quipu_log"
+    ],
+    "knowledgeTags": [
+      "economy",
+      "infrastructure"
+    ]
+  },
+  {
+    "id": "hellenistic_watch_bill",
+    "room": "guard",
+    "structureTypes": [
+      "fortress",
+      "polis_citadel"
+    ],
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "scriptedElements": [
+      "mention of rotating garrison cohorts",
+      "note on treaties with nearby poleis for shared defense",
+      "question about civic obligations in maintaining fortifications"
+    ],
+    "recommendedArtifacts": [
+      "greek_stelae_fragment"
+    ],
+    "knowledgeTags": [
+      "governance",
+      "military"
+    ]
+  },
+  {
+    "id": "charter_oath_chamber",
+    "room": "library",
+    "structureTypes": [
+      "fortress",
+      "administrative_center"
+    ],
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "scriptedElements": [
+      "stewards comparing wax seals against the Magna Carta clauses",
+      "scribes recording baronial witnesses and missing signatures",
+      "question about how shared oaths shifted royal authority"
+    ],
+    "recommendedArtifacts": [
+      "magna_carta_wax_seal"
+    ],
+    "knowledgeTags": [
+      "law",
+      "governance"
+    ]
+  },
+  {
+    "id": "amarna_diplomatic_desk",
+    "room": "guard",
+    "structureTypes": [
+      "administrative_center",
+      "fortress"
+    ],
+    "culturalZones": [
+      "MENA"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "scriptedElements": [
+      "tablet docket noting silver shipments requested by a vassal king",
+      "scribe filing reports on caravans delayed by drought",
+      "question weighing the costs of empire against alliance obligations"
+    ],
+    "recommendedArtifacts": [
+      "amarna_courier_tablet"
+    ],
+    "knowledgeTags": [
+      "economy",
+      "diplomacy"
+    ]
+  },
+  {
+    "id": "genji_salon_reading",
+    "room": "library",
+    "structureTypes": [
+      "monastery",
+      "temple"
+    ],
+    "culturalZones": [
+      "EAST_ASIAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "scriptedElements": [
+      "nuns guarding scrolls commissioned by aristocratic patrons",
+      "pigment inventory listing imported indigo and gold leaf",
+      "question about how literary salons reinforced courtly ritual"
+    ],
+    "recommendedArtifacts": [
+      "genji_illustrated_scroll"
+    ],
+    "knowledgeTags": [
+      "ritual",
+      "patronage"
+    ]
+  },
+  {
+    "id": "arthashastra_treasury_audit",
+    "room": "treasury",
+    "structureTypes": [
+      "administrative_center",
+      "temple"
+    ],
+    "culturalZones": [
+      "SOUTH_ASIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "scriptedElements": [
+      "accountants matching grain stores against Artha\u015b\u0101stra quotas",
+      "minister debating tax remissions after monsoon failure",
+      "question about balancing royal revenue with village welfare"
+    ],
+    "recommendedArtifacts": [
+      "arthashastra_tablet_bundle"
+    ],
+    "knowledgeTags": [
+      "economy",
+      "governance"
+    ]
+  },
+  {
+    "id": "codex_tribute_registry",
+    "room": "storage",
+    "structureTypes": [
+      "temple",
+      "administrative_center"
+    ],
+    "culturalZones": [
+      "NORTH_AMERICAN_COLONIAL"
+    ],
+    "eras": [
+      "RENAISSANCE_EARLY_MODERN"
+    ],
+    "scriptedElements": [
+      "tribute clerk painting glyphs for conquered provinces",
+      "record of jaguar warrior cloaks awarded for service",
+      "question about how tribute shaped imperial diplomacy"
+    ],
+    "recommendedArtifacts": [
+      "codex_mendoza_inventory"
+    ],
+    "knowledgeTags": [
+      "economy",
+      "diplomacy"
+    ]
+  },
+  {
+    "id": "pueblo_solar_gallery",
+    "room": "altar",
+    "structureTypes": [
+      "cliff dwelling",
+      "kiva complex",
+      "ceremonial center"
+    ],
+    "culturalZones": [
+      "NORTH_AMERICAN_PRE_COLUMBIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "scriptedElements": [
+      "sun dagger light shafts mark solstice mornings against carved spirals",
+      "charcoal pictographs note farming tasks tied to seasonal star positions",
+      "ritual benches show red ochre stains from communal renewal ceremonies"
+    ],
+    "recommendedArtifacts": [
+      "pueblo_solstice_marker"
+    ],
+    "knowledgeTags": [
+      "astronomy",
+      "agriculture",
+      "ritual"
+    ]
+  },
+  {
+    "id": "hopewell_council_ledger",
+    "room": "library",
+    "structureTypes": [
+      "ceremonial center",
+      "ceremonial plaza",
+      "cliff dwelling"
+    ],
+    "culturalZones": [
+      "NORTH_AMERICAN_PRE_COLUMBIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "scriptedElements": [
+      "bundled wampum belts catalog agreements between neighboring towns",
+      "council fire pit ash mixed with copper filings from distant trade partners",
+      "scribe marks tally host obligations for seasonal gatherings"
+    ],
+    "recommendedArtifacts": [
+      "hopewell_wampum_belt"
+    ],
+    "knowledgeTags": [
+      "governance",
+      "diplomacy",
+      "trade"
+    ]
+  }
+]

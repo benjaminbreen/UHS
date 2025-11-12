@@ -76,9 +76,12 @@ export const SavedGamesModal: React.FC<SavedGamesModalProps> = ({
 
   const handleSaveGame = () => {
     if (!currentGameState) return;
-    
-    const result = saveGameService.saveGame(newSaveName || 'Quick Save', currentGameState);
-    
+
+    const result = saveGameService.saveGame(newSaveName || 'Quick Save', {
+      ...currentGameState,
+      playTime: currentGameState.playerCharacter.totalPlayTimeMinutes || 0
+    });
+
     if (result.success) {
       setSuccessMessage('Game saved successfully!');
       setIsCreatingSave(false);

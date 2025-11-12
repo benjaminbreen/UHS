@@ -250,11 +250,11 @@ const StatComparisonTooltip: React.FC<{
 
   const node = (
     <div
-      className="fixed z-[9999] pointer-events-none p-4 w-80 text-xs text-white bg-slate-900/95 border-2 border-blue-400 rounded-lg shadow-2xl backdrop-blur-sm"
+      className="fixed z-[9999] pointer-events-none p-4 w-80 text-xs text-text-primary bg-[var(--surface-tooltip-bg)] border-2 border-[var(--surface-tooltip-border)] rounded-lg shadow-2xl backdrop-blur-sm"
       style={{ top, left }}
     >
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-16 h-16 flex items-center justify-center bg-slate-800/60 rounded-lg border border-slate-600">
+        <div className="w-16 h-16 flex items-center justify-center bg-[var(--surface-muted-bg)] rounded-lg border border-[var(--border-normal)]">
           <GenerativeItemIcon item={item} size={64} />
         </div>
         <div className="flex-1">
@@ -264,39 +264,39 @@ const StatComparisonTooltip: React.FC<{
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] text-slate-300">
+      <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] text-text-primary">
         {item.equipmentSlot && (
           <div className="flex items-center gap-1">
-            <span className="text-slate-500">Slot:</span>
+            <span className="text-text-secondary">Slot:</span>
             <span className="capitalize">{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
           </div>
         )}
         {item.value !== undefined && (
           <div className="flex items-center gap-1">
-            <span className="text-slate-500">Value:</span>
+            <span className="text-text-secondary">Value:</span>
             <span className="text-yellow-400">{item.value} 🪙</span>
           </div>
         )}
         {item.weight !== undefined && (
           <div className="flex items-center gap-1">
-            <span className="text-slate-500">Weight:</span>
+            <span className="text-text-secondary">Weight:</span>
             <span>{item.weight} kg</span>
           </div>
         )}
         {item.throwable && (
           <div className="flex items-center gap-1">
-            <span className="text-slate-500">Throwable:</span>
+            <span className="text-text-secondary">Throwable:</span>
             <span className="text-green-400">✓</span>
           </div>
         )}
       </div>
 
       {item.description && (
-        <p className="text-[11px] text-slate-400 italic mb-2 border-t border-slate-700 pt-2">{item.description}</p>
+        <p className="text-[11px] text-text-secondary italic mb-2 border-t border-[var(--border-normal)] pt-2">{item.description}</p>
       )}
 
       {comparison && (
-        <div className="space-y-1 font-mono border-t border-slate-700 pt-2">
+        <div className="space-y-1 font-mono border-t border-[color:var(--border-normal)] pt-2">
           <StatChange label="Attack" value={comparison.attack} />
           <StatChange label="Defense" value={comparison.defense} />
         </div>
@@ -370,8 +370,8 @@ const EquipmentSlotDisplay: React.FC<{
       : hasBodyModification
       ? 'border-purple-400 bg-purple-900/20 hover:border-purple-300 shadow-lg shadow-purple-900/30'
       : item
-      ? 'border-slate-500 bg-slate-800/30 hover:border-blue-400'
-      : 'border-slate-700 bg-slate-900/20';
+      ? 'border-[var(--border-normal)] bg-[var(--surface-muted-bg)] hover:border-blue-400'
+      : 'border-[var(--border-subtle)] bg-[var(--surface-muted-bg)]';
 
   return (
     <div
@@ -390,7 +390,7 @@ const EquipmentSlotDisplay: React.FC<{
       onMouseLeave={() => onAnchor?.(null)}
     >
       {/* Slot label */}
-      <div className="absolute -top-2 left-1 flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full bg-slate-900/90 border border-slate-700 text-slate-200">
+      <div className="absolute -top-2 left-1 flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--surface-chip-bg)] border border-[var(--surface-chip-border)] text-text-primary">
         {slotIconMap[slot]}
         <span className="capitalize text-[9px]">{humanizeSlot(slot)}</span>
       </div>
@@ -443,13 +443,13 @@ const EquipmentSlotDisplay: React.FC<{
           )}
           {/* Show duration for temporary items */}
           {(item as any).duration && (
-            <div className="absolute bottom-0 right-0 text-[8px] text-yellow-400 bg-slate-900/80 px-1 rounded">
+            <div className="absolute bottom-0 right-0 text-[8px] text-yellow-400 bg-[var(--surface-chip-bg)] px-1 rounded">
               {AccessoryMaintenanceService.getTemporaryAccessoryDisplay(item)}
             </div>
           )}
         </div>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
+        <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary">
           <div className="opacity-60 group-hover:opacity-80">{slotIconMap[slot]}</div>
           <p className="text-[10px] mt-1 opacity-60">Empty</p>
         </div>
@@ -748,16 +748,16 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   return (
     <div className="p-2 sm:p-3 grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 h-full select-none" onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}>
       {/* LEFT: Paper-doll */}
-      <div className="bg-slate-800/50 rounded-xl border border-slate-600/50 p-3 sm:p-4 relative overflow-hidden h-full min-h-[480px] shadow-lg">
+      <div className="surface-card rounded-xl p-3 sm:p-4 relative overflow-hidden h-full min-h-[480px] shadow-lg">
         <div className="absolute inset-0 pointer-events-none opacity-[0.08]">
           <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.2),transparent_60%)]" />
         </div>
 
         <div className="flex items-center justify-between mb-2 relative z-10 gap-2">
-          <div className="flex items-center gap-2 text-slate-200">
-            <Sparkles className="w-4 h-4 text-blue-300" />
+          <div className="flex items-center gap-2 text-text-primary">
+            <Sparkles className="w-4 h-4 text-blue-400" />
             <h4 className="font-bold text-base">Equipment</h4>
-            <span className="text-xs text-slate-400 hidden lg:inline">Drag items to specific slots</span>
+            <span className="text-xs text-text-secondary hidden lg:inline">Drag items to specific slots</span>
           </div>
           <div className="flex items-center gap-2">
             {/* NEW Optimize button */}
@@ -770,7 +770,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               Optimize
             </button>
             <button
-              className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-600/70 bg-slate-800/60 hover:bg-slate-700/60 text-slate-200"
+              className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] text-text-primary"
               onClick={unequipAll}
               title="Unequip everything"
             >
@@ -833,7 +833,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               getExtractedQuality={getExtractedQuality}
             />
           ))}
-          <div className="rounded-xl border-2 border-dashed border-slate-700/70 bg-slate-900/10 flex items-center justify-center text-[11px] text-slate-500">
+          <div className="rounded-xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-muted-bg)] flex items-center justify-center text-[11px] text-text-secondary">
             <div className="flex items-center gap-1">
               <Info className="w-3.5 h-3.5" /> Drag here to auto-equip
             </div>
@@ -845,13 +845,13 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
       <div className="flex flex-col gap-4 h-full min-h-[480px]">
         {/* Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 min-w-0">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-slate-600/70 bg-slate-800/60 text-slate-200 flex-1">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary flex-1">
             <Search className="w-4 h-4 opacity-70" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search name, material, description…"
-              className="bg-transparent outline-none text-sm placeholder:text-slate-400 flex-1"
+              className="bg-transparent outline-none text-sm placeholder:text-text-secondary flex-1"
             />
             {query && (
               <button className="opacity-70 hover:opacity-100" onClick={() => setQuery('')}>
@@ -865,7 +865,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               <select
                 value={slotFilter}
                 onChange={(e) => setSlotFilter(e.target.value as any)}
-                className="text-sm px-2 py-1.5 rounded-md border border-slate-600/70 bg-slate-800/60 text-slate-200 pr-6 min-w-0 w-full sm:w-auto"
+                className="text-sm px-2 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary pr-6 min-w-0 w-full sm:w-auto"
                 title="Filter by slot"
               >
                 <option value="all">All</option>
@@ -884,7 +884,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-sm px-2 py-1.5 rounded-md border border-slate-600/70 bg-slate-800/60 text-slate-200 pr-6 min-w-0 w-full sm:w-auto"
+                className="text-sm px-2 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary pr-6 min-w-0 w-full sm:w-auto"
                 title="Sort items"
               >
                 <option value="rarity">Rarity</option>
@@ -895,11 +895,11 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
             </div>
             
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-slate-800/60 rounded-md border border-slate-600/70 p-0.5">
+            <div className="flex items-center gap-1 bg-[var(--surface-muted-bg)] rounded-md border border-[var(--border-normal)] p-0.5">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded transition-colors ${
-                  viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                  viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-text-secondary hover:text-text-primary'
                 }`}
                 title="Grid view"
               >
@@ -908,7 +908,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-1.5 rounded transition-colors ${
-                  viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                  viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-text-secondary hover:text-text-primary'
                 }`}
                 title="List view"
               >
@@ -919,10 +919,10 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
         </div>
 
         {/* Equippable list */}
-        <div className="flex-1 min-h-0 bg-slate-800/50 p-3 rounded-xl border border-slate-600/50 overflow-hidden shadow-lg">
+        <div className="flex-1 min-h-0 surface-card p-3 rounded-xl overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="font-bold text-green-300 text-base">Equippable Items</h4>
-            <span className="text-xs text-slate-400 hidden md:inline">Click to auto-equip or drag to a slot</span>
+            <h4 className="font-bold text-blue-400 text-base">Equippable Items</h4>
+            <span className="text-xs text-text-secondary hidden md:inline">Click to auto-equip or drag to a slot</span>
           </div>
           <div className="h-[280px] sm:h-[320px] lg:h-[420px] overflow-y-auto pr-1 space-y-1.5 scrollbar-thin touch-pan-y">
             {filteredInventory.length > 0 ? (
@@ -935,7 +935,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className="flex items-start justify-between p-3.5 rounded-lg bg-slate-900/60 hover:bg-slate-700/60 cursor-pointer border border-slate-600/50 hover:border-blue-500/40 min-h-[72px] transition-all duration-200 hover:shadow-lg hover:shadow-blue-900/20"
+                      className="flex items-start justify-between p-3.5 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] cursor-pointer border border-[var(--border-normal)] hover:border-blue-500/40 min-h-[72px] transition-all duration-200 hover:shadow-lg"
                       onMouseEnter={(e) => {
                         setAnchorRect(e.currentTarget.getBoundingClientRect());
                         handleItemHover(item, 'equip');
@@ -950,12 +950,12 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                       title="Click to auto-equip or drag to specific slot"
                     >
                       <div className="flex items-start gap-3 min-w-0 py-0.5">
-                        <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 mt-0.5 bg-slate-800/40 rounded-md border border-slate-700/40">
+                        <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 mt-0.5 bg-[var(--bg-secondary)] rounded-md border border-[var(--border-subtle)]">
                           <LazyItemIcon item={item} size={48} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xl font-bold text-blue-100 leading-tight mb-1.5 break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{item.name ? getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot).name : 'Unknown Item'}</p>
-                          <div className="flex items-center gap-2 text-[13px] text-slate-400 font-medium">
+                          <div className="flex items-center gap-2 text-[13px] text-text-secondary font-medium">
                             {item.equipmentSlot && (
                               <span className="capitalize">{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
                             )}
@@ -990,7 +990,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     return (
                       <div
                         key={item.id}
-                        className="p-3 rounded-lg bg-slate-900/60 hover:bg-slate-700/60 cursor-pointer border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 hover:shadow-lg hover:shadow-blue-900/20"
+                        className="p-3 rounded-lg bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] cursor-pointer border border-[var(--border-normal)] hover:border-blue-500/40 transition-all duration-200 hover:shadow-lg"
                         onMouseEnter={(e) => {
                           setAnchorRect(e.currentTarget.getBoundingClientRect());
                           handleItemHover(item, 'equip');
@@ -1005,7 +1005,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                         title="Click to auto-equip or drag to specific slot"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 flex items-center justify-center flex-shrink-0 bg-slate-800/40 rounded-md border border-slate-700/40">
+                          <div className="w-14 h-14 flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)] rounded-md border border-[var(--border-subtle)]">
                             <LazyItemIcon item={item} size={56} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1024,43 +1024,43 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-[13px]">
                               {item.equipmentSlot && (
-                                <div className="text-slate-400">
-                                  <span className="text-slate-500">Slot:</span> <span className="capitalize font-medium">{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
+                                <div className="text-text-secondary">
+                                  <span className="text-text-tertiary">Slot:</span> <span className="capitalize font-medium">{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
                                 </div>
                               )}
                               {stats.attack > 0 && (
-                                <div className="text-red-400">
-                                  <span className="text-slate-500">Attack:</span> <span className="font-bold">+{stats.attack}</span>
+                                <div className="text-[color:var(--color-error)]">
+                                  <span className="text-text-tertiary">Attack:</span> <span className="font-bold">+{stats.attack}</span>
                                 </div>
                               )}
                               {stats.defense > 0 && (
-                                <div className="text-blue-400">
-                                  <span className="text-slate-500">Defense:</span> <span className="font-bold">+{stats.defense}</span>
+                                <div className="text-[color:var(--accent-primary)]">
+                                  <span className="text-text-tertiary">Defense:</span> <span className="font-bold">+{stats.defense}</span>
                                 </div>
                               )}
                               {item.value !== undefined && (
-                                <div className="text-yellow-400">
-                                  <span className="text-slate-500">Value:</span> <span className="font-bold">{item.value} 🪙</span>
+                                <div className="text-[color:var(--color-warning)]">
+                                  <span className="text-text-tertiary">Value:</span> <span className="font-bold">{item.value} 🪙</span>
                                 </div>
                               )}
                               {item.weight !== undefined && (
-                                <div className="text-slate-400">
-                                  <span className="text-slate-500">Weight:</span> <span className="font-medium">{item.weight} kg</span>
+                                <div className="text-text-muted">
+                                  <span className="text-text-tertiary">Weight:</span> <span className="font-medium">{item.weight} kg</span>
                                 </div>
                               )}
                               {item.condition !== undefined && (
-                                <div className={item.condition > 75 ? 'text-green-400' : item.condition > 25 ? 'text-yellow-400' : 'text-red-400'}>
-                                  <span className="text-slate-500">Condition:</span> <span className="font-medium">{item.condition}%</span>
+                                <div className={item.condition > 75 ? 'text-[color:var(--color-success)]' : item.condition > 25 ? 'text-[color:var(--color-warning)]' : 'text-[color:var(--color-error)]'}>
+                                  <span className="text-text-tertiary">Condition:</span> <span className="font-medium">{item.condition}%</span>
                                 </div>
                               )}
                               {item.material && (
-                                <div className="text-slate-400">
-                                  <span className="text-slate-500">Material:</span> <span className="font-medium capitalize">{item.material}</span>
+                                <div className="text-text-muted">
+                                  <span className="text-text-tertiary">Material:</span> <span className="font-medium capitalize">{item.material}</span>
                                 </div>
                               )}
                             </div>
                             {item.description && (
-                              <p className="text-[12px] text-slate-500 italic mt-2 line-clamp-2">{item.description}</p>
+                              <p className="text-[12px] text-text-secondary italic mt-2 line-clamp-2">{item.description}</p>
                             )}
                           </div>
                         </div>
@@ -1070,7 +1070,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 </div>
               )
             ) : (
-              <p className="text-center text-slate-500 italic py-8 text-sm">
+              <p className="text-center text-text-secondary italic py-8 text-sm">
                 No equippable items match your filters.
               </p>
             )}

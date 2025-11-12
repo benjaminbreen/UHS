@@ -274,6 +274,39 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'Proto-Cushitic (c. 5000-2000 BCE) was spoken in the Horn of Africa and gave rise to Somali, Oromo, Beja, and other Cushitic languages. These languages have maintained strong presence in Ethiopia, Somalia, Eritrea, and surrounding regions.',
   },
 
+  PROTO_NIGER_CONGO: {
+    id: 'PROTO_NIGER_CONGO',
+    name: 'Proto-Niger-Congo',
+    nativeName: '*Proto-Niger-Congo',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Reconstructed'],
+    period: [-5000, -1000],
+    regions: ['West Africa', 'Central Africa', 'East Africa', 'Sahel', 'Congo Basin'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    isReconstructed: true,
+    successors: ['PROTO_BANTU', 'YORUBA', 'IGBO', 'AKAN'],
+    description: 'Reconstructed ancestor of Niger-Congo languages, the largest language family in Africa',
+    llmPrompt: 'Use SVO word order with noun class systems. Employ tonal distinctions for meaning and grammar. Include rich agricultural vocabulary (yams, millet, sorghum), ironworking terms, and kinship structures. Focus on communal decision-making and oral tradition terminology. Keep morphology agglutinative with extensive use of noun class prefixes.',
+    historicalContext: 'Proto-Niger-Congo (c. 5000-1000 BCE) was spoken across much of Sub-Saharan Africa and gave rise to over 1,500 modern languages including Swahili, Yoruba, Igbo, Zulu, and Shona. The Bantu expansion spread these languages across Central, East, and Southern Africa.',
+  },
+
+  PROTO_BANTU: {
+    id: 'PROTO_BANTU',
+    name: 'Proto-Bantu',
+    nativeName: '*Proto-Bantu',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Reconstructed'],
+    period: [-3000, 500],
+    regions: ['Cameroon Highlands', 'Central Africa', 'East Africa', 'Great Lakes', 'Congo Basin'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    isReconstructed: true,
+    predecessors: ['PROTO_NIGER_CONGO'],
+    successors: ['SWAHILI_CLASSICAL', 'KIKONGO', 'LINGALA', 'ZULU', 'SHONA'],
+    description: 'Reconstructed ancestor of Bantu languages before the great Bantu expansion',
+    llmPrompt: 'Use SVO word order with extensive noun class system (approximately 20 classes). Employ agglutinative morphology with class prefixes on nouns, adjectives, and verbs. Include vocabulary for ironworking, agriculture (banana, yam cultivation), cattle herding, and extended family structures. Use tonal distinctions. Focus on egalitarian social structures and mobility.',
+    historicalContext: 'Proto-Bantu (c. 3000 BCE-500 CE) originated in the Cameroon-Nigeria borderlands and spread across Central, East, and Southern Africa in one of history\'s greatest linguistic expansions. The Bantu migration brought ironworking and agriculture across the continent.',
+  },
+
   // === ANCIENT ATTESTED LANGUAGES (Pre-500 CE) ===
 
   // Mediterranean & Near East
@@ -1023,6 +1056,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
   PROTO_ALGONQUIAN: {
     id: 'PROTO_ALGONQUIAN',
     name: 'Proto-Algonquian',
+    nativeName: '*Proto-Algonquian',
     family: LANGUAGE_FAMILIES.ALGONQUIAN,
     isReconstructed: true,
     period: [-3000, 500],
@@ -1037,6 +1071,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
   PROTO_SIOUAN: {
     id: 'PROTO_SIOUAN',
     name: 'Proto-Siouan',
+    nativeName: '*Proto-Siouan',
     family: LANGUAGE_FAMILIES.SIOUAN_CATAWBAN,
     isReconstructed: true,
     period: [-3000, 500],
@@ -1122,6 +1157,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
   PROTO_PAMA_NYUNGAN: {
     id: 'PROTO_PAMA_NYUNGAN',
     name: 'Proto-Pama-Nyungan',
+    nativeName: '*Proto-Pama-Nyungan',
     family: LANGUAGE_FAMILIES.PAMA_NYUNGAN,
     isReconstructed: true,
     period: [-5000, -1000],
@@ -1136,6 +1172,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
   PROTO_AUSTRONESIAN: {
     id: 'PROTO_AUSTRONESIAN',
     name: 'Proto-Austronesian',
+    nativeName: '*Proto-Austronesian',
     family: LANGUAGE_FAMILIES.AUSTRONESIAN,
     isReconstructed: true,
     period: [-3500, -1500],
@@ -1149,6 +1186,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
   PROTO_POLYNESIAN: {
     id: 'PROTO_POLYNESIAN',
     name: 'Proto-Polynesian',
+    nativeName: '*Proto-Polynesian',
     family: LANGUAGE_FAMILIES.AUSTRONESIAN,
     isReconstructed: true,
     period: [-1500, 500],
@@ -3706,6 +3744,26 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'The language of the Songhai Empire and Timbuktu\'s golden age, Songhai linked Islamic scholarship with Niger River trade networks from the 7th to 16th centuries.',
   },
 
+  SONINKE: {
+    id: 'SONINKE',
+    name: 'Soninke',
+    nativeName: 'Sooninkanxanne',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: ['Latin', 'Arabic (Ajami)'],
+    period: [300, 2025],
+    regions: ['Ghana Empire', 'Wagadou', 'Senegal River', 'Mali', 'Mauritania', 'Gambia'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Janume',
+      goodbye: 'Fo naxa',
+      yes: 'Haa',
+      no: 'Hani',
+      thanks: 'Ń barika',
+    },
+    llmPrompt: 'Emulate Soninke language of the Ghana Empire. SOV word order typical of Mande languages. Use noun class system with suffixes. Reference trans-Saharan gold trade (sannu→gold, julu→merchant) and ancient Ghana Empire\'s wealth (wagadou→Ghana, kaya maghan→lord of gold). Include Islamic scholarly terms introduced through trade. Use vocabulary for desert travel, camels, and salt caravans. Incorporate respectful address for elders and merchants. Mention oral traditions of the Wagadou Bida serpent legend.',
+    historicalContext: 'The language of the ancient Ghana Empire (300-1200 CE), Soninke was the tongue of the first great West African trading empire, controlling the gold-salt trade routes that made Ghana legendary for its wealth.',
+  },
+
   EDO: {
     id: 'EDO',
     name: 'Edo',
@@ -4546,6 +4604,67 @@ export const LANGUAGES: Record<string, LanguageData> = {
     historicalContext: 'Descended from the Tai languages that migrated south from China, Thai became the court language of Siam and absorbed Sanskrit vocabulary through Buddhism.',
   },
 
+  KHMER: {
+    id: 'KHMER',
+    name: 'Khmer',
+    nativeName: 'ភាសាខ្មែរ',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Khmer',
+    period: [600, 2025],
+    regions: ['Cambodia', 'Khmer Empire', 'Angkor', 'Tonle Sap', 'Mekong Delta'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    greetings: {
+      hello: 'សួស្តី',
+      goodbye: 'លាហើយ',
+      yes: 'បាទ/ចាស',
+      no: 'ទេ',
+      thanks: 'អរគុណ',
+    },
+    llmPrompt: 'Emulate Khmer language of the Khmer Empire and Angkor civilization. SVO word order. Non-tonal unlike neighboring languages. Extensive Sanskrit and Pali vocabulary from Hinduism and Buddhism (preah→sacred, nokor→city, vihear→temple). Reference Angkor Wat, baray irrigation systems, and apsara dancers. Use elaborate honorific registers for royalty and monks. Include vocabulary for rice cultivation and monsoon cycles. Reference classical dance, shadow puppetry, and temple architecture.',
+    historicalContext: 'The language of the mighty Khmer Empire (802-1431 CE) that built Angkor Wat, Khmer absorbed massive Sanskrit influence while maintaining its Mon-Khmer grammatical structure.',
+  },
+
+  MON: {
+    id: 'MON',
+    name: 'Mon',
+    nativeName: 'ဘာသာမန်',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Mon',
+    period: [500, 2025],
+    regions: ['Lower Burma', 'Mon kingdoms', 'Pegu', 'Thaton', 'Thailand'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    greetings: {
+      hello: 'မင်္ဂလာပါ',
+      goodbye: 'ထွက်ခွာပါ',
+      yes: 'ဟေ',
+      no: 'ဟွံ',
+      thanks: 'ကျေးဇူးတင်ပါ',
+    },
+    llmPrompt: 'Emulate Mon language of the ancient Mon kingdoms. SVO word order. Non-tonal. Extensive Pali Buddhist vocabulary (kyaik→pagoda, hpongyi→monk). Reference Dvaravati civilization and Mon role as Theravada Buddhism carriers to mainland Southeast Asia. Include maritime trade vocabulary and port city culture. Use elaborate royal court language. Mention Mon script influence on Burmese and Thai writing systems.',
+    historicalContext: 'The Mon people established the first Buddhist kingdoms in Southeast Asia (Dvaravati, Thaton, Pegu) and their script became the ancestor of Burmese and Thai writing systems.',
+  },
+
+  BURMESE: {
+    id: 'BURMESE',
+    name: 'Burmese',
+    nativeName: 'မြန်မာဘာသာ',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: 'Burmese',
+    period: [1000, 2025],
+    regions: ['Burma', 'Myanmar', 'Pagan Kingdom', 'Irrawaddy Valley', 'Mandalay', 'Rangoon'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_TIBETO_BURMAN'],
+    greetings: {
+      hello: 'မင်္ဂလာပါ',
+      goodbye: 'သွားတော့မယ်',
+      yes: 'ဟုတ်ကဲ့',
+      no: 'မဟုတ်ပါ',
+      thanks: 'ကျေးဇူးတင်ပါတယ်',
+    },
+    llmPrompt: 'Emulate Burmese language of the Pagan Kingdom and later Burmese empires. SOV word order typical of Tibeto-Burman. Non-tonal historically (modern Standard Burmese has 3 tones). Extensive Pali Buddhist vocabulary (hpaya→pagoda, shin hpongyi→monk, dhamma→Buddhist teaching). Use elaborate honorific system with royal vocabulary (taw→throne, min→king). Reference nat spirit worship blended with Buddhism. Include terms for lacquerware, teak forests, and Irrawaddy River culture. Use complex verb serialization.',
+    historicalContext: 'The language of the Pagan Kingdom (849-1297) and later Burmese empires, Burmese absorbed Mon-Khmer and Pali influences while maintaining its Tibeto-Burman grammatical core.',
+  },
+
   TAGALOG: {
     id: 'TAGALOG',
     name: 'Tagalog',
@@ -4660,6 +4779,56 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Aguyje',
     },
     llmPrompt: 'Emulate Guarani. Agglutinative language with nasal harmony. Active-stative alignment. Extensive Spanish loanwords in modern usage. The language coexists with Spanish in Paraguay.',
+  },
+
+  PROTO_ARAWAKAN: {
+    id: 'PROTO_ARAWAKAN',
+    name: 'Proto-Arawakan',
+    nativeName: '*Proto-Arawakan',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Reconstructed'],
+    period: [-3000, 1500],
+    regions: ['Amazon Basin', 'Caribbean', 'Orinoco', 'Greater Antilles'],
+    culturalZones: ['SOUTH_AMERICAN' as CulturalZone, 'NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    isReconstructed: true,
+    successors: ['TAINO'],
+    description: 'Reconstructed ancestor of Arawakan languages spread across Caribbean and South America',
+    llmPrompt: 'Use agglutinative morphology with complex verbal inflection. Employ inclusive and exclusive pronoun distinctions. Include maritime vocabulary (canoe, cassava, hammock). Reference peaceful agriculture-based cultures and extensive trading networks. Use vocabulary for pottery, weaving, and ceremonial ball games. Include terms for tropical ecology and navigation.',
+    historicalContext: 'Proto-Arawakan speakers expanded from the Amazon throughout the Caribbean basin over 3,000 years ago, becoming the dominant indigenous culture of the Greater Antilles before European contact.',
+  },
+
+  PROTO_CARIBAN: {
+    id: 'PROTO_CARIBAN',
+    name: 'Proto-Cariban',
+    nativeName: '*Proto-Cariban',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Reconstructed'],
+    period: [-2000, 1500],
+    regions: ['Guiana Shield', 'Orinoco', 'Venezuela', 'Lesser Antilles'],
+    culturalZones: ['SOUTH_AMERICAN' as CulturalZone],
+    isReconstructed: true,
+    description: 'Reconstructed ancestor of Cariban languages',
+    llmPrompt: 'Use ergative-absolutive alignment with complex morphology. Include warrior culture vocabulary and seafaring terms. Reference inter-island raiding and trading networks. Use vocabulary for bow-making, arrow poisons, and canoe warfare. Include terms for cassava cultivation and manioc processing. Employ animacy distinctions in grammar.',
+    historicalContext: 'Proto-Cariban speakers expanded from the Guiana Shield to the Lesser Antilles, known historically as fierce warriors who competed with Arawakan groups for Caribbean dominance.',
+  },
+
+  TAINO: {
+    id: 'TAINO',
+    name: 'Taíno',
+    nativeName: 'Taíno',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Oral', 'Pictographs'],
+    period: [-500, 1600],
+    regions: ['Greater Antilles', 'Cuba', 'Hispaniola', 'Puerto Rico', 'Jamaica', 'Bahamas'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    predecessors: ['PROTO_ARAWAKAN'],
+    greetings: {
+      hello: 'Taíno',
+      yes: 'Ĵo',
+      no: 'Má',
+    },
+    llmPrompt: 'Emulate Taíno language of the Greater Antilles. Use Arawakan grammatical structure with complex verb morphology. Reference peaceful agricultural society with elaborate cacique (chief) hierarchies. Include vocabulary for: ceremonial ball courts (batey), hammocks (hamaca), hurricanes (hurakán), tobacco (tabaco), canoes (canoa), maize cultivation, cassava bread (casabe), zemí religious icons. Use terms for the three-tiered social structure: caciques (chiefs), nitaínos (nobles), naborias (commoners). Include place names and nature terms that entered Spanish.',
+    historicalContext: 'The Taíno were the dominant Caribbean culture Columbus encountered in 1492. Their language gave Spanish (and English) words like hammock, hurricane, tobacco, canoe, and barbecue. Devastated by disease and colonization, the language largely vanished by 1600.',
   },
 };
 
@@ -4915,6 +5084,9 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   {
     patterns: ['irrawaddy', 'mekong', 'red river', 'chao phraya', 'tonle sap', 'shan', 'annam', 'tenasserim', 'mainland southeast'],
     languages: [
+      { id: 'MON', period: [500, 2025], weight: 35 },
+      { id: 'KHMER', period: [600, 2025], weight: 40 },
+      { id: 'BURMESE', period: [1000, 2025], weight: 40 },
       { id: 'THAI', period: [1200, 2025], weight: 50 },
       { id: 'SANSKRIT', period: [500, 1500], weight: 20 }, // Buddhist texts
       { id: 'CHAM', period: [200, 2025], weight: 30 },
@@ -4924,6 +5096,62 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { pattern: /Po|Aia|Jaya|Inra/i, language: 'CHAM', weight: 80 },
     ],
   },
+
+  // Khmer Empire (Angkor civilization)
+  {
+    patterns: ['khmer empire', 'angkor', 'angkor wat', 'angkor thom', 'tonle sap lake', 'cambodia', 'kampuchea', 'kamboja'],
+    languages: [
+      { id: 'KHMER', period: [600, 2025], weight: 95 },
+      { id: 'SANSKRIT', period: [600, 1500], weight: 50 }, // Court and religious language
+      { id: 'CHAM', period: [800, 1471], weight: 20 }, // Rival kingdom
+      { id: 'THAI', period: [1431, 2025], weight: 25 }, // After Angkor's decline
+    ],
+    namePatterns: [
+      { pattern: /Jayavarman|Suryavarman|Preah|Norodom|Sihanouk|Sisowath/i, language: 'KHMER', weight: 95 },
+    ],
+  },
+
+  // Mon Kingdoms (Dvaravati, Thaton, Pegu)
+  {
+    patterns: ['mon kingdoms', 'dvaravati', 'thaton', 'pegu', 'bago', 'hanthawaddy', 'lower burma', 'martaban'],
+    languages: [
+      { id: 'MON', period: [500, 2025], weight: 95 },
+      { id: 'SANSKRIT', period: [500, 1500], weight: 40 }, // Buddhist texts
+      { id: 'BURMESE', period: [1000, 2025], weight: 30 }, // After Burmese conquest
+    ],
+    namePatterns: [
+      { pattern: /Siridhamma|Dhammazedi|Nara|Samala|Razadarit/i, language: 'MON', weight: 90 },
+    ],
+  },
+
+  // Pagan Kingdom (Burma)
+  {
+    patterns: ['pagan kingdom', 'bagan', 'pagan', 'burma empire', 'irrawaddy valley', 'myanmar', 'ava kingdom', 'mandalay', 'rangoon', 'yangon'],
+    languages: [
+      { id: 'BURMESE', period: [1000, 2025], weight: 90 },
+      { id: 'MON', period: [500, 1757], weight: 50 }, // Mon influence
+      { id: 'SANSKRIT', period: [1000, 1500], weight: 35 }, // Buddhist texts
+      { id: 'PROTO_TIBETO_BURMAN', period: [500, 1000], weight: 25 },
+    ],
+    namePatterns: [
+      { pattern: /Anawrahta|Kyanzittha|Bayinnaung|Alaungpaya|Thibaw|Mindon/i, language: 'BURMESE', weight: 95 },
+    ],
+  },
+
+  // Ayutthaya Kingdom (Thailand)
+  {
+    patterns: ['ayutthaya', 'siam', 'thailand', 'sukhothai', 'lanna', 'chiang mai', 'bangkok', 'krung thep'],
+    languages: [
+      { id: 'THAI', period: [1200, 2025], weight: 90 },
+      { id: 'KHMER', period: [600, 1431], weight: 40 }, // Strong Khmer influence
+      { id: 'MON', period: [500, 1767], weight: 30 },
+      { id: 'SANSKRIT', period: [1200, 1800], weight: 30 }, // Religious language
+    ],
+    namePatterns: [
+      { pattern: /Rama|Chakri|Naresuan|Narai|Mongkut|Chulalongkorn|Bhumibol/i, language: 'THAI', weight: 95 },
+    ],
+  },
+
   // Vietnam
   {
     patterns: ['vietnam', 'annam', 'tonkin', 'cochin', 'saigon', 'hanoi', 'hue', 'red river delta'],
@@ -5178,6 +5406,8 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   {
     patterns: ['central africa', 'lake tanganyika', 'congo', 'kinshasa', 'bangui', 'rwanda', 'burundi', 'katanga', 'ubangi'],
     languages: [
+      { id: 'PROTO_NIGER_CONGO', period: [-5000, -1000], weight: 40 },
+      { id: 'PROTO_BANTU', period: [-3000, 500], weight: 60 },
       { id: 'SWAHILI_CLASSICAL', period: [1000, 2025], weight: 60 },
       { id: 'LINGALA', period: [1500, 2025], weight: 30 },
       { id: 'KIKONGO', period: [1000, 2025], weight: 10 },
@@ -5198,8 +5428,11 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
 
   // East Africa
   {
-    patterns: ['east africa', 'serengeti', 'kilimanjaro', 'victoria', 'kenya', 'tanzania', 'uganda', 'swahili coast'],
+    patterns: ['east africa', 'serengeti', 'kilimanjaro', 'victoria', 'kenya', 'tanzania', 'uganda', 'swahili coast', 'mara', 'rift valley', 'lake victoria', 'great rift'],
     languages: [
+      { id: 'PROTO_CUSHITIC', period: [-5000, -2000], weight: 50 },
+      { id: 'PROTO_BANTU', period: [-3000, 500], weight: 60 },
+      { id: 'PROTO_NIGER_CONGO', period: [-5000, -1000], weight: 40 },
       { id: 'SWAHILI_CLASSICAL', period: [1000, 2025], weight: 70 },
       { id: 'CLASSICAL_ARABIC', period: [1200, 2025], weight: 20 },
       { id: 'AMHARIC', period: [1000, 2025], weight: 10 },
@@ -5254,7 +5487,7 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   },
   // China - Enhanced with proper archaic periodization
   {
-    patterns: ['china', 'yellow river', 'yangtze', 'beijing', 'luoyang', 'changan', 'xian', 'kaifeng', 'nanjing', 'tang', 'song', 'ming', 'qing', 'shang', 'zhou'],
+    patterns: ['china', 'yellow river', 'yangtze', 'beijing', 'luoyang', 'changan', 'xian', 'kaifeng', 'nanjing', 'tang dynasty', 'song dynasty', 'ming dynasty', 'qing dynasty', 'shang dynasty', 'zhou dynasty'],
     languages: [
       { id: 'OLD_CHINESE', period: [-1250, -221], weight: 95 },
       { id: 'CLASSICAL_CHINESE', period: [-221, 600], weight: 90 },
@@ -5412,15 +5645,22 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   // === GEOGRAPHY.TS EXACT AREA NAMES ===
   // Caribbean from geography.ts
   {
-    patterns: ['Greater Antilles'],
+    patterns: ['Greater Antilles', 'cuba', 'hispaniola', 'puerto rico', 'jamaica', 'bahamas', 'cayman'],
     languages: [
-      { id: 'SPANISH', period: [1500, 2025], weight: 80 },
-      { id: 'TAINO', period: [-2000, 1600], weight: 20 },
+      { id: 'PROTO_ARAWAKAN', period: [-3000, 1500], weight: 70 },
+      { id: 'TAINO', period: [-500, 1600], weight: 85 },
+      { id: 'EARLY_SPANISH', period: [1492, 1700], weight: 80 },
+      { id: 'MODERN_SPANISH', period: [1700, 2025], weight: 80 },
+    ],
+    namePatterns: [
+      { pattern: /Cacique|Guacanagari|Anacaona|Caonabo|Hatuey|Agüeybaná/i, language: 'TAINO', weight: 95 },
     ],
   },
   {
-    patterns: ['Lesser Antilles'],
+    patterns: ['Lesser Antilles', 'windward islands', 'leeward islands', 'st kitts', 'nevis', 'montserrat'],
     languages: [
+      { id: 'PROTO_CARIBAN', period: [-2000, 1500], weight: 60 },
+      { id: 'PROTO_ARAWAKAN', period: [-3000, 1500], weight: 40 },
       { id: 'ANTILLEAN_CREOLE', period: [1700, 2025], weight: 60 },
       { id: 'EARLY_MODERN_ENGLISH', period: [1600, 2025], weight: 20 },
       { id: 'OLD_FRENCH', period: [1600, 2025], weight: 20 },
@@ -5656,13 +5896,13 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   // === DESERT REGIONS ===
   // Sahara Interior
   {
-    patterns: ['sahara', 'timbuktu', 'gao', 'agadez', 'tamanrasset', 'hoggar', 'tibesti', 'air mountains', 'tenere'],
+    patterns: ['sahara', 'agadez', 'tamanrasset', 'hoggar', 'tibesti', 'air mountains', 'tenere'],
     languages: [
       { id: 'CLASSICAL_ARABIC', period: [700, 2025], weight: 30 },
       { id: 'PROTO_BERBER', period: [-2000, 700], weight: 30 },
       { id: 'TUAREG', period: [700, 2025], weight: 25 },
       { id: 'HAUSA', period: [1000, 2025], weight: 10 },
-      { id: 'SONGHAY', period: [800, 2025], weight: 5 },
+      { id: 'SONGHAI', period: [800, 2025], weight: 5 },
     ],
   },
   // Arabian Desert
@@ -5806,7 +6046,8 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   {
     patterns: ['congo basin', 'congo rainforest', 'ituri', 'ubangi river', 'sangha'],
     languages: [
-      { id: 'PROTO_BANTU', period: [-1000, 1500], weight: 40 },
+      { id: 'PROTO_NIGER_CONGO', period: [-5000, -1000], weight: 35 },
+      { id: 'PROTO_BANTU', period: [-3000, 500], weight: 50 },
       { id: 'LINGALA', period: [1500, 2025], weight: 25 },
       { id: 'KIKONGO', period: [1000, 2025], weight: 20 },
       { id: 'OLD_FRENCH', period: [1880, 2025], weight: 10 },
@@ -5819,6 +6060,7 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
   {
     patterns: ['sahel', 'lake chad', 'timbuktu basin', 'gao region', 'niger bend', 'sahelian scrublands', 'dogon plateau', 'hausaland', 'sokoto', 'kano', 'katsina', 'zaria', 'northern nigeria', 'kanem', 'bornu'],
     languages: [
+      { id: 'SONINKE', period: [300, 2025], weight: 30 },
       { id: 'HAUSA', period: [700, 2025], weight: 90 },
       { id: 'FULA', period: [1000, 2025], weight: 50 },
       { id: 'KANURI', period: [800, 2025], weight: 60 },
@@ -5829,6 +6071,49 @@ const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
       { pattern: /Usman|Muhammadu|Ahmadu|Aliyu|Aisha|Fatima|Bello/i, language: 'HAUSA', weight: 90 },
       { pattern: /Shehu|Malam|Alhaji|Alfa|Imam/i, language: 'HAUSA', weight: 85 },
       { pattern: /Askia|Sonni/i, language: 'SONGHAI', weight: 90 },
+    ],
+  },
+
+  // Ghana Empire (ancient gold trade empire)
+  {
+    patterns: ['ghana empire', 'wagadou', 'koumbi saleh', 'awdaghust', 'audaghost', 'ancient ghana'],
+    languages: [
+      { id: 'SONINKE', period: [300, 1200], weight: 95 },
+      { id: 'CLASSICAL_ARABIC', period: [700, 1200], weight: 30 },
+      { id: 'PROTO_BERBER', period: [300, 700], weight: 20 },
+    ],
+    namePatterns: [
+      { pattern: /Kaya|Maghan|Dinga|Cisse|Tounkara/i, language: 'SONINKE', weight: 90 },
+    ],
+  },
+
+  // Mali Empire
+  {
+    patterns: ['mali empire', 'mande', 'manding', 'niani', 'kangaba', 'djenne', 'segou', 'upper niger'],
+    languages: [
+      { id: 'MANDINKA', period: [1000, 2025], weight: 85 },
+      { id: 'BAMBARA', period: [1000, 2025], weight: 70 },
+      { id: 'SONINKE', period: [300, 2025], weight: 40 },
+      { id: 'FULA', period: [1000, 2025], weight: 35 },
+      { id: 'CLASSICAL_ARABIC', period: [1230, 2025], weight: 45 },
+    ],
+    namePatterns: [
+      { pattern: /Mansa|Sundiata|Keita|Kouyate|Diabate|Kante|Ture|Toure/i, language: 'MANDINKA', weight: 95 },
+      { pattern: /Coulibaly|Traore|Diarra|Sangare|Kone/i, language: 'BAMBARA', weight: 90 },
+    ],
+  },
+
+  // Songhai Empire (more specific than general Sahel)
+  {
+    patterns: ['songhai empire', 'songhay', 'gao empire', 'askia', 'timbuktu', 'djenne', 'niger river bend'],
+    languages: [
+      { id: 'SONGHAI', period: [700, 2025], weight: 95 },
+      { id: 'MANDINKA', period: [1000, 1591], weight: 30 },
+      { id: 'CLASSICAL_ARABIC', period: [1460, 2025], weight: 50 },
+      { id: 'TUAREG', period: [1000, 2025], weight: 25 },
+    ],
+    namePatterns: [
+      { pattern: /Askia|Sonni|Muhammad|Ture|Issihak|Daud/i, language: 'SONGHAI', weight: 95 },
     ],
   },
 
@@ -6343,14 +6628,14 @@ export function getLanguageForCharacter(
   // STEP 6: Fallback to general cultural zone language for the period
   const fallbackLanguages: Record<string, Record<string, string>> = {
     EUROPEAN: {
-      ancient: 'LATIN',
+      ancient: 'PROTO_HELLENIC', // Covers Bronze Age -2500 to -1200; validation will find Latin/others when needed
       medieval: 'OLD_FRENCH',
       earlyModern: 'EARLY_MODERN_ENGLISH',
       modern: 'EARLY_MODERN_ENGLISH',
       future: 'EARLY_MODERN_ENGLISH',
     },
     MENA: {
-      ancient: 'AKKADIAN', // Changed from ARAMAIC - Akkadian was more widespread in ancient times
+      ancient: 'ARAMAIC', // Covers -1000 to 700, better than Akkadian which ends at -100
       medieval: 'CLASSICAL_ARABIC',
       earlyModern: 'OTTOMAN_TURKISH',
       modern: 'CLASSICAL_ARABIC',
@@ -6364,15 +6649,15 @@ export function getLanguageForCharacter(
       future: 'MUGHAL_URDU',
     },
     EAST_ASIAN: {
-      ancient: 'CLASSICAL_CHINESE',
+      ancient: 'OLD_CHINESE', // Changed from CLASSICAL_CHINESE - covers -1250 to -221, better for ancient period
       medieval: 'MIDDLE_CHINESE',
       earlyModern: 'EARLY_MANDARIN',
       modern: 'EARLY_MANDARIN',
       future: 'EARLY_MANDARIN',
     },
     SUB_SAHARAN_AFRICAN: {
-      ancient: 'SWAHILI_CLASSICAL',
-      medieval: 'SWAHILI_CLASSICAL',
+      ancient: 'PROTO_BANTU', // For prehistory/antiquity (covers -3000 to 500 CE, spans entire ancient period)
+      medieval: 'SWAHILI_CLASSICAL', // Medieval East Africa lingua franca
       earlyModern: 'SWAHILI_CLASSICAL',
       modern: 'SWAHILI_CLASSICAL',
       future: 'SWAHILI_CLASSICAL',
@@ -6406,14 +6691,14 @@ export function getLanguageForCharacter(
       future: 'MODERN_SPANISH',
     },
     OCEANIAN: {
-      ancient: 'PROTO_PAMA_NYUNGAN',
+      ancient: 'PROTO_POLYNESIAN', // Changed from PROTO_PAMA_NYUNGAN - covers -1500 to 500, spans entire ancient period
       medieval: 'PROTO_POLYNESIAN',
       earlyModern: 'MAORI',
       modern: 'HAWAIIAN',
       future: 'HAWAIIAN',
     },
     OCEANIA: {
-      ancient: 'PROTO_PAMA_NYUNGAN',
+      ancient: 'PROTO_POLYNESIAN', // Changed from PROTO_PAMA_NYUNGAN - covers -1500 to 500, spans entire ancient period
       medieval: 'PROTO_POLYNESIAN',
       earlyModern: 'MAORI',
       modern: 'HAWAIIAN',
@@ -6429,7 +6714,19 @@ export function getLanguageForCharacter(
 
   const fallbackLangId = fallbackLanguages[culturalZone]?.[period];
   if (fallbackLangId) {
-    return LANGUAGES[fallbackLangId];
+    const fallbackLang = LANGUAGES[fallbackLangId];
+    // Validate that the fallback language is actually valid for this year
+    if (fallbackLang && year >= fallbackLang.period[0] && year <= fallbackLang.period[1]) {
+      return fallbackLang;
+    }
+    // If fallback is invalid, try to find ANY language for this cultural zone and year
+    for (const lang of Object.values(LANGUAGES)) {
+      if (year >= lang.period[0] && year <= lang.period[1]) {
+        if (lang.culturalZones?.includes(culturalZone as CulturalZone)) {
+          return lang;
+        }
+      }
+    }
   }
 
   return undefined;
@@ -6445,22 +6742,64 @@ export function getLanguageComprehension(
   // Same language = perfect comprehension
   if (speakerLang.id === listenerLang.id) return 1.0;
 
-  // Check if languages are related (predecessor/successor)
-  if (speakerLang.predecessors?.includes(listenerLang.id) ||
-      speakerLang.successors?.includes(listenerLang.id) ||
-      listenerLang.predecessors?.includes(speakerLang.id) ||
-      listenerLang.successors?.includes(listenerLang.id)) {
-    return 0.5; // Partial comprehension
-  }
+  // Lingua francas (educated people often know these)
+  const linguaFrancas = ['LATIN', 'CLASSICAL_ARABIC', 'SANSKRIT', 'CLASSICAL_CHINESE', 'OLD_FRENCH'];
+  const speakerIsLingua = linguaFrancas.includes(speakerLang.id);
+  const listenerIsLingua = linguaFrancas.includes(listenerLang.id);
 
-  // Same language family = slight comprehension
-  if (speakerLang.family === listenerLang.family && speakerLang.family !== 'Language Isolate') {
-    return 0.2;
+  if (speakerIsLingua && listenerIsLingua) return 0.4; // Educated class can partially understand
+
+  // Check if languages are related (predecessor/successor)
+  const isDirectlyRelated =
+    speakerLang.predecessors?.includes(listenerLang.id) ||
+    speakerLang.successors?.includes(listenerLang.id) ||
+    listenerLang.predecessors?.includes(speakerLang.id) ||
+    listenerLang.successors?.includes(speakerLang.id); // BUG FIX: was listenerLang.id
+
+  if (isDirectlyRelated) {
+    // Calculate temporal distance for more nuanced comprehension
+    const speakerMidpoint = (speakerLang.period[0] + speakerLang.period[1]) / 2;
+    const listenerMidpoint = (listenerLang.period[0] + listenerLang.period[1]) / 2;
+    const temporalDistance = Math.abs(speakerMidpoint - listenerMidpoint);
+
+    // Closer in time = better comprehension
+    if (temporalDistance < 500) return 0.7; // Very close (e.g., Latin → Vulgar Latin)
+    if (temporalDistance < 1000) return 0.5; // Moderate distance
+    if (temporalDistance < 2000) return 0.3; // Distant but related
+    return 0.2; // Very distant
   }
 
   // Trade languages have higher base comprehension
   if (speakerLang.family === 'Pidgin' || listenerLang.family === 'Pidgin') {
-    return 0.3;
+    return 0.4; // Increased from 0.3 - pidgins designed for communication
+  }
+
+  // Same language family = slight comprehension (with subdivisions)
+  if (speakerLang.family === listenerLang.family && speakerLang.family !== 'Language Isolate') {
+    // Special cases for closely related subfamilies
+    const closelyRelatedFamilies: Record<string, string[]> = {
+      'Romance': ['LATIN', 'VULGAR_LATIN', 'ITALIAN', 'FRENCH', 'SPANISH', 'PORTUGUESE', 'ROMANIAN', 'CATALAN'],
+      'Germanic': ['PROTO_GERMANIC', 'OLD_NORSE', 'OLD_ENGLISH', 'GERMAN', 'DUTCH', 'SWEDISH', 'DANISH', 'NORWEGIAN'],
+      'Slavic': ['OLD_CHURCH_SLAVONIC', 'RUSSIAN', 'POLISH', 'CZECH', 'BULGARIAN', 'UKRAINIAN'],
+      'Sinitic': ['OLD_CHINESE', 'CLASSICAL_CHINESE', 'MIDDLE_CHINESE', 'EARLY_MANDARIN', 'MANDARIN', 'CANTONESE'],
+      'Indo-Aryan': ['VEDIC_SANSKRIT', 'SANSKRIT', 'HINDI', 'URDU', 'BENGALI', 'PUNJABI', 'GUJARATI'],
+    };
+
+    for (const [subfamily, languages] of Object.entries(closelyRelatedFamilies)) {
+      if (languages.includes(speakerLang.id) && languages.includes(listenerLang.id)) {
+        return 0.35; // Higher comprehension within close subfamilies
+      }
+    }
+
+    return 0.2; // General same-family comprehension
+  }
+
+  // Same cultural zone = minimal comprehension (from trade/contact)
+  const sharedCulturalZone = speakerLang.culturalZones?.some(zone =>
+    listenerLang.culturalZones?.includes(zone)
+  );
+  if (sharedCulturalZone) {
+    return 0.05; // Very slight understanding from cultural contact
   }
 
   // No comprehension

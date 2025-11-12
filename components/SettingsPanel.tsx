@@ -3,6 +3,7 @@ import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
 import { themeService } from '../services/themeService';
 import { gameSounds } from '../services/gameSoundsService';
+import { useModalKeyboard } from '../hooks/useModalKeyboard';
 import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
@@ -73,22 +74,22 @@ const SettingsToggle: React.FC<{
     isChecked: boolean;
     onToggle: () => void;
 }> = ({ id, label, description, isChecked, onToggle }) => (
-    <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+    <div className="p-3 surface-muted rounded-md">
         <div className="flex items-center justify-between">
-            <label htmlFor={id} className="text-sm font-medium text-gray-200 cursor-pointer">
+            <label htmlFor={id} className="text-sm font-medium text-text-primary cursor-pointer">
                 {label}
             </label>
             <button
                 id={id}
                 onClick={onToggle}
-                className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-800 ${isChecked ? 'bg-blue-600' : 'bg-slate-600'}`}
+                className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent focus:ring-offset-background-primary border ${isChecked ? 'bg-accent border-accent' : 'bg-surface-track border-border-surface-muted'}`}
                 role="switch"
                 aria-checked={isChecked}
             >
-                <span className={`${isChecked ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`} />
+                <span className={`${isChecked ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm`} />
             </button>
         </div>
-        <p className="mt-1.5 text-xs text-slate-400">{description}</p>
+        <p className="mt-1.5 text-xs text-text-muted">{description}</p>
     </div>
 );
 
@@ -174,6 +175,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [dialectContinuumEnabled, setDialectContinuumEnabled] = useState(dialectContinuumService.isEnabled());
 
   const diseaseService = DiseaseService.getInstance();
+
+  // Keyboard navigation: Escape to close
+  useModalKeyboard({
+    onClose,
+    disabled: !isOpen
+  });
 
   // Subscribe to theme changes
   useEffect(() => {
@@ -414,14 +421,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <h2 id="settings-panel-title" className="text-lg font-semibold text-text-primary">Settings</h2>
           <button
             onClick={onClose}
-            className="text-2xl text-text-secondary transition-colors hover:text-text-primary"
+            className="text-2xl text-text-secondary transition-colors hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
             aria-label="Close settings panel"
-          >&times;</button>
+            title="Close settings (Esc)"
+          >
+            <X className="h-6 w-6" aria-hidden="true" />
+          </button>
         </div>
 
         <div className="h-full p-5 overflow-y-auto pb-24 scrollbar-thin text-text-primary">
           {/* Game Description */}
-          <section className="mb-6 p-4 surface-muted rounded-lg border border-surface-muted shadow-sm">
+          <section className="mb-8 p-4 surface-muted rounded-lg border border-surface-muted shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <Info className="w-5 h-5 text-[var(--accent-primary)]" />
               <h3 className="text-lg font-semibold text-text-primary">Universal History Simulator</h3>
@@ -433,18 +443,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           {/* Theme Toggle */}
-          <section className="mb-6">
-            <h3 className="mb-3 text-xs font-semibold tracking-[0.28em] text-text-muted uppercase flex items-center gap-2">
+          <section className="mb-8 pb-8 border-b border-surface-muted/50">
+            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
               <Palette className="w-4 h-4" />
               Appearance
             </h3>
-            <div className="p-3 surface-muted rounded-md border border-surface-muted">
+            <div className="p-3 surface-muted rounded-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {isDarkMode ? (
-                    <Moon className="w-4 h-4 text-[var(--accent-primary)]" />
+                    <Moon className="w-4 h-4 text-accent" />
                   ) : (
-                    <Sun className="w-4 h-4 text-[var(--accent-primary)]" />
+                    <Sun className="w-4 h-4 text-accent" />
                   )}
                   <label className="text-sm font-medium text-text-primary">
                     {isDarkMode ? 'Dark Mode' : 'Light Mode'}
@@ -452,11 +462,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
                 <button
                   onClick={() => themeService.toggleTheme()}
-                  className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-800 ${isDarkMode ? 'bg-blue-600' : 'bg-slate-600'}`}
+                  className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent focus:ring-offset-background-primary border ${isDarkMode ? 'bg-accent border-accent' : 'bg-surface-track border-border-surface-muted'}`}
                   role="switch"
                   aria-checked={isDarkMode}
                 >
-                  <span className={`${isDarkMode ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`} />
+                  <span className={`${isDarkMode ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm`} />
                 </button>
               </div>
               <p className="mt-1.5 text-xs text-text-muted">Toggle between light and dark theme</p>
@@ -464,20 +474,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           {/* Audio Controls */}
-          <section className="mb-6">
-            <h3 className="mb-3 text-xs font-semibold tracking-[0.28em] text-text-muted uppercase flex items-center gap-2">
+          <section className="mb-8 pb-8 border-b border-surface-muted/50">
+            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
               {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               Audio
             </h3>
             <div className="space-y-3">
               {/* Mute Toggle */}
-              <div className="p-3 surface-muted rounded-md border border-surface-muted">
+              <div className="p-3 surface-muted rounded-md">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {isMuted ? (
                       <VolumeX className="w-4 h-4 text-[var(--color-error)]" />
                     ) : (
-                      <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
+                      <Volume2 className="w-4 h-4 text-accent" />
                     )}
                     <label className="text-sm font-medium text-text-primary">
                       {isMuted ? 'Muted' : 'Sound Enabled'}
@@ -485,19 +495,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </div>
                   <button
                     onClick={handleMuteToggle}
-                    className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-800 ${!isMuted ? 'bg-green-600' : 'bg-slate-600'}`}
+                    className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent focus:ring-offset-background-primary border ${!isMuted ? 'bg-[var(--color-success)] border-[var(--color-success)]' : 'bg-surface-track border-border-surface-muted'}`}
                     role="switch"
                     aria-checked={!isMuted}
                     aria-label="Toggle mute"
                   >
-                    <span className={`${!isMuted ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`} />
+                    <span className={`${!isMuted ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm`} />
                   </button>
                 </div>
                 <p className="mt-1.5 text-xs text-text-muted">Mute all game sounds and music</p>
               </div>
 
               {/* Volume Slider */}
-              <div className="p-3 surface-muted rounded-md border border-surface-muted">
+              <div className="p-3 surface-muted rounded-md">
                 <div className="flex items-center justify-between mb-2">
                   <label htmlFor="volumeSlider" className="text-sm font-medium text-text-primary">
                     Master Volume
@@ -515,11 +525,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   value={volume}
                   onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                   disabled={isMuted}
-                  className={`w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer slider-thumb ${isMuted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb ${isMuted ? 'opacity-50 cursor-not-allowed' : ''}`}
                   style={{
                     background: isMuted
-                      ? '#475569'
-                      : `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #475569 ${volume * 100}%, #475569 100%)`
+                      ? 'var(--surface-track-bg)'
+                      : `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${volume * 100}%, var(--surface-track-bg) ${volume * 100}%, var(--surface-track-bg) 100%)`
                   }}
                 />
                 <p className="mt-2 text-xs text-text-muted">
@@ -530,26 +540,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           {/* Save/Load Game */}
-          <section className="mb-6">
-            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+          <section className="mb-8 pb-8 border-b border-surface-muted/50">
+            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
               <Save className="w-4 h-4" />
               Game Progress
             </h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <button
-                onClick={() => setShowSavedGamesModal(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-emerald-600 rounded-md hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                <span>Manage Saved Games</span>
-              </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Save your current game or load a previously saved game. Up to 10 saves stored locally.
-              </p>
-            </div>
+            <button
+              onClick={() => setShowSavedGamesModal(true)}
+              className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-emerald-600 rounded-md hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2 shadow-lg mb-3"
+            >
+              <Save className="w-4 h-4" />
+              <span>Manage Saved Games</span>
+            </button>
 
             {/* Share URL Section */}
-            <div className="mt-3 p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+            <div className="p-3 surface-muted rounded-md">
               <button
                 onClick={() => {
                   if (!shareableURL && playerCharacter && currentYear && currentZone) {
@@ -595,7 +600,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     setShareableURL('');
                   }
                 }}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-md hover:from-blue-700 hover:to-cyan-700 flex items-center justify-center gap-2"
+                className="btn-secondary w-full flex items-center justify-center gap-2"
               >
                 <Link className="w-4 h-4" />
                 <span>{shareableURL ? 'Hide Share Link' : 'Get Shareable Link'}</span>
@@ -603,15 +608,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
               {shareableURL && (
                 <div className="mt-3 space-y-2 animate-fade-in">
-                  <label className="text-xs font-medium text-slate-400 block">
-                    Share this URL to recreate this exact game:
+                  <label className="text-xs font-medium text-text-muted block">
+                    Share this URL:
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={shareableURL}
                       readOnly
-                      className="flex-1 px-3 py-2 bg-slate-900 text-slate-200 text-xs rounded border border-slate-600 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 bg-background-secondary text-text-primary text-xs rounded border border-surface-muted font-mono focus:outline-none focus:ring-2 focus:ring-accent"
                       onClick={(e) => e.currentTarget.select()}
                     />
                     <button
@@ -622,8 +627,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       }}
                       className={`px-4 py-2 rounded transition-all flex items-center gap-2 text-xs whitespace-nowrap ${
                         copiedShareURL
-                          ? 'bg-green-600 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          ? 'bg-[var(--color-success)] text-white'
+                          : 'btn-secondary'
                       }`}
                     >
                       {copiedShareURL ? (
@@ -639,8 +644,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       )}
                     </button>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    This link preserves: character, location, date, game mode, and map seed
+                  <p className="text-xs text-text-muted">
+                    Preserves character, location, date, game mode, and map seed.
                   </p>
                 </div>
               )}
@@ -648,102 +653,84 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           {/* Primary Sources Library */}
-          <section className="mb-6">
-            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+          <section className="mb-8 pb-8 border-b border-surface-muted/50">
+            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
               Educational Resources
             </h3>
-            <div className="space-y-3">
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-                <button
-                  onClick={() => setShowPrimarySourcesModal(true)}
-                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
-                >
-                  <ScrollText className="w-4 h-4" />
-                  <span>Primary Sources Library</span>
-                </button>
-              </div>
 
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-                <button
-                  onClick={() => setShowCityMap(true)}
-                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-md hover:from-emerald-700 hover:to-cyan-700 flex items-center justify-center gap-2"
-                >
-                  <MapIcon className="w-4 h-4" />
-                  <span>Interactive City Map</span>
-                </button>
-                <p className="mt-2 text-xs text-slate-400">
-                  Not finished yet.
-                </p>
-              </div>
+            {/* Featured: Primary Sources Library */}
+            <div className="mb-3">
+              <button
+                onClick={() => setShowPrimarySourcesModal(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2 shadow-lg"
+              >
+                <ScrollText className="w-4 h-4" />
+                <span>Primary Sources Library</span>
+              </button>
+            </div>
 
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-                <button
-                  onClick={() => setShowHexWorldMap(true)}
-                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-teal-600 to-green-600 rounded-md hover:from-teal-700 hover:to-green-700 flex items-center justify-center gap-2"
-                >
-                  <Hexagon className="w-4 h-4" />
-                  <span>Hexagonal World Map (broken!)</span>
-                </button>
-                <p className="mt-2 text-xs text-slate-400">
-                  Explore world geography with a hexagonal grid showing all game regions and territories.
-                </p>
-              </div>
+            {/* Secondary Resources - Grid */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setShowHexWorldGlobe(true)}
+                className="px-3 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+              >
+                <Activity className="w-4 h-4" />
+                <span className="text-center leading-tight">3D World Globe</span>
+              </button>
 
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-                <button
-                  onClick={() => setShowHexWorldGlobe(true)}
-                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center gap-2"
-                >
-                  <Activity className="w-4 h-4" />
-                  <span>3D World Geography Globe</span>
-                </button>
-                <p className="mt-2 text-xs text-slate-400">
-                  Interactive 3D globe with regions positioned by real-world coordinates. Drag to rotate, scroll to zoom.
-                </p>
-              </div>
+              <button
+                onClick={() => setShowCityMap(true)}
+                className="px-3 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+              >
+                <MapIcon className="w-4 h-4" />
+                <span className="text-center leading-tight">City Map</span>
+              </button>
 
+              <button
+                onClick={() => setShowHexWorldMap(true)}
+                className="px-3 py-2.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+              >
+                <Hexagon className="w-4 h-4" />
+                <span className="text-center leading-tight">Hex Map</span>
+              </button>
 
-              <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-                <button
-                  onClick={() => setShowTradeNetworkGlobe(true)}
-                  className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-md hover:from-cyan-700 hover:to-blue-700 flex items-center justify-center gap-2"
-                >
-                  <Activity className="w-4 h-4" />
-                  <span>City Globe Attempt #1</span>
-                </button>
-                <p className="mt-2 text-xs text-slate-400">
-                  3D globe visualization of trade networks and city connections throughout history.
-                </p>
-              </div>
+              <button
+                onClick={() => setShowTradeNetworkGlobe(true)}
+                className="px-3 py-2.5 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+              >
+                <Activity className="w-4 h-4" />
+                <span className="text-center leading-tight">City Globe</span>
+              </button>
             </div>
           </section>
 
           {/* AI Features */}
-          <section className="mb-6">
-            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+          <section className="mb-8 pb-8 border-b border-surface-muted/50">
+            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
               <SettingsIcon className="w-4 h-4" />
-              AI Features
+              Features
             </h3>
             <div className="space-y-3">
               <SettingsToggle
                 id="llmDescToggle"
                 label="Enhanced Descriptions"
-                description="Uses AI for richer, more immersive location descriptions and item details."
+                description="AI-powered location descriptions and item details."
                 isChecked={useLlmForDescriptions}
                 onToggle={onToggleLlmForDescriptions}
               />
               <SettingsToggle
                 id="llmCharToggle"
                 label="Dynamic Characters"
-                description="Uses AI to generate unique names, professions, and backstories for NPCs."
+                description="AI-generated NPC names, professions, and backstories."
                 isChecked={useLlmForCharacter}
                 onToggle={onToggleLlmForCharacter}
               />
               <SettingsToggle
                 id="dialectContinuumToggle"
                 label="Dialect Continuum"
-                description="Gradually introduces foreign languages as you travel. NPCs speak more foreign words the further you get from your starting location."
+                description="NPCs use more foreign language as you travel further from home."
                 isChecked={dialectContinuumEnabled}
                 onToggle={() => {
                   const newState = !dialectContinuumEnabled;
@@ -759,7 +746,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <SettingsToggle
                 id="contextualTooltipsToggle"
                 label="Contextual Tooltips"
-                description="Show helpful tooltips when you first encounter UI elements. Perfect for learning the interface."
+                description="Show helpful tooltips when you first encounter UI elements."
                 isChecked={contextualTooltipsEnabled}
                 onToggle={() => onToggleContextualTooltips(!contextualTooltipsEnabled)}
               />
@@ -767,7 +754,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <div className="ml-4 mt-2">
                   <button
                     onClick={onResetTooltips}
-                    className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors"
+                    className="text-xs text-accent hover:text-accent-hover underline transition-colors"
                   >
                     Reset all tooltips (show them again)
                   </button>
@@ -777,29 +764,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           {/* World Settings */}
-          <section className="mb-6">
-            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+          <section className="mb-8 pb-8 border-b border-surface-muted/50">
+            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
               <Gamepad2 className="w-4 h-4" />
               World Settings
             </h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <div className="flex items-center justify-between mb-3">
-                <label htmlFor="seedInputPanelAdvanced" className="text-sm font-medium text-gray-200">World Seed:</label>
-                <input
-                  type="number"
-                  id="seedInputPanelAdvanced"
-                  value={currentSeed}
-                  onChange={handleSeedInputChange}
-                  className="w-36 px-3 py-1.5 bg-slate-800 border border-slate-500 rounded-md text-white text-center text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
+            <div className="space-y-3">
+              <div className="p-3 surface-muted rounded-md">
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="seedInputPanelAdvanced" className="text-sm font-medium text-text-primary">World Seed</label>
+                  <input
+                    type="number"
+                    id="seedInputPanelAdvanced"
+                    value={currentSeed}
+                    onChange={handleSeedInputChange}
+                    className="w-32 px-3 py-1.5 bg-background-secondary border border-surface-muted rounded-md text-text-primary text-center text-sm focus:border-accent focus:ring-1 focus:ring-accent"
+                  />
+                </div>
+                <p className="text-xs text-text-muted">Unique identifier for this world's geography.</p>
               </div>
               <button
                 onClick={handleNewRandomInitialSeed}
-                className="w-full px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 bg-blue-600 rounded-md hover:bg-blue-700"
+                className="btn-secondary w-full"
               >
                 Generate New World
               </button>
-              <p className="mt-2 text-xs text-slate-400">Creates a new world with different geography and cultures.</p>
             </div>
           </section>
 
@@ -807,7 +796,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <section className="mt-8">
             <button
               onClick={() => setShowDeveloperMode(!showDeveloperMode)}
-              className="w-full p-3 bg-gradient-to-r from-red-900/20 to-orange-900/20 rounded-lg border border-red-700/30 hover:border-red-600/50 transition-all duration-200 flex items-center justify-between text-red-300 hover:text-red-200"
+              className="w-full p-3 bg-[var(--color-error)]/10 rounded-lg border border-[var(--color-error)]/30 hover:border-[var(--color-error)]/50 transition-all duration-200 flex items-center justify-between text-[var(--color-error)] hover:opacity-90"
             >
               <div className="flex items-center gap-2">
                 <FlaskConical className="w-4 h-4" />
@@ -817,29 +806,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </button>
 
             {showDeveloperMode && (
-              <div className="mt-4 space-y-4 p-4 bg-red-900/10 rounded-lg border border-red-800/30">
+              <div className="mt-4 space-y-4 p-4 bg-[var(--color-error)]/5 rounded-lg border border-[var(--color-error)]/20">
                 {/* Display Options */}
                 <div>
-                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">Display & Debug</h4>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-[var(--color-error)] uppercase">Display & Debug</h4>
                   <div className="space-y-3">
                     <SettingsToggle
                       id="devTooltipToggle"
                       label="Dev Tooltip on Hover"
-                      description="Show a small tooltip with tile information in the corner of the map."
+                      description="Show tile information in map corner."
                       isChecked={showDevTooltip}
                       onToggle={onToggleDevTooltip}
                     />
                     <SettingsToggle
                       id="testModeToggle"
                       label="Test Mode (Performance Debug)"
-                      description="Enable performance monitoring overlay with feature toggles for debugging Safari rendering issues."
+                      description="Performance monitoring overlay for debugging."
                       isChecked={isTestModeEnabled}
                       onToggle={onToggleTestMode}
                     />
                     <SettingsToggle
                       id="devBuildingModeToggle"
                       label="Dev Building Mode"
-                      description="Display a comprehensive grid of all map symbols, biomes, and structures with their code names for reference."
+                      description="Grid view of all map symbols and biomes."
                       isChecked={isDevBuildingModeOpen}
                       onToggle={onToggleDevBuildingMode}
                     />
@@ -848,7 +837,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
                 {/* API Tracking */}
                 <div>
-                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">API Monitoring</h4>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-[var(--color-error)] uppercase">API Monitoring</h4>
                   <button
                     onClick={() => {
                       setShowLLMTracker(!showLLMTracker);
@@ -864,20 +853,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   {showLLMTracker && (
                     <div className="mt-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-800/50 rounded-lg p-2">
-                          <div className="text-xs text-gray-400 mb-1">Session</div>
-                          <div className="text-lg font-semibold text-white">{apiStats.sessionCalls}</div>
+                        <div className="surface-muted rounded-lg p-2">
+                          <div className="text-xs text-text-muted mb-1">Session</div>
+                          <div className="text-lg font-semibold text-text-primary">{apiStats.sessionCalls}</div>
                         </div>
-                        <div className="bg-slate-800/50 rounded-lg p-2">
-                          <div className="text-xs text-gray-400 mb-1">Total</div>
-                          <div className="text-lg font-semibold text-white">{apiStats.totalCalls}</div>
+                        <div className="surface-muted rounded-lg p-2">
+                          <div className="text-xs text-text-muted mb-1">Total</div>
+                          <div className="text-lg font-semibold text-text-primary">{apiStats.totalCalls}</div>
                         </div>
                       </div>
 
                       {apiStats.costEstimate !== undefined && (
-                        <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-2">
-                          <div className="text-xs text-green-400 mb-1">Estimated Cost</div>
-                          <div className="text-lg font-semibold text-green-300">
+                        <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-2">
+                          <div className="text-xs text-[var(--color-success)] mb-1">Estimated Cost</div>
+                          <div className="text-lg font-semibold text-[var(--color-success)]">
                             ${(apiStats.costEstimate / 100).toFixed(2)}
                           </div>
                         </div>
@@ -897,7 +886,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             document.body.removeChild(a);
                             URL.revokeObjectURL(url);
                           }}
-                          className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+                          className="flex-1 px-3 py-2 bg-[var(--color-success)] hover:bg-[var(--color-success)]/80 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
                         >
                           <Download className="w-3 h-3" />
                           Download
@@ -907,28 +896,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             eventService.resetSessionCalls();
                             setApiStats(eventService.getAPIUsageStats());
                           }}
-                          className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium rounded-lg transition-colors"
+                          className="flex-1 px-3 py-2 surface-muted hover:bg-surface-track text-text-primary text-xs font-medium rounded-lg transition-colors"
                         >
                           Reset Session
                         </button>
                       </div>
 
                       {llmHistory.length > 0 && (
-                        <div className="max-h-40 overflow-y-auto bg-slate-800/30 rounded p-2">
-                          <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                        <div className="max-h-40 overflow-y-auto surface-muted rounded p-2">
+                          <div className="text-xs text-text-muted mb-2 flex items-center gap-1">
                             <Activity className="w-3 h-3" />
                             Last {Math.min(llmHistory.length, 10)} API calls:
                           </div>
                           <div className="space-y-2">
                             {llmHistory.slice(-10).reverse().map((entry, index) => (
-                              <div key={index} className="bg-slate-900/50 rounded p-2">
-                                <div className="text-xs text-gray-500 mb-1">
+                              <div key={index} className="bg-background-secondary rounded p-2">
+                                <div className="text-xs text-text-muted mb-1">
                                   {new Date(entry.timestamp).toLocaleString()}
                                 </div>
-                                <div className="text-xs text-gray-300 truncate">
+                                <div className="text-xs text-text-secondary truncate">
                                   Input: {entry.input.substring(0, 50)}...
                                 </div>
-                                <div className="text-xs text-gray-300 truncate">
+                                <div className="text-xs text-text-secondary truncate">
                                   Output: {entry.output.substring(0, 50)}...
                                 </div>
                               </div>
@@ -942,7 +931,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
                 {/* Testing Panels */}
                 <div>
-                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">Testing Panels</h4>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-[var(--color-error)] uppercase">Testing Panels</h4>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setShowNpcTestPanel(true)}
@@ -1009,7 +998,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
                 {/* Performance Testing */}
                 <div>
-                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">Performance & Disease Testing</h4>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-[var(--color-error)] uppercase">Performance & Disease Testing</h4>
                   <div className="grid grid-cols-1 gap-2">
                     <button
                       onClick={() => setShowTestSuite(true)}
@@ -1041,12 +1030,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Disease Test Panel (only show if developer mode is open and disease panel is toggled) */}
         {showDeveloperMode && showDiseaseTestPanel && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center p-4">
-            <div className="bg-slate-900 rounded-lg border border-slate-700 w-full max-w-md max-h-[80vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-4 border-b border-slate-700">
-                <h3 className="text-lg font-semibold text-white">Disease Testing</h3>
+            <div className="bg-background-card rounded-lg border border-surface-card w-full max-w-md max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b border-surface-muted">
+                <h3 className="text-lg font-semibold text-text-primary">Disease Testing</h3>
                 <button
                   onClick={() => setShowDiseaseTestPanel(false)}
-                  className="text-slate-400 hover:text-white transition-colors"
+                  className="text-text-muted hover:text-text-primary transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -1054,18 +1043,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
               <div className="p-4 space-y-4">
                 {/* Current Disease Status */}
-                <div className="bg-slate-800/50 rounded-lg p-3">
-                  <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                <div className="surface-muted rounded-lg p-3">
+                  <div className="text-xs text-text-muted mb-2 flex items-center gap-1">
                     <Heart className="w-3 h-3" />
                     Current Health Status:
                   </div>
-                  <div className="text-sm text-white">
+                  <div className="text-sm text-text-primary">
                     {playerCharacter?.health?.overallHealthStatus || 'healthy'}
                   </div>
                   {playerCharacter?.health?.currentDiseases && playerCharacter.health.currentDiseases.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {playerCharacter.health.currentDiseases.map((activeDisease, index) => (
-                        <div key={index} className="text-xs text-red-300 flex items-center gap-1">
+                        <div key={index} className="text-xs text-[var(--color-error)] flex items-center gap-1">
                           {activeDisease.disease.badgeIcon}
                           {activeDisease.disease.name} ({activeDisease.stage})
                         </div>
@@ -1075,25 +1064,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
 
                 {/* Available Diseases */}
-                <div className="bg-slate-800/50 rounded-lg p-3">
-                  <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                <div className="surface-muted rounded-lg p-3">
+                  <div className="text-xs text-text-muted mb-2 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
                     Available Diseases:
                   </div>
                   <div className="max-h-40 overflow-y-auto space-y-2">
                     {getAvailableDiseases().slice(0, 5).map((disease) => (
-                      <div key={disease.id} className="flex items-center justify-between rounded p-2 bg-slate-900/50">
+                      <div key={disease.id} className="flex items-center justify-between rounded p-2 bg-background-secondary">
                         <div className="flex-1">
-                          <div className="text-xs text-white flex items-center gap-1">
+                          <div className="text-xs text-text-primary flex items-center gap-1">
                             {disease.badgeIcon} {disease.name}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-text-muted">
                             {disease.severity} • {disease.type}
                           </div>
                         </div>
                         <button
                           onClick={() => contractDisease(disease.id)}
-                          className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+                          className="px-2 py-1 bg-[var(--color-error)] hover:bg-[var(--color-error)]/80 text-white text-xs rounded transition-colors"
                           disabled={playerCharacter?.diseaseHealth?.currentDiseases?.some(d => d.disease.id === disease.id)}
                         >
                           {playerCharacter?.diseaseHealth?.currentDiseases?.some(d => d.disease.id === disease.id) ? 'Active' : 'Contract'}
@@ -1107,13 +1096,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <div className="flex gap-2">
                   <button
                     onClick={cureAllDiseases}
-                    className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    className="flex-1 px-3 py-2 bg-[var(--color-success)] hover:bg-[var(--color-success)]/80 text-white text-xs font-medium rounded-lg transition-colors"
                   >
                     Cure All
                   </button>
                   <button
                     onClick={clearAllImmunities}
-                    className="flex-1 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    className="flex-1 px-3 py-2 bg-[var(--color-warning)] hover:bg-[var(--color-warning)]/80 text-white text-xs font-medium rounded-lg transition-colors"
                   >
                     Clear Immunities
                   </button>
@@ -1213,11 +1202,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       {/* Alternative Fishing Modal */}
       {showAlternativeFishing && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-lg border border-slate-700 w-full max-w-7xl h-[90vh] relative overflow-hidden">
+          <div className="bg-background-card rounded-lg border border-surface-card w-full max-w-7xl h-[90vh] relative overflow-hidden">
             <div className="absolute top-4 right-4 z-10">
               <button
                 onClick={() => setShowAlternativeFishing(false)}
-                className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-[var(--color-error)] hover:bg-[var(--color-error)]/80 text-white flex items-center justify-center transition-colors"
               >
                 <X size={16} />
               </button>
@@ -1277,15 +1266,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       {showMiningTestPanel && (
         <div className="fixed inset-0 z-[60] bg-black">
           {/* Test Inventory Display */}
-          <div className="absolute top-4 right-4 z-70 bg-slate-800/90 border border-slate-600 rounded-lg p-3 max-w-xs">
-            <h3 className="text-sm font-bold text-white mb-2">Test Inventory ({testInventory.length})</h3>
+          <div className="absolute top-4 right-4 z-70 surface-muted rounded-lg p-3 max-w-xs">
+            <h3 className="text-sm font-bold text-text-primary mb-2">Test Inventory ({testInventory.length})</h3>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {testInventory.length === 0 ? (
-                <p className="text-xs text-gray-400">No items collected yet</p>
+                <p className="text-xs text-text-muted">No items collected yet</p>
               ) : (
                 testInventory.map((item, index) => (
-                  <div key={index} className="text-xs text-green-300 flex items-center gap-2">
-                    <span className="text-yellow-400">⚡</span>
+                  <div key={index} className="text-xs text-[var(--color-success)] flex items-center gap-2">
+                    <span className="text-[var(--color-warning)]">⚡</span>
                     <span>{item.name} ({item.quantity || 1})</span>
                   </div>
                 ))
@@ -1294,7 +1283,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {testInventory.length > 0 && (
               <button
                 onClick={() => setTestInventory([])}
-                className="mt-2 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white"
+                className="mt-2 text-xs px-2 py-1 bg-[var(--color-error)] hover:bg-[var(--color-error)]/80 rounded text-white"
               >
                 Clear Inventory
               </button>

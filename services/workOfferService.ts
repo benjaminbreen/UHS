@@ -440,7 +440,8 @@ export function checkWorkCompletion(
   offer: WorkOffer,
   playerCharacter: PlayerCharacter,
   playerLocation: { x: number; y: number },
-  currentGameHours: number
+  currentGameHours: number,
+  questGiverNpc?: any // Optional NPC for conversation tracking
 ): 'completed' | 'in_progress' | 'failed' {
   // Check deadline first
   if (offer.deadline && (currentGameHours - offer.offerTime) > offer.deadline) {
@@ -499,41 +500,65 @@ export function checkWorkCompletion(
       return hasProducts ? 'completed' : 'in_progress';
 
     case 'explore_location':
-      // For exploration quests, player needs to visit the location and have ANY item to bring back
-      // We'll consider it completable if they have items in inventory
-      // (Actual completion happens when they talk to NPC with items)
+      // For exploration quests, player needs to visit the location AND have items to bring back
+      if (offer.targetLocation) {
+        const distance = calculateDistance(playerLocation, offer.targetLocation);
+        const atLocation = distance <= offer.targetLocation.radius;
+        const hasItems = playerCharacter.inventory && playerCharacter.inventory.length > 0;
+
+        return (atLocation && hasItems) ? 'completed' : 'in_progress';
+      }
+      // Fallback if no target location specified
       return playerCharacter.inventory && playerCharacter.inventory.length > 0
         ? 'completed'
         : 'in_progress';
 
     // NEW EDUCATIONAL QUEST TYPES:
     case 'investigate_and_report':
-      // Requires having an item AND having talked to the NPC about it
-      // The conversationCount is incremented when player talks to quest giver
+      // Requires visiting location, having an item, AND having talked to the NPC about it
+      if (offer.targetLocation) {
+        const distance = calculateDistance(playerLocation, offer.targetLocation);
+        const atLocation = distance <= offer.targetLocation.radius;
+        const hasItemForReport = playerCharacter.inventory && playerCharacter.inventory.length > 0;
+
+        // Use NPC's actual conversation count from memory (not the offer's outdated count)
+        const conversationCount = questGiverNpc?.memory?.conversationCount || offer.conversationCount || 0;
+        const hasDiscussedFindings = conversationCount >= 2; // At least 2 dialogue exchanges
+
+        return (atLocation && hasItemForReport && hasDiscussedFindings) ? 'completed' : 'in_progress';
+      }
+      // Fallback if no target location
       const hasItemForReport = playerCharacter.inventory && playerCharacter.inventory.length > 0;
-      const hasDiscussedFindings = (offer.conversationCount || 0) >= 2; // At least 2 dialogue exchanges
+      const conversationCountFallback = questGiverNpc?.memory?.conversationCount || offer.conversationCount || 0;
+      const hasDiscussedFindings = conversationCountFallback >= 2;
       return (hasItemForReport && hasDiscussedFindings) ? 'completed' : 'in_progress';
 
     case 'debate_topic':
-      // Requires meaningful dialogue with the quest giver
-      // conversationCount is incremented during encounter
-      const hasDebated = (offer.conversationCount || 0) >= 3; // At least 3 exchanges for debate
+      // Requires meaningful dialogue with the quest giver about the topic
+      // Use NPC's actual conversation count from memory
+      const debateConversations = questGiverNpc?.memory?.conversationCount || offer.conversationCount || 0;
+      const debateTopicDiscussed = questGiverNpc?.memory?.topicsDiscussed?.has('politics') ||
+                                    questGiverNpc?.memory?.topicsDiscussed?.has('war') ||
+                                    questGiverNpc?.memory?.topicsDiscussed?.has('religion') ||
+                                    debateConversations >= 3; // Fallback to count
+      const hasDebated = debateConversations >= 2 && debateTopicDiscussed;
       return hasDebated ? 'completed' : 'in_progress';
 
     case 'compare_perspectives':
-      // Check if player has talked to required NPCs
-      // For now, simplified: requires player to return and discuss
-      // TODO: Implement NPC conversation tracking system
-      // For MVP, we'll mark as completed after dialogue with quest giver
-      const hasGatheredPerspectives = (offer.conversationCount || 0) >= 2;
+      // Check if player has talked to the quest giver to report findings
+      // Use NPC's actual conversation count from memory
+      const perspectiveConversations = questGiverNpc?.memory?.conversationCount || offer.conversationCount || 0;
+      const hasGatheredPerspectives = perspectiveConversations >= 2;
       return hasGatheredPerspectives ? 'completed' : 'in_progress';
 
     case 'source_analysis':
-      // Requires having the document AND discussing it
+      // Requires having the document AND discussing it with quest giver
       const hasDocument = offer.requiredItem && playerCharacter.inventory.some(
         item => item.name.toLowerCase() === offer.requiredItem?.toLowerCase()
       );
-      const hasAnalyzed = (offer.conversationCount || 0) >= 2;
+      // Use NPC's actual conversation count from memory
+      const analysisConversations = questGiverNpc?.memory?.conversationCount || offer.conversationCount || 0;
+      const hasAnalyzed = analysisConversations >= 2;
       return (hasDocument && hasAnalyzed) ? 'completed' : 'in_progress';
 
     default:
@@ -561,34 +586,34 @@ export function completeWorkOffer(
       };
     }
 
-    // Take the first item from inventory
-    const firstItem = playerCharacter.inventory[0];
-    itemTaken = firstItem.name;
+    // Take the most recent (last) item from inventory - more likely to be from the quest location
+    const lastItem = playerCharacter.inventory[playerCharacter.inventory.length - 1];
+    itemTaken = lastItem.name;
 
     const result = removeItemFromInventory(
       playerCharacter.inventory,
-      firstItem.name,
+      lastItem.name,
       1
     );
 
     updateInventory(result.inventory);
 
     console.log(
-      `[WORK] Exploration quest completed. Removed 1x ${firstItem.name} from inventory. ` +
+      `[WORK] Exploration quest completed. Removed 1x ${lastItem.name} from inventory. ` +
       `New inventory size: ${result.inventory.length}`
     );
 
     return {
       success: true,
-      message: `Fascinating! This ${firstItem.name} will be very useful. Thank you for exploring!`,
+      message: `Fascinating! This ${lastItem.name} will be very useful. Thank you for exploring!`,
       coinsEarned: offer.payment,
-      itemTaken: firstItem.name
+      itemTaken: lastItem.name
     };
   }
 
   // Handle educational quest types
   if (offer.taskType === 'investigate_and_report' && updateInventory && playerCharacter.inventory) {
-    // Similar to explore_location, take any one item
+    // Similar to explore_location, take the most recent item
     if (playerCharacter.inventory.length === 0) {
       return {
         success: false,
@@ -597,12 +622,12 @@ export function completeWorkOffer(
       };
     }
 
-    const firstItem = playerCharacter.inventory[0];
-    itemTaken = firstItem.name;
+    const lastItem = playerCharacter.inventory[playerCharacter.inventory.length - 1];
+    itemTaken = lastItem.name;
 
     const result = removeItemFromInventory(
       playerCharacter.inventory,
-      firstItem.name,
+      lastItem.name,
       1
     );
 
@@ -610,9 +635,9 @@ export function completeWorkOffer(
 
     return {
       success: true,
-      message: `Excellent analysis! Your insights about this ${firstItem.name} are valuable. Here's your payment.`,
+      message: `Excellent analysis! Your insights about this ${lastItem.name} are valuable. Here's your payment.`,
       coinsEarned: offer.payment,
-      itemTaken: firstItem.name
+      itemTaken: lastItem.name
     };
   }
 

@@ -2378,7 +2378,7 @@ export const PROFESSIONS: ProfessionData = {
                 'Farmer': {
                     statRequirements: { minConstitution: 5 },
                     socialRequirements: { maxPrivilege: 0.3 },
-                    keywords: 'monsoon',
+                    keywords: 'monsoon rice farmer',
                     emoji: '🪻'
                 },
                 'Weaver': {

@@ -1,0 +1,157 @@
+[
+  {
+    "id": "quipu",
+    "displayName": "Quipu Cord Records",
+    "writingMedium": "textile",
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "notes": "Knotted cords used for accounting and narrative record among Andean societies.",
+    "fallbackLanguageId": "Quechua"
+  },
+  {
+    "id": "nasca_geoglyph_marks",
+    "displayName": "Geoglyph Alignment Marks",
+    "writingMedium": "stone",
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "notes": "Spatial markers carved near geoglyph sites; interpreted through archaeoastronomy findings."
+  },
+  {
+    "id": "meyer_papyrus",
+    "displayName": "Ptolemaic Administrative Script",
+    "writingMedium": "papyrus",
+    "culturalZones": [
+      "MENA"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "notes": "Hieratic cursive used in temple administration. Provides context for record-keeping rooms.",
+    "fallbackLanguageId": "Ancient Egyptian hieroglyphs"
+  },
+  {
+    "id": "runic_tableau",
+    "displayName": "Runic Inscription Panel",
+    "writingMedium": "stone",
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "notes": "Carved stones commemorating battles or agreements.",
+    "fallbackLanguageId": "Old Norse"
+  },
+  {
+    "id": "gaelic_ogham_inscription",
+    "displayName": "Ogham Stone Carving",
+    "writingMedium": "stone",
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "notes": "Early medieval inscriptions using ogham strokes along stone edges.",
+    "fallbackLanguageId": "Old Irish"
+  },
+  {
+    "id": "dunhuang_brush_notes",
+    "displayName": "Dunhuang Expedition Notes",
+    "writingMedium": "paper",
+    "culturalZones": [
+      "EAST_ASIAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "notes": "Brush-written records from cave guardians cataloguing manuscripts.",
+    "fallbackLanguageId": "Classical Chinese"
+  },
+  {
+    "id": "fangzhu_prayer_tablet",
+    "displayName": "Oracle Bamboo Ledger",
+    "writingMedium": "wood",
+    "culturalZones": [
+      "EAST_ASIAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "notes": "Bamboo slips used to record legal cases and agricultural obligations.",
+    "fallbackLanguageId": "Classical Chinese"
+  },
+  {
+    "id": "mahadev_copperplate",
+    "displayName": "Copperplate Grant Script",
+    "writingMedium": "metal",
+    "culturalZones": [
+      "SOUTH_ASIAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "notes": "Royal land grant etched on copper, enumerating taxes and rights.",
+    "fallbackLanguageId": "Sanskrit"
+  },
+  {
+    "id": "caliphate_kufic_panel",
+    "displayName": "Kufic Architectural Panel",
+    "writingMedium": "stone",
+    "culturalZones": [
+      "MENA"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "notes": "Geometric Kufic inscriptions adorning mosque revetments.",
+    "fallbackLanguageId": "Arabic"
+  },
+  {
+    "id": "pueblo_petroglyph_panel",
+    "displayName": "Ancestral Pueblo Petroglyphs",
+    "writingMedium": "stone",
+    "culturalZones": [
+      "NORTH_AMERICAN_PRE_COLUMBIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "notes": "Chiseled cliff-face markings that align with solar events and community histories."
+  },
+  {
+    "id": "hopewell_shell_bead_belt",
+    "displayName": "Shell-Bead Memory Belt",
+    "writingMedium": "textile",
+    "culturalZones": [
+      "NORTH_AMERICAN_PRE_COLUMBIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "notes": "Woven wampum belt recording treaty obligations and oral histories among eastern woodlands societies."
+  },
+  {
+    "id": "cedar_bark_story_scroll",
+    "displayName": "Cedar-Bark Story Scroll",
+    "writingMedium": "wood",
+    "culturalZones": [
+      "NORTH_AMERICAN_PRE_COLUMBIAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "notes": "Painted cedar-bark panels documenting seasonal rites along the Pacific Coast."
+  }
+]

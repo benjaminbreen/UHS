@@ -1,0 +1,263 @@
+[
+  {
+    "id": "nasca_ceremonial_vessel",
+    "label": "Nasca Ceremonial Vessel",
+    "description": "Polychrome pottery with iconography of water and fertility spirits, encrusted with mineral pigments.",
+    "structureTypes": [
+      "temple",
+      "ceremonial_complex"
+    ],
+    "rooms": [
+      "altar",
+      "treasury"
+    ],
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "educationalFocus": "ritual",
+    "primarySourceRefs": [
+      {
+        "shard": "south-america-antiquity",
+        "sourceId": "nazca-line-descriptions",
+        "usage": "discovery"
+      }
+    ]
+  },
+  {
+    "id": "inca_quipu_log",
+    "label": "Imperial Quipu Ledger",
+    "description": "Bundle of dyed cords cataloguing tribute deliveries and labor obligations.",
+    "structureTypes": [
+      "administrative_center",
+      "fortress"
+    ],
+    "rooms": [
+      "library",
+      "storage"
+    ],
+    "culturalZones": [
+      "SOUTH_AMERICAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "educationalFocus": "economy",
+    "primarySourceRefs": [
+      {
+        "shard": "south-america-medieval",
+        "sourceId": "inca-quipu",
+        "usage": "discovery"
+      }
+    ]
+  },
+  {
+    "id": "greek_stelae_fragment",
+    "label": "Hellenistic Decree Fragment",
+    "description": "Marble slab bearing partially legible decree regarding garrison rotations.",
+    "structureTypes": [
+      "fortress",
+      "polis_citadel"
+    ],
+    "rooms": [
+      "guard",
+      "entrance"
+    ],
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "educationalFocus": "governance"
+  },
+  {
+    "id": "magna_carta_wax_seal",
+    "label": "Magna Carta Seal Box",
+    "description": "Wax seals and parchment fragments cataloguing the 1215 agreement between crown and barons.",
+    "structureTypes": [
+      "fortress",
+      "administrative_center"
+    ],
+    "rooms": [
+      "library",
+      "treasury"
+    ],
+    "culturalZones": [
+      "EUROPEAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "educationalFocus": "governance",
+    "primarySourceRefs": [
+      {
+        "shard": "europe-medieval",
+        "sourceId": "magna-carta",
+        "usage": "discovery"
+      }
+    ]
+  },
+  {
+    "id": "amarna_courier_tablet",
+    "label": "Amarna Courier Tablet",
+    "description": "Clay letter acknowledging a pharaoh's envoy, impressed with docket marks for foreign rulers.",
+    "structureTypes": [
+      "administrative_center",
+      "fortress"
+    ],
+    "rooms": [
+      "guard",
+      "storage"
+    ],
+    "culturalZones": [
+      "MENA"
+    ],
+    "eras": [
+      "ANTIQUITY"
+    ],
+    "educationalFocus": "economy",
+    "primarySourceRefs": [
+      {
+        "shard": "mena-antiquity",
+        "sourceId": "amarna-letters",
+        "usage": "discovery"
+      }
+    ]
+  },
+  {
+    "id": "genji_illustrated_scroll",
+    "label": "Genji Illustrated Scroll",
+    "description": "Silk-mounted narrative scene with notes for poetic recitation at court gatherings.",
+    "structureTypes": [
+      "monastery",
+      "temple"
+    ],
+    "rooms": [
+      "library",
+      "altar"
+    ],
+    "culturalZones": [
+      "EAST_ASIAN"
+    ],
+    "eras": [
+      "MEDIEVAL"
+    ],
+    "educationalFocus": "art",
+    "primarySourceRefs": [
+      {
+        "shard": "asia-medieval",
+        "sourceId": "tale-of-genji",
+        "usage": "discovery"
+      }
+    ]
+  },
+  {
+    "id": "arthashastra_tablet_bundle",
+    "label": "Artha\u015b\u0101stra Ledger Bundle",
+    "description": "Palm-leaf treatise enumerating treasury audits, scribal signatures preserved by lacquer.",
+    "structureTypes": [
+      "administrative_center",
+      "temple"
+    ],
+    "rooms": [
+      "library",
+      "treasury"
+    ],
+    "culturalZones": [
+      "SOUTH_ASIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "educationalFocus": "economy",
+    "primarySourceRefs": [
+      {
+        "shard": "asia-antiquity",
+        "sourceId": "arthashastra",
+        "usage": "discovery"
+      }
+    ]
+  },
+  {
+    "id": "codex_mendoza_inventory",
+    "label": "Codex Mendoza Tribute Sheets",
+    "description": "Painted folios listing tribute cloth, cacao, and warrior insignia owed to Tenochtitlan.",
+    "structureTypes": [
+      "temple",
+      "administrative_center"
+    ],
+    "rooms": [
+      "storage",
+      "library"
+    ],
+    "culturalZones": [
+      "NORTH_AMERICAN_COLONIAL"
+    ],
+    "eras": [
+      "RENAISSANCE_EARLY_MODERN"
+    ],
+    "educationalFocus": "economy",
+    "primarySourceRefs": [
+      {
+        "shard": "north-america-renaissance-early-modern",
+        "sourceId": "aztec-codex-mendoza",
+        "usage": "discovery"
+      }
+    ]
+  },
+  {
+    "id": "pueblo_solstice_marker",
+    "label": "Cliff Dwelling Solstice Marker",
+    "description": "Paired petroglyph and shaft of light that track solstice sunrise for agricultural planning.",
+    "structureTypes": [
+      "cliff dwelling",
+      "kiva complex",
+      "ceremonial center"
+    ],
+    "rooms": [
+      "altar",
+      "library"
+    ],
+    "culturalZones": [
+      "NORTH_AMERICAN_PRE_COLUMBIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "educationalFocus": "ritual"
+  },
+  {
+    "id": "hopewell_wampum_belt",
+    "label": "Hopewell Treaty Wampum",
+    "description": "Shell-bead belt encoding alliance obligations and calendrical gatherings.",
+    "structureTypes": [
+      "ceremonial center",
+      "cliff dwelling",
+      "ceremonial plaza"
+    ],
+    "rooms": [
+      "library",
+      "storage"
+    ],
+    "culturalZones": [
+      "NORTH_AMERICAN_PRE_COLUMBIAN"
+    ],
+    "eras": [
+      "ANTIQUITY",
+      "MEDIEVAL"
+    ],
+    "educationalFocus": "governance",
+    "primarySourceRefs": [
+      {
+        "shard": "north-america-prehistory",
+        "sourceId": "cahokia-chronicles",
+        "usage": "discovery"
+      }
+    ]
+  }
+]

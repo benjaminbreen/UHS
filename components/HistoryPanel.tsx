@@ -44,7 +44,7 @@ const PrimarySourceDisplay: React.FC<{
 
     if (sources.length === 0) {
         return (
-            <div className="p-4 text-slate-400 italic text-sm text-center">
+            <div className="p-4 text-text-muted italic text-sm text-center">
                 <BookOpen className="w-8 h-8 mb-2 opacity-50 mx-auto" />
                 <p>No primary sources available for this era and region.</p>
                 <p className="text-xs mt-2">Try exploring different time periods or locations!</p>
@@ -92,16 +92,16 @@ const PrimarySourceDisplay: React.FC<{
             <button
                 onClick={handleSuggestSource}
                 disabled={isSuggesting}
-                className="w-full px-3 py-1.5 bg-slate-700/40 hover:bg-slate-700/60
-                           disabled:bg-slate-800/50 disabled:cursor-not-allowed
-                           text-slate-300 hover:text-amber-300 text-xs font-medium rounded-lg
-                           border border-slate-600/50 hover:border-amber-500/30
+                className="w-full px-3 py-1.5 surface-muted hover:surface-card
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           text-text-secondary hover:text-[var(--color-warning)] text-xs font-medium rounded-lg
+                           border border-surface-muted hover:border-[var(--color-warning)]/30
                            transition-all duration-200 flex items-center justify-center gap-2 mb-2"
             >
                 {isSuggesting ? (
                     <>
-                        <div className="w-4 h-4 border-2 border-amber-400/50 border-t-amber-400 rounded-full animate-spin" />
-                        <span className="text-amber-300">Identifying sources...</span>
+                        <div className="w-4 h-4 border-2 border-[var(--color-warning)]/50 border-t-[var(--color-warning)] rounded-full animate-spin" />
+                        <span className="text-[var(--color-warning)]">Identifying sources...</span>
                     </>
                 ) : (
                     <>
@@ -114,7 +114,7 @@ const PrimarySourceDisplay: React.FC<{
             {/* AI-suggested source (if exists) */}
             {aiSuggestedSource && (
                 <div
-                    className="bg-slate-800/50 p-4 rounded-lg border-2 border-purple-500/50 hover:border-amber-500/50 transition-all cursor-pointer group relative"
+                    className="surface-muted p-4 rounded-lg border-2 border-accent/50 hover:border-[var(--color-warning)]/50 transition-all cursor-pointer group relative"
                     onClick={() => {
                         // Convert AI suggestion to PrimarySourceMetadata format for modal
                         const aiSourceForModal: PrimarySourceMetadata = {
@@ -136,18 +136,18 @@ const PrimarySourceDisplay: React.FC<{
                         onSourceClick(aiSourceForModal);
                     }}
                 >
-                    <div className="absolute -top-2 -right-2 bg-purple-500/90 text-white text-xs px-2.5 py-0.5 rounded-full font-medium">
+                    <div className="absolute -top-2 -right-2 bg-accent/90 text-white text-xs px-2.5 py-0.5 rounded-full font-medium">
                         AI Suggested
                     </div>
 
                     <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-purple-400 group-hover:text-purple-300 transition-colors">
+                        <h4 className="font-semibold text-accent group-hover:text-accent/80 transition-colors">
                             AI-Identified Historical Source
                         </h4>
-                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-[var(--color-warning)] transition-colors" />
                     </div>
 
-                    <div className="text-sm text-slate-300 leading-relaxed line-clamp-2 prose prose-sm prose-invert max-w-none">
+                    <div className="text-sm text-text-secondary leading-relaxed line-clamp-2 prose prose-sm max-w-none">
                         <ReactMarkdown>{aiSuggestedSource.description}</ReactMarkdown>
                     </div>
                 </div>
@@ -157,24 +157,24 @@ const PrimarySourceDisplay: React.FC<{
             {sources.slice(aiSuggestedSource ? 1 : 0).map((source, index) => (
                 <div
                     key={source.id}
-                    className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-amber-500/50 transition-all cursor-pointer group relative"
+                    className="surface-muted p-4 rounded-lg border border-surface-muted hover:border-[var(--color-warning)]/50 transition-all cursor-pointer group relative"
                     onClick={() => onSourceClick(source)}
                 >
                     {/* Proximity badge */}
                     {index === 0 && !aiSuggestedSource && (
-                        <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        <div className="absolute -top-2 -right-2 bg-[var(--color-warning)] text-white text-xs px-2 py-0.5 rounded-full">
                             Closest
                         </div>
                     )}
 
                     <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">
+                        <h4 className="font-semibold text-[var(--color-warning)] group-hover:opacity-80 transition-colors">
                             {source.title}
                         </h4>
-                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-[var(--color-warning)] transition-colors" />
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                    <div className="flex items-center gap-3 text-xs text-text-muted mb-3">
                         <span className="flex items-center gap-1">
                             <User className="w-3 h-3" /> {source.author}
                         </span>
@@ -182,18 +182,18 @@ const PrimarySourceDisplay: React.FC<{
                             <Calendar className="w-3 h-3" /> {source.year < 0 ? `${Math.abs(source.year)} BCE` : `${source.year} CE`}
                         </span>
                         {currentYear && (
-                            <span className="text-amber-600 font-medium">
+                            <span className="text-[var(--color-warning)] font-medium">
                                 {getYearDifference(source.year)}
                             </span>
                         )}
                     </div>
 
-                    <div className="text-sm text-slate-300 leading-relaxed line-clamp-2 prose prose-sm prose-invert max-w-none">
+                    <div className="text-sm text-text-secondary leading-relaxed line-clamp-2 prose prose-sm max-w-none">
                         <ReactMarkdown>{source.excerpt}</ReactMarkdown>
                     </div>
 
                     {source.citation?.translator && (
-                        <p className="text-xs text-slate-600 mt-2 italic">
+                        <p className="text-xs text-text-muted mt-2 italic">
                             Translated by {source.citation.translator}
                         </p>
                     )}
@@ -383,8 +383,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                 setWikipediaOverrideTerm(cleanPhrase);
                                 setActiveSubTab('wikipedia');
                             }}
-                            className="underline decoration-amber-500/60 hover:decoration-amber-400 hover:text-amber-300 cursor-pointer transition-colors"
-                            style={{ textShadow: '0 0 8px rgba(251, 191, 36, 0.3)' }}
+                            className="underline decoration-[var(--color-warning)]/60 hover:decoration-[var(--color-warning)] hover:opacity-80 cursor-pointer transition-colors"
+                            style={{ textShadow: '0 0 8px var(--color-warning-glow, rgba(251, 191, 36, 0.3))' }}
                         >
                             {fullPhrase}
                         </span>
@@ -400,20 +400,20 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
     return (
         <>
-            <div className="flex flex-col h-full bg-slate-900/30 rounded-lg border border-slate-700/50">
+            <div className="flex flex-col h-full surface-card rounded-lg">
                 <div className="p-4 shrink-0">
-                    <h3 className="text-lg font-semibold text-amber-300 mb-2">Historical Context</h3>
+                    <h3 className="text-lg font-semibold text-[var(--color-warning)] mb-2">Historical Context</h3>
                     <div className="relative">
-                        <div className={`text-sm italic text-slate-400 ${!isContextExpanded ? 'line-clamp-4' : ''}`}>
+                        <div className={`text-sm italic text-text-secondary ${!isContextExpanded ? 'line-clamp-4' : ''}`}>
                             {renderHistoricalSummary(historicalSummary)}
                         </div>
                         {!isContextExpanded && historicalSummary.length > 200 && (
-                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none" />
+                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background-primary/90 to-transparent pointer-events-none" />
                         )}
                         {historicalSummary.length > 200 && (
                             <button
                                 onClick={() => setIsContextExpanded(!isContextExpanded)}
-                                className="mt-2 text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium"
+                                className="mt-2 text-xs text-[var(--color-warning)] hover:opacity-80 flex items-center gap-1 font-medium"
                             >
                                 {isContextExpanded ? (
                                     <>
@@ -430,15 +430,15 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         )}
                     </div>
                 </div>
-                
-                <div className="flex bg-slate-800/60 border-y border-slate-700/50 shrink-0">
+
+                <div className="flex surface-muted border-y border-surface-muted shrink-0">
                     {(['primary_sources', 'wikipedia'] as HistorySubTab[]).map(tab => (
                          <button
                             key={tab}
                             className={`flex-1 py-2 px-1 text-center text-xs font-semibold transition-colors duration-200 border-b-2 ${
-                                activeSubTab === tab 
-                                    ? 'text-white border-amber-400' 
-                                    : 'text-slate-300 border-transparent hover:bg-slate-700/50 hover:text-white'
+                                activeSubTab === tab
+                                    ? 'text-text-primary border-[var(--color-warning)]'
+                                    : 'text-text-muted border-transparent hover:surface-card hover:text-text-primary'
                             }`}
                             onClick={() => setActiveSubTab(tab)}
                             aria-selected={activeSubTab === tab}
@@ -461,7 +461,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                     )}
                     {activeSubTab === 'primary_sources' && (
                         loading ? (
-                            <div className="p-4 text-center text-slate-400">
+                            <div className="p-4 text-center text-text-muted">
                                 <div className="animate-pulse">Loading sources...</div>
                             </div>
                         ) : (

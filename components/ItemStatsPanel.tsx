@@ -16,8 +16,8 @@ const StatRow: React.FC<{ label: string; value: number; change?: number }> = ({ 
 
     return (
         <div className="flex justify-between items-baseline text-sm">
-            <span className="text-slate-400">{label}:</span>
-            <div className="font-semibold text-white">
+            <span className="text-text-secondary">{label}:</span>
+            <div className="font-semibold text-text-primary">
                 <span>{value}</span>
                 {change !== undefined && change !== 0 && (
                     <span className={`ml-2 font-mono ${changeColor}`}>
@@ -46,7 +46,7 @@ const ItemStatsPanel: React.FC<ItemStatsPanelProps> = ({ character, comparisonSt
     }, [character.equippedItems, character.stats]);
 
     return (
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
+        <div className="surface-card rounded-xl p-4">
             <h3 className="text-lg font-bold text-center text-amber-400 mb-3 uppercase tracking-wider">
                 Combat Stats
             </h3>

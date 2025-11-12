@@ -6,7 +6,7 @@
 import { TerrainStructure, MapData, NpcEntity, HistoricalEra, Item, GameDate, CulturalZone } from '../types';
 import { parseDateString } from '../utils/dateUtils';
 import { getReligionDisplay, detectReligion } from '../constants/gameData/religionIcons';
-// FACTION_DATA removed - not actually used in this file
+import { FACTION_DATA } from '../constants/gameData/factions';
 
 export interface ReligiousEconomy {
   holySiteId: string;

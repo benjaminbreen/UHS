@@ -475,7 +475,7 @@ const AppContent: React.FC = () => {
         handleStudyStarsToggle(false);
     }, [handleStudyStarsToggle]);
 
-    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning);
+    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning, isPlayerOnFarm);
 
     // Handle disease progression queue
     React.useEffect(() => {

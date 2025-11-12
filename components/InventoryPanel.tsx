@@ -37,10 +37,10 @@ const ItemTooltip: React.FC<{
     }
     
     return (
-        <div 
-            className="fixed z-[9999] pointer-events-none p-4 w-80 text-xs text-white transition-opacity duration-100 bg-slate-900/95 border-2 rounded-lg shadow-2xl border-blue-400 backdrop-blur-sm animate-popIn"
-            style={{ 
-                top: finalY, 
+        <div
+            className="fixed z-[9999] pointer-events-none p-4 w-80 text-xs text-text-primary transition-opacity duration-100 tooltip-surface shadow-2xl backdrop-blur-sm animate-popIn"
+            style={{
+                top: finalY,
                 left: finalX,
                 transform: 'translateZ(0)'
             }}
@@ -48,7 +48,7 @@ const ItemTooltip: React.FC<{
             {/* Header */}
             <div className="flex items-center gap-3 mb-3">
                 {/* Large icon */}
-                <div className="w-16 h-16 flex items-center justify-center bg-slate-800/50 rounded-lg border border-slate-600">
+                <div className="w-16 h-16 flex items-center justify-center surface-muted rounded-lg">
                     <GenerativeItemIcon item={item} size={64} />
                 </div>
                 
@@ -94,10 +94,10 @@ const ItemTooltip: React.FC<{
             </div>
             
             {/* Item properties */}
-            <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] text-slate-300">
+            <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] text-text-secondary">
                 {item.equipmentSlot && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Slot:</span>
+                        <span className="text-text-muted">Slot:</span>
                         <span className="capitalize">{item.equipmentSlot.replace('_', ' ')}</span>
                     </div>
                 )}
@@ -125,7 +125,7 @@ const ItemTooltip: React.FC<{
                                 const extractedColor = item.name.substring(colorIndex, colorIndex + color.length);
                                 return (
                                     <div className="flex items-center gap-1">
-                                        <span className="text-slate-500">Color:</span>
+                                        <span className="text-text-muted">Color:</span>
                                         <span className="capitalize">{extractedColor}</span>
                                     </div>
                                 );
@@ -136,49 +136,49 @@ const ItemTooltip: React.FC<{
                 })()}
                 {item.value !== undefined && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Value:</span>
+                        <span className="text-text-muted">Value:</span>
                         <span className="text-yellow-400">{item.value} 🪙</span>
                     </div>
                 )}
                 {item.weight !== undefined && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Weight:</span>
+                        <span className="text-text-muted">Weight:</span>
                         <span>{item.weight} kg</span>
                     </div>
                 )}
                 {item.stackable && item.quantity > 1 && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Quantity:</span>
+                        <span className="text-text-muted">Quantity:</span>
                         <span className="text-blue-400">{item.quantity}</span>
                     </div>
                 )}
                 {item.throwable && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Throwable:</span>
+                        <span className="text-text-muted">Throwable:</span>
                         <span className="text-green-400">✓</span>
                     </div>
                 )}
                 {item.wearable && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Wearable:</span>
+                        <span className="text-text-muted">Wearable:</span>
                         <span className="text-green-400">✓</span>
                     </div>
                 )}
                 {item.attack !== undefined && item.attack > 0 && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Attack:</span>
+                        <span className="text-text-muted">Attack:</span>
                         <span className="text-red-400">+{item.attack}</span>
                     </div>
                 )}
                 {item.defense !== undefined && item.defense > 0 && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Defense:</span>
+                        <span className="text-text-muted">Defense:</span>
                         <span className="text-blue-400">+{item.defense}</span>
                     </div>
                 )}
                 {item.condition !== undefined && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Condition:</span>
+                        <span className="text-text-muted">Condition:</span>
                         <span className={`${
                             item.condition > 80 ? 'text-green-400' :
                             item.condition > 50 ? 'text-yellow-400' :
@@ -192,7 +192,7 @@ const ItemTooltip: React.FC<{
                 )}
                 {item.age !== undefined && (
                     <div className="flex items-center gap-1">
-                        <span className="text-slate-500">Age:</span>
+                        <span className="text-text-muted">Age:</span>
                         <span className={`${
                             item.age > 100 ? 'text-purple-400' :
                             item.age > 50 ? 'text-blue-400' :
@@ -208,7 +208,7 @@ const ItemTooltip: React.FC<{
                 )}
                 {item.crafterName && (
                     <div className="flex items-center gap-1 col-span-2">
-                        <span className="text-slate-500">Crafted by:</span>
+                        <span className="text-text-muted">Crafted by:</span>
                         <span className="text-amber-400 font-semibold">{item.crafterName}</span>
                     </div>
                 )}
@@ -216,7 +216,7 @@ const ItemTooltip: React.FC<{
             
             {/* Description */}
             {item.description && (
-                <p className="text-[11px] text-slate-400 italic border-t border-slate-700 pt-2">
+                <p className="text-[11px] text-text-muted italic border-t border-surface-muted pt-2">
                     {item.description}
                 </p>
             )}
@@ -645,21 +645,21 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
 
   if (inventory.length === 0 && tamedAnimals.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-slate-800/60 border border-slate-600/50 rounded-xl">
+      <div className="flex flex-col items-center justify-center h-full text-text-muted surface-muted rounded-xl">
         <div className="mb-4 text-6xl opacity-50">🎒</div>
-        <p className="mb-2 text-lg font-semibold">Inventory is Empty</p>
+        <p className="mb-2 text-lg font-semibold text-text-primary">Inventory is Empty</p>
         <p className="text-sm opacity-75 text-center max-w-xs">Forage, trade, or explore to discover items and equipment.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-slate-800/60 border border-slate-600/50 rounded-xl shadow-lg">
+    <div className="flex flex-col h-full overflow-hidden surface-card rounded-xl shadow-lg">
       {/* Search Header */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-slate-600/50">
+      <div className="flex-shrink-0 px-3 py-2 border-b border-surface-muted">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-bold tracking-wide text-gray-300 uppercase">Inventory</h3>
-          <span className="text-xs text-gray-400">
+          <h3 className="text-xs font-bold tracking-wide text-text-secondary uppercase">Inventory</h3>
+          <span className="text-xs text-text-muted">
             {filteredInventory.length + filteredAnimals.length} items
           </span>
         </div>
@@ -668,14 +668,14 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search items..."
-          className="w-full px-2 py-1 text-xs bg-slate-700/50 border border-slate-600 rounded-md text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:bg-slate-700"
+          className="w-full px-2 py-1 text-xs bg-background-secondary border border-surface-muted rounded-md text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:bg-background-secondary"
         />
       </div>
       <div className="flex-1 min-h-0 p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50">
         <div className="space-y-2">
           {/* No results message */}
           {filteredInventory.length === 0 && filteredAnimals.length === 0 && searchQuery && (
-            <div className="text-center text-gray-400 text-sm py-8">
+            <div className="text-center text-text-muted text-sm py-8">
               No items found matching "{searchQuery}"
             </div>
           )}
@@ -720,23 +720,23 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                   </div>
                 );
               })}
-              <div className="px-2 py-1 text-xs font-semibold tracking-wide  text-gray-400 border-b border-gray-600/30 mb-2 mt-3">
+              <div className="px-2 py-1 text-xs font-semibold tracking-wide text-text-muted border-b border-surface-muted mb-2 mt-3">
                 ITEMS
               </div>
             </>
           )}
           {filteredInventory.map(item => (
-            <div 
-              key={item.id} 
-              className={`flex items-center gap-2 p-2 transition-all duration-200 border rounded-lg cursor-pointer group hover:bg-slate-700/70
-              ${selectedItemIds.has(item.id) ? 'bg-blue-800/50 border-blue-500 ring-1 ring-blue-400/50' : 'bg-slate-700/50 border-slate-600/30'}`}
+            <div
+              key={item.id}
+              className={`flex items-center gap-2 p-2 transition-all duration-200 border rounded-lg cursor-pointer group hover:surface-muted
+              ${selectedItemIds.has(item.id) ? 'bg-accent/20 border-accent ring-1 ring-accent/50' : 'surface-muted'}`}
               onClick={() => handleItemClick(item)}
               draggable={isDraggable}
               onDragStart={isDraggable && onDragStart ? (e) => onDragStart(e, item) : undefined}
               title={isDraggable ? "Drag to equipment slot or click to select" : "Click to select/deselect for crafting"}
             >
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={selectedItemIds.has(item.id)}
                 onChange={noopHandler}
                 className="mr-1"
@@ -745,14 +745,14 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               <div className="relative flex-shrink-0 w-8 h-8 flex items-center justify-center">
                 <GenerativeItemIcon item={item} size={32} />
                 {item.stackable && item.quantity > 1 && (
-                  <span className="absolute flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-blue-600 rounded-full -bottom-1 -right-1 shadow-lg ring-1 ring-slate-800">
+                  <span className="absolute flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-accent rounded-full -bottom-1 -right-1 shadow-lg ring-1 ring-background-secondary">
                     {item.quantity}
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-200 transition-colors duration-150 truncate group-hover:text-white text-sm">
+                  <p className="font-medium text-text-primary transition-colors duration-150 truncate group-hover:text-text-primary text-sm">
                     {item.name}
                   </p>
                   {item.quality && (
@@ -761,7 +761,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-gray-400 line-clamp-1">
+                <p className="mt-1 text-xs text-text-muted line-clamp-1">
                   {item.description}
                 </p>
               </div>

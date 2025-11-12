@@ -5,9 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PlayerCharacter, MapData, HistoricalEra, CulturalZone } from '../types';
 import { ITEM_DEFINITIONS } from '../constants/index';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
-import { generateEncounterDialogue, generateHistoricalDiscovery } from '../services/llmService';
-import { gatherRuinContext } from '../services/ruinContextService';
-import { ruinSourcesService } from '../services/ruinSourcesService';
+import { generateEncounterDialogue } from '../services/llmService';
 // primarySourceService already imported above
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
@@ -34,6 +32,17 @@ import {
     PersistentNpc
 } from '../services/ruinNpcService';
 import { generateLLMRuinNPC } from '../services/llmRuinNpcService';
+import { TileType, DungeonTile, DungeonPlayer, Entity } from '../engine/ruins/types';
+import { evaluatePlayerMove } from '../engine/ruins/movement';
+import { ruinsMetricsService } from '../services/ruinsMetricsService';
+import { ruinsDataBridge } from '../services/ruinsDataBridge';
+import { requestDiscoveryNarrative } from '../services/ruinsContentBroker';
+import { DiscoveryTerminal } from './ruins/DiscoveryTerminal';
+import { TranslationLab } from './ruins/TranslationLab';
+import { ExpeditionPanel } from './ruins/ExpeditionPanel';
+import { ExpeditionCard } from '../generation/ruins/data';
+import { ExpeditionCardState, KnowledgeState, ActiveCardEffects } from '../engine/ruins/expedition';
+import { eventBus } from '../services/eventBus';
 
 interface RoguelikeDisplayEnhancedProps {
     ruinType: {
@@ -52,110 +61,6 @@ interface RoguelikeDisplayEnhancedProps {
     onGoldChange?: (newGold: number) => void;
     structureLocation?: [number, number]; // For tracking progress
     onPlayerDeath?: (deathInfo: any) => void; // Added for game over integration
-}
-
-// Tile types
-type TileType = 'wall' | 'floor' | 'door' | 'treasure' | 'trap' | 'stairs_down' | 'stairs_up' |
-                'entrance' | 'altar' | 'statue' | 'rubble' | 'water' | 'chasm' | 'pillar' | 'manuscript' |
-                'inscription' | 'mural' | 'torch' | 'boulder' | 'weak_wall' | 'locked_door' |
-                'debris' | 'discovery' | 'chest';
-
-// Entity types - historically accurate
-interface Entity {
-    id: string;
-    x: number;
-    y: number;
-    type: string; // Now more flexible for various NPC types
-    subtype: string; // e.g., 'monkey', 'snake', 'rat', 'bat', 'spider', 'buddhist_monk', etc.
-    name: string;
-    hp: number;
-    maxHp: number;
-    hostile: boolean;
-    dialogue?: string[];
-    loot?: any[];
-    description: string;
-    symbol: string;
-    emoji?: string; // New: Emoji sprite for visual representation
-    color: string;
-    attack?: number;
-    defense?: number;
-    accuracy?: number;
-    evasion?: number;
-    level?: number;
-    canNegotiate?: boolean; // Can player attempt to talk down this hostile NPC?
-    // Real-time movement properties
-    moveCooldown?: number;
-    moveSpeed?: number; // ms between moves (lower = faster)
-    aiState?: 'idle' | 'pursuing' | 'attacking' | 'fleeing' | 'stunned';
-    lastMove?: number; // timestamp of last move
-    lastAttack?: number; // timestamp of last attack
-    // For ruins enemies
-    behavior?: 'aggressive' | 'defensive' | 'erratic' | 'ambush' | 'ranged';
-    rangedAttack?: {
-        range: number;
-        projectileType: 'web' | 'poison' | 'rock' | 'spine';
-        projectileSymbol: string;
-        projectileColor: string;
-    };
-}
-
-interface DungeonTile {
-    type: TileType;
-    visible: boolean;
-    explored: boolean;
-    hasGold?: number;
-    hasItem?: any; // Item from ITEM_DEFINITIONS
-    hasManuscript?: PrimarySourceMetadata;
-    hasTrap?: boolean;
-    trapTriggered?: boolean;
-    description?: string;
-    inscription?: string;
-    muralDescription?: string;
-    lightSource?: boolean;
-    lightRadius?: number;
-    lightLevel?: number; // New: track light intensity for gradients
-    hasFood?: string;
-    hasTorch?: boolean;
-    // Discovery mechanics
-    discoveryId?: string;
-    hasBeenDiscovered?: boolean;
-    discoveryText?: string;
-    // Container mechanics
-    containerContents?: ContainerContents;
-    containerType?: OverlayObjectType;
-    chestOpened?: boolean;
-    // Environmental interaction properties
-    pushable?: boolean;
-    breakable?: boolean;
-    durability?: number; // How many hits to break
-    pushDirection?: 'north' | 'south' | 'east' | 'west' | null;
-    isUnstable?: boolean; // For collapsing floors/ceilings
-    excavatable?: boolean; // Can be dug/cleared
-    hasKey?: boolean; // For locked doors
-}
-
-interface DungeonPlayer {
-    x: number;
-    y: number;
-    hp: number;
-    maxHp: number;
-    gold: number;
-    level: number;
-    inventory: any[];
-    manuscripts: PrimarySourceMetadata[];
-    hasTorch?: boolean;
-    torchTurns?: number;
-    experience?: number;
-    nextLevelExp?: number;
-    hunger?: number;
-    maxHunger?: number;
-    attack?: number;
-    defense?: number;
-    accuracy?: number;
-    evasion?: number;
-    weapon?: any;
-    armor?: any;
-    defending?: boolean;
 }
 
 // Sound effect that appears and fades
@@ -304,7 +209,6 @@ const getAnimalColor = (type: string): string => {
     };
     return colorMap[type] || 'text-gray-400';
 };
-
 // Historical language mappings for accurate ruin discoveries
 const ERA_LANGUAGES: Record<string, Record<HistoricalEra, string[]>> = {
     'EUROPEAN': {
@@ -423,21 +327,16 @@ const calculateRuinConstructionPeriod = (
 };
 
 // Helper function to get appropriate languages for ruins
-const getLanguagesForRuin = (
-    culturalZone: CulturalZone,
-    constructionEra: HistoricalEra
-): string[] => {
-    const zoneLanguages = ERA_LANGUAGES[culturalZone];
-    if (!zoneLanguages) {
-        return ['Unknown script'];
+const getLanguagesForRuin = (culturalZone: CulturalZone, constructionEra: HistoricalEra): string[] => {
+    const scripts = ruinsDataBridge.getScripts({ culturalZone, era: constructionEra });
+    if (scripts.length > 0) {
+        return scripts.map(script => script.displayName);
     }
-
-    const languages = zoneLanguages[constructionEra];
-    if (!languages || languages.length === 0) {
-        return ['Unknown script'];
+    const fallback = ERA_LANGUAGES[culturalZone]?.[constructionEra];
+    if (fallback && fallback.length > 0) {
+        return fallback;
     }
-
-    return languages;
+    return ['Unknown script'];
 };
 
 // DEPRECATED - Kept for backwards compatibility
@@ -640,7 +539,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const [showHelp, setShowHelp] = useState(false); // Help overlay visibility
     const [showSourceReader, setShowSourceReader] = useState(false); // Primary source reader
     const [selectedSource, setSelectedSource] = useState<PrimarySourceMetadata | null>(null);
-    const [sourceSearchQuery, setSourceSearchQuery] = useState('');
     const [gameLogExpanded, setGameLogExpanded] = useState(false); // Game log expansion state
 
     // Historical encounter state
@@ -655,9 +553,115 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const [showTranslationModal, setShowTranslationModal] = useState(false);
     const [playerTranslationGuesses, setPlayerTranslationGuesses] = useState<string[]>([]);
     const [translationResult, setTranslationResult] = useState<{ success: boolean; accuracy: number; feedback: string } | null>(null);
+    const [knowledge, setKnowledge] = useState<KnowledgeState>({ score: 0, tags: [] });
+    const knowledgeRef = useRef(0);
+    const [expeditionCards, setExpeditionCards] = useState<ExpeditionCardState[]>([]);
+    const [activeCardEffects, setActiveCardEffects] = useState<ActiveCardEffects>({
+        revealRoom: false,
+        translationBoost: false,
+        combatAdvantage: false
+    });
+    const [translationStats, setTranslationStats] = useState<{ successes: number; lastMedium?: string }>({
+        successes: 0,
+        lastMedium: undefined
+    });
     const [dungeonDimensions, setDungeonDimensions] = useState({ width: 60, height: 30 });
     const containerRef = useRef<HTMLDivElement>(null);
     const [playerInput, setPlayerInput] = useState(''); // For NPC dialogue input
+
+    const [currentChamber, setCurrentChamber] = useState<string>('Entrance');
+    const [currentDepth, setCurrentDepth] = useState<number>(1);
+    const structureId = structureLocation && structureLocation.length >= 2 ? `${structureLocation[0]}-${structureLocation[1]}` : 'default-ruin';
+
+    const runIdRef = useRef<string>('');
+    const runStartRef = useRef<number>(0);
+    const currentDepthRef = useRef(currentDepth);
+
+    const evaluateCardUnlock = useCallback(
+        (card: ExpeditionCard, knowledgeState: KnowledgeState, stats: { successes: number; lastMedium?: string }) => {
+            const condition = (card.unlockCondition || '').toLowerCase();
+            if (!condition) return true;
+            if (condition.includes('astronomy')) {
+                return knowledgeState.tags.includes('astronomy');
+            }
+            if (condition.includes('translation')) {
+                return stats.successes > 0 && (!condition.includes('textile') || stats.lastMedium === 'textile');
+            }
+            if (condition.includes('military')) {
+                return knowledgeState.tags.includes('military');
+            }
+            return false;
+        },
+        []
+    );
+
+    useEffect(() => {
+        currentDepthRef.current = currentDepth;
+    }, [currentDepth]);
+
+    useEffect(() => {
+        knowledgeRef.current = knowledge.score;
+    }, [knowledge.score]);
+
+    useEffect(() => {
+        const cards = ruinsDataBridge
+            .getExpeditionCards({
+                culturalZone: culturalContext.culturalZone,
+                era: culturalContext.era
+            })
+            .map(card => ({
+                card,
+                unlocked: !card.unlockCondition,
+                used: false
+            }));
+        setExpeditionCards(cards);
+        setActiveCardEffects({
+            revealRoom: false,
+            translationBoost: false,
+            combatAdvantage: false
+        });
+    }, [culturalContext.culturalZone, culturalContext.era]);
+
+    useEffect(() => {
+        setExpeditionCards(prev =>
+            prev.map(state =>
+                state.unlocked
+                    ? state
+                    : evaluateCardUnlock(state.card, knowledge, translationStats)
+                        ? { ...state, unlocked: true }
+                        : state
+            )
+        );
+    }, [knowledge, translationStats, evaluateCardUnlock]);
+
+    useEffect(() => {
+        const runId = `ruin-${structureId}-${Date.now()}`;
+        runIdRef.current = runId;
+        runStartRef.current = Date.now();
+        setKnowledge({ score: 0, tags: [] });
+        setTranslationStats({ successes: 0, lastMedium: undefined });
+        eventBus.emit('ruins.roguelike.active', true);
+        ruinsMetricsService.record('ruins.run.start', {
+            runId,
+            ruinId: structureId,
+            ruinName: ruinType.name,
+            era: culturalContext.era,
+            culturalZone: culturalContext.culturalZone
+        });
+
+        return () => {
+            const durationMs = Date.now() - runStartRef.current;
+            ruinsMetricsService.record('ruins.run.end', {
+                runId,
+                ruinId: structureId,
+                durationMs,
+                depth: currentDepthRef.current,
+                knowledgeScore: knowledgeRef.current
+            });
+            eventBus.emit('ruins.roguelike.active', false);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const [isWaitingForResponse, setIsWaitingForResponse] = useState(false); // Waiting for LLM response
     
     // Visual effects state
@@ -667,11 +671,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     
     const [combatTarget, setCombatTarget] = useState<Entity | null>(null);
     const [discoveredSources, setDiscoveredSources] = useState<PrimarySourceMetadata[]>([]);
-    
-    // Chamber tracking
-    const [currentChamber, setCurrentChamber] = useState<string>('Entrance');
-    const [currentDepth, setCurrentDepth] = useState<number>(1);
-    const structureId = structureLocation && structureLocation.length >= 2 ? `${structureLocation[0]}-${structureLocation[1]}` : 'default-ruin';
     
     // Sound effects and ambiance
     const [soundEffects, setSoundEffects] = useState<SoundEffect[]>([]);
@@ -813,6 +812,86 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         }
     }, [currentDialogue, playerInput, isWaitingForResponse, structureLocation, currentDepth,
         culturalContext, ruinType, playerCharacter, addMessage]);
+
+    const handlePlayCard = useCallback((cardId: string) => {
+        const state = expeditionCards.find(card => card.card.id === cardId);
+        if (!state) return;
+        if (!state.unlocked) {
+            addMessage('This expedition tactic has not been unlocked yet.');
+            return;
+        }
+        if (state.used) {
+            addMessage('You have already employed this tactic during this expedition.');
+            return;
+        }
+
+        const effect = state.card.effectType;
+        if (effect === 'reveal_room') {
+            setActiveCardEffects(prev => ({ ...prev, revealRoom: true }));
+            let direction: string | null = null;
+            setDungeon(prev => {
+                for (let y = 0; y < prev.length; y++) {
+                    const row = prev[y];
+                    for (let x = 0; x < row.length; x++) {
+                        const tile = row[x];
+                        if (tile.type === 'discovery' && !tile.hasBeenDiscovered && !tile.visible) {
+                            const newRow = [...row];
+                            newRow[x] = { ...tile, visible: true };
+                            const newDungeon = [...prev];
+                            newDungeon[y] = newRow;
+                            const dx = x - player.x;
+                            const dy = y - player.y;
+                            if (Math.abs(dx) > Math.abs(dy)) {
+                                direction = dx > 0 ? 'east' : 'west';
+                            } else if (dy !== 0) {
+                                direction = dy > 0 ? 'south' : 'north';
+                            } else {
+                                direction = 'beneath your feet';
+                            }
+                            return newDungeon;
+                        }
+                    }
+                }
+                return prev;
+            });
+            addMessage(direction
+                ? `Charts reveal a hidden chamber to the ${direction}.`
+                : 'Your charts show no additional hidden chambers.');
+            setTimeout(() => setActiveCardEffects(prev => ({ ...prev, revealRoom: false })), 2000);
+        } else if (effect === 'boost_translation') {
+            setActiveCardEffects(prev => ({ ...prev, translationBoost: true }));
+            addMessage('Your expedition linguist prepares to assist with complex translations.');
+        } else if (effect === 'combat_advantage') {
+            setActiveCardEffects(prev => ({ ...prev, combatAdvantage: true }));
+            addMessage('You rally the team, gaining an edge in upcoming confrontations.');
+        } else if (effect === 'increase_loot') {
+            addMessage('You carefully catalogue artifacts, improving your odds of valuable finds.');
+            setKnowledge(prev => {
+                const tags = Array.from(new Set([...prev.tags, 'economy']));
+                return { score: prev.score + 5, tags };
+            });
+        } else if (effect === 'knowledge_bonus') {
+            setKnowledge(prev => {
+                const tags = Array.from(new Set([...prev.tags, 'scholarship']));
+                return { score: prev.score + 15, tags };
+            });
+            addMessage('Field notes synthesize into a breakthrough insight.');
+        } else {
+            addMessage('You organize your notes, ready for what lies ahead.');
+        }
+
+        setExpeditionCards(prev =>
+            prev.map(card => card.card.id === cardId ? { ...card, used: true } : card)
+        );
+
+        ruinsMetricsService.record('ruins.card.played', {
+            runId: runIdRef.current,
+            ruinId: structureId,
+            cardId,
+            effect,
+            depth: currentDepth
+        });
+    }, [expeditionCards, addMessage, setDungeon, player.x, player.y, setActiveCardEffects, setKnowledge, currentDepth, structureId]);
 
     // Track which rooms have been entered for chamber discovery
     const [discoveredRooms, setDiscoveredRooms] = useState<Set<string>>(new Set());
@@ -1165,7 +1244,8 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         const attackTiles = getAttackPattern(player.x, player.y, direction, weaponType);
         
         // Create attack animation with power multiplier
-        const baseDamage = (weapon.damage || 2) + (player.attack || 0);
+        const advantageMultiplier = activeCardEffects.combatAdvantage ? 1.25 : 1;
+        const baseDamage = ((weapon.damage || 2) + (player.attack || 0)) * advantageMultiplier;
         const attackAnim: AttackAnimation = {
             id: `attack_${attackIdRef.current++}`,
             type: weaponType === 'spear' ? 'thrust' : weaponType === 'axe' ? 'arc' : 'slash',
@@ -1242,7 +1322,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             setWeaponSwinging(false);
             weaponSwingingRef.current = false;
         }, 200);
-    }, [player, entities, dungeon, getAttackPattern, createSoundEffect, addMessage, handleEnvironmentalInteraction]);
+    }, [player, entities, dungeon, getAttackPattern, createSoundEffect, addMessage, handleEnvironmentalInteraction, activeCardEffects.combatAdvantage]);
     
     // Perform special charged attack
     const performChargedSpecial = useCallback((direction: string, powerLevel: number) => {
@@ -3394,109 +3474,203 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         addMessage(`You enter the ${newChamber.name}...`);
     }, [structureId, ruinType.name, culturalContext.culturalZone, addMessage]);
 
+    const handleEntityEncounter = useCallback((entityAtPosition: Entity, x: number, y: number) => {
+        if (entityAtPosition.type !== 'animal') {
+            const locationId = getRuinLocationId(
+                structureLocation?.[0] || 0,
+                structureLocation?.[1] || 0,
+                currentDepth
+            );
+
+            const isBefriended = isNpcBefriended(entityAtPosition.id, locationId);
+            const befriendedNpcs = getBefriendedNpcsForLocation(locationId);
+            const persistentNpc = befriendedNpcs.find(n => n.id === entityAtPosition.id);
+
+            if (isBefriended && persistentNpc) {
+                setCurrentDialogue({
+                    entity: {
+                        ...entityAtPosition,
+                        name: persistentNpc.fullName || entityAtPosition.name,
+                        hostile: false
+                    },
+                    message: `*You recognize ${persistentNpc.fullName}*\n\n"${persistentNpc.backstory}"\n\n"It's good to see you again, friend."`
+                });
+            } else {
+                generateRoguelikeDialogue({
+                    npcType: entityAtPosition.type,
+                    npcName: entityAtPosition.name,
+                    era: culturalContext.era,
+                    culturalZone: culturalContext.culturalZone,
+                    ruinType: ruinType.name,
+                    currentDepth,
+                    playerName: playerCharacter.name,
+                    playerProfession: playerCharacter.profession,
+                    isHostile: entityAtPosition.hostile,
+                    hasWeapon: player.weapon !== undefined,
+                    playerHealth: player.hp,
+                    playerMaxHealth: player.maxHp
+                }).then(dialogue => {
+                    setCurrentDialogue({
+                        entity: entityAtPosition,
+                        message: dialogue
+                    });
+
+                    if (!entityAtPosition.hostile || entityAtPosition.canNegotiate) {
+                        const persistedNpc = storeBefriendedNpc(
+                            entityAtPosition as any,
+                            locationId,
+                            culturalContext.culturalZone,
+                            culturalContext.era
+                        );
+
+                        setEntities(prev => prev.map(e =>
+                            e.id === entityAtPosition.id
+                                ? { ...e, name: persistedNpc.fullName || e.name, hostile: false }
+                                : e
+                        ));
+
+                        addMessage(`You've befriended ${persistedNpc.fullName}!`);
+                    }
+                });
+
+                if (entityAtPosition.hostile && entityAtPosition.canNegotiate) {
+                    addMessage(`The ${entityAtPosition.name} seems aggressive but might listen to reason... [Press T to try talking]`);
+                } else if (entityAtPosition.hostile && !isBefriended) {
+                    addMessage(`The ${entityAtPosition.name} is hostile!`);
+                }
+            }
+        } else if (entityAtPosition.hostile) {
+            addMessage(`The ${entityAtPosition.name} is hostile and ready to attack!`);
+        } else {
+            addMessage(`The ${entityAtPosition.name} blocks your path.`);
+        }
+    }, [structureLocation, currentDepth, culturalContext.era, culturalContext.culturalZone, ruinType.name, playerCharacter.name, playerCharacter.profession, player, addMessage]);
+
+    const handleTranslationWordSelect = useCallback((word: string) => {
+        if (!currentTranslationPuzzle) return;
+        setPlayerTranslationGuesses(prev => {
+            const gapIndex = prev.length;
+            if (gapIndex >= currentTranslationPuzzle.correctSolution.length) {
+                return prev;
+            }
+            const next = [...prev];
+            next[gapIndex] = word;
+            return next;
+        });
+    }, [currentTranslationPuzzle]);
+
+    const handleTranslationClear = useCallback(() => {
+        setPlayerTranslationGuesses([]);
+    }, []);
+
+    const handleTranslationClose = useCallback(() => {
+        setShowTranslationModal(false);
+        setCurrentTranslationPuzzle(null);
+        setCurrentContextualManuscript(null);
+        setPlayerTranslationGuesses([]);
+        setTranslationResult(null);
+    }, []);
+
+    const handleTranslationSubmit = useCallback(() => {
+        if (!currentTranslationPuzzle || !currentContextualManuscript) return;
+
+        const baseResult = contextualManuscriptService.checkTranslation(
+            currentTranslationPuzzle,
+            playerTranslationGuesses
+        );
+
+        let adjustedResult = baseResult;
+        if (!baseResult.success && activeCardEffects.translationBoost) {
+            const boostedAccuracy = Math.min(100, baseResult.accuracy + 20);
+            const boostedSuccess = boostedAccuracy >= 70;
+            adjustedResult = {
+                success: boostedSuccess,
+                accuracy: boostedAccuracy,
+                feedback: boostedSuccess
+                    ? 'Your expedition expertise clarifies the remaining glyphs.'
+                    : baseResult.feedback
+            };
+        }
+
+        setTranslationResult(adjustedResult);
+
+        ruinsMetricsService.record('ruins.translation.completed', {
+            runId: runIdRef.current,
+            ruinId: structureId,
+            manuscriptId: currentContextualManuscript.id,
+            success: adjustedResult.success,
+            accuracy: adjustedResult.accuracy,
+            depth: currentDepth
+        });
+
+        setTranslationStats(prev => ({
+            successes: adjustedResult.success ? prev.successes + 1 : prev.successes,
+            lastMedium: (currentContextualManuscript.materialType || '').toLowerCase()
+        }));
+
+        if (adjustedResult.success) {
+            setDiscoveredSources(prev => [...prev, currentContextualManuscript as PrimarySourceMetadata]);
+            addMessage(`Successfully translated: "${currentContextualManuscript.title}"`);
+            if (currentContextualManuscript.historicalContext) {
+                setTimeout(() => {
+                    addMessage(`Historical significance: ${currentContextualManuscript.historicalContext}`);
+                }, 100);
+            }
+            setKnowledge(prev => {
+                const tags = Array.from(new Set([...prev.tags, 'linguistics']));
+                const score = prev.score + 12;
+                return { score, tags };
+            });
+        } else {
+            addMessage('The translation remains incomplete. Perhaps a different approach is needed.');
+        }
+
+        if (activeCardEffects.translationBoost) {
+            setActiveCardEffects(prev => ({ ...prev, translationBoost: false }));
+        }
+    }, [
+        currentTranslationPuzzle,
+        currentContextualManuscript,
+        playerTranslationGuesses,
+        activeCardEffects.translationBoost,
+        addMessage,
+        currentDepth,
+        structureId
+    ]);
+
     // Handle player movement
     const movePlayer = useCallback((dx: number, dy: number) => {
+        const movement = evaluatePlayerMove(player, dx, dy, {
+            dungeon,
+            entities,
+            dimensions: dungeonDimensions
+        });
+
+        const event = movement.events[0];
+        if (!event) {
+            return;
+        }
+
+        if (event.type === 'BLOCKED_WALL') {
+            addMessage('You bump into a wall.');
+            gameSoundsService.playWallBumpSound();
+            return;
+        }
+
+        if (event.type === 'ENTITY_ENCOUNTER') {
+            handleEntityEncounter(event.entity, event.x, event.y);
+            return;
+        }
+
+        if (event.type !== 'STEP') {
+            return;
+        }
+
+        const { x: newX, y: newY, tile } = event;
+
         setPlayer(prev => {
-            const newX = Math.max(0, Math.min(dungeonDimensions.width - 1, prev.x + dx));
-            const newY = Math.max(0, Math.min(dungeonDimensions.height - 1, prev.y + dy));
-            
             if (!dungeon[newY] || !dungeon[newY][newX]) return prev;
-            
-            const tile = dungeon[newY][newX];
-            
-            // Can't move through walls
-            if (tile.type === 'wall') {
-                addMessage('You bump into a wall.');
-                gameSoundsService.playWallBumpSound();
-                return prev;
-            }
-            
-            // Check for entity collision
-            const entityAtPosition = entities.find(e => e.x === newX && e.y === newY && e.hp > 0);
-            if (entityAtPosition) {
-                // Generate dialogue for NPCs using LLM
-                if (entityAtPosition.type !== 'animal') {
-                    // Get location ID for persistence
-                    const locationId = getRuinLocationId(
-                        structureLocation?.[0] || 0,
-                        structureLocation?.[1] || 0,
-                        currentDepth
-                    );
 
-                    // Check if this NPC has been befriended
-                    const isBefriended = isNpcBefriended(entityAtPosition.id, locationId);
-                    const befriendedNpcs = getBefriendedNpcsForLocation(locationId);
-                    const persistentNpc = befriendedNpcs.find(n => n.id === entityAtPosition.id);
-
-                    if (isBefriended && persistentNpc) {
-                        // Show backstory for befriended NPC
-                        setCurrentDialogue({
-                            entity: {
-                                ...entityAtPosition,
-                                name: persistentNpc.fullName || entityAtPosition.name,
-                                hostile: false // Befriended NPCs are never hostile
-                            },
-                            message: `*You recognize ${persistentNpc.fullName}*\n\n"${persistentNpc.backstory}"\n\n"It's good to see you again, friend."`
-                        });
-                    } else {
-                        // Generate new dialogue for unknown NPC
-                        generateRoguelikeDialogue({
-                            npcType: entityAtPosition.type,
-                            npcName: entityAtPosition.name,
-                            era: culturalContext.era,
-                            culturalZone: culturalContext.culturalZone,
-                            ruinType: ruinType.name,
-                            currentDepth: currentDepth,
-                            playerName: playerCharacter.name,
-                            playerProfession: playerCharacter.profession,
-                            isHostile: entityAtPosition.hostile,
-                            hasWeapon: player.weapon !== undefined,
-                            playerHealth: player.hp,
-                            playerMaxHealth: player.maxHp
-                        }).then(dialogue => {
-                            setCurrentDialogue({
-                                entity: entityAtPosition,
-                                message: dialogue
-                            });
-
-                            // Store NPC as befriended after dialogue (non-hostile interaction)
-                            if (!entityAtPosition.hostile || entityAtPosition.canNegotiate) {
-                                const persistedNpc = storeBefriendedNpc(
-                                    entityAtPosition as any, // Cast to NpcEntity type
-                                    locationId,
-                                    culturalContext.culturalZone,
-                                    culturalContext.era
-                                );
-
-                                // Update the entity with full name
-                                setEntities(prev => prev.map(e =>
-                                    e.id === entityAtPosition.id
-                                        ? { ...e, name: persistedNpc.fullName || e.name, hostile: false }
-                                        : e
-                                ));
-
-                                addMessage(`You've befriended ${persistedNpc.fullName}!`);
-                            }
-                        });
-
-                        // If hostile but can negotiate, give player a chance to talk
-                        if (entityAtPosition.hostile && entityAtPosition.canNegotiate) {
-                            addMessage(`The ${entityAtPosition.name} seems aggressive but might listen to reason... [Press T to try talking]`);
-                        } else if (entityAtPosition.hostile && !isBefriended) {
-                            // Real-time combat - no turn-based modal needed (unless befriended)
-                            addMessage(`The ${entityAtPosition.name} is hostile!`);
-                        }
-                    }
-                } else if (entityAtPosition.hostile) {
-                    // Real-time combat - hostile animals are dangerous
-                    addMessage(`The ${entityAtPosition.name} is hostile and ready to attack!`);
-                } else {
-                    // Non-hostile animals just block movement
-                    addMessage(`The ${entityAtPosition.name} blocks your path.`);
-                }
-                return prev;
-            }
-            
             let newPlayer = { ...prev, x: newX, y: newY };
             
             // Handle tile interactions
@@ -3546,6 +3720,10 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             setShowTranslationModal(true);
                             setPlayerTranslationGuesses([]);
                             setTranslationResult(null);
+                            setTranslationStats(prev => ({
+                                successes: prev.successes,
+                                lastMedium: (manuscript.materialType || '').toLowerCase()
+                            }));
                             addMessage(`You found an ancient ${manuscript.materialType}: "${manuscript.title}"`);
                             addMessage(`Script type: ${manuscript.scriptType.toUpperCase()}. Press T to translate.`);
                             gameSoundsService.playManuscriptSound();
@@ -3691,11 +3869,13 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
 
                 case 'discovery':
                     if (!tile.hasBeenDiscovered) {
-                        // Mark as discovered
+                        const discoveryId = tile.discoveryId ?? `discovery_${structureId}_${newX}_${newY}`;
+
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
                             newDungeon[newY][newX] = {
                                 ...tile,
+                                discoveryId,
                                 hasBeenDiscovered: true,
                                 type: 'floor' // Convert to floor after discovery
                             };
@@ -3713,111 +3893,98 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         const currentYear = mapData?.year || parseInt(mapData?.timeSlice || '1500');
                         const constructionPeriod = calculateRuinConstructionPeriod(ruinType.age, currentYear);
                         const appropriateLanguages = getLanguagesForRuin(culturalContext.culturalZone, constructionPeriod.era);
-
-                        // Generate historical discovery with room context
-                        const context = gatherRuinContext(mapData, ruinType, currentDepth, discoveries, roomType);
+                        const structureTypeForTemplates = (ruinType.originalType || ruinType.name || 'ruins').toLowerCase();
 
                         addMessage('You make an interesting discovery...');
                         gameSoundsService.playManuscriptSound();
 
-                        // Helper function for generated discoveries with period-appropriate language
-                        const generateHistoricalDiscoveryFallback = () => {
-                            // Add construction period and languages to context
-                            const enhancedContext = {
-                                ...context,
-                                constructionYear: constructionPeriod.year,
-                                constructionEra: constructionPeriod.era,
-                                originalLanguages: appropriateLanguages
-                            };
+                        const templates = ruinsDataBridge.getDiscoveryTemplates({
+                            culturalZone: culturalContext.culturalZone,
+                            era: culturalContext.era,
+                            structureType: structureTypeForTemplates,
+                            room: roomType
+                        });
 
-                            generateHistoricalDiscovery(enhancedContext).then(discoveryText => {
-                                // Prepend language information to discovery
-                                const languageNote = `[Written in ${appropriateLanguages[0]}${appropriateLanguages.length > 1 ? ' with annotations in ' + appropriateLanguages[1] : ''}]\n\n`;
-                                const fullDiscoveryText = languageNote + discoveryText;
-
-                                setCurrentDiscoveryText(fullDiscoveryText);
-                                setDiscoveries(prev => [...prev, fullDiscoveryText]);
-
-                                // Display using the existing source reader overlay
-                                const discoverySource = {
-                                    id: `discovery_${Date.now()}`,
-                                    title: 'Historical Discovery',
-                                    content: fullDiscoveryText,
-                                    description: fullDiscoveryText,
-                                    period: `${constructionPeriod.year} CE - ${constructionPeriod.era}`,
-                                    keywords: [],
-                                    themes: [],
-                                    contentType: 'discovery',
-                                    sourceUrl: '',
-                                    metadata: {
-                                        originalLanguages: appropriateLanguages,
-                                        constructionYear: constructionPeriod.year
-                                    }
-                                } as any;
-                                setSelectedSource(discoverySource);
-                                setShowSourceReader(true);
-                                console.log('Discovery generated for construction period:', constructionPeriod.year, appropriateLanguages);
-                            }).catch(err => {
-                                console.error('Failed to generate discovery:', err);
-                                const languageNote = `[Written in ${appropriateLanguages[0]}]\n\n`;
-                                const fallbackText = languageNote + `You discover ${['pottery shards', 'ancient inscriptions', 'tool fragments', 'bone remains'][Math.floor(Math.random() * 4)]} that tell a story of this place's past.`;
-                                setCurrentDiscoveryText(fallbackText);
-                                setDiscoveries(prev => [...prev, fallbackText]);
-                                addMessage(fallbackText);
-                            });
+                        const fallbackTemplate = {
+                            id: `fallback-${roomType}`,
+                            room: roomType,
+                            structureTypes: [structureTypeForTemplates],
+                            culturalZones: [culturalContext.culturalZone],
+                            eras: [culturalContext.era],
+                            scriptedElements: [],
+                            recommendedArtifacts: [],
+                            knowledgeTags: []
                         };
 
-                        // Higher chance (50%) to find actual primary sources in library/altar rooms
-                        const shouldFindPrimarySource = (roomType === 'library' || roomType === 'altar') && Math.random() < 0.5;
+                        const template = templates[0] ?? fallbackTemplate;
 
-                        if (shouldFindPrimarySource && mapData) {
-                            // Try to find period-appropriate primary sources
-                            primarySourceService.getSourcesForRuin(
-                                constructionPeriod.year,
-                                culturalContext.culturalZone as CulturalZone,
-                                mapData.localArea
-                            ).then(sources => {
-                                if (sources && sources.length > 0) {
-                                    const source = sources[Math.floor(Math.random() * Math.min(3, sources.length))];
+                        requestDiscoveryNarrative({
+                            ruinId: structureId,
+                            discoveryTemplate: template,
+                            year: constructionPeriod.year,
+                            culturalZone: culturalContext.culturalZone,
+                            era: constructionPeriod.era,
+                            structureType: structureTypeForTemplates,
+                            room: roomType,
+                            depth: currentDepth,
+                            mapLocation: mapData?.mapAreaName
+                        }).then(narrative => {
+                            const languageNote = `[Written in ${appropriateLanguages[0]}${appropriateLanguages.length > 1 ? ' with annotations in ' + appropriateLanguages[1] : ''}]\n\n`;
+                            const fullDiscoveryText = `${languageNote}${narrative.description}\n\n${narrative.followUpQuestion}`;
 
-                                    // Create discovery text with language context
-                                    const languageNote = `[Written in ${appropriateLanguages[0]}]\n\n`;
-                                    const ageDescription = constructionPeriod.year < 0
-                                        ? `from ${Math.abs(constructionPeriod.year)} BCE`
-                                        : `from ${constructionPeriod.year} CE`;
+                            setCurrentDiscoveryText(fullDiscoveryText);
+                            setDiscoveries(prev => [...prev, fullDiscoveryText]);
 
-                                    const discoveryText = languageNote +
-                                        `You discover an authentic text ${ageDescription}: "${source.title}" by ${source.author || 'Unknown'}.\n\n` +
-                                        `${source.excerpt || source.content?.substring(0, 200) || 'The text is partially legible...'}`;
-
-                                    setCurrentDiscoveryText(discoveryText);
-                                    setDiscoveries(prev => [...prev, discoveryText]);
-
-                                    // Display the actual primary source with enhanced metadata
-                                    const enhancedSource = {
-                                        ...source,
-                                        content: discoveryText,
-                                        metadata: {
-                                            ...source.metadata,
-                                            originalLanguages: appropriateLanguages,
-                                            discoveredInRuins: true,
-                                            ruinConstructionYear: constructionPeriod.year
-                                        }
-                                    };
-                                    setSelectedSource(enhancedSource);
-                                    setShowSourceReader(true);
-                                    console.log('Found period-appropriate primary source:', source.title, 'from', source.year);
-                                } else {
-                                    // No sources from that period, generate contextual discovery
-                                    generateHistoricalDiscoveryFallback();
-                                }
-                            }).catch((err) => {
-                                console.error('Failed to get sources for ruin:', err);
-                                generateHistoricalDiscoveryFallback();
+                            let updatedScore = knowledge.score;
+                            let updatedTags = knowledge.tags;
+                            setKnowledge(prev => {
+                                const increment = template.knowledgeTags.length > 0 ? 10 : 5;
+                                const combinedTags = template.knowledgeTags.length > 0
+                                    ? Array.from(new Set([...prev.tags, ...template.knowledgeTags]))
+                                    : prev.tags;
+                                updatedScore = prev.score + increment;
+                                updatedTags = combinedTags;
+                                return { score: updatedScore, tags: combinedTags };
                             });
-                        } else {
-                            generateHistoricalDiscoveryFallback();
-                        }
+
+                            const discoverySource = {
+                                id: discoveryId,
+                                title: narrative.title,
+                                content: fullDiscoveryText,
+                                description: fullDiscoveryText,
+                                period: `${constructionPeriod.year} CE - ${constructionPeriod.era}`,
+                                keywords: template.knowledgeTags,
+                                contentType: 'discovery',
+                                metadata: {
+                                    originalLanguages: appropriateLanguages,
+                                    templateId: template.id,
+                                    sourceType: narrative.isFallback ? 'fallback' : 'llm',
+                                    citations: narrative.citations
+                                }
+                            } as any;
+
+                            if (narrative.citations?.length) {
+                                (discoverySource as any).citations = narrative.citations;
+                            }
+
+                            setSelectedSource(discoverySource);
+                            setShowSourceReader(true);
+
+                            ruinsMetricsService.record('ruins.discovery.viewed', {
+                                runId: runIdRef.current,
+                                ruinId: structureId,
+                                discoveryId,
+                                templateId: template.id,
+                                sourceType: narrative.isFallback ? 'fallback' : 'llm',
+                                knowledgeScore: updatedScore,
+                                knowledgeTags: updatedTags
+                            });
+                        }).catch(error => {
+                            console.error('Failed to assemble discovery narrative:', error);
+                            const fallbackText = `[Written in ${appropriateLanguages[0]}]\n\nYou catalog architectural fragments that hint at forgotten stories.`;
+                            setCurrentDiscoveryText(fallbackText);
+                            setDiscoveries(prev => [...prev, fallbackText]);
+                        });
                     } else {
                         addMessage('You have already examined this area.');
                     }
@@ -3871,7 +4038,29 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
             return newPlayer;
         });
-    }, [dungeon, entities, addMessage, moveEntities, onHealthChange, onGoldChange, onInventoryAdd, dungeonDimensions]);
+    }, [
+        player,
+        dungeon,
+        entities,
+        addMessage,
+        moveEntities,
+        onHealthChange,
+        onGoldChange,
+        onInventoryAdd,
+        dungeonDimensions,
+        handleEntityEncounter,
+        culturalContext.culturalZone,
+        culturalContext.era,
+        ruinType.name,
+        ruinType.age,
+        ruinType.originalType,
+        structureId,
+        mapData,
+        currentRooms,
+        discoveries,
+        knowledge,
+        currentDepth
+    ]);
 
     // Update visibility and viewport when player moves
     useEffect(() => {
@@ -4024,11 +4213,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     case 'escape':
                         // Close translation modal first, then encounter modal, then exit
                         if (showTranslationModal) {
-                            setShowTranslationModal(false);
-                            setCurrentTranslationPuzzle(null);
-                            setCurrentContextualManuscript(null);
-                            setPlayerTranslationGuesses([]);
-                            setTranslationResult(null);
+                            handleTranslationClose();
                         } else if (showEncounterModal) {
                             setShowEncounterModal(false);
                             setCurrentEncounter(null);
@@ -4052,7 +4237,11 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     case 't':
                         // Toggle translation modal if we have a contextual manuscript discovered
                         if (currentContextualManuscript && currentTranslationPuzzle) {
-                            setShowTranslationModal(prev => !prev);
+                            if (showTranslationModal) {
+                                handleTranslationClose();
+                            } else {
+                                setShowTranslationModal(true);
+                            }
                         } else {
                             addMessage('No ancient texts requiring translation found yet.');
                         }
@@ -4692,7 +4881,11 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
+            <div className="flex-1 flex flex-col relative" style={{ backgroundColor: '#0a0a0a' }}>
+                <div className="absolute top-20 right-4 z-50">
+                   
+                </div>
+
                 {/* Dungeon map - fills available space */}
                 <div className="flex-1 overflow-auto flex justify-center items-center">
                     <div className="relative">
@@ -5268,93 +5461,16 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 }
             `}</style>
 
-            {/* Primary Source Reader Terminal - Full Screen Overlay */}
             {showSourceReader && (
-                <div className="absolute inset-0 flex items-center justify-center z-50"
-                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
-                    <div className="w-full max-w-4xl h-5/6 flex flex-col p-6"
-                         style={{
-                             backgroundColor: '#0a0a0a',
-                             border: '2px solid #00ff00',
-                             boxShadow: '0 0 20px #00ff00',
-                             fontFamily: 'Courier New, monospace'
-                         }}>
-                        {/* Terminal Header */}
-                        <div className="mb-4" style={{ borderBottom: '2px solid #00ff00', paddingBottom: '10px' }}>
-                            <div className="flex justify-between items-center mb-2">
-                                <h2 className="text-2xl font-bold" style={{ color: '#00ff00', textShadow: '0 0 10px #00ff00' }}>
-                                    ╔════════════════ HISTORICAL ARCHIVES ════════════════╗
-                                </h2>
-                            </div>
-                            <div className="text-sm" style={{ color: '#00ff00' }}>
-                                &gt; LOCATION: {ruinType.name} | ERA: {culturalContext.era} | ZONE: {culturalContext.culturalZone}
-                            </div>
-                            <div className="text-sm mt-1" style={{ color: '#00ff00' }}>
-                                &gt; DOCUMENTS RECOVERED: {discoveredSources.length} | STATUS: AUTHENTICATED
-                            </div>
-                        </div>
-
-                        {/* Document List */}
-                        <div className="flex-1 overflow-y-auto mb-4">
-                            {selectedSource ? (
-                                <div className="space-y-4">
-                                    <div style={{ color: '#00ff00' }}>
-                                        <div className="text-lg font-bold mb-2">
-                                            &gt; DOCUMENT: {selectedSource.title}
-                                        </div>
-                                        <div className="text-sm mb-2" style={{ color: '#00cc00' }}>
-                                            &gt; DATE: {selectedSource.date || 'Unknown'}
-                                            {selectedSource.author && ` | AUTHOR: ${selectedSource.author}`}
-                                            {selectedSource.language && ` | LANGUAGE: ${selectedSource.language}`}
-                                        </div>
-                                        <div className="border-l-2 pl-4 mt-4" style={{ borderColor: '#00ff00', color: '#00ff00' }}>
-                                            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-{selectedSource.content?.substring(0, 1000) || selectedSource.excerpt || 'Content unavailable...'}
-{selectedSource.content?.length > 1000 && '\n\n[DOCUMENT CONTINUES - PRESS SPACE FOR MORE]'}
-                                            </pre>
-                                        </div>
-                                        {selectedSource.keywords && (
-                                            <div className="mt-4 text-sm" style={{ color: '#00cc00' }}>
-                                                &gt; KEYWORDS: {selectedSource.keywords.join(', ')}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center mt-10" style={{ color: '#00ff00' }}>
-                                    &gt; NO DOCUMENT SELECTED
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Document Selector */}
-                        <div className="border-t-2 pt-4" style={{ borderColor: '#00ff00' }}>
-                            <div className="text-sm mb-2" style={{ color: '#00ff00' }}>
-                                &gt; AVAILABLE DOCUMENTS:
-                            </div>
-                            <div className="grid grid-cols-1 gap-1 mb-4">
-                                {discoveredSources.map((source, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setSelectedSource(source)}
-                                        className="text-left p-2 hover:bg-green-900 hover:bg-opacity-20 transition-colors"
-                                        style={{
-                                            color: selectedSource === source ? '#00ff00' : '#008800',
-                                            borderLeft: selectedSource === source ? '3px solid #00ff00' : '3px solid transparent',
-                                            paddingLeft: '10px'
-                                        }}>
-                                        [{idx + 1}] {source.title.substring(0, 60)}{source.title.length > 60 ? '...' : ''}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Terminal Commands */}
-                        <div className="text-sm" style={{ color: '#00ff00', borderTop: '1px solid #00ff00', paddingTop: '10px' }}>
-                            [1-9] Select Document | [Q] Search Archive | [M/ESC] Close Terminal | [SPACE] Read More
-                        </div>
-                    </div>
-                </div>
+                <DiscoveryTerminal
+                    ruinName={ruinType.name}
+                    era={culturalContext.era}
+                    culturalZone={culturalContext.culturalZone}
+                    discoveredSources={discoveredSources}
+                    selectedSource={selectedSource}
+                    onSelectSource={setSelectedSource}
+                    onClose={() => setShowSourceReader(false)}
+                />
             )}
 
             {/* Historical Encounter Terminal - Full Screen Overlay */}
@@ -5375,7 +5491,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                     ╔══════════════════════════════════════════════════════╗
                                 </div>
                                 <div className="text-2xl font-bold my-2" style={{ color: '#ff9500', textShadow: '0 0 10px #ff6600' }}>
-                                    TEMPORAL ECHO DETECTED
+                                    A VISION...
                                 </div>
                                 <div className="text-3xl font-bold" style={{ color: '#ff9500', textShadow: '0 0 15px #ff6600' }}>
                                     ╚══════════════════════════════════════════════════════╝
@@ -5606,272 +5722,16 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
 
             {/* Translation Minigame Modal - Full Screen Overlay */}
             {showTranslationModal && currentTranslationPuzzle && currentContextualManuscript && (
-                <div className="absolute inset-0 flex items-center justify-center z-50"
-                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
-                    <div className="w-full max-w-6xl h-5/6 flex flex-col p-6"
-                         style={{
-                             backgroundColor: '#0a0a0a',
-                             border: '2px solid #00ccff',
-                             boxShadow: '0 0 20px #0099cc',
-                             fontFamily: 'Courier New, monospace'
-                         }}>
-                        {/* Translation Header */}
-                        <div className="mb-4" style={{ borderBottom: '2px solid #00ccff', paddingBottom: '10px' }}>
-                            <div className="text-center mb-2">
-                                <div className="text-3xl font-bold" style={{ color: '#00ffff', textShadow: '0 0 15px #00ccff' }}>
-                                    ╔══════════════════════════════════════════════════════╗
-                                </div>
-                                <div className="text-2xl font-bold my-2" style={{ color: '#00ffff', textShadow: '0 0 10px #00ccff' }}>
-                                    ANCIENT SCRIPT DECODER
-                                </div>
-                                <div className="text-3xl font-bold" style={{ color: '#00ffff', textShadow: '0 0 15px #00ccff' }}>
-                                    ╚══════════════════════════════════════════════════════╝
-                                </div>
-                            </div>
-                            <div className="text-sm mt-3" style={{ color: '#00ccff' }}>
-                                &gt; MANUSCRIPT: {currentContextualManuscript.title}
-                                {currentContextualManuscript.date && ` | DATE: ${currentContextualManuscript.date}`}
-                                {` | SCRIPT: ${currentContextualManuscript.scriptType.toUpperCase()}`}
-                            </div>
-                            <div className="text-sm mt-1" style={{ color: '#00ccff' }}>
-                                &gt; MATERIAL: {currentContextualManuscript.materialType || 'unknown'} |
-                                CONDITION: {currentContextualManuscript.preservationState || 'unknown'} |
-                                DIFFICULTY: {currentContextualManuscript.translationDifficulty?.toUpperCase()}
-                            </div>
-                        </div>
-
-                        {/* Translation Content */}
-                        <div className="flex-1 overflow-y-auto mb-4">
-                            {!translationResult ? (
-                                <div className="space-y-6">
-                                    {/* Script Visual */}
-                                    {currentTranslationPuzzle.scriptVisual && (
-                                        <div style={{ color: '#00ffff' }}>
-                                            <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
-                                                ═══ ORIGINAL SCRIPT ═══
-                                            </div>
-                                            <div className="border-2 p-4 bg-gray-900 bg-opacity-50" style={{ borderColor: '#00ccff' }}>
-                                                {currentTranslationPuzzle.scriptVisual.map((line, idx) => (
-                                                    <div key={idx} className="text-center font-mono text-sm" style={{ color: '#00ddff' }}>
-                                                        {line}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Original Script Text */}
-                                    <div style={{ color: '#00ffff' }}>
-                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
-                                            ═══ SCRIPT CHARACTERS ═══
-                                        </div>
-                                        <div className="border-l-2 pl-4 py-2" style={{ borderColor: '#00ccff', backgroundColor: 'rgba(0, 204, 255, 0.1)' }}>
-                                            <div className="text-2xl font-bold text-center" style={{ color: '#00eeff', letterSpacing: '8px' }}>
-                                                {currentTranslationPuzzle.originalScript.join('  ')}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Partial Translation */}
-                                    <div style={{ color: '#00ffff' }}>
-                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
-                                            ═══ PARTIAL TRANSLATION ═══
-                                        </div>
-                                        <div className="border-l-2 pl-4" style={{ borderColor: '#00ccff', color: '#00ddff' }}>
-                                            <p className="text-base leading-relaxed">
-                                                {currentTranslationPuzzle.partialTranslation.join(' ')}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Word Bank */}
-                                    <div style={{ color: '#00ffff' }}>
-                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
-                                            ═══ WORD BANK ═══
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {currentTranslationPuzzle.wordBank.map((word, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => {
-                                                        const newGuesses = [...playerTranslationGuesses];
-                                                        const gapIndex = newGuesses.length;
-                                                        if (gapIndex < currentTranslationPuzzle.correctSolution.length) {
-                                                            newGuesses[gapIndex] = word;
-                                                            setPlayerTranslationGuesses(newGuesses);
-                                                        }
-                                                    }}
-                                                    className="p-3 rounded transition-all text-center font-semibold"
-                                                    style={{
-                                                        border: '2px solid #00ccff',
-                                                        backgroundColor: playerTranslationGuesses.includes(word)
-                                                            ? 'rgba(0, 204, 255, 0.3)'
-                                                            : 'rgba(0, 204, 255, 0.1)',
-                                                        color: '#00eeff'
-                                                    }}>
-                                                    {word}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Current Translation Attempt */}
-                                    {playerTranslationGuesses.length > 0 && (
-                                        <div style={{ color: '#00ffff' }}>
-                                            <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
-                                                ═══ YOUR TRANSLATION ═══
-                                            </div>
-                                            <div className="border-l-2 pl-4 py-2" style={{ borderColor: '#00ccff', backgroundColor: 'rgba(0, 255, 0, 0.1)' }}>
-                                                <p className="text-base leading-relaxed" style={{ color: '#00ff88' }}>
-                                                    {playerTranslationGuesses.join(' ')}
-                                                </p>
-                                            </div>
-                                            <div className="mt-3 flex gap-3">
-                                                <button
-                                                    onClick={() => setPlayerTranslationGuesses([])}
-                                                    className="px-4 py-2 rounded"
-                                                    style={{
-                                                        backgroundColor: '#cc6600',
-                                                        color: '#000',
-                                                        fontWeight: 'bold'
-                                                    }}>
-                                                    CLEAR
-                                                </button>
-                                                {playerTranslationGuesses.length === currentTranslationPuzzle.correctSolution.length && (
-                                                    <button
-                                                        onClick={() => {
-                                                            const result = contextualManuscriptService.checkTranslation(
-                                                                currentTranslationPuzzle,
-                                                                playerTranslationGuesses
-                                                            );
-                                                            setTranslationResult(result);
-
-                                                            // Add to inventory and sources if successful
-                                                            if (result.success && currentContextualManuscript) {
-                                                                setDiscoveredSources(prev => [...prev, currentContextualManuscript as PrimarySourceMetadata]);
-                                                                addMessage(`Successfully translated: "${currentContextualManuscript.title}"`);
-                                                                if (currentContextualManuscript.historicalContext) {
-                                                                    setTimeout(() => {
-                                                                        addMessage(`Historical significance: ${currentContextualManuscript.historicalContext}`);
-                                                                    }, 100);
-                                                                }
-                                                            }
-                                                        }}
-                                                        className="px-6 py-2 rounded"
-                                                        style={{
-                                                            backgroundColor: '#00ccff',
-                                                            color: '#000',
-                                                            fontWeight: 'bold'
-                                                        }}>
-                                                        SUBMIT TRANSLATION
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Decoding Hints */}
-                                    {currentContextualManuscript.decodingHints && currentContextualManuscript.decodingHints.length > 0 && (
-                                        <div className="mt-6 p-4 rounded" style={{
-                                            backgroundColor: 'rgba(0, 204, 255, 0.1)',
-                                            border: '1px solid #00ccff'
-                                        }}>
-                                            <div className="text-sm font-bold mb-2" style={{ color: '#00ffff' }}>
-                                                📖 DECODING HINTS
-                                            </div>
-                                            {currentContextualManuscript.decodingHints.map((hint, idx) => (
-                                                <div key={idx} className="text-xs mt-1" style={{ color: '#00ddff' }}>
-                                                    • {hint}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                /* Translation Result */
-                                <div className="space-y-6">
-                                    <div style={{ color: '#00ffff' }}>
-                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
-                                            ═══ TRANSLATION RESULT ═══
-                                        </div>
-                                        <div className="border-l-2 pl-4 py-4" style={{
-                                            borderColor: translationResult.success ? '#00ff00' : '#ff6600',
-                                            backgroundColor: translationResult.success ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 102, 0, 0.1)'
-                                        }}>
-                                            <div className="text-xl font-bold mb-2" style={{
-                                                color: translationResult.success ? '#00ff88' : '#ffaa44'
-                                            }}>
-                                                {translationResult.success ? '✓ SUCCESS' : '✗ PARTIAL/FAILED'}
-                                            </div>
-                                            <div className="text-base mb-3" style={{ color: '#00ddff' }}>
-                                                Accuracy: {translationResult.accuracy.toFixed(1)}%
-                                            </div>
-                                            <p className="text-base leading-relaxed" style={{ color: '#00eeff' }}>
-                                                {translationResult.feedback}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {translationResult.success && currentContextualManuscript && (
-                                        <div style={{ color: '#00ffff' }}>
-                                            <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
-                                                ═══ DECODED TEXT ═══
-                                            </div>
-                                            <div className="border-l-2 pl-4 py-3" style={{ borderColor: '#00ff00', backgroundColor: 'rgba(0, 255, 0, 0.1)' }}>
-                                                <p className="text-base leading-relaxed" style={{ color: '#00ff88' }}>
-                                                    {currentContextualManuscript.content}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {translationResult.success && currentContextualManuscript?.historicalContext && (
-                                        <div className="mt-6 p-4 rounded" style={{
-                                            backgroundColor: 'rgba(0, 255, 0, 0.1)',
-                                            border: '1px solid #00ff00'
-                                        }}>
-                                            <div className="text-sm font-bold mb-2" style={{ color: '#00ff88' }}>
-                                                🏛️ HISTORICAL SIGNIFICANCE
-                                            </div>
-                                            <div className="text-xs" style={{ color: '#00ffaa' }}>
-                                                {currentContextualManuscript.historicalContext}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="text-center mt-8">
-                                        <button
-                                            onClick={() => {
-                                                setShowTranslationModal(false);
-                                                setCurrentTranslationPuzzle(null);
-                                                setCurrentContextualManuscript(null);
-                                                setPlayerTranslationGuesses([]);
-                                                setTranslationResult(null);
-                                            }}
-                                            className="px-6 py-3 rounded"
-                                            style={{
-                                                backgroundColor: '#00ccff',
-                                                color: '#000',
-                                                fontWeight: 'bold',
-                                                fontSize: '16px'
-                                            }}>
-                                            RETURN TO EXPLORATION
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Translation Commands */}
-                        {!translationResult && (
-                            <div className="text-sm border-t-2 pt-3" style={{ color: '#00ccff', borderColor: '#00ccff' }}>
-                                <div className="text-center">
-                                    [CLICK WORDS] Add to translation | [CLEAR] Reset | [SUBMIT] Check translation | [T/ESC] Close decoder
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <TranslationLab
+                    manuscript={currentContextualManuscript}
+                    puzzle={currentTranslationPuzzle}
+                    guesses={playerTranslationGuesses}
+                    result={translationResult}
+                    onSelectWord={handleTranslationWordSelect}
+                    onClear={handleTranslationClear}
+                    onSubmit={handleTranslationSubmit}
+                    onClose={handleTranslationClose}
+                />
             )}
         </div>
     );

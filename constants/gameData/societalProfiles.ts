@@ -285,15 +285,51 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         },
     },
     SUB_SAHARAN_AFRICAN: {
-         [HistoricalEra.ANTIQUITY]: {
-            isAgricultural: true,
+        [HistoricalEra.PREHISTORY]: {
+            isAgricultural: false, // Default: NO agriculture - most of Africa was hunter-gatherer
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'],
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry'],
+            allowedMineTypes: [], // No mining in prehistory, only quarrying
+            fortressNames: ['Enclosure', 'Fortified Camp'],
+            holyPlaceNames: ['Sacred Grove', 'Spirit Site', 'Ancestor Shrine'],
+            palaceNames: ["Chief's Hut", "Elder's Camp"],
+            ruinNames: ['Ancient Camp', 'Old Settlement'],
+            // Region-specific overrides for very early agricultural centers
+            regionOverrides: {
+                // Only Sahel had early agriculture by -3000 BCE
+                'Sahel': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                'Horn of Africa': { isAgricultural: true, allowedStructures: ['encampment', 'farm', 'fishing_hut', 'quarry'] },
+                // All other regions remain non-agricultural in prehistory
+            },
+            courtRoles: {
+                palace: ['Tribal Chief', 'Elder', 'Lead Hunter', 'Shaman'],
+                holy_site: ['Shaman', 'Spirit Medium', 'Keeper of Ancestors']
+            }
+        },
+         [HistoricalEra.ANTIQUITY]: {
+            isAgricultural: false, // Default: NO agriculture - most of Africa was hunter-gatherer or pastoral
+            isPastoral: true,
+            allowedStructures: ['fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site', 'encampment'],
             allowedMineTypes: ['IRON', 'GOLD', 'SALT', 'CLAY'],
             fortressNames: ['Great Enclosure', 'Fortified Village'],
             holyPlaceNames: ['Sacred Grove', 'Shrine', 'Spirit House'],
             palaceNames: ["King's Compound", 'Royal Kraal'],
             ruinNames: ['Ancient Ironworks', 'Old Settlement'],
+            // Region-specific overrides for early agricultural centers
+            regionOverrides: {
+                // West/Central Africa - had agriculture by -2000 BCE
+                'Sahel': { isAgricultural: true, allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'] },
+                'Upper Guinea': { isAgricultural: true, allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'] },
+                'Lower Guinea and Congo Basin': { isAgricultural: true, allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'] },
+                'West African Forests': { isAgricultural: true, allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'] },
+                'Central Africa': { isAgricultural: true, allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'] },
+                // Horn of Africa - agriculture from -2000 BCE
+                'Horn of Africa': { isAgricultural: true, allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'] },
+                // East African Rift - mixed pastoralism/agriculture
+                'East African Rift': { isAgricultural: true, allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'] },
+                // Southern Africa remains non-agricultural (not listed - San hunter-gatherers until 0-300 CE)
+                // Madagascar and Islands remain non-agricultural (not listed - uninhabited or minimal settlement)
+            },
             courtRoles: {
                 palace: ["Oba", "King's Council", "Diviner", "Warrior Chief"],
                 holy_site: ["High Priest", "Spirit Medium", "Healer"]

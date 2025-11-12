@@ -64,21 +64,21 @@ export const PrimarySourceSearch: React.FC = () => {
     <>
       <div ref={searchRef} className="relative">
         {/* Search Button/Input */}
-        <div 
+        <div
           className={`
-            flex items-center bg-gray-800 rounded-lg transition-all duration-300 ease-in-out
+            flex items-center bg-[var(--surface-muted-bg)] rounded-lg transition-all duration-300 ease-in-out
             ${isExpanded ? 'w-96' : 'w-10'}
           `}
         >
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="p-2 text-text-secondary hover:text-text-primary transition-colors"
             aria-label="Search primary sources"
             title="Search historical documents"
           >
             <Search className="w-5 h-5" />
           </button>
-          
+
           {isExpanded && (
             <>
               <input
@@ -87,9 +87,9 @@ export const PrimarySourceSearch: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Search primary sources..."
-                className="flex-1 bg-transparent text-white placeholder-gray-500 px-2 py-1 outline-none"
+                className="flex-1 bg-transparent text-text-primary placeholder-text-muted px-2 py-1 outline-none"
               />
-              
+
               {searchQuery && (
                 <button
                   onClick={() => {
@@ -97,7 +97,7 @@ export const PrimarySourceSearch: React.FC = () => {
                     setSearchResults([]);
                     inputRef.current?.focus();
                   }}
-                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  className="p-2 text-text-secondary hover:text-text-primary transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -108,29 +108,29 @@ export const PrimarySourceSearch: React.FC = () => {
 
         {/* Search Results Dropdown */}
         {isExpanded && searchQuery.length >= 2 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 rounded-lg shadow-xl border border-gray-700 max-h-96 overflow-y-auto z-50">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--surface-card-bg)] rounded-lg shadow-xl border border-[var(--border-normal)] max-h-96 overflow-y-auto z-50">
             {isLoading ? (
-              <div className="p-4 text-center text-gray-400">
+              <div className="p-4 text-center text-text-secondary">
                 <div className="animate-pulse">Searching...</div>
               </div>
             ) : searchResults.length > 0 ? (
               <div className="py-2">
-                <div className="px-3 py-1 text-xs text-gray-500 uppercase tracking-wide">
+                <div className="px-3 py-1 text-xs text-text-muted uppercase tracking-wide">
                   Found {searchResults.length} source{searchResults.length !== 1 ? 's' : ''}
                 </div>
                 {searchResults.map((source) => (
                   <button
                     key={source.id}
                     onClick={() => handleSourceClick(source)}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-800 transition-colors group"
+                    className="w-full text-left px-3 py-2 hover:bg-[var(--surface-muted-hover-bg)] transition-colors group"
                   >
                     <div className="flex items-start gap-3">
                       <BookOpen className="w-4 h-4 text-amber-500 mt-1 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-white group-hover:text-amber-400 transition-colors">
+                        <div className="font-medium text-text-primary group-hover:text-amber-400 transition-colors">
                           {source.title}
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                        <div className="flex items-center gap-3 text-xs text-text-muted mt-1">
                           <span>{source.author}</span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
@@ -147,7 +147,7 @@ export const PrimarySourceSearch: React.FC = () => {
                             </>
                           )}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1 line-clamp-1">
+                        <div className="text-xs text-text-secondary mt-1 line-clamp-1">
                           {source.excerpt}
                         </div>
                       </div>
@@ -156,7 +156,7 @@ export const PrimarySourceSearch: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-text-muted">
                 No sources found for "{searchQuery}"
               </div>
             )}

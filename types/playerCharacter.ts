@@ -155,4 +155,8 @@ export interface PlayerCharacter {
     // Physical Feat System - Elevated States
     elevatedState?: 'in_tree' | 'on_roof' | 'on_wall';
     elevationDescription?: string;
+
+    // Play Time Tracking
+    totalPlayTimeMinutes?: number; // Total play time across all sessions (minutes)
+    sessionStartTime?: number; // Timestamp when current session started
 }

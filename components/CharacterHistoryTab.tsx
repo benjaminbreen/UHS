@@ -97,7 +97,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p className="text-slate-300">Generating life events in background...</p>
+          <p className="text-text-secondary">Generating life events in background...</p>
         </div>
       </div>
     );
@@ -121,14 +121,14 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
   return (
     <div className="flex flex-col lg:flex-row h-full">
       {/* Left column - Family */}
-      <div className="lg:w-1/3 p-4 lg:p-6 lg:border-r border-slate-700 overflow-y-auto">
+      <div className="lg:w-1/3 p-4 lg:p-6 lg:border-r border-[var(--border-normal)] overflow-y-auto">
         <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 mb-6">
           Family & Lineage
         </h3>
 
         {/* Parents Section */}
         <div className="mb-6">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Parents</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-text-tertiary mb-4">Parents</h4>
           <div className="space-y-3">
             {(['father', 'mother'] as const).map(rel => {
               const parent = (character.family || []).find(f => f.relation === rel);
@@ -147,12 +147,12 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
                   }}
                   className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all ${
                     hasEvents
-                      ? 'border-slate-700 hover:border-blue-500 hover:bg-slate-800/50 cursor-pointer'
-                      : 'border-slate-800 cursor-default'
+                      ? 'border-[var(--border-normal)] hover:border-blue-500 hover:bg-[var(--surface-muted-hover-bg)] cursor-pointer'
+                      : 'border-[var(--border-subtle)] cursor-default'
                   }`}
                 >
                   {/* Mini portrait */}
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-900 flex-shrink-0">
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[var(--border-normal)] bg-[var(--bg-secondary)] flex-shrink-0">
                     <ProceduralPortrait
                       character={{
                         name: parent.name,
@@ -173,7 +173,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
 
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
-                      <span className={`text-lg font-semibold ${isDeceased(parent.name) ? 'text-slate-400' : 'text-white'}`}>
+                      <span className={`text-lg font-semibold ${isDeceased(parent.name) ? 'text-text-tertiary' : 'text-text-primary'}`}>
                         {parent.name}
                       </span>
                       {isDeceased(parent.name) && (
@@ -185,7 +185,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-slate-400">
+                    <div className="text-sm text-text-secondary">
                       <span className="capitalize text-blue-400">{rel}</span> • {parent.profession}
                     </div>
                   </div>
@@ -198,7 +198,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
         {/* Siblings Section */}
         {siblings.length > 0 && (
           <div className="mb-6">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-text-tertiary mb-4">
               Siblings ({siblings.length})
             </h4>
             <div className="space-y-2">
@@ -216,11 +216,11 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
                     }}
                     className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all ${
                       hasEvents
-                        ? 'hover:bg-slate-800/50 cursor-pointer'
+                        ? 'hover:bg-[var(--surface-muted-hover-bg)] cursor-pointer'
                         : 'cursor-default'
                     }`}
                   >
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden border border-slate-700 bg-slate-900 flex-shrink-0">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden border border-[var(--border-normal)] bg-[var(--bg-secondary)] flex-shrink-0">
                       <ProceduralPortrait
                         character={{
                           name: sibling.name,
@@ -240,14 +240,14 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
                     </div>
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
-                        <span className={`font-medium ${isDeceased(sibling.name) ? 'text-slate-400' : 'text-white'}`}>
+                        <span className={`font-medium ${isDeceased(sibling.name) ? 'text-text-tertiary' : 'text-text-primary'}`}>
                           {sibling.name}
                         </span>
                         {isDeceased(sibling.name) && (
                           <span className="text-xs text-red-400 font-bold uppercase">DECEASED</span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-text-secondary">
                         {sibling.relation} • Age {(sibling as any).age || '?'}
                       </div>
                     </div>
@@ -263,7 +263,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
 
         {/* Children Section */}
         <div className="mb-6">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Children</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-text-tertiary mb-4">Children</h4>
           <div className="space-y-2">
             {(character.family || [])
               .filter(f => f.relation === 'son' || f.relation === 'daughter')
@@ -272,7 +272,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
                   key={`${child.name}-${idx}`}
                   className="flex items-center gap-3 p-2 rounded-lg"
                 >
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden border border-slate-700 bg-slate-900 flex-shrink-0">
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden border border-[var(--border-normal)] bg-[var(--bg-secondary)] flex-shrink-0">
                     <ProceduralPortrait
                       character={{
                         name: child.name,
@@ -292,14 +292,14 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={`font-medium ${isDeceased(child.name) ? 'text-slate-400' : 'text-white'}`}>
+                      <span className={`font-medium ${isDeceased(child.name) ? 'text-text-tertiary' : 'text-text-primary'}`}>
                         {child.name}
                       </span>
                       {isDeceased(child.name) && (
                         <span className="text-xs text-red-400 font-bold uppercase">DECEASED</span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-text-secondary">
                       {child.relation} • Age {(child as any).age || '?'}
                     </div>
                   </div>
@@ -308,14 +308,14 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
             {(character.family || []).filter(f =>
               f.relation === 'son' || f.relation === 'daughter'
             ).length === 0 && (
-              <p className="text-sm text-slate-500 italic">No children</p>
+              <p className="text-sm text-text-tertiary italic">No children</p>
             )}
           </div>
         </div>
 
         {/* Stats Summary for mobile */}
-        <div className="lg:hidden mb-6 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-          <div className="text-xs text-slate-400">
+        <div className="lg:hidden mb-6 p-4 rounded-lg surface-card border border-[var(--border-normal)]">
+          <div className="text-xs text-text-secondary">
             <div>Born: {character.birthYear || 'Unknown'}</div>
             <div>Age: {character.age}</div>
             <div>Profession: {character.profession}</div>
@@ -333,7 +333,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
         {/* Loading state */}
         {!lifeEventsGenerated ? (
           <div className="flex items-center justify-center h-64">
-            <div className="text-slate-500">
+            <div className="text-text-tertiary">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
               <p className="text-sm">Generating life history...</p>
             </div>
@@ -341,7 +341,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
         ) : (
           <div
             ref={timelineRef}
-            className="relative border-l-2 border-slate-600 pl-12 ml-8 space-y-8 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/40 pb-8"
+            className="relative border-l-2 border-[var(--border-normal)] pl-12 ml-8 space-y-8 flex-1 overflow-y-auto scrollbar-thin pb-8"
           >
             {expandedLifeEvents.map((e, i) => {
               const Icon = EVENT_ICON[e.kind] || Sparkles;
@@ -360,21 +360,21 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
                       : ''
                   }`}
                 >
-                  <div className={`absolute -left-[36px] top-1 w-7 h-7 rounded-full ${colorClass} border-2 border-slate-900 grid place-items-center text-white transition-transform ${
+                  <div className={`absolute -left-[36px] top-1 w-7 h-7 rounded-full ${colorClass} border-2 border-[var(--bg-primary)] grid place-items-center text-white transition-transform ${
                     isHighlighted ? 'scale-125' : ''
                   }`}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  <div className="text-xs text-slate-400 font-semibold">
+                  <div className="text-xs text-text-tertiary font-semibold">
                     {e.year}
                     {age >= 0 && (
-                      <span className="ml-4 text-slate-600">
+                      <span className="ml-4 text-text-muted">
                         (Age {age})
                       </span>
                     )}
                   </div>
-                  <div className="text-base lg:text-lg text-white font-semibold mt-1">{e.title}</div>
-                  <div className="text-sm lg:text-base text-slate-300 mt-1 leading-relaxed">
+                  <div className="text-base lg:text-lg text-text-primary font-semibold mt-1">{e.title}</div>
+                  <div className="text-sm lg:text-base text-text-secondary mt-1 leading-relaxed">
                     {e.text}
                     {e.culturalContext && (
                       <span className="block text-xs text-blue-400 italic mt-1">
@@ -387,7 +387,7 @@ export const CharacterHistoryTab: React.FC<CharacterHistoryTabProps> = ({
             })}
 
             {expandedLifeEvents.length === 0 && (
-              <div className="text-center text-slate-500 italic py-8">
+              <div className="text-center text-text-tertiary italic py-8">
                 No life events generated yet
               </div>
             )}

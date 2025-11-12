@@ -54,6 +54,11 @@ export interface NpcMemory {
   knownFactsAboutPlayer: Set<string>; // e.g., 'PLAYER_KILLED_MERCHANT_JONAS', 'PLAYER_GAVE_GOLD'
   relationships: Map<string, { opinion: number; type: 'family' | 'friend' | 'rival' }>; // NPC_ID -> Relationship
   conversationSummaries: string[];
+
+  // Conversation Tracking for Quest System
+  conversationCount?: number; // Total number of conversations with player
+  topicsDiscussed?: Set<string>; // Topics/subjects discussed (for quest tracking)
+  lastConversationTime?: number; // Timestamp of last conversation
 }
 
 

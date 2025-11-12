@@ -397,7 +397,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         if (!isNpc(currentTarget) || !playerCharacter || !mapData) return [];
 
         const npcOffers = getWorkOffersForNpc(currentTarget.id);
-        const playerPos = { x: currentTarget.x, y: currentTarget.y }; // Use NPC position as reference
+        const playerPos = { x: playerCharacter.x || currentTarget.x, y: playerCharacter.y || currentTarget.y }; // Use actual player position for quest completion checks
         const currentGameHours = gameDate ? (gameDate.year * 365 * 24 + gameDate.month * 30 * 24 + gameDate.day * 24) : 0;
 
         return npcOffers
@@ -407,7 +407,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     offer,
                     playerCharacter,
                     playerPos,
-                    currentGameHours
+                    currentGameHours,
+                    currentTarget // Pass the NPC for conversation tracking
                 );
                 return status === 'completed';
             });
@@ -1240,6 +1241,28 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 try {
                     const summary = await summarizeConversation(history);
 
+                    // Extract topics from conversation for quest tracking
+                    const conversationText = history.map(h => h.text.toLowerCase()).join(' ');
+                    const detectedTopics = new Set<string>(currentTarget.memory?.topicsDiscussed || []);
+
+                    // Detect common quest-related topics
+                    const topicKeywords = [
+                        'trade', 'merchant', 'goods', 'market',
+                        'war', 'battle', 'conflict', 'politics',
+                        'religion', 'faith', 'temple', 'prayer',
+                        'family', 'children', 'spouse', 'parents',
+                        'farm', 'harvest', 'crops', 'food',
+                        'illness', 'disease', 'health', 'medicine',
+                        'travel', 'journey', 'road', 'distance',
+                        'work', 'labor', 'craft', 'skill'
+                    ];
+
+                    topicKeywords.forEach(keyword => {
+                        if (conversationText.includes(keyword)) {
+                            detectedTopics.add(keyword);
+                        }
+                    });
+
                     // Create a mutable copy of the NPC to avoid frozen object errors
                     const updatedNpc = {
                         ...currentTarget,
@@ -1253,7 +1276,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 ? Math.min(100, (currentTarget.memory?.opinionOfPlayer || 50) + 10)
                                 : summary.sentiment === 'negative'
                                 ? Math.max(0, (currentTarget.memory?.opinionOfPlayer || 50) - 10)
-                                : (currentTarget.memory?.opinionOfPlayer || 50)
+                                : (currentTarget.memory?.opinionOfPlayer || 50),
+
+                            // Conversation tracking for quest system
+                            conversationCount: (currentTarget.memory?.conversationCount || 0) + 1,
+                            topicsDiscussed: detectedTopics,
+                            lastConversationTime: Date.now()
                         }
                     };
 
@@ -1395,6 +1423,82 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             <span className="text-slate-500">Profession:</span>
                                             <span className="text-slate-200">{target.occupation || target.role || 'Unknown'}</span>
                                         </div>
+
+                                        {/* NPC Relationship Tracking */}
+                                        {target.memory && typeof target.memory.opinionOfPlayer === 'number' && (
+                                            <div className="mt-3 pt-3 border-t border-slate-700/50">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-slate-500 text-xs">Opinion:</span>
+                                                    <span className={`text-xs font-semibold ${
+                                                        target.memory.opinionOfPlayer >= 70 ? 'text-green-400' :
+                                                        target.memory.opinionOfPlayer >= 50 ? 'text-blue-400' :
+                                                        target.memory.opinionOfPlayer >= 30 ? 'text-yellow-400' :
+                                                        target.memory.opinionOfPlayer >= 10 ? 'text-orange-400' :
+                                                        'text-red-400'
+                                                    }`}>
+                                                        {target.memory.opinionOfPlayer >= 70 ? 'Friendly' :
+                                                         target.memory.opinionOfPlayer >= 50 ? 'Warm' :
+                                                         target.memory.opinionOfPlayer >= 30 ? 'Neutral' :
+                                                         target.memory.opinionOfPlayer >= 10 ? 'Cold' :
+                                                         'Hostile'}
+                                                    </span>
+                                                </div>
+
+                                                {/* Opinion bar (0-100 scale) */}
+                                                <div className="relative w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-300 ${
+                                                            target.memory.opinionOfPlayer >= 70 ? 'bg-gradient-to-r from-green-600 to-green-500' :
+                                                            target.memory.opinionOfPlayer >= 50 ? 'bg-gradient-to-r from-blue-600 to-blue-500' :
+                                                            target.memory.opinionOfPlayer >= 30 ? 'bg-gradient-to-r from-yellow-600 to-yellow-500' :
+                                                            target.memory.opinionOfPlayer >= 10 ? 'bg-gradient-to-r from-orange-600 to-orange-500' :
+                                                            'bg-gradient-to-r from-red-600 to-red-500'
+                                                        }`}
+                                                        style={{ width: `${target.memory.opinionOfPlayer}%` }}
+                                                    />
+                                                </div>
+
+                                                {/* Numerical value */}
+                                                <div className="flex justify-center mt-1">
+                                                    <span className="text-xs text-slate-400">
+                                                        {target.memory.opinionOfPlayer}/100
+                                                    </span>
+                                                </div>
+
+                                                {/* Recent conversation summaries */}
+                                                {target.memory.conversationSummaries && target.memory.conversationSummaries.length > 0 && (
+                                                    <div className="mt-2 pt-2 border-t border-slate-700/30">
+                                                        <details className="group">
+                                                            <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 flex items-center gap-1">
+                                                                <span className="group-open:rotate-90 transition-transform">▶</span>
+                                                                Recent Interactions ({target.memory.conversationSummaries.slice(-3).length})
+                                                            </summary>
+                                                            <div className="mt-1 space-y-1.5 ml-3">
+                                                                {target.memory.conversationSummaries.slice(-3).reverse().map((summary, idx) => (
+                                                                    <div key={idx} className="text-xs text-slate-400 italic border-l-2 border-slate-600 pl-2">
+                                                                        "{summary}"
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </details>
+                                                    </div>
+                                                )}
+
+                                                {/* Warning indicators based on playerRelationship if it exists */}
+                                                {target.playerRelationship?.willAttack && (
+                                                    <div className="mt-2 px-2 py-1 bg-red-900/30 border border-red-600/50 rounded text-xs text-red-300 flex items-center gap-1">
+                                                        <span>⚔️</span>
+                                                        <span>Will attack on sight</span>
+                                                    </div>
+                                                )}
+                                                {target.playerRelationship?.willConfront && !target.playerRelationship?.willAttack && (
+                                                    <div className="mt-2 px-2 py-1 bg-orange-900/30 border border-orange-600/50 rounded text-xs text-orange-300 flex items-center gap-1">
+                                                        <span>⚠️</span>
+                                                        <span>May confront you</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Language Historical Context - Subtle educational note */}
@@ -2413,7 +2517,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 {offer.taskType === 'explore_location' && playerCharacter.inventory && playerCharacter.inventory.length > 0 && (
                                                     <div className="text-xs text-green-300/70 mb-3 flex items-center gap-1">
                                                         <span>📦</span>
-                                                        <span>Will take: {playerCharacter.inventory[0]?.name || 'first item from inventory'}</span>
+                                                        <span>Will take: {playerCharacter.inventory[playerCharacter.inventory.length - 1]?.name || 'most recent item from inventory'}</span>
                                                     </div>
                                                 )}
 

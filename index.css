@@ -55,9 +55,9 @@
   --text-tertiary: #7A7165;
   --text-muted: #9C9387;
 
-  --accent-primary: #4B7768;
-  --accent-primary-hover: #40695C;
-  --accent-primary-active: #365A4F;
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #2563eb;
+  --accent-primary-active: #1d4ed8;
 
     --accent-secondary: #FFA000;
   --accent-secondary-hover: #FFA000;
@@ -85,7 +85,7 @@
   --surface-sidebar-border: var(--border-strong);
   --surface-sidebar-shadow: 2px 0 28px rgba(20, 20, 20, 0.08);
 
-  --surface-modal-overlay-bg: rgba(36, 46, 61, 0.18);
+  --surface-modal-overlay-bg: rgba(36, 46, 61, 0.75);
   --surface-modal-panel-bg: var(--bg-card);
   --surface-modal-panel-text: var(--text-primary);
   --surface-modal-panel-border: var(--border-normal);
@@ -102,10 +102,10 @@
   --surface-muted-hover-border: rgba(183, 166, 140, 0.55);
   --surface-track-bg: rgba(191, 173, 146, 0.35);
   --surface-track-border: rgba(179, 163, 139, 0.4);
-  --surface-handle-bg: rgba(99, 132, 120, 0.25);
-  --surface-handle-hover-bg: rgba(99, 132, 120, 0.45);
-  --surface-tooltip-bg: rgba(58, 69, 80, 0.95);
-  --surface-tooltip-border: rgba(48, 56, 64, 0.45);
+  --surface-handle-bg: rgba(59, 130, 246, 0.25);
+  --surface-handle-hover-bg: rgba(59, 130, 246, 0.45);
+  --surface-tooltip-bg: rgba(254, 252, 247, 0.98);
+  --surface-tooltip-border: rgba(157, 142, 120, 0.6);
   --surface-bottom-panel-bg: linear-gradient(180deg, rgba(248, 244, 233, 0.96) 0%, rgba(236, 226, 210, 0.98) 100%);
   --surface-bottom-panel-border: rgba(201, 187, 165, 0.6);
   --surface-bottom-panel-shadow: 0 -24px 48px rgba(63, 50, 33, 0.16);
@@ -125,7 +125,7 @@
   --surface-chip-hover: rgba(224, 211, 192, 0.92);
   --surface-chip-border: rgba(205, 188, 162, 0.6);
   --surface-chip-active-bg: var(--accent-primary);
-  --surface-chip-active-border: rgba(75, 119, 104, 0.55);
+  --surface-chip-active-border: rgba(59, 130, 246, 0.55);
   --surface-chip-active-text: var(--button-primary-text);
   --action-tile-bg: rgba(243, 233, 216, 0.88);
   --action-tile-border: rgba(214, 197, 173, 0.65);
@@ -133,15 +133,15 @@
   --action-tile-hover-border: rgba(201, 183, 158, 0.7);
   --action-tile-disabled-bg: rgba(232, 219, 198, 0.6);
   --action-tile-disabled-border: rgba(203, 184, 157, 0.45);
-  --brand-text: #4d6c5f;
-  --brand-shadow: rgba(77, 108, 95, 0.35);
-  --brand-glow: rgba(148, 197, 179, 0.45);
+  --brand-text: #5cc483;
+  --brand-shadow: rgba(92, 196, 131, 0.4);
+  --brand-glow: rgba(56, 189, 148, 0.5);
 
-  --button-primary-bg: #4B7768;
-  --button-primary-hover: #41695C;
-  --button-primary-border: rgba(61, 104, 90, 0.55);
+  --button-primary-bg: #3b82f6;
+  --button-primary-hover: #2563eb;
+  --button-primary-border: rgba(37, 99, 235, 0.55);
   --button-primary-text: #F8FBF9;
-  --button-primary-shadow: 0 16px 34px rgba(52, 85, 77, 0.28);
+  --button-primary-shadow: 0 16px 34px rgba(37, 99, 235, 0.28);
 
   --button-secondary-bg: rgba(203, 167, 121, 0.22);
   --button-secondary-hover: rgba(203, 167, 121, 0.32);
@@ -170,8 +170,8 @@
 
 /* Dark mode variables */
 :root.dark {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #262626;
+  --bg-primary: #070b14;
+  --bg-secondary: #0F172A;
   --bg-tertiary: #333333;
   --bg-card: #152133;
   --bg-elevated: #1f1f1f;
