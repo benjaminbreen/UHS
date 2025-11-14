@@ -52,6 +52,7 @@ import { railroadNetworkService } from './services/railroadNetworkService';
 import { LoadingSkeleton } from './components/LoadingSkeleton';
 import AssessmentModal from './components/AssessmentModal';
 import SessionCompletionModal from './components/SessionCompletionModal';
+import GlobalEventModal from './components/GlobalEventModal';
 import JournalViewport from './components/JournalViewport';
 import QuestsPanel from './components/QuestsPanel';
 import { GameModePanel } from './components/GameModePanel';
@@ -60,6 +61,7 @@ import { LanguageFamilyTree } from './components/LanguageFamilyTree';
 // Lazy load heavy modals that are used infrequently
 const EventModal = lazy(() => import('./components/EventModal').then(m => ({ default: m.EventModal })));
 const InitialScenarioModal = lazy(() => import('./components/InitialScenarioModal'));
+const WorldWeaverModal = lazy(() => import('./components/WorldWeaverModal'));
 const FactionsModal = lazy(() => import('./components/FactionsModal'));
 const GameOverModal = lazy(() => import('./components/GameOverModal'));
 const NpcDeathModal = lazy(() => import('./components/NpcDeathModal'));
@@ -349,6 +351,8 @@ const AppContent: React.FC = () => {
         setShowEventModal,
         showFactionsModal,
         setShowFactionsModal,
+        globalEventModalData,
+        setGlobalEventModalData,
         showLanguageTree,
         setShowLanguageTree,
         selectedLanguageId,
@@ -365,7 +369,7 @@ const AppContent: React.FC = () => {
         triggerAssessmentReview
     } = useUI();
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY } = usePlayer();
-    const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog } = useGame();
+    const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog, narrationHistory, setNarrationHistory } = useGame();
     const gameDateString = React.useMemo(() => {
         if (!gameDate) return undefined;
         const pad = (num: number) => String(num).padStart(2, '0');
@@ -385,6 +389,11 @@ const AppContent: React.FC = () => {
         setNpcDeathData({ npc, disease });
         setShowNpcDeathModal(true);
     }, [setShowNpcDeathModal]);
+
+    // Handle global event triggering
+    const handleGlobalEventTriggered = React.useCallback((event: any) => {
+        setGlobalEventModalData(event);
+    }, [setGlobalEventModalData]);
 
     const handleAssessmentModalClose = React.useCallback((restart = true) => {
         closeAssessmentModal(showDeathModal ? false : restart);
@@ -475,7 +484,7 @@ const AppContent: React.FC = () => {
         handleStudyStarsToggle(false);
     }, [handleStudyStarsToggle]);
 
-    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning, isPlayerOnFarm);
+    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning, isPlayerOnFarm, handleGlobalEventTriggered);
 
     // Handle disease progression queue
     React.useEffect(() => {
@@ -503,6 +512,26 @@ const AppContent: React.FC = () => {
         characterDescription?: string;
         quest?: any;
     } | null>(null);
+
+    const [worldWeaverModalData, setWorldWeaverModalData] = React.useState<{
+        isOpen: boolean;
+        year: number;
+        location: string;
+        explanation: string;
+        reasoning?: string;
+        suggestion?: string;
+        characterSpec?: any;
+        gameMode?: any;
+        specialNPCs?: any[];
+        customEventsCount?: number;
+        quest?: any;
+        userPrompt?: string;
+    }>({
+        isOpen: false,
+        year: 1000,
+        location: '',
+        explanation: ''
+    });
     const [showTransitionOverlay, setShowTransitionOverlay] = React.useState(false); // Full-screen overlay state
 
     // Use a ref to ensure we only generate once from URL
@@ -1016,11 +1045,18 @@ const AppContent: React.FC = () => {
         />
         
         <div className="relative flex flex-col h-full">
-            {/* Desktop Navigation */}
-            {!isMobile && <div className={`${isSafariBrowser ? `safari-fade-in ${uiVisible ? 'visible' : ''}` : 'animate-fade-in'} transition-opacity duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            {/* Desktop Navigation - Slides down from top */}
+            {!isMobile && <div className={`
+                ${isSafariBrowser
+                    ? `safari-entrance safari-entrance-slide-down ${uiVisible ? 'visible' : ''}`
+                    : 'animate-entrance-slide-down'
+                }
+                ${isStudyingStars ? 'opacity-0 pointer-events-none' : ''}
+            `}>
                 <TopNavBarPolished
                     onWorldWeaverLoadingChange={setIsProcessingWorldWeaver}
                     onWorldWeaverDataReceived={setWorldWeaverData}
+                    onWorldWeaverModalDataChange={setWorldWeaverModalData}
                 />
             </div>}
             
@@ -1086,9 +1122,17 @@ const AppContent: React.FC = () => {
                 {!showFactoryPanel && (
                 <div className={`${mobileMenuOpen === 'left' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-opacity duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     {mobileMenuOpen === 'left' && (
-                        <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
+                        <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={() => setMobileMenuOpen(null)} />
                     )}
-                    <div className={`${mobileMenuOpen === 'left' ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content' : `h-full ${isSafariBrowser ? `safari-slide-left ${uiVisible ? 'visible' : ''}` : 'animate-slide-in-left delay-100'}`} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
+                    <div className={`${
+                        mobileMenuOpen === 'left'
+                            ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content'
+                            : `h-full ${
+                                isSafariBrowser
+                                    ? `safari-entrance safari-entrance-slide-left ${uiVisible ? 'visible' : ''}`
+                                    : 'animate-entrance-slide-left entrance-delay-100'
+                              }`
+                    } max-w-[85vw] sm:max-w-none overflow-y-auto`}>
                         <LeftSidebar
                     onShowFactionsModal={(data) => {
                         setFactionData(data);
@@ -1113,17 +1157,29 @@ const AppContent: React.FC = () => {
                     isProcessingWorldWeaver={isProcessingWorldWeaver}
                     onPlayerDeath={handleDeath}
                     onFarmPanelChange={setIsPlayerOnFarm}
-                    className={`${isSafariBrowser ? `safari-fade-in-scale ${uiVisible ? 'visible' : ''}` : 'animate-fade-in-scale delay-200'}`}
+                    className={`${
+                        isSafariBrowser
+                            ? `safari-entrance safari-entrance-scale ${uiVisible ? 'visible' : ''}`
+                            : 'animate-entrance-scale entrance-delay-200'
+                    }`}
                     isStudyingStars={isStudyingStars}
                 />
                 
-                {/* Right Sidebar with mobile overlay and slide animation */}
+                {/* Right Sidebar - Slides in from right with delay */}
                 {isRightSidebarVisible && (
                     <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                         {mobileMenuOpen === 'right' && (
-                            <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
+                            <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={() => setMobileMenuOpen(null)} />
                         )}
-                        <div className={`${mobileMenuOpen === 'right' ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content' : `h-full ${isSafariBrowser ? '' : 'animate-slide-in-right delay-100'}`} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
+                        <div className={`${
+                            mobileMenuOpen === 'right'
+                                ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content'
+                                : `h-full ${
+                                    isSafariBrowser
+                                        ? `safari-entrance safari-entrance-slide-right ${uiVisible ? 'visible' : ''}`
+                                        : 'animate-entrance-slide-right entrance-delay-300'
+                                  }`
+                        } max-w-[85vw] sm:max-w-none overflow-y-auto`}>
                             <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
                         </div>
                     </div>
@@ -1238,31 +1294,6 @@ const AppContent: React.FC = () => {
             y={factionTooltipPosition.y}
           />
         )}
-        
-        {/* Initial Scenario Modal for all games */}
-        {showInitialScenarioModal && playerCharacter && gameDate && currentZone && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
-            <InitialScenarioModal
-              isOpen={showInitialScenarioModal}
-              onClose={() => {
-                setShowInitialScenarioModal(false);
-                // Clear WorldWeaver data after use
-                if (worldWeaverData) {
-                  setWorldWeaverData(null);
-                }
-              }}
-              playerCharacter={playerCharacter}
-              gameDate={gameDate}
-              currentZone={currentZone}
-              worldWeaverData={worldWeaverData}
-              currentRegion={currentRegion || currentZone} // Use actual region, fallback to zone
-              localArea={localArea || 'Unknown Region'} // Use actual localArea from map
-              gameMode={currentMode}
-              urlConfig={urlConfig}
-              isProcessingWorldWeaver={isProcessingWorldWeaver}
-            />
-          </Suspense>
-        )}
 
         {/* Floating Text System */}
         <FloatingText
@@ -1288,6 +1319,85 @@ const AppContent: React.FC = () => {
           player={playerCharacter}
           gameDateString={gameDateString}
         />
+
+        {/* Global Event Modal */}
+        {globalEventModalData && playerCharacter && (
+          <GlobalEventModal
+            event={globalEventModalData}
+            onClose={() => setGlobalEventModalData(null)}
+            playerCharacter={playerCharacter}
+            onApplyEffects={(choice) => {
+              // Apply immediate effects to player
+              if (choice.effects.currencyChange) {
+                setPlayerCharacter(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    currency: Math.max(0, prev.currency + choice.effects.currencyChange!)
+                  };
+                });
+              }
+
+              if (choice.effects.reputationChange) {
+                setPlayerCharacter(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    mapReputation: Math.max(0, Math.min(100, prev.mapReputation + choice.effects.reputationChange!))
+                  };
+                });
+              }
+
+              const fellIll = choice.effects.healthRisk && Math.random() < choice.effects.healthRisk;
+              if (fellIll) {
+                const damageAmount = Math.floor(playerCharacter.maxHealth * 0.3);
+                setPlayerCharacter(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    health: Math.max(1, prev.health - damageAmount)
+                  };
+                });
+                showToast(`You have fallen severely ill from the ${globalEventModalData.name}!`, 'warning');
+              }
+
+              // Add narration about the event and player's choice
+              console.log('🔔 Global Event Choice Made - Starting narration generation');
+              console.log('Event data:', globalEventModalData.name, globalEventModalData.title);
+              console.log('Choice:', choice.label);
+
+              const choiceLabel = choice.label.substring(choice.label.indexOf(' ') + 1);
+              let narrationText = `**${globalEventModalData.name}**: ${globalEventModalData.description.split('\n')[0]}\n\n`;
+              narrationText += `You decided to **${choiceLabel.toLowerCase()}**.`;
+
+              if (choice.effects.currencyChange && choice.effects.currencyChange > 0) {
+                narrationText += ` You gained ${choice.effects.currencyChange} coins.`;
+              } else if (choice.effects.currencyChange && choice.effects.currencyChange < 0) {
+                narrationText += ` You lost ${Math.abs(choice.effects.currencyChange)} coins.`;
+              }
+
+              if (choice.effects.reputationChange && choice.effects.reputationChange > 0) {
+                narrationText += ` Your reputation improved.`;
+              } else if (choice.effects.reputationChange && choice.effects.reputationChange < 0) {
+                narrationText += ` Your reputation suffered.`;
+              }
+
+              if (fellIll) {
+                narrationText += ` Unfortunately, you contracted a severe illness.`;
+              }
+
+              console.log('📝 Generated narration text:', narrationText);
+              console.log('📋 Current narration history length:', narrationHistory.length);
+
+              setNarrationHistory(prev => {
+                console.log('✅ setNarrationHistory callback executing, prev length:', prev.length);
+                const newHistory = [...prev, { sender: 'narrator' as const, text: narrationText }];
+                console.log('✅ New history length:', newHistory.length);
+                return newHistory;
+              });
+            }}
+          />
+        )}
 
         {/* Death Modal */}
         {playerCharacter && (
@@ -1433,6 +1543,52 @@ const AppContent: React.FC = () => {
             initialLanguageId={selectedLanguageId}
             currentYear={gameDate?.year || 1500}
           />
+        )}
+
+        {/* WorldWeaver Modal - Rendered at app level to escape TopNav stacking context */}
+        {worldWeaverModalData.isOpen && (
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <WorldWeaverModal
+              isOpen={worldWeaverModalData.isOpen}
+              onClose={() => setWorldWeaverModalData(prev => ({ ...prev, isOpen: false }))}
+              year={worldWeaverModalData.year}
+              location={worldWeaverModalData.location}
+              explanation={worldWeaverModalData.explanation}
+              reasoning={worldWeaverModalData.reasoning}
+              suggestion={worldWeaverModalData.suggestion}
+              characterSpec={worldWeaverModalData.characterSpec}
+              gameMode={worldWeaverModalData.gameMode}
+              specialNPCs={worldWeaverModalData.specialNPCs}
+              customEventsCount={worldWeaverModalData.customEventsCount}
+              quest={worldWeaverModalData.quest}
+              userPrompt={worldWeaverModalData.userPrompt}
+            />
+          </Suspense>
+        )}
+
+        {/* Initial Scenario Modal - Rendered last to ensure it appears on top */}
+        {showInitialScenarioModal && playerCharacter && gameDate && currentZone && (
+          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <InitialScenarioModal
+              isOpen={showInitialScenarioModal}
+              onClose={() => {
+                setShowInitialScenarioModal(false);
+                // Clear WorldWeaver data after use
+                if (worldWeaverData) {
+                  setWorldWeaverData(null);
+                }
+              }}
+              playerCharacter={playerCharacter}
+              gameDate={gameDate}
+              currentZone={currentZone}
+              worldWeaverData={worldWeaverData}
+              currentRegion={currentRegion || currentZone}
+              localArea={localArea || 'Unknown Region'}
+              gameMode={currentMode}
+              urlConfig={urlConfig}
+              isProcessingWorldWeaver={isProcessingWorldWeaver}
+            />
+          </Suspense>
         )}
       </div>
     );

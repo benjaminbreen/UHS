@@ -428,6 +428,9 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
         ? `opacity-100 ${!isSafari ? 'scale-100 translate-y-0' : ''}`
         : `opacity-0 ${!isSafari ? 'scale-95 translate-y-4' : ''}`;
 
+    // Card animation class - only animate when content is visible
+    const cardAnimationClass = contentVisible ? 'card-entry-animation' : '';
+
     // Combine related computations into single memoized object
     const scenarioData = useMemo(() => {
         const dateInfo = parseDateString(String(gameDate.year));
@@ -596,7 +599,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     };
 
     return (
-        <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-500 p-2 md:p-4 pb-7 md:pb-3 transition-opacity duration-500 ${
+        <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-2 md:p-4 pb-7 md:pb-3 transition-opacity duration-500 ${
             isVisible ? 'opacity-100' : 'opacity-0'
         }`}>
             <div
@@ -670,7 +673,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         {/* Left Column - Main Content (3/5) */}
                         <div className="lg:col-span-4 space-y-3">
                         {/* Historical Context */}
-                            <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
+                            <div className={getSafariOptimizedClassName(`surface-card rounded-2xl p-4 shadow-sm ${!contentVisible ? 'opacity-0' : ''} ${cardAnimationClass} card-entry-delay-1`)}>
                                 <div className="flex items-center gap-3 mb-1">
                                     <Globe className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
                                     <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
@@ -703,7 +706,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
 
                             {/* Character Info */}
-                            <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
+                            <div className={getSafariOptimizedClassName(`surface-card rounded-2xl p-4 shadow-sm ${!contentVisible ? 'opacity-0' : ''} ${cardAnimationClass} card-entry-delay-2`)}>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <User className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -722,7 +725,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 <div className="flex flex-col sm:flex-row gap-6">
                                     {/* Portrait Column */}
                                     <div className="flex-shrink-0 w-50">
-                                        <div className="relative cursor-pointer"
+                                        <div className="relative cursor-pointer group"
                                             onClick={() => {
                                                 if (shouldRenderPortrait) {
                                                     const expressions: Array<'neutral' | 'smile' | 'surprise' | 'scowl' | 'annoyed'> = ['neutral', 'smile', 'surprise', 'scowl', 'annoyed'];
@@ -734,13 +737,13 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                             }}
                                             title="Click to change expression"
                                         >
-                                            <div className="w-50 h-40 rounded-xl border-2 border-amber-400/50 overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 transition-all hover:border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.4)]">
+                                            <div className="w-50 h-40 rounded-xl border-2 border-amber-400/50 overflow-hidden bg-gradient-to-br from-amber-500/20 to-amber-600/20 transition-all duration-300 hover:border-amber-400 hover:scale-[1.02] shadow-[0_0_20px_rgba(251,191,36,0.2)] hover:shadow-[0_0_30px_rgba(251,191,36,0.3)]">
                                                 {shouldRenderPortrait ? (
                                                     <ProceduralPortrait
                                                         character={playerCharacter}
                                                         size={160}
                                                         temporaryExpression={portraitExpression === 'neutral' ? null : portraitExpression}
-                                                        className="w-full h-full"
+                                                        className="w-full h-full portrait-smooth-transition"
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-slate-200/50 dark:bg-slate-700/50">
@@ -787,11 +790,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                     {/* Character Info Column */}
                                     <div className="flex-1 space-y-3">
                                         <div className="grid grid-cols-2 gap-3">
-                                            <div>
+                                            <div className="stat-card p-2 rounded-lg">
                                                 <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Name</div>
                                                 <div className="text-text-primary font-medium">{playerCharacter.name}</div>
                                             </div>
-                                            <div>
+                                            <div className="stat-card p-2 rounded-lg">
                                                 <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Occupation</div>
                                                 <div className="relative inline-block">
                                                     <div
@@ -809,7 +812,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                     )}
                                                 </div>
                                             </div>
-                                            <div>
+                                            <div className="stat-card p-2 rounded-lg">
                                                 <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Social Class</div>
                                                 <div className="text-text-primary font-medium">
                                                     {playerCharacter.class ?
@@ -821,7 +824,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                         : 'Common'}
                                                 </div>
                                             </div>
-                                            <div>
+                                            <div className="stat-card p-2 rounded-lg">
                                                 <div className="text-xs text-text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
                                                     <MapPin className="w-3 h-3" />
                                                     Region
@@ -891,7 +894,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
 
                     {/* Game Mode & Mission */}
-                    <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
+                    <div className={getSafariOptimizedClassName(`surface-card rounded-2xl p-4 shadow-sm ${!contentVisible ? 'opacity-0' : ''} ${cardAnimationClass} card-entry-delay-3`)}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
                                 <Crown className={`w-5 h-5 shrink-0 ${
@@ -956,7 +959,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     </div>
 
                     {/* Settings Section */}
-                    <div className={getSafariOptimizedClassName('surface-card rounded-2xl p-4 shadow-sm')}>
+                    <div className={getSafariOptimizedClassName(`surface-card rounded-2xl p-4 shadow-sm ${!contentVisible ? 'opacity-0' : ''} ${cardAnimationClass} card-entry-delay-4`)}>
                         <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-2">Settings</h4>
                         <label className="flex flex-col md:flex-row items-start md:items-center gap-3 cursor-pointer group">
                             <div className="flex items-start gap-3">
@@ -1012,9 +1015,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                         }
                                         onClose();
                                     }}
-                                    className={`w-full px-5 py-4 text-text-primary font-bold rounded-lg shadow-lg transition-all duration-300 ease-out text-lg ${
-                                        gameMode ? `${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.bg || 'surface-elevated'} ${GAME_MODE_COLORS[gameMode.id as keyof typeof GAME_MODE_COLORS]?.hover || 'hover:shadow-xl'}` : 'surface-elevated hover:shadow-xl'
-                                    } bg-[color:var(--accent-primary)] hover:bg-[color:var(--accent-primary)]/90`}
+                                    className="w-full px-5 py-4 text-white font-bold rounded-xl shadow-lg transition-all duration-300 ease-out text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]"
                                 >
                                     Begin the Simulation
                                 </button>
@@ -1055,7 +1056,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                                     setTimeout(() => setCopiedToClipboard(false), 3000);
                                                 }}
                                                 className={`px-4 py-2 rounded transition-colors flex items-center gap-2 ${
-                                                    copiedToClipboard ? 'bg-green-600 text-text-primary' : 'bg-blue-600 hover:bg-blue-700 text-text-primary'
+                                                    copiedToClipboard ? 'bg-green-600 text-text-primary copy-success-animation' : 'bg-blue-600 hover:bg-blue-700 text-text-primary'
                                                 }`}
                                             >
                                                 {copiedToClipboard ? (
@@ -1097,7 +1098,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                 }
                                 onClose();
                             }}
-                            className="w-full px-6 py-4 text-white font-bold rounded-xl shadow-lg text-lg bg-[color:var(--accent-primary)] hover:bg-[color:var(--accent-primary)]/90 transition-all"
+                            className="w-full px-6 py-4 text-white font-bold rounded-xl shadow-lg text-lg bg-gradient-to-r from-emerald-600 to-teal-600 active:from-emerald-500 active:to-teal-500 active:scale-[0.98] transition-all"
                         >
                             Begin the Simulation
                         </button>

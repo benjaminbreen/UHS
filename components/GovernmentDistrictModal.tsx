@@ -784,7 +784,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: 'var(--surface-modal-overlay-bg)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)', // Safari support
         display: 'flex',
@@ -806,7 +806,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
           ref={firstFocusRef}
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 z-30 inline-flex items-center justify-center rounded-md p-2 text-slate-200/80 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 z-30 inline-flex items-center justify-center rounded-md p-2 text-[var(--text-primary)]/80 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-amber-500"
         >
           <FaTimes className="w-5 h-5" />
         </button>
@@ -839,38 +839,36 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
 
           {/* Tints/overlays: ensure they start at the true top — no gap */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent"></div>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t to-transparent"
+            style={{ background: 'linear-gradient(to top, var(--bg-primary) 0%, transparent 100%)' }}></div>
 
           {/* Title/Sub header pinned to bottom */}
-          <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-3 sm:pb-4 md:pb-5 text-white flex justify-between items-end">
+          <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-3 sm:pb-4 md:pb-5 flex justify-between items-end">
             <div className="flex items-start gap-2 sm:gap-3">
               <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 backdrop-blur-sm border-2 border-amber-500/40 shadow-lg">
-                <GiCapitol className="text-amber-300" size={18} />
+                <GiCapitol className="text-amber-600 dark:text-amber-300" size={18} />
               </div>
               <div>
                 <p
-                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-amber-300/90 mb-0.5"
-                  style={{ textShadow: '1px 1px 3px #000' }}
+                  className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-300/90 mb-0.5"
                 >
                   {governmentInfo.type} • {displayDate}
                 </p>
                 <h2
-                  className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent"
-                  style={{ textShadow: '0 0 30px rgba(251,191,36,0.45)' }}
+                  className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-700 dark:text-amber-200"
                 >
                   {structure.name}
                 </h2>
                 <p
-                  className="text-xs sm:text-sm capitalize text-amber-100/90 mt-0.5 flex items-center gap-1.5"
-                  style={{ textShadow: '1px 1px 2px #000' }}
+                  className="text-xs sm:text-sm capitalize text-amber-700 dark:text-amber-100/90 mt-0.5 flex items-center gap-1.5"
                 >
-                  <FaLandmark className="text-amber-300" size={12} /> Government District • {currentLocation}
+                  <FaLandmark className="text-amber-600 dark:text-amber-300" size={12} /> Government District • {currentLocation}
                 </p>
               </div>
             </div>
 
             {/* Tabs (right-aligned on large; full-width below) */}
-            <div className="hidden md:flex gap-1.5 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
+            <div className="hidden md:flex gap-1.5 bg-[var(--surface-muted-bg)] backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
               {(['overview', 'buildings', 'archives'] as const).map((tab) => (
                 <button
                   key={tab}
@@ -878,7 +876,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                   className={`px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
                     activeTab === tab
                       ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
-                      : 'text-amber-300/80 hover:text-amber-200 hover:bg-slate-800/50'
+                      : 'text-amber-600 dark:text-amber-300/80 hover:text-amber-700 dark:text-amber-200 hover:bg-[var(--surface-muted)]'
                   }`}
                 >
                   {tab === 'overview' && <span className="inline-flex items-center gap-1.5"><FaLandmark size={12} /> Overview</span>}
@@ -892,7 +890,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
 
           {/* Mobile tabs (overlay, below badge) */}
           <div className="md:hidden absolute left-0 right-0 bottom-0 px-3 pb-2">
-            <div className="flex gap-1.5 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
+            <div className="flex gap-1.5 bg-[var(--surface-muted-bg)] backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
               {(['overview', 'buildings', 'archives'] as const).map((tab) => (
                 <button
                   key={tab}
@@ -900,7 +898,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                   className={`flex-1 text-[11px] px-2 py-1.5 rounded-md font-semibold transition-all ${
                     activeTab === tab
                       ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
-                      : 'text-amber-300/80 hover:text-amber-200 hover:bg-slate-800/50'
+                      : 'text-amber-600 dark:text-amber-300/80 hover:text-amber-700 dark:text-amber-200 hover:bg-[var(--surface-muted)]'
                   }`}
                 >
                   {tab === 'overview' && 'Overview'}
@@ -926,8 +924,8 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                 <div className="space-y-4">
                   {/* Leader Card - More compact */}
                   {governmentLeader && (
-                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
-                      <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
+                    <section className="bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] rounded-lg p-4 border border-amber-700/20">
+                      <h3 className="text-base font-bold text-amber-600 dark:text-amber-300 mb-3 flex items-center gap-2">
                         <GiThroneKing size={18} /> Current Leader
                       </h3>
                       <div className="flex items-start gap-3">
@@ -937,12 +935,12 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                           className="rounded-lg border border-amber-500/30"
                         />
                         <div className="flex-1">
-                          <h4 className="text-lg font-bold text-amber-200">{governmentLeader.name}</h4>
+                          <h4 className="text-lg font-bold text-amber-700 dark:text-amber-200">{governmentLeader.name}</h4>
                           <p className="text-sm text-amber-400 font-medium">{governmentLeader.title}</p>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-[var(--text-muted)] mt-1">
                             {governmentLeader.age} years old • {governmentLeader.gender}
                           </p>
-                          <div className="text-xs text-amber-300/80 mt-2">
+                          <div className="text-xs text-amber-600 dark:text-amber-300/80 mt-2">
                             {(() => {
                               // Charisma descriptions (0-10)
                               const charismaDesc = [
@@ -991,8 +989,8 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
 
                   {/* Ruling Authority - Compact */}
                   {dominantFaction && (
-                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
-                      <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
+                    <section className="bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] rounded-lg p-4 border border-amber-700/20">
+                      <h3 className="text-base font-bold text-amber-90 dark:text-amber-500 mb-3 flex items-center gap-2">
                         <FaCrown size={18} /> Ruling Authority
                       </h3>
                       {(() => {
@@ -1003,8 +1001,8 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                                style={{ borderColor: fd.color + '60' }}>
                             <Icon size={24} style={{ color: fd.color }} />
                             <div>
-                              <div className="font-medium text-amber-200 text-sm">{dominantFaction.name}</div>
-                              <p className="text-xs text-slate-400 mt-0.5">{dominantFaction.description}</p>
+                              <div className="font-medium text-amber-700 dark:text-amber-200 text-sm">{dominantFaction.name}</div>
+                              <p className="text-xs text-[var(--text-muted)] mt-0.5">{dominantFaction.description}</p>
                             </div>
                           </div>
                         );
@@ -1017,7 +1015,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                 <div className="space-y-4">
                   {/* Enter Building - Main CTA */}
                   <section className="bg-gradient-to-br from-amber-700/20 to-amber-800/20 rounded-lg p-6 border border-amber-600/30">
-                    <h3 className="text-base font-bold text-amber-300 mb-4 flex items-center gap-2">
+                    <h3 className="text-base font-bold text-amber-600 dark:text-amber-300 mb-4 flex items-center gap-2">
                       <FaDoorOpen size={18} /> Enter Building
                     </h3>
                     <button
@@ -1066,16 +1064,16 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                       <FaDoorOpen size={20} />
                       Enter the {governmentType?.name || 'Government Building'}
                     </button>
-                    <p className="text-xs text-slate-400 text-center italic mt-3">
+                    <p className="text-xs text-[var(--text-muted)] text-center italic mt-3">
                       Explore the interior of this {governmentType?.districtType || 'administrative center'}
                     </p>
                   </section>
 
                   {/* Quick Actions */}
-                  <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
+                  <section className="bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] rounded-lg p-4 border border-amber-700/20">
                     <div className="space-y-2">
                       <button
-                        className="w-full px-3 py-2 bg-slate-700/50 hover:bg-slate-600/60 text-slate-200 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
+                        className="w-full px-3 py-2 bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted)] text-[var(--text-primary)] rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
                         onClick={() => setActiveTab('archives')}
                       >
                         <FaScroll size={14} /> View Records
@@ -1091,8 +1089,8 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
           {activeTab === 'buildings' && (
             <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-2">
               <div className="space-y-6">
-                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20">
-                  <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
+                <section className="bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] rounded-xl p-4 sm:p-5 border border-amber-700/20">
+                  <h3 className="text-lg font-bold text-amber-600 dark:text-amber-300 mb-4 flex items-center gap-2">
                     <FaBuilding className="text-amber-400" /> Government Buildings
                   </h3>
                   {availableSpecialMaps.length ? (
@@ -1100,10 +1098,10 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                       {availableSpecialMaps.map((bld, idx) => (
                         <div
                           key={idx}
-                          className={`p-4 bg-slate-900/50 rounded-lg border transition-all cursor-pointer ${
+                          className={`p-4 bg-[var(--surface-muted-bg)] rounded-lg border transition-all cursor-pointer ${
                             selectedBuilding === idx
                               ? 'border-amber-500/50 shadow-lg shadow-amber-500/20'
-                              : 'border-slate-700/50 hover:border-amber-600/30'
+                              : 'border-[var(--border-normal)] hover:border-amber-600/30'
                           }`}
                           onClick={() => setSelectedBuilding(idx)}
                           onDoubleClick={() => enterSelectedBuilding(idx)}
@@ -1113,8 +1111,8 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 text-2xl">{bld.icon}</div>
                             <div className="flex-1">
-                              <h4 className="font-bold text-amber-200">{bld.name}</h4>
-                              <p className="text-xs text-slate-400 mt-1">{bld.description}</p>
+                              <h4 className="font-bold text-amber-700 dark:text-amber-200">{bld.name}</h4>
+                              <p className="text-xs text-[var(--text-muted)] mt-1">{bld.description}</p>
                               {bld.dateRange && (
                                 <p className="text-xs text-amber-400/70 mt-2">{bld.dateRange}</p>
                               )}
@@ -1124,23 +1122,23 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-400 italic">No specific buildings for this location and era.</p>
+                    <p className="text-sm text-[var(--text-muted)] italic">No specific buildings for this location and era.</p>
                   )}
                 </section>
               </div>
 
               <div className="space-y-6">
                 {selectedBuilding !== null && availableSpecialMaps[selectedBuilding] && (
-                  <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20">
-                    <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
+                  <section className="bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] rounded-xl p-4 sm:p-5 border border-amber-700/20">
+                    <h3 className="text-lg font-bold text-amber-600 dark:text-amber-300 mb-4 flex items-center gap-2">
                       {getArchetypeIcon(availableSpecialMaps[selectedBuilding].archetype)} Building Details
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="font-bold text-amber-200 mb-2">
+                        <h4 className="font-bold text-amber-700 dark:text-amber-200 mb-2">
                           {availableSpecialMaps[selectedBuilding].name}
                         </h4>
-                        <p className="text-sm text-slate-300">
+                        <p className="text-sm text-[var(--text-secondary)]">
                           {availableSpecialMaps[selectedBuilding].description}
                         </p>
                       </div>
@@ -1158,10 +1156,10 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                 )}
 
                 <section className="bg-gradient-to-br from-yellow-900/20 to-yellow-950/30 rounded-xl p-4 sm:p-5 border border-yellow-700/20">
-                  <h3 className="text-lg font-bold text-yellow-300 mb-3 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-yellow-700 dark:text-yellow-300 mb-3 flex items-center gap-2">
                     <FaExclamationTriangle className="text-yellow-400" /> Security Notice
                   </h3>
-                  <p className="text-sm text-yellow-100/80">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-100/80">
                     Government buildings are protected areas. Unauthorized access or disruptive behavior
                     will result in immediate expulsion and possible legal consequences.
                   </p>
@@ -1173,8 +1171,8 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
           {/* ARCHIVES TAB */}
           {activeTab === 'archives' && (
             <div className="space-y-6 p-4 sm:p-6">
-              <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20">
-                <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
+              <section className="bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] rounded-xl p-4 sm:p-5 border border-amber-700/20">
+                <h3 className="text-lg font-bold text-amber-600 dark:text-amber-300 mb-4 flex items-center gap-2">
                   <GiScrollQuill className="text-amber-400" />
                   {(() => {
                     if (culturalZone === 'EAST_ASIAN') return 'Imperial Archives';
@@ -1228,12 +1226,12 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                     }
 
                     return records.map((r, i) => (
-                      <article key={i} className="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                      <article key={i} className="p-3 bg-[var(--surface-muted-bg)] rounded-lg border border-[var(--border-normal)]">
                         <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-sm font-semibold text-amber-200">{r.title}</h4>
+                          <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-200">{r.title}</h4>
                           <span className="text-xs text-amber-400/70">{r.date}</span>
                         </div>
-                        <p className="text-xs text-slate-400">{r.description}</p>
+                        <p className="text-xs text-[var(--text-muted)]">{r.description}</p>
                       </article>
                     ));
                   })()}

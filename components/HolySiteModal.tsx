@@ -178,35 +178,52 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4"
+      className="fixed inset-0 z-[5000] flex items-center justify-center p-2 sm:p-3 md:p-4 animate-in fade-in duration-300"
       role="dialog"
       aria-modal="true"
       aria-label="Holy Site"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(8px)'
+      }}
     >
       <div
         ref={panelRef}
-        className="relative w-full max-w-6xl h-full sm:h-auto sm:max-h-[95vh] md:max-h-[90vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 sm:rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-6xl h-full sm:h-auto sm:max-h-[95vh] md:max-h-[90vh] sm:rounded-2xl shadow-2xl overflow-hidden surface-card animate-in slide-in-from-bottom-4 zoom-in-95 duration-500"
         style={{
           maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px)',
-          marginBottom: 'env(safe-area-inset-bottom)'
+          marginBottom: 'env(safe-area-inset-bottom)',
+          borderWidth: '1px',
+          borderColor: 'var(--border-normal)'
         }}
-        style={{ transform: 'translateY(-10px)' }}
       >
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-purple-900/80 via-indigo-900/80 to-purple-900/80 px-3 sm:px-6 py-2 sm:py-4 border-b border-purple-500/30">
+        <div className="relative px-3 sm:px-6 py-3 sm:py-4 animate-in slide-in-from-top-3 fade-in duration-500 delay-100"
+          style={{
+            background: 'linear-gradient(to right, var(--surface-elevated), var(--surface-card), var(--surface-elevated))',
+            borderBottomWidth: '1px',
+            borderColor: 'var(--border-normal)'
+          }}
+        >
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-purple-100 flex items-center gap-2">
-                <span className="text-2xl">🛐</span>
+            <div className="animate-in slide-in-from-left-2 fade-in duration-500 delay-200">
+              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <span className="text-2xl animate-in zoom-in duration-500 delay-300">🛐</span>
                 {complexName}
               </h2>
-              <p className="text-sm text-purple-200 mt-1">
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
                 {religion?.name || 'Sacred Site'} • {culturalZone} • {era}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-purple-800/50 transition-colors text-purple-200"
+              className="p-2 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 animate-in fade-in duration-500 delay-100"
+              style={{
+                backgroundColor: 'var(--surface-muted)',
+                color: 'var(--text-secondary)'
+              }}
               aria-label="Close"
             >
               <FaTimes size={20} />
@@ -215,16 +232,28 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-4 sm:px-6 py-2 bg-slate-800/50 border-b border-purple-700/20">
-          {(['overview', 'services', 'treasury'] as const).map((tab) => (
+        <div className="flex gap-1 px-4 sm:px-6 py-2 animate-in fade-in duration-500 delay-200"
+          style={{
+            backgroundColor: 'var(--surface-muted)',
+            borderBottomWidth: '1px',
+            borderColor: 'var(--border-normal)'
+          }}
+        >
+          {(['overview', 'services', 'treasury'] as const).map((tab, index) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-t-lg transition-all ${
-                activeTab === tab
-                  ? 'bg-purple-800/30 text-purple-200 border-b-2 border-purple-400'
-                  : 'hover:bg-purple-900/20 text-purple-300'
+              className={`px-4 py-2 rounded-t-lg transition-all duration-300 hover:scale-105 active:scale-95 animate-in slide-in-from-top-2 fade-in ${
+                activeTab === tab ? 'shadow-md' : ''
               }`}
+              style={{
+                backgroundColor: activeTab === tab ? 'var(--surface-card)' : 'transparent',
+                color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderBottomWidth: activeTab === tab ? '2px' : '0',
+                borderBottomColor: activeTab === tab ? 'var(--accent-primary)' : 'transparent',
+                animationDelay: `${300 + index * 50}ms`,
+                animationDuration: '400ms'
+              }}
             >
               {tab === 'overview' && <><FaPray className="inline mr-2" />Overview</>}
               {tab === 'services' && <><FaScroll className="inline mr-2" />Services</>}
@@ -236,11 +265,17 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
         {/* Content */}
         <div className="overflow-y-auto p-4 sm:p-6" style={{ maxHeight: 'calc(90vh - 180px)' }}>
           {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-500">
               {/* Sacred Complex Info */}
-              <section className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 rounded-xl p-4 sm:p-5 border border-purple-700/20">
-                <h3 className="text-lg font-bold text-purple-300 mb-4">Sacred Architecture</h3>
-                <p className="text-purple-100 mb-4">
+              <section className="rounded-xl p-4 sm:p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-left-3 fade-in duration-500 delay-100"
+                style={{
+                  backgroundColor: 'var(--surface-elevated)',
+                  borderWidth: '1px',
+                  borderColor: 'var(--border-normal)'
+                }}
+              >
+                <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--accent-primary)' }}>Sacred Architecture</h3>
+                <p className="mb-4" style={{ color: 'var(--text-primary)' }}>
                   {era === 'Ancient' && 'Ancient sacred grounds with stone circles and natural shrines.'}
                   {era === 'Classical' && 'Grand temples with columns and sacred courtyards.'}
                   {era === 'Medieval' && 'Towering religious architecture with intricate stonework.'}
@@ -251,8 +286,8 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-purple-300">Architectural Style:</span>
-                    <span className="text-purple-100">
+                    <span style={{ color: 'var(--text-secondary)' }}>Architectural Style:</span>
+                    <span style={{ color: 'var(--text-primary)' }}>
                       {culturalZone === 'EUROPEAN' && (era === 'Medieval' ? 'Gothic' : era === 'Classical' ? 'Greco-Roman' : 'Varied')}
                       {culturalZone === 'MENA' && 'Islamic Geometric'}
                       {culturalZone === 'EAST_ASIAN' && 'Pagoda & Zen'}
@@ -263,8 +298,8 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-purple-300">Sacred Features:</span>
-                    <span className="text-purple-100">
+                    <span style={{ color: 'var(--text-secondary)' }}>Sacred Features:</span>
+                    <span style={{ color: 'var(--text-primary)' }}>
                       {culturalZone === 'EUROPEAN' && 'Altar, Pews, Stained Glass'}
                       {culturalZone === 'MENA' && 'Mihrab, Minbar, Fountain'}
                       {culturalZone === 'EAST_ASIAN' && 'Shrine, Incense, Garden'}
@@ -278,38 +313,66 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
               </section>
 
               {/* Enter Button Section */}
-              <section className="bg-gradient-to-br from-purple-800/30 to-indigo-800/30 rounded-xl p-4 sm:p-5 border border-purple-600/30">
-                <h3 className="text-lg font-bold text-purple-300 mb-4 flex items-center gap-2">
-                  <FaDoorOpen className="text-purple-400" /> Enter Sacred Complex
+              <section className="rounded-xl p-4 sm:p-5 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-in slide-in-from-right-3 fade-in duration-500 delay-200"
+                style={{
+                  backgroundColor: 'var(--surface-elevated)',
+                  borderWidth: '1px',
+                  borderColor: 'var(--accent-primary)'
+                }}
+              >
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
+                  <FaDoorOpen /> Enter Sacred Complex
                 </h3>
                 <button
-                  className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg transition-all shadow-lg hover:shadow-purple-500/25 font-bold text-lg flex items-center justify-center gap-3"
+                  className="w-full px-6 py-4 rounded-lg transition-all duration-300 shadow-lg font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: 'var(--accent-primary)',
+                    color: 'white',
+                    boxShadow: '0 4px 16px -4px var(--accent-primary)'
+                  }}
                   onClick={handleEnterSacredComplex}
                   disabled={!onEnterSpecialMap}
                 >
                   <FaDoorOpen size={22} />
                   Enter the {complexName}
                 </button>
-                <p className="text-xs text-purple-200 text-center italic mt-2">
+                <p className="text-xs text-center italic mt-2" style={{ color: 'var(--text-secondary)' }}>
                   Explore the sacred interior of this {religion?.name || 'holy'} site.
                 </p>
               </section>
 
               {/* NPCs */}
               {npcs.length > 0 && (
-                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl p-4 sm:p-5 border border-purple-700/20 md:col-span-2">
-                  <h3 className="text-lg font-bold text-purple-300 mb-4 flex items-center gap-2">
-                    <FaUser className="text-purple-400" /> Religious Leaders
+                <section className="rounded-xl p-4 sm:p-5 md:col-span-2 transition-all duration-300 hover:shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-500 delay-300"
+                  style={{
+                    backgroundColor: 'var(--surface-elevated)',
+                    borderWidth: '1px',
+                    borderColor: 'var(--border-normal)'
+                  }}
+                >
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
+                    <FaUser /> Religious Leaders
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {npcs.slice(0, 6).map((npc) => (
-                      <div key={npc.id} className="flex items-center gap-3 p-2 bg-purple-900/20 rounded-lg">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-600">
+                    {npcs.slice(0, 6).map((npc, index) => (
+                      <div key={npc.id} className="flex items-center gap-3 p-2 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-md animate-in slide-in-from-bottom-2 fade-in"
+                        style={{
+                          backgroundColor: 'var(--surface-muted)',
+                          animationDelay: `${400 + index * 50}ms`,
+                          animationDuration: '400ms'
+                        }}
+                      >
+                        <div className="w-10 h-10 rounded-full overflow-hidden"
+                          style={{
+                            borderWidth: '2px',
+                            borderColor: 'var(--accent-primary)'
+                          }}
+                        >
                           <LazyPortrait character={npc} size={40} type="procedural" staticMode={true} />
                         </div>
                         <div>
-                          <p className="font-semibold text-purple-100 text-sm">{npc.name}</p>
-                          <p className="text-xs text-purple-300">{npc.role?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Clergy'}</p>
+                          <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{npc.name}</p>
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{npc.role?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Clergy'}</p>
                         </div>
                       </div>
                     ))}
@@ -320,7 +383,13 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
           )}
 
           {activeTab === 'services' && (
-            <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 rounded-xl p-4 sm:p-5 border border-purple-700/20">
+            <div className="rounded-xl p-4 sm:p-5 animate-in fade-in slide-in-from-right-3 duration-500"
+              style={{
+                backgroundColor: 'var(--surface-elevated)',
+                borderWidth: '1px',
+                borderColor: 'var(--border-normal)'
+              }}
+            >
               <HolySiteInteractions
                 structure={structure}
                 religion={religion?.name}
@@ -333,21 +402,33 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
           )}
 
           {activeTab === 'treasury' && (
-            <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 rounded-xl p-4 sm:p-5 border border-purple-700/20">
-              <h3 className="text-lg font-bold text-purple-300 mb-4">Temple Treasury</h3>
+            <div className="rounded-xl p-4 sm:p-5 animate-in fade-in slide-in-from-right-3 duration-500"
+              style={{
+                backgroundColor: 'var(--surface-elevated)',
+                borderWidth: '1px',
+                borderColor: 'var(--border-normal)'
+              }}
+            >
+              <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--accent-primary)' }}>Temple Treasury</h3>
               {Object.keys(treasury).length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {Object.entries(treasury).map(([itemId, quantity]) => (
-                    <div key={itemId} className="bg-purple-800/20 rounded-lg p-3">
-                      <p className="text-purple-100 font-semibold">
+                  {Object.entries(treasury).map(([itemId, quantity], index) => (
+                    <div key={itemId} className="rounded-lg p-3 transition-all duration-300 hover:scale-105 hover:shadow-md animate-in slide-in-from-bottom-2 fade-in"
+                      style={{
+                        backgroundColor: 'var(--surface-muted)',
+                        animationDelay: `${index * 50}ms`,
+                        animationDuration: '400ms'
+                      }}
+                    >
+                      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {itemId.replace(/_/g, ' ')}
                       </p>
-                      <p className="text-purple-300 text-2xl">{quantity.toLocaleString()}</p>
+                      <p className="text-2xl" style={{ color: 'var(--accent-primary)' }}>{quantity.toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-purple-200 italic">The treasury is empty.</p>
+                <p className="italic" style={{ color: 'var(--text-secondary)' }}>The treasury is empty.</p>
               )}
             </div>
           )}

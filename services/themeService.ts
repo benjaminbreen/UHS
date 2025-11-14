@@ -47,7 +47,8 @@ export class ThemeService {
   setTheme(theme: Theme): void {
     this.currentTheme = theme;
     this.applyTheme(theme);
-    localStorage.setItem('theme', theme);
+    // Defer localStorage write to avoid blocking the main thread
+    setTimeout(() => localStorage.setItem('theme', theme), 0);
     this.notifyListeners(theme);
   }
 

@@ -239,6 +239,7 @@ interface InventoryPanelProps {
     setCurrentVessel?: (vessel: Item | null) => void;
     isDraggable?: boolean; // Only enable drag in Equipment tab
     onDragStart?: (e: React.DragEvent, item: Item) => void; // Custom drag handler
+    highlightedItemId?: string | null; // ID of item to highlight with glow effect
 }
 
 // Helper function to get quality color
@@ -273,7 +274,7 @@ const getQualityLabel = (quality?: ItemQuality): string => {
     }
 };
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onStudy, onEat, onInventoryUpdate, deployVesselToMap, deployBridgeToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onStudy, onEat, onInventoryUpdate, deployVesselToMap, deployBridgeToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart, highlightedItemId }) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set());
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
@@ -285,10 +286,20 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const searchTimerRef = useRef<NodeJS.Timeout>();
-  
+
   // Load tamed animals with forced refresh when modal closes
   const [animalRefresh, setAnimalRefresh] = useState(0);
   const tamedAnimals = useMemo(() => loadTamedAnimals(), [animalRefresh]);
+
+  // Ref for highlighted item to scroll into view
+  const highlightedItemRef = useRef<HTMLDivElement>(null);
+
+  // Scroll highlighted item into view when it changes
+  useEffect(() => {
+    if (highlightedItemId && highlightedItemRef.current) {
+      highlightedItemRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightedItemId]);
 
   // Debounce search input
   useEffect(() => {
@@ -645,7 +656,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
 
   if (inventory.length === 0 && tamedAnimals.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-text-muted surface-muted rounded-xl">
+      <div className="flex flex-col items-center justify-center h-full text-text-muted surface-muted">
         <div className="mb-4 text-6xl opacity-50">🎒</div>
         <p className="mb-2 text-lg font-semibold text-text-primary">Inventory is Empty</p>
         <p className="text-sm opacity-75 text-center max-w-xs">Forage, trade, or explore to discover items and equipment.</p>
@@ -654,13 +665,25 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden surface-card rounded-xl shadow-lg">
-      {/* Search Header */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-surface-muted">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-bold tracking-wide text-text-secondary uppercase">Inventory</h3>
-          <span className="text-xs text-text-muted">
-            {filteredInventory.length + filteredAnimals.length} items
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Search Header - Improved Typography */}
+      <div className="flex-shrink-0 px-3 py-3 border-b border-[var(--border-normal)]">
+        <div className="flex items-center justify-between mb-2.5">
+          <h3
+            className="text-[11px] font-semibold tracking-[0.08em] uppercase"
+            style={{
+              color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b'
+            }}
+          >
+            Inventory
+          </h3>
+          <span
+            className="text-[11px] font-medium"
+            style={{
+              color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b'
+            }}
+          >
+            {filteredInventory.length + filteredAnimals.length} {filteredInventory.length + filteredAnimals.length === 1 ? 'item' : 'items'}
           </span>
         </div>
         <input
@@ -668,7 +691,10 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search items..."
-          className="w-full px-2 py-1 text-xs bg-background-secondary border border-surface-muted rounded-md text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:bg-background-secondary"
+          className="w-full px-3 py-1.5 text-xs bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/30 transition-all duration-200 placeholder:opacity-60"
+          style={{
+            color: document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#1e293b'
+          }}
         />
       </div>
       <div className="flex-1 min-h-0 p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50">
@@ -725,11 +751,22 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               </div>
             </>
           )}
-          {filteredInventory.map(item => (
+          {filteredInventory.map((item, index) => {
+            const isHighlighted = item.id === highlightedItemId;
+            return (
             <div
               key={item.id}
-              className={`flex items-center gap-2 p-2 transition-all duration-200 border rounded-lg cursor-pointer group hover:surface-muted
-              ${selectedItemIds.has(item.id) ? 'bg-accent/20 border-accent ring-1 ring-accent/50' : 'surface-muted'}`}
+              ref={isHighlighted ? highlightedItemRef : null}
+              className={`inventory-item-card flex items-center gap-3 p-3 transition-all duration-300 border rounded-xl cursor-pointer group
+              ${selectedItemIds.has(item.id)
+                ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ring-2 ring-[var(--accent-primary)]/40 shadow-lg shadow-[var(--accent-primary)]/20'
+                : 'bg-[var(--bg-elevated)]/50 border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)]/80 hover:border-[var(--border-normal)] hover:shadow-md hover:-translate-y-0.5'
+              }
+              ${isHighlighted ? 'animate-glow-pulse' : ''}`}
+              style={{
+                ...(isHighlighted ? { borderColor: 'var(--accent-primary)' } : {}),
+                animationDelay: `${index * 50}ms`
+              }}
               onClick={() => handleItemClick(item)}
               draggable={isDraggable}
               onDragStart={isDraggable && onDragStart ? (e) => onDragStart(e, item) : undefined}
@@ -739,34 +776,45 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                 type="checkbox"
                 checked={selectedItemIds.has(item.id)}
                 onChange={noopHandler}
-                className="mr-1"
+                className="ml-0.5 w-4 h-4 cursor-pointer"
                 onClick={(e) => e.stopPropagation()}
               />
-              <div className="relative flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                <GenerativeItemIcon item={item} size={32} />
+              <div className="relative flex-shrink-0 w-10 h-10 flex items-center justify-center">
+                <GenerativeItemIcon item={item} size={36} />
                 {item.stackable && item.quantity > 1 && (
-                  <span className="absolute flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-accent rounded-full -bottom-1 -right-1 shadow-lg ring-1 ring-background-secondary">
+                  <span className="absolute flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-[var(--accent-primary)] rounded-full -bottom-1 -right-1 shadow-lg ring-2 ring-[var(--bg-primary)]">
                     {item.quantity}
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-text-primary transition-colors duration-150 truncate group-hover:text-text-primary text-sm">
+                  <p
+                    className="font-semibold transition-colors duration-150 truncate group-hover:opacity-80 text-[13px] leading-tight"
+                    style={{
+                      color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1e293b'
+                    }}
+                  >
                     {item.name}
                   </p>
                   {item.quality && (
-                    <span className={`px-1.5 py-0.5 text-xs font-bold rounded-md border ${getQualityColor(item.quality)}`}>
+                    <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md border ${getQualityColor(item.quality)}`}>
                       {getQualityLabel(item.quality)}
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-text-muted line-clamp-1">
+                <p
+                  className="mt-0.5 text-[11px] line-clamp-1 leading-snug"
+                  style={{
+                    color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b'
+                  }}
+                >
                   {item.description}
                 </p>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
       {/* Crafting Controls - Always Visible */}

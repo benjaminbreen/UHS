@@ -59,8 +59,8 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
     const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
     const isRed = variant === 'red';
     const baseClass = isRed
-        ? `group relative ${isMobile ? 'px-8 py-4' : 'px-6 py-3'} bg-gradient-to-r from-red-600 to-red-700 active:from-red-500 active:to-red-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-300 ease-out border border-red-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`
-        : `group relative ${isMobile ? 'px-8 py-4' : 'px-6 py-3'} bg-gradient-to-r from-blue-600 to-blue-700 active:from-blue-500 active:to-blue-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`;
+        ? `group relative ${isMobile ? 'px-8 py-3' : 'px-6 py-2'} bg-gradient-to-r from-red-600 to-red-700 active:from-red-500 active:to-red-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-200 ease-out border border-red-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`
+        : `group relative ${isMobile ? 'px-8 py-3' : 'px-6 py-2'} bg-gradient-to-r from-blue-600 to-blue-700 active:from-blue-500 active:to-blue-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-200 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`;
     const boxShadowColor = isRed ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
     const glowColor = isRed ? 'from-red-400/0 via-red-300/20 to-red-400/0' : 'from-blue-400/0 via-blue-300/20 to-blue-400/0';
     const glowBg = isRed ? 'bg-red-400/20' : 'bg-blue-400/20';
@@ -83,14 +83,17 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
                 minHeight: isMobile ? '60px' : 'auto'
             }}
         >
-            {/* Animated background effect */}
+            {/* Brightness overlay on hover */}
+            <div className={`absolute inset-0 rounded-xl ${isRed ? 'bg-red-400/20' : 'bg-blue-400/20'} opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out`} />
+
+            {/* Animated background sweep effect */}
             <div className={`absolute inset-0 bg-gradient-to-r ${glowColor} transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out`} />
-            
-            <span className="text-xl relative z-10 drop-shadow-lg">{icon}</span>
-            <span className="relative z-10 font-semibold">{children}</span>
-            
+
+            <span className="text-xl relative z-10 drop-shadow-lg transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-12">{icon}</span>
+            <span className="relative z-10 font-semibold transition-all duration-200 ease-out">{children}</span>
+
             {/* Glow effect */}
-            <div className={`absolute inset-0 rounded-xl ${glowBg} opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm`} />
+            <div className={`absolute inset-0 rounded-xl ${glowBg} opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out blur-sm`} />
         </button>
     );
 });
@@ -98,7 +101,7 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
 const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = React.memo(({ title, subtitle, icon }) => {
     const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
     return (
-        <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} surface-muted border backdrop-blur-sm ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'}`)}>
+        <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} surface-muted border backdrop-blur-sm ${isMobile ? 'px-3 py-1.5 min-w-[180px]' : 'px-4 py-2 min-w-[220px]'}`)}>
             {icon && (
                 <div className={`${isMobile ? 'text-xl' : 'text-2xl'} drop-shadow-lg`}>{icon}</div>
             )}
@@ -151,17 +154,17 @@ const LocationDisplayWithPreview: React.FC<{
 
     return (
         <div className={getSafariOptimizedClassName(`relative group
-            surface-muted rounded-lg ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-3 min-w-[220px]'}
-            border border-surface-muted overflow-hidden backdrop-blur-lg transition-all duration-300
+            surface-muted rounded-lg ${isMobile ? 'px-3 py-1.5 min-w-[180px]' : 'px-4 py-2 min-w-[220px]'}
+            border overflow-hidden backdrop-blur-lg transition-all duration-300
             hover:shadow-md`)}>
             {/* Background preview layer - more visible, especially on hover */}
             {backgroundUrl && isImageLoaded && (
                 <div
-                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 group-hover:opacity-100"
+                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 group-hover:opacity-100 dark:opacity-[0.75]"
                     style={{
                         backgroundImage: `url(${backgroundUrl})`,
-                        opacity: 0.58,
-                        filter: 'brightness(.9) saturate(1.32) contrast(1.08)'
+                        opacity: 0.55,
+                        filter: 'brightness(.95) saturate(1.4) contrast(1.12)'
                     }}
                 />
             )}
@@ -186,9 +189,9 @@ const LocationDisplayWithPreview: React.FC<{
                         {title}
                     </p>
                     <p
-                        className={`${isMobile ? 'text-sm' : 'text-base'} text-text-primary font-semibold capitalize mt-1`}
+                        className={`${isMobile ? 'text-sm' : 'text-base'} text-text-primary font-semibold capitalize mt-0.5`}
                         style={{
-                            textShadow: '0 0 12px rgba(147, 197, 253, 0.6), 0 0 25px rgba(147, 197, 253, 0.3), 1px 1px 3px rgba(0,0,0,0.4)'
+                            textShadow: 'var(--text-shadow-location, 1px 1px 2px rgba(0,0,0,0.3))'
                         }}
                     >
                         {subtitle}
@@ -532,7 +535,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
                     <div className="hidden sm:flex justify-end">
                         <div className="text-right text-text-secondary italic text-xs sm:text-sm max-w-xs
-                            surface-muted rounded-lg px-3 py-2 sm:px-4 sm:py-3
+                            surface-muted rounded-lg px-3 py-2
                             border border-surface-muted">
                             Return to the surface with your collected ore.
                         </div>
@@ -563,7 +566,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
                     <div className="hidden sm:flex justify-end">
                         <div className="text-right text-text-secondary italic text-xs sm:text-sm max-w-xs
-                            surface-muted rounded-lg px-3 py-2 sm:px-4 sm:py-3
+                            surface-muted rounded-lg px-3 py-2
                             border border-surface-muted">
                             Return to the main map outside this building.
                         </div>
@@ -729,7 +732,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
 
         return (
-            <div className={`w-full flex flex-col ${isMobile ? 'gap-3 p-3' : 'sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-2 sm:p-4 lg:p-5'} animate-in slide-in-from-bottom duration-500`}>
+            <div className={`w-full flex flex-col ${isMobile ? 'gap-2 px-3' : 'sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-4 px-3'} animate-in slide-in-from-bottom duration-500`}>
                 <div className={`flex ${isMobile ? 'justify-center' : 'justify-center sm:justify-start'} w-full sm:w-auto`}>
                     {contextualInfo}
                 </div>
@@ -746,8 +749,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
                 {/* Show helper text on mobile too, but with adapted styling */}
                 <div className={isMobile ? "flex justify-center" : "hidden sm:flex justify-end"}>
-                    <div className={`text-center ${isMobile ? '' : 'text-right'}
-                        text-text-secondary italic text-xs sm:text-sm max-w-xs surface-muted border border-surface-muted`}>
+                    <div className={`text-center ${isMobile ? 'px-3 py-1.5' : 'text-right px-3 py-2'}
+                        text-text-secondary italic text-xs sm:text-sm max-w-xs surface-muted border border-surface-muted rounded-lg`}>
                         {helperText}
                         {isMobile && <div className="text-[10px] mt-1 opacity-70">Tap button or press Enter</div>}
                     </div>
@@ -857,7 +860,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
 
             return (
-                <div className="w-full flex flex-col gap-3 p-3 animate-in slide-in-from-bottom duration-500">
+                <div className="w-full flex flex-col gap-3 px-3 animate-in slide-in-from-bottom duration-500">
                     <div className="flex justify-center">
                         <LocationDisplay
                             title={locationTitle}
@@ -880,7 +883,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         }
 
         return (
-             <div className={isMobile ? "w-full flex flex-col gap-3 p-3 mb-1" : "w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-0"}>
+             <div className={isMobile ? "w-full flex flex-col gap-3 px-3" : "w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 px-3"}>
                  <div className="flex justify-start">
                      <button
                          onClick={onToggleAmbientText}
@@ -954,8 +957,23 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                             </ActionButton>
                         </div>
                     ) : (
-                        <div className="text-text-secondary text-center">
-                            <p className="text-sm font-md opacity-30">Use arrow keys to explore</p>
+                        <div className="text-text-secondary text-center min-h-[32px] flex items-center justify-center">
+                            {localToast && showLocalToast ? (
+                                <div
+                                    className="transition-all duration-200 ease-out"
+                                    style={{
+                                        opacity: showLocalToast ? 1 : 0,
+                                        transform: showLocalToast ? 'translateY(0)' : 'translateY(4px)'
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                                        <span className="text-accent">✦</span>
+                                        <span>{localToast}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm font-md opacity-30">Use arrow keys to explore</p>
+                            )}
                         </div>
                     )}
                  </div>
@@ -966,16 +984,16 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     ) : (
                         <button
                             onClick={() => setUseFahrenheit(!useFahrenheit)}
-                            className="text-right text-text-secondary text-sm max-w-xs
-                                surface-muted border border-surface-muted rounded-lg px-4 py-2 hover:shadow-md transition-colors cursor-pointer"
+                            className="text-right text-text-secondary text-xs max-w-xs
+                                surface-muted border border-surface-muted rounded-lg px-3 py-1.5 hover:shadow-md transition-colors cursor-pointer"
                             title="Click to toggle between metric/imperial units"
                         >
-                            <div className="font-semibold">
+                            <div className="font-semibold text-sm leading-tight">
                                 {weatherDisplay || 'Loading weather...'}
                             </div>
-                            <div className="flex items-center justify-end gap-2 mt-0 ">
-                                <span className="text-lg">{weatherState.emoji}</span>
-                                <span className="font-bold text-text-primary">{weatherState.state}</span>
+                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                <span className="text-base">{weatherState.emoji}</span>
+                                <span className="font-bold text-text-primary text-sm">{weatherState.state}</span>
                             </div>
                         </button>
                     )}
@@ -986,57 +1004,25 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
     const outerContainerClass = isMobile
         ? 'fixed inset-x-0 bottom-0 z-50 pointer-events-none px-3 pb-3'
-        : 'absolute inset-x-0 z-30 pointer-events-none';
+        : 'absolute inset-x-0 bottom-0 h-full z-30 pointer-events-none';
 
     return (
         <div className={outerContainerClass}>
             <div
                 data-surface="bottom-panel"
                 className={getSafariOptimizedClassName(
-                    `surface-bottom-panel pointer-events-auto w-full transition-all duration-300 ${
-                        isMobile ? 'px-4 pt-3' : 'px-5 pb-1'
+                    `surface-bottom-panel pointer-events-auto w-full transition-all duration-300 flex items-center ${
+                        isMobile ? 'px-4' : 'px-5 h-full'
                     }`
                 )}
                 style={
                     isMobile
-                        ? { paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)' }
-                        : undefined
+                        ? { paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)', paddingTop: '6px' }
+                        : { paddingTop: '0px', paddingBottom: '0px' }
                 }
             >
-                <div className="relative">
+                <div className="relative w-full">
                     {actionableTile ? renderActionableContent : renderDefaultContent}
-
-                    {localToast && (
-                        <div
-                            className={getSafariOptimizedClassName(
-                                `absolute left-1/2 bottom-[calc(6rem+2vh)] -translate-x-1/2 z-[55]
-                                 transition-all duration-200 ease-out pointer-events-none
-                                 ${showLocalToast ? 'translate-y-0 opacity-30' : 'translate-y-4 opacity-0'}`
-                            )}
-                        >
-                            <div
-                                data-surface="toast"
-                                className="px-5 py-2 rounded-xl shadow-lg backdrop-blur-xl border"
-                                style={{
-                                    boxShadow: '0 24px 40px rgba(15, 23, 42, 0.08)'
-                                }}
-                            >
-                                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--toast-surface-text)' }}>
-                                    <span className="text-accent">✦</span>
-                                    <span>{localToast}</span>
-                                </div>
-                                <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(59,71,92,0.25)' }}>
-                                    <div
-                                        className="h-full"
-                                        style={{
-                                            background: 'var(--toast-progress-bg)',
-                                            animation: `toastProgress ${Math.max(500, toastDuration)}ms linear forwards`
-                                        }}
-                                    ></div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

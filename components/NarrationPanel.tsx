@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { NarrationMessage } from '../types';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -39,7 +40,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
   isLoading,
   onOpenCampModal
 }) => {
-  const { localArea, mapData, culturalZone } = useMap();
+  const { localArea, mapData, culturalZone, npcs } = useMap();
   const { playerCharacter } = usePlayer();
 
   const [settings, setSettings] = useState<Settings>(loadSettings);
@@ -194,23 +195,123 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
 
   const textSizeClass =
     settings.textSize === 'sm'
-      ? 'text-[0.9rem]'
-      : settings.textSize === 'lg'
       ? 'text-[1.05rem]'
-      : 'text-[0.95rem]';
+      : settings.textSize === 'lg'
+      ? 'text-[1.2rem]'
+      : 'text-[1.1rem]';
 
-  const bubblePad = settings.compact ? 'p-2' : 'p-3';
-  const stackSpace = settings.compact ? 'space-y-2' : 'space-y-3';
+  const bubblePad = settings.compact ? 'p-2.5' : 'p-4';
+  const stackSpace = settings.compact ? 'space-y-2.5' : 'space-y-4';
+
+  // Extract location names from recent messages (memoized separately to reduce re-renders)
+  const locationNames = useMemo(() => {
+    const names = new Set<string>();
+    const recentMessages = narrationHistory.slice(-10); // Check last 10 messages
+
+    for (const msg of recentMessages) {
+      if (msg.sender === 'narrator' || msg.sender === 'narrator-ambient') {
+        const locationMatches = msg.text.match(/\*\*\*([^*]+)\*\*\*/g);
+        if (locationMatches) {
+          locationMatches.forEach(match => {
+            names.add(match.replace(/\*\*\*/g, ''));
+          });
+        }
+      }
+    }
+
+    return names;
+  }, [narrationHistory]);
+
+  // Memoize ReactMarkdown components to prevent re-creation and hover flickering
+  const markdownComponents = useMemo(() => {
+    return {
+      p: ({node, ...props}: any) => <p className="mb-3 last:mb-0" {...props} />,
+      strong: ({node, children, ...props}: any) => {
+        // Get the text content
+        const textContent = typeof children === 'string' ? children : String(children);
+
+        // Check if this text is a location (***text***)
+        const isLocation = locationNames.has(textContent);
+
+        console.log(`[NarrationPanel] Rendering "${textContent}" as ${isLocation ? 'LOCATION (blue)' : 'NPC (emerald/amber)'}`);
+
+        if (isLocation) {
+          // This is a location (***text***) - blue to match narrator theme
+          return (
+            <strong
+              className="font-semibold not-italic"
+              style={{ fontStyle: 'normal', color: 'var(--accent-primary)' }}
+              {...props}
+            >
+              {children}
+            </strong>
+          );
+        }
+
+        // This is an NPC (**text**) - emerald in light mode, amber in dark mode, clickable if on map
+        const npcName = textContent;
+        const matchedNpc = npcs?.find(npc => npc.name === npcName);
+
+        if (matchedNpc && matchedNpc.x !== undefined && matchedNpc.y !== undefined) {
+          // Detect theme for color
+          const isDark = document.documentElement.classList.contains('dark');
+          const npcColor = isDark ? '#f59e0b' : '#059669'; // amber-500 : emerald-600
+
+          return (
+            <strong
+              className="font-semibold hover:opacity-80 cursor-pointer transition-opacity duration-200 border-b border-transparent hover:border-dotted"
+              style={{ color: npcColor }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.borderBottomColor = npcColor;
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.borderBottomColor = 'transparent';
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Center the camera on the NPC
+                window.dispatchEvent(new CustomEvent('centerMapOnLocation', {
+                  detail: { x: matchedNpc.x, y: matchedNpc.y }
+                }));
+                // Highlight the NPC
+                import('../services/eventBus').then(({ eventBus }) => {
+                  eventBus.emit('npc:highlight', { npcId: matchedNpc.id });
+                });
+              }}
+              {...props}
+            >
+              {children}
+            </strong>
+          );
+        }
+
+        // NPC not found or no coordinates - just style it (not clickable)
+        const isDark = document.documentElement.classList.contains('dark');
+        const npcColor = isDark ? '#f59e0b' : '#059669'; // amber-500 : emerald-600
+
+        return (
+          <strong
+            className="font-semibold"
+            style={{ color: npcColor }}
+            {...props}
+          >
+            {children}
+          </strong>
+        );
+      },
+      // Strip em tags inside strong (they're just markers for locations)
+      em: ({node, ...props}: any) => <>{props.children}</>
+    };
+  }, [npcs, locationNames]);
 
   return (
     <div
       aria-busy={isLoading}
       className={[
-        'group relative flex flex-col h-full rounded-2xl overflow-hidden surface-card theme-surface transition-colors',
-        'shadow-lg border focus-within:ring-1 focus-within:ring-[color:var(--accent-primary)]/30',
+        'group relative flex flex-col h-full overflow-hidden transition-colors',
         isLoading ? 'ring-1 ring-[color:var(--color-warning)]/25' : ''
       ].join(' ')}
-      style={{ borderColor: 'var(--surface-card-border)' }}
     >
       {/* subtle settings gear */}
       <button
@@ -284,19 +385,20 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         ref={logRef}
         role="log"
         aria-live="polite"
-        className="flex-1 min-h-0 p-4 overflow-y-auto text-sm leading-relaxed space-y-3
+        className="flex-1 min-h-0 px-4 pt-5 pb-5 overflow-y-auto text-xs leading-relaxed space-y-3
                    scrollbar-thin scrollbar-thumb-slate-400/60 scrollbar-track-transparent"
+        style={{ background: 'var(--surface-card-bg)' }}
       >
         {isPlaceholderVisible ? (
           <>
             {/* Contextual tip at top - inside scrollable area */}
             {contextualSuggestion && (
-              <div className="mt-2 mb-5">
-                <div className="surface-muted rounded-xl p-3 ">
-                  <p className="text-xs font-semibold text-[var(--accent-primary)] mb-2.5 flex items-center gap-1">
-                   Tip
+              <div className="mt-5 mb-4">
+                <div className="surface-muted rounded-lg p-3.5">
+                  <p className="text-[10px] font-semibold text-[var(--text-secondary)] mb-2 flex items-center gap-1.5 uppercase tracking-wide">
+                   💡 Tip
                   </p>
-                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed" style={{ lineHeight: '1.6' }}>
                     {contextualSuggestion.tip}
                   </p>
                 </div>
@@ -306,17 +408,17 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               <div className="max-w-xs">
                 {/* Contextual prompts */}
                 {contextualSuggestion && (
-                  <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-700">
-                    <p className="text-xs text-[var(--text-secondary)] font-medium mb-2.5 text-left uppercase tracking-wide">
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-3 duration-700">
+                    <p className="text-[10px] text-[var(--text-secondary)] font-medium mb-1.5 text-left uppercase tracking-wide opacity-70">
                       Try asking...
                     </p>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {contextualSuggestion.prompts.map((prompt, idx) => (
                         <button
                           key={idx}
                           onClick={() => sendQuick(prompt)}
                           disabled={isLoading}
-                          className="w-full text-left px-3 py-2 text-xs surface-muted rounded-xl transition-all disabled:opacity-50 hover:shadow-md"
+                          className="w-full text-left px-2.5 py-1.5 text-xs surface-muted rounded-lg transition-all disabled:opacity-50 hover:shadow-md"
                         >
                           "{prompt}"
                         </button>
@@ -330,42 +432,70 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         ) : (
           <div className={stackSpace}>
             {narrationHistory.map((msg, index) => {
-              const base = `group relative ${bubblePad} rounded-xl transition-colors border`;
+              const isLatest = index === narrationHistory.length - 1;
+              const base = `group relative ${bubblePad} rounded-xl transition-all duration-300 ${isLatest ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}`;
               const kind =
                 msg.sender === 'player'
-                  ? 'bg-emerald-200 text-emerald-950 border-emerald-800'
+                  ? 'surface-elevated text-[var(--text-primary)] border border-[var(--border-normal)] shadow-sm hover:shadow-md'
                   : msg.sender === 'narrator-special'
-                  ? 'bg-sky-100 text-sky-900 border-sky-300'
+                  ? 'surface-elevated text-[var(--text-secondary)] italic text-sm'
                   : msg.sender === 'narrator-ambient'
-                  ? 'bg-violet-100 text-violet-900 border-violet-200 italic'
-                  : 'surface-muted border-[rgba(189,179,162,0.45)] text-[var(--text-primary)]';
+                  ? 'surface-muted text-[var(--text-secondary)] italic'
+                  : 'surface-muted text-[var(--text-primary)] shadow-sm';
 
               return (
                 <div key={index} className={`${base} ${kind}`}>
 
 
                   {msg.sender === 'narrator' && (
-                    <p className="text-xs text-[color:var(--color-warning)] font-semibold mb-1 flex items-center gap-1">
-                      <span>📜</span> Narrator
+                    <p className="text-xs font-bold mb-2 flex items-center gap-1.5 text-[var(--accent-primary)] tracking-wide">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                      </svg>
+                      <span className="uppercase text-[10px] font-extrabold">Narrator</span>
                     </p>
                   )}
                   {msg.sender === 'narrator-ambient' && (
-                    <p className="text-xs text-[color:var(--accent-primary)] font-semibold mb-1 flex items-center gap-1">
-                      <span></span> Ambiance
+                    <p className="text-xs text-[var(--accent-primary)] font-bold mb-2 flex items-center gap-1.5 tracking-wide">
+                      <span className="text-sm">✨</span>
+                      <span className="uppercase text-[10px] font-extrabold">Ambiance</span>
                     </p>
                   )}
-                  <p className={`leading-relaxed ${textSizeClass}`}>{msg.text}</p>
+                  {msg.sender === 'narrator' || msg.sender === 'narrator-ambient' ? (
+                    <div
+                      className={`leading-relaxed ${textSizeClass}`}
+                      style={{
+                        fontFamily: 'Georgia, "Palatino Linotype", "Book Antiqua", Palatino, serif',
+                        lineHeight: '1.8'
+                      }}
+                    >
+                      <ReactMarkdown components={markdownComponents}>
+                        {msg.text}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className={`leading-relaxed tracking-normal ${textSizeClass}`} style={{ lineHeight: '1.65' }}>{msg.text}</p>
+                  )}
                 </div>
               );
             })}
 
             {isLoading && (
-              <div className={`${bubblePad} surface-muted rounded-xl animate-pulse`}>
-                <p className="text-xs text-[color:var(--color-warning)] font-semibold mb-1 flex items-center gap-1">📜 The Narrator</p>
-                <p className="flex items-center gap-2 text-[var(--text-secondary)]">
-                  <span className="animate-pulse">● ● ●</span>
-                  <span className="text-xs">thinking…</span>
+              <div className={`${bubblePad} surface-muted rounded-xl shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                <p className="text-xs font-bold mb-2 flex items-center gap-1.5 text-[var(--accent-primary)] tracking-wide">
+                  <svg className="w-3.5 h-3.5 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                  </svg>
+                  <span className="uppercase text-[10px] font-extrabold">Narrator</span>
                 </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="text-sm text-[var(--text-secondary)] font-medium italic">contemplating your actions…</span>
+                </div>
               </div>
             )}
           </div>
@@ -374,24 +504,29 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
 
       {/* Quick Command Buttons - Only show when input is focused OR rest warning appears */}
       {settings.showQuickReplies && (isInputFocused || showQuickCommandsDueToWarning) && (
-        <div className="flex-shrink-0 px-3 py-2 border-t surface-muted animate-in slide-in-from-bottom-2 duration-300">
-          <p className="text-xs text-[var(--text-secondary)] font-medium mb-2 flex items-center gap-1">
-            <span></span> Quick Commands
+        <div className="flex-shrink-0 px-4 py-3 border-t border-[var(--border-normal)] surface-muted animate-in slide-in-from-bottom-3 fade-in duration-300">
+          <p className="text-xs text-[var(--text-secondary)] font-bold mb-2.5 flex items-center gap-2 tracking-wide uppercase">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+            </svg>
+            <span className="text-[10px]">Quick Actions</span>
             {showQuickCommandsDueToWarning && (
-              <span className="text-[10px] text-[color:var(--color-warning)] animate-pulse ml-1">(suggested)</span>
+              <span className="text-[10px] text-[color:var(--color-warning)] animate-pulse ml-1 normal-case">(suggested)</span>
             )}
           </p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             <button
               onMouseDown={(e) => {
                 e.preventDefault(); // Prevent input blur
                 sendQuick('look around');
               }}
               disabled={isLoading}
-              className="badge-pill text-[10px] disabled:opacity-50"
-              data-variant="accent"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
+                         transition-all duration-200 disabled:opacity-50
+                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
+                         active:scale-95"
             >
-              Look Around
+              👁️ Look Around
             </button>
             <button
               onMouseDown={(e) => {
@@ -399,10 +534,12 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('rest for 1 hour');
               }}
               disabled={isLoading}
-              className="badge-pill text-[10px] disabled:opacity-50"
-              data-variant="accent"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
+                         transition-all duration-200 disabled:opacity-50
+                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
+                         active:scale-95"
             >
-              Rest 1 hour
+              ⏱️ Rest 1 Hour
             </button>
             <button
               onMouseDown={(e) => {
@@ -410,72 +547,139 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                 sendQuick('rest until dawn');
               }}
               disabled={isLoading}
-              className="badge-pill text-[10px] disabled:opacity-50"
-              data-variant="accent"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
+                         transition-all duration-200 disabled:opacity-50
+                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
+                         active:scale-95"
             >
-
-              Camp
+              🏕️ Camp
             </button>
-      
+
             <button
               onMouseDown={(e) => {
                 e.preventDefault(); // Prevent input blur
                 sendQuick('skip 1 day');
               }}
               disabled={isLoading}
-              className="badge-pill text-[10px] disabled:opacity-50"
-              data-variant="accent"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
+                         transition-all duration-200 disabled:opacity-50
+                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
+                         active:scale-95"
             >
-              Skip Day
+              ⏩ Skip Day
             </button>
           </div>
         </div>
       )}
 
-      {/* composer - emphasized */}
-      <div className="flex-shrink-0 p-3 border-t surface-muted backdrop-blur-sm">
-        <div className="mb-0">
-          <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wide flex items-center gap-1">
-            <span></span>
-          </label>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            aria-label="Player action input"
-            disabled={isLoading}
-            placeholder={isLoading ? 'Narrator is thinking…' : 'Type your action here...'}
-            value={playerInput}
-            onChange={(e) => onPlayerInputChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !isLoading && onSend()}
-            onFocus={() => setIsInputFocused(true)}
-            onBlur={() => setIsInputFocused(false)}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            inputMode="text"
-            enterKeyHint="send"
-            className="flex-1 px-4 py-3 text-base text-text-primary placeholder-text-muted bg-background-secondary border-1 border-white/30 border-surface-muted rounded-xl
-                       shadow-[inset_0_2px_5px_rgba(0,0,0,0.2)]
-                       focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-[inset_0_2px_6px_rgba(0,0,0,0.15)]
-                       transition-all min-h-[48px] touch-manipulation
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ fontSize: '16px' }}
-          />
+      {/* composer - beautiful design with animations and polish */}
+      <div className="flex-shrink-0 px-3 py-3 mx-2 mb-2 rounded-xl border transition-all duration-300 animate-in slide-in-from-bottom-4"
+           style={{
+             borderColor: isInputFocused ? 'var(--border-hover)' : 'var(--border-normal)',
+             background: isLoading
+               ? 'linear-gradient(135deg, var(--surface-elevated-bg) 0%, var(--surface-card-bg) 100%)'
+               : 'var(--surface-card-bg)',
+             boxShadow: isInputFocused
+               ? '0 4px 16px rgba(0, 0, 0, 0.08)'
+               : isLoading
+               ? '0 8px 24px rgba(16, 185, 129, 0.15), 0 0 0 4px rgba(16, 185, 129, 0.08)'
+               : '0 2px 8px rgba(0, 0, 0, 0.04)'
+           }}>
+        <div className="flex gap-3">
+          <div className="flex-1 relative group">
+            {/* Animated gradient glow during loading */}
+            {isLoading && (
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-500 rounded-lg opacity-20 blur-sm animate-pulse" />
+            )}
+            <input
+              type="text"
+              aria-label="Player action input"
+              disabled={isLoading}
+              placeholder={isLoading ? 'The narrator contemplates…' : 'What do you do?'}
+              value={playerInput}
+              onChange={(e) => onPlayerInputChange(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !isLoading && onSend()}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              inputMode="text"
+              enterKeyHint="send"
+              className="narration-input relative w-full px-4 py-3 text-base font-medium text-[var(--text-primary)] rounded-lg
+                         focus:outline-none
+                         transition-all duration-300
+                         disabled:opacity-50 disabled:cursor-not-allowed border-none"
+              style={{
+                fontSize: '15px',
+                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                letterSpacing: '0.01em',
+                lineHeight: '1.5',
+                caretColor: 'var(--accent-primary)',
+                boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}
+            />
+            {/* Input and placeholder styling enhancement */}
+            <style>{`
+              .narration-input {
+                background: rgba(255, 255, 255, 0.95);
+              }
+              .dark .narration-input {
+                background: rgba(51, 65, 85, 0.7);
+              }
+              input::placeholder {
+                color: var(--text-secondary);
+                opacity: 0.7;
+                font-style: italic;
+                font-weight: 500;
+                letter-spacing: 0.02em;
+              }
+              input:focus::placeholder {
+                opacity: 0.5;
+                transform: translateY(-2px);
+                transition: all 0.3s ease;
+              }
+            `}</style>
+          </div>
           <button
             onClick={onSend}
             aria-label="Send action"
             disabled={isLoading || !playerInput.trim()}
-            className="btn-primary px-5 py-3 text-sm font-bold rounded-xl disabled:cursor-not-allowed"
+            className="relative px-6 py-3 text-sm font-bold rounded-lg shadow-lg
+                       transition-all duration-300 overflow-hidden group
+                       disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100
+                       hover:shadow-xl hover:scale-105 active:scale-95"
+            style={{
+              background: isLoading || !playerInput.trim()
+                ? 'var(--surface-muted-bg)'
+                : '#10b981',
+              color: 'white',
+              boxShadow: playerInput.trim() && !isLoading
+                ? '0 4px 16px rgba(16, 185, 129, 0.4)'
+                : 'none'
+            }}
           >
-            {isLoading ? (
-              <div className="w-5 h-5 border-b-2 border-white rounded-full animate-spin" />
-            ) : (
-              <span className="flex items-center gap-1.5">
-                <span>Send</span>
-                <span className="text-base">↵</span>
-              </span>
+            {/* Shimmer effect on hover */}
+            {!isLoading && playerInput.trim() && (
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
+              </div>
             )}
+            <span className="relative z-10 flex items-center gap-2">
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="text-xs">Thinking</span>
+                </>
+              ) : (
+                <>
+                  <span>Send</span>
+                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
+            </span>
           </button>
         </div>
       </div>

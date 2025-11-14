@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { BarChart, Crown, Building, Users, Heart, BookOpen, Globe } from 'lucide-react';
+import { BarChart, Crown, Building, Users, Heart, BookOpen, Globe, ScrollText, ChevronLeft, Sun, CloudSun, Cloud, Snowflake, Droplet, Mountain, Grape, Trees, Waves, Castle, Landmark, Flag, Sparkles, Globe2, CloudOff, Building2 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
@@ -241,6 +241,43 @@ const LeftSidebar: React.FC<{
   const formatEnumString = (enumString: string) => {
     if (!enumString) return "Unknown";
     return enumString.charAt(0).toUpperCase() + enumString.slice(1).toLowerCase().replace(/_/g, ' ');
+  };
+
+  // Season color coding
+  const getSeasonColor = (season: string) => {
+    const s = season.toLowerCase();
+    if (s.includes('spring')) return 'text-green-500 dark:text-green-400';
+    if (s.includes('summer')) return 'text-amber-500 dark:text-amber-400';
+    if (s.includes('fall') || s.includes('autumn')) return 'text-orange-500 dark:text-orange-400';
+    if (s.includes('winter')) return 'text-cyan-400 dark:text-cyan-300';
+    return 'text-text-muted';
+  };
+
+  // Climate icon mapping
+  const getClimateIcon = (climate: string) => {
+    const c = climate.toLowerCase();
+    if (c.includes('tropical')) return Sun;
+    if (c.includes('arid') || c.includes('desert')) return CloudOff;
+    if (c.includes('temperate')) return CloudSun;
+    if (c.includes('cold') || c.includes('tundra') || c.includes('polar')) return Snowflake;
+    if (c.includes('mediterranean')) return Grape;
+    if (c.includes('continental')) return Mountain;
+    return Cloud;
+  };
+
+  // Cultural zone icon mapping
+  const getCulturalZoneIcon = (zone: string) => {
+    const z = zone.toUpperCase();
+    if (z.includes('EUROPEAN')) return Castle;
+    if (z.includes('EAST_ASIAN')) return Building2;
+    if (z.includes('MENA')) return Landmark;
+    if (z.includes('SOUTH_ASIAN')) return Sparkles;
+    if (z.includes('SUB_SAHARAN_AFRICAN') || z.includes('AFRICAN')) return Trees;
+    if (z.includes('OCEANIA')) return Waves;
+    if (z.includes('PRE_COLUMBIAN')) return Mountain;
+    if (z.includes('COLONIAL')) return Flag;
+    if (z.includes('SOUTH_AMERICAN')) return Mountain;
+    return Globe2;
   };
 
   /* ----- factions for Overview ----- */
@@ -1138,10 +1175,10 @@ const LeftSidebar: React.FC<{
     </div>
   );
 
-  const majorTabs: { id: MajorTab, label: string, color: string }[] = [
-    { id: 'history', label: 'History', color: 'bg-amber-600' },
-    { id: 'map', label: 'Map', color: 'bg-blue-600' },
-    { id: 'gamelog', label: 'Gamelog', color: 'bg-purple-600' },
+  const majorTabs: { id: MajorTab, label: string, color: string, Icon: React.ElementType }[] = [
+    { id: 'history', label: 'History', color: 'bg-amber-600', Icon: BookOpen },
+    { id: 'map', label: 'Map', color: 'bg-blue-600', Icon: Globe },
+    { id: 'gamelog', label: 'Gamelog', color: 'bg-purple-600', Icon: ScrollText },
   ];
 
   return (
@@ -1169,41 +1206,53 @@ const LeftSidebar: React.FC<{
         <div className="shrink-0">
           {/* Header card */}
           <div className="p-4 rounded-xl surface-card mb-4 relative">
-            <button onClick={() => setIsLeftSidebarExpanded(false)} className="absolute opacity-40 top-1 right-2 text-text-secondary hover:text-text-primary text-lg leading-none" aria-label="Collapse sidebar">&lt;&lt;</button>
+            <button
+              onClick={() => setIsLeftSidebarExpanded(false)}
+              className="absolute top-2 right-2 text-text-secondary hover:text-text-primary transition-colors opacity-60 hover:opacity-100"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
             <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-baseline">
               <div
                 className="cursor-pointer sidebar-meta -m-1 pr-3"
                 onClick={() => setShowLifeEventsCalendar(true)}
                 title="View life events calendar"
               >
-                <p className="text-[12px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1">Date</p>
-                <p className="text-base font-bold text-[var(--accent-secondary)] leading-tight">{formattedFullDate}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5 capitalize">{season}</p>
+                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1">Date</p>
+                <p className="text-[17px] font-bold text-accent-secondary leading-tight">{formattedFullDate}</p>
+                <p className={`text-xs mt-0.5 capitalize font-medium ${getSeasonColor(season)}`}>{season}</p>
               </div>
               <div
                 className="cursor-pointer sidebar-meta -m-1"
                 onClick={onToggleMapVisibility}
                 title="Click to toggle map visibility"
               >
-                <p className="text-[12px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1">Time</p>
-                <p className="text-base font-bold text-[var(--accent-secondary)] leading-tight">{formattedTime}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5 capitalize">{currentTimeOfDay.toLowerCase()}</p>
+                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1">Time</p>
+                <p className="text-[17px] font-bold text-accent-secondary leading-tight">{formattedTime}</p>
+                <p className="text-xs text-text-muted mt-0.5 capitalize">{currentTimeOfDay.toLowerCase()}</p>
               </div>
-              <div className="pr-3" style={{ borderRight: '1px solid var(--surface-muted-border)' }}>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Zone</p>
-                <p className="text-sm text-[var(--text-primary)] font-semibold leading-tight">{getDisplayZone(currentZone, currentRegion)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Climate</p>
-                <p className="text-sm font-semibold text-[var(--accent-primary)] leading-tight">{formatEnumString(currentMapClimate)}</p>
-              </div>
-              <div className="pr-3" style={{ borderRight: '1px solid var(--surface-muted-border)' }}>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Region</p>
-                <p className="text-sm font-semibold text-[var(--text-primary)] leading-tight">{currentRegion}</p>
+              <div className="pr-3 border-r border-[var(--surface-muted-border)]">
+                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1.5">Zone</p>
+                <div className="flex items-center gap-1.5">
+                  {React.createElement(getCulturalZoneIcon(currentZone), { className: "w-3.5 h-3.5 text-text-secondary flex-shrink-0" })}
+                  <p className="text-sm text-text-primary font-semibold leading-tight truncate">{getDisplayZone(currentZone, currentRegion)}</p>
+                </div>
               </div>
               <div>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-1.5">Map Area</p>
-                <p className="text-sm font-semibold text-[var(--text-primary)] leading-tight">{localArea}</p>
+                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1.5">Climate</p>
+                <div className="flex items-center gap-1.5">
+                  {React.createElement(getClimateIcon(currentMapClimate), { className: "w-3.5 h-3.5 text-accent-primary flex-shrink-0" })}
+                  <p className="text-sm font-semibold text-accent-primary leading-tight truncate">{formatEnumString(currentMapClimate)}</p>
+                </div>
+              </div>
+              <div className="pr-3 border-r border-[var(--surface-muted-border)]">
+                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1.5">Region</p>
+                <p className="text-sm font-semibold text-text-primary leading-tight">{currentRegion}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1.5">Map Area</p>
+                <p className="text-sm font-semibold text-text-primary leading-tight">{localArea}</p>
               </div>
             </div>
           </div>
@@ -1215,15 +1264,17 @@ const LeftSidebar: React.FC<{
           <div className="tab-strip rounded-2xl mb-2">
             {majorTabs.map(tab => {
               const isActive = activeMajorTab === tab.id;
+              const Icon = tab.Icon;
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveMajorTab(tab.id)}
-                  className={`tab-button text-xs font-bold ${isActive ? 'is-active' : ''}`}
+                  className={`tab-button text-sm font-bold flex items-center justify-center gap-2 ${isActive ? 'is-active' : ''}`}
                   data-tab-type={tab.id}
                 >
-                  {tab.label}
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}

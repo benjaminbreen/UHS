@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { FactionData } from '../constants/gameData/factionIcons';
+import { LoadingSpinner } from './ui/LoadingSpinner';
 
 // Lazy load faction icons to improve startup performance
 let factionIconsModule: any = null;
@@ -102,7 +103,7 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
     }
   };
 
-  // Get faction data with fallback
+  // Get faction data with smart fallback
   const getFactionData = (factionName: string | null): FactionData => {
     if (!factionName) {
       return {
@@ -112,7 +113,32 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
       };
     }
     ensureFactionIcons();
-    return (factionIconsModule?.FACTION_ICONS || {})[factionName] || {
+    const icons = factionIconsModule?.FACTION_ICONS || {};
+
+    // Try exact match first
+    if (icons[factionName]) {
+      return icons[factionName];
+    }
+
+    // Try word-based fallback (e.g., "British Indian Empire" → "British Empire")
+    const firstWord = factionName.split(' ')[0];
+    if (firstWord) {
+      // Find any faction that starts with the same first word
+      const fallbackMatch = Object.keys(icons).find(key =>
+        key.startsWith(firstWord + ' ') || key === firstWord
+      );
+
+      if (fallbackMatch) {
+        const fallbackData = icons[fallbackMatch];
+        return {
+          ...fallbackData,
+          name: factionName // Keep original name but use fallback icon/color
+        };
+      }
+    }
+
+    // No match found, return default
+    return {
       name: factionName,
       color: '#808080',
       icon: FaTimes
@@ -123,25 +149,25 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
   const DominantIcon = dominantFactionData.icon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-5xl max-h-[85vh] overflow-y-auto ff-panel animate-popIn">
-        {/* Close button - fixed spacing */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto surface-card rounded-xl border border-[var(--border-normal)] shadow-2xl animate-popIn">
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition-colors z-10"
-          style={{ width: '24px', height: '24px', padding: '0' }}
+          className="absolute top-5 right-5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors z-10 p-1 rounded-lg hover:bg-[var(--surface-muted-bg)]"
           aria-label="Close"
         >
-          <FaTimes size={20} />
+          <FaTimes size={24} />
         </button>
 
-        {/* Header */}
-        <div className="relative p-3 pb-0">
-          <h2 className="text-3xl font-bold font-cinzel text-center mb-2 text-slate-200">
+        {/* Header with gradient */}
+        <div className="relative px-8 pt-8 pb-6 border-b border-[var(--border-normal)]">
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 to-transparent pointer-events-none"></div>
+          <h2 className="text-4xl font-bold font-cinzel text-center mb-2 text-[var(--text-primary)] relative">
             Regional Powers & Factions
           </h2>
           {currentZone && currentRegion && (
-            <p className="text-center text-slate-400 mb-2">
+            <p className="text-center text-[var(--text-secondary)] text-lg relative">
               {currentRegion}, {getDisplayZone(currentZone, currentRegion)}
             </p>
           )}
@@ -152,32 +178,39 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
           {/* Dominant Power Section */}
           {actualDominantPower && (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-slate-300 border-b border-slate-700 pb-2">
+              <h3 className="text-2xl font-semibold text-[var(--text-primary)] font-cinzel">
                 Dominant Power
               </h3>
-              <div className="flex items-center gap-6 p-6 bg-black/40 rounded-lg border-2 transition-all hover:bg-black/60 cursor-pointer"
+              <div className="relative group flex items-center gap-6 p-6 bg-gradient-to-br from-[var(--surface-muted-bg)] to-[var(--surface-card-bg)] rounded-xl border-2 transition-all hover:shadow-lg cursor-pointer overflow-hidden"
                    style={{ borderColor: dominantFactionData.color }}
                    onClick={() => handleFactionClick(dominantFactionData.name)}
                    title="Click for historical context">
-                <div className="flex-shrink-0 p-4 rounded-full bg-black/60"
-                     style={{ boxShadow: `0 0 20px ${dominantFactionData.color}40` }}>
-                  <DominantIcon 
-                    size={48} 
+                {/* Glow effect on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none"
+                     style={{ background: `radial-gradient(circle at 50% 50%, ${dominantFactionData.color}, transparent 70%)` }}></div>
+
+                <div className="relative flex-shrink-0 p-5 rounded-2xl bg-[var(--surface-card-bg)] shadow-lg"
+                     style={{ boxShadow: `0 4px 24px ${dominantFactionData.color}30, 0 0 0 1px ${dominantFactionData.color}20` }}>
+                  <DominantIcon
+                    size={56}
                     style={{ color: dominantFactionData.color }}
                   />
                 </div>
-                <div className="flex-grow">
-                  <h4 className="text-2xl font-bold font-cinzel mb-1"
-                      style={{ color: dominantFactionData.color, textShadow: '2px 2px 4px #000' }}>
+                <div className="flex-grow relative">
+                  <h4 className="text-3xl font-bold font-cinzel mb-2 tracking-tight"
+                      style={{ color: dominantFactionData.color }}>
                     {dominantFactionData.name}
                   </h4>
-                  <p className="text-slate-400">
+                  <p className="text-[var(--text-secondary)] text-base leading-relaxed">
                     {dominantPowerDescription || 'The primary ruling authority in this region'}
                   </p>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs text-slate-500 uppercase tracking-wider">Status</span>
-                  <p className="text-lg font-bold text-green-400">Active</p>
+                <div className="text-right relative">
+                  <span className="text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold block mb-1">Status</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/20 border border-green-500/30 rounded-lg">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <p className="text-base font-bold text-green-400">Active</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -186,7 +219,7 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
           {/* Allegiance Groups Section */}
           {actualAllegianceGroups.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-slate-300 border-b border-slate-700 pb-2">
+              <h3 className="text-2xl font-semibold text-[var(--text-primary)] font-cinzel">
                 Local Powers & Allegiance Groups
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,29 +231,35 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
                   const factionData = getFactionData(groupName);
                   const FactionIcon = factionData.icon;
                   const typeConfig = FACTION_TYPE_CONFIG[groupType as keyof typeof FACTION_TYPE_CONFIG] || FACTION_TYPE_CONFIG.primary;
-                  
+
                   return (
                     <div key={`${groupName}-${index}`}
-                         className="relative flex items-center gap-4 p-4 bg-black/30 rounded-lg border border-slate-700 hover:bg-black/50 transition-all cursor-pointer"
-                         style={{ borderColor: `${factionData.color}40` }}
+                         className="relative group flex items-center gap-4 p-4 bg-gradient-to-br from-[var(--surface-muted-bg)] to-[var(--surface-card-bg)] rounded-lg border transition-all cursor-pointer hover:shadow-md overflow-hidden"
+                         style={{ borderColor: `${factionData.color}60` }}
                          onClick={() => handleFactionClick(factionData.name)}
                          title="Click for historical context">
+                      {/* Subtle glow on hover */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none"
+                           style={{ background: `radial-gradient(circle at 50% 50%, ${factionData.color}, transparent 80%)` }}></div>
+
                       {/* Status dot in upper right */}
-                      <div className="absolute top-2 right-2" title={typeConfig.label}>
-                        <div className={`w-3 h-3 ${typeConfig.color} rounded-full shadow-sm`}></div>
+                      <div className="absolute top-3 right-3 z-10" title={typeConfig.label}>
+                        <div className={`w-3 h-3 ${typeConfig.color} rounded-full shadow-lg`}></div>
                       </div>
-                      <div className="flex-shrink-0 p-3 rounded-full bg-black/60">
-                        <FactionIcon 
-                          size={32} 
+
+                      <div className="relative flex-shrink-0 p-3 rounded-xl bg-[var(--surface-card-bg)] shadow-md"
+                           style={{ boxShadow: `0 2px 12px ${factionData.color}20, 0 0 0 1px ${factionData.color}15` }}>
+                        <FactionIcon
+                          size={40}
                           style={{ color: factionData.color }}
                         />
                       </div>
-                      <div className="flex-grow pr-4">
-                        <h5 className="text-lg font-bold font-cinzel"
+                      <div className="flex-grow pr-6 relative">
+                        <h5 className="text-xl font-bold font-cinzel mb-1 leading-tight"
                             style={{ color: factionData.color }}>
                           {factionData.name}
                         </h5>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-sm text-[var(--text-secondary)] leading-snug">
                           {groupDescription}
                         </p>
                       </div>
@@ -231,63 +270,60 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
             </div>
           )}
 
-          {/* Additional Information */}
-          <div className="mt-6 p-4 bg-slate-800/30 rounded-lg border border-slate-700 relative">
-            <div className="flex justify-between items-start mb-2">
-              <h4 className="text-md font-bold text-slate-400 uppercase tracking-wider">
-                Historical Context
-                {contextSource === 'faction' && <span className="ml-2 text-sm normal-case text-amber-400">(Faction-specific)</span>}
-                {contextSource === 'general' && <span className="ml-2 text-sm normal-case text-cyan-400">(General overview)</span>}
+          {/* Historical Context */}
+          <div className="mt-6 p-5 bg-gradient-to-br from-[var(--surface-muted-bg)] to-[var(--surface-card-bg)] rounded-xl border border-[var(--border-normal)] relative shadow-sm">
+            <div className="flex justify-between items-start mb-3">
+              <h4 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-wide flex items-center gap-2">
+                <span>Historical Context</span>
+                {contextSource === 'faction' && <span className="text-xs normal-case font-normal px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">Faction-specific</span>}
+                {contextSource === 'general' && <span className="text-xs normal-case font-normal px-2 py-0.5 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-md">General overview</span>}
               </h4>
               <button
                 onClick={handleGeneralContextClick}
-                className="text-xs uppercase text-slate-500 hover:text-slate-300 transition-colors"
+                className="text-xs uppercase px-3 py-1.5 bg-[var(--surface-card-bg)] hover:bg-[var(--surface-elevated-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-normal)] rounded-lg transition-all font-semibold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoadingContext}
               >
                 Click for more
               </button>
             </div>
             {isLoadingContext ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400"></div>
-                <span className="ml-2 text-sm text-slate-400">Loading historical context...</span>
-              </div>
+              <LoadingSpinner text="Loading historical context..." center />
             ) : (
-              <p className="text-slate-300 text-md leading-relaxed">
+              <p className="text-[var(--text-primary)] text-base leading-relaxed">
                 {historicalContext}
               </p>
             )}
           </div>
 
           {/* Legend */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-slate-700">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Active Power</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-5 mt-2 border-t border-[var(--border-normal)]">
+            <div className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
+              <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Active Power</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <span>Rising Power</span>
+            <div className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Rising Power</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-              <span>Contested</span>
+            <div className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
+              <div className="w-3 h-3 bg-orange-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Contested</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span>Declining</span>
+            <div className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
+              <div className="w-3 h-3 bg-red-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Declining</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-              <span>Rebel Force</span>
+            <div className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
+              <div className="w-3 h-3 bg-red-600 rounded-full shadow-sm"></div>
+              <span className="font-medium">Rebel Force</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Trade Company</span>
+            <div className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
+              <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Trade Company</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-              <span>Religious Order</span>
+            <div className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
+              <div className="w-3 h-3 bg-purple-500 rounded-full shadow-sm"></div>
+              <span className="font-medium">Religious Order</span>
             </div>
           </div>
         </div>

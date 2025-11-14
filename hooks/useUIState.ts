@@ -43,6 +43,7 @@ import {
     AssessmentPrimarySourceLog,
     AssessmentPlayerInputLog
 } from '../types/assessment';
+import { GlobalEvent } from '../services/globalEventService';
 
 const ASSESSMENT_STORAGE_KEY = 'uhs-assessment-session';
 
@@ -197,9 +198,10 @@ export const useUIState = () => {
     const [showDiseaseProgressionModal, setShowDiseaseProgressionModal] = useState<boolean>(false);
     const [showEventModal, setShowEventModal] = useState<boolean>(false);
     const [showFactionsModal, setShowFactionsModal] = useState<boolean>(false);
+    const [globalEventModalData, setGlobalEventModalData] = useState<GlobalEvent | null>(null);
 
     // Top nav panels state
-    const [showJournal, setShowJournal] = useState<boolean>(true);
+    const [showJournal, setShowJournal] = useState<boolean>(false);
     const [showQuestsPanel, setShowQuestsPanel] = useState<boolean>(false);
     const [highlightedWorkOfferId, setHighlightedWorkOfferId] = useState<string | null>(null);
     const [showGameModePanel, setShowGameModePanel] = useState<boolean>(false);
@@ -1143,6 +1145,22 @@ export const useUIState = () => {
             eventBus.emit('pov:show');
         }
 
+        // TEST TRIGGER: Check for "black death" to manually trigger the event
+        if (lowerInput === 'black death') {
+            const { GLOBAL_EVENTS } = await import('../services/globalEventService');
+            const blackDeathEvent = GLOBAL_EVENTS.find(e => e.id === 'black_death_1348');
+            if (blackDeathEvent) {
+                setGlobalEventModalData(blackDeathEvent);
+                setIsNarratorLoading(false);
+                const testMessage: NarrationMessage = {
+                    sender: 'narrator',
+                    text: '🧪 **Test Event Triggered**: Black Death (1347-1353)'
+                };
+                setNarrationHistory(prev => [...prev, testMessage]);
+                return;
+            }
+        }
+
         // Check if this is a time advancement command
         const timeCommand = parseTimeCommand(lowerInput);
         if (timeCommand) {
@@ -1446,13 +1464,33 @@ export const useUIState = () => {
         try {
             const responseText = await generateDmResponse(modifiedPlayerInput, context);
             setNarrationHistory(prev => [...prev, { sender: 'narrator', text: responseText }]);
+
+            // Add gamelog entry for narration panel interaction
+            if (addGameLogEntry && gameDate && formattedTime) {
+                // Extract first sentence from response (up to first period, exclamation, or question mark)
+                const firstSentenceMatch = responseText.match(/^[^.!?]+[.!?]/);
+                const firstSentence = firstSentenceMatch ? firstSentenceMatch[0].trim() : responseText.substring(0, 100) + '...';
+
+                const location = localArea || mapData?.name || 'Unknown location';
+                const summary = `Explored ${location}: "${playerInput.substring(0, 60)}${playerInput.length > 60 ? '...' : ''}"`;
+
+                addGameLogEntry({
+                    id: `narration-${Date.now()}-${Math.random()}`,
+                    timestamp: { ...gameDate },
+                    timeString: formattedTime,
+                    type: 'MILESTONE_EXPLORATION',
+                    icon: '🔍',
+                    summary,
+                    details: `Player: "${playerInput}"\n\nResponse: ${firstSentence}`,
+                });
+            }
         } catch (error) {
             console.error("Error with DM response:", error);
             setNarrationHistory(prev => [...prev, { sender: 'narrator', text: "An unexpected silence fills the air..." }]);
         } finally {
             setIsNarratorLoading(false);
         }
-    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter, setGameTimeHours, setGameDate, formattedTime, recordPlayerInput]);
+    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter, setGameTimeHours, setGameDate, formattedTime, recordPlayerInput, addGameLogEntry, localArea]);
 
     const handleEncounter = useCallback((target: EncounterableEntity) => {
         // If it's an NPC, ensure we get the latest version from the npcs array
@@ -2059,6 +2097,7 @@ export const useUIState = () => {
         isCampModalOpen,
         showJournal, showQuestsPanel, highlightedWorkOfferId, showGameModePanel,
         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal,
+        globalEventModalData, setGlobalEventModalData,
         showLanguageTree, selectedLanguageId, showSessionSummaryModal,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem,
         isRightSidebarVisible, setIsRightSidebarVisible,

@@ -83,11 +83,11 @@ const BigChip: React.FC<{ children: React.ReactNode; tone?: 'blue' | 'amber' | '
   tone = 'slate',
 }) => {
   const toneMap: Record<string, string> = {
-    blue: 'bg-blue-500/20 text-blue-100 border-blue-400/40',
-    amber: 'bg-amber-500/20 text-amber-100 border-amber-400/40',
-    green: 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40',
-    violet: 'bg-violet-500/20 text-violet-100 border-violet-400/40',
-    slate: 'bg-slate-700/50 text-slate-200 border-slate-500/40',
+    blue: 'bg-blue-500/20 text-blue-700 dark:text-blue-100 border-blue-400/40',
+    amber: 'bg-amber-500/20 text-amber-700 dark:text-amber-100 border-amber-400/40',
+    green: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-100 border-emerald-400/40',
+    violet: 'bg-violet-500/20 text-violet-700 dark:text-violet-100 border-violet-400/40',
+    slate: 'bg-[var(--surface-chip-bg)] text-text-primary border-[var(--surface-chip-border)]',
   };
   return (
     <span
@@ -100,8 +100,8 @@ const BigChip: React.FC<{ children: React.ReactNode; tone?: 'blue' | 'amber' | '
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="flex justify-between items-center py-1.5 text-sm">
-    <span className="text-slate-400">{label}</span>
-    <span className="text-slate-100 font-semibold text-right">{value}</span>
+    <span className="text-text-secondary">{label}</span>
+    <span className="text-text-primary font-semibold text-right">{value}</span>
   </div>
 );
 
@@ -119,7 +119,7 @@ const Bar: React.FC<{ value: number; max?: number; tone?: 'red' | 'blue' | 'viol
     amber: 'from-amber-500 to-yellow-400',
   };
   return (
-    <div className="h-2 rounded bg-slate-800/70 border border-slate-700 overflow-hidden">
+    <div className="h-2 rounded bg-[var(--surface-track-bg)] border border-[var(--surface-track-border)] overflow-hidden">
       <div className={`h-full bg-gradient-to-r ${tones[tone]}`} style={{ width: `${pct}%` }} />
     </div>
   );
@@ -133,14 +133,14 @@ const StatRow: React.FC<{ label: string; value: number; max?: number; Icon?: Rea
   tone = 'blue',
 }) => (
   <div className="flex items-center gap-3">
-    <div className="w-44 flex items-center gap-2 text-slate-200 text-sm">
+    <div className="w-44 flex items-center gap-2 text-text-primary text-sm">
       <Icon className="w-4 h-4" />
       <span>{label}</span>
     </div>
     <div className="flex-1">
       <Bar value={value} max={max} tone={tone} />
     </div>
-    <span className="w-10 text-right text-slate-100 font-bold">{value}</span>
+    <span className="w-10 text-right text-text-primary font-bold">{value}</span>
   </div>
 );
 
@@ -148,14 +148,14 @@ const TraitRow: React.FC<{ label: string; value: number; Icon?: React.ElementTyp
   const pct = Math.round(value * 100);
   return (
     <div className="flex items-center gap-3">
-      <div className="w-44 flex items-center gap-2 text-slate-200 text-sm">
+      <div className="w-44 flex items-center gap-2 text-text-primary text-sm">
         <Icon className="w-4 h-4" />
         <span>{label}</span>
       </div>
       <div className="flex-1">
         <Bar value={pct} max={100} tone="violet" />
       </div>
-      <span className="w-10 text-right text-slate-100 font-bold">{pct}</span>
+      <span className="w-10 text-right text-text-primary font-bold">{pct}</span>
     </div>
   );
 };
@@ -173,8 +173,8 @@ const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void;
     className={[
       'flex items-center gap-2 px-4 py-3 text-xs md:text-sm font-bold uppercase tracking-wider transition-colors shrink-0',
       active
-        ? 'text-white bg-slate-700/50 border-b-2 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,.25)]'
-        : 'text-slate-400 hover:text-white hover:bg-slate-800/40',
+        ? 'text-text-primary surface-card border-b-2 border-[var(--accent-primary)] shadow-[0_0_15px_rgba(59,130,246,.25)]'
+        : 'text-text-secondary hover:text-text-primary hover:bg-[var(--surface-muted-hover-bg)]',
     ].join(' ')}
   >
     <Icon className="w-4 h-4" />
@@ -269,31 +269,31 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
       <div className="space-y-6">
         {!isPlayer && (
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Connections</h3>
-            <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-4 space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-3">Connections</h3>
+            <div className="rounded-lg border border-[var(--border-normal)]/50 bg-[var(--surface-muted-bg)]/40 p-4 space-y-2">
               <DetailRow label="Livelihood" value={workLocation} />
               <DetailRow label="Residence" value={homeLocation} />
             </div>
           </section>
         )}
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Details</h3>
-          <div className="grid grid-cols-2 gap-4 rounded-lg border border-slate-700/50 bg-slate-800/40 p-4 text-sm">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-3">Details</h3>
+          <div className="grid grid-cols-2 gap-4 rounded-lg border border-[var(--border-normal)]/50 bg-[var(--surface-muted-bg)]/40 p-4 text-sm">
             <div>
-              <div className="text-slate-400 text-xs">Age</div>
-              <div className="text-white font-semibold">{npc.age} years</div>
+              <div className="text-text-secondary text-xs">Age</div>
+              <div className="text-text-primary font-semibold">{npc.age} years</div>
             </div>
             <div>
-              <div className="text-slate-400 text-xs">Profession</div>
+              <div className="text-text-secondary text-xs">Profession</div>
               <div className="text-green-400 font-semibold capitalize">{pretty(profession)}</div>
             </div>
             <div>
-              <div className="text-slate-400 text-xs">Class</div>
-              <div className="text-white capitalize">{pretty(socialClass)}</div>
+              <div className="text-text-secondary text-xs">Class</div>
+              <div className="text-text-primary capitalize">{pretty(socialClass)}</div>
             </div>
             <div>
-              <div className="text-slate-400 text-xs">Religion</div>
-              <div className="text-white">{npc.religion || '—'}</div>
+              <div className="text-text-secondary text-xs">Religion</div>
+              <div className="text-text-primary">{npc.religion || '—'}</div>
             </div>
           </div>
         </section>
@@ -312,8 +312,8 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
       <div className="space-y-6">
         <section>
           <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-3">Background</h3>
-          <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-4">
-            <p className="font-lora text-slate-200/90 italic leading-relaxed whitespace-pre-wrap">
+          <div className="rounded-lg border border-[var(--border-normal)]/50 bg-[var(--surface-muted-bg)]/40 p-4">
+            <p className="font-lora text-text-primary/90 italic leading-relaxed whitespace-pre-wrap">
               {backstory}
             </p>
           </div>
@@ -328,7 +328,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
             </h3>
             <div className="space-y-2">
               {appearance.markings.map((marking: any, idx: number) => (
-                <div key={idx} className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-3">
+                <div key={idx} className="rounded-lg border border-[var(--border-normal)]/50 bg-[var(--surface-muted-bg)]/40 p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       {marking.type === 'tattoo' && <span className="text-lg">🖤</span>}
@@ -338,10 +338,10 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
                       {marking.type === 'ash' && <span className="text-lg">⚪</span>}
                       {marking.type === 'piercing' && <span className="text-lg">💍</span>}
                       <div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-text-primary">
                           {marking.name || `${marking.location.charAt(0).toUpperCase() + marking.location.slice(1)} ${marking.type}`}
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-text-secondary">
                           {marking.pattern?.replace(/_/g, ' ') || marking.type}
                         </p>
                       </div>
@@ -357,7 +357,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
                     )}
                   </div>
                   {marking.culturalSignificance && (
-                    <p className="text-xs text-slate-300 italic">
+                    <p className="text-xs text-text-secondary italic">
                       {marking.culturalSignificance}
                     </p>
                   )}
@@ -382,7 +382,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
                     <Sparkles className="w-4 h-4" />
                     Body Modifications
                   </h3>
-                  <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-4">
+                  <div className="rounded-lg border border-[var(--border-normal)]/50 bg-[var(--surface-muted-bg)]/40 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         {specialType === 'tattoo' && <span className="text-lg">🖤</span>}
@@ -390,8 +390,8 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
                         {specialType === 'face_paint' && <span className="text-lg">🎨</span>}
                         {specialType === 'henna' && <span className="text-lg">🌿</span>}
                         <div>
-                          <p className="text-sm font-semibold text-white">{accessory.name}</p>
-                          <p className="text-xs text-slate-400 capitalize">{specialType.replace('_', ' ')}</p>
+                          <p className="text-sm font-semibold text-text-primary">{accessory.name}</p>
+                          <p className="text-xs text-text-secondary capitalize">{specialType.replace('_', ' ')}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -407,7 +407,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-300 italic">
+                    <p className="text-xs text-text-secondary italic">
                       {AccessoryMaintenanceService.getCulturalSignificance(accessory)}
                     </p>
                   </div>
@@ -449,7 +449,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         <StatRow label="Persuasion" value={npc.stats.persuasion} Icon={BadgeCheck} tone="violet" />
       </section>
 
-      <section className="lg:col-span-2 rounded-lg border border-slate-700/50 bg-slate-800/40 p-4 mt-2">
+      <section className="lg:col-span-2 rounded-lg border border-[var(--border-normal)]/50 bg-[var(--surface-muted-bg)]/40 p-4 mt-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Physical Details</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
           <DetailRow label="Gender" value={pretty(npc.gender)} />
@@ -460,14 +460,14 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
           <DetailRow
             label="Hair Color"
             value={<span className="inline-flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full border border-slate-500" style={{ backgroundColor: appearance?.hairColor }} />
+              <span className="w-3.5 h-3.5 rounded-full border border-[var(--border-normal)]" style={{ backgroundColor: appearance?.hairColor }} />
               <span className="capitalize">{appearance?.hairColorName || '—'}</span>
             </span>}
           />
           <DetailRow
             label="Eye Color"
             value={<span className="inline-flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full border border-slate-500" style={{ backgroundColor: appearance?.eyeColor }} />
+              <span className="w-3.5 h-3.5 rounded-full border border-[var(--border-normal)]" style={{ backgroundColor: appearance?.eyeColor }} />
               <span className="capitalize">{appearance?.eyeColorName || '—'}</span>
             </span>}
           />
@@ -479,20 +479,20 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
 
   const Equipment = () =>
     isPlayer ? (
-      <div className="p-6 text-center text-slate-400">Player equipment is managed in the main Character Profile.</div>
+      <div className="p-6 text-center text-text-secondary">Player equipment is managed in the main Character Profile.</div>
     ) : (
       <div className="p-6">
-        <h4 className="text-lg font-semibold text-blue-300 mb-4 border-b border-slate-700 pb-2">Worn Items</h4>
+        <h4 className="text-lg font-semibold text-blue-300 mb-4 border-b border-[var(--border-normal)] pb-2">Worn Items</h4>
         <div className="grid gap-3">
           {equipmentItems.map(item => (
-            <div key={item.label} className="grid grid-cols-3 gap-4 p-3 bg-slate-800/40 rounded-md border border-slate-700/50 text-sm">
-              <div className="text-slate-300 font-medium">{item.label}</div>
-              <div className="col-span-2 text-white capitalize">{item.value}</div>
+            <div key={item.label} className="grid grid-cols-3 gap-4 p-3 bg-[var(--surface-muted-bg)]/40 rounded-md border border-[var(--border-normal)]/50 text-sm">
+              <div className="text-text-secondary font-medium">{item.label}</div>
+              <div className="col-span-2 text-text-primary capitalize">{item.value}</div>
             </div>
           ))}
-          <div className="grid grid-cols-3 gap-4 p-3 bg-slate-800/40 rounded-md border border-slate-700/50 text-sm">
-            <div className="text-slate-300 font-medium">Physical</div>
-            <div className="col-span-2 text-white capitalize">
+          <div className="grid grid-cols-3 gap-4 p-3 bg-[var(--surface-muted-bg)]/40 rounded-md border border-[var(--border-normal)]/50 text-sm">
+            <div className="text-text-secondary font-medium">Physical</div>
+            <div className="col-span-2 text-text-primary capitalize">
               {appearance?.build || '—'} build, {appearance?.facialHair ? `with ${pretty(appearance.facialHairStyle)}` : 'clean-shaven'}
             </div>
           </div>
@@ -502,39 +502,39 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
 
   const LifeHistory = () =>
     isPlayer ? (
-      <div className="p-6 text-center text-slate-400">Your story is yet to be written.</div>
+      <div className="p-6 text-center text-text-secondary">Your story is yet to be written.</div>
     ) : (
       <div className="p-6 space-y-8">
         {/* Family summary */}
         <section>
-          <h4 className="text-lg font-semibold text-blue-300 mb-3 border-b border-slate-700 pb-2">Family</h4>
+          <h4 className="text-lg font-semibold text-blue-300 mb-3 border-b border-[var(--border-normal)] pb-2">Family</h4>
           <div className="grid md:grid-cols-3 gap-3">
             {(['father', 'mother'] as const).map(rel => {
               const m = family.find(f => f.relation === rel);
               return m ? (
-                <div key={rel} className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-sm flex justify-between">
-                  <span className="text-slate-300 capitalize">{rel}</span>
-                  <span className="text-slate-100">{m.name} ({m.profession})</span>
+                <div key={rel} className="p-3 rounded-lg bg-[var(--surface-muted-bg)]/40 border border-[var(--border-normal)]/50 text-sm flex justify-between">
+                  <span className="text-text-secondary capitalize">{rel}</span>
+                  <span className="text-text-primary">{m.name} ({m.profession})</span>
                 </div>
               ) : null;
             })}
             {(() => {
               const spouse = family.find(f => f.relation === 'spouse');
               return spouse ? (
-                <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-sm flex justify-between">
-                  <span className="text-slate-300">Spouse</span>
-                  <span className="text-slate-100">{spouse.name} ({spouse.profession}, age {spouse.age})</span>
+                <div className="p-3 rounded-lg bg-[var(--surface-muted-bg)]/40 border border-[var(--border-normal)]/50 text-sm flex justify-between">
+                  <span className="text-text-secondary">Spouse</span>
+                  <span className="text-text-primary">{spouse.name} ({spouse.profession}, age {spouse.age})</span>
                 </div>
               ) : null;
             })()}
-            <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-sm md:col-span-3">
-              <div className="text-slate-300">Children</div>
-              <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-100">
+            <div className="p-3 rounded-lg bg-[var(--surface-muted-bg)]/40 border border-[var(--border-normal)]/50 text-sm md:col-span-3">
+              <div className="text-text-secondary">Children</div>
+              <ul className="list-disc list-inside mt-1 space-y-0.5 text-text-primary">
                 {family.filter(f => f.relation === 'son' || f.relation === 'daughter').map(c => (
                   <li key={c.name}>{c.name} (age {c.age})</li>
                 ))}
                 {family.filter(f => f.relation === 'son' || f.relation === 'daughter').length === 0 && (
-                  <li className="text-slate-400">None</li>
+                  <li className="text-text-secondary">None</li>
                 )}
               </ul>
             </div>
@@ -543,7 +543,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
 
         {/* Alternating timeline */}
         <section>
-          <h4 className="text-lg font-semibold text-blue-300 mb-4 border-b border-slate-700 pb-2">Timeline</h4>
+          <h4 className="text-lg font-semibold text-blue-300 mb-4 border-b border-[var(--border-normal)] pb-2">Timeline</h4>
 
           <div className="relative max-h-[54vh] overflow-y-auto pr-2">
             {/* spine */}
@@ -556,46 +556,46 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
                   <div key={`${evt.year}-${i}`} className="relative grid grid-cols-[1fr_2.5rem_1fr] items-start gap-3">
                     {/* left card */}
                     <div className={`${sideLeft ? '' : 'opacity-0 pointer-events-none'} transition`}>
-                      <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
+                      <div className="rounded-xl border border-[var(--border-normal)]/60 bg-[var(--surface-card-bg)]/40 p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600/25 text-blue-200 border border-blue-400/30">
                             {evt.year}
                           </span>
-                          <span className="text-xs text-slate-400">Age {Math.max(0, (npc.age || 0) - (((npc as any).year || 0) - evt.year || 0))}</span>
+                          <span className="text-xs text-text-secondary">Age {Math.max(0, (npc.age || 0) - (((npc as any).year || 0) - evt.year || 0))}</span>
                         </div>
-                        <div className="text-sm font-semibold text-slate-100">
+                        <div className="text-sm font-semibold text-text-primary">
                           {evt.title || 'Life Event'}
                         </div>
-                        <div className="text-sm text-slate-300">{evt.event || evt.text}</div>
+                        <div className="text-sm text-text-secondary">{evt.event || evt.text}</div>
                       </div>
                     </div>
 
                     {/* dot */}
                     <div className="grid place-items-center">
-                      <div className={`w-5 h-5 rounded-full ${color} border-2 border-slate-900 grid place-items-center shadow`}>
+                      <div className={`w-5 h-5 rounded-full ${color} border-2 border-[var(--surface-card-bg)] grid place-items-center shadow`}>
                         <Icon className="w-3 h-3 text-white" />
                       </div>
                     </div>
 
                     {/* right card */}
                     <div className={`${sideLeft ? 'opacity-0 pointer-events-none' : ''} transition`}>
-                      <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
+                      <div className="rounded-xl border border-[var(--border-normal)]/60 bg-[var(--surface-card-bg)]/40 p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600/25 text-blue-200 border border-blue-400/30">
                             {evt.year}
                           </span>
-                          <span className="text-xs text-slate-400">Age {Math.max(0, (npc.age || 0) - (((npc as any).year || 0) - evt.year || 0))}</span>
+                          <span className="text-xs text-text-secondary">Age {Math.max(0, (npc.age || 0) - (((npc as any).year || 0) - evt.year || 0))}</span>
                         </div>
-                        <div className="text-sm font-semibold text-slate-100">
+                        <div className="text-sm font-semibold text-text-primary">
                           {evt.title || 'Life Event'}
                         </div>
-                        <div className="text-sm text-slate-300">{evt.event || evt.text}</div>
+                        <div className="text-sm text-text-secondary">{evt.event || evt.text}</div>
                       </div>
                     </div>
                   </div>
                 );
               })}
-              {!lifeEvents.length && <div className="text-slate-400 text-sm italic">No recorded life events.</div>}
+              {!lifeEvents.length && <div className="text-text-secondary text-sm italic">No recorded life events.</div>}
             </div>
           </div>
         </section>
@@ -604,17 +604,17 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
 
   const Goal = () =>
     isPlayer ? (
-      <div className="p-6 text-center text-slate-400">Your goals are your own to decide.</div>
+      <div className="p-6 text-center text-text-secondary">Your goals are your own to decide.</div>
     ) : (
       <div className="p-6">
-        <h4 className="text-lg font-semibold text-blue-300 mb-3 border-b border-slate-700 pb-2">Personal Goal</h4>
-        <blockquote className="border-l-4 border-blue-500/70 pl-4 italic text-slate-200 text-base">
+        <h4 className="text-lg font-semibold text-blue-300 mb-3 border-b border-[var(--border-normal)] pb-2">Personal Goal</h4>
+        <blockquote className="border-l-4 border-blue-500/70 pl-4 italic text-text-primary text-base">
           “{(npc as NpcEntity).personalGoal?.description || 'To live a quiet life.'}”
         </blockquote>
       </div>
     );
 
-  const History = () => <div className="p-6 text-center text-slate-400 italic">You have not spoken with this person yet.</div>;
+  const History = () => <div className="p-6 text-center text-text-secondary italic">You have not spoken with this person yet.</div>;
 
   /* --------------------------------- render -------------------------------- */
 
@@ -635,10 +635,10 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="shrink-0 px-5 py-4 bg-slate-900/70 border-b border-slate-700 flex items-start justify-between">
+        <div className="shrink-0 px-5 py-4 bg-[var(--surface-muted-bg)] border-b border-[var(--border-normal)] flex items-start justify-between">
           {/* name + big badges */}
           <div className="min-w-0 flex items-center gap-3 flex-wrap">
-            <h2 className="text-2xl md:text-3xl font-bold text-white truncate">{name}</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-text-primary truncate">{name}</h2>
 
             {/* Bigger, top-bar chips to the right of the name */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -667,7 +667,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
               {npc.attributes?.length ? (
                 <button
                   onClick={() => setShowAttributeModal(true)}
-                  className="ml-1 rounded-full ring-1 ring-slate-600/60 hover:ring-blue-400/60 px-2 py-1 bg-slate-800/40"
+                  className="ml-1 rounded-full ring-1 ring-[var(--border-normal)] hover:ring-[var(--accent-primary)] px-2 py-1 bg-[var(--surface-muted-bg)]"
                   title="View all attributes"
                 >
                   <div className="scale-[1.1]">
@@ -706,7 +706,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
 
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white text-3xl leading-none font-light -mt-1"
+              className="text-text-secondary hover:text-text-primary text-3xl leading-none font-light -mt-1"
               aria-label="Close"
             >
               &times;
@@ -717,9 +717,9 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         {/* Body: two columns; left = portrait; right = tabs+content */}
         <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[400px_1fr]">
           {/* MOBILE PORTRAIT */}
-          <div className="xl:hidden p-4 border-b border-slate-700 bg-slate-800/40">
+          <div className="xl:hidden p-4 border-b border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/40">
             <div className="relative mx-auto w-48">
-              <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-600 bg-slate-900 shadow-lg">
+              <div className="aspect-square rounded-xl overflow-hidden border-2 border-[var(--border-normal)] bg-[var(--surface-card-bg)] shadow-lg">
                 {/* AI Portrait for quest NPCs */}
                 {!isPlayer && (npc as NpcEntity).isQuestNPC && (npc as NpcEntity).aiPortrait && (npc as NpcEntity).portraitType === 'ai' ? (
                   <div className="relative w-full h-full">
@@ -742,9 +742,9 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
           </div>
 
           {/* LEFT SIDEBAR */}
-          <aside className="hidden xl:flex flex-col gap-5 p-5 border-r border-slate-700 bg-slate-800/40 min-h-0 overflow-y-auto">
+          <aside className="hidden xl:flex flex-col gap-5 p-5 border-r border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/40 min-h-0 overflow-y-auto">
             <div className="relative mx-auto w-[360px]">
-              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-slate-600 bg-slate-900 shadow-xl">
+              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-[var(--border-normal)] bg-[var(--surface-card-bg)] shadow-xl">
                 {/* AI Portrait for quest NPCs */}
                 {!isPlayer && (npc as NpcEntity).isQuestNPC && (npc as NpcEntity).aiPortrait && (npc as NpcEntity).portraitType === 'ai' ? (
                   <div className="relative w-full h-full">
@@ -772,7 +772,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
               ) : null}
             </div>
 
-            <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4">
+            <div className="rounded-xl border border-[var(--border-normal)]/50 bg-[var(--surface-card-bg)]/40 p-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Quick Facts</h4>
               <div className="space-y-2">
                 <DetailRow label="Age" value={`${npc.age} years`} />
@@ -785,9 +785,9 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
             </div>
 
             {(npc as any).birthplace && (
-              <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4">
+              <div className="rounded-xl border border-[var(--border-normal)]/50 bg-[var(--surface-card-bg)]/40 p-4">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-2">Origins</h4>
-                <div className="flex items-center gap-2 text-sm text-slate-200">
+                <div className="flex items-center gap-2 text-sm text-text-primary">
                   <MapPin className="w-4 h-4" /> {(npc as any).birthplace}
                 </div>
               </div>
@@ -796,7 +796,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
 
           {/* RIGHT: tabs + content */}
           <main className="flex flex-col min-h-0">
-            <div className="shrink-0 flex border-b border-slate-700 bg-slate-800/60 overflow-x-auto">
+            <div className="shrink-0 flex border-b border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/60 overflow-x-auto">
               <TabButton label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} Icon={Home} />
               <TabButton label="Stats" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} Icon={Activity} />
               <TabButton label="Beliefs" active={activeTab === 'beliefs'} onClick={() => setActiveTab('beliefs')} Icon={Sparkles} />
@@ -806,7 +806,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
               {!isPlayer && <TabButton label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} Icon={User} />}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto bg-slate-800/30">
+            <div className="flex-1 min-h-0 overflow-y-auto bg-[var(--surface-muted-bg)]/30">
               {activeTab === 'overview' && <Overview />}
               {activeTab === 'stats' && <Stats />}
               {activeTab === 'beliefs' && (
@@ -823,10 +823,10 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 p-4 border-t border-slate-700 bg-slate-800/60 flex justify-end">
+        <div className="shrink-0 p-4 border-t border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/60 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-md bg-slate-600 hover:bg-slate-500 text-white font-semibold transition-colors"
+            className="px-6 py-2 rounded-md bg-[var(--button-secondary-bg)] hover:bg-[var(--button-secondary-hover)] text-text-primary font-semibold transition-colors border border-[var(--border-normal)]"
           >
             Close
           </button>

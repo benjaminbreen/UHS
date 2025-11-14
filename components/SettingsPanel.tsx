@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
-import { themeService } from '../services/themeService';
 import { gameSounds } from '../services/gameSoundsService';
 import { useModalKeyboard } from '../hooks/useModalKeyboard';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Database, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check, Sparkles, Zap, Globe, Shuffle, Trophy, Shield, Compass, Coins, Crown, Home, Scale } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
@@ -25,6 +24,7 @@ import { SavedGame } from '../services/saveGameService';
 import { shareableStateService } from '../services/shareableStateService';
 import { SeedManager } from '../services/seedService';
 import { findZoneForMapArea } from '../services/zoneDetectionService';
+import { learningObjectivesService } from '../services/learningObjectivesService';
 import SoundTestPanel from './SoundTestPanel';
 import IconTestPanel from './IconTestPanel';
 import { PrimarySourcesDevPanel } from './PrimarySourcesDevPanel';
@@ -67,29 +67,50 @@ interface SettingsPanelProps {
   onResetTooltips: () => void;
 }
 
+// Modern Settings Toggle Component
 const SettingsToggle: React.FC<{
     id: string;
     label: string;
     description: string;
     isChecked: boolean;
     onToggle: () => void;
-}> = ({ id, label, description, isChecked, onToggle }) => (
-    <div className="p-3 surface-muted rounded-md">
-        <div className="flex items-center justify-between">
-            <label htmlFor={id} className="text-sm font-medium text-text-primary cursor-pointer">
-                {label}
-            </label>
-            <button
-                id={id}
-                onClick={onToggle}
-                className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent focus:ring-offset-background-primary border ${isChecked ? 'bg-accent border-accent' : 'bg-surface-track border-border-surface-muted'}`}
-                role="switch"
-                aria-checked={isChecked}
-            >
-                <span className={`${isChecked ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm`} />
-            </button>
+    icon?: React.ElementType;
+}> = ({ id, label, description, isChecked, onToggle, icon: Icon }) => (
+    <div className="group relative flex items-center justify-between p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] hover:border-[var(--accent-primary)]/30 transition-all duration-200 cursor-pointer"
+         onClick={onToggle}>
+        <div className="flex items-start gap-3 flex-1 pr-4">
+            {Icon && (
+                <div className={`mt-0.5 transition-colors duration-200 ${isChecked ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`}>
+                    <Icon className="w-5 h-5" />
+                </div>
+            )}
+            <div className="flex-1 min-w-0">
+                <label htmlFor={id} className="block text-sm font-semibold text-[var(--text-primary)] cursor-pointer mb-0.5">
+                    {label}
+                </label>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{description}</p>
+            </div>
         </div>
-        <p className="mt-1.5 text-xs text-text-muted">{description}</p>
+        <button
+            id={id}
+            onClick={(e) => {
+                e.stopPropagation();
+                onToggle();
+            }}
+            className={`relative inline-flex items-center h-7 w-12 rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:ring-offset-2 focus:ring-offset-[var(--background-primary)] flex-shrink-0 ${
+                isChecked
+                    ? 'bg-[var(--accent-primary)] shadow-lg shadow-[var(--accent-primary)]/25'
+                    : 'bg-[var(--surface-track-bg)] border border-[var(--border-normal)]'
+            }`}
+            role="switch"
+            aria-checked={isChecked}
+        >
+            <span
+                className={`inline-block w-5 h-5 transform bg-white rounded-full transition-all duration-300 ease-in-out shadow-md ${
+                    isChecked ? 'translate-x-6' : 'translate-x-1'
+                }`}
+            />
+        </button>
     </div>
 );
 
@@ -119,9 +140,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onToggleContextualTooltips,
   onResetTooltips,
 }) => {
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
-
   // Audio settings state
   const [isMuted, setIsMuted] = useState(() => {
     const saved = localStorage.getItem('gameMuted');
@@ -134,6 +152,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   // Developer mode state
   const [showDeveloperMode, setShowDeveloperMode] = useState(false);
+
+  // Educational mode state
+  const [isEducationalMode, setIsEducationalMode] = useState(() =>
+    learningObjectivesService.isEducationalMode()
+  );
+
+  // Game mode state
+  const [currentGameMode, setCurrentGameMode] = useState(() =>
+    localStorage.getItem('currentGameMode') || 'survival'
+  );
+
+  // Game mode configurations
+  const GAME_MODE_CONFIG = {
+    survival: { icon: Shield, color: '#ef4444', label: 'Survival', description: 'Face existential threats and survive against all odds' },
+    exploration: { icon: Compass, color: '#3b82f6', label: 'Exploration', description: 'Discover new lands and uncover hidden secrets' },
+    commerce: { icon: Coins, color: '#eab308', label: 'Commerce', description: 'Build wealth through trade and business ventures' },
+    scholarship: { icon: BookOpen, color: '#a855f7', label: 'Scholarship', description: 'Pursue knowledge and intellectual achievement' },
+    leadership: { icon: Crown, color: '#f59e0b', label: 'Leadership', description: 'Lead your people through challenges and crises' },
+    livelihood: { icon: Home, color: '#22c55e', label: 'Livelihood', description: 'Make an honest living and support your community' },
+    diplomacy: { icon: Users, color: '#06b6d4', label: 'Diplomacy', description: 'Navigate complex political relationships' },
+    legal: { icon: Scale, color: '#6366f1', label: 'Legal', description: 'Uphold justice and navigate legal systems' },
+  } as const;
 
   // User-facing modals
   const [showSavedGamesModal, setShowSavedGamesModal] = useState(false);
@@ -182,13 +222,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     disabled: !isOpen
   });
 
-  // Subscribe to theme changes
-  useEffect(() => {
-    const unsubscribe = themeService.subscribe((theme) => {
-      setIsDarkMode(theme === 'dark');
-    });
-    return unsubscribe;
-  }, []);
+  // Theme state is managed locally - no subscription needed
+  // The visual theme change happens instantly via CSS variables
 
   // Initialize audio settings from localStorage
   useEffect(() => {
@@ -230,6 +265,38 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   const handleNewRandomInitialSeed = () => {
     onSeedChange(Math.floor(Math.random() * 1000000));
+  };
+
+  const handleGameModeChange = (mode: string) => {
+    setCurrentGameMode(mode);
+    localStorage.setItem('currentGameMode', mode);
+    // Show notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-[var(--surface-card-bg)] border border-[var(--accent-primary)] rounded-lg p-4 shadow-2xl animate-fade-in';
+    notification.innerHTML = `
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">${GAME_MODE_CONFIG[mode as keyof typeof GAME_MODE_CONFIG]?.icon ? '🎮' : '✓'}</span>
+        <div>
+          <h3 class="text-sm font-bold text-[var(--text-primary)]">Game Mode Changed</h3>
+          <p class="text-xs text-[var(--text-secondary)]">Now playing: ${GAME_MODE_CONFIG[mode as keyof typeof GAME_MODE_CONFIG]?.label}</p>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+  };
+
+  const handleEducationalModeToggle = () => {
+    const newState = !isEducationalMode;
+    setIsEducationalMode(newState);
+
+    if (newState) {
+      learningObjectivesService.initializeSession();
+      localStorage.setItem('educationalMode', 'true');
+    } else {
+      learningObjectivesService.clearSession();
+      localStorage.removeItem('educationalMode');
+    }
   };
 
   const handleMuteToggle = () => {
@@ -417,144 +484,122 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         aria-labelledby="settings-panel-title"
         style={{ borderLeftWidth: '1px' }}
       >
-        <div className="flex items-center justify-between px-5 py-4 surface-drawer-header">
-          <h2 id="settings-panel-title" className="text-lg font-semibold text-text-primary">Settings</h2>
+        {/* Modern Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-normal)]">
+          <div>
+            <h2 id="settings-panel-title" className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Settings</h2>
+            <p className="text-sm text-[var(--text-secondary)] mt-0.5">Configure your experience</p>
+          </div>
           <button
             onClick={onClose}
-            className="text-2xl text-text-secondary transition-colors hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+            className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-muted-bg)] rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50"
             aria-label="Close settings panel"
             title="Close settings (Esc)"
           >
-            <X className="h-6 w-6" aria-hidden="true" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="h-full p-5 overflow-y-auto pb-24 scrollbar-thin text-text-primary">
-          {/* Game Description */}
-          <section className="mb-8 p-4 surface-muted rounded-lg border border-surface-muted shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <Info className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-semibold text-text-primary">Universal History Simulator</h3>
-            </div>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              An educational history simulation game developed at UC Santa Cruz in 2025.
-              Explore different historical periods and cultures through immersive gameplay.
-            </p>
-          </section>
-
-          {/* Theme Toggle */}
-          <section className="mb-8 pb-8 border-b border-surface-muted/50">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              Appearance
-            </h3>
-            <div className="p-3 surface-muted rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {isDarkMode ? (
-                    <Moon className="w-4 h-4 text-accent" />
-                  ) : (
-                    <Sun className="w-4 h-4 text-accent" />
-                  )}
-                  <label className="text-sm font-medium text-text-primary">
-                    {isDarkMode ? 'Dark Mode' : 'Light Mode'}
-                  </label>
-                </div>
-                <button
-                  onClick={() => themeService.toggleTheme()}
-                  className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent focus:ring-offset-background-primary border ${isDarkMode ? 'bg-accent border-accent' : 'bg-surface-track border-border-surface-muted'}`}
-                  role="switch"
-                  aria-checked={isDarkMode}
-                >
-                  <span className={`${isDarkMode ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm`} />
-                </button>
-              </div>
-              <p className="mt-1.5 text-xs text-text-muted">Toggle between light and dark theme</p>
-            </div>
-          </section>
-
+        <div className="h-full px-6 py-5 overflow-y-auto pb-24 scrollbar-thin space-y-6">
           {/* Audio Controls */}
-          <section className="mb-8 pb-8 border-b border-surface-muted/50">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              Audio
-            </h3>
-            <div className="space-y-3">
-              {/* Mute Toggle */}
-              <div className="p-3 surface-muted rounded-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {isMuted ? (
-                      <VolumeX className="w-4 h-4 text-[var(--color-error)]" />
-                    ) : (
-                      <Volume2 className="w-4 h-4 text-accent" />
-                    )}
-                    <label className="text-sm font-medium text-text-primary">
-                      {isMuted ? 'Muted' : 'Sound Enabled'}
-                    </label>
-                  </div>
-                  <button
-                    onClick={handleMuteToggle}
-                    className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent focus:ring-offset-background-primary border ${!isMuted ? 'bg-[var(--color-success)] border-[var(--color-success)]' : 'bg-surface-track border-border-surface-muted'}`}
-                    role="switch"
-                    aria-checked={!isMuted}
-                    aria-label="Toggle mute"
-                  >
-                    <span className={`${!isMuted ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-sm`} />
-                  </button>
-                </div>
-                <p className="mt-1.5 text-xs text-text-muted">Mute all game sounds and music</p>
-              </div>
-
-              {/* Volume Slider */}
-              <div className="p-3 surface-muted rounded-md">
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="volumeSlider" className="text-sm font-medium text-text-primary">
-                    Master Volume
-                  </label>
-                  <span className="text-xs text-text-muted font-mono">
-                    {Math.round(volume * 100)}%
-                  </span>
-                </div>
-                <input
-                  id="volumeSlider"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                  disabled={isMuted}
-                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb ${isMuted ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  style={{
-                    background: isMuted
-                      ? 'var(--surface-track-bg)'
-                      : `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${volume * 100}%, var(--surface-track-bg) ${volume * 100}%, var(--surface-track-bg) 100%)`
-                  }}
-                />
-                <p className="mt-2 text-xs text-text-muted">
-                  Controls volume for all sounds and music
-                </p>
-              </div>
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Volume2 className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Audio</h3>
             </div>
+
+            {/* Mute Toggle */}
+            <div className="group relative flex items-center justify-between p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] hover:border-[var(--accent-primary)]/30 transition-all duration-200 cursor-pointer"
+                 onClick={handleMuteToggle}>
+              <div className="flex items-start gap-3 flex-1 pr-4">
+                <div className={`mt-0.5 transition-colors duration-200 ${!isMuted ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="block text-sm font-semibold text-[var(--text-primary)] cursor-pointer mb-0.5">
+                    {isMuted ? 'Sound Muted' : 'Sound Enabled'}
+                  </label>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Control all game audio</p>
+                </div>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMuteToggle();
+                }}
+                className={`relative inline-flex items-center h-7 w-12 rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:ring-offset-2 focus:ring-offset-[var(--background-primary)] flex-shrink-0 ${
+                  !isMuted
+                    ? 'bg-[var(--color-success)] shadow-lg shadow-[var(--color-success)]/25'
+                    : 'bg-[var(--surface-track-bg)] border border-[var(--border-normal)]'
+                }`}
+                role="switch"
+                aria-checked={!isMuted}
+              >
+                <span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-all duration-300 ease-in-out shadow-md ${!isMuted ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Volume Slider */}
+            <div className="p-5 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]">
+              <div className="flex items-center justify-between mb-3">
+                <label htmlFor="volumeSlider" className="text-sm font-semibold text-[var(--text-primary)]">
+                  Master Volume
+                </label>
+                <span className="text-sm font-bold text-[var(--accent-primary)] tabular-nums">
+                  {Math.round(volume * 100)}%
+                </span>
+              </div>
+              <input
+                id="volumeSlider"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                disabled={isMuted}
+                className={`w-full h-2.5 rounded-full appearance-none cursor-pointer slider-thumb ${isMuted ? 'opacity-40 cursor-not-allowed' : ''}`}
+                style={{
+                  background: isMuted
+                    ? 'var(--surface-track-bg)'
+                    : `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${volume * 100}%, var(--surface-track-bg) ${volume * 100}%, var(--surface-track-bg) 100%)`
+                }}
+              />
+            </div>
+          </section>
+          {/* Educational Mode */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Educational Mode</h3>
+            </div>
+
+            <SettingsToggle
+              id="educationalModeToggle"
+              label="Educational Mode"
+              description="Enhanced historical analysis, learning objectives, and educational features for students and educators."
+              isChecked={isEducationalMode}
+              onToggle={handleEducationalModeToggle}
+              icon={BookOpen}
+            />
           </section>
 
           {/* Save/Load Game */}
-          <section className="mb-8 pb-8 border-b border-surface-muted/50">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
-              <Save className="w-4 h-4" />
-              Game Progress
-            </h3>
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Save className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Game Progress</h3>
+            </div>
             <button
               onClick={() => setShowSavedGamesModal(true)}
-              className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-emerald-600 rounded-md hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2 shadow-lg mb-3"
+              className="w-full px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl hover:from-emerald-700 hover:to-green-700 hover:shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center gap-2.5 active:scale-[0.98]"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-5 h-5" />
               <span>Manage Saved Games</span>
             </button>
 
             {/* Share URL Section */}
-            <div className="p-3 surface-muted rounded-md">
+            <div className="p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]">
               <button
                 onClick={() => {
                   if (!shareableURL && playerCharacter && currentYear && currentZone) {
@@ -600,15 +645,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     setShareableURL('');
                   }
                 }}
-                className="btn-secondary w-full flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-card-bg)] hover:bg-[var(--surface-elevated-bg)] border border-[var(--border-normal)] text-[var(--text-primary)] font-medium text-sm transition-all flex items-center justify-center gap-2"
               >
                 <Link className="w-4 h-4" />
                 <span>{shareableURL ? 'Hide Share Link' : 'Get Shareable Link'}</span>
               </button>
 
               {shareableURL && (
-                <div className="mt-3 space-y-2 animate-fade-in">
-                  <label className="text-xs font-medium text-text-muted block">
+                <div className="mt-4 space-y-3 animate-fade-in">
+                  <label className="text-xs font-semibold text-[var(--text-primary)] block">
                     Share this URL:
                   </label>
                   <div className="flex gap-2">
@@ -616,7 +661,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       type="text"
                       value={shareableURL}
                       readOnly
-                      className="flex-1 px-3 py-2 bg-background-secondary text-text-primary text-xs rounded border border-surface-muted font-mono focus:outline-none focus:ring-2 focus:ring-accent"
+                      className="flex-1 px-3 py-2.5 bg-[var(--background-secondary)] text-[var(--text-primary)] text-xs rounded-lg border border-[var(--border-normal)] font-mono focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50"
                       onClick={(e) => e.currentTarget.select()}
                     />
                     <button
@@ -625,26 +670,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         setCopiedShareURL(true);
                         setTimeout(() => setCopiedShareURL(false), 2000);
                       }}
-                      className={`px-4 py-2 rounded transition-all flex items-center gap-2 text-xs whitespace-nowrap ${
+                      className={`px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 text-xs font-bold whitespace-nowrap ${
                         copiedShareURL
-                          ? 'bg-[var(--color-success)] text-white'
-                          : 'btn-secondary'
+                          ? 'bg-[var(--color-success)] text-white shadow-lg'
+                          : 'bg-[var(--surface-card-bg)] hover:bg-[var(--surface-elevated-bg)] border border-[var(--border-normal)] text-[var(--text-primary)]'
                       }`}
                     >
                       {copiedShareURL ? (
                         <>
-                          <Check className="w-3 h-3" />
+                          <Check className="w-4 h-4" />
                           Copied!
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-4 h-4" />
                           Copy
                         </>
                       )}
                     </button>
                   </div>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                     Preserves character, location, date, game mode, and map seed.
                   </p>
                 </div>
@@ -653,65 +698,62 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           {/* Primary Sources Library */}
-          <section className="mb-8 pb-8 border-b border-surface-muted/50">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              Educational Resources
-            </h3>
-
-            {/* Featured: Primary Sources Library */}
-            <div className="mb-3">
-              <button
-                onClick={() => setShowPrimarySourcesModal(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2 shadow-lg"
-              >
-                <ScrollText className="w-4 h-4" />
-                <span>Primary Sources Library</span>
-              </button>
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Educational Resources</h3>
             </div>
 
+            <button
+              onClick={() => setShowPrimarySourcesModal(true)}
+              className="w-full px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl hover:from-purple-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-purple-500/25 flex items-center justify-center gap-2.5 active:scale-[0.98]"
+            >
+              <ScrollText className="w-5 h-5" />
+              <span>Primary Sources Library</span>
+            </button>
+
             {/* Secondary Resources - Grid */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowHexWorldGlobe(true)}
-                className="px-3 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+                className="px-4 py-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
               >
-                <Activity className="w-4 h-4" />
-                <span className="text-center leading-tight">3D World Globe</span>
+                <Activity className="w-5 h-5" />
+                <span className="text-center leading-tight">3D Globe</span>
               </button>
 
               <button
                 onClick={() => setShowCityMap(true)}
-                className="px-3 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+                className="px-4 py-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
               >
-                <MapIcon className="w-4 h-4" />
+                <MapIcon className="w-5 h-5" />
                 <span className="text-center leading-tight">City Map</span>
               </button>
 
               <button
                 onClick={() => setShowHexWorldMap(true)}
-                className="px-3 py-2.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+                className="px-4 py-3 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
               >
-                <Hexagon className="w-4 h-4" />
+                <Hexagon className="w-5 h-5" />
                 <span className="text-center leading-tight">Hex Map</span>
               </button>
 
               <button
                 onClick={() => setShowTradeNetworkGlobe(true)}
-                className="px-3 py-2.5 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-md transition-colors flex flex-col items-center justify-center gap-1.5"
+                className="px-4 py-3 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
               >
-                <Activity className="w-4 h-4" />
+                <Activity className="w-5 h-5" />
                 <span className="text-center leading-tight">City Globe</span>
               </button>
             </div>
           </section>
 
-          {/* AI Features */}
-          <section className="mb-8 pb-8 border-b border-surface-muted/50">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
-              <SettingsIcon className="w-4 h-4" />
-              Features
-            </h3>
+          {/* Features */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Features</h3>
+            </div>
             <div className="space-y-3">
               <SettingsToggle
                 id="llmDescToggle"
@@ -719,6 +761,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 description="AI-powered location descriptions and item details."
                 isChecked={useLlmForDescriptions}
                 onToggle={onToggleLlmForDescriptions}
+                icon={Sparkles}
               />
               <SettingsToggle
                 id="llmCharToggle"
@@ -726,6 +769,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 description="AI-generated NPC names, professions, and backstories."
                 isChecked={useLlmForCharacter}
                 onToggle={onToggleLlmForCharacter}
+                icon={Users}
               />
               <SettingsToggle
                 id="dialectContinuumToggle"
@@ -737,11 +781,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   setDialectContinuumEnabled(newState);
                   dialectContinuumService.setEnabled(newState);
                   if (newState && mapData?.localArea) {
-                    // If enabling now and we have a current location, initialize
                     dialectContinuumService.initialize(mapData.localArea, { x: 0, y: 0 });
                   }
                   dialectContinuumService.saveState();
                 }}
+                icon={Globe}
               />
               <SettingsToggle
                 id="contextualTooltipsToggle"
@@ -749,14 +793,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 description="Show helpful tooltips when you first encounter UI elements."
                 isChecked={contextualTooltipsEnabled}
                 onToggle={() => onToggleContextualTooltips(!contextualTooltipsEnabled)}
+                icon={Info}
               />
               {contextualTooltipsEnabled && (
-                <div className="ml-4 mt-2">
+                <div className="ml-12">
                   <button
                     onClick={onResetTooltips}
-                    className="text-xs text-accent hover:text-accent-hover underline transition-colors"
+                    className="text-xs font-medium text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 underline transition-colors"
                   >
-                    Reset all tooltips (show them again)
+                    Reset all tooltips
                   </button>
                 </div>
               )}
@@ -764,45 +809,52 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           {/* World Settings */}
-          <section className="mb-8 pb-8 border-b border-surface-muted/50">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-text-muted uppercase flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4" />
-              World Settings
-            </h3>
-            <div className="space-y-3">
-              <div className="p-3 surface-muted rounded-md">
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="seedInputPanelAdvanced" className="text-sm font-medium text-text-primary">World Seed</label>
-                  <input
-                    type="number"
-                    id="seedInputPanelAdvanced"
-                    value={currentSeed}
-                    onChange={handleSeedInputChange}
-                    className="w-32 px-3 py-1.5 bg-background-secondary border border-surface-muted rounded-md text-text-primary text-center text-sm focus:border-accent focus:ring-1 focus:ring-accent"
-                  />
-                </div>
-                <p className="text-xs text-text-muted">Unique identifier for this world's geography.</p>
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Globe className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">World Settings</h3>
+            </div>
+
+            <div className="p-5 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] space-y-4">
+              <div>
+                <label htmlFor="seedInputPanelAdvanced" className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
+                  World Seed
+                </label>
+                <input
+                  type="number"
+                  id="seedInputPanelAdvanced"
+                  value={currentSeed}
+                  onChange={handleSeedInputChange}
+                  className="w-full px-4 py-2.5 bg-[var(--background-secondary)] border border-[var(--border-normal)] rounded-lg text-[var(--text-primary)] text-center font-mono focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:outline-none transition-all"
+                />
+                <p className="text-xs text-[var(--text-secondary)] mt-2">Unique identifier for this world's geography.</p>
               </div>
+
               <button
                 onClick={handleNewRandomInitialSeed}
-                className="btn-secondary w-full"
+                className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-card-bg)] hover:bg-[var(--surface-elevated-bg)] border border-[var(--border-normal)] text-[var(--text-primary)] font-semibold text-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
               >
+                <Shuffle className="w-4 h-4" />
                 Generate New World
               </button>
             </div>
           </section>
 
           {/* Developer Mode */}
-          <section className="mt-8">
+          <section className="space-y-4">
             <button
               onClick={() => setShowDeveloperMode(!showDeveloperMode)}
-              className="w-full p-3 bg-[var(--color-error)]/10 rounded-lg border border-[var(--color-error)]/30 hover:border-[var(--color-error)]/50 transition-all duration-200 flex items-center justify-between text-[var(--color-error)] hover:opacity-90"
+              className="w-full p-4 bg-gradient-to-br from-[var(--color-error)]/10 to-[var(--color-error)]/5 rounded-xl border-2 border-[var(--color-error)]/30 hover:border-[var(--color-error)]/50 transition-all duration-200 flex items-center justify-between group active:scale-[0.98]"
             >
-              <div className="flex items-center gap-2">
-                <FlaskConical className="w-4 h-4" />
-                <span className="text-sm font-semibold">Developer Mode</span>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-[var(--color-error)]/10 text-[var(--color-error)] group-hover:bg-[var(--color-error)]/20 transition-colors">
+                  <FlaskConical className="w-5 h-5" />
+                </div>
+                <span className="text-base font-bold text-[var(--color-error)]">Developer Mode</span>
               </div>
-              {showDeveloperMode ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              <div className="text-[var(--color-error)]">
+                {showDeveloperMode ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </div>
             </button>
 
             {showDeveloperMode && (
@@ -1111,6 +1163,49 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </div>
           </div>
         )}
+
+          {/* Game Mode */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Trophy className="w-5 h-5 text-[var(--accent-primary)]" />
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Game Mode</h3>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]">
+              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-3">
+                Select Your Play Style
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(GAME_MODE_CONFIG).map(([key, config]) => {
+                  const Icon = config.icon;
+                  const isSelected = currentGameMode === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleGameModeChange(key)}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 flex flex-col items-center gap-2 ${
+                        isSelected
+                          ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-lg'
+                          : 'border-[var(--border-normal)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--surface-elevated-bg)]'
+                      }`}
+                      style={isSelected ? { boxShadow: `0 4px 12px ${config.color}25` } : {}}
+                    >
+                      <Icon
+                        className="w-6 h-6"
+                        style={{ color: isSelected ? config.color : 'var(--text-muted)' }}
+                      />
+                      <span className={`text-xs font-bold ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                        {config.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mt-3 leading-relaxed">
+                {GAME_MODE_CONFIG[currentGameMode as keyof typeof GAME_MODE_CONFIG]?.description}
+              </p>
+            </div>
+          </section>
       </div>
 
       {/* Modals */}

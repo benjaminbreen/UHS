@@ -40,15 +40,15 @@
 
 /* FALLBACK: Explicit light mode rules (for browsers without light-dark() support) */
 :root:not(.dark) {
-  --bg-primary: #F4F0E7;
-  --bg-secondary: #EFE7D9;
-  --bg-tertiary: #E8DFCE;
-  --bg-card: #FBF7F0;
-  --bg-elevated: #FFF9F1;
+  --bg-primary: #F5F1E8;
+  --bg-secondary: #F0E8DA;
+  --bg-tertiary: #E9E0CF;
+  --bg-card: #FBF8F1;
+  --bg-elevated: #FFFAF2;
 
-  --border-subtle: #E6DDCD;
-  --border-normal: #D6C9B5;
-  --border-strong: #C4B59E;
+  --border-subtle: #E7DECE;
+  --border-normal: #D7CAB7;
+  --border-strong: #C5B6A0;
 
   --text-primary: #2C2A27;
   --text-secondary: #5A544B;
@@ -75,10 +75,10 @@
   --surface-app-text: var(--text-primary);
   --surface-app-border: transparent;
 
-  --surface-top-nav-bg: linear-gradient(120deg, #f3eddf 0%, #fffaf1 55%, #ece2d0 100%);
+  --surface-top-nav-bg: linear-gradient(120deg, #ddd4bd 0%, #e9e0ca 55%, #d4c9ae 100%);
   --surface-top-nav-text: var(--text-primary);
-  --surface-top-nav-border: var(--border-subtle);
-  --surface-top-nav-shadow: 0 12px 32px rgba(31, 31, 31, 0.08);
+  --surface-top-nav-border: var(--border-normal);
+  --surface-top-nav-shadow: 0 12px 32px rgba(31, 31, 31, 0.12);
 
   --surface-sidebar-bg: linear-gradient(145deg, rgba(249, 243, 233, 0.98) 0%, rgba(240, 230, 214, 0.94) 55%, rgba(229, 218, 199, 0.86) 100%);
   --surface-sidebar-text: var(--text-primary);
@@ -91,15 +91,20 @@
   --surface-modal-panel-border: var(--border-normal);
   --surface-modal-panel-shadow: 0 22px 48px rgba(42, 35, 23, 0.14);
   --modal-overlay-bg: var(--surface-modal-overlay-bg);
+  --surface-overlay-strong: rgba(36, 46, 61, 0.85);
 
-  --surface-card-bg: linear-gradient(145deg, rgba(255, 252, 245, 0.96) 0%, rgba(246, 237, 221, 0.94) 100%);
+  --surface-card-bg: linear-gradient(145deg, rgba(255, 254, 250, 0.98) 0%, rgba(252, 247, 237, 0.96) 100%);
   --surface-card-border: rgba(201, 187, 165, 0.65);
   --surface-card-shadow: 0 18px 36px rgba(63, 50, 33, 0.12);
 
-  --surface-muted-bg: rgba(232, 222, 206, 0.55);
-  --surface-muted-border: rgba(197, 182, 160, 0.45);
-  --surface-muted-hover-bg: rgba(220, 208, 189, 0.82);
-  --surface-muted-hover-border: rgba(183, 166, 140, 0.55);
+  --surface-muted-bg: rgba(250, 246, 238, 0.85);
+  --surface-muted-border: rgba(210, 195, 175, 0.5);
+  --surface-muted-hover-bg: rgba(248, 242, 232, 0.95);
+  --surface-muted-hover-border: rgba(200, 185, 165, 0.6);
+
+  --surface-elevated-bg: rgba(253, 250, 244, 0.9);
+  --surface-elevated-border: rgba(215, 200, 180, 0.55);
+
   --surface-track-bg: rgba(191, 173, 146, 0.35);
   --surface-track-border: rgba(179, 163, 139, 0.4);
   --surface-handle-bg: rgba(59, 130, 246, 0.25);
@@ -121,27 +126,27 @@
   --surface-drawer-border: rgba(184, 168, 146, 0.55);
   --surface-drawer-shadow: -24px 0 48px rgba(63, 50, 33, 0.12);
   --surface-drawer-header-bg: rgba(241, 233, 220, 0.96);
-  --surface-chip-bg: rgba(236, 224, 208, 0.82);
-  --surface-chip-hover: rgba(224, 211, 192, 0.92);
+  --surface-chip-bg: rgba(248, 240, 228, 0.95);
+  --surface-chip-hover: rgba(255, 250, 242, 1.0);
   --surface-chip-border: rgba(205, 188, 162, 0.6);
   --surface-chip-active-bg: var(--accent-primary);
   --surface-chip-active-border: rgba(59, 130, 246, 0.55);
   --surface-chip-active-text: var(--button-primary-text);
   --action-tile-bg: rgba(243, 233, 216, 0.88);
-  --action-tile-border: rgba(214, 197, 173, 0.65);
+  --action-tile-border: rgba(189, 168, 139, 0.75);
   --action-tile-hover-bg: rgba(235, 223, 203, 0.98);
-  --action-tile-hover-border: rgba(201, 183, 158, 0.7);
+  --action-tile-hover-border: rgba(176, 156, 130, 0.85);
   --action-tile-disabled-bg: rgba(232, 219, 198, 0.6);
   --action-tile-disabled-border: rgba(203, 184, 157, 0.45);
   --brand-text: #5cc483;
   --brand-shadow: rgba(92, 196, 131, 0.4);
   --brand-glow: rgba(56, 189, 148, 0.5);
 
-  --button-primary-bg: #3b82f6;
-  --button-primary-hover: #2563eb;
-  --button-primary-border: rgba(37, 99, 235, 0.55);
-  --button-primary-text: #F8FBF9;
-  --button-primary-shadow: 0 16px 34px rgba(37, 99, 235, 0.28);
+  --button-primary-bg: linear-gradient(135deg, #8B6914 0%, #A0781B 100%);
+  --button-primary-hover: linear-gradient(135deg, #A0781B 0%, #B8860B 100%);
+  --button-primary-border: rgba(139, 105, 20, 0.45);
+  --button-primary-text: #FFFEF9;
+  --button-primary-shadow: 0 16px 34px rgba(139, 105, 20, 0.28);
 
   --button-secondary-bg: rgba(203, 167, 121, 0.22);
   --button-secondary-hover: rgba(203, 167, 121, 0.32);
@@ -156,16 +161,18 @@
   --pill-accent-text: rgba(34, 58, 51, 0.95);
 
   --tab-strip-bg: rgba(242, 232, 216, 0.72);
-  --tab-strip-border: rgba(205, 188, 162, 0.65);
+  --tab-strip-border: rgba(189, 168, 139, 0.75);
   --tab-button-text: rgba(76, 68, 59, 0.9);
   --tab-button-hover-bg: rgba(233, 221, 204, 0.92);
   --tab-button-active-bg: rgba(75, 119, 104, 0.22);
-  --tab-button-active-border: rgba(75, 119, 104, 0.45);
+  --tab-button-active-border: rgba(189, 168, 139, 0.75);
   --tab-button-active-text: rgba(34, 58, 51, 0.95);
   --toast-surface-bg: rgba(248, 244, 233, 0.95);
   --toast-surface-border: rgba(184, 168, 146, 0.55);
   --toast-surface-text: #2C2A27;
   --toast-progress-bg: rgba(75, 119, 104, 0.45);
+
+  --text-shadow-location: 1px 1px 3px rgba(0, 0, 0, 0.4), 0 0 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Dark mode variables */
@@ -221,6 +228,7 @@
   --surface-modal-panel-border: var(--border-normal);
   --surface-modal-panel-shadow: 0 26px 52px rgba(0, 0, 0, 0.55);
   --modal-overlay-bg: var(--surface-modal-overlay-bg);
+  --surface-overlay-strong: rgba(0, 0, 0, 0.75);
 
   --surface-card-bg: rgba(30, 41, 59, 0.92);
   --surface-card-border: rgba(148, 163, 184, 0.0);
@@ -230,6 +238,10 @@
   --surface-muted-border: rgba(100, 116, 139, 0.4);
   --surface-muted-hover-bg: rgba(64, 78, 100, 0.72);
   --surface-muted-hover-border: rgba(148, 163, 184, 0.45);
+
+  --surface-elevated-bg: rgba(30, 41, 59, 0.85);
+  --surface-elevated-border: rgba(100, 116, 139, 0.45);
+
   --surface-track-bg: rgba(71, 85, 105, 0.55);
   --surface-track-border: rgba(100, 116, 139, 0.45);
   --surface-handle-bg: rgba(96, 165, 250, 0.25);
@@ -296,6 +308,8 @@
   --toast-surface-border: rgba(96, 165, 250, 0.28);
   --toast-surface-text: #e2e8f0;
   --toast-progress-bg: rgba(96, 165, 250, 0.55);
+
+  --text-shadow-location: 0 0 12px rgba(147, 197, 253, 0.6), 0 0 25px rgba(147, 197, 253, 0.3), 1px 1px 3px rgba(0,0,0,0.4);
 }
 
 /* CSS Variables are defined in :root:not(.dark) and :root.dark above - no light-dark() needed! */
@@ -328,6 +342,9 @@ body {
 
 [data-surface="modal-overlay"] {
   background: var(--surface-modal-overlay-bg);
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
 }
 
 [data-surface="toast"] {
@@ -346,6 +363,645 @@ body {
   color: var(--surface-modal-panel-text);
   border-color: var(--surface-modal-panel-border);
   box-shadow: var(--surface-modal-panel-shadow);
+}
+
+/* Banner gradient overlay for structure modals */
+.banner-gradient-overlay {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.4), transparent);
+}
+
+/* Link styling for narration panel and content */
+:root:not(.dark) a {
+  color: #8B6914;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+:root:not(.dark) a:hover {
+  color: #B8860B;
+  text-decoration: underline;
+}
+
+:root.dark a {
+  color: #60a5fa;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+:root.dark a:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+/* Glow pulse animation for newly added inventory items */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(139, 105, 20, 0.6), 0 0 40px rgba(139, 105, 20, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(184, 134, 11, 0.8), 0 0 60px rgba(184, 134, 11, 0.5);
+  }
+}
+
+@keyframes glow-pulse-dark {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(74, 222, 128, 0.6), 0 0 50px rgba(74, 222, 128, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(74, 222, 128, 0.8), 0 0 70px rgba(74, 222, 128, 0.5);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 1s ease-in-out infinite;
+}
+
+:root.dark .animate-glow-pulse {
+  animation: glow-pulse-dark 1s ease-in-out infinite;
+}
+
+/* ==========================================
+   LOADING STATES & ANIMATIONS
+   Beautiful, theme-aware loading indicators
+   ========================================== */
+
+/* Elegant spinner animation - smoother than default Tailwind */
+@keyframes spin-elegant {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Pulsing glow animation for spinners */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  50% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Progress bar animation */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+/* Dots loading animation */
+@keyframes dots-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Fade in/out animation */
+@keyframes fade-in-out {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Loading spinner - theme aware, Safari optimized */
+.loading-spinner {
+  border: 3px solid transparent;
+  border-top-color: var(--accent-primary);
+  border-right-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin-elegant 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+  /* GPU acceleration - critical for Safari */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Safari-specific: Use even smoother easing */
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .loading-spinner {
+    animation: spin-elegant 0.8s linear infinite;
+  }
+}
+
+:root:not(.dark) .loading-spinner {
+  border-left-color: rgba(59, 130, 246, 0.1);
+  border-bottom-color: rgba(59, 130, 246, 0.1);
+}
+
+:root.dark .loading-spinner {
+  border-left-color: rgba(74, 222, 128, 0.1);
+  border-bottom-color: rgba(74, 222, 128, 0.1);
+  animation: spin-elegant 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite,
+             pulse-glow 2s ease-in-out infinite;
+}
+
+/* Skeleton loader - GPU accelerated */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 0%,
+    var(--bg-elevated) 45%,
+    var(--bg-secondary) 55%,
+    var(--bg-elevated) 100%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 2s ease-in-out infinite;
+  border-radius: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  /* GPU acceleration for smooth shimmer */
+  will-change: background-position;
+  transform: translateZ(0);
+}
+
+:root:not(.dark) .skeleton {
+  background: linear-gradient(
+    90deg,
+    #E8E1D5 0%,
+    #FFFBF5 45%,
+    #E8E1D5 55%,
+    #FFFBF5 100%
+  );
+  background-size: 400% 100%;
+}
+
+:root.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    #0F172A 0%,
+    #1f1f1f 45%,
+    #0F172A 55%,
+    #1f1f1f 100%
+  );
+  background-size: 400% 100%;
+}
+
+/* Skeleton variants */
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+}
+
+.skeleton-title {
+  height: 1.5em;
+  width: 60%;
+  margin-bottom: 0.75em;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  height: 200px;
+  border-radius: 1rem;
+}
+
+/* Progress bar - GPU accelerated */
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 9999px;
+  overflow: hidden;
+  /* GPU acceleration */
+  will-change: contents;
+  transform: translateZ(0);
+}
+
+.progress-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-primary) 50%,
+    transparent 100%
+  );
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+  /* GPU acceleration - critical for smooth animation */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+:root.dark .progress-bar-fill {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-primary) 50%,
+    transparent 100%
+  );
+  filter: drop-shadow(0 0 8px var(--accent-primary));
+}
+
+/* Dots loader - fully theme aware */
+.dots-loader {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.dots-loader span {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  animation: dots-bounce 1.4s ease-in-out infinite;
+  /* GPU acceleration */
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Light mode dots - blue gradient */
+:root:not(.dark) .dots-loader span:nth-child(1) {
+  background: #3b82f6;
+}
+
+:root:not(.dark) .dots-loader span:nth-child(2) {
+  background: #60a5fa;
+}
+
+:root:not(.dark) .dots-loader span:nth-child(3) {
+  background: #93c5fd;
+}
+
+/* Dark mode dots - green gradient */
+:root.dark .dots-loader span:nth-child(1) {
+  background: #4ade80;
+}
+
+:root.dark .dots-loader span:nth-child(2) {
+  background: #86efac;
+}
+
+:root.dark .dots-loader span:nth-child(3) {
+  background: #bbf7d0;
+}
+
+.dots-loader span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.dots-loader span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dots-loader span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Pulse animation */
+.pulse-slow {
+  animation: fade-in-out 2s ease-in-out infinite;
+}
+
+/* ==========================================
+   LOADING SKELETON - INITIAL APP LOAD
+   Full-screen loading with theme awareness
+   ========================================== */
+
+/* Loading skeleton container - theme-aware gradient background */
+.loading-skeleton-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  background: linear-gradient(135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 50%,
+    var(--bg-elevated) 100%
+  );
+  /* GPU acceleration */
+  will-change: opacity;
+  transform: translateZ(0);
+}
+
+/* Light mode - warmer gradient */
+:root:not(.dark) .loading-skeleton-container {
+  background: linear-gradient(135deg,
+    #F5EEE6 0%,
+    #F0E8DA 50%,
+    #FFFAF2 100%
+  );
+}
+
+/* Dark mode - cooler gradient */
+:root.dark .loading-skeleton-container {
+  background: linear-gradient(135deg,
+    #0F172A 0%,
+    #1e293b 50%,
+    #334155 100%
+  );
+}
+
+/* Loading logo with glow effect */
+.loading-skeleton-logo {
+  width: 6rem;
+  height: 6rem;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+    var(--accent-primary) 0%,
+    var(--accent-primary-hover) 100%
+  );
+  /* GPU acceleration */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Light mode logo - blue gradient with warm glow */
+:root:not(.dark) .loading-skeleton-logo {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow:
+    0 0 60px rgba(59, 130, 246, 0.4),
+    0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode logo - green gradient with cool glow */
+:root.dark .loading-skeleton-logo {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  box-shadow:
+    0 0 60px rgba(74, 222, 128, 0.4),
+    0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Spinning border effect - Safari optimized */
+.loading-skeleton-spinner {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  animation: spin-elegant 3s linear infinite;
+  /* GPU acceleration - critical for Safari */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Light mode spinner - blue conic gradient */
+:root:not(.dark) .loading-skeleton-spinner {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(59, 130, 246, 0.8) 90deg,
+    transparent 180deg
+  );
+}
+
+/* Dark mode spinner - green conic gradient */
+:root.dark .loading-skeleton-spinner {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(74, 222, 128, 0.8) 90deg,
+    transparent 180deg
+  );
+}
+
+/* Safari-specific: Use simpler animation */
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .loading-skeleton-spinner {
+    animation: spin-elegant 2.5s ease-in-out infinite;
+  }
+}
+
+/* ==========================================
+   ENTRANCE ANIMATIONS SYSTEM
+   Coordinated, delightful app loading animations
+   ========================================== */
+
+/* Core entrance animations - GPU accelerated */
+@keyframes entrance-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes entrance-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes entrance-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes entrance-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes entrance-fade-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes entrance-fade-scale-up {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Entrance animation classes with proper timing */
+.animate-entrance-fade {
+  animation: entrance-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-entrance-slide-down {
+  animation: entrance-slide-down 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-entrance-slide-left {
+  animation: entrance-slide-left 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-entrance-slide-right {
+  animation: entrance-slide-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-entrance-scale {
+  animation: entrance-fade-scale 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-entrance-scale-up {
+  animation: entrance-fade-scale-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger delays for coordinated entrance */
+.entrance-delay-100 {
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+
+.entrance-delay-200 {
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.entrance-delay-300 {
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+
+.entrance-delay-400 {
+  animation-delay: 0.4s;
+  opacity: 0;
+}
+
+.entrance-delay-500 {
+  animation-delay: 0.5s;
+  opacity: 0;
+}
+
+.entrance-delay-600 {
+  animation-delay: 0.6s;
+  opacity: 0;
+}
+
+/* Safari-specific entrance animations (with will-change for performance) */
+.safari-entrance {
+  opacity: 0;
+  will-change: transform, opacity;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.safari-entrance.visible {
+  opacity: 1;
+  transform: translateY(0) translateX(0) scale(1);
+}
+
+.safari-entrance-slide-down {
+  transform: translateY(-20px);
+}
+
+.safari-entrance-slide-left {
+  transform: translateX(-30px);
+}
+
+.safari-entrance-slide-right {
+  transform: translateX(30px);
+}
+
+.safari-entrance-scale {
+  transform: scale(0.96);
+}
+
+.safari-entrance-scale-up {
+  transform: scale(0.92) translateY(20px);
+}
+
+/* Loading overlay fade out */
+@keyframes loading-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.loading-fade-out {
+  animation: loading-fade-out 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Pop-in animation for modals */
+@keyframes modal-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-popIn {
+  animation: modal-pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Backdrop fade in */
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+.animate-backdrop-in {
+  animation: backdrop-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* Utility primitives */
@@ -369,4 +1025,51 @@ body {
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--text-muted) 70%, transparent);
+}
+
+/* ==========================================
+   INVENTORY CARD ANIMATIONS
+   Progressive reveal with stagger
+   ========================================== */
+
+/* Inventory item card fade-in animation */
+@keyframes inventory-item-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Inventory card base styling with animation */
+.inventory-item-card {
+  opacity: 0;
+  animation: inventory-item-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* GPU acceleration */
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Safari-specific: Simpler animation */
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .inventory-item-card {
+    animation: inventory-item-reveal 0.35s ease-out forwards;
+  }
+}
+
+/* Study panel uses same animation */
+.study-item-card {
+  opacity: 0;
+  animation: inventory-item-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .study-item-card {
+    animation: inventory-item-reveal 0.35s ease-out forwards;
+  }
 }

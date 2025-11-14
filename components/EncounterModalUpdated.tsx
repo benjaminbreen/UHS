@@ -1308,20 +1308,32 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     return (
         <>
             <style>{styles}</style>
-            <div className={`fixed inset-0 ${isSafari() ? 'bg-black/80' : 'bg-black/60'} flex items-center justify-center z-50 p-0 sm:p-2 md:p-4`} onClick={handleClose}>
-                <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 sm:rounded-2xl max-w-5xl w-full h-[100vh] h-[100dvh] sm:h-[95vh] sm:h-[95dvh] md:h-[85vh] shadow-2xl transition-all duration-300 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div
+                data-surface="modal-overlay"
+                className="modal-overlay theme-surface flex items-center justify-center p-0 sm:p-2 md:p-4"
+                onClick={handleClose}
+            >
+                <div
+                    data-surface="modal-panel"
+                    className="ff-panel theme-surface border sm:rounded-2xl max-w-5xl w-full h-[100vh] h-[100dvh] sm:h-[95vh] sm:h-[95dvh] md:h-[90vh] transition-all duration-300 overflow-hidden flex flex-col"
+                    style={{
+                        borderColor: 'var(--border-subtle)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                    }}
+                    onClick={e => e.stopPropagation()}
+                >
                     
                     {/* Header with reputation and language */}
-                    <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-700/50 flex-shrink-0">
+                    <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 border-b flex-shrink-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-subtle)' }}>
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="text-amber-400">⭐</span>
-                            <span className="text-slate-400">Reputation:</span>
+                            <span className="text-amber-600">⭐</span>
+                            <span style={{ color: 'var(--text-secondary)' }}>Reputation:</span>
                             <span className={`font-semibold ${
-                                playerCharacter.mapReputation >= 50 ? 'text-green-400' : 
-                                playerCharacter.mapReputation >= 0 ? 'text-yellow-400' : 'text-red-400'
+                                playerCharacter.mapReputation >= 50 ? 'text-green-400' :
+                                playerCharacter.mapReputation >= 0 ? 'text-yellow-900' : 'text-red-400'
                             }`}>
                                 {playerCharacter.mapReputation || 0} | {
-                                    playerCharacter.mapReputation >= 50 ? 'Friendly' : 
+                                    playerCharacter.mapReputation >= 50 ? 'Friendly' :
                                     playerCharacter.mapReputation >= 0 ? 'Neutral' : 'Hostile'
                                 }
                             </span>
@@ -1351,16 +1363,17 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-3 sm:p-6 flex-1 min-h-0 overflow-hidden">
                         
                         {/* Left column - Portrait and NPC info */}
-                        <div className="flex flex-row sm:flex-col gap-3 sm:gap-4 sm:w-[220px] flex-shrink-0">
+                        <div className="flex flex-row sm:flex-col gap-3 sm:gap-4 sm:w-[230px] flex-shrink-0">
                             
                             {/* Portrait with quest indicator and animations */}
                             <div className="relative group">
                                 <div
-                                    className={`w-[100px] h-[100px] sm:w-[200px] sm:h-[200px] rounded-xl overflow-hidden border-3 transition-all duration-300 cursor-pointer relative ${
-                                        questOffer?.hasQuest || relevantQuests.length > 0 
-                                            ? 'border-amber-500 shadow-lg shadow-amber-500/20 animate-pulse-subtle' 
-                                            : 'border-slate-600 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20'
+                                    className={`w-[100px] h-[100px] sm:w-[220px] sm:h-[200px] rounded-xl overflow-hidden border-3 transition-all duration-300 cursor-pointer relative ${
+                                        questOffer?.hasQuest || relevantQuests.length > 0
+                                            ? 'border-amber-500 shadow-lg shadow-amber-500/20 animate-pulse-subtle'
+                                            : 'hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20'
                                     }`}
+                                    style={{ borderColor: (questOffer?.hasQuest || relevantQuests.length > 0) ? undefined : 'var(--border-normal)' }}
                                     onClick={handlePortraitClick}
                                     title={`Click to see inner thoughts... (${3 - monologueClickCount} clicks remaining)`}
                                 >
@@ -1377,12 +1390,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     {isNpc(target) ? (
                                         <ProceduralPortrait
                                             character={target as any}
-                                            size={typeof window !== 'undefined' && window.innerWidth <= 640 ? 100 : 200}
+                                            size={typeof window !== 'undefined' && window.innerWidth <= 640 ? 150 : 220}
                                             temporaryExpression={portraitExpr}
                                             onExpressionComplete={clearPortrait}
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+                                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--surface-elevated)' }}>
                                             <span className="text-8xl">{target.emoji || '🦌'}</span>
                                         </div>
                                     )}
@@ -1390,45 +1403,45 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 
                                 {/* Hover tooltip */}
                                 {isNpc(target) && (
-                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-xs text-slate-300 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap" style={{ backgroundColor: 'var(--surface-elevated)', color: 'var(--text-primary)' }}>
                                         Click for inner thoughts
                                     </div>
                                 )}
                             </div>
-                            
+
                             {/* NPC Info Panel */}
                             {isNpc(target) && (
-                                <div className="flex-1 sm:flex-none bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-700/50">
-                                    <h2 className="text-lg sm:text-2xl font-bold text-amber-400 text-center mb-2 sm:mb-3 tracking-wide" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+                                <div className="flex-1 sm:flex-none rounded-xl p-3 sm:p-3 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h2 className="text-lg sm:text-2xl font-bold text-amber-600 text-center mb-2 sm:mb-3 tracking-wide" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.0)' }}>
                                         {targetName}
                                     </h2>
-                                    <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Age:</span>
-                                            <span className="text-slate-200">{target.age || 'Unknown'}</span>
+                                    <div className="space-y-1 sm:space-y-1 text-xs sm:text-sm">
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>Age:</span>
+                                            <span>{target.age || 'Unknown'}</span>
                                         </div>
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Gender:</span>
-                                            <span className="text-slate-200 capitalize">{target.gender || 'Unknown'}</span>
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>Gender:</span>
+                                            <span className="capitalize">{target.gender || 'Unknown'}</span>
                                         </div>
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Faith:</span>
-                                            <span className="text-slate-200">{target.religiousAffiliation || 'Local Beliefs'}</span>
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>Faith:</span>
+                                            <span>{target.religiousAffiliation || 'Local Beliefs'}</span>
                                         </div>
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Social Class:</span>
-                                            <span className="text-slate-200 capitalize">{target.socialClass || 'Commoner'}</span>
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>Social Class:</span>
+                                            <span className="capitalize">{target.socialClass || 'Commoner'}</span>
                                         </div>
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Profession:</span>
-                                            <span className="text-slate-200">{target.occupation || target.role || 'Unknown'}</span>
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>Profession:</span>
+                                            <span>{target.occupation || target.role || 'Unknown'}</span>
                                         </div>
 
                                         {/* NPC Relationship Tracking */}
                                         {target.memory && typeof target.memory.opinionOfPlayer === 'number' && (
-                                            <div className="mt-3 pt-3 border-t border-slate-700/50">
+                                            <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-xs">Opinion:</span>
+                                                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Opinion:</span>
                                                     <span className={`text-xs font-semibold ${
                                                         target.memory.opinionOfPlayer >= 70 ? 'text-green-400' :
                                                         target.memory.opinionOfPlayer >= 50 ? 'text-blue-400' :
@@ -1445,7 +1458,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 </div>
 
                                                 {/* Opinion bar (0-100 scale) */}
-                                                <div className="relative w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                                                <div className="relative w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-track-bg)' }}>
                                                     <div
                                                         className={`h-full rounded-full transition-all duration-300 ${
                                                             target.memory.opinionOfPlayer >= 70 ? 'bg-gradient-to-r from-green-600 to-green-500' :
@@ -1460,22 +1473,22 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
                                                 {/* Numerical value */}
                                                 <div className="flex justify-center mt-1">
-                                                    <span className="text-xs text-slate-400">
+                                                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                                         {target.memory.opinionOfPlayer}/100
                                                     </span>
                                                 </div>
 
                                                 {/* Recent conversation summaries */}
                                                 {target.memory.conversationSummaries && target.memory.conversationSummaries.length > 0 && (
-                                                    <div className="mt-2 pt-2 border-t border-slate-700/30">
+                                                    <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                                         <details className="group">
-                                                            <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 flex items-center gap-1">
+                                                            <summary className="text-xs cursor-pointer flex items-center gap-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
                                                                 <span className="group-open:rotate-90 transition-transform">▶</span>
                                                                 Recent Interactions ({target.memory.conversationSummaries.slice(-3).length})
                                                             </summary>
                                                             <div className="mt-1 space-y-1.5 ml-3">
                                                                 {target.memory.conversationSummaries.slice(-3).reverse().map((summary, idx) => (
-                                                                    <div key={idx} className="text-xs text-slate-400 italic border-l-2 border-slate-600 pl-2">
+                                                                    <div key={idx} className="text-xs italic border-l-2 pl-2" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-normal)' }}>
                                                                         "{summary}"
                                                                     </div>
                                                                 ))}
@@ -1512,11 +1525,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             target.profession
                                         );
                                         return language ? (
-                                            <div className="mt-3 p-2 bg-slate-900/40 rounded-lg border border-slate-700/30">
+                                            <div className="mt-3 p-2 rounded-lg border" style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-subtle)' }}>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-xs font-semibold text-amber-400/80">Language:</span>
+                                                    <span className="text-xs font-semibold text-amber-600/80">Language:</span>
                                                     <span
-                                                        className="text-xs font-medium text-slate-300 cursor-pointer hover:text-amber-400 transition-colors underline decoration-dotted"
+                                                        className="text-xs font-medium cursor-pointer hover:text-amber-600 transition-colors underline decoration-dotted"
+                                                        style={{ color: 'var(--text-primary)' }}
                                                         onClick={() => {
                                                             setSelectedLanguageId(language.id);
                                                             setShowLanguageTree(true);
@@ -1527,7 +1541,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                     </span>
                                                 </div>
                                                 {language.historicalContext && (
-                                                    <p className="text-xs text-slate-400 italic leading-relaxed">
+                                                    <p className="text-xs italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                                                         {language.historicalContext}
                                                     </p>
                                                 )}
@@ -1537,33 +1551,40 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
                                     {/* Action Icons - Hidden on mobile, shown in tabs instead */}
                                     <div className="hidden sm:flex justify-center gap-2 mt-4">
-                                        <button 
+                                        <button
                                             onClick={handleOpenInfo}
-                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            className="w-10 h-10 border rounded-lg flex items-center justify-center transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)', color: 'var(--text-secondary)' }}
+                                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                             title="View Profile (P)"
                                         >
                                             <span className="text-lg">👤</span>
-                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                            <span className="absolute -top-8 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap" style={{ backgroundColor: 'var(--surface-elevated)', color: 'var(--text-primary)' }}>
                                                 Profile (P)
                                             </span>
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => setActiveTab('trade')}
-                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            className="w-10 h-10 border rounded-lg flex items-center justify-center transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)', color: 'var(--text-secondary)' }}
+                                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                             title="Trade Items (T)"
                                         >
                                             <span className="text-lg">💰</span>
-                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                            <span className="absolute -top-8 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap" style={{ backgroundColor: 'var(--surface-elevated)', color: 'var(--text-primary)' }}>
                                                 Trade (T)
                                             </span>
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => onInitiateCombat(target)}
-                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-900/30 hover:text-red-300 hover:border-red-600 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            className="w-10 h-10 border rounded-lg flex items-center justify-center text-red-400 hover:bg-red-900/30 hover:text-red-300 hover:border-red-600 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)' }}
                                             title="Attack (A)"
                                         >
                                             <span className="text-lg">⚔️</span>
-                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                            <span className="absolute -top-8 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap" style={{ backgroundColor: 'var(--surface-elevated)', color: 'var(--text-primary)' }}>
                                                 Attack (A)
                                             </span>
                                         </button>
@@ -1573,8 +1594,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                             
                             {/* Animal Info */}
                             {!isNpc(target) && (
-                                <div className="flex-1 sm:flex-none bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-700/50">
-                                    <h2 className="text-lg sm:text-2xl font-bold text-amber-400 text-center mb-2 sm:mb-3 tracking-wide">
+                                <div className="flex-1 sm:flex-none rounded-xl p-3 sm:p-4 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h2 className="text-lg sm:text-2xl font-bold text-amber-600 text-center mb-2 sm:mb-3 tracking-wide">
                                         {targetName}
                                     </h2>
                                     <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
@@ -1600,7 +1621,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             title="View Profile (P)"
                                         >
                                             <span className="text-lg">👤</span>
-                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                            <span className="absolute -top-8 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                                                 Profile (P)
                                             </span>
                                         </button>
@@ -1610,7 +1631,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             title="Tame Animal (T)"
                                         >
                                             <span className="text-lg">🦴</span>
-                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                            <span className="absolute -top-8 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                                                 Tame (T)
                                             </span>
                                         </button>
@@ -1620,7 +1641,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             title="Hunt Animal (A)"
                                         >
                                             <span className="text-lg">🏹</span>
-                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                            <span className="absolute -top-8 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                                                 Hunt (A)
                                             </span>
                                         </button>
@@ -1633,14 +1654,17 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                         <div className="flex-1 flex flex-col min-h-0 h-full">
                             
                             {/* Tab Navigation - Show for both NPCs and animals */}
-                                <nav className="flex gap-0 border-b border-slate-700 mb-3 sm:mb-4 overflow-x-auto scrollbar-hide">
+                                <nav className="flex gap-0 border-b mb-3 sm:mb-4 overflow-x-auto scrollbar-hide" style={{ borderColor: 'var(--border-normal)' }}>
                                     <button
                                         onClick={() => setActiveTab('dialogue')}
-                                        className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all relative whitespace-nowrap ${
-                                            activeTab === 'dialogue' 
-                                                ? 'text-blue-400 border-b-2 border-blue-400' 
-                                                : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                        className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all relative whitespace-nowrap border-b-2 ${
+                                            activeTab === 'dialogue'
+                                                ? 'text-blue-400 border-blue-400'
+                                                : 'border-transparent'
                                         }`}
+                                        style={activeTab !== 'dialogue' ? { color: 'var(--text-secondary)' } : undefined}
+                                        onMouseEnter={e => { if (activeTab !== 'dialogue') e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                        onMouseLeave={e => { if (activeTab !== 'dialogue') e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                     >
                                         {isNpc(target) ? 'Dialogue' : 'Communicate'}
                                     </button>
@@ -1682,7 +1706,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         }}
                                         className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
                                             activeTab === 'trade' || activeTab === 'taming'
-                                                ? isNpc(target) ? 'text-amber-400 border-b-2 border-amber-400' : 'text-blue-400 border-b-2 border-blue-400'
+                                                ? isNpc(target) ? 'text-amber-600 border-b-2 border-amber-400' : 'text-blue-400 border-b-2 border-blue-400'
                                                 : isNpc(target) && !tradeEnabled
                                                     ? 'text-slate-600 hover:text-slate-500 border-b-2 border-transparent cursor-not-allowed'
                                                     : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
@@ -1691,12 +1715,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     >
                                         {isNpc(target) ? (
                                             <>
-                                                <span className={tradeEnabled ? 'text-amber-400' : ''}>Trade</span>
+                                                <span className={tradeEnabled ? 'text-amber-600' : ''}>Trade</span>
                                                 {!tradeEnabled && !showTradeUnlockAnimation && (
                                                     <span className="ml-1 text-xs text-slate-600">🔒</span>
                                                 )}
                                                 {showTradeUnlockAnimation && (
-                                                    <span className="ml-1 text-xs text-amber-400 unlock-animation absolute">🔒</span>
+                                                    <span className="ml-1 text-xs text-amber-600 unlock-animation absolute">🔒</span>
                                                 )}
                                             </>
                                         ) : 'Tame'}
@@ -1706,8 +1730,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             onClick={() => setActiveTab('quest')}
                                             className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
                                                 activeTab === 'quest'
-                                                    ? 'text-amber-400 border-b-2 border-amber-400'
-                                                    : 'text-amber-500 hover:text-amber-400 border-b-2 border-transparent'
+                                                    ? 'text-amber-600 border-b-2 border-amber-400'
+                                                    : 'text-amber-500 hover:text-amber-600 border-b-2 border-transparent'
                                             }`}
                                         >
                                             <span className="text-base">⚡</span>
@@ -1749,7 +1773,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 </nav>
                             
                             {/* Conversation Area */}
-                            <div className="flex-1 bg-slate-800/30 border border-slate-700/50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 overflow-y-auto conversation-scrollbar min-h-0">
+                            <div className="flex-1 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 overflow-y-auto conversation-scrollbar min-h-0 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
                                 {activeTab === 'dialogue' && (
                                     <div className="space-y-4">
                                         {history.length === 0 && isLoading ? (
@@ -1767,7 +1791,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                         {entry.speaker === 'system' ? (
                                                             // System messages (trades, etc.)
                                                             <div className="flex justify-center my-3">
-                                                                <div className="px-3 py-1 bg-slate-800/50 border border-slate-700 rounded text-xs font-mono text-slate-400 uppercase tracking-wider">
+                                                                <div className="px-3 py-1 border rounded text-xs font-mono uppercase tracking-wider" style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)', color: 'var(--text-secondary)' }}>
                                                                     {entry.text}
                                                                 </div>
                                                             </div>
@@ -1776,15 +1800,15 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                             <div className="flex items-start gap-3">
                                                                 <div className="flex-1">
                                                                     <div className="flex items-baseline gap-2 mb-1">
-                                                                        <span className="font-semibold text-amber-400">
+                                                                        <span className="font-semibold text-amber-600">
                                                                             {entry.speaker === 'player' ? 'You' : targetName}
                                                                         </span>
-                                                                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                                                                        <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                                                                             <Clock className="w-3 h-3" />
                                                                             {getTimeAgo(entry.timestamp)}
                                                                         </span>
                                                                     </div>
-                                                                    <p className="text-slate-200 leading-relaxed">
+                                                                    <p className="leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                                                                         {entry.translations && entry.language ? (
                                                                             // Render with translatable words
                                                                             parseDialogueWithTranslations(entry.text, entry.translations, entry.language)
@@ -1805,7 +1829,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                         {/* Quest hint for relevant dialogue */}
                                                         {relevantQuests.length > 0 && entry.speaker === 'npc' && index === history.length - 1 && (
                                                             <div className="mt-2 pl-4 border-l-2 border-amber-500/50">
-                                                                <p className="text-xs text-amber-400/80">
+                                                                <p className="text-xs text-amber-600/80">
                                                                     ↳ Related to active quest: {relevantQuests[0].title}
                                                                 </p>
                                                             </div>
@@ -1820,10 +1844,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                     setTradeStatusMessage(null);
                                                                 }}
                                                             >
-                                                                <p className="text-sm text-amber-400 flex items-center gap-2">
+                                                                <p className="text-sm text-amber-600 flex items-center gap-2">
                                                                     <span className="text-amber-500">💰</span>
                                                                     {tradeStatusMessage}
-                                                                    <span className="text-xs text-amber-400/70 ml-auto">(Click to open trade)</span>
+                                                                    <span className="text-xs text-amber-600/70 ml-auto">(Click to open trade)</span>
                                                                 </p>
                                                             </div>
                                                         )}
@@ -1948,7 +1972,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 </div>
                                                 <div>
                                                     <p className="text-xs text-slate-500 mb-1">Estimated Value</p>
-                                                    <p className="text-sm font-medium text-amber-400">
+                                                    <p className="text-sm font-medium text-amber-600">
                                                         {calculateAnimalValue(target, playerCharacter?.year || 1500)} coins
                                                     </p>
                                                 </div>
@@ -2082,7 +2106,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 {activeTab === 'source' && isNpc(target) && (
                                     <div className="flex flex-col h-full p-4 sm:p-6 space-y-4 animate-slide-up">
                                         {/* Header */}
-                                        <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+                                        <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'var(--border-normal)' }}>
                                             <div className="flex items-center gap-3">
                                                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-full flex items-center justify-center">
                                                     <Book className="w-6 h-6 text-purple-400" />
@@ -2091,7 +2115,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                     <h3 className="text-lg font-semibold text-purple-400">
                                                         Present a Document
                                                     </h3>
-                                                    <p className="text-xs text-slate-400">
+                                                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                                                         Share a text for {targetName} to discuss
                                                     </p>
                                                 </div>
@@ -2102,14 +2126,17 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         {!sourceDiscussionResult ? (
                                             <div className="space-y-4">
                                                 {/* Source type toggle */}
-                                                <div className="flex gap-2 p-1 bg-slate-800/40 rounded-lg">
+                                                <div className="flex gap-2 p-1 rounded-lg" style={{ backgroundColor: 'var(--surface-muted-bg)' }}>
                                                     <button
                                                         onClick={() => setSourceType('text')}
                                                         className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
                                                             sourceType === 'text'
                                                                 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-                                                                : 'text-slate-400 hover:text-slate-300'
+                                                                : ''
                                                         }`}
+                                                        style={sourceType !== 'text' ? { color: 'var(--text-secondary)' } : undefined}
+                                                        onMouseEnter={e => { if (sourceType !== 'text') e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                                        onMouseLeave={e => { if (sourceType !== 'text') e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                                     >
                                                         <FileText className="w-4 h-4 inline mr-2" />
                                                         New Text
@@ -2119,8 +2146,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                         className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
                                                             sourceType === 'journal'
                                                                 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-                                                                : 'text-slate-400 hover:text-slate-300'
+                                                                : ''
                                                         }`}
+                                                        style={sourceType !== 'journal' ? { color: 'var(--text-secondary)' } : undefined}
+                                                        onMouseEnter={e => { if (sourceType !== 'journal') e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                                        onMouseLeave={e => { if (sourceType !== 'journal') e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                                     >
                                                         <Book className="w-4 h-4 inline mr-2" />
                                                         Journal Entry
@@ -2131,19 +2161,20 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                     <>
                                                         {/* Title input */}
                                                         <div>
-                                                            <label className="text-sm text-slate-400 mb-1 block">Document Title</label>
+                                                            <label className="text-sm mb-1 block" style={{ color: 'var(--text-secondary)' }}>Document Title</label>
                                                             <input
                                                                 type="text"
                                                                 placeholder="e.g., 'Magna Carta' or 'Ancient Scroll'"
                                                                 value={sourceTitle}
                                                                 onChange={(e) => setSourceTitle(e.target.value)}
-                                                                className="w-full px-3 py-2 text-sm text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400"
+                                                                className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:border-purple-400"
+                                                                style={{ color: 'var(--text-primary)', backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)' }}
                                                             />
                                                         </div>
 
                                                         {/* Content textarea */}
                                                         <div>
-                                                            <label className="text-sm text-slate-400 mb-1 block">
+                                                            <label className="text-sm mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                                                                 Document Text (paste or type)
                                                             </label>
                                                             <textarea
@@ -2151,14 +2182,15 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                 value={sourceContent}
                                                                 onChange={(e) => setSourceContent(e.target.value)}
                                                                 rows={8}
-                                                                className="w-full px-3 py-2 text-sm text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400 resize-none"
+                                                                className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:border-purple-400 resize-none"
+                                                                style={{ color: 'var(--text-primary)', backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)' }}
                                                             />
                                                         </div>
                                                     </>
                                                 ) : (
                                                     /* Journal entry selection */
                                                     <div>
-                                                        <label className="text-sm text-slate-400 mb-1 block">Select Journal Entry</label>
+                                                        <label className="text-sm mb-1 block" style={{ color: 'var(--text-secondary)' }}>Select Journal Entry</label>
                                                         {availableJournalEntries.length > 0 ? (
                                                             <select
                                                                 value={selectedJournalEntry || ''}
@@ -2170,7 +2202,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                         setSourceContent(entry.content);
                                                                     }
                                                                 }}
-                                                                className="w-full px-3 py-2 text-sm text-white bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400"
+                                                                className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:border-purple-400"
+                                                                style={{ color: 'var(--text-primary)', backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)' }}
                                                             >
                                                                 <option value="">Choose an entry...</option>
                                                                 {availableJournalEntries.map(entry => (
@@ -2180,7 +2213,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                 ))}
                                                             </select>
                                                         ) : (
-                                                            <div className="text-sm text-slate-500 italic p-4 bg-slate-800/40 rounded-lg">
+                                                            <div className="text-sm italic p-4 rounded-lg" style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface-muted-bg)' }}>
                                                                 No journal entries yet. Write in your journal first!
                                                             </div>
                                                         )}
@@ -2189,7 +2222,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
                                                 {/* Notes input - shown for both types */}
                                                 <div>
-                                                    <label className="text-sm text-slate-400 mb-1 block">
+                                                    <label className="text-sm mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                                                         Your Notes (optional)
                                                     </label>
                                                     <input
@@ -2197,7 +2230,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                         placeholder="Why you want to discuss this..."
                                                         value={sourceNotes}
                                                         onChange={(e) => setSourceNotes(e.target.value)}
-                                                        className="w-full px-3 py-2 text-sm text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-400"
+                                                        className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:border-purple-400"
+                                                        style={{ color: 'var(--text-primary)', backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)' }}
                                                     />
                                                 </div>
 
@@ -2277,14 +2311,14 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         ) : (
                                             /* Discussion result */
                                             <div className="space-y-4">
-                                                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                                                <div className="border rounded-lg p-4" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
                                                     <div className="flex items-start gap-3 mb-3">
                                                         <span className="text-2xl">{target.emoji || '👤'}</span>
                                                         <div className="flex-1">
-                                                            <p className="text-sm font-medium text-amber-400 mb-2">
+                                                            <p className="text-sm font-medium text-amber-600 mb-2">
                                                                 {targetName} responds:
                                                             </p>
-                                                            <p className="text-slate-200 leading-relaxed italic">
+                                                            <p className="leading-relaxed italic" style={{ color: 'var(--text-primary)' }}>
                                                                 "{sourceDiscussionResult}"
                                                             </p>
                                                         </div>
@@ -2294,7 +2328,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 {/* Follow-up questions for multi-turn conversation */}
                                                 {followUpQuestions.length > 0 && (
                                                     <div className="space-y-2">
-                                                        <p className="text-xs text-slate-400">Ask a follow-up question:</p>
+                                                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Ask a follow-up question:</p>
                                                         {followUpQuestions.map((question, index) => (
                                                             <button
                                                                 key={index}
@@ -2396,7 +2430,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 const diseaseRestrictions = calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);
 
                                 let placeholder = isLoading ? "Waiting for response..." : isNpc(target) ? "Say something..." : "Try to communicate...";
-                                let inputClassName = "flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-slate-700/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all input-glow";
+                                let inputClassName = "flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border rounded-lg focus:outline-none focus:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all input-glow";
+                                let inputStyle = {
+                                    color: 'var(--text-primary)',
+                                    backgroundColor: 'var(--surface-muted-bg)',
+                                    borderColor: 'var(--border-normal)'
+                                };
 
                                 // Modify placeholder and styling based on voice loss
                                 if (diseaseRestrictions.voiceLossLevel === 1) {
@@ -2449,7 +2488,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                             )}
                                                             <div className="flex items-center gap-1">
                                                                 <span>💰</span>
-                                                                <span className="text-amber-400 font-semibold">Payment: {workOffer.payment} coins</span>
+                                                                <span className="text-amber-600 font-semibold">Payment: {workOffer.payment} coins</span>
                                                             </div>
                                                             {workOffer.deadline && (
                                                                 <div className="flex items-center gap-1">
@@ -2627,7 +2666,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                     <div className="text-xs text-slate-300">
                                                                         You have: <span className="text-blue-400 font-semibold">{playerHas} {offer.requiredItem}</span>
                                                                         {playerHas < remaining && (
-                                                                            <span className="text-amber-400 ml-2">(Need {remaining - playerHas} more)</span>
+                                                                            <span className="text-amber-600 ml-2">(Need {remaining - playerHas} more)</span>
                                                                         )}
                                                                     </div>
 
@@ -2659,7 +2698,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                     )}
 
                                                                     {/* Payment Info */}
-                                                                    <div className="text-xs text-amber-400 flex items-center gap-1 mt-2">
+                                                                    <div className="text-xs text-amber-600 flex items-center gap-1 mt-2">
                                                                         <span>💰</span>
                                                                         <span>Payment when complete: {offer.payment} coins</span>
                                                                     </div>
@@ -2689,6 +2728,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                                                 disabled={isLoading || npcWantsToLeave}
                                                 className={npcWantsToLeave ? `${inputClassName} opacity-50 cursor-not-allowed` : inputClassName}
+                                                style={inputStyle}
                                             />
                                             <button
                                                 onClick={handleSend}
@@ -2705,9 +2745,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     </div>
                     
                     {/* Footer bar with Leave button */}
-                    <div className="border-t border-slate-700/50 px-3 sm:px-6 bg-slate-900/50 flex-shrink-0" style={{
-                        paddingTop: '12px',
-                        paddingBottom: 'max(12px, env(safe-area-inset-bottom))'
+                    <div className="border-t px-3 sm:px-6 flex-shrink-0" style={{
+                        paddingTop: '6px',
+                        paddingBottom: 'max(6px, env(safe-area-inset-bottom))',
+                        backgroundColor: 'var(--surface-muted-bg)',
+                        borderColor: 'var(--border-normal)'
                     }}>
                         <div className="flex justify-end">
                             <button 
@@ -2754,7 +2796,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 {showMonologue && (
                     <div className={`fixed inset-0 ${isSafari() ? 'bg-black/80' : 'bg-black/50'} flex items-center justify-center z-[60] p-4`} onClick={() => setShowMonologue(false)}>
                         <div className="bg-slate-900 border border-amber-500/50 rounded-xl p-6 max-w-md animate-slide-up" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-amber-400 font-semibold mb-3 text-center">Inner Thoughts</h3>
+                            <h3 className="text-amber-600 font-semibold mb-3 text-center">Inner Thoughts</h3>
                             {isLoadingMonologue ? (
                                 <div className="text-center text-slate-400 py-4">
                                     <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full mx-auto mb-2"></div>

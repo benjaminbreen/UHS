@@ -1283,7 +1283,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     playerMode={playerMode} 
                     shipDockX={shipDockX} 
                     shipDockY={shipDockY} 
-                    onAnimalClick={setInfoModalTarget} 
+                    onAnimalClick={setInfoModalTarget}
                     onNpcClick={setInfoModalTarget} 
                     selectedAnimalId={infoModalTarget?.id} 
                     selectedNpcId={infoModalTarget?.id} 
@@ -1812,7 +1812,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                   onClick={() => setShowBottomPanel(!showBottomPanel)}
                   className="fixed z-40 px-5 py-3 bg-blue-600 active:bg-blue-700 text-white rounded-full shadow-xl transition-all duration-200 flex items-center gap-2.5"
                   style={{
-                    bottom: showBottomPanel ? 'calc(env(safe-area-inset-bottom) + 240px)' : 'calc(env(safe-area-inset-bottom) + 20px)',
+                    bottom: showBottomPanel ? 'calc(env(safe-area-inset-bottom) + 192px)' : 'calc(env(safe-area-inset-bottom) + 20px)',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     minWidth: '120px',
@@ -1825,7 +1825,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                 </button>
               )}
               {(showBottomPanel || !isMobile) && (
-               <div className={`relative shrink-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 z-30 animate-slideUp' : 'h-24'}`}>
+               <div className={`relative shrink-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 z-30 animate-slideUp' : 'h-19'}`}>
                     <BottomPanel 
                         actionableTile={actionableTile} 
                         contextualMessage={contextualMessage} 

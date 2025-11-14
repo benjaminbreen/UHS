@@ -271,18 +271,16 @@ const StatusWarningToast: React.FC<StatusWarningToastProps> = ({
             </div>
           </div>
 
-          {/* Close Button (only show for critical warnings or manual-close) */}
-          {(severity === 'critical' || duration === 0) && (
-            <button
-              onClick={handleManualClose}
-              className="flex-shrink-0 p-2 rounded-lg hover:bg-white/10 transition-all duration-200 group"
-              aria-label="Close"
-            >
-              <div className="text-lg text-gray-300 group-hover:text-white transition-colors">
-                ×
-              </div>
-            </button>
-          )}
+          {/* Close Button - Always visible */}
+          <button
+            onClick={handleManualClose}
+            className="flex-shrink-0 p-2 rounded-lg hover:bg-white/10 transition-all duration-200 group"
+            aria-label="Close"
+          >
+            <div className="text-xl font-bold text-gray-300 group-hover:text-white transition-colors">
+              ×
+            </div>
+          </button>
         </div>
 
         {/* Auto-dismiss progress indicator (for non-critical) */}

@@ -380,8 +380,15 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
     const FactionIcon = factionData.icon;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="relative w-full max-w-5xl h-[80vh] flex flex-col ff-panel animate-popIn">
+        <div
+            data-surface="modal-overlay"
+            className="modal-overlay theme-surface flex items-center justify-center p-4 animate-in fade-in duration-300"
+        >
+            <div
+                data-surface="modal-panel"
+                className="relative w-full max-w-5xl h-[80vh] flex flex-col ff-panel theme-surface animate-in slide-in-from-bottom-4 zoom-in-95 duration-500"
+                onClick={e => e.stopPropagation()}
+            >
                 {/* Enhanced Banner Header - Full Height */}
                 <header className="relative h-[340px] rounded-t-lg overflow-hidden">
                     <TerrainStructureBanner
@@ -396,15 +403,15 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                         zoomLevel={1.0}
                         isRuined={state === 'ruined'}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white flex justify-between items-end">
+                    <div className="absolute inset-0 banner-gradient-overlay"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white flex justify-between items-end animate-in slide-in-from-bottom-3 fade-in duration-500 delay-200">
                         <div className="flex items-center gap-3 mb-2">
-                            <span className="text-4xl">{structureData.icon}</span>
+                            <span className="text-4xl animate-in zoom-in duration-500 delay-300">{structureData.icon}</span>
                             <div>
                                 <h2 className="text-3xl font-bold font-lora" style={{ textShadow: '3px 3px 6px #000' }}>
                                     {name}
                                 </h2>
-                                <p className="text-xl capitalize italic text-amber-300 mt-1" style={{ textShadow: '2px 2px 4px #000' }}>
+                                <p className="text-xl capitalize italic mt-1" style={{ color: 'var(--color-warning)', textShadow: '2px 2px 4px #000' }}>
                                     {state === 'ruined' ? 'Ruined ' : ''}{structureData.title} in {mapData.mapAreaName || currentLocation || 'Unknown Region'} on {stats.biome?.replace(/_/g, ' ').toLowerCase() || 'unknown'}
                                 </p>
                             </div>
@@ -412,16 +419,16 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                         
                         {/* Faction Badge - Clickable */}
                         {allegianceGroup && allegianceGroup !== 'Independent' && (
-                            <div 
-                                className="flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-3 border-2 cursor-pointer hover:bg-black/80 transition-all" 
+                            <div
+                                className="flex items-center gap-3 bg-[var(--surface-overlay-strong)] backdrop-blur-sm rounded-lg px-4 py-3 border-2 cursor-pointer hover:bg-[var(--surface-elevated)] transition-all"
                                 style={{ borderColor: factionData.color }}
                                 onClick={handleShowFactionsModal}
                                 title="Click for more faction information"
                             >
                                 <div className="flex flex-col items-end">
-                                    <span className="text-xs text-slate-400 uppercase tracking-wider mb-1">Allegiance</span>
-                                    <h3 className="text-xl font-bold font-cinzel" 
-                                        style={{ color: factionData.color, textShadow: '2px 2px 4px #000' }}>
+                                    <span className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Allegiance</span>
+                                    <h3 className="text-xl font-bold font-cinzel"
+                                        style={{ color: factionData.color }}>
                                         {factionData.name}
                                     </h3>
                                 </div>
@@ -439,48 +446,60 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                     <div className="grid lg:grid-cols-3 gap-6">
                         {/* Left Column - Overview */}
                         <div className="space-y-6">
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <h3 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
+                            <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-left-3 fade-in duration-500 delay-100"
+                                style={{
+                                    backgroundColor: 'var(--surface-elevated)',
+                                    borderWidth: '1px',
+                                    borderColor: 'var(--border-normal)'
+                                }}
+                            >
+                                <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
                                     <span className="text-xl">📍</span> Location Details
                                 </h3>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Coordinates:</span>
-                                        <span className="font-mono text-slate-200">({location[0]}, {location[1]})</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Coordinates:</span>
+                                        <span className="font-mono" style={{ color: 'var(--text-primary)' }}>({location[0]}, {location[1]})</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Biome:</span>
-                                        <span className="text-slate-200 capitalize">{stats.biome?.replace(/_/g, ' ') || 'Unknown'}</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Biome:</span>
+                                        <span className="capitalize" style={{ color: 'var(--text-primary)' }}>{stats.biome?.replace(/_/g, ' ') || 'Unknown'}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Elevation:</span>
-                                        <span className="text-slate-200">{stats.elevation || 0}m</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Elevation:</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{stats.elevation || 0}m</span>
                                     </div>
                                     {stats.distanceToCity && (
                                         <div className="flex justify-between">
-                                            <span className="text-slate-400">Nearest City:</span>
-                                            <span className="text-slate-200">{stats.distanceToCity} tiles</span>
+                                            <span style={{ color: 'var(--text-secondary)' }}>Nearest City:</span>
+                                            <span style={{ color: 'var(--text-primary)' }}>{stats.distanceToCity} tiles</span>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <h3 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
+                            <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-left-3 fade-in duration-500 delay-200"
+                                style={{
+                                    backgroundColor: 'var(--surface-elevated)',
+                                    borderWidth: '1px',
+                                    borderColor: 'var(--border-normal)'
+                                }}
+                            >
+                                <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
                                     <span className="text-xl">⚙️</span> Status
                                 </h3>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Condition:</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Condition:</span>
                                         <span className={`font-bold capitalize ${stateColor}`}>{state}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Allegiance:</span>
-                                        <span className="text-slate-200">{allegianceGroup || 'Independent'}</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Allegiance:</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{allegianceGroup || 'Independent'}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Economic Role:</span>
-                                        <span className="text-slate-200 capitalize">{economicRole}</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Economic Role:</span>
+                                        <span className="capitalize" style={{ color: 'var(--text-primary)' }}>{economicRole}</span>
                                     </div>
                                 </div>
                             </div>
@@ -488,15 +507,21 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
 
                         {/* Middle Column - Structure Specific */}
                         <div className="space-y-6">
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <h3 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
+                            <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-bottom-3 fade-in duration-500 delay-300"
+                                style={{
+                                    backgroundColor: 'var(--surface-elevated)',
+                                    borderWidth: '1px',
+                                    borderColor: 'var(--border-normal)'
+                                }}
+                            >
+                                <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
                                     <span className="text-xl">📊</span> {structureData.title} Details
                                 </h3>
                                 <div className="space-y-2 text-sm">
                                     {structureData.details.map((detail, index) => (
                                         <div key={index} className="flex justify-between">
-                                            <span className="text-slate-400">{detail.label}:</span>
-                                            <span className="text-slate-200 text-right">{detail.value}</span>
+                                            <span style={{ color: 'var(--text-secondary)' }}>{detail.label}:</span>
+                                            <span className="text-right" style={{ color: 'var(--text-primary)' }}>{detail.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -504,17 +529,30 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
 
                             {/* Resources if applicable - hide for ruined structures */}
                             {(inputGoods || outputGoods) && state !== 'ruined' && (
-                                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                    <h3 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
+                                <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-bottom-3 fade-in duration-500 delay-400"
+                                    style={{
+                                        backgroundColor: 'var(--surface-elevated)',
+                                        borderWidth: '1px',
+                                        borderColor: 'var(--border-normal)'
+                                    }}
+                                >
+                                    <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
                                         <span className="text-xl">📦</span> Trade Goods
                                     </h3>
                                     <div className="space-y-2 text-sm">
                                         {inputGoods && (
                                             <div>
-                                                <span className="text-slate-400">Imports:</span>
+                                                <span style={{ color: 'var(--text-secondary)' }}>Imports:</span>
                                                 <div className="mt-1 flex flex-wrap gap-1">
                                                     {inputGoods.map((good, i) => (
-                                                        <span key={i} className="px-2 py-1 bg-blue-900/50 rounded text-xs">
+                                                        <span key={i} className="px-2 py-1 rounded text-xs transition-all duration-300 hover:scale-110"
+                                                            style={{
+                                                                backgroundColor: 'var(--surface-muted)',
+                                                                color: 'var(--text-primary)',
+                                                                borderWidth: '1px',
+                                                                borderColor: 'var(--accent-primary)'
+                                                            }}
+                                                        >
                                                             {good}
                                                         </span>
                                                     ))}
@@ -523,10 +561,17 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                                         )}
                                         {outputGoods && (
                                             <div>
-                                                <span className="text-slate-400">Exports:</span>
+                                                <span style={{ color: 'var(--text-secondary)' }}>Exports:</span>
                                                 <div className="mt-1 flex flex-wrap gap-1">
                                                     {outputGoods.map((good, i) => (
-                                                        <span key={i} className="px-2 py-1 bg-green-900/50 rounded text-xs">
+                                                        <span key={i} className="px-2 py-1 rounded text-xs transition-all duration-300 hover:scale-110"
+                                                            style={{
+                                                                backgroundColor: 'var(--surface-muted)',
+                                                                color: 'var(--text-primary)',
+                                                                borderWidth: '1px',
+                                                                borderColor: 'var(--color-success)'
+                                                            }}
+                                                        >
                                                             {good}
                                                         </span>
                                                     ))}
@@ -540,30 +585,41 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
 
                         {/* Right Column - NPCs and Activity */}
                         <div className="space-y-6">
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <h3 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
+                            <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-right-3 fade-in duration-500 delay-200"
+                                style={{
+                                    backgroundColor: 'var(--surface-elevated)',
+                                    borderWidth: '1px',
+                                    borderColor: 'var(--border-normal)'
+                                }}
+                            >
+                                <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
                                     <span className="text-xl">👥</span> Personnel
                                 </h3>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Primary Workers:</span>
-                                        <span className="text-slate-200 capitalize">{npcAnchor?.replace(/_/g, ' ')}s</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Primary Workers:</span>
+                                        <span className="capitalize" style={{ color: 'var(--text-primary)' }}>{npcAnchor?.replace(/_/g, ' ')}s</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">NPCs Present:</span>
-                                        <span className="text-slate-200">{localNPCs.length}</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>NPCs Present:</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{localNPCs.length}</span>
                                     </div>
                                     {localNPCs.length > 0 && (
-                                        <div className="mt-2 pt-2 border-t border-slate-700">
-                                            <span className="text-slate-400 text-xs">Workers at location:</span>
+                                        <div className="mt-2 pt-2"
+                                            style={{
+                                                borderTopWidth: '1px',
+                                                borderColor: 'var(--border-normal)'
+                                            }}
+                                        >
+                                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Workers at location:</span>
                                             <div className="mt-1 max-h-32 overflow-y-auto">
                                                 {localNPCs.slice(0, 5).map((npc, i) => (
-                                                    <div key={i} className="text-xs text-slate-300 py-1">
+                                                    <div key={i} className="text-xs py-1" style={{ color: 'var(--text-primary)' }}>
                                                         • {npc.name} - {npc.occupation?.replace(/_/g, ' ')}
                                                     </div>
                                                 ))}
                                                 {localNPCs.length > 5 && (
-                                                    <div className="text-xs text-slate-500 italic">
+                                                    <div className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
                                                         +{localNPCs.length - 5} more...
                                                     </div>
                                                 )}
@@ -573,26 +629,32 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                                 </div>
                             </div>
 
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <h3 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
+                            <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-right-3 fade-in duration-500 delay-300"
+                                style={{
+                                    backgroundColor: 'var(--surface-elevated)',
+                                    borderWidth: '1px',
+                                    borderColor: 'var(--border-normal)'
+                                }}
+                            >
+                                <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
                                     <span className="text-xl">🕐</span> Current Activity
                                 </h3>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Time of Day:</span>
-                                        <span className="text-slate-200">{timeOfDay}</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Time of Day:</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{timeOfDay}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Season:</span>
-                                        <span className="text-slate-200 capitalize">{season}</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Season:</span>
+                                        <span className="capitalize" style={{ color: 'var(--text-primary)' }}>{season}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Activity Level:</span>
-                                        <span className="text-slate-200">
-                                            {state === 'active' && (timeOfDay === 'Morning' || timeOfDay === 'Midday' || timeOfDay === 'Afternoon') 
-                                                ? 'Busy' 
-                                                : state === 'active' && timeOfDay === 'Night' 
-                                                ? 'Minimal' 
+                                        <span style={{ color: 'var(--text-secondary)' }}>Activity Level:</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>
+                                            {state === 'active' && (timeOfDay === 'Morning' || timeOfDay === 'Midday' || timeOfDay === 'Afternoon')
+                                                ? 'Busy'
+                                                : state === 'active' && timeOfDay === 'Night'
+                                                ? 'Minimal'
                                                 : 'None'}
                                         </span>
                                     </div>
@@ -603,20 +665,30 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                <footer className="mt-auto p-4 border-t border-slate-700 flex justify-between items-center bg-slate-900/50">
-                    <div className="text-xs text-slate-500">
+                <footer className="mt-auto p-4 flex justify-between items-center animate-in slide-in-from-bottom-2 fade-in duration-500 delay-600"
+                    style={{
+                        borderTopWidth: '1px',
+                        borderColor: 'var(--border-normal)',
+                        backgroundColor: 'var(--surface-muted)'
+                    }}
+                >
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         {formattedDate && <span>Year {era} • {currentLocation}</span>}
                     </div>
                     <div className="flex gap-2">
                         {structureType === 'fishing_hut' && (
-                            <button 
-                                onClick={handleShowFishingModal} 
-                                className="ff-action-button px-6 py-2 text-sm bg-blue-600 hover:bg-blue-700"
+                            <button
+                                onClick={handleShowFishingModal}
+                                className="ff-action-button px-6 py-2 text-sm transition-all duration-300 hover:scale-105 active:scale-95"
+                                style={{
+                                    backgroundColor: 'var(--accent-primary)',
+                                    color: 'white'
+                                }}
                             >
                                 🎣 Enter Fishing Hut
                             </button>
                         )}
-                        <button onClick={onClose} className="ff-action-button px-6 py-2 text-sm">
+                        <button onClick={onClose} className="ff-action-button px-6 py-2 text-sm transition-all duration-300 hover:scale-105 active:scale-95">
                             Close
                         </button>
                     </div>

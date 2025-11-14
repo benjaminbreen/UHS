@@ -112,20 +112,38 @@ const MineModal: React.FC<MineModalProps> = ({
     }
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-600">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 animate-in fade-in duration-300"
+            style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                backdropFilter: 'blur(8px)'
+            }}
+        >
+            <div className="rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto surface-card animate-in slide-in-from-bottom-4 zoom-in-95 duration-500"
+                style={{
+                    borderWidth: '1px',
+                    borderColor: 'var(--border-normal)'
+                }}
+            >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-gray-900 via-slate-800 to-brown-900 p-6 rounded-t-2xl border-b border-slate-600">
+                <div className="p-6 rounded-t-2xl animate-in slide-in-from-top-3 fade-in duration-500 delay-100"
+                    style={{
+                        background: 'linear-gradient(to right, var(--surface-elevated), var(--surface-card), var(--surface-elevated))',
+                        borderBottomWidth: '1px',
+                        borderColor: 'var(--border-normal)'
+                    }}
+                >
                     <div className="flex justify-between items-start">
-                        <div>
-                            <h1 className="text-2xl font-bold text-white mb-1">⛏️ {structure.name || 'Mine'}</h1>
-                            <p className="text-sm text-slate-300">
+                        <div className="animate-in slide-in-from-left-2 fade-in duration-500 delay-200">
+                            <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+                                <span className="animate-in zoom-in duration-500 delay-300">⛏️</span> {structure.name || 'Mine'}
+                            </h1>
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                 {currentLocation} • Year {year}
                             </p>
                         </div>
-                        <div className="text-right">
-                            <div className="text-lg font-semibold text-yellow-400">Active Mine</div>
-                            <div className="text-sm text-slate-300">Era: {era.replace(/_/g, ' ')}</div>
+                        <div className="text-right animate-in slide-in-from-right-2 fade-in duration-500 delay-200">
+                            <div className="text-lg font-semibold" style={{ color: 'var(--color-success)' }}>Active Mine</div>
+                            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Era: {era.replace(/_/g, ' ')}</div>
                         </div>
                     </div>
                 </div>
@@ -133,59 +151,104 @@ const MineModal: React.FC<MineModalProps> = ({
                 {/* Main Content */}
                 <div className="p-6 space-y-6">
                     {/* Description */}
-                    <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                        <h3 className="text-lg font-bold text-slate-200 mb-3">🏔️ The Mining Operation</h3>
-                        <p className="text-slate-300 leading-relaxed">
+                    <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-left-3 fade-in duration-500 delay-100"
+                        style={{
+                            backgroundColor: 'var(--surface-elevated)',
+                            borderWidth: '1px',
+                            borderColor: 'var(--border-normal)'
+                        }}
+                    >
+                        <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--accent-primary)' }}>
+                            🏔️ The Mining Operation
+                        </h3>
+                        <p className="leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                             {getMineDescription()}
                         </p>
                     </div>
                     
                     {/* Mineral Deposits */}
-                    <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                        <h3 className="text-lg font-bold text-slate-200 mb-3">💎 Mineral Deposits</h3>
+                    <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-right-3 fade-in duration-500 delay-200"
+                        style={{
+                            backgroundColor: 'var(--surface-elevated)',
+                            borderWidth: '1px',
+                            borderColor: 'var(--border-normal)'
+                        }}
+                    >
+                        <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--accent-primary)' }}>
+                            💎 Mineral Deposits
+                        </h3>
                         {depositList.length > 0 ? (
                             <div className="space-y-2">
-                                {depositList.map(([mineral, quantity]) => (
-                                    <div key={mineral} className="flex justify-between items-center bg-slate-600 rounded p-2">
-                                        <span className="text-slate-200 font-medium capitalize">
+                                {depositList.map(([mineral, quantity], index) => (
+                                    <div key={mineral} className="flex justify-between items-center rounded p-2 transition-all duration-300 hover:scale-105 hover:shadow-md animate-in slide-in-from-bottom-2 fade-in"
+                                        style={{
+                                            backgroundColor: 'var(--surface-muted)',
+                                            animationDelay: `${300 + index * 50}ms`,
+                                            animationDuration: '400ms'
+                                        }}
+                                    >
+                                        <span className="font-medium capitalize" style={{ color: 'var(--text-primary)' }}>
                                             {mineral.replace(/_/g, ' ')}
                                         </span>
-                                        <span className="text-yellow-400">
+                                        <span style={{ color: 'var(--color-warning)' }}>
                                             {typeof quantity === 'number' ? `${quantity.toLocaleString()} units` : 'Unknown quantity'}
                                         </span>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-slate-400">No known deposits</p>
+                            <p style={{ color: 'var(--text-muted)' }}>No known deposits</p>
                         )}
                     </div>
                     
                     {/* Working Conditions */}
-                    <div className="bg-amber-900 bg-opacity-30 rounded-lg p-4 border border-amber-700">
-                        <h3 className="text-lg font-bold text-amber-300 mb-3">⚠️ Working Conditions</h3>
+                    <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-left-3 fade-in duration-500 delay-300"
+                        style={{
+                            backgroundColor: 'var(--surface-elevated)',
+                            borderWidth: '1px',
+                            borderColor: 'var(--color-warning)'
+                        }}
+                    >
+                        <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--color-warning)' }}>
+                            ⚠️ Working Conditions
+                        </h3>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                             <div>
-                                <span className="text-slate-400">Danger Level:</span>
-                                <p className="text-red-400 font-bold">{conditions.danger}</p>
+                                <span style={{ color: 'var(--text-secondary)' }}>Danger Level:</span>
+                                <p className="font-bold" style={{ color: 'var(--color-error)' }}>{conditions.danger}</p>
                             </div>
                             <div>
-                                <span className="text-slate-400">Payment:</span>
-                                <p className="text-yellow-400 font-medium">{conditions.pay}</p>
+                                <span style={{ color: 'var(--text-secondary)' }}>Payment:</span>
+                                <p className="font-medium" style={{ color: 'var(--color-warning)' }}>{conditions.pay}</p>
                             </div>
                             <div>
-                                <span className="text-slate-400">Work Hours:</span>
-                                <p className="text-blue-400">{conditions.hours}</p>
+                                <span style={{ color: 'var(--text-secondary)' }}>Work Hours:</span>
+                                <p style={{ color: 'var(--accent-primary)' }}>{conditions.hours}</p>
                             </div>
                         </div>
                     </div>
                     
                     {/* Available Materials in Era */}
-                    <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                        <h3 className="text-lg font-bold text-slate-200 mb-3">📦 Materials Available in {era.replace(/_/g, ' ')}</h3>
+                    <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in slide-in-from-right-3 fade-in duration-500 delay-400"
+                        style={{
+                            backgroundColor: 'var(--surface-elevated)',
+                            borderWidth: '1px',
+                            borderColor: 'var(--border-normal)'
+                        }}
+                    >
+                        <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--accent-primary)' }}>
+                            📦 Materials Available in {era.replace(/_/g, ' ')}
+                        </h3>
                         <div className="flex flex-wrap gap-2">
-                            {availableMaterials.map(material => (
-                                <span key={material.id} className="px-3 py-1 bg-slate-600 rounded-full text-sm text-slate-200">
+                            {availableMaterials.map((material, index) => (
+                                <span key={material.id} className="px-3 py-1 rounded-full text-sm transition-all duration-300 hover:scale-110 hover:shadow-md animate-in zoom-in fade-in"
+                                    style={{
+                                        backgroundColor: 'var(--surface-muted)',
+                                        color: 'var(--text-primary)',
+                                        animationDelay: `${500 + index * 30}ms`,
+                                        animationDuration: '300ms'
+                                    }}
+                                >
                                     {material.name}
                                 </span>
                             ))}
@@ -193,34 +256,66 @@ const MineModal: React.FC<MineModalProps> = ({
                     </div>
                     
                     {/* Actions */}
-                    <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                        <h3 className="text-lg font-bold text-slate-200 mb-3">🎯 Available Actions</h3>
+                    <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-500 delay-500"
+                        style={{
+                            backgroundColor: 'var(--surface-elevated)',
+                            borderWidth: '1px',
+                            borderColor: 'var(--border-normal)'
+                        }}
+                    >
+                        <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--accent-primary)' }}>
+                            🎯 Available Actions
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <button
                                 onClick={() => setShowMiningRoguelike(true)}
                                 disabled={isWorking}
-                                className="px-4 py-3 bg-gradient-to-r from-amber-600 to-brown-600 hover:from-amber-700 hover:to-brown-700 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-lg font-medium transition-all duration-200"
+                                className="px-4 py-3 text-white rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed animate-in zoom-in fade-in"
+                                style={{
+                                    backgroundColor: isWorking ? 'var(--surface-muted)' : 'var(--color-warning)',
+                                    boxShadow: !isWorking ? '0 4px 12px -2px var(--color-warning)' : 'none',
+                                    animationDelay: '600ms',
+                                    animationDuration: '400ms'
+                                }}
                             >
                                 ⛏️ Enter Mine (Dig for Ore)
                             </button>
-                            
+
                             <button
                                 onClick={() => alert("Trading feature coming soon!")}
-                                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200"
+                                className="px-4 py-3 text-white rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 animate-in zoom-in fade-in"
+                                style={{
+                                    backgroundColor: 'var(--accent-primary)',
+                                    boxShadow: '0 4px 12px -2px var(--accent-primary)',
+                                    animationDelay: '650ms',
+                                    animationDuration: '400ms'
+                                }}
                             >
                                 💰 Trade with Foreman
                             </button>
-                            
+
                             <button
                                 onClick={() => alert("Information gathering coming soon!")}
-                                className="px-4 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white rounded-lg font-medium transition-all duration-200"
+                                className="px-4 py-3 text-white rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 animate-in zoom-in fade-in"
+                                style={{
+                                    backgroundColor: 'var(--color-success)',
+                                    boxShadow: '0 4px 12px -2px var(--color-success)',
+                                    animationDelay: '700ms',
+                                    animationDuration: '400ms'
+                                }}
                             >
                                 🗣️ Talk to Miners
                             </button>
-                            
+
                             <button
                                 onClick={() => alert("Exploration feature coming soon!")}
-                                className="px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200"
+                                className="px-4 py-3 text-white rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 animate-in zoom-in fade-in"
+                                style={{
+                                    backgroundColor: 'var(--accent-primary)',
+                                    boxShadow: '0 4px 12px -2px var(--accent-primary)',
+                                    animationDelay: '750ms',
+                                    animationDuration: '400ms'
+                                }}
                             >
                                 🔦 Explore Deeper Tunnels
                             </button>
@@ -229,9 +324,15 @@ const MineModal: React.FC<MineModalProps> = ({
                 </div>
                 
                 {/* Footer */}
-                <div className="bg-slate-900 p-4 rounded-b-2xl border-t border-slate-600">
+                <div className="p-4 rounded-b-2xl animate-in slide-in-from-bottom-2 fade-in duration-500 delay-600"
+                    style={{
+                        backgroundColor: 'var(--surface-muted)',
+                        borderTopWidth: '1px',
+                        borderColor: 'var(--border-normal)'
+                    }}
+                >
                     <div className="flex justify-between items-center">
-                        <div className="text-sm text-slate-400">
+                        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                             {era === HistoricalEra.PREHISTORY || era === HistoricalEra.ANTIQUITY
                                 ? "Mining is dangerous work with primitive tools"
                                 : era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA
@@ -240,7 +341,13 @@ const MineModal: React.FC<MineModalProps> = ({
                         </div>
                         <button
                             onClick={onClose}
-                            className="px-6 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors"
+                            className="px-6 py-2 rounded-lg transition-all duration-300 hover:scale-105 active:scale-95"
+                            style={{
+                                backgroundColor: 'var(--surface-elevated)',
+                                color: 'var(--text-primary)',
+                                borderWidth: '1px',
+                                borderColor: 'var(--border-normal)'
+                            }}
                         >
                             Leave the Mine
                         </button>

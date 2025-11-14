@@ -50,32 +50,37 @@ const StudyPanel: React.FC<StudyPanelProps> = ({
     const encounteredAnimals = encounters.flatMap(e => e.animals);
 
     return (
-        <div className="flex flex-col h-full surface-card rounded-lg">
-            {/* Header */}
-            <div className="px-3 py-2 border-b border-surface-muted">
+        <div className="flex flex-col h-full">
+            {/* Header - Improved Typography */}
+            <div className="px-4 py-3 border-b border-[var(--border-normal)]">
                 <div className="flex items-center gap-2">
-                    <Microscope className="w-4 h-4 text-accent" />
-                    <h3 className="text-sm font-bold text-text-primary">Study Collection</h3>
+                    <Microscope className="w-4 h-4 text-[var(--accent-primary)]" />
+                    <h3 className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 tracking-tight">Study Collection</h3>
                 </div>
-                <div className="text-xs text-text-muted mt-1">
+                <div className="text-[11px] text-slate-600 dark:text-slate-500 mt-1.5 leading-relaxed font-medium">
                     {specimens.length} specimens • {encounteredNpcs.length} NPCs • {encounteredAnimals.length} animals
                 </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
                 {/* Specimens Section */}
                 {specimens.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-1 mb-2">
-                            <Microscope className="w-3 h-3 text-accent" />
-                            <h4 className="text-xs font-semibold text-accent">Specimens Under Study</h4>
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                            <Microscope className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                            <h4 className="text-[11px] font-semibold text-[var(--accent-primary)] uppercase tracking-[0.08em]">Specimens Under Study</h4>
                         </div>
-                        <div className="space-y-2">
-                            {specimens.map((item) => (
-                                <div key={item.id} className={`surface-muted rounded-lg p-2 border transition-colors ${
-                                    selectedItems.includes(item.id) ? 'border-accent/70 bg-accent/20' : 'border-surface-muted'
-                                }`}>
+                        <div className="space-y-2.5">
+                            {specimens.map((item, index) => (
+                                <div key={item.id}
+                                    className={`study-item-card rounded-xl p-3 border transition-all duration-300 cursor-pointer group ${
+                                        selectedItems.includes(item.id)
+                                            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/15 ring-2 ring-[var(--accent-primary)]/40 shadow-lg shadow-[var(--accent-primary)]/20'
+                                            : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 hover:bg-[var(--bg-elevated)]/80 hover:border-[var(--border-normal)] hover:shadow-md hover:-translate-y-0.5'
+                                    }`}
+                                    style={{ animationDelay: `${index * 50}ms` }}
+                                >
                                     <div className="flex items-start gap-2">
                                         {/* Selection Checkbox */}
                                         <input
@@ -96,18 +101,18 @@ const StudyPanel: React.FC<StudyPanelProps> = ({
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between">
-                                                <p className="text-xs font-medium text-text-primary truncate">{item.name} 🔬</p>
+                                                <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{item.name} 🔬</p>
                                                 {item.studyProgress !== undefined && (
-                                                    <span className="text-xs text-accent">{item.studyProgress}%</span>
+                                                    <span className="text-xs text-[var(--accent-primary)] font-bold">{item.studyProgress}%</span>
                                                 )}
                                             </div>
                                             {item.description && (
-                                                <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{item.description}</p>
+                                                <p className="text-[11px] text-slate-600 dark:text-slate-500 mt-1 line-clamp-2 leading-snug">{item.description}</p>
                                             )}
                                             {item.discoveredProperties && item.discoveredProperties.length > 0 && (
-                                                <div className="mt-1">
+                                                <div className="mt-2 space-y-0.5">
                                                     {item.discoveredProperties.map((prop, idx) => (
-                                                        <p key={idx} className="text-xs text-[var(--color-success)]">✓ {prop}</p>
+                                                        <p key={idx} className="text-xs text-[var(--color-success)] leading-relaxed">✓ {prop}</p>
                                                     ))}
                                                 </div>
                                             )}
@@ -132,18 +137,21 @@ const StudyPanel: React.FC<StudyPanelProps> = ({
                 {/* NPCs Section */}
                 {encounteredNpcs.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-1 mb-2">
-                            <Users className="w-3 h-3 text-[var(--color-success)]" />
-                            <h4 className="text-xs font-semibold text-[var(--color-success)]">Encountered NPCs</h4>
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                            <Users className="w-3.5 h-3.5 text-[var(--color-success)]" />
+                            <h4 className="text-[11px] font-semibold text-[var(--color-success)] tracking-[0.08em] uppercase">Encountered NPCs</h4>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             {encounteredNpcs.slice(0, 10).map((npc, idx) => (
-                                <div key={`npc-${idx}`} className="surface-muted rounded px-2 py-1 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-lg">{npc.emoji || '👤'}</span>
+                                <div key={`npc-${idx}`}
+                                    className="study-item-card bg-[var(--bg-elevated)]/50 border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 flex items-center justify-between hover:bg-[var(--bg-elevated)]/80 hover:border-[var(--border-normal)] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                                    style={{ animationDelay: `${idx * 50}ms` }}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="text-xl">{npc.emoji || '👤'}</span>
                                         <div>
-                                            <p className="text-xs text-text-primary">{npc.name}</p>
-                                            <p className="text-xs text-text-muted">{npc.profession}</p>
+                                            <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">{npc.name}</p>
+                                            <p className="text-[11px] text-slate-600 dark:text-slate-500 leading-snug">{npc.profession}</p>
                                         </div>
                                     </div>
                                     <button
@@ -164,18 +172,18 @@ const StudyPanel: React.FC<StudyPanelProps> = ({
                 {/* Animals Section */}
                 {encounteredAnimals.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-1 mb-2">
+                        <div className="flex items-center gap-1.5 mb-2.5">
                             <span className="w-3 h-3 text-[var(--color-warning)]">🐾</span>
-                            <h4 className="text-xs font-semibold text-[var(--color-warning)]">Encountered Animals</h4>
+                            <h4 className="text-xs font-semibold text-[var(--color-warning)] tracking-tight">Encountered Animals</h4>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             {encounteredAnimals.slice(0, 10).map((animal, idx) => (
-                                <div key={`animal-${idx}`} className="surface-muted rounded px-2 py-1 flex items-center justify-between">
+                                <div key={`animal-${idx}`} className="surface-muted rounded-lg px-3 py-2 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <span className="text-lg">{animal.emoji || '🐾'}</span>
                                         <div>
-                                            <p className="text-xs text-text-primary">{animal.speciesName}</p>
-                                            <p className="text-xs text-text-muted">{animal.gender} • {animal.age}</p>
+                                            <p className="text-xs font-medium text-text-primary tracking-tight">{animal.speciesName}</p>
+                                            <p className="text-xs text-text-muted leading-relaxed">{animal.gender} • {animal.age}</p>
                                         </div>
                                     </div>
                                     <button
@@ -195,10 +203,10 @@ const StudyPanel: React.FC<StudyPanelProps> = ({
 
                 {/* Empty State */}
                 {specimens.length === 0 && encounteredNpcs.length === 0 && encounteredAnimals.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-text-muted py-8">
-                        <Microscope className="w-8 h-8 mb-2 opacity-50" />
-                        <p className="text-sm font-semibold mb-1">No Studies Yet</p>
-                        <p className="text-xs text-center max-w-xs">
+                    <div className="flex flex-col items-center justify-center h-full text-text-muted py-12 px-6">
+                        <Microscope className="w-10 h-10 mb-3 opacity-50" />
+                        <p className="text-sm font-semibold mb-2 tracking-tight">No Studies Yet</p>
+                        <p className="text-xs text-center max-w-xs leading-relaxed" style={{ lineHeight: '1.6' }}>
                             Select items in your inventory and click "Study" to begin examining them.
                         </p>
                     </div>

@@ -961,6 +961,7 @@ export const FACTION_ICONS: Record<string, FactionData> = {
   'Moro Sultanates': { name: 'Moro Sultanates', color: '#008000', icon: FaStarAndCrescent },
   'Dutch East India Company (VOC)': { name: 'Dutch East India Company', color: '#FF9900', icon: GiCargoShip },
   'British East India Company': { name: 'East India Company', color: '#F8B4B0', icon: GiCargoShip },
+  'British Indian Empire': { name: 'British Indian Empire', color: '#F8B4B0', icon: GiLion },
   'Indian National Congress': { name: 'Indian National Congress', color: '#FF9933', icon: GiFist },
   'Muslim League': { name: 'Muslim League', color: '#006400', icon: FaMosque },
   

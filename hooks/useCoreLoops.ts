@@ -42,6 +42,7 @@ import { Disease } from '../types/diseaseTypes';
 import { NpcEntity } from '../types/npcTypes';
 import { getActiveWorkOffers, updateWorkOffer, cleanupOrphanedWorkOffers } from '../services/workOfferStorage';
 import { checkWorkCompletion, completeWorkOffer } from '../services/workOfferService';
+import { checkForEvent, getGlobalEventsLLMContext, cleanupExpiredEvents } from '../services/globalEventService';
 
 interface DeathInfo {
   type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
@@ -55,7 +56,8 @@ const useCoreLoops = (
   onNpcDeath?: (npc: NpcEntity, disease: Disease) => void,
   onDiseaseProgression?: (events: DiseaseProgressionEvent[]) => void,
   onStatusWarning?: (type: 'health' | 'fatigue', severity: 'warning' | 'danger' | 'critical', currentValue: number, maxValue: number) => void,
-  isPlayerOnFarm?: boolean
+  isPlayerOnFarm?: boolean,
+  onGlobalEventTriggered?: (event: any) => void
 ) => {
   const {
     setGameTimeMinutes,
@@ -431,6 +433,27 @@ const useCoreLoops = (
                   }
 
                   setPlayerCharacter({ ...playerCharacter });
+                }
+
+                // Check for global historical events
+                if (playerCharacter && mapData && onGlobalEventTriggered) {
+                  const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  const culturalZone = playerCharacter.culturalZone;
+
+                  // Clean up any expired events first
+                  cleanupExpiredEvents(dateString);
+
+                  // Check if a new global event should trigger
+                  const triggeredEvent = checkForEvent({
+                    currentDate: dateString,
+                    culturalZone,
+                    randomChance: Math.random()
+                  });
+
+                  if (triggeredEvent) {
+                    // Trigger the modal callback
+                    onGlobalEventTriggered(triggeredEvent);
+                  }
                 }
 
                 // Add day passing log entry

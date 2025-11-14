@@ -1302,18 +1302,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         return (
           <div className="flex flex-col h-full">
             {/* View toggle and header */}
-            <div className="px-4 py-2 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-emerald-900/30 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-emerald-300 flex items-baseline gap-2">
+            <div className="px-4 py-2 bg-[var(--surface-elevated)] border-b border-emerald-900/30 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-emerald-600 dark:text-emerald-300 flex items-baseline gap-2">
                 Market Goods
-                <span className="text-xs text-amber-200/60 font-normal">{marketInventory.length} items available</span>
+                <span className="text-xs text-[var(--text-secondary)] font-normal">{marketInventory.length} items available</span>
               </h3>
-              <div className="flex items-center gap-2 bg-slate-900/50 rounded-lg p-1 border border-slate-700/50">
+              <div className="flex items-center gap-2 bg-[var(--surface-muted-bg)] rounded-lg p-1 border border-[var(--border-normal)]">
                 <button
                   onClick={() => setViewMode('card')}
                   className={`p-1.5 rounded transition-all ${
                     viewMode === 'card'
                       ? 'bg-emerald-600/30 text-emerald-300'
-                      : 'text-slate-400 hover:text-slate-300'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                   title="Card view"
                 >
@@ -1324,7 +1324,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   className={`p-1.5 rounded transition-all ${
                     viewMode === 'list'
                       ? 'bg-emerald-600/30 text-emerald-300'
-                      : 'text-slate-400 hover:text-slate-300'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                   title="List view"
                 >
@@ -1334,9 +1334,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
 
             {/* Goods display with enhanced styling */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40">
+            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
               {marketInventory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-amber-200/50">
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">📦</span>
                   <p className="text-lg">No goods match your search</p>
                   <p className="text-sm mt-1">Try different filters or come back later</p>
@@ -1355,14 +1355,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             ? 'bg-gradient-to-r from-yellow-900/30 to-amber-900/20 border border-yellow-600/50 hover:border-yellow-500/70'
                             : (good as any).crisisAffected
                               ? 'bg-gradient-to-r from-red-900/30 to-red-800/20 border border-red-600/50 hover:border-red-500/70'
-                              : 'bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-slate-700/50 hover:border-emerald-600/50'
+                              : 'bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-card)] border border-[var(--border-normal)] hover:border-emerald-600/50'
                         }`}
                       >
                         {/* Item info section */}
                         <div className="flex-1 flex items-center gap-3 min-w-0">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-bold text-amber-50 text-base">
+                              <h4 className="font-bold text-[var(--text-primary)] text-base">
                                 {formatItemName(good.name)}
                               </h4>
                               {questInfo.isQuest && (
@@ -1387,7 +1387,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                                 good.quality === 'exceptional' ? 'bg-purple-900/40 text-purple-300' :
                                 good.quality === 'fine' ? 'bg-blue-900/40 text-blue-300' :
                                 good.quality === 'poor' ? 'bg-red-900/40 text-red-300' :
-                                'bg-slate-700/40 text-slate-300'
+                                'bg-[var(--surface-muted-bg)] text-[var(--text-secondary)]'
                               }`}>
                                 {good.quality === 'exceptional' ? '✨' : good.quality === 'fine' ? '⭐' : good.quality === 'poor' ? '⚠️' : ''}
                                 {good.quality}
@@ -1421,13 +1421,13 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             {good.basePrice !== good.currentPrice && (
-                              <p className="text-xs text-slate-400 line-through flex items-center justify-end gap-1">
+                              <p className="text-xs text-[var(--text-muted)] line-through flex items-center justify-end gap-1">
                                 <Coins className="w-3 h-3" />
                                 {good.basePrice}
                               </p>
                             )}
-                            <p className="text-lg font-bold bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent flex items-center justify-end gap-1.5">
-                              <Coins className="w-4 h-4 text-yellow-400" />
+                            <p className="text-lg font-bold text-amber-600 dark:text-amber-300 flex items-center justify-end gap-1.5">
+                              <Coins className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                               {good.currentPrice}
                             </p>
                             {good.currentPrice !== good.basePrice && (
@@ -1445,7 +1445,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             className={`px-3 py-2 rounded-md font-semibold text-sm transition-all flex items-center gap-1.5 ${
                               playerCharacter.currency >= good.currentPrice
                                 ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-md'
-                                : 'bg-slate-600/50 text-slate-400 cursor-not-allowed opacity-60'
+                                : 'bg-[var(--surface-muted)] text-[var(--text-muted)] cursor-not-allowed opacity-60'
                             }`}
                           >
                             {playerCharacter.currency >= good.currentPrice ? (
@@ -1470,25 +1470,25 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                     <div
                       key={`${good.itemId}-${index}`}
-                      className={`group bg-gradient-to-br from-slate-700/90 to-slate-800/70 border rounded-lg p-3 hover:shadow-xl transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
+                      className={`group bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border rounded-lg p-3 hover:shadow-xl transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
                         questInfo.isQuest
                           ? 'border-yellow-500/60 hover:border-yellow-400/80 hover:shadow-yellow-800/40'
                           : (good as any).crisisAffected
                             ? 'border-red-500/60 hover:border-red-400/80 hover:shadow-red-800/40'
-                            : 'border-slate-600/60 hover:border-amber-500/70 hover:shadow-amber-800/30'
+                            : 'border-[var(--border-normal)] hover:border-amber-500/70 hover:shadow-amber-800/30'
                       }`}
                     >
                       {questInfo.isQuest && (
                         <div className="bg-gradient-to-r from-yellow-900/50 to-amber-900/30 rounded px-2 py-0.5 mb-2 flex items-center gap-1">
-                          <ScrollText className="w-3 h-3 text-yellow-400" />
-                          <span className="text-xs text-yellow-200 font-medium truncate" title={questInfo.questName}>
+                          <ScrollText className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
+                          <span className="text-xs text-[var(--text-secondary)] font-medium truncate" title={questInfo.questName}>
                             Quest: {questInfo.questName}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="font-bold text-amber-50 text-base flex items-center gap-2">
+                          <h4 className="font-bold text-[var(--text-primary)] text-base flex items-center gap-2">
                             {formatItemName(good.name)}
                             {(good as any).crisisAffected && (
                               <span className="text-xs text-red-400 animate-pulse" title="Affected by crisis">
@@ -1541,7 +1541,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           good.quality === 'exceptional' ? 'bg-purple-900/40 text-purple-300 border border-purple-700/50' :
                           good.quality === 'fine' ? 'bg-blue-900/40 text-blue-300 border border-blue-700/50' :
                           good.quality === 'poor' ? 'bg-red-900/40 text-red-300 border border-red-700/50' :
-                          'bg-slate-700/40 text-slate-300 border border-slate-600/50'
+                          'bg-[var(--surface-muted-bg)] text-[var(--text-secondary)] border border-[var(--border-normal)]'
                         }`}>
                           {good.quality === 'exceptional' ? '✨ Exceptional' :
                            good.quality === 'fine' ? '⭐ Fine' :
@@ -1550,22 +1550,22 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         </span>
                       </div>
 
-                      <div className="bg-slate-900/40 rounded-lg p-2 mb-2 space-y-1.5">
+                      <div className="bg-[var(--surface-muted-bg)] rounded-lg p-2 mb-2 space-y-1.5">
                         {/* Stock indicator with progress bar */}
                         <div>
                           <div className="flex justify-between items-center text-xs mb-1">
-                            <span className="text-amber-100/70">Stock:</span>
+                            <span className="text-[var(--text-primary)]/70">Stock:</span>
                             <span className={`font-semibold flex items-center gap-1 ${
                               good.quantity <= 5 ? 'text-red-400' :
-                              good.quantity <= 15 ? 'text-yellow-400' :
+                              good.quantity <= 15 ? 'text-yellow-600 dark:text-yellow-400' :
                               'text-green-400'
                             }`}>
-                              <Package className={`w-3 h-3 ${good.quantity <= 5 ? 'text-red-400' : good.quantity <= 15 ? 'text-yellow-400' : 'text-green-400'}`} />
+                              <Package className={`w-3 h-3 ${good.quantity <= 5 ? 'text-red-400' : good.quantity <= 15 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-400'}`} />
                               {good.quantity}
                             </span>
                           </div>
                           {/* Progress bar */}
-                          <div className="h-1 bg-slate-800/60 rounded-full overflow-hidden">
+                          <div className="h-1 bg-[var(--surface-muted-bg)] rounded-full overflow-hidden">
                             <div
                               className={`h-full transition-all duration-500 ${
                                 good.quantity <= 5 ? 'bg-gradient-to-r from-red-500 to-red-600' :
@@ -1577,8 +1577,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           </div>
                         </div>
                         {good.currentPrice !== good.basePrice && (
-                          <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-700/50">
-                            <span className="text-amber-100/70">Market:</span>
+                          <div className="flex justify-between items-center text-xs pt-1 border-t border-[var(--border-normal)]">
+                            <span className="text-[var(--text-primary)]/70">Market:</span>
                             <span className={`font-semibold flex items-center gap-1 ${
                               good.currentPrice > good.basePrice ? 'text-red-400' : 'text-green-400'
                             }`}>
@@ -1593,13 +1593,13 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                       <div className="flex justify-between items-center">
                         <div>
                           {good.basePrice !== good.currentPrice && (
-                            <p className="text-xs text-slate-400 line-through flex items-center gap-1">
+                            <p className="text-xs text-[var(--text-muted)] line-through flex items-center gap-1">
                               <Coins className="w-3 h-3" />
                               {good.basePrice}
                             </p>
                           )}
-                          <p className="text-xl font-bold bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent drop-shadow-sm flex items-center gap-1.5">
-                            <Coins className="w-5 h-5 text-yellow-400" />
+                          <p className="text-xl font-bold text-amber-600 dark:text-amber-300 drop-shadow-sm flex items-center gap-1.5">
+                            <Coins className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                             {good.currentPrice}
                           </p>
                         </div>
@@ -1609,7 +1609,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           className={`px-4 py-2 rounded-md font-semibold text-sm transition-all transform hover:scale-105 flex items-center gap-1.5 ${
                             playerCharacter.currency >= good.currentPrice
                               ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-lg shadow-emerald-900/40 border border-emerald-400/30'
-                              : 'bg-slate-600/50 text-slate-400 cursor-not-allowed opacity-60 border border-slate-700/50'
+                              : 'bg-[var(--surface-muted)] text-[var(--text-muted)] cursor-not-allowed opacity-60 border border-[var(--border-normal)]'
                           }`}
                         >
                           {playerCharacter.currency >= good.currentPrice ? (
@@ -1634,18 +1634,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         return (
           <div className="flex flex-col h-full">
             {/* View toggle and header */}
-            <div className="px-4 py-2 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-amber-300 flex items-baseline gap-2">
+            <div className="px-4 py-2 bg-[var(--surface-elevated)] border-b border-amber-900/30 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-300 flex items-baseline gap-2">
                 Your Inventory
-                <span className="text-xs text-amber-200/60 font-normal">{playerSellableItems.length} items</span>
+                <span className="text-xs text-[var(--text-secondary)] font-normal">{playerSellableItems.length} items</span>
               </h3>
-              <div className="flex items-center gap-2 bg-slate-900/50 rounded-lg p-1 border border-slate-700/50">
+              <div className="flex items-center gap-2 bg-[var(--surface-muted-bg)] rounded-lg p-1 border border-[var(--border-normal)]">
                 <button
                   onClick={() => setViewMode('card')}
                   className={`p-1.5 rounded transition-all ${
                     viewMode === 'card'
                       ? 'bg-amber-600/30 text-amber-300'
-                      : 'text-slate-400 hover:text-slate-300'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                   title="Card view"
                 >
@@ -1656,7 +1656,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   className={`p-1.5 rounded transition-all ${
                     viewMode === 'list'
                       ? 'bg-amber-600/30 text-amber-300'
-                      : 'text-slate-400 hover:text-slate-300'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                   title="List view"
                 >
@@ -1666,9 +1666,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
 
             {/* Items display */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40">
+            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
               {playerSellableItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-amber-200/50">
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">🏎</span>
                   <p className="text-lg">Your inventory is empty</p>
                   <p className="text-sm mt-1">Gather items to trade at the market</p>
@@ -1684,18 +1684,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                       <div
                         key={item.id}
-                        className={`group bg-gradient-to-br from-slate-700/90 to-slate-800/70 border rounded-lg p-3 hover:shadow-xl transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
+                        className={`group bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border rounded-lg p-3 hover:shadow-xl transition-all duration-200 ${isSafari() ? '' : 'backdrop-blur-sm'} ${
                           questInfo.isQuest
                             ? 'border-yellow-500/60 hover:border-yellow-400/80 hover:shadow-yellow-800/40'
                             : item.itemType === 'animal'
                               ? 'border-green-600/60 hover:border-green-500/80 hover:shadow-green-800/40'
-                              : 'border-slate-600/60 hover:border-amber-500/70 hover:shadow-amber-800/30'
+                              : 'border-[var(--border-normal)] hover:border-amber-500/70 hover:shadow-amber-800/30'
                         }`}
                       >
                         {/* Item header */}
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className="font-bold text-amber-50 text-base flex items-center gap-2 flex-wrap">
+                            <h4 className="font-bold text-[var(--text-primary)] text-base flex items-center gap-2 flex-wrap">
                               {formatItemName(item.name)}
                               {item.itemType === 'animal' && (
                                 <span className="text-xs px-1.5 py-0.5 bg-green-600/30 text-green-300 rounded border border-green-600/50">
@@ -1708,7 +1708,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                                 </span>
                               )}
                             </h4>
-                            <p className="text-sm text-amber-200/60 mt-1">
+                            <p className="text-sm text-[var(--text-secondary)] mt-1">
                               {item.itemType === 'animal'
                                 ? item.description
                                 : `${item.quantity || 1} unit${(item.quantity || 1) > 1 ? 's' : ''} in stock`
@@ -1718,7 +1718,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         </div>
 
                         {/* Price info */}
-                        <div className="bg-slate-900/40 rounded-lg p-2 mb-2">
+                        <div className="bg-[var(--surface-muted-bg)] rounded-lg p-2 mb-2">
                           {profitMargin > 0 && (
                             <p className="text-xs text-green-400 mb-1.5 flex items-center gap-1">
                               <TrendingUp className="w-3 h-3" />
@@ -1726,14 +1726,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             </p>
                           )}
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-amber-200/70">Offer</span>
+                            <span className="text-xs text-[var(--text-secondary)]">Offer</span>
                             <div className="text-right">
-                              <p className="text-base font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent flex items-center gap-1.5">
-                                <Coins className="w-4 h-4 text-yellow-400" />
+                              <p className="text-base font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                <Coins className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                                 {item.sellPrice}
                               </p>
                               {item.value && item.value !== item.sellPrice && (
-                                <p className="text-xs text-slate-500 line-through flex items-center justify-end gap-1">
+                                <p className="text-xs text-[var(--text-muted)] line-through flex items-center justify-end gap-1">
                                   {item.value}
                                 </p>
                               )}
@@ -1770,12 +1770,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             ? 'bg-gradient-to-r from-yellow-900/30 to-amber-900/20 border border-yellow-600/50 hover:border-yellow-500/70 hover:shadow-yellow-900/30'
                             : item.itemType === 'animal' 
                               ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-700/50 hover:border-green-600/70 hover:shadow-green-900/30' 
-                              : 'bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-slate-700/50 hover:border-amber-600/50 hover:shadow-amber-900/20'
+                              : 'bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-card)] border border-[var(--border-normal)] hover:border-amber-600/50 hover:shadow-amber-900/20'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div>
-                            <p className="font-medium text-amber-50">
+                            <p className="font-medium text-[var(--text-primary)]">
                               {formatItemName(item.name)}
                               {item.itemType === 'animal' && (
                                 <span className="ml-2 text-xs px-2 py-0.5 bg-green-600/30 text-green-300 rounded-full border border-green-600/50">
@@ -1788,7 +1788,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                                 </span>
                               )}
                             </p>
-                            <p className="text-sm text-amber-200/60 mt-0.5">
+                            <p className="text-sm text-[var(--text-secondary)] mt-0.5">
                               {item.itemType === 'animal' 
                                 ? item.description 
                                 : `Stock: ${item.quantity || 1} unit${(item.quantity || 1) > 1 ? 's' : ''}`
@@ -1803,13 +1803,13 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
-                            <p className="text-xs text-amber-200/50 uppercase tracking-wide">Market Offer</p>
-                            <p className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent flex items-center justify-end gap-1.5">
-                              <Coins className="w-5 h-5 text-yellow-400" />
+                            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Market Offer</p>
+                            <p className="text-xl font-bold text-amber-600 dark:text-amber-400 flex items-center justify-end gap-1.5">
+                              <Coins className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                               {item.sellPrice}
                             </p>
                             {item.value && item.value !== item.sellPrice && (
-                              <p className="text-xs text-slate-500 line-through flex items-center justify-end gap-1">
+                              <p className="text-xs text-[var(--text-muted)] line-through flex items-center justify-end gap-1">
                                 <Coins className="w-3 h-3" />
                                 Base: {item.value}
                               </p>
@@ -1835,13 +1835,13 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       case 'trade':
         return (
           <div className="flex flex-col h-full">
-            <div className="p-4 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30">
+            <div className="p-4 bg-[var(--surface-elevated)] border-b border-amber-900/30">
               <h3 className="text-lg font-semibold text-purple-300 mb-1">Traveling Merchants</h3>
-              <p className="text-sm text-amber-200/60">Negotiate special deals with wandering traders</p>
+              <p className="text-sm text-[var(--text-secondary)]">Negotiate special deals with wandering traders</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40">
+            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
               {merchantNpcs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-amber-200/50">
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">🏕️</span>
                   <p className="text-lg">No merchants are present</p>
                   <p className="text-sm mt-1">They may arrive with the next caravan</p>
@@ -1864,7 +1864,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                       <div
                         key={merchant.id}
-                        className={`group p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg hover:border-purple-600/50 hover:shadow-lg hover:shadow-purple-900/20 transition-all cursor-pointer ${isSafari() ? '' : 'backdrop-blur-sm'} relative`}
+                        className={`group p-4 bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-card)] border border-purple-700/30 rounded-lg hover:border-purple-600/50 hover:shadow-lg hover:shadow-purple-900/20 transition-all cursor-pointer ${isSafari() ? '' : 'backdrop-blur-sm'} relative`}
                         onClick={() => setSelectedMerchant(merchant)}
                       >
                         {isGenerating && (
@@ -1896,9 +1896,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                               <span className="text-xl">{wealthIcon}</span>
                             </div>
                             <div>
-                              <p className="font-semibold text-amber-50 flex items-center gap-2">
+                              <p className="font-semibold text-[var(--text-primary)] flex items-center gap-2">
                                 {merchant.name}
-                                {hasQuest && <span className="text-xs text-yellow-400">(Has Quest!)</span>}
+                                {hasQuest && <span className="text-xs text-yellow-600 dark:text-yellow-400">(Has Quest!)</span>}
                                 {(() => {
                                   const memory = llmQuestService.getMerchantMemory(merchant.id, playerCharacter.id);
                                   if (memory && memory.relationship !== 'stranger') {
@@ -1911,7 +1911,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                                   return null;
                                 })()}
                               </p>
-                              <p className="text-sm text-amber-200/60">
+                              <p className="text-sm text-[var(--text-secondary)]">
                                 {merchant.role}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
@@ -1961,31 +1961,31 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       case 'info':
         return (
           <div className="flex flex-col h-full">
-            <div className="p-4 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30">
+            <div className="p-4 bg-[var(--surface-elevated)] border-b border-amber-900/30">
               <h3 className="text-lg font-semibold text-cyan-300 mb-1">Market Intelligence</h3>
-              <p className="text-sm text-amber-200/60">Current conditions and trade opportunities</p>
+              <p className="text-sm text-[var(--text-secondary)]">Current conditions and trade opportunities</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)] space-y-4">
               {/* Fast Travel - Caravan Routes Card */}
-              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-orange-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+              <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-orange-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-orange-400 mb-3 uppercase tracking-wide flex items-center gap-2">
                   {caravanDestinations.length > 0 && caravanDestinations[0].culturalIcon || '🐪'} Fast Travel Options
                 </h4>
                 {caravanDestinations.length === 0 ? (
-                  <div className="bg-slate-900/40 rounded-md p-3">
-                    <p className="text-amber-200/50 italic text-sm">No overland routes available from this location.</p>
-                    <p className="text-xs text-amber-200/40 mt-2">
+                  <div className="bg-[var(--surface-muted-bg)] rounded-md p-3">
+                    <p className="text-[var(--text-muted)] italic text-sm">No overland routes available from this location.</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-2">
                       💡 Tip: Fast travel routes connect distant settlements
                     </p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-xs text-amber-200/60 mb-3">
+                    <p className="text-xs text-[var(--text-secondary)] mb-3">
                       {caravanDestinations[0].culturalDescription || 'Book passage to distant marketplaces'}
                     </p>
                     <div className="space-y-2">
                       {caravanDestinations.map((dest, index) => (
-                        <div key={index} className="bg-slate-900/40 rounded-lg p-3 border border-orange-700/20 hover:border-orange-600/40 transition-all">
+                        <div key={index} className="bg-[var(--surface-muted-bg)] rounded-lg p-3 border border-orange-700/20 hover:border-orange-600/40 transition-all">
                           {/* Cultural Travel Mode Badge */}
                           <div className="flex items-center gap-2 mb-2 pb-2 border-b border-orange-700/20">
                             <span className="text-xl">{dest.culturalIcon || '🐴'}</span>
@@ -1996,30 +1996,30 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1">
-                              <p className="text-sm text-amber-50 font-semibold">{dest.cityName}</p>
+                              <p className="text-sm text-[var(--text-primary)] font-semibold">{dest.cityName}</p>
                               <p className="text-xs text-orange-300/80">{dest.mapAreaName}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-xs text-amber-400 font-medium">{dest.fare} coins</p>
-                              <p className="text-xs text-amber-200/40">{dest.distance.toFixed(0)} miles</p>
+                              <p className="text-xs text-[var(--text-muted)]">{dest.distance.toFixed(0)} miles</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                            <div className="bg-slate-900/40 rounded px-2 py-1">
+                            <div className="bg-[var(--surface-muted-bg)] rounded px-2 py-1">
                               <span className="text-orange-400">Journey:</span>
-                              <span className="text-amber-200 ml-1">{dest.journeyDays.toFixed(1)} days</span>
+                              <span className="text-[var(--text-secondary)] ml-1">{dest.journeyDays.toFixed(1)} days</span>
                             </div>
-                            <div className="bg-slate-900/40 rounded px-2 py-1">
+                            <div className="bg-[var(--surface-muted-bg)] rounded px-2 py-1">
                               <span className="text-orange-400">Via:</span>
-                              <span className="text-amber-200 ml-1">{dest.path.length} stops</span>
+                              <span className="text-[var(--text-secondary)] ml-1">{dest.path.length} stops</span>
                             </div>
                           </div>
                           {dest.path.length > 0 && (
                             <details className="mb-2">
-                              <summary className="text-xs text-amber-200/50 cursor-pointer hover:text-amber-200/70 mb-1">
+                              <summary className="text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)] mb-1">
                                 🗺️ Route: {dest.path.slice(0, 2).join(' → ')}{dest.path.length > 2 ? '...' : ''}
                               </summary>
-                              <p className="text-xs text-amber-200/60 ml-4 mt-1">
+                              <p className="text-xs text-[var(--text-secondary)] ml-4 mt-1">
                                 {dest.path.join(' → ')}
                               </p>
                             </details>
@@ -2029,7 +2029,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             disabled={!playerCharacter.wealth || playerCharacter.wealth < dest.fare}
                             className={`w-full py-2 px-3 rounded-md text-sm font-medium transition-all ${
                               !playerCharacter.wealth || playerCharacter.wealth < dest.fare
-                                ? 'bg-slate-700/50 text-amber-200/40 cursor-not-allowed'
+                                ? 'bg-[var(--surface-muted-bg)] text-[var(--text-muted)] cursor-not-allowed'
                                 : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-md shadow-orange-900/30 transform hover:scale-105'
                             }`}
                           >
@@ -2046,23 +2046,23 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </div>
 
               {/* Trade Routes Card */}
-              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+              <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-purple-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-purple-400 mb-3 uppercase tracking-wide">🗺️ Trade Routes</h4>
                 {tradeRoutes.length === 0 ? (
-                  <p className="text-amber-200/50 italic text-sm">No established trade routes from this market.</p>
+                  <p className="text-[var(--text-muted)] italic text-sm">No established trade routes from this market.</p>
                 ) : (
                   <div className="space-y-2">
                     {tradeRoutes.map((route, index) => (
-                      <div key={index} className="bg-slate-900/40 rounded-md p-2 flex items-center justify-between">
+                      <div key={index} className="bg-[var(--surface-muted-bg)] rounded-md p-2 flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-amber-50 font-medium">{route.destination}</p>
-                          <p className="text-xs text-amber-200/60">
+                          <p className="text-sm text-[var(--text-primary)] font-medium">{route.destination}</p>
+                          <p className="text-xs text-[var(--text-secondary)]">
                             {route.frequency} caravans
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-purple-300">{route.distance} tiles</p>
-                          <p className="text-xs text-amber-200/40">
+                          <p className="text-xs text-[var(--text-muted)]">
                             {route.distance < 20 ? 'Near' : route.distance < 35 ? 'Moderate' : 'Far'}
                           </p>
                         </div>
@@ -2073,12 +2073,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </div>
               
               {/* Supply & Demand Card */}
-              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-amber-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+              <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-amber-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wide">📈 Supply & Demand</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="bg-slate-900/40 rounded-md p-3">
+                  <div className="bg-[var(--surface-muted-bg)] rounded-md p-3">
                     <p className="text-xs text-green-400 font-medium mb-2">📦 Abundant Supply</p>
-                    <p className="text-sm text-amber-50">
+                    <p className="text-sm text-[var(--text-primary)]">
                       {Array.from(marketConditions?.supply.entries() || [])
                         .filter(([_, qty]) => qty > 100)
                         .map(([id]) => id.replace(/_/g, ' ').toLowerCase())
@@ -2087,15 +2087,15 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     </p>
                     {Array.from(marketConditions?.supply.entries() || [])
                       .filter(([_, qty]) => qty > 100).length > 3 && (
-                      <p className="text-xs text-amber-200/40 mt-1">
+                      <p className="text-xs text-[var(--text-muted)] mt-1">
                         +{Array.from(marketConditions?.supply.entries() || [])
                           .filter(([_, qty]) => qty > 100).length - 3} more
                       </p>
                     )}
                   </div>
-                  <div className="bg-slate-900/40 rounded-md p-3">
+                  <div className="bg-[var(--surface-muted-bg)] rounded-md p-3">
                     <p className="text-xs text-red-400 font-medium mb-2">🔥 High Demand</p>
-                    <p className="text-sm text-amber-50">
+                    <p className="text-sm text-[var(--text-primary)]">
                       {Array.from(marketConditions?.demand.entries() || [])
                         .filter(([_, level]) => level > 0.7)
                         .map(([id]) => id.replace(/_/g, ' ').toLowerCase())
@@ -2104,7 +2104,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     </p>
                     {Array.from(marketConditions?.demand.entries() || [])
                       .filter(([_, level]) => level > 0.7).length > 3 && (
-                      <p className="text-xs text-amber-200/40 mt-1">
+                      <p className="text-xs text-[var(--text-muted)] mt-1">
                         +{Array.from(marketConditions?.demand.entries() || [])
                           .filter(([_, level]) => level > 0.7).length - 3} more
                       </p>
@@ -2112,7 +2112,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-amber-700/20">
-                  <p className="text-xs text-amber-200/60">
+                  <p className="text-xs text-[var(--text-secondary)]">
                     💡 Tip: Buy low supply items elsewhere and sell them here for profit!
                   </p>
                 </div>
@@ -2124,13 +2124,13 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       case 'people':
         return (
           <div className="flex flex-col h-full">
-            <div className="p-4 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30">
-              <h3 className="text-lg font-semibold text-blue-300 mb-1">Representative Inhabitants</h3>
-              <p className="text-sm text-amber-200/60">Local people you might encounter at the marketplace</p>
+            <div className="p-4 bg-[var(--surface-elevated)] border-b border-amber-900/30">
+              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 mb-1">Representative Inhabitants</h3>
+              <p className="text-sm text-[var(--text-secondary)]">Local people you might encounter at the marketplace</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40">
+            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
               {inhabitantsNpcs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-amber-200/50">
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">👻</span>
                   <p className="text-lg">No inhabitants nearby</p>
                   <p className="text-sm mt-1">The marketplace seems quiet today</p>
@@ -2144,7 +2144,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                     <div
                       key={npc.id}
-                      className={`group p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-blue-700/30 rounded-lg hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-900/20 transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} relative`}
+                      className={`group p-4 bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-card)] border border-blue-700/30 rounded-lg hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-900/20 transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} relative`}
                     >
                       {hasQuest && (
                         <div className="absolute -top-2 -left-2 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-full w-6 h-6 flex items-center justify-center animate-pulse shadow-lg">
@@ -2154,7 +2154,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                       <div className="flex items-center gap-4">
                         {/* Portrait */}
                         <div 
-                          className="relative flex-shrink-0 w-16 h-16 rounded-full overflow-hidden bg-slate-700/50 border-2 border-blue-600/30 hover:border-blue-400/60 transition-all cursor-pointer hover:scale-105"
+                          className="relative flex-shrink-0 w-16 h-16 rounded-full overflow-hidden bg-[var(--surface-muted-bg)] border-2 border-blue-600/30 hover:border-blue-400/60 transition-all cursor-pointer hover:scale-105"
                           onClick={() => handlePortraitClick(npc)}
                           title="Click for inner thoughts..."
                         >
@@ -2181,18 +2181,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-amber-50 truncate">{npc.name}</h4>
-                            <span className="text-amber-200/40">•</span>
-                            <span className="text-sm text-amber-200/60">{npc.age} years</span>
+                            <h4 className="font-semibold text-[var(--text-primary)] truncate">{npc.name}</h4>
+                            <span className="text-[var(--text-muted)]">•</span>
+                            <span className="text-sm text-[var(--text-secondary)]">{npc.age} years</span>
                           </div>
-                          <p className="text-sm text-blue-300 capitalize mb-2">{npc.role}</p>
+                          <p className="text-sm text-blue-600 dark:text-blue-300 capitalize mb-2">{npc.role}</p>
                           
                           {/* Additional info badges */}
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                               npc.wealthLevel === 'wealthy' ? 'bg-purple-900/40 text-purple-300 border border-purple-700/50' :
                               npc.wealthLevel === 'poor' ? 'bg-red-900/40 text-red-300 border border-red-700/50' :
-                              'bg-slate-700/40 text-slate-300 border border-slate-600/50'
+                              'bg-[var(--surface-muted-bg)] text-[var(--text-secondary)] border border-[var(--border-normal)]'
                             }`}>
                               {npc.wealthLevel || 'modest'} class
                             </span>
@@ -2212,7 +2212,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           <button
                             onClick={() => handleNpcClick(npc)}
                             disabled={npcDialogueLoading && selectedNpc?.id === npc.id}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-slate-600 disabled:to-slate-700 text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-blue-900/30 disabled:cursor-not-allowed"
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-[var(--surface-muted)] disabled:to-[var(--surface-muted)] text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-blue-900/30 disabled:cursor-not-allowed"
                           >
                             {npcDialogueLoading && selectedNpc?.id === npc.id ? (
                               <div className="flex items-center gap-2">
@@ -2237,8 +2237,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                       
                       {/* Dialogue display */}
                       {selectedNpc?.id === npc.id && npcDialogue && (
-                        <div className="mt-4 p-3 bg-slate-900/40 rounded-md border-l-4 border-blue-500">
-                          <p className="text-sm text-amber-100 italic">"{npcDialogue}"</p>
+                        <div className="mt-4 p-3 bg-[var(--surface-muted-bg)] rounded-md border-l-4 border-blue-500">
+                          <p className="text-sm text-[var(--text-primary)] italic">"{npcDialogue}"</p>
                         </div>
                       )}
                     </div>
@@ -2253,9 +2253,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 <div className={`bg-black/90 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg px-6 py-4 border border-blue-500/50 shadow-2xl max-w-md`}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-blue-400">💭</span>
-                    <span className="text-xs text-blue-300 uppercase tracking-wide">Inner Thoughts</span>
+                    <span className="text-xs text-blue-600 dark:text-blue-300 uppercase tracking-wide">Inner Thoughts</span>
                   </div>
-                  <p className="text-amber-100 italic text-center font-serif leading-relaxed">
+                  <p className="text-[var(--text-primary)] italic text-center font-serif leading-relaxed">
                     {npcMonologue}
                   </p>
                 </div>
@@ -2267,11 +2267,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       case 'analysis':
         return (
           <div className="flex flex-col h-full">
-            <div className="p-4 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-red-900/30">
+            <div className="p-4 bg-[var(--surface-elevated)] border-b border-red-900/30">
               <h3 className="text-lg font-semibold text-red-300 mb-1">Market Analysis</h3>
-              <p className="text-sm text-amber-200/60">Economic trends, volatility, and market intelligence</p>
+              <p className="text-sm text-[var(--text-secondary)]">Economic trends, volatility, and market intelligence</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)] space-y-4">
               
               {/* Crisis Quests Card */}
               {economicQuests.length > 0 && economicQuests.some(q => (q as any).economicContext?.crisis) && (
@@ -2298,14 +2298,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         : 'normal';
                       
                       return (
-                      <div key={idx} className={`bg-slate-900/40 rounded-md p-2 ${
+                      <div key={idx} className={`bg-[var(--surface-muted-bg)] rounded-md p-2 ${
                         urgencyLevel === 'critical' ? 'border-l-4 border-red-500 animate-pulse' :
                         urgencyLevel === 'urgent' ? 'border-l-4 border-orange-500' :
                         ''
                       }`}>
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex-1">
-                            <p className="text-sm text-amber-50 font-medium flex items-center gap-2">
+                            <p className="text-sm text-[var(--text-primary)] font-medium flex items-center gap-2">
                               {quest.title}
                               {urgencyLevel === 'critical' && (
                                 <span className="text-xs bg-red-600/30 text-red-300 px-2 py-0.5 rounded-full animate-pulse">
@@ -2314,12 +2314,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                               )}
                             </p>
                             <div className="flex items-center gap-3 mt-0.5">
-                              <p className="text-xs text-amber-200/60">From: {quest.giver}</p>
+                              <p className="text-xs text-[var(--text-secondary)]">From: {quest.giver}</p>
                               {remaining && (
                                 <p className={`text-xs font-medium ${
                                   urgencyLevel === 'critical' ? 'text-red-400' :
                                   urgencyLevel === 'urgent' ? 'text-orange-400' :
-                                  'text-amber-300'
+                                  'text-amber-600 dark:text-amber-300'
                                 }`}>
                                   ⏱️ {Math.floor(remaining / 60000)}:{String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0')}
                                 </p>
@@ -2328,7 +2328,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-orange-300">Reward:</p>
-                            <p className="text-sm text-amber-300 font-medium">
+                            <p className="text-sm text-amber-600 dark:text-amber-300 font-medium">
                               {quest.rewards?.[0]?.amount} coins
                               {(quest as any).economicContext?.crisis && (
                                 <span className="text-xs text-green-400 block">+50% crisis bonus</span>
@@ -2339,10 +2339,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         {quest.status === 'active' && (
                           <div className="mt-2">
                             <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="text-amber-200/60">Progress</span>
-                              <span className="text-amber-300">{completedObjectives}/{totalObjectives}</span>
+                              <span className="text-[var(--text-secondary)]">Progress</span>
+                              <span className="text-amber-600 dark:text-amber-300">{completedObjectives}/{totalObjectives}</span>
                             </div>
-                            <div className="h-1 bg-slate-800/60 rounded-full overflow-hidden">
+                            <div className="h-1 bg-[var(--surface-muted-bg)] rounded-full overflow-hidden">
                               <div 
                                 className="h-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all"
                                 style={{ width: `${progress}%` }}
@@ -2354,7 +2354,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                       );
                     })}
                   </div>
-                  <p className="text-xs text-amber-200/50 mt-3 italic">
+                  <p className="text-xs text-[var(--text-muted)] mt-3 italic">
                     Visit merchants to accept these urgent quests
                   </p>
                 </div>
@@ -2369,37 +2369,37 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </h4>
                   <div className="space-y-3">
                     {activeCrises.map((crisis, idx) => (
-                      <div key={idx} className="bg-slate-900/40 rounded-md p-3 border-l-4 border-red-500/50">
+                      <div key={idx} className="bg-[var(--surface-muted-bg)] rounded-md p-3 border-l-4 border-red-500/50">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="text-sm font-medium text-amber-50 capitalize">
+                            <p className="text-sm font-medium text-[var(--text-primary)] capitalize">
                               {crisis.pattern.category} Crisis: {crisis.pattern.id.replace(/_/g, ' ')}
                             </p>
                             <p className="text-xs text-red-300 mt-1">
                               Severity: {'⚠️'.repeat(crisis.pattern.severity)}
                             </p>
                           </div>
-                          <span className="text-xs text-amber-200/50">
+                          <span className="text-xs text-[var(--text-muted)]">
                             {Math.ceil((crisis.expiresAt - Date.now()) / (1000 * 60 * 60))}h remaining
                           </span>
                         </div>
-                        <p className="text-xs text-amber-200/70 mb-2">{crisis.pattern.flavorText}</p>
+                        <p className="text-xs text-[var(--text-secondary)] mb-2">{crisis.pattern.flavorText}</p>
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div className="bg-red-900/20 rounded px-2 py-1">
                             <span className="text-red-400">Prices:</span>
-                            <span className="text-amber-200 ml-1">
+                            <span className="text-[var(--text-secondary)] ml-1">
                               {crisis.pattern.marketEffect.priceMultiplier > 1 ? '+' : ''}
                               {Math.round((crisis.pattern.marketEffect.priceMultiplier - 1) * 100)}%
                             </span>
                           </div>
                           <div className="bg-red-900/20 rounded px-2 py-1">
                             <span className="text-red-400">Supply:</span>
-                            <span className="text-amber-200 ml-1">
+                            <span className="text-[var(--text-secondary)] ml-1">
                               {Math.round(crisis.pattern.marketEffect.quantityMultiplier * 100)}%
                             </span>
                           </div>
                         </div>
-                        <div className="mt-2 text-xs text-amber-200/50">
+                        <div className="mt-2 text-xs text-[var(--text-muted)]">
                           Reported by: {crisis.sourceNpcs.map(n => n.npcName).join(', ')}
                         </div>
                       </div>
@@ -2416,7 +2416,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </h4>
                   
                   <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="bg-slate-900/40 rounded-md p-2">
+                    <div className="bg-[var(--surface-muted-bg)] rounded-md p-2">
                       <p className="text-xs text-indigo-300 mb-1">Market Trend</p>
                       <p className={`text-sm font-bold ${
                         marketTrends.overallTrend === 'bull' ? 'text-green-400' :
@@ -2428,7 +2428,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                          '➡️ Stable'}
                       </p>
                     </div>
-                    <div className="bg-slate-900/40 rounded-md p-2">
+                    <div className="bg-[var(--surface-muted-bg)] rounded-md p-2">
                       <p className="text-xs text-indigo-300 mb-1">Avg Change</p>
                       <p className={`text-sm font-bold ${
                         marketTrends.averagePriceChange > 0 ? 'text-green-400' :
@@ -2450,8 +2450,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           const comparison = priceComparisons.find(c => c.itemId === itemId);
                           if (!comparison) return null;
                           return (
-                            <div key={itemId} className="flex items-center justify-between text-xs bg-slate-900/30 rounded px-2 py-1">
-                              <span className="text-amber-200">{comparison.name}</span>
+                            <div key={itemId} className="flex items-center justify-between text-xs bg-[var(--surface-muted-bg)] rounded px-2 py-1">
+                              <span className="text-[var(--text-secondary)]">{comparison.name}</span>
                               <span className={comparison.percentChange && comparison.percentChange > 0 ? 'text-red-400' : 'text-green-400'}>
                                 {comparison.percentChange ? `${comparison.percentChange > 0 ? '+' : ''}${comparison.percentChange.toFixed(0)}%` : 'N/A'}
                               </span>
@@ -2472,8 +2472,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           .sort((a, b) => Math.abs(b.sinceLastVisit!) - Math.abs(a.sinceLastVisit!))
                           .slice(0, 3)
                           .map(comparison => (
-                            <div key={comparison.itemId} className="flex items-center justify-between text-xs bg-slate-900/30 rounded px-2 py-1">
-                              <span className="text-amber-200">{comparison.name}</span>
+                            <div key={comparison.itemId} className="flex items-center justify-between text-xs bg-[var(--surface-muted-bg)] rounded px-2 py-1">
+                              <span className="text-[var(--text-secondary)]">{comparison.name}</span>
                               <span className={comparison.sinceLastVisit! > 0 ? 'text-red-400' : 'text-green-400'}>
                                 {comparison.sinceLastVisit! > 0 ? '+' : ''}{comparison.sinceLastVisit} coins
                               </span>
@@ -2494,27 +2494,27 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
                   {/* Current Market Stats */}
                   <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                    <div className="bg-[var(--surface-muted-bg)] rounded px-2 py-1">
                       <p className="text-xs text-cyan-300">Total Goods</p>
-                      <p className="text-sm text-amber-100 font-medium">
+                      <p className="text-sm text-[var(--text-primary)] font-medium">
                         {marketInventory.length} types
                       </p>
                     </div>
-                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                    <div className="bg-[var(--surface-muted-bg)] rounded px-2 py-1">
                       <p className="text-xs text-cyan-300">Active Merchants</p>
-                      <p className="text-sm text-amber-100 font-medium">
+                      <p className="text-sm text-[var(--text-primary)] font-medium">
                         {merchantNpcs.length}
                       </p>
                     </div>
-                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                    <div className="bg-[var(--surface-muted-bg)] rounded px-2 py-1">
                       <p className="text-xs text-cyan-300">Your Coins</p>
-                      <p className="text-sm text-amber-100 font-medium">
+                      <p className="text-sm text-[var(--text-primary)] font-medium">
                         {playerCharacter.currency}
                       </p>
                     </div>
-                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                    <div className="bg-[var(--surface-muted-bg)] rounded px-2 py-1">
                       <p className="text-xs text-cyan-300">Market Condition</p>
-                      <p className="text-sm text-amber-100 font-medium">
+                      <p className="text-sm text-[var(--text-primary)] font-medium">
                         {marketConditionDesc.includes('Thriving') ? '📈 Good' :
                          marketConditionDesc.includes('Struggling') ? '📉 Poor' : '➡️ Stable'}
                       </p>
@@ -2526,62 +2526,62 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Market Cycle Card */}
               {marketCycle && (
-                <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-red-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+                <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-red-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-red-400 mb-3 uppercase tracking-wide">📊 Market Cycle</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="bg-slate-900/40 rounded-md p-3">
+                    <div className="bg-[var(--surface-muted-bg)] rounded-md p-3">
                       <p className="text-xs text-red-300/60 mb-1">Current Phase</p>
-                      <p className="text-lg text-amber-50 font-medium capitalize">{marketCycle.phase}</p>
-                      <p className="text-xs text-amber-200/50 mt-1">Day {marketCycle.daysInPhase} of ~{marketCycle.phaseDuration}</p>
+                      <p className="text-lg text-[var(--text-primary)] font-medium capitalize">{marketCycle.phase}</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-1">Day {marketCycle.daysInPhase} of ~{marketCycle.phaseDuration}</p>
                     </div>
-                    <div className="bg-slate-900/40 rounded-md p-3">
+                    <div className="bg-[var(--surface-muted-bg)] rounded-md p-3">
                       <p className="text-xs text-red-300/60 mb-1">Economic Health</p>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-slate-700 rounded-full h-2">
+                        <div className="flex-1 bg-[var(--surface-muted)] rounded-full h-2">
                           <div 
                             className="h-2 rounded-full bg-gradient-to-r from-red-500 to-green-500"
                             style={{ width: `${marketCycle.economicHealth * 100}%` }}
                           />
                         </div>
-                        <span className="text-sm text-amber-50">{Math.round(marketCycle.economicHealth * 100)}%</span>
+                        <span className="text-sm text-[var(--text-primary)]">{Math.round(marketCycle.economicHealth * 100)}%</span>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-red-700/20">
-                    <p className="text-sm text-amber-200/80">{marketCycle.description}</p>
+                    <p className="text-sm text-[var(--text-secondary)]">{marketCycle.description}</p>
                   </div>
                 </div>
               )}
               
               {/* Market Trends Card */}
-              <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-green-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+              <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-green-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-green-400 mb-3 uppercase tracking-wide">📈 Market Trends</h4>
                 {!marketTrends || marketTrends.mostVolatile.length === 0 ? (
-                  <p className="text-amber-200/50 italic text-sm">No significant trends detected.</p>
+                  <p className="text-[var(--text-muted)] italic text-sm">No significant trends detected.</p>
                 ) : (
                   <div className="space-y-3">
                     {marketTrends.mostVolatile.slice(0, 5).map(itemId => {
                       const comparison = priceComparisons.find(c => c.itemId === itemId);
                       if (!comparison) return null;
                       return (
-                        <div key={itemId} className="bg-slate-900/40 rounded-md p-3">
+                        <div key={itemId} className="bg-[var(--surface-muted-bg)] rounded-md p-3">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-amber-50 font-medium">{itemId}</span>
+                            <span className="text-sm text-[var(--text-primary)] font-medium">{itemId}</span>
                             <div className="flex items-center gap-2">
                               <span className={`text-xs px-2 py-1 rounded-full ${
                                 comparison.priceChange > 0 ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
                               }`}>
                                 {comparison.priceChange > 0 ? '↗️' : '↘️'} {comparison.priceChange > 0 ? '+' : ''}{comparison.priceChange.toFixed(1)}%
                               </span>
-                              <span className="text-xs text-amber-200/60">
+                              <span className="text-xs text-[var(--text-secondary)]">
                                 Volatility: {comparison.volatility.toFixed(1)}%
                               </span>
                             </div>
                           </div>
-                          <p className="text-xs text-amber-200/70">
+                          <p className="text-xs text-[var(--text-secondary)]">
                             Current: {comparison.currentPrice} coins
                           </p>
-                          <p className="text-xs text-amber-200/50 mt-1">
+                          <p className="text-xs text-[var(--text-muted)] mt-1">
                             Avg: {comparison.averagePrice.toFixed(1)} coins
                           </p>
                         </div>
@@ -2593,22 +2593,22 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Volatility Events Card */}
               {volatilityEvents.length > 0 && (
-                <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-yellow-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
-                  <h4 className="text-sm font-semibold text-yellow-400 mb-3 uppercase tracking-wide">⚡ Market Events</h4>
+                <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-yellow-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+                  <h4 className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mb-3 uppercase tracking-wide">⚡ Market Events</h4>
                   <div className="space-y-3">
                     {volatilityEvents.slice(0, 3).map((event, index) => (
-                      <div key={index} className="bg-slate-900/40 rounded-md p-3 border-l-4 border-yellow-500/50">
+                      <div key={index} className="bg-[var(--surface-muted-bg)] rounded-md p-3 border-l-4 border-yellow-500/50">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-amber-50 font-medium capitalize">{event.type}</span>
-                          <span className="text-xs text-yellow-300">
-                            {event.priceMultiplier > 1 ? `+${Math.round((event.priceMultiplier - 1) * 100)}%` : 
+                          <span className="text-sm text-[var(--text-primary)] font-medium capitalize">{event.type}</span>
+                          <span className="text-xs text-yellow-600 dark:text-yellow-300">
+                            {event.priceMultiplier > 1 ? `+${Math.round((event.priceMultiplier - 1) * 100)}%` :
                              `${Math.round((event.priceMultiplier - 1) * 100)}%`}
                           </span>
                         </div>
-                        <p className="text-xs text-amber-200/70 mb-1">{event.description}</p>
+                        <p className="text-xs text-[var(--text-secondary)] mb-1">{event.description}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-amber-200/50 capitalize">Affects: {event.goodCategory}</span>
-                          <span className="text-xs text-amber-200/50">{Math.round(event.duration / 24)} days left</span>
+                          <span className="text-xs text-[var(--text-muted)] capitalize">Affects: {event.goodCategory}</span>
+                          <span className="text-xs text-[var(--text-muted)]">{Math.round(event.duration / 24)} days left</span>
                         </div>
                       </div>
                     ))}
@@ -2618,18 +2618,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               
               {/* Visiting NPCs Card */}
               {visitingNpcs.length > 0 && (
-                <div className={`bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-purple-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+                <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-purple-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                   <h4 className="text-sm font-semibold text-purple-400 mb-3 uppercase tracking-wide">🚶 Market Visitors</h4>
-                  <p className="text-sm text-amber-200/60 mb-3">NPCs currently shopping in the marketplace:</p>
+                  <p className="text-sm text-[var(--text-secondary)] mb-3">NPCs currently shopping in the marketplace:</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {visitingNpcs.slice(0, 6).map(npc => (
-                      <div key={npc.id} className="bg-slate-900/40 rounded-md p-2 flex items-center gap-2">
+                      <div key={npc.id} className="bg-[var(--surface-muted-bg)] rounded-md p-2 flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600/30 to-purple-700/20 flex items-center justify-center border border-purple-600/50">
                           <span className="text-xs">👤</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-amber-50 font-medium truncate">{npc.name}</p>
-                          <p className="text-xs text-amber-200/60 truncate">{npc.role}</p>
+                          <p className="text-xs text-[var(--text-primary)] font-medium truncate">{npc.name}</p>
+                          <p className="text-xs text-[var(--text-secondary)] truncate">{npc.role}</p>
                         </div>
                       </div>
                     ))}
@@ -2652,19 +2652,22 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
           latestAchievement.rarity === 'legendary' ? 'from-purple-900 to-purple-700' :
           latestAchievement.rarity === 'epic' ? 'from-blue-900 to-blue-700' :
           latestAchievement.rarity === 'rare' ? 'from-green-900 to-green-700' :
-          'from-slate-900 to-slate-700'
+          ''
         } border ${
           latestAchievement.rarity === 'legendary' ? 'border-purple-500' :
           latestAchievement.rarity === 'epic' ? 'border-blue-500' :
           latestAchievement.rarity === 'rare' ? 'border-green-500' :
-          'border-slate-500'
-        } rounded-lg p-4 shadow-2xl min-w-[300px]`}>
+          'border-[var(--border-normal)]'
+        } rounded-lg p-4 shadow-2xl min-w-[300px]`}
+        style={latestAchievement.rarity === 'common' || !latestAchievement.rarity ? {
+          backgroundColor: 'var(--surface-card)'
+        } : undefined}>
           <div className="flex items-center gap-3">
             <span className="text-3xl">{latestAchievement.icon}</span>
             <div className="flex-1">
               <p className="text-sm font-bold text-white">Achievement Unlocked!</p>
-              <p className="text-base font-semibold text-amber-100">{latestAchievement.name}</p>
-              <p className="text-xs text-gray-200 mt-1">{latestAchievement.description}</p>
+              <p className="text-base font-semibold text-[var(--text-primary)]">{latestAchievement.name}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">{latestAchievement.description}</p>
             </div>
           </div>
         </div>
@@ -2679,10 +2682,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             <span className="text-3xl">🎯</span>
             <div className="flex-1">
               <p className="text-sm font-bold text-white">Milestone Achieved!</p>
-              <p className="text-base font-semibold text-amber-100">{latestMilestone.name}</p>
-              <p className="text-xs text-gray-200 mt-1">{latestMilestone.description}</p>
+              <p className="text-base font-semibold text-[var(--text-primary)]">{latestMilestone.name}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">{latestMilestone.description}</p>
               {latestMilestone.reward && (
-                <p className="text-xs text-yellow-300 mt-2">Reward: {latestMilestone.reward}</p>
+                <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-2">Reward: {latestMilestone.reward}</p>
               )}
             </div>
           </div>
@@ -2692,13 +2695,13 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     
     {/* Using absolute positioning like FishingHutModal for consistent cross-browser rendering */}
     <div
+      data-surface="modal-overlay"
       style={{
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)', // Safari support
         display: 'flex',
@@ -2707,9 +2710,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         zIndex: 50
       }}
     >
-      <div className={`bg-gradient-to-b from-slate-800 via-slate-850 to-slate-900 border-2 border-amber-700/50 rounded-lg shadow-2xl flex flex-col overflow-hidden relative ${
+      <div className={`border-2 border-amber-700/50 rounded-lg shadow-2xl flex flex-col overflow-hidden relative ${
         isMobile ? 'w-full h-full rounded-none' : 'w-full h-full max-w-full max-h-full rounded-lg'
-      }`}>
+      }`}
+        style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Mobile close button */}
         {isMobile && (
           <button
@@ -2744,7 +2748,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
           {/* Merchant count overlay on banner */}
           <div className="absolute bottom-2 right-3 z-20">
-            <div className={`bg-slate-900/70 ${isSafari() ? '' : 'backdrop-blur-sm'} px-3 py-1 rounded-md border border-amber-700/30`}>
+            <div className={`${isSafari() ? '' : 'backdrop-blur-sm'} px-3 py-1 rounded-md border border-amber-700/30`}
+              style={{ backgroundColor: 'var(--surface-overlay-strong)' }}>
               <p className="text-sm text-amber-400 font-semibold">
                 {merchantNpcs.length} Merchant{merchantNpcs.length !== 1 ? 's' : ''}
               </p>
@@ -2761,7 +2766,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <AlertTriangle className="w-5 h-5 text-red-400 animate-pulse" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-red-300">Active Crisis</p>
-                <p className="text-xs text-amber-200/80">
+                <p className="text-xs text-[var(--text-secondary)]">
                   {activeCrises[0].pattern.flavorText}
                   {activeCrises[0].sourceNpcs.length > 0 && (
                     <span className="text-amber-400/60"> (reported by {activeCrises[0].sourceNpcs[0].npcName})</span>
@@ -2792,10 +2797,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         )}
         
         {/* Compact marketplace header */}
-        <div className={`px-5 py-3 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
+        <div className={`px-5 py-3 border-b border-amber-900/30 ${isSafari() ? '' : 'backdrop-blur-sm'}`}
+          style={{ backgroundColor: 'var(--surface-elevated)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-amber-200 to-yellow-200 bg-clip-text text-transparent drop-shadow-sm">
+              <h2 className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-300">
                 {marketplaceDataLoading ? (
                   <>
                     <span className="animate-pulse">⌛</span>
@@ -2807,11 +2813,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </h2>
               {/* Badges moved next to title */}
               <div className="flex items-center gap-2">
-                <span className="text-xs px-2.5 py-1 bg-slate-900/50 text-amber-100/70 rounded-md border border-slate-700/50 tracking-wide">
+                <span className="text-xs px-2.5 py-1 rounded-md tracking-wide"
+                  style={{ backgroundColor: 'var(--surface-muted-bg)', color: 'var(--text-secondary)', borderWidth: '1px', borderColor: 'var(--border-normal)' }}>
                   {formatEraName(era)}
                 </span>
                 {marketAllegiance && (
-                  <span className="text-xs px-2.5 py-1 bg-amber-900/30 text-amber-200 rounded-md border border-amber-700/50 tracking-wide">
+                  <span className="text-xs px-2.5 py-1 bg-amber-900/30 text-[var(--text-secondary)] rounded-md border border-amber-700/50 tracking-wide">
                     {marketAllegiance.name}
                   </span>
                 )}
@@ -2819,11 +2826,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-xs text-amber-100/80 tracking-wide">
+              <p className="text-xs tracking-wide" style={{ color: 'var(--text-secondary)' }}>
                 {mapData.localArea || mapData.continent || 'Unknown Lands'}
               </p>
-              <div className="bg-slate-900/50 rounded-lg px-4 py-1.5 border border-amber-700/40">
-                <p className="text-base font-bold bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent drop-shadow-sm tracking-wide">
+              <div className="rounded-lg px-4 py-1.5 border border-amber-700/40"
+                style={{ backgroundColor: 'var(--surface-muted-bg)' }}>
+                <p className="text-base font-bold text-amber-600 dark:text-amber-300 drop-shadow-sm tracking-wide">
                   💰 {playerCharacter.currency} coins
                 </p>
               </div>
@@ -2832,7 +2840,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         </div>
         
         {/* Enhanced tab navigation with historical theming */}
-        <div className="flex bg-gradient-to-r from-slate-700/90 via-slate-700/80 to-slate-700/90 border-b border-amber-800/40">
+        <div className="flex border-b border-amber-800/40"
+          style={{ backgroundColor: 'var(--surface-muted)' }}>
           {[
             { id: 'buy', label: 'Buy', icon: '🛒' },
             { id: 'sell', label: 'Sell', icon: '💰' },
@@ -2852,8 +2861,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     tab.id === 'people' ? 'bg-gradient-to-t from-blue-800/40 to-transparent text-blue-300 border-b-3 border-blue-400' :
                     tab.id === 'analysis' ? 'bg-gradient-to-t from-red-800/40 to-transparent text-red-300 border-b-3 border-red-400' :
                     'bg-gradient-to-t from-cyan-800/40 to-transparent text-cyan-300 border-b-3 border-cyan-400'
-                  : 'text-amber-100/50 hover:text-amber-100/80 hover:bg-slate-600/30'
+                  : ''
               }`}
+              style={activeTab !== tab.id ? {
+                color: 'var(--text-secondary)'
+              } : undefined}
             >
               <span className="inline-block transform group-hover:scale-110 transition-transform text-base">
                 {tab.icon}
@@ -2876,21 +2888,22 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     
     {/* Quest Offer Modal */}
     {showQuestOffer && (
-      <div className={`fixed inset-0 bg-black/50 ${isSafari() ? '' : 'backdrop-blur-sm'} flex items-center justify-center z-[60]`}>
-        <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-600/50 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
+      <div data-surface="modal-overlay" className={`fixed inset-0 ${isSafari() ? '' : 'backdrop-blur-sm'} flex items-center justify-center z-[60]`}>
+        <div className="border-2 border-amber-600/50 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4"
+          style={{ backgroundColor: 'var(--bg-primary)' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-600/30 to-amber-600/20 flex items-center justify-center border border-amber-600/50">
               <ScrollText className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-amber-300">Quest Offer</h3>
-              <p className="text-sm text-amber-200/60">From {showQuestOffer.npc.name}</p>
+              <h3 className="text-lg font-bold text-amber-600 dark:text-amber-300">Quest Offer</h3>
+              <p className="text-sm text-[var(--text-secondary)]">From {showQuestOffer.npc.name}</p>
             </div>
           </div>
           
           <div className="space-y-3 mb-4">
             <div>
-              <h4 className="text-base font-semibold text-amber-100 flex items-center gap-2">
+              <h4 className="text-base font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                 {showQuestOffer.quest.title}
                 {(showQuestOffer.quest as any).isEconomicQuest && (showQuestOffer.quest as any).economicContext?.crisis && (
                   <span className="text-xs bg-red-600/30 text-red-300 px-2 py-0.5 rounded-full border border-red-600/50 flex items-center gap-1">
@@ -2899,16 +2912,16 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </span>
                 )}
               </h4>
-              <p className="text-sm text-gray-300 mt-1">{showQuestOffer.quest.description}</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{showQuestOffer.quest.description}</p>
             </div>
-            
-            <div className="bg-slate-800/50 rounded-lg p-3">
-              <p className="text-xs text-amber-200/70 uppercase tracking-wide mb-2">Objectives:</p>
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--surface-muted-bg)' }}>
+              <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-2">Objectives:</p>
               <ul className="space-y-1">
                 {showQuestOffer.quest.objectives.slice(0, 2).map((obj, idx) => (
-                  <li key={obj.id} className="text-sm text-gray-300 flex flex-col gap-1">
+                  <li key={obj.id} className="text-sm flex flex-col gap-1" style={{ color: 'var(--text-secondary)' }}>
                     <div className="flex items-start gap-2">
-                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span className="text-[var(--text-primary)]0 mt-0.5">•</span>
                       <span>{obj.description}</span>
                     </div>
                     {obj.targetLocation && (
@@ -2937,7 +2950,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </li>
                 ))}
                 {showQuestOffer.quest.objectives.length > 2 && (
-                  <li className="text-sm text-gray-400 italic">
+                  <li className="text-sm italic" style={{ color: 'var(--text-muted)' }}>
                     ...and {showQuestOffer.quest.objectives.length - 2} more
                   </li>
                 )}
@@ -2966,7 +2979,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </button>
             <button
               onClick={() => setShowQuestOffer(null)}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white rounded-md font-medium transition-all"
+              className="flex-1 px-4 py-2 rounded-md font-medium transition-all"
+              style={{ backgroundColor: 'var(--surface-muted)', color: 'var(--text-primary)' }}
             >
               Decline
             </button>

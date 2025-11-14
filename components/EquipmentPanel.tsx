@@ -16,15 +16,9 @@ import {
   Watch,
   Footprints,
   Sparkles,
-  Filter,
-  SortAsc,
-  Search,
-  X,
   Info,
-  Wand2,
-  Grid3x3,
-  List,
 } from 'lucide-react';
+import { FaSearch, FaTimes, FaFilter, FaSortAmountDown, FaTh, FaList, FaMagic } from 'react-icons/fa';
 
 /* ---------------------------- helpers ---------------------------- */
 
@@ -224,7 +218,7 @@ const StatComparisonTooltip: React.FC<{
     if (value === 0) return null;
     const up = value > 0;
     return (
-      <div className={`flex justify-between ${up ? 'text-green-400' : 'text-red-400'}`}>
+      <div className={`flex justify-between ${up ? 'text-[color:var(--color-success)]' : 'text-[color:var(--color-error)]'}`}>
         <span>{label}</span>
         <span>{up ? '+' : ''}{value}</span>
       </div>
@@ -250,49 +244,49 @@ const StatComparisonTooltip: React.FC<{
 
   const node = (
     <div
-      className="fixed z-[9999] pointer-events-none p-4 w-80 text-xs text-text-primary bg-[var(--surface-tooltip-bg)] border-2 border-[var(--surface-tooltip-border)] rounded-lg shadow-2xl backdrop-blur-sm"
-      style={{ top, left }}
+      className="fixed z-[9999] pointer-events-none p-4 w-80 text-xs bg-[var(--surface-tooltip-bg)] border-2 border-[var(--surface-tooltip-border)] rounded-lg shadow-2xl backdrop-blur-sm"
+      style={{ top, left, color: 'var(--text-primary)' }}
     >
       <div className="flex items-center gap-3 mb-3">
         <div className="w-16 h-16 flex items-center justify-center bg-[var(--surface-muted-bg)] rounded-lg border border-[var(--border-normal)]">
           <GenerativeItemIcon item={item} size={64} />
         </div>
         <div className="flex-1">
-          <h4 className="font-bold text-sm text-blue-300">{action === 'equip' ? 'Equip' : 'Unequip'}</h4>
-          <p className="font-semibold text-white mt-0.5 leading-tight">{item.name}</p>
+          <h4 className="font-bold text-sm text-[color:var(--accent-primary)]">{action === 'equip' ? 'Equip' : 'Unequip'}</h4>
+          <p className="font-semibold mt-0.5 leading-tight" style={{ color: 'var(--text-primary)' }}>{item.name}</p>
           {item.rarity && <RarityTag rarity={item.rarity} />}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] text-text-primary">
+      <div className="grid grid-cols-2 gap-2 mb-2 text-[11px]">
         {item.equipmentSlot && (
           <div className="flex items-center gap-1">
-            <span className="text-text-secondary">Slot:</span>
-            <span className="capitalize">{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Slot:</span>
+            <span className="capitalize" style={{ color: 'var(--text-primary)' }}>{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
           </div>
         )}
         {item.value !== undefined && (
           <div className="flex items-center gap-1">
-            <span className="text-text-secondary">Value:</span>
-            <span className="text-yellow-400">{item.value} 🪙</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Value:</span>
+            <span className="text-[color:var(--color-warning)]">{item.value} 🪙</span>
           </div>
         )}
         {item.weight !== undefined && (
           <div className="flex items-center gap-1">
-            <span className="text-text-secondary">Weight:</span>
-            <span>{item.weight} kg</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Weight:</span>
+            <span style={{ color: 'var(--text-primary)' }}>{item.weight} kg</span>
           </div>
         )}
         {item.throwable && (
           <div className="flex items-center gap-1">
-            <span className="text-text-secondary">Throwable:</span>
-            <span className="text-green-400">✓</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Throwable:</span>
+            <span className="text-[color:var(--color-success)]">✓</span>
           </div>
         )}
       </div>
 
       {item.description && (
-        <p className="text-[11px] text-text-secondary italic mb-2 border-t border-[var(--border-normal)] pt-2">{item.description}</p>
+        <p className="text-[11px] italic mb-2 border-t border-[var(--border-normal)] pt-2" style={{ color: 'var(--text-secondary)' }}>{item.description}</p>
       )}
 
       {comparison && (
@@ -428,7 +422,7 @@ const EquipmentSlotDisplay: React.FC<{
           <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center drop-shadow">
             <LazyItemIcon item={item} size={56} immediate={true} />
           </div>
-          <p className="text-[14px] sm:text-[15px] font-bold leading-tight text-blue-200 w-full text-center mt-1.5 px-0.5 break-words hyphens-auto shadow-sm" style={{wordBreak: 'break-word', textShadow: '0 1px 2px rgba(0,0,0,0.8)'}}>
+          <p className="text-[14px] sm:text-[15px] font-bold leading-tight text-text-primary w-full text-center mt-1.5 px-0.5 break-words hyphens-auto shadow-sm" style={{wordBreak: 'break-word'}}>
             {item.name ? getExtractedQuality(item.name, slot).name : 'Unknown'}
           </p>
           {/* Show special indicator for permanent items */}
@@ -746,41 +740,41 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   /* ------------------------------- UI ------------------------------- */
 
   return (
-    <div className="p-2 sm:p-3 grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 h-full select-none" onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}>
+    <div className=" grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-3 h-full select-none" onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}>
       {/* LEFT: Paper-doll */}
-      <div className="surface-card rounded-xl p-3 sm:p-4 relative overflow-hidden h-full min-h-[480px] shadow-lg">
+      <div className="surface-card rounded-xl p-2 sm:p-3 relative overflow-hidden h-full min-h-[480px] shadow-lg">
         <div className="absolute inset-0 pointer-events-none opacity-[0.08]">
           <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.2),transparent_60%)]" />
         </div>
 
         <div className="flex items-center justify-between mb-2 relative z-10 gap-2">
           <div className="flex items-center gap-2 text-text-primary">
-            <Sparkles className="w-4 h-4 text-blue-400" />
+            
             <h4 className="font-bold text-base">Equipment</h4>
-            <span className="text-xs text-text-secondary hidden lg:inline">Drag items to specific slots</span>
+            <span className="text-[11px] text-text-secondary hidden lg:inline">Drag items to slots</span>
           </div>
           <div className="flex items-center gap-2">
             {/* NEW Optimize button */}
             <button
-              className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-md border border-emerald-600/60 bg-emerald-700/30 hover:bg-emerald-700/50 text-emerald-200"
+              className="text-xs flex items-center gap-1 px-2 py-1 rounded-md border border-[color:var(--color-success)]/60 bg-[color:var(--color-success)]/20 hover:bg-[color:var(--color-success)]/30 text-[color:var(--color-success)]"
               onClick={optimizeLoadout}
               title="Automatically equip the best items by stats"
             >
-              <Wand2 className="w-3.5 h-3.5" />
+              <FaMagic className="w-3.5 h-3.5" />
               Optimize
             </button>
             <button
-              className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] text-text-primary"
+              className="text-xs flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] hover:bg-[var(--surface-muted-hover-bg)] tracking-tight text-text-primary"
               onClick={unequipAll}
               title="Unequip everything"
             >
-              <X className="w-3.5 h-3.5" />
-              Unequip All
+              <FaTimes className="w-3.5 h-3.5" />
+              Unequip
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-2.5" style={{ gridTemplateRows: 'repeat(4, minmax(90px, 1fr))' }}>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3" style={{ gridTemplateRows: 'repeat(4, minmax(90px, 1fr))' }}>
           {SLOT_ORDER.slice(0, 3).map((s) => (
             <EquipmentSlotDisplay
               key={s}
@@ -833,95 +827,93 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               getExtractedQuality={getExtractedQuality}
             />
           ))}
-          <div className="rounded-xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-muted-bg)] flex items-center justify-center text-[11px] text-text-secondary">
-            <div className="flex items-center gap-1">
-              <Info className="w-3.5 h-3.5" /> Drag here to auto-equip
+          <div className="rounded-xl border-3 p-3 border-dashed border-[var(--border-subtle)] bg-[var(--surface-muted-bg)] flex items-center justify-center text-[11px] text-text-secondary">
+            <div className="flex items-center gap-3">
+              <Info className="w-5 h-5" /> Drag here to auto-equip
             </div>
           </div>
         </div>
       </div>
 
       {/* RIGHT: Inventory + Stats */}
-      <div className="flex flex-col gap-4 h-full min-h-[480px]">
+      <div className="flex flex-col gap-3 h-full min-h-[480px]">
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 min-w-0">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary flex-1">
-            <Search className="w-4 h-4 opacity-70" />
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary flex-1 min-w-0">
+            <FaSearch className="w-3.5 h-3.5 opacity-70 text-text-secondary flex-shrink-0" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, material, description…"
-              className="bg-transparent outline-none text-sm placeholder:text-text-secondary flex-1"
+              placeholder="Search…"
+              className="bg-transparent outline-none text-xs placeholder:text-text-secondary flex-1 min-w-0"
             />
             {query && (
-              <button className="opacity-70 hover:opacity-100" onClick={() => setQuery('')}>
-                <X className="w-4 h-4" />
+              <button className="opacity-70 hover:opacity-100 flex-shrink-0" onClick={() => setQuery('')}>
+                <FaTimes className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0">
-            <div className="relative">
-              <select
-                value={slotFilter}
-                onChange={(e) => setSlotFilter(e.target.value as any)}
-                className="text-sm px-2 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary pr-6 min-w-0 w-full sm:w-auto"
-                title="Filter by slot"
-              >
-                <option value="all">All</option>
-                <option value="hand">Hands</option>
-                <option value="ring">Rings</option>
-                {SLOT_ORDER.map((s) => (
-                  <option key={s} value={s}>
-                    {humanizeSlot(s)}
-                  </option>
-                ))}
-              </select>
-              <Filter className="w-3.5 h-3.5 absolute right-1 top-1/2 -translate-y-1/2 opacity-60 pointer-events-none" />
-            </div>
+          <div className="relative flex-shrink-0">
+            <select
+              value={slotFilter}
+              onChange={(e) => setSlotFilter(e.target.value as any)}
+              className="text-xs px-2 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary pr-6 appearance-none"
+              title="Filter by slot"
+            >
+              <option value="all">All</option>
+              <option value="hand">Hands</option>
+              <option value="ring">Rings</option>
+              {SLOT_ORDER.map((s) => (
+                <option key={s} value={s}>
+                  {humanizeSlot(s)}
+                </option>
+              ))}
+            </select>
+            <FaFilter className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 opacity-60 pointer-events-none text-text-secondary" />
+          </div>
 
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-sm px-2 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary pr-6 min-w-0 w-full sm:w-auto"
-                title="Sort items"
-              >
-                <option value="rarity">Rarity</option>
-                <option value="name">Name</option>
-                <option value="value">Value</option>
-              </select>
-              <SortAsc className="w-3.5 h-3.5 absolute right-1 top-1/2 -translate-y-1/2 opacity-60 pointer-events-none" />
-            </div>
-            
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-[var(--surface-muted-bg)] rounded-md border border-[var(--border-normal)] p-0.5">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-text-secondary hover:text-text-primary'
-                }`}
-                title="Grid view"
-              >
-                <Grid3x3 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-text-secondary hover:text-text-primary'
-                }`}
-                title="List view"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="relative flex-shrink-0">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="text-xs px-2 py-1.5 rounded-md border border-[var(--border-normal)] bg-[var(--surface-muted-bg)] text-text-primary pr-6 appearance-none"
+              title="Sort items"
+            >
+              <option value="rarity">Rarity</option>
+              <option value="name">Name</option>
+              <option value="value">Value</option>
+            </select>
+            <FaSortAmountDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 opacity-60 pointer-events-none text-text-secondary" />
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-0.5 bg-[var(--surface-muted-bg)] rounded-md border border-[var(--border-normal)] p-0.5 flex-shrink-0">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1 rounded transition-colors ${
+                viewMode === 'grid' ? 'bg-[color:var(--accent-primary)] text-white' : 'text-text-secondary hover:text-text-primary'
+              }`}
+              title="Grid view"
+            >
+              <FaTh className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1 rounded transition-colors ${
+                viewMode === 'list' ? 'bg-[color:var(--accent-primary)] text-white' : 'text-text-secondary hover:text-text-primary'
+              }`}
+              title="List view"
+            >
+              <FaList className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
         {/* Equippable list */}
         <div className="flex-1 min-h-0 surface-card p-3 rounded-xl overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="font-bold text-blue-400 text-base">Equippable Items</h4>
+            <h4 className="font-bold text-text-primary text-base">Equippable Items</h4>
             <span className="text-xs text-text-secondary hidden md:inline">Click to auto-equip or drag to a slot</span>
           </div>
           <div className="h-[280px] sm:h-[320px] lg:h-[420px] overflow-y-auto pr-1 space-y-1.5 scrollbar-thin touch-pan-y">
@@ -954,7 +946,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                           <LazyItemIcon item={item} size={48} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xl font-bold text-blue-100 leading-tight mb-1.5 break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{item.name ? getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot).name : 'Unknown Item'}</p>
+                          <p className="text-xl font-bold text-text-primary leading-tight mb-1.5 break-words tracking-wide shadow-sm">{item.name ? getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot).name : 'Unknown Item'}</p>
                           <div className="flex items-center gap-2 text-[13px] text-text-secondary font-medium">
                             {item.equipmentSlot && (
                               <span className="capitalize">{humanizeSlot(item.equipmentSlot as EquipmentSlot)}</span>
@@ -1010,7 +1002,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-2">
-                              <p className="text-xl font-bold text-blue-100 leading-tight break-words tracking-wide" style={{textShadow: '0 1px 3px rgba(0,0,0,0.7)'}}>{item.name ? getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot).name : 'Unknown Item'}</p>
+                              <p className="text-xl font-bold text-text-primary leading-tight break-words tracking-wide shadow-sm">{item.name ? getExtractedQuality(item.name, item.equipmentSlot as EquipmentSlot).name : 'Unknown Item'}</p>
                               <div className="flex gap-1.5 flex-shrink-0">
                                 {(() => {
                                   if (!item.name) return null;

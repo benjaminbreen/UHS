@@ -347,9 +347,14 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
       </div>
 
       <div className="mt-3 text-xs text-slate-400 text-center">
-        <span>Climate: <span className="text-amber-400">
-          {getClimateForRegion(region)}
-        </span></span>
+        <span
+          className="cursor-help"
+          title={`${getClimateForRegion(region)} climate typical of this region - affects agriculture, settlement patterns, and daily life`}
+        >
+          Climate: <span className="text-amber-400 border-b border-dotted border-amber-400/40 hover:border-amber-400 transition-colors">
+            {getClimateForRegion(region)}
+          </span>
+        </span>
       </div>
     </motion.div>
   );

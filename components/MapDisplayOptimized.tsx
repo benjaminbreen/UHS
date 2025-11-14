@@ -1706,13 +1706,36 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       eventBus.emit('npc:highlight:clear');
     }
 
+    // Clear hover tooltips when clicking
+    setHoveredNPC(null);
+    setHoveredAnimal(null);
+    setHoveredTile(null);
+    setHoveredTileCoords(null);
+    setHoveredEntityCoords(null);
+    setHoveredPOI(null);
+    setHoveredPOICoords(null);
+
     const tile = getTileFromMouseEvent(e);
     if (!tile) return;
+
+    // Check for NPCs and animals at this tile first (highest priority)
+    const clickedNpc = npcs?.find(n => Math.floor(n.x) === tile.x && Math.floor(n.y) === tile.y);
+    const clickedAnimal = animals?.find(a => Math.floor(a.x) === tile.x && Math.floor(a.y) === tile.y);
+
+    if (clickedNpc) {
+      onNpcClick(clickedNpc);
+      return;
+    }
+
+    if (clickedAnimal) {
+      onAnimalClick(clickedAnimal);
+      return;
+    }
 
     const structure = mapData?.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y) || tile.structure;
     const isPoi = structure && ['holy_site', 'palace', 'ruin'].includes(structure.structureType);
     const deployedVessel = deployedVessels?.find(v => v.x === tile.x && v.y === tile.y);
-    
+
     const settlementBiomes = new Set([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER, BiomeType.MARKETPLACE, BiomeType.FARMLAND]);
 
     if (deployedVessel) {
@@ -1724,7 +1747,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         onStructureClick(structure);
     } else if (settlementBiomes.has(tile.biome)) {
         onSettlementClick(tile);
-    } else if (e.metaKey || e.ctrlKey) { 
+    } else if (e.metaKey || e.ctrlKey) {
         const vegetation = tile.vegetationId ? mapData?.vegetation?.find(v => v.id === tile.vegetationId) : null;
         const componentInfo = getComponentInfoForTile(tile, structure, null, null);
         onDevCommandClick({
@@ -1736,7 +1759,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             componentInfo: componentInfo || undefined
         });
     }
-  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, onVesselClick, getTileFromMouseEvent, mapData, npcs, animals, deployedVessels, highlightedNpcId]);
+  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, onVesselClick, onNpcClick, onAnimalClick, getTileFromMouseEvent, mapData, npcs, animals, deployedVessels, highlightedNpcId]);
 
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
@@ -4119,7 +4142,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 return distance <= 10;
               }).map(animal => (
                 <g key={animal.id}
-                   onClick={(e) => { e.stopPropagation(); onAnimalClick(animal); }}
                    onMouseEnter={(e) => {
                      if (!isDragging) {
                        setHoveredAnimal(animal);
@@ -4196,10 +4218,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   <g key={`tamed-${animal.id}`}
                      className="smooth-movement"
                      transform={`translate(${followX * TILE_SIZE_PX}, ${followY * TILE_SIZE_PX})`}
-                     onClick={() => {
-                       console.log('[MapDisplay] Companion clicked:', animal);
-                       onCompanionClick?.(animal);
-                     }}
+                     onClick={() => onCompanionClick?.(animal)}
                      style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'all' }}>
                     {/* Shadow beneath tamed animal */}
                     <ellipse
@@ -4259,7 +4278,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 return distance <= 10;
               }).map(npc => (
                 <g key={npc.id}
-                   onClick={(e) => { e.stopPropagation(); onNpcClick(npc); }}
                    onMouseEnter={(e) => {
                      if (!isDragging) {
                        setHoveredNPC(npc);
@@ -4887,7 +4905,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
         const tooltipContent = (
           <div
-            className="fixed pointer-events-none"
+            className="fixed pointer-events-none z-40"
             style={{
               left: `${adjustedX}px`,
               top: `${adjustedY}px`,

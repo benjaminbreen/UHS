@@ -30,6 +30,71 @@ import { themeService } from '../services/themeService';
 import { journalService } from '../services/journalService';
 import { learningObjectivesService } from '../services/learningObjectivesService';
 
+// Theme Toggle Component
+const ThemeToggle: React.FC = () => {
+  const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
+
+  const handleToggle = () => {
+    themeService.toggleTheme();
+    setIsDarkMode(!isDarkMode);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={handleToggle}
+        className="relative inline-flex items-center h-8 w-[68px] rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:ring-offset-2 focus:ring-offset-[var(--background-primary)] overflow-hidden group"
+        style={{
+          background: isDarkMode
+            ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+            : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+          boxShadow: isDarkMode
+            ? '0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+            : '0 2px 8px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+        }}
+        role="switch"
+        aria-checked={isDarkMode}
+        aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
+      >
+        {/* Icons container */}
+        <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+          <Moon
+            className="w-4 h-4 transition-all duration-300"
+            style={{
+              color: isDarkMode ? '#fbbf24' : '#94a3b8',
+              opacity: isDarkMode ? 1 : 0.4,
+              transform: isDarkMode ? 'scale(1)' : 'scale(0.8)'
+            }}
+          />
+          <Sun
+            className="w-4 h-4 transition-all duration-300"
+            style={{
+              color: isDarkMode ? '#94a3b8' : '#ffffff',
+              opacity: isDarkMode ? 0.4 : 1,
+              transform: isDarkMode ? 'scale(0.8)' : 'scale(1)'
+            }}
+          />
+        </div>
+
+        {/* Sliding pill */}
+        <span
+          className="absolute top-1 w-6 h-6 rounded-full transition-all duration-300 ease-in-out shadow-lg"
+          style={{
+            left: isDarkMode ? '4px' : 'calc(100% - 28px)',
+            background: isDarkMode
+              ? 'linear-gradient(135deg, #334155 0%, #1e293b 100%)'
+              : 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)',
+            boxShadow: isDarkMode
+              ? '0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.1)'
+              : '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.5)'
+          }}
+        />
+      </button>
+    </div>
+  );
+};
+
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
   game: [
@@ -110,9 +175,23 @@ interface TopNavBarPolishedProps {
     characterDescription?: string;
     quest?: any;
   }) => void;
+  onWorldWeaverModalDataChange?: (data: {
+    isOpen: boolean;
+    year: number;
+    location: string;
+    explanation: string;
+    reasoning?: string;
+    suggestion?: string;
+    characterSpec?: any;
+    gameMode?: any;
+    specialNPCs?: any[];
+    customEventsCount?: number;
+    quest?: any;
+    userPrompt?: string;
+  }) => void;
 }
 
-const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived }) => {
+const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived, onWorldWeaverModalDataChange }) => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, triggerAssessmentReview, setShowSessionSummaryModal } = useUI();
   const { currentMode } = useEventSystem();
   const modeTheme = currentMode ? GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] : undefined;
@@ -226,12 +305,19 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Subscribe to theme changes
+  // Subscribe to theme changes - debounced to avoid blocking during theme switch
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
     const unsubscribe = themeService.subscribe((theme) => {
-      setIsDarkMode(theme === 'dark');
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsDarkMode(theme === 'dark');
+      }, 50);
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // Subscribe to educational mode changes
@@ -256,16 +342,17 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
   }, []);
 
   // Auto-slide journal when receiving a message from RightSidebar about study tab activation
-  useEffect(() => {
-    const handleStudyTabActive = () => {
-      console.log('[TopNavBarPolished] Study tab activated, auto-sliding journal');
-      setShowJournal(true);
-    };
+  // Disabled: User prefers to open journal manually
+  // useEffect(() => {
+  //   const handleStudyTabActive = () => {
+  //     console.log('[TopNavBarPolished] Study tab activated, auto-sliding journal');
+  //     setShowJournal(true);
+  //   };
 
-    // Listen for custom event from RightSidebar
-    window.addEventListener('studyTabActivated', handleStudyTabActive);
-    return () => window.removeEventListener('studyTabActivated', handleStudyTabActive);
-  }, []);
+  //   // Listen for custom event from RightSidebar
+  //   window.addEventListener('studyTabActivated', handleStudyTabActive);
+  //   return () => window.removeEventListener('studyTabActivated', handleStudyTabActive);
+  // }, []);
 
   useEffect(() => {
     const handleRoguelikeToggle = (active?: boolean) => {
@@ -313,13 +400,15 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
     if (!isLoading && pendingScenarioData && !worldWeaverModalData.isOpen) {
       console.log('[TopNavBar] ✅ Opening WorldWeaver modal with data:', pendingScenarioData);
-      setWorldWeaverModalData({
+      const modalData = {
         isOpen: true,
         ...pendingScenarioData
-      });
+      };
+      setWorldWeaverModalData(modalData);
+      onWorldWeaverModalDataChange?.(modalData); // Pass to App for rendering
       setPendingScenarioData(null);
     }
-  }, [isLoading, pendingScenarioData, worldWeaverModalData.isOpen, setPendingScenarioData]);
+  }, [isLoading, pendingScenarioData, worldWeaverModalData.isOpen, setPendingScenarioData, onWorldWeaverModalDataChange]);
 
   const toggleGeneratorPanel = () => setIsGeneratorPanelOpen(prev => !prev);
   
@@ -505,63 +594,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                 HISTORY SIMULATOR
               </a>
               
-              {/* Divider */}
-              <div className="hidden sm:block h-6 w-px bg-border-surface-muted" />
-              
-              {/* Game Mode Display */}
-              <div className="relative">
-                <button
-                  className={getOptimizedButtonClassName(`nav-button nav-button--compact flex items-center gap-1.5 ml-4 ${modeTheme ? 'nav-button--active' : ''} ${showGameModePanel ? ' nav-button--active' : ''}`)}
-                  data-active={modeTheme || showGameModePanel ? true : undefined}
-                  style={
-                    modeTheme
-                      ? {
-                          background: 'var(--surface-muted-bg)',
-                          borderColor: 'var(--accent-primary)',
-                          color: 'var(--text-primary)',
-                        }
-                      : undefined
-                  }
-                  onMouseEnter={() => setShowGameModeTooltip(true)}
-                  onMouseLeave={() => setShowGameModeTooltip(false)}
-                  onClick={() => setShowGameModePanel(!showGameModePanel)}
-                  aria-label={currentMode ? `Current game mode: ${currentMode.name}. Click to change mode` : 'Select game mode'}
-                  aria-expanded={showGameModePanel}
-                  aria-haspopup="true"
-                >
-                  {modeTheme ?
-                    React.createElement(modeTheme.icon, { className: `w-3.5 h-3.5 text-accent drop-shadow-sm` }) :
-                    <Trophy className="w-3.5 h-3.5 text-accent drop-shadow-sm" />
-                  }
-                  <span className="text-text-primary font-semibold">
-                    {currentMode ? currentMode.name : 'Select Mode'}
-                  </span>
-                  <ChevronDown className={`w-3 h-3 transition-transform ${showGameModePanel ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {/* Tooltip */}
-                  {showGameModeTooltip && !showGameModePanel && currentMode && (
-                    <div className="absolute top-full left-0 mt-2 p-3 tooltip-surface z-50 w-64 pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200">
-                      <p className="text-xs text-text-primary">{currentMode.description}</p>
-                      <p className="text-[10px] text-text-muted mt-1">Click for more details</p>
-                    </div>
-                  )}
-                </div>
-              
-              {/* Pause Button - Subtle, next to Game Mode */}
-              <div className="relative ml-2">
-                <button
-                  onClick={() => setIsPauseModalOpen(prev => !prev)}
-                  className={getOptimizedButtonClassName(`nav-button nav-button--compact flex items-center gap-1.5 ${isPauseModalOpen ? 'nav-button--active' : ''}`)}
-                  data-active={isPauseModalOpen}
-                  title={isPauseModalOpen ? "Resume (Space)" : "Pause (Space)"}
-                >
-                  {isPauseModalOpen ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                  <span>{isPauseModalOpen ? 'Resume' : 'Pause'}</span>
-                </button>
-              </div>
-
-              {/* Journal Button - Right next to Pause */}
+              {/* Journal Button */}
               <div className="relative ml-1">
                 <button
                   onClick={() => setShowJournal(prev => !prev)}
@@ -581,39 +614,11 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                 )}
               </div>
 
-              {/* Educational Mode Indicator & Toggle */}
-              {isEducationalMode ? (
-                <div className="relative ml-2">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--accent-primary)]/10 border border-[color:var(--accent-primary)]/30 rounded-lg">
-                    <BookOpen size={16} className="text-[color:var(--accent-primary)]" />
-                    <span className="text-sm text-[color:var(--accent-primary)] font-medium">Educational Mode</span>
-                    <button
-                      onClick={() => handleNavAction('toggle-educational-mode')}
-                      className="text-xs text-[color:var(--accent-primary)] hover:opacity-80 underline ml-1 transition-colors"
-                      title="Disable educational mode"
-                    >
-                      Disable
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative ml-2">
-                  <button
-                    onClick={() => handleNavAction('toggle-educational-mode')}
-                    className={getOptimizedButtonClassName('nav-button nav-button--compact flex items-center gap-1.5')}
-                    title="Enable educational mode for enhanced historical analysis"
-                  >
-                    <BookOpen size={16} className="text-text-muted" />
-                    <span className="text-sm text-text-secondary hidden xl:inline">Enable Educational Mode</span>
-                    <span className="text-sm text-text-secondary xl:hidden">Edu Mode</span>
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* WorldWeaver Input - Desktop (Centered with flex-1) */}
             {!isMobile && (
-              <div className="flex-1 max-w-lg mx-4">
+              <div className="flex-1 max-w-lg mx-2 -ml-2">
                 <div className="relative worldweaver-container">
                   {/* Liquid-like loading animation overlay */}
                   {isProcessingWorldWeaver && (
@@ -680,9 +685,12 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
             {/* Desktop Navigation Buttons - aligned to right */}
             <div className="hidden md:flex items-center gap-3 pr-2">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+
               {/* Primary Source Search */}
               <PrimarySourceSearch />
-              
+
               {/* Game Actions */}
               <div className="flex items-center gap-1.5 px-2 py-0 ">
                 {NAV_BUTTON_GROUPS.game.map(button => {
@@ -821,6 +829,14 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   );
                 })}
 
+              </div>
+
+              {/* Theme Toggle for Mobile */}
+              <div className="pt-2 border-t border-surface-muted">
+                <div className="px-2 pb-2 flex items-center justify-between">
+                  <div className="text-xs text-text-muted font-medium">Appearance</div>
+                  <ThemeToggle />
+                </div>
               </div>
 
               {/* Info Actions */}
@@ -1207,22 +1223,6 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
         </div>
       )}
 
-      {/* Modals */}
-      <WorldWeaverModal
-        isOpen={worldWeaverModalData.isOpen}
-        onClose={() => setWorldWeaverModalData(prev => ({ ...prev, isOpen: false }))}
-        year={worldWeaverModalData.year}
-        location={worldWeaverModalData.location}
-        explanation={worldWeaverModalData.explanation}
-        reasoning={worldWeaverModalData.reasoning}
-        suggestion={worldWeaverModalData.suggestion}
-        characterSpec={worldWeaverModalData.characterSpec}
-        gameMode={worldWeaverModalData.gameMode}
-        specialNPCs={worldWeaverModalData.specialNPCs}
-        customEventsCount={worldWeaverModalData.customEventsCount}
-        quest={worldWeaverModalData.quest}
-        userPrompt={worldWeaverModalData.userPrompt}
-      />
     </>
   );
 };

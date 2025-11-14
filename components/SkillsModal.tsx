@@ -807,7 +807,7 @@ const renderChopResult = (result: ChopSkillResult, isToolRelatedFailure: (msg: s
     );
 };
 
-const renderStudyResult = (result: StudySkillResult) => {
+const StudyResultDisplay: React.FC<{ result: StudySkillResult }> = ({ result }) => {
     const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
     const [imageError, setImageError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -1068,7 +1068,7 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
                     {result.type === 'forage' && renderForageResult(result as ForageSkillResult, isToolRelatedFailure, handleOpenEquipment)}
                     {result.type === 'dig' && renderDigResult(result as DigSkillResult, isToolRelatedFailure, handleOpenEquipment)}
                     {result.type === 'chop' && renderChopResult(result as ChopSkillResult, isToolRelatedFailure, handleOpenEquipment)}
-                    {result.type === 'study' && renderStudyResult(result as StudySkillResult)}
+                    {result.type === 'study' && <StudyResultDisplay result={result as StudySkillResult} />}
                     {/* Add other result types here */}
                     {result.type !== 'observe' && result.type !== 'forage' && result.type !== 'dig' && result.type !== 'chop' && result.type !== 'study' && (
                         <>

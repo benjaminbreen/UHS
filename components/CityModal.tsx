@@ -617,13 +617,13 @@ const CityModal: React.FC<CityModalProps> = ({
 
     return (
         <div
+            data-surface="modal-overlay"
             style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: isSafari() ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)',
                 ...(isSafari() ? {} : {
                     backdropFilter: 'blur(4px)',
                     WebkitBackdropFilter: 'blur(4px)',
@@ -639,14 +639,19 @@ const CityModal: React.FC<CityModalProps> = ({
         >
             <div
                 ref={panelRef}
-                className="relative w-full h-full max-h-[90vh] animate-popIn rounded-xl overflow-hidden flex flex-col border-2 border-blue-500/30"
+                className="relative w-full h-full max-h-[90vh] animate-popIn rounded-xl overflow-hidden flex flex-col border-2 surface-card"
+                style={{ borderColor: 'var(--color-info)' }}
             >
                 {/* Close Button (top-right, accessible) */}
                 <button
                     ref={firstFocusRef}
                     onClick={onClose}
                     aria-label="Close"
-                    className="absolute top-2 right-2 sm:top-3 sm:right-3 z-30 inline-flex items-center justify-center rounded-md p-2 text-slate-200/80 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="absolute top-2 right-2 sm:top-3 sm:right-3 z-30 inline-flex items-center justify-center rounded-md p-2 text-text-secondary hover:text-text-primary transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2"
+                    style={{
+                        backgroundColor: 'var(--surface-muted)',
+                        ['--tw-ring-color' as any]: 'var(--color-warning)'
+                    }}
                 >
                     <FaTimes className="w-5 h-5" />
                 </button>
@@ -659,7 +664,7 @@ const CityModal: React.FC<CityModalProps> = ({
                     </div>
 
                     {/* City banner overlay */}
-                    <div className="absolute inset-0" style={{ mixBlendMode: 'multiply' }}>
+                    <div className="absolute inset-0">
                         <CityBanner
                             era={era}
                             culturalZone={culturalZone}
@@ -674,49 +679,60 @@ const CityModal: React.FC<CityModalProps> = ({
                         />
                     </div>
 
-                    {/* Gradient overlays for visibility */}
+                    {/* Gradient overlays for visibility - theme-aware */}
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent"></div>
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
+                    <div
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t"
+                        style={{
+                            background: 'linear-gradient(to top, var(--bg-primary) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)'
+                        }}
+                    ></div>
 
                     {/* Title/Header info at bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-4 sm:pb-6 md:pb-7 text-white flex justify-between items-end">
-                        <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-4 sm:pb-6 md:pb-7 flex justify-between items-end">
+                        <div className="flex items-start gap-3 sm:gap-4 p-3 rounded-lg"
+                            style={{
+                                backgroundColor: 'var(--surface-overlay-strong)',
+                                backdropFilter: isSafari() ? 'none' : 'blur(8px)'
+                            }}
+                        >
                             <div className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 ${isSafari() ? '' : 'backdrop-blur-sm'} border-2 border-amber-500/40 shadow-lg`}>
                                 {getCityIcon()}
                             </div>
                             <div>
-                                <p
-                                    className="text-xs sm:text-sm font-bold uppercase tracking-widest text-amber-300/90 mb-1"
-                                    style={{ textShadow: '1px 1px 3px #000' }}
-                                >
+                                <p className="text-xs sm:text-sm font-bold uppercase tracking-widest text-amber-300 mb-1 drop-shadow-md">
                                     Urban District • {displayDate}
                                 </p>
-                                <h2
-                                    className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent"
-                                    style={{ textShadow: '0 0 30px rgba(251,191,36,0.45)' }}
-                                >
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
                                     {getCityName()}
                                 </h2>
-                                <p
-                                    className="text-sm sm:text-base capitalize text-amber-100/90 mt-1 flex items-center gap-2"
-                                    style={{ textShadow: '1px 1px 2px #000' }}
-                                >
+                                <p className="text-sm sm:text-base capitalize text-white/90 mt-1 flex items-center gap-2 drop-shadow-md">
                                     <FaUsers className="text-amber-300" /> Population: ~{population.toLocaleString()} • {openBusinesses.length} workspaces open
                                 </p>
                             </div>
                         </div>
 
                         {/* Tabs (right-aligned on large screens) */}
-                        <div className={`hidden md:flex gap-2 bg-slate-900/60 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg p-1 px-3 border border-amber-700/30`}>
+                        <div className={`hidden md:flex gap-2 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg p-1 px-3`}
+                            style={{
+                                backgroundColor: 'var(--surface-muted)',
+                                borderWidth: '1px',
+                                borderColor: 'var(--border-normal)'
+                            }}
+                        >
                             {(['overview', 'residents', 'workspaces'] as const).map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-3 py-2 rounded-md font-semibold transition-all ${
+                                    className={`px-3 py-2 rounded-md font-semibold transition-all duration-300 hover:scale-105 ${
                                         activeTab === tab
                                             ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
-                                            : 'text-amber-300/80 hover:text-amber-200 hover:bg-slate-800/50'
+                                            : 'hover:shadow-md'
                                     }`}
+                                    style={activeTab === tab ? {} : {
+                                        color: 'var(--text-secondary)',
+                                        backgroundColor: 'transparent'
+                                    }}
                                 >
                                     {tab === 'overview' && <span className="inline-flex items-center gap-2"><FaCity /> Overview</span>}
                                     {tab === 'residents' && <span className="inline-flex items-center gap-2"><FaUsers /> Residents</span>}
@@ -728,16 +744,25 @@ const CityModal: React.FC<CityModalProps> = ({
                 </header>
 
                 {/* Mobile Tabs (below header) */}
-                <div className="md:hidden flex border-b border-slate-700 bg-slate-800/50 overflow-x-auto">
+                <div className="md:hidden flex overflow-x-auto"
+                    style={{
+                        borderBottomWidth: '1px',
+                        borderColor: 'var(--border-normal)',
+                        backgroundColor: 'var(--surface-muted)'
+                    }}
+                >
                     {(['overview', 'residents', 'workspaces'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 font-semibold transition-colors whitespace-nowrap ${
+                            className={`px-4 py-2 font-semibold transition-all duration-300 whitespace-nowrap ${
                                 activeTab === tab
                                     ? 'text-amber-300 border-b-2 border-amber-300'
-                                    : 'text-gray-400 hover:text-white'
+                                    : ''
                             }`}
+                            style={activeTab === tab ? {} : {
+                                color: 'var(--text-secondary)'
+                            }}
                         >
                             {tab === 'overview' && 'Overview'}
                             {tab === 'residents' && `Residents (${residents.length})`}
@@ -754,13 +779,25 @@ const CityModal: React.FC<CityModalProps> = ({
                         {/* LLM District Description */}
                         <div className="mb-6">
                             {descriptionLoading ? (
-                                <div className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-lg border border-amber-700/20">
+                                <div className="flex items-center gap-3 p-4 rounded-lg"
+                                    style={{
+                                        backgroundColor: 'var(--surface-muted)',
+                                        borderWidth: '1px',
+                                        borderColor: 'var(--border-normal)'
+                                    }}
+                                >
                                     <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                                    <span className="text-gray-300 text-sm">Observing the district...</span>
+                                    <span className="text-text-secondary text-sm">Observing the district...</span>
                                 </div>
                             ) : (
-                                <div className="animate-in fade-in duration-500 p-4 bg-slate-800/30 rounded-lg border border-amber-700/20">
-                                    <p className="text-gray-200 text-sm leading-relaxed italic">
+                                <div className="animate-in fade-in duration-500 p-4 rounded-lg"
+                                    style={{
+                                        backgroundColor: 'var(--surface-muted)',
+                                        borderWidth: '1px',
+                                        borderColor: 'var(--border-normal)'
+                                    }}
+                                >
+                                    <p className="text-text-primary text-sm leading-relaxed italic">
                                         {cityDescription}
                                     </p>
                                 </div>
@@ -772,47 +809,59 @@ const CityModal: React.FC<CityModalProps> = ({
                             {/* Left Side - District Info */}
                             <div className="space-y-4">
                                 {/* District Information Card */}
-                                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
+                                <section className="rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                                    style={{
+                                        backgroundColor: 'var(--surface-card)',
+                                        borderWidth: '1px',
+                                        borderColor: 'var(--border-normal)'
+                                    }}
+                                >
                                     <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
                                         <FaMapMarkedAlt size={18} /> District Information
                                     </h3>
                                     <div className="grid grid-cols-2 gap-2 text-sm">
-                                        <div className="text-gray-400">Type:</div>
-                                        <div className="text-white capitalize">{tile.biome.replace(/_/g, ' ').toLowerCase()}</div>
-                                        <div className="text-gray-400">Current Time:</div>
-                                        <div className="text-white flex items-center gap-1">
+                                        <div className="text-text-muted">Type:</div>
+                                        <div className="text-text-primary capitalize">{tile.biome.replace(/_/g, ' ').toLowerCase()}</div>
+                                        <div className="text-text-muted">Current Time:</div>
+                                        <div className="text-text-primary flex items-center gap-1">
                                             <FaClock size={12} className="text-amber-400" />
                                             {Math.floor(gameTimeHours)}:00 ({timeOfDay})
                                         </div>
-                                        <div className="text-gray-400">Season:</div>
-                                        <div className="text-white flex items-center gap-1">
+                                        <div className="text-text-muted">Season:</div>
+                                        <div className="text-text-primary flex items-center gap-1">
                                             <FaLeaf size={12} className="text-green-400" />
                                             {season}
                                         </div>
-                                        <div className="text-gray-400">Active Residents:</div>
-                                        <div className="text-white">{residents.length} known</div>
+                                        <div className="text-text-muted">Active Residents:</div>
+                                        <div className="text-text-primary">{residents.length} known</div>
                                     </div>
                                 </section>
 
                                 {/* Housing Information */}
                                 {tileData?.residences && tileData.residences.length > 0 && (
-                                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
+                                    <section className="rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                                        style={{
+                                            backgroundColor: 'var(--surface-card)',
+                                            borderWidth: '1px',
+                                            borderColor: 'var(--border-normal)'
+                                        }}
+                                    >
                                         <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
                                             <FaHome size={18} /> Housing Districts
                                         </h3>
                                         <div className="space-y-2">
                                             {tileData.residences.slice(0, 4).map((residence, idx) => (
                                                 <div key={idx} className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-300">
+                                                    <span className="text-text-primary">
                                                         {residence.type.replace(/_/g, ' ')}
                                                     </span>
-                                                    <span className="text-xs text-gray-500">
+                                                    <span className="text-xs text-text-muted">
                                                         {residence.occupants.length} residents • {residence.wealthLevel}
                                                     </span>
                                                 </div>
                                             ))}
                                             {tileData.residences.length > 4 && (
-                                                <div className="text-xs text-gray-500 italic">
+                                                <div className="text-xs text-text-muted italic">
                                                     +{tileData.residences.length - 4} more residential areas
                                                 </div>
                                             )}
@@ -824,15 +873,21 @@ const CityModal: React.FC<CityModalProps> = ({
                             {/* Right Side - Open Workspaces / Actions */}
                             <div className="space-y-4">
                                 {/* Open Workspaces - Main CTA */}
-                                <section className="bg-gradient-to-br from-amber-700/20 to-amber-800/20 rounded-lg p-6 border border-amber-600/30">
+                                <section className="rounded-lg p-6 transition-all duration-300 hover:shadow-xl"
+                                    style={{
+                                        backgroundColor: 'var(--surface-elevated)',
+                                        borderWidth: '2px',
+                                        borderColor: 'var(--color-warning)'
+                                    }}
+                                >
                                     <h3 className="text-base font-bold text-amber-300 mb-4 flex items-center gap-2">
                                         <FaDoorOpen size={18} /> Enter Open Workspaces
                                     </h3>
 
                                     {openBusinesses.length === 0 ? (
                                         <div className="text-center py-4">
-                                            <p className="text-gray-400 mb-2">No workspaces are open at this hour</p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-text-secondary mb-2">No workspaces are open at this hour</p>
+                                            <p className="text-xs text-text-muted">
                                                 Most businesses open between 8:00 and 20:00
                                             </p>
                                         </div>
@@ -929,29 +984,35 @@ const CityModal: React.FC<CityModalProps> = ({
                                     )}
 
                                     {openBusinesses.length > 0 && (
-                                        <p className="text-xs text-slate-400 text-center italic mt-3">
+                                        <p className="text-xs text-text-muted text-center italic mt-3">
                                             {openBusinesses.length} of {businesses.length} workspaces currently open
                                         </p>
                                     )}
                                 </section>
 
                                 {/* Commerce Status */}
-                                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
+                                <section className="rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                                    style={{
+                                        backgroundColor: 'var(--surface-card)',
+                                        borderWidth: '1px',
+                                        borderColor: 'var(--border-normal)'
+                                    }}
+                                >
                                     <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
                                         <GiShop size={18} /> Commerce Status
                                     </h3>
                                     <div className="space-y-2 text-sm">
                                         <div className="flex justify-between">
-                                            <span className="text-gray-400">Total Workspaces:</span>
-                                            <span className="text-white font-medium">{businesses.length}</span>
+                                            <span className="text-text-muted">Total Workspaces:</span>
+                                            <span className="text-text-primary font-medium">{businesses.length}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-400">Currently Open:</span>
+                                            <span className="text-text-muted">Currently Open:</span>
                                             <span className="text-green-400 font-medium">{openBusinesses.length}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-400">Peak Hours:</span>
-                                            <span className="text-white text-xs">8:00 - 20:00</span>
+                                            <span className="text-text-muted">Peak Hours:</span>
+                                            <span className="text-text-primary text-xs">8:00 - 20:00</span>
                                         </div>
                                     </div>
                                 </section>
@@ -964,28 +1025,34 @@ const CityModal: React.FC<CityModalProps> = ({
                     <div className="p-4 sm:p-6 space-y-2 md:space-y-3">
                         {residents.length === 0 ? (
                             <div>
-                                <p className="text-gray-400 italic">No known residents in this area</p>
-                                <p className="text-xs text-gray-500 mt-2">Residents will appear as you explore and meet people</p>
+                                <p className="text-text-secondary italic">No known residents in this area</p>
+                                <p className="text-xs text-text-muted mt-2">Residents will appear as you explore and meet people</p>
                             </div>
                         ) : (
                             residents.map(npc => {
                                 const isFriend = npc.playerRelationship?.attitude && npc.playerRelationship.attitude > 50;
 
                                 return (
-                                    <div key={npc.id} className="bg-slate-800/50 p-2 md:p-3 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                                    <div key={npc.id} className="p-2 md:p-3 rounded-lg transition-all duration-300 hover:scale-[1.01] hover:shadow-lg"
+                                        style={{
+                                            backgroundColor: 'var(--surface-card)',
+                                            borderWidth: '1px',
+                                            borderColor: 'var(--border-normal)'
+                                        }}
+                                    >
                                         <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-2xl">{npc.emoji}</span>
-                                                <span className="font-semibold text-white">{npc.name}</span>
+                                                <span className="font-semibold text-text-primary">{npc.name}</span>
                                                 {isFriend && <span className="text-green-400 text-xs">👥 Friend</span>}
                                             </div>
-                                            <span className="text-sm text-gray-400">{getActivityStatus(npc)}</span>
+                                            <span className="text-sm text-text-muted">{getActivityStatus(npc)}</span>
                                         </div>
-                                        <div className="text-xs md:text-sm text-gray-300">
+                                        <div className="text-xs md:text-sm text-text-secondary">
                                             {npc.profession || npc.role}
                                         </div>
                                         {npc.workplaceName && (
-                                            <div className="text-[10px] md:text-xs text-gray-500 mt-1">
+                                            <div className="text-[10px] md:text-xs text-text-muted mt-1">
                                                 Works at: {npc.workplaceName}
                                             </div>
                                         )}
@@ -995,7 +1062,7 @@ const CityModal: React.FC<CityModalProps> = ({
                                                     // Visiting friend
                                                     alert(`Visiting ${npc.name}'s home...\n\n(Home visits coming soon!)`);
                                                 }}
-                                                className="mt-2 px-2 py-1 bg-green-700 hover:bg-green-600 text-white text-xs rounded transition-colors"
+                                                className="mt-2 px-2 py-1 bg-green-700 hover:bg-green-600 text-white text-xs rounded transition-all duration-300 hover:scale-105 active:scale-95"
                                             >
                                                 🏠 Visit Home
                                             </button>
@@ -1010,31 +1077,47 @@ const CityModal: React.FC<CityModalProps> = ({
                 {activeTab === 'workspaces' && (
                     <div className="p-4 sm:p-6 space-y-2 md:space-y-3">
                         {businesses.length === 0 ? (
-                            <p className="text-gray-400 italic">No established workspaces in this area</p>
+                            <p className="text-text-secondary italic">No established workspaces in this area</p>
                         ) : (
                             businesses.map(business => {
                                 const owner = allNpcs.find(n => n.id === business.ownerId);
                                 const isOpen = isBusinessOpen(business);
 
                                 return (
-                                    <div key={business.id} className="bg-slate-800/50 p-2 md:p-3 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                                    <div key={business.id} className="p-2 md:p-3 rounded-lg transition-all duration-300 hover:scale-[1.01] hover:shadow-lg"
+                                        style={{
+                                            backgroundColor: 'var(--surface-card)',
+                                            borderWidth: '1px',
+                                            borderColor: 'var(--border-normal)'
+                                        }}
+                                    >
                                         <div className="flex items-center justify-between mb-2">
-                                            <h4 className="font-semibold text-white">{business.name}</h4>
-                                            <span className={`text-sm font-medium ${
-                                                isOpen ? 'text-green-400' : 'text-red-400'
+                                            <h4 className="font-semibold text-text-primary">{business.name}</h4>
+                                            <span className={`text-sm font-medium inline-flex items-center gap-1 transition-all duration-300 ${
+                                                isOpen ? 'text-green-400' : 'text-[color:var(--color-error)]'
                                             }`}>
-                                                {isOpen ? '✅ Open' : '❌ Closed'}
+                                                {isOpen ? (
+                                                    <>
+                                                        <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                                        Open
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-error)' }}></span>
+                                                        Closed
+                                                    </>
+                                                )}
                                             </span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 text-xs md:text-sm mb-3">
-                                            <div className="text-gray-400">Type:</div>
-                                            <div className="text-gray-300">{business.type.replace(/_/g, ' ')}</div>
-                                            <div className="text-gray-400">Owner:</div>
-                                            <div className="text-gray-300">
+                                            <div className="text-text-muted">Type:</div>
+                                            <div className="text-text-primary">{business.type.replace(/_/g, ' ')}</div>
+                                            <div className="text-text-muted">Owner:</div>
+                                            <div className="text-text-primary">
                                                 {owner ? `${owner.emoji} ${owner.name}` : 'Unknown'}
                                             </div>
-                                            <div className="text-gray-400">Hours:</div>
-                                            <div className="text-gray-300">
+                                            <div className="text-text-muted">Hours:</div>
+                                            <div className="text-text-primary">
                                                 {business.openHours ?
                                                     `${business.openHours[0]}:00 - ${business.openHours[1]}:00` :
                                                     'Unknown'}
@@ -1096,13 +1179,18 @@ const CityModal: React.FC<CityModalProps> = ({
                                                         alert(`Entering ${business.name}...\n\n(Special map generation for workspaces coming soon!)`);
                                                     }
                                                 }}
-                                                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-md transition-colors text-sm"
+                                                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 text-sm"
                                             >
                                                 🚪 Enter Workspace
                                             </button>
                                         )}
                                         {!isOpen && (
-                                            <div className="w-full px-3 py-2 bg-gray-700 text-gray-400 text-center rounded-md text-sm">
+                                            <div className="w-full px-3 py-2 text-center rounded-md text-sm"
+                                                style={{
+                                                    backgroundColor: 'var(--surface-muted)',
+                                                    color: 'var(--text-muted)'
+                                                }}
+                                            >
                                                 Closed - Come back {business.openHours ? `at ${business.openHours[0]}:00` : 'later'}
                                             </div>
                                         )}
@@ -1115,7 +1203,13 @@ const CityModal: React.FC<CityModalProps> = ({
             </div>
 
             {/* Footer with buttons */}
-            <footer className="flex justify-between items-center p-3 md:p-4 border-t border-slate-700 bg-slate-800/50 shrink-0">
+            <footer className="flex justify-between items-center p-3 md:p-4 shrink-0"
+                style={{
+                    borderTopWidth: '1px',
+                    borderColor: 'var(--border-normal)',
+                    backgroundColor: 'var(--surface-muted)'
+                }}
+            >
                 {/* Debug button for testing - remove in production */}
                 <button
                     onClick={() => {
@@ -1126,7 +1220,7 @@ const CityModal: React.FC<CityModalProps> = ({
                         // Refresh the page to trigger regeneration
                         window.location.reload();
                     }}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded text-sm transition-colors"
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
                     title="Debug: Clear cached businesses and regenerate for this tile"
                 >
                     🔄 Regenerate Businesses
@@ -1134,7 +1228,7 @@ const CityModal: React.FC<CityModalProps> = ({
 
                 <button
                     onClick={onClose}
-                    className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-500 transition-colors"
+                    className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-500 transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95"
                 >
                     Leave District
                 </button>

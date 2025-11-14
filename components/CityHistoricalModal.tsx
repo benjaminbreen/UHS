@@ -157,40 +157,53 @@ export const CityHistoricalModal: React.FC<CityHistoricalModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+      <div className="relative rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden surface-card animate-popIn"
+        style={{
+          borderWidth: '1px',
+          borderColor: 'var(--border-normal)'
+        }}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 border-b border-slate-700 px-6 py-4">
+        <div className="px-6 py-4"
+          style={{
+            background: 'linear-gradient(to right, var(--surface-elevated), var(--surface-card))',
+            borderBottomWidth: '1px',
+            borderColor: 'var(--border-normal)'
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <MapPin className="w-6 h-6 text-cyan-400" />
-              <h2 className="text-2xl font-bold text-cyan-300">{cityName}</h2>
+              <h2 className="text-2xl font-bold text-cyan-400 dark:text-cyan-300">{cityName}</h2>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-1.5 rounded-lg transition-all duration-200 hover:scale-110"
+              style={{ backgroundColor: 'var(--surface-muted)' }}
               aria-label="Close modal"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5 text-text-secondary" />
             </button>
           </div>
 
           {/* Date, Time and Weather Badge */}
           <div className="flex items-center gap-4 mt-3 text-sm">
-            <div className="flex items-center gap-1.5 text-amber-300">
+            <div className="flex items-center gap-1.5 text-amber-500 dark:text-amber-300">
               <Calendar className="w-4 h-4" />
               <span>{dateStr}</span>
             </div>
-            <div className="text-slate-400">•</div>
-            <div className="text-slate-300 capitalize">{timeOfDay}</div>
+            <div className="text-text-muted">•</div>
+            <div className="text-text-primary capitalize">{timeOfDay}</div>
             {weather && (
               <>
-                <div className="text-slate-400">•</div>
-                <div className="flex items-center gap-1.5 text-blue-300">
+                <div className="text-text-muted">•</div>
+                <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-300">
                   {weather.precipitation === 'rain' ? <CloudRain className="w-4 h-4" /> :
                    weather.precipitation === 'snow' ? <CloudSnow className="w-4 h-4" /> :
                    weather.cloudCover > 0.5 ? <Cloud className="w-4 h-4" /> :
@@ -207,19 +220,29 @@ export const CityHistoricalModal: React.FC<CityHistoricalModalProps> = ({
           {/* Historical Description */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <Info className="w-5 h-5 text-blue-400" />
-              <h3 className="text-lg font-semibold text-blue-300">Historical Context</h3>
+              <Info className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300">Historical Context</h3>
             </div>
 
             {isLoadingDescription ? (
-              <div className="bg-slate-800/50 rounded-lg p-4 animate-pulse">
-                <div className="h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-slate-700 rounded w-full mb-2"></div>
-                <div className="h-4 bg-slate-700 rounded w-5/6"></div>
+              <div className="rounded-lg p-4 animate-pulse"
+                style={{
+                  backgroundColor: 'var(--surface-muted)'
+                }}
+              >
+                <div className="h-4 rounded w-3/4 mb-2" style={{ backgroundColor: 'var(--surface-elevated)' }}></div>
+                <div className="h-4 rounded w-full mb-2" style={{ backgroundColor: 'var(--surface-elevated)' }}></div>
+                <div className="h-4 rounded w-5/6" style={{ backgroundColor: 'var(--surface-elevated)' }}></div>
               </div>
             ) : (
-              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                <p className="text-slate-200 leading-relaxed">
+              <div className="rounded-lg p-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-lg"
+                style={{
+                  backgroundColor: 'var(--surface-muted)',
+                  borderWidth: '1px',
+                  borderColor: 'var(--border-normal)'
+                }}
+              >
+                <p className="text-text-primary leading-relaxed">
                   {llmDescription || cityDescription || 'A settlement of this era.'}
                 </p>
               </div>
@@ -230,18 +253,23 @@ export const CityHistoricalModal: React.FC<CityHistoricalModalProps> = ({
           {nearbyNpcs.length > 0 && (
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
-                <Users className="w-5 h-5 text-green-400" />
-                <h3 className="text-lg font-semibold text-green-300">Notable Residents</h3>
+                <Users className="w-5 h-5 text-green-500 dark:text-green-400" />
+                <h3 className="text-lg font-semibold text-green-600 dark:text-green-300">Notable Residents</h3>
               </div>
               <div className="flex flex-wrap gap-2">
                 {nearbyNpcs.slice(0, 8).map((npc, index) => (
                   <div
                     key={index}
-                    className="bg-green-900/20 border border-green-700/30 rounded-md px-3 py-1.5 text-sm"
+                    className="rounded-md px-3 py-1.5 text-sm transition-all duration-300 hover:scale-105 hover:shadow-md cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--surface-elevated)',
+                      borderWidth: '1px',
+                      borderColor: 'var(--color-success)'
+                    }}
                   >
-                    <span className="text-green-200 font-medium">{npc.name}</span>
-                    <span className="text-green-400 mx-1">•</span>
-                    <span className="text-green-300 text-xs capitalize">
+                    <span className="text-text-primary font-medium">{npc.name}</span>
+                    <span className="text-green-500 dark:text-green-400 mx-1">•</span>
+                    <span className="text-text-secondary text-xs capitalize">
                       {npc.role?.replace(/_/g, ' ').toLowerCase() || 'citizen'}
                     </span>
                   </div>
@@ -253,55 +281,72 @@ export const CityHistoricalModal: React.FC<CityHistoricalModalProps> = ({
           {/* AI-Generated Image */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 text-purple-400" />
-              <h3 className="text-lg font-semibold text-purple-300">Visual Reconstruction</h3>
+              <Sparkles className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+              <h3 className="text-lg font-semibold text-purple-600 dark:text-purple-300">Visual Reconstruction</h3>
             </div>
 
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+            <div className="rounded-lg p-4 transition-all duration-300 hover:shadow-lg"
+              style={{
+                backgroundColor: 'var(--surface-muted)',
+                borderWidth: '1px',
+                borderColor: 'var(--border-normal)'
+              }}
+            >
               {isGeneratingImage ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mb-4"></div>
-                  <p className="text-slate-400 text-sm">Generating historical scene...</p>
-                  <p className="text-slate-500 text-xs mt-1">This may take a moment</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 dark:border-purple-400 mb-4"></div>
+                  <p className="text-text-secondary text-sm">Generating historical scene...</p>
+                  <p className="text-text-muted text-xs mt-1">This may take a moment</p>
                 </div>
               ) : imageUrl ? (
                 <div className="space-y-3">
                   <img
                     src={imageUrl}
                     alt={`Historical view of ${cityName}`}
-                    className="w-full rounded-lg border border-slate-600/50"
-                    style={{ maxHeight: '400px', objectFit: 'cover' }}
+                    className="w-full rounded-lg transition-all duration-300 hover:scale-[1.02]"
+                    style={{
+                      maxHeight: '400px',
+                      objectFit: 'cover',
+                      borderWidth: '1px',
+                      borderColor: 'var(--border-normal)'
+                    }}
                   />
                   <div className="flex items-center justify-between text-xs">
-                    <p className="text-slate-400">AI-generated historical reconstruction</p>
+                    <p className="text-text-muted">AI-generated historical reconstruction</p>
                     {imagePrompt && (
                       <button
                         onClick={() => setShowPrompt(!showPrompt)}
-                        className="text-purple-400 hover:text-purple-300 underline transition-colors"
+                        className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 underline transition-all duration-200 hover:scale-105"
                       >
                         {showPrompt ? 'Hide' : 'Show'} Generation Details
                       </button>
                     )}
                   </div>
                   {showPrompt && imagePrompt && (
-                    <div className="mt-3 p-3 bg-slate-900/50 rounded border border-slate-700/50">
-                      <p className="text-xs font-semibold text-purple-300 mb-2">Image Generation Prompt:</p>
-                      <p className="text-xs text-slate-300 break-words leading-relaxed">{imagePrompt}</p>
+                    <div className="mt-3 p-3 rounded animate-in fade-in duration-300"
+                      style={{
+                        backgroundColor: 'var(--surface-elevated)',
+                        borderWidth: '1px',
+                        borderColor: 'var(--border-normal)'
+                      }}
+                    >
+                      <p className="text-xs font-semibold text-purple-600 dark:text-purple-300 mb-2">Image Generation Prompt:</p>
+                      <p className="text-xs text-text-primary break-words leading-relaxed">{imagePrompt}</p>
                     </div>
                   )}
                 </div>
               ) : imageError ? (
                 <div className="text-center py-8">
-                  <p className="text-red-400 text-sm">{imageError}</p>
+                  <p className="text-[color:var(--color-error)] text-sm">{imageError}</p>
                   {!imageGenerationService.isAvailable() && (
-                    <p className="text-slate-500 text-xs mt-2">
+                    <p className="text-text-muted text-xs mt-2">
                       Image generation requires Runware API key in .env.local
                     </p>
                   )}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-slate-500 text-sm">No image available</p>
+                  <p className="text-text-muted text-sm">No image available</p>
                 </div>
               )}
             </div>

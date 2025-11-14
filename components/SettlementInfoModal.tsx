@@ -36,12 +36,12 @@ interface SettlementInfoModalProps {
 }
 
 const DetailRow: React.FC<{ label: string; value: string | number | React.ReactNode; icon?: string }> = ({ label, value, icon }) => (
-    <div className="flex justify-between items-baseline py-1.5 border-b border-slate-700/50">
-        <span className="text-slate-400 flex items-center gap-2">
+    <div className="flex justify-between items-baseline py-1.5 border-b border-[var(--border-normal)]">
+        <span className="text-[var(--text-muted)] flex items-center gap-2">
             {icon && <span className="text-base">{icon}</span>}
             {label}
         </span>
-        <span className="text-white font-semibold text-right">{value}</span>
+        <span className="text-[var(--text-primary)] font-semibold text-right">{value}</span>
     </div>
 );
 
@@ -289,11 +289,11 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
     // Get housing icon based on wealth
     const getHousingIcon = (wealthLevel: string): React.ReactNode => {
         switch(wealthLevel) {
-            case 'poor': return <Tent className="w-4 h-4 text-gray-500" />;
-            case 'modest': return <Home className="w-4 h-4 text-blue-400" />;
-            case 'comfortable': return <Building2 className="w-4 h-4 text-green-400" />;
+            case 'poor': return <Tent className="w-4 h-4 text-[var(--text-muted)]" />;
+            case 'modest': return <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+            case 'comfortable': return <Building2 className="w-4 h-4 text-green-600 dark:text-green-400" />;
             case 'wealthy': return <Castle className="w-4 h-4 text-yellow-400" />;
-            default: return <Home className="w-4 h-4 text-gray-400" />;
+            default: return <Home className="w-4 h-4 text-[var(--text-muted)]" />;
         }
     };
 
@@ -318,12 +318,12 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
             'working': { color: 'bg-green-500', pulse: true },
             'commuting_to_work': { color: 'bg-yellow-500' },
             'commuting_home': { color: 'bg-orange-500' },
-            'idle': { color: 'bg-gray-500' },
+            'idle': { color: 'bg-[var(--surface-muted)]' },
             'sleeping': { color: 'bg-purple-500' },
             'wandering': { color: 'bg-blue-500' },
             'traveling': { color: 'bg-cyan-500' }
         };
-        const config = configs[activity] || { color: 'bg-gray-400' };
+        const config = configs[activity] || { color: 'bg-[var(--surface-muted)]' };
         return (
             <span className={`inline-block w-2 h-2 rounded-full ${config.color} ${config.pulse ? 'animate-pulse' : ''}`} />
         );
@@ -766,7 +766,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
             case BiomeType.CITY_CENTER:
                  return <CityBanner {...bannerProps} size={population > 500 ? 'big_city' : 'smaller_city'} height={240} aiGeneratedImageUrl={cachedCityImage} />;
             default:
-                return <div className="w-full h-[150px] bg-slate-700" />;
+                return <div className="w-full h-[150px] bg-[var(--surface-muted)]" />;
         }
     };
     
@@ -779,13 +779,14 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
         >
             <div
                 data-surface="modal-panel"
-                className="theme-surface bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-primary-lg w-full max-w-4xl flex flex-col animate-popIn"
+                className="theme-surface bg-modal-bg-gradient border border-[var(--border-normal)] rounded-2xl shadow-glow-primary-lg w-full max-w-4xl flex flex-col animate-popIn"
                 style={{maxHeight: '90vh'}}
                 onClick={e => e.stopPropagation()}
             >
                  <header className="relative w-full h-[260px] rounded-t-xl overflow-hidden shrink-0">
                     {renderBanner()}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/60 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t to-transparent"
+                        style={{ background: 'linear-gradient(to top, var(--bg-primary) 0%, transparent 100%)' }}></div>
 
                     {/* Overlaid information on banner - styled like MarketplaceModal */}
                     <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -794,7 +795,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                 <h2 className="text-3xl font-bold text-white mb-1" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                                     {name}
                                 </h2>
-                                <p className="text-sm text-gray-200 italic mb-2" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+                                <p className="text-sm text-[var(--text-secondary)] italic mb-2" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
                                     {description}
                                 </p>
                                 {/* Key stats in banner */}
@@ -805,7 +806,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                     </div>
                                     {businesses.length > 0 && (
                                         <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2 py-1 rounded">
-                                            <Store className="w-4 h-4 text-green-400" />
+                                            <Store className="w-4 h-4 text-green-600 dark:text-green-400" />
                                             <span className="text-white font-medium">
                                                 {businesses.filter(b => isBusinessOpen(b)).length}/{businesses.length} shops open
                                             </span>
@@ -831,12 +832,12 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                 </header>
 
                 {/* Tabs */}
-                <div className="flex border-b border-slate-700 bg-slate-800/50">
+                <div className="flex border-b border-[var(--border-normal)] bg-[var(--surface-muted-bg)]">
                     <button
                         className={`px-4 py-2 font-semibold transition-colors ${
                             activeTab === 'overview'
-                                ? 'text-amber-300 border-b-2 border-amber-300'
-                                : 'text-gray-400 hover:text-white'
+                                ? 'text-amber-600 dark:text-amber-600 dark:text-amber-300 border-b-2 border-amber-600 dark:border-amber-300'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                         }`}
                         onClick={() => setActiveTab('overview')}
                     >
@@ -845,8 +846,8 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                     <button
                         className={`px-4 py-2 font-semibold transition-colors ${
                             activeTab === 'residents'
-                                ? 'text-amber-300 border-b-2 border-amber-300'
-                                : 'text-gray-400 hover:text-white'
+                                ? 'text-amber-600 dark:text-amber-600 dark:text-amber-300 border-b-2 border-amber-600 dark:border-amber-300'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                         }`}
                         onClick={() => setActiveTab('residents')}
                     >
@@ -855,8 +856,8 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                     <button
                         className={`px-4 py-2 font-semibold transition-colors ${
                             activeTab === 'businesses'
-                                ? 'text-amber-300 border-b-2 border-amber-300'
-                                : 'text-gray-400 hover:text-white'
+                                ? 'text-amber-600 dark:text-amber-600 dark:text-amber-300 border-b-2 border-amber-600 dark:border-amber-300'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                         }`}
                         onClick={() => setActiveTab('businesses')}
                     >
@@ -872,17 +873,17 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 {/* Active Businesses */}
                                 <div className="p-4 bg-gradient-to-br from-green-900/30 to-emerald-900/20 border border-green-700/50 rounded-lg">
-                                    <h4 className="font-semibold text-base text-green-400 mb-3 flex items-center gap-2">
+                                    <h4 className="font-semibold text-base text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
                                         <Store className="w-4 h-4" />
                                         Local Businesses
                                         {businesses.filter(b => isBusinessOpen(b)).length > 0 && (
-                                            <span className="ml-auto text-xs font-normal text-green-300 bg-green-900/50 px-2 py-0.5 rounded-full">
+                                            <span className="ml-auto text-xs font-normal text-green-600 dark:text-green-300 bg-green-900/50 px-2 py-0.5 rounded-full">
                                                 {businesses.filter(b => isBusinessOpen(b)).length} open
                                             </span>
                                         )}
                                     </h4>
                                     {businesses.length === 0 ? (
-                                        <div className="text-center py-4 text-gray-400">
+                                        <div className="text-center py-4 text-[var(--text-muted)]">
                                             <Building2 className="w-8 h-8 mx-auto opacity-30 mb-2" />
                                             <p className="text-xs">No businesses in this area</p>
                                         </div>
@@ -898,42 +899,42 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                                             className={`group cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between p-2 rounded ${
                                                                 isOpen
                                                                     ? 'bg-green-900/30 border border-green-700/30 hover:bg-green-900/40'
-                                                                    : 'bg-slate-900/30 border border-slate-700/30 hover:bg-slate-900/40'
+                                                                    : 'bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]/30 hover:bg-[var(--surface-muted-bg)]'
                                                             }`}
                                                             onClick={() => setActiveTab('businesses')}
                                                         >
                                                             <div className="flex items-center gap-2 min-w-0">
                                                                 <CircleDot className={`w-3 h-3 shrink-0 ${
-                                                                    isOpen ? 'text-green-400 animate-pulse' : 'text-gray-500'
+                                                                    isOpen ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-[var(--text-muted)]'
                                                                 }`} />
                                                                 <div className="min-w-0">
-                                                                    <p className="font-medium text-white text-sm truncate">{business.name}</p>
-                                                                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                                    <p className="font-medium text-[var(--text-primary)] text-sm truncate">{business.name}</p>
+                                                                    <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                                                                         <span className="truncate">
                                                                             {business.type.replace(/_/g, ' ').toLowerCase()}
                                                                         </span>
-                                                                        <span className="text-gray-600">•</span>
-                                                                        <span className="text-gray-500">
+                                                                        <span className="text-[var(--text-muted)]">•</span>
+                                                                        <span className="text-[var(--text-muted)]">
                                                                             {current}/{max} workers
                                                                         </span>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-xs text-gray-400 shrink-0 ml-2">
+                                                            <div className="text-xs text-[var(--text-muted)] shrink-0 ml-2">
                                                                 {business.openHours ? `${business.openHours[0]}-${business.openHours[1]}h` : '—'}
                                                             </div>
                                                         </div>
                                                         {/* Supply Chain Visualization */}
                                                         {supplyChain.steps.length > 0 && (
-                                                            <div className="ml-4 mt-1 flex items-center gap-1 text-xs text-gray-500">
+                                                            <div className="ml-4 mt-1 flex items-center gap-1 text-xs text-[var(--text-muted)]">
                                                                 {supplyChain.steps.map((step, i) => (
                                                                     <React.Fragment key={i}>
                                                                         <div className="flex items-center gap-1">
-                                                                            <span className="text-gray-400">{supplyChain.icons[i]}</span>
+                                                                            <span className="text-[var(--text-muted)]">{supplyChain.icons[i]}</span>
                                                                             <span className="text-[10px]">{step}</span>
                                                                         </div>
                                                                         {i < supplyChain.steps.length - 1 && (
-                                                                            <ArrowRight className="w-3 h-3 text-gray-600" />
+                                                                            <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
                                                                         )}
                                                                     </React.Fragment>
                                                                 ))}
@@ -945,7 +946,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                             {businesses.length > 3 && (
                                                 <button
                                                     onClick={() => setActiveTab('businesses')}
-                                                    className="text-xs text-green-400 hover:text-green-300 italic text-center py-1 transition-colors"
+                                                    className="text-xs text-green-600 dark:text-green-400 hover:text-green-600 dark:text-green-300 italic text-center py-1 transition-colors"
                                                 >
                                                     +{businesses.length - 3} more →
                                                 </button>
@@ -956,15 +957,15 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
 
                                 {/* Current Residents Summary */}
                                 <div className="p-4 bg-gradient-to-br from-blue-900/30 to-indigo-900/20 border border-blue-700/50 rounded-lg">
-                                    <h4 className="font-semibold text-base text-blue-400 mb-3 flex items-center gap-2">
+                                    <h4 className="font-semibold text-base text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
                                         <Users className="w-4 h-4" />
                                         Current Residents
-                                        <span className="ml-auto text-xs font-normal text-blue-300 bg-blue-900/50 px-2 py-0.5 rounded-full">
+                                        <span className="ml-auto text-xs font-normal text-blue-600 dark:text-blue-300 bg-blue-900/50 px-2 py-0.5 rounded-full">
                                             {residents.length || representativeInhabitants.length} here
                                         </span>
                                     </h4>
                                     {residents.length === 0 && representativeInhabitants.length === 0 ? (
-                                        <div className="text-center py-4 text-gray-400">
+                                        <div className="text-center py-4 text-[var(--text-muted)]">
                                             <User className="w-8 h-8 mx-auto opacity-30 mb-2" />
                                             <p className="text-xs">No residents visible</p>
                                         </div>
@@ -979,21 +980,21 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                                 return (
                                                     <div key={idx}>
                                                         <div
-                                                            className="group cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-700/30 hover:bg-slate-900/40"
+                                                            className="group cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between p-2 bg-[var(--surface-muted-bg)] rounded border border-[var(--border-normal)]/30 hover:bg-[var(--surface-muted-bg)]"
                                                             onClick={() => setActiveTab('residents')}
                                                         >
                                                             <div className="flex items-center gap-2 min-w-0">
                                                                 {/* Activity status dot */}
                                                                 {npc.activity && getActivityDot(npc.activity)}
-                                                                <User className="w-4 h-4 text-gray-400 shrink-0" />
+                                                                <User className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
                                                                 <div className="min-w-0 flex-1">
-                                                                    <p className="font-medium text-white text-sm truncate">{person.name}</p>
-                                                                    <p className="text-xs text-gray-400 truncate">
+                                                                    <p className="font-medium text-[var(--text-primary)] text-sm truncate">{person.name}</p>
+                                                                    <p className="text-xs text-[var(--text-muted)] truncate">
                                                                         {person.profession || person.role}
                                                                     </p>
                                                                     {/* Work progress bar */}
                                                                     {hasWork && (
-                                                                        <div className="mt-1 h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                                                                        <div className="mt-1 h-1 bg-[var(--surface-muted-bg)] rounded-full overflow-hidden">
                                                                             <div
                                                                                 className="h-full bg-green-500/70 transition-all duration-300"
                                                                                 style={{ width: `${workProgress}%` }}
@@ -1002,7 +1003,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                                                     )}
                                                                 </div>
                                                             </div>
-                                                            <div className="text-xs text-gray-400 shrink-0 ml-2">
+                                                            <div className="text-xs text-[var(--text-muted)] shrink-0 ml-2">
                                                                 {statusText}
                                                             </div>
                                                         </div>
@@ -1012,7 +1013,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                             {(residents.length > 3 || representativeInhabitants.length > 3) && (
                                                 <button
                                                     onClick={() => setActiveTab('residents')}
-                                                    className="text-xs text-blue-400 hover:text-blue-300 italic text-center py-1 transition-colors"
+                                                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-600 dark:text-blue-300 italic text-center py-1 transition-colors"
                                                 >
                                                     View all →
                                                 </button>
@@ -1026,13 +1027,13 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                             <div className="grid grid-cols-2 gap-3">
                                 {/* Religious makeup */}
                                 {tile.dominantReligions && tile.dominantReligions.length > 0 && (
-                                    <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-                                        <h5 className="text-sm font-semibold text-amber-300 mb-2">Faith</h5>
+                                    <div className="p-3 bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] rounded-lg">
+                                        <h5 className="text-sm font-semibold text-amber-600 dark:text-amber-300 mb-2">Faith</h5>
                                         <div className="space-y-1">
                                             {tile.dominantReligions.slice(0, 2).map((r: any) => (
                                                 <div key={r.name} className="text-xs">
-                                                    <span className="text-gray-400">{r.name}:</span>
-                                                    <span className="text-white ml-1">{Math.round(r.percentage * 100)}%</span>
+                                                    <span className="text-[var(--text-muted)]">{r.name}:</span>
+                                                    <span className="text-[var(--text-primary)] ml-1">{Math.round(r.percentage * 100)}%</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1041,23 +1042,23 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
 
                                 {/* Prominent families */}
                                 {families.length > 0 && (
-                                    <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-                                        <h5 className="text-sm font-semibold text-purple-300 mb-2">Families</h5>
-                                        <p className="text-xs text-white">{families.slice(0, 3).join(', ')}</p>
+                                    <div className="p-3 bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] rounded-lg">
+                                        <h5 className="text-sm font-semibold text-purple-600 dark:text-purple-300 mb-2">Families</h5>
+                                        <p className="text-xs text-[var(--text-primary)]">{families.slice(0, 3).join(', ')}</p>
                                     </div>
                                 )}
 
                                 {/* Economic focus */}
-                                <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-                                    <h5 className="text-sm font-semibold text-green-300 mb-2">Economy</h5>
-                                    <p className="text-xs text-white">
+                                <div className="p-3 bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] rounded-lg">
+                                    <h5 className="text-sm font-semibold text-green-600 dark:text-green-300 mb-2">Economy</h5>
+                                    <p className="text-xs text-[var(--text-primary)]">
                                         {settlementProfessions.slice(0, 2).join(', ') || 'Subsistence'}
                                     </p>
                                 </div>
 
                                 {/* Housing summary */}
                                 {tileData?.residences && tileData.residences.length > 0 && (
-                                    <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                                    <div className="p-3 bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] rounded-lg">
                                         <h5 className="text-sm font-semibold text-cyan-300 mb-2 flex items-center gap-2">
                                             <HomeIcon className="w-4 h-4" />
                                             Housing
@@ -1071,11 +1072,11 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                             ).map(([wealth, count]: [string, any]) => (
                                                 <div key={wealth} className="flex items-center gap-2 text-xs">
                                                     {getHousingIcon(wealth)}
-                                                    <span className="text-gray-400 capitalize">{wealth}:</span>
-                                                    <span className="text-white">{count}</span>
+                                                    <span className="text-[var(--text-muted)] capitalize">{wealth}:</span>
+                                                    <span className="text-[var(--text-primary)]">{count}</span>
                                                 </div>
                                             ))}
-                                            <div className="text-xs text-gray-400 mt-1">
+                                            <div className="text-xs text-[var(--text-muted)] mt-1">
                                                 {tileData.residences.reduce((sum: number, r: any) => sum + r.occupants.length, 0)} total residents
                                             </div>
                                         </div>
@@ -1090,19 +1091,19 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                             {residents.length > 0 ? (
                                 // Show actual NPCs with activity status
                                 residents.map(npc => (
-                                    <div key={npc.id} className="bg-slate-800/50 p-3 rounded-lg">
+                                    <div key={npc.id} className="bg-[var(--surface-muted-bg)] p-3 rounded-lg">
                                         <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-2xl">{npc.emoji}</span>
-                                                <span className="font-semibold text-white">{npc.name}</span>
+                                                <span className="font-semibold text-[var(--text-primary)]">{npc.name}</span>
                                             </div>
-                                            <span className="text-sm text-gray-400">{getActivityStatus(npc)}</span>
+                                            <span className="text-sm text-[var(--text-muted)]">{getActivityStatus(npc)}</span>
                                         </div>
-                                        <div className="text-sm text-gray-300">
+                                        <div className="text-sm text-[var(--text-secondary)]">
                                             {npc.profession || npc.role}
                                         </div>
                                         {npc.workplaceName && (
-                                            <div className="text-xs text-gray-500 mt-1">
+                                            <div className="text-xs text-[var(--text-muted)] mt-1">
                                                 Works at: {npc.workplaceName}
                                             </div>
                                         )}
@@ -1111,21 +1112,21 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                             ) : representativeInhabitants.length > 0 ? (
                                 // Fallback to representative inhabitants if no actual NPCs
                                 <div className="space-y-3">
-                                    <p className="text-gray-400 italic text-sm">Showing representative inhabitants (NPCs not currently loaded)</p>
+                                    <p className="text-[var(--text-muted)] italic text-sm">Showing representative inhabitants (NPCs not currently loaded)</p>
                                     {representativeInhabitants.map((p, i) => {
                                         const isSelected = selectedNpcId === p.name;
                                         return (
                                             <div
                                                 key={i}
-                                                className={`bg-slate-900/50 p-3 rounded-md flex items-center gap-4 border transition-all cursor-pointer hover:bg-slate-800/70 hover:border-cyan-400/50 ${
+                                                className={`bg-[var(--surface-muted-bg)] p-3 rounded-md flex items-center gap-4 border transition-all cursor-pointer hover:bg-[var(--surface-muted-bg)] hover:border-cyan-400/50 ${
                                                     isSelected
-                                                        ? 'border-cyan-400 bg-slate-800/70 shadow-cyan-400/25 shadow-md'
-                                                        : 'border-slate-700/50'
+                                                        ? 'border-cyan-400 bg-[var(--surface-muted-bg)] shadow-cyan-400/25 shadow-md'
+                                                        : 'border-[var(--border-normal)]'
                                                 }`}
                                                 onClick={() => handleNpcClick(p)}
                                                 title="Click to speak with this person"
                                             >
-                                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
+                                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--border-normal)] shrink-0 bg-[var(--surface-muted)]">
                                                     <ProceduralPortrait
                                                         character={p as any}
                                                         size={64}
@@ -1134,8 +1135,8 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                                     />
                                                 </div>
                                                 <div className="text-left">
-                                                    <p className="font-bold text-sm text-white">{p.name}</p>
-                                                    <p className="text-xs text-slate-400">{p.age}, {p.profession}</p>
+                                                    <p className="font-bold text-sm text-[var(--text-primary)]">{p.name}</p>
+                                                    <p className="text-xs text-[var(--text-muted)]">{p.age}, {p.profession}</p>
                                                     {p.diseaseStatus && (
                                                         <p className="text-xs text-orange-500 font-medium">
                                                             {typeof p.diseaseStatus === 'string'
@@ -1159,7 +1160,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                         }`}>
                                             <div className="flex items-start gap-3">
                                                 <div className="w-2 h-2 bg-amber-400 rounded-full mt-2 animate-pulse"></div>
-                                                <div className="text-amber-100 text-sm leading-relaxed italic">
+                                                <div className="text-[var(--text-primary)] text-sm leading-relaxed italic">
                                                     "{dialogueText}"
                                                 </div>
                                             </div>
@@ -1167,7 +1168,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                     )}
                                 </div>
                             ) : (
-                                <p className="text-gray-400 italic">No known residents in this area</p>
+                                <p className="text-[var(--text-muted)] italic">No known residents in this area</p>
                             )}
                         </div>
                     )}
@@ -1175,16 +1176,16 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                     {activeTab === 'businesses' && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                     <Store className="w-5 h-5 text-amber-400" />
                                     Local Businesses
                                 </h3>
-                                <span className="text-sm text-gray-400 bg-black/40 px-2 py-1 rounded">
+                                <span className="text-sm text-[var(--text-muted)] bg-black/40 px-2 py-1 rounded">
                                     {businesses.filter(b => isBusinessOpen(b)).length}/{businesses.length} open
                                 </span>
                             </div>
                             {businesses.length === 0 ? (
-                                <div className="text-center py-8 text-gray-400">
+                                <div className="text-center py-8 text-[var(--text-muted)]">
                                     <Store className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     <p className="italic">No businesses in this area</p>
                                 </div>
@@ -1195,19 +1196,19 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                     const supplyChain = getSupplyChain(business.type);
 
                                     return (
-                                        <div key={idx} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/30">
+                                        <div key={idx} className="bg-[var(--surface-muted-bg)] p-4 rounded-lg border border-[var(--border-normal)]/30">
                                             {/* Business Header */}
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <Store className="w-5 h-5 text-amber-400" />
-                                                    <span className="font-semibold text-white text-lg">{business.name}</span>
+                                                    <span className="font-semibold text-[var(--text-primary)] text-lg">{business.name}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <CircleDot className={`w-4 h-4 ${
-                                                        isOpen ? 'text-green-400 animate-pulse' : 'text-red-400'
+                                                        isOpen ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-red-400'
                                                     }`} />
                                                     <span className={`text-sm font-medium ${
-                                                        isOpen ? 'text-green-400' : 'text-red-400'
+                                                        isOpen ? 'text-green-600 dark:text-green-400' : 'text-red-400'
                                                     }`}>
                                                         {isOpen ? 'Open' : 'Closed'}
                                                     </span>
@@ -1217,29 +1218,29 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                             {/* Business Details */}
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-4 text-sm">
-                                                    <div className="flex items-center gap-1.5 text-gray-300">
-                                                        <Building2 className="w-3 h-3 text-gray-500" />
+                                                    <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+                                                        <Building2 className="w-3 h-3 text-[var(--text-muted)]" />
                                                         <span>Type:</span>
-                                                        <span className="text-white">{business.type.replace(/_/g, ' ').toLowerCase()}</span>
+                                                        <span className="text-[var(--text-primary)]">{business.type.replace(/_/g, ' ').toLowerCase()}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 text-gray-300">
-                                                        <Users className="w-3 h-3 text-gray-500" />
+                                                    <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+                                                        <Users className="w-3 h-3 text-[var(--text-muted)]" />
                                                         <span>Workers:</span>
-                                                        <span className={`text-white ${
-                                                            current >= max ? 'text-amber-400' : ''
+                                                        <span className={`text-[var(--text-primary)] ${
+                                                            current >= max ? 'text-amber-600 dark:text-amber-400' : ''
                                                         }`}>{current}/{max}</span>
                                                     </div>
                                                 </div>
 
                                                 {business.owner && (
-                                                    <div className="flex items-center gap-1.5 text-sm text-gray-400">
+                                                    <div className="flex items-center gap-1.5 text-sm text-[var(--text-muted)]">
                                                         <User className="w-3 h-3" />
                                                         <span>Owner: {business.owner}</span>
                                                     </div>
                                                 )}
 
                                                 {business.openHours && (
-                                                    <div className="flex items-center gap-1.5 text-sm text-gray-400">
+                                                    <div className="flex items-center gap-1.5 text-sm text-[var(--text-muted)]">
                                                         <Clock className="w-3 h-3" />
                                                         <span>Hours: {business.openHours[0]}:00 - {business.openHours[1]}:00</span>
                                                     </div>
@@ -1247,17 +1248,17 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
 
                                                 {/* Supply Chain Visualization */}
                                                 {supplyChain.steps.length > 0 && (
-                                                    <div className="mt-3 p-2 bg-slate-900/50 rounded">
-                                                        <p className="text-xs text-gray-500 mb-1.5">Supply Chain:</p>
+                                                    <div className="mt-3 p-2 bg-[var(--surface-muted-bg)] rounded">
+                                                        <p className="text-xs text-[var(--text-muted)] mb-1.5">Supply Chain:</p>
                                                         <div className="flex items-center gap-2">
                                                             {supplyChain.steps.map((step, i) => (
                                                                 <React.Fragment key={i}>
                                                                     <div className="flex items-center gap-1">
-                                                                        <span className="text-gray-400">{supplyChain.icons[i]}</span>
-                                                                        <span className="text-sm text-white">{step}</span>
+                                                                        <span className="text-[var(--text-muted)]">{supplyChain.icons[i]}</span>
+                                                                        <span className="text-sm text-[var(--text-primary)]">{step}</span>
                                                                     </div>
                                                                     {i < supplyChain.steps.length - 1 && (
-                                                                        <ArrowRight className="w-4 h-4 text-gray-600" />
+                                                                        <ArrowRight className="w-4 h-4 text-[var(--text-muted)]" />
                                                                     )}
                                                                 </React.Fragment>
                                                             ))}
@@ -1273,7 +1274,8 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                     )}
                 </div>
                 
-                <footer className="mt-auto pt-4 border-t border-blue-500/30 flex justify-end p-4 bg-slate-800/80 rounded-b-xl">
+                <footer className="mt-auto pt-4 border-t border-blue-500/30 flex justify-end p-4 rounded-b-xl"
+                    style={{ backgroundColor: 'var(--surface-elevated)' }}>
                     <button onClick={onClose} className="ff-action-button">Close</button>
                 </footer>
             </div>

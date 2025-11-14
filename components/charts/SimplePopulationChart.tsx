@@ -124,7 +124,17 @@ const SimplePopulationChart: React.FC<SimplePopulationChartProps> = ({ currentYe
     <div className={cardClass}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-slate-200">Your Place in History</h3>
-        <span className="text-sm font-semibold text-slate-300">Population: ~{Math.round(playerPop)} million</span>
+        <span
+          className="text-sm font-semibold text-slate-300 cursor-help border-b border-dotted border-slate-300/40 hover:border-slate-300 transition-colors"
+          title={`Estimated global population in ${currentYear < 0 ? `${Math.abs(currentYear)} BCE` : `${currentYear} CE`}. For context, similar to ${
+            playerPop < 100 ? 'modern Egypt (~100M)' :
+            playerPop < 200 ? 'modern Brazil (~215M)' :
+            playerPop < 500 ? 'modern USA (~330M)' :
+            playerPop < 1000 ? 'modern China (~1.4B)' : 'today (~8B)'
+          }`}
+        >
+          Population: ~{Math.round(playerPop)} million
+        </span>
       </div>
       <div className={chartBgClass}>
         <svg
@@ -152,7 +162,7 @@ const SimplePopulationChart: React.FC<SimplePopulationChartProps> = ({ currentYe
             </linearGradient>
           </defs>
 
-          {/* Player position marker - amber */}
+          {/* Player position marker - amber with pulse */}
           <line
             x1={playerX}
             y1={padding}
@@ -162,6 +172,32 @@ const SimplePopulationChart: React.FC<SimplePopulationChartProps> = ({ currentYe
             strokeWidth="2"
             strokeDasharray="4 4"
           />
+          {/* Pulsing outer ring */}
+          <circle
+            cx={playerX}
+            cy={playerY}
+            r="8"
+            fill="none"
+            stroke="#fbbf24"
+            strokeWidth="2"
+            opacity="0.6"
+          >
+            <animate
+              attributeName="r"
+              from="5"
+              to="12"
+              dur="2s"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="opacity"
+              from="0.8"
+              to="0"
+              dur="2s"
+              repeatCount="indefinite"
+            />
+          </circle>
+          {/* Main dot */}
           <circle
             cx={playerX}
             cy={playerY}
@@ -192,7 +228,10 @@ const SimplePopulationChart: React.FC<SimplePopulationChartProps> = ({ currentYe
           </text>
         </svg>
       </div>
-      <p className="text-xs text-slate-400 mt-2 text-center">
+      <p
+        className="text-xs text-slate-400 mt-2 text-center cursor-help border-b border-dotted border-slate-400/40 hover:border-slate-400 transition-colors inline-block w-full"
+        title={`Based on estimates of total human population throughout history. Out of all ~117 billion humans who have ever lived, ${percentLivedAfter}% were born after your time period.`}
+      >
         {percentLivedAfter}% of all humans lived after you
       </p>
     </div>

@@ -84,20 +84,20 @@ export const NpcHouseholdPanel: React.FC<NpcHouseholdPanelProps> = ({ npc }) => 
         <div className="space-y-3">
             <h4 className="text-lg font-semibold text-blue-300">Household Members</h4>
             {household.length === 0 ? (
-                <p className="text-slate-500 italic">{npc.name} lives alone.</p>
+                <p className="italic" style={{ color: 'var(--text-muted)' }}>{npc.name} lives alone.</p>
             ) : (
                 <div className="space-y-2">
                     {household.map((member, idx) => (
-                        <div key={`${member.relation}-${idx}`} className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                        <div key={`${member.relation}-${idx}`} className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)' }}>
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <span className="font-semibold text-white">{member.relation}</span>
-                                    <span className="text-slate-400 ml-2">{member.name}</span>
+                                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{member.relation}</span>
+                                    <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>{member.name}</span>
                                 </div>
-                                <span className="text-xs text-slate-500">Age {member.age}</span>
+                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Age {member.age}</span>
                             </div>
                             <div className="text-xs mt-1">
-                                <span className="text-slate-400">{member.profession}</span>
+                                <span style={{ color: 'var(--text-secondary)' }}>{member.profession}</span>
                                 {member.health !== 'Healthy' && (
                                     <span className={`ml-2 ${member.health.includes('Sick') ? 'text-orange-500' : 'text-yellow-500'}`}>
                                         • {member.health}

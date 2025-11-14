@@ -268,21 +268,39 @@ function calculateAccessoryChance(culturalZone: CulturalZone, era: HistoricalEra
  * Add a quality adjective to amulet/jewelry names based on privilege level
  */
 function addQualityAdjective(itemName: string, privilege: number): string {
-    // Skip if name already has an adjective
-    if (itemName.toLowerCase().includes('legendary') || 
-        itemName.toLowerCase().includes('ornate') ||
-        itemName.toLowerCase().includes('polished') ||
-        itemName.toLowerCase().includes('beautiful')) {
-        return itemName;
+    // COMPREHENSIVE check for ALL quality adjectives that might already be in the name
+    const allQualityWords = [
+        // Poor quality
+        'Battered', 'Worn', 'Simple', 'Crude', 'Plain', 'Humble', 'Weathered',
+        'Impure', 'Raw', 'Low-grade', 'Inferior', 'Rough', 'Damaged', 'Broken',
+        'Shoddy', 'Makeshift', 'Improvised',
+        // Standard quality
+        'Common', 'Regular', 'Basic', 'Standard', 'Ordinary',
+        // Good quality
+        'Fine', 'Well-made', 'Sturdy', 'Quality', 'Superior', 'Solid', 'Refined',
+        'Pure', 'High-grade', 'Select', 'Polished', 'Elegant', 'Beautiful',
+        'Fresh', 'Choice', 'Decent', 'Reliable', 'Functional',
+        // Excellent quality
+        'Masterwork', 'Exceptional', 'Exquisite', 'Legendary', 'Pristine',
+        'Perfect', 'Flawless', 'Premium', 'Ornate', 'Magnificent', 'Divine',
+        'Sacred', 'Blessed', 'Ancient'
+    ];
+
+    // Check if ANY quality word is already in the name
+    const itemNameLower = itemName.toLowerCase();
+    for (const qualityWord of allQualityWords) {
+        if (itemNameLower.includes(qualityWord.toLowerCase())) {
+            return itemName; // Already has a quality adjective, don't add another
+        }
     }
-    
+
     const qualityAdjectives = {
         poor: ['Battered', 'Worn', 'Simple', 'Crude', 'Plain', 'Humble', 'Weathered'],
         common: ['Well-made', 'Sturdy', 'Decent', 'Solid', 'Reliable', 'Functional'],
         wealthy: ['Fine', 'Polished', 'Elegant', 'Beautiful', 'Ornate', 'Exquisite', 'Masterful'],
         legendary: ['Legendary', 'Ancient', 'Sacred', 'Blessed', 'Magnificent', 'Divine']
     };
-    
+
     let adjectives: string[];
     if (privilege < 0.2) {
         adjectives = qualityAdjectives.poor;
@@ -293,7 +311,7 @@ function addQualityAdjective(itemName: string, privilege: number): string {
     } else {
         adjectives = qualityAdjectives.legendary;
     }
-    
+
     const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     return `${randomAdjective} ${itemName}`;
 }

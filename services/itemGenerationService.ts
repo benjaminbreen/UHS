@@ -1287,7 +1287,22 @@ export function generateProceduralName(
   const allWords = cleanedParts.join(' ').split(/\s+/);
   const dedupedWords = deduplicateNameParts(allWords);
 
-  return dedupedWords.join(' ');
+  // SAFETY NET: Final check for repeated words in the output
+  // This catches any duplicates that slipped through earlier checks
+  const finalOutput = dedupedWords.join(' ');
+  const words = finalOutput.split(/\s+/);
+  const uniqueWords: string[] = [];
+  const seen = new Set<string>();
+
+  for (const word of words) {
+    const wordLower = word.toLowerCase();
+    if (!seen.has(wordLower)) {
+      uniqueWords.push(word);
+      seen.add(wordLower);
+    }
+  }
+
+  return uniqueWords.join(' ');
 }
 
 // Helper to convert hex colors to names
@@ -1426,22 +1441,26 @@ function generateBaseProperties(
 ): CachedBaseProperties {
   const era = options.era || 'MEDIEVAL';
 
+  // CRITICAL FIX: Create a deep clone to ensure we don't modify the original
+  // This prevents cache corruption where modified items get stored
+  const baseItemClone: ItemDefinition = JSON.parse(JSON.stringify(baseItem));
+
   // Determine if item should have materials
-  const shouldHaveMaterial = !MATERIAL_EXCLUDED_CATEGORIES.includes(baseItem.category) &&
-                            !MATERIAL_EXCLUDED_ITEMS.includes(baseItem.baseId || '') &&
-                            (baseItem.material || baseItem.category === 'Weapon' ||
-                             baseItem.category === 'Apparel' || baseItem.category === 'Armor');
+  const shouldHaveMaterial = !MATERIAL_EXCLUDED_CATEGORIES.includes(baseItemClone.category) &&
+                            !MATERIAL_EXCLUDED_ITEMS.includes(baseItemClone.baseId || '') &&
+                            (baseItemClone.material || baseItemClone.category === 'Weapon' ||
+                             baseItemClone.category === 'Apparel' || baseItemClone.category === 'Armor');
 
   let eraAppropriateMaterial: string | undefined;
   let culturalStyle: string | undefined;
 
-  if (shouldHaveMaterial && baseItem.material) {
+  if (shouldHaveMaterial && baseItemClone.material) {
     // Get era-appropriate material (deterministic based on era/category)
-    const baseMaterial = baseItem.material;
-    eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era as HistoricalEra, baseItem.category);
+    const baseMaterial = baseItemClone.material;
+    eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era as HistoricalEra, baseItemClone.category);
 
     // Validate the substituted material
-    if (!isValidMaterialForItem(eraAppropriateMaterial, baseItem.name, baseItem.equipmentSlot)) {
+    if (!isValidMaterialForItem(eraAppropriateMaterial, baseItemClone.name, baseItemClone.equipmentSlot)) {
       eraAppropriateMaterial = baseMaterial;
     }
 
@@ -1451,10 +1470,10 @@ function generateBaseProperties(
     }
   }
 
-  // Return cached base properties
+  // Return cached base properties with the cloned item
   return {
-    baseItem,
-    eraAppropriateMaterial: eraAppropriateMaterial || baseItem.material,
+    baseItem: baseItemClone,
+    eraAppropriateMaterial: eraAppropriateMaterial || baseItemClone.material,
     culturalStyle,
     shouldHaveMaterial
   };

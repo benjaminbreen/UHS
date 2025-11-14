@@ -405,13 +405,22 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
     }
 
     return (
-        <div className="fixed inset-0 z-5000 bg-gradient-to-br from-slate-900/90 via-amber-950/80 to-slate-900/90 backdrop-blur-sm flex items-center justify-center px-0">
-            <div className="relative w-full h-[80vh] max-w-9xl mx-auto top-6 flex flex-col bg-gradient-to-b from-slate-900 via-slate-800/95 to-slate-900 shadow-2xl border border-amber-800/30 rounded-xl overflow-hidden">
+        <div
+            data-surface="modal-overlay"
+            className="modal-overlay theme-surface flex items-center justify-center px-0"
+        >
+            <div
+                data-surface="modal-panel"
+                className="relative w-full h-[80vh] max-w-9xl mx-auto top-6 flex flex-col ff-panel theme-surface shadow-2xl border border-amber-800/30 rounded-xl overflow-hidden"
+                onClick={e => e.stopPropagation()}
+            >
                 {/* Close button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-10 right-4 z-50 text-slate-400 hover:text-white transition-colors"
-                    style={{ fontSize: '10px', lineHeight: '1' }}
+                    className="absolute top-10 right-4 z-50 transition-colors"
+                    style={{ fontSize: '10px', lineHeight: '1', color: 'var(--text-secondary)' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
                 >
                     ×
                 </button>
@@ -447,9 +456,8 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                         width={1400}
                         height={280}
                     />
-                    {/* Much lighter overlay - clear in center, light gradient only at bottom */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
-                  <div className="absolute inset-0 bg-gradient-to-br  from-amber-900/20 via-transparent to-amber-800/30"></div>
+                    {/* Banner gradient overlay */}
+                  <div className="absolute inset-0 banner-gradient-overlay"></div>
 
 
                     {/* Header Content - Clear background */}
@@ -479,14 +487,30 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                         </div>
 
                         {/* Tab Navigation */}
-                        <div className="flex gap-1.5 bg-slate-900/60 backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30">
+                        <div className="flex gap-1.5 backdrop-blur-sm rounded-lg p-1 px-2 border border-amber-700/30" style={{ backgroundColor: 'var(--surface-overlay-strong)' }}>
                             <button
                                 onClick={() => handleTabChange('overview')}
                                 className={`flex-1 px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
                                     activeTab === 'overview'
                                         ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
-                                        : 'text-amber-400/70 hover:text-amber-300 hover:bg-slate-800/50'
+                                        : ''
                                 }`}
+                                style={activeTab !== 'overview' ? {
+                                    color: 'var(--text-muted)',
+                                    backgroundColor: 'transparent'
+                                } : undefined}
+                                onMouseEnter={e => {
+                                    if (activeTab !== 'overview') {
+                                        e.currentTarget.style.color = 'var(--text-secondary)';
+                                        e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    if (activeTab !== 'overview') {
+                                        e.currentTarget.style.color = 'var(--text-muted)';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
                             >
                                 <FaLandmark className="inline mr-1.5" size={12} />Overview
                             </button>
@@ -495,8 +519,24 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                                 className={`flex-1 px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
                                     activeTab === 'exploration'
                                         ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
-                                        : 'text-amber-400/70 hover:text-amber-300 hover:bg-slate-800/50'
+                                        : ''
                                 }`}
+                                style={activeTab !== 'exploration' ? {
+                                    color: 'var(--text-muted)',
+                                    backgroundColor: 'transparent'
+                                } : undefined}
+                                onMouseEnter={e => {
+                                    if (activeTab !== 'exploration') {
+                                        e.currentTarget.style.color = 'var(--text-secondary)';
+                                        e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    if (activeTab !== 'exploration') {
+                                        e.currentTarget.style.color = 'var(--text-muted)';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
                             >
                                 <FaMap className="inline mr-1.5" size={12} />Exploration
                             </button>
@@ -505,8 +545,24 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                                 className={`flex-1 px-2.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
                                     activeTab === 'artifacts'
                                         ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
-                                        : 'text-amber-400/70 hover:text-amber-300 hover:bg-slate-800/50'
+                                        : ''
                                 }`}
+                                style={activeTab !== 'artifacts' ? {
+                                    color: 'var(--text-muted)',
+                                    backgroundColor: 'transparent'
+                                } : undefined}
+                                onMouseEnter={e => {
+                                    if (activeTab !== 'artifacts') {
+                                        e.currentTarget.style.color = 'var(--text-secondary)';
+                                        e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    if (activeTab !== 'artifacts') {
+                                        e.currentTarget.style.color = 'var(--text-muted)';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
                             >
                                 <GiScrollUnfurled className="inline mr-1.5" size={12} />Artifacts
                             </button>
@@ -521,23 +577,23 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                             {/* Left Column - Archaeological Site Info */}
                             <div className="space-y-6">
                                 {/* Site Card */}
-                                <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-5 border border-amber-700/20 backdrop-blur-sm">
-                                    <h3 className="text-lg font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                                        <FaLandmark className="text-amber-400" /> Archaeological Site
+                                <div className="rounded-xl p-5 border backdrop-blur-sm" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300 mb-4 flex items-center gap-2">
+                                        <FaLandmark className="text-amber-600 dark:text-amber-400" /> Archaeological Site
                                     </h3>
-                                    <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                                    <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-primary)' }}>
                                         The remains of what was once a {ruinType.toLowerCase()}. Built from {ruinMaterial}, its {' '}
-                                        {ruinStyle} architecture speaks of a lost civilization. Weather and time have taken their 
+                                        {ruinStyle} architecture speaks of a lost civilization. Weather and time have taken their
                                         toll on these ancient stones.
                                     </p>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-slate-900/50 rounded-lg px-3 py-2 border border-slate-700/50">
-                                            <p className="text-xs text-amber-400/70">Era</p>
-                                            <p className="text-sm font-bold text-amber-200">{originalEra}</p>
+                                        <div className="rounded-lg px-3 py-2 border" style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-subtle)' }}>
+                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Era</p>
+                                            <p className="text-sm font-bold text-amber-700 dark:text-amber-200">{originalEra}</p>
                                         </div>
-                                        <div className="bg-slate-900/50 rounded-lg px-3 py-2 border border-slate-700/50">
-                                            <p className="text-xs text-amber-400/70">Age</p>
-                                            <p className="text-sm font-bold text-amber-200">{age}</p>
+                                        <div className="rounded-lg px-3 py-2 border" style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-subtle)' }}>
+                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Age</p>
+                                            <p className="text-sm font-bold text-amber-700 dark:text-amber-200">{age}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -546,23 +602,23 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
 
                             {/* Middle Column - Historical Context */}
                             <div className="space-y-6">
-                                <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-5 border border-amber-700/20 backdrop-blur-sm">
-                                    <h3 className="text-lg font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                                        <FaHistory className="text-amber-400" /> Historical Context
+                                <div className="rounded-xl p-5 border backdrop-blur-sm" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300 mb-4 flex items-center gap-2">
+                                        <FaHistory className="text-amber-600 dark:text-amber-400" /> Historical Context
                                     </h3>
-                                    <p className="text-sm text-slate-300 leading-relaxed mb-4 italic">
-                                        This {ruinType.toLowerCase()} dates back to the {originalEra}, built when this region was {seededRandom(0, 100) > 50 ? 'a thriving center of trade' : 'a sacred ceremonial site'}. 
+                                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-4 italic">
+                                        This {ruinType.toLowerCase()} dates back to the {originalEra}, built when this region was {seededRandom(0, 100) > 50 ? 'a thriving center of trade' : 'a sacred ceremonial site'}.
                                         The {ruinStyle} style was characteristic of {seededRandom(0, 100) > 50 ? 'this culture\'s golden age' : 'a period of great artistic achievement'}.
                                     </p>
                                     <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between py-2 border-b border-slate-700/50">
-                                            <span className="text-amber-400/80">Original Purpose</span>
-                                            <span className="text-amber-100">{seededRandom(0, 100) > 50 ? 'Religious' : 'Administrative'}</span>
+                                        <div className="flex justify-between py-2 border-b border-slate-300 dark:border-slate-700/50">
+                                            <span className="text-amber-600 dark:text-amber-400/80">Original Purpose</span>
+                                            <span className="text-amber-800 dark:text-amber-100">{seededRandom(0, 100) > 50 ? 'Religious' : 'Administrative'}</span>
                                         </div>
-                                      
+
                                         <div className="flex justify-between py-2">
-                                            <span className="text-amber-400/80">Abandoned</span>
-                                            <span className="text-amber-100">{seededRandom(200, 800)} years ago</span>
+                                            <span className="text-amber-600 dark:text-amber-400/80">Abandoned</span>
+                                            <span className="text-amber-800 dark:text-amber-100">{seededRandom(200, 800)} years ago</span>
                                         </div>
                                     </div>
                                 </div>
@@ -574,9 +630,9 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                                 
 
                                 {/* Action Buttons */}
-                                <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-5 border border-amber-700/20 backdrop-blur-sm">
-                                    <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
-                                        <FaCompass className="text-amber-400" /> Available Actions
+                                <div className="rounded-xl p-5 border backdrop-blur-sm" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300 mb-4 flex items-center gap-2">
+                                        <FaCompass className="text-amber-600 dark:text-amber-400" /> Available Actions
                                     </h3>
                                     <div className="space-y-3">
                                         <button
@@ -603,37 +659,37 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                         <div className="grid lg:grid-cols-2 gap-6 p-6">
                             <div className="space-y-6">
                                 {/* Discovered Chambers */}
-                                <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-5 border border-amber-700/20">
-                                    <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
-                                        <GiTreasureMap className="text-amber-400" /> Discovered Chambers
+                                <div className="rounded-xl p-5 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300 mb-4 flex items-center gap-2">
+                                        <GiTreasureMap className="text-amber-600 dark:text-amber-400" /> Discovered Chambers
                                     </h3>
                                     {ruinProgress.chambersDiscovered.length > 0 ? (
                                         <div className="space-y-2 max-h-60 overflow-y-auto">
                                             {ruinProgress.chambersDiscovered.map((chamber, idx) => (
-                                                <div key={chamber.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-amber-700/30">
+                                                <div key={chamber.id} className="flex items-center justify-between p-3 bg-slate-200 dark:bg-slate-900/50 rounded-lg border border-amber-700/30">
                                                     <div>
-                                                        <span className="text-sm font-medium text-amber-200">{chamber.name}</span>
-                                                        <p className="text-xs text-slate-400">Depth {chamber.depth}</p>
+                                                        <span className="text-sm font-medium text-amber-800 dark:text-amber-200">{chamber.name}</span>
+                                                        <p className="text-xs text-slate-600 dark:text-slate-400">Depth {chamber.depth}</p>
                                                     </div>
-                                                    <span className="text-xs text-green-400">✓ Explored</span>
+                                                    <span className="text-xs text-green-600 dark:text-green-400">✓ Explored</span>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-slate-400 italic">No chambers discovered yet. Enter the ruins to begin exploration.</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 italic">No chambers discovered yet. Enter the ruins to begin exploration.</p>
                                     )}
                                 </div>
                             </div>
                             <div className="space-y-6">
-                                <div className="bg-gradient-to-br from-red-900/20 to-red-950/30 rounded-xl p-5 border border-red-700/20">
-                                    <h3 className="text-lg font-bold text-red-300 mb-4 flex items-center gap-2">
-                                        <FaExclamationTriangle className="text-red-400" /> Unexplored Areas
+                                <div className="bg-red-100/50 dark:bg-gradient-to-br dark:from-red-900/20 dark:to-red-950/30 rounded-xl p-5 border border-red-600/30 dark:border-red-700/20">
+                                    <h3 className="text-lg font-bold text-red-700 dark:text-red-300 mb-4 flex items-center gap-2">
+                                        <FaExclamationTriangle className="text-red-600 dark:text-red-400" /> Unexplored Areas
                                     </h3>
                                     <div className="space-y-3">
                                         {['Inner Sanctum', 'Crypt', 'Treasury', 'Eastern Wing'].map((area, idx) => (
-                                            <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-red-700/30">
-                                                <span className="text-sm text-red-200">{area}</span>
-                                                <span className="text-xs text-red-400">⚠ Dangerous</span>
+                                            <div key={idx} className="flex items-center justify-between p-3 bg-red-50 dark:bg-slate-900/50 rounded-lg border border-red-600/30 dark:border-red-700/30">
+                                                <span className="text-sm text-red-800 dark:text-red-200">{area}</span>
+                                                <span className="text-xs text-red-600 dark:text-red-400">⚠ Dangerous</span>
                                             </div>
                                         ))}
                                     </div>
@@ -646,18 +702,18 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                     {activeTab === 'artifacts' && (
                         <div className="space-y-6 p-6">
                             {/* Research Potential - Moved from overview */}
-                            <div className="bg-gradient-to-br from-green-900/20 to-green-950/30 rounded-xl p-5 border border-green-700/20 backdrop-blur-sm">
-                                <h3 className="text-lg font-bold text-green-300 mb-4 flex items-center gap-2">
-                                    <FaBookOpen className="text-green-400" /> Research Potential
+                            <div className="bg-green-100/50 dark:bg-gradient-to-br dark:from-green-900/20 dark:to-green-950/30 rounded-xl p-5 border border-green-600/30 dark:border-green-700/20 backdrop-blur-sm">
+                                <h3 className="text-lg font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                                    <FaBookOpen className="text-green-600 dark:text-green-400" /> Research Potential
                                 </h3>
-                                <p className="text-sm text-green-100/80 mb-4">
+                                <p className="text-sm text-green-800 dark:text-green-100/80 mb-4">
                                     Historical and Archaeological Significance:
                                 </p>
                                 <div className="space-y-2">
                                     {getHistoricalFinds().map((find, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
                                             {find.icon}
-                                            <span className="text-sm text-green-200">{find.text}</span>
+                                            <span className="text-sm text-green-800 dark:text-green-200">{find.text}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -665,24 +721,24 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                             
                             {/* Discoverable Primary Sources */}
                             {discoverableSources.length > 0 && (
-                                <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-5 border border-amber-700/20">
-                                    <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
-                                        <FaScroll className="text-amber-400" /> Historical Texts
+                                <div className="rounded-xl p-5 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300 mb-4 flex items-center gap-2">
+                                        <FaScroll className="text-amber-600 dark:text-amber-400" /> Historical Texts
                                     </h3>
-                                    <p className="text-sm text-amber-100/80 mb-4">
+                                    <p className="text-sm text-amber-800 dark:text-amber-100/80 mb-4">
                                         Analysis suggests up to {Math.min(3, discoverableSources.length)} readable texts may be preserved here:
                                     </p>
                                     <div className="space-y-3">
                                         {discoverableSources.slice(0, 3).map((source, idx) => (
-                                            <div key={source.id} className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                                            <div key={source.id} className="bg-slate-200 dark:bg-slate-900/50 rounded-lg p-3 border border-slate-400 dark:border-slate-700/50">
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <h4 className="text-sm font-semibold text-amber-200">{source.title}</h4>
-                                                    <span className="text-xs text-amber-400/60">{source.year} CE</span>
+                                                    <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200">{source.title}</h4>
+                                                    <span className="text-xs text-amber-600 dark:text-amber-400/60">{source.year} CE</span>
                                                 </div>
-                                                <p className="text-xs text-slate-400 mb-1">by {source.author}</p>
-                                                <p className="text-xs text-amber-100/60 italic">
-                                                    {discoveredSources.includes(source) 
-                                                        ? '✓ Recovered' 
+                                                <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">by {source.author}</p>
+                                                <p className="text-xs text-amber-700 dark:text-amber-100/60 italic">
+                                                    {discoveredSources.includes(source)
+                                                        ? '✓ Recovered'
                                                         : 'Not yet found'}
                                                 </p>
                                             </div>
@@ -692,24 +748,24 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                             )}
                             
                             {/* Discovered Artifacts Section */}
-                            <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-5 border border-amber-700/20">
-                                <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
-                                    <GiScrollUnfurled className="text-amber-400" /> Discovered Items
+                            <div className="rounded-xl p-5 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300 mb-4 flex items-center gap-2">
+                                    <GiScrollUnfurled className="text-amber-600 dark:text-amber-400" /> Discovered Items
                                 </h3>
                                 {ruinProgress.artifactsFound.length > 0 ? (
                                     <div className="space-y-2">
                                         {ruinProgress.artifactsFound.map((artifactId, idx) => (
-                                            <div key={idx} className="flex items-center gap-3 p-2 bg-slate-900/50 rounded-lg border border-amber-700/30">
-                                                <div className="w-8 h-8 rounded bg-amber-600/20 flex items-center justify-center">
-                                                    <GiScrollUnfurled className="text-amber-400" size={16} />
+                                            <div key={idx} className="flex items-center gap-3 p-2 bg-slate-200 dark:bg-slate-900/50 rounded-lg border border-amber-600/30 dark:border-amber-700/30">
+                                                <div className="w-8 h-8 rounded bg-amber-200 dark:bg-amber-600/20 flex items-center justify-center">
+                                                    <GiScrollUnfurled className="text-amber-700 dark:text-amber-400" size={16} />
                                                 </div>
-                                                <span className="text-sm text-amber-200">{artifactId}</span>
-                                                <span className="text-xs text-green-400 ml-auto">✓ Found</span>
+                                                <span className="text-sm text-amber-800 dark:text-amber-200">{artifactId}</span>
+                                                <span className="text-xs text-green-600 dark:text-green-400 ml-auto">✓ Found</span>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-amber-100/60 italic">
+                                    <p className="text-sm text-amber-800 dark:text-amber-100/60 italic">
                                         No items have been discovered yet. Begin exploration to uncover historical artifacts.
                                     </p>
                                 )}

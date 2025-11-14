@@ -245,7 +245,9 @@ const ModalHub: React.FC = () => {
         <>
             {showDevTooltip && (hoveredDevData || (pinnedDevData && isTooltipPinnedOpen)) && ( <DevTooltip hoveredData={hoveredDevData} pinnedData={pinnedDevData} isPinnedOpen={isTooltipPinnedOpen} onCondense={handleCondenseTooltip} /> )}
             {tileInfoModalProps && ( <TileInfoModal modalProps={tileInfoModalProps} onClose={() => setTileInfoModalProps(null)} /> )}
-            {infoModalTarget && isNpc(infoModalTarget) && <NpcModal npc={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>}
+            {infoModalTarget && isNpc(infoModalTarget) && (
+                <NpcModal npc={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>
+            )}
             {infoModalTarget && isAnimal(infoModalTarget) && (
                 <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
                     <AnimalInfoModal animal={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>

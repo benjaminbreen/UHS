@@ -2,6 +2,7 @@ import type { Config } from 'tailwindcss';
 import { defineConfig } from 'tailwindcss';
 
 export default defineConfig({
+  darkMode: 'selector', // Enable class-based dark mode (looks for .dark class on html element)
   content: [
     './index.html',
     './App.{ts,tsx}',

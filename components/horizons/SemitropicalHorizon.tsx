@@ -329,6 +329,8 @@ const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
     dust: `${uid}-dust`,
     rainbow: `${uid}-rainbow`,
     whitecap: `${uid}-whitecap`,
+    fogVertical: `${uid}-fogvert`,
+    dustVertical: `${uid}-dustvert`,
   };
 
   return (
@@ -361,6 +363,22 @@ const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
         <linearGradient id={ids.hazeD} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={P.hazeD} stopOpacity="0.28" />
           <stop offset="100%" stopColor={P.hazeD} stopOpacity="0" />
+        </linearGradient>
+
+        {/* Fog/mist vertical fade - transparent at top, opaque at bottom */}
+        <linearGradient id={ids.fogVertical} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={P.hazeL} stopOpacity="0" />
+          <stop offset="25%" stopColor={P.hazeL} stopOpacity="0" />
+          <stop offset="60%" stopColor={P.hazeL} stopOpacity="0.5" />
+          <stop offset="100%" stopColor={P.hazeL} stopOpacity="0.9" />
+        </linearGradient>
+
+        {/* Dust vertical fade - transparent at top, opaque at bottom */}
+        <linearGradient id={ids.dustVertical} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={P.dust} stopOpacity="0" />
+          <stop offset="30%" stopColor={P.dust} stopOpacity="0" />
+          <stop offset="65%" stopColor={P.dust} stopOpacity="0.6" />
+          <stop offset="100%" stopColor={P.dust} stopOpacity="1" />
         </linearGradient>
 
         {/* Bottom panel feather */}
@@ -472,7 +490,7 @@ const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
         {/* Fog/mist bank if present */}
         {isFoggy && (
           <g opacity={fx?.fogDensity ? clamp01(fx.fogDensity) : (weather!.special === 'fog' ? 0.5 : 0.25)}>
-            <rect x="0" y={p(yMid - height * 0.06)} width={width} height={p(height * 0.28)} fill={`url(#${ids.hazeL})`} />
+            <rect x="0" y={p(yMid - height * 0.06)} width={width} height={p(height * 0.28)} fill={`url(#${ids.fogVertical})`} />
           </g>
         )}
 
@@ -671,7 +689,7 @@ const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
         {/* Airborne dust/sand */}
         {dustDots > 0 && (
           <g opacity={clamp01((airborne?.density ?? 0.5) * 0.6)}>
-            <rect x="0" y={yMid - 10} width={width} height={p(height - (yMid - 10))} fill={P.dust} filter={`url(#${ids.dust})`} />
+            <rect x="0" y={yMid - 10} width={width} height={p(height - (yMid - 10))} fill={`url(#${ids.dustVertical})`} filter={`url(#${ids.dust})`} />
           </g>
         )}
 

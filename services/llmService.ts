@@ -1275,6 +1275,25 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     const weatherContext = getWeatherContext(mapData, context);
     const timeContext = getTimeContext(context);
 
+    // Build family history context
+    const familyContext = playerCharacter?.family && playerCharacter.family.length > 0
+        ? `**Player's Family (CANONICAL - use this if player asks "who am I"):**
+        ${playerCharacter.family.map(member => {
+            const role = member.relationship === 'parent'
+                ? `${member.gender === 'male' ? 'Father' : 'Mother'}`
+                : member.relationship;
+            return `- ${member.name} (${role}, ${member.profession || 'unknown profession'})${member.isDead ? ' [deceased]' : ''}`;
+        }).join('\n        ')}`
+        : '';
+
+    // Build life timeline context (key events only)
+    const lifeEventsContext = playerCharacter?.lifeEvents && playerCharacter.lifeEvents.length > 0
+        ? `**Player's Life Timeline (CANONICAL - use this if player asks about their past):**
+        ${playerCharacter.lifeEvents.slice(0, 10).map(event =>
+            `- Age ${event.age}: ${event.title}${event.description ? ` - ${event.description}` : ''}`
+        ).join('\n        ')}`
+        : '';
+
     const fullContext = `
         **Player:** ${playerCharacter?.name}, a ${playerCharacter?.age}-year-old ${playerCharacter?.profession}.
         **Date & Location:** ${mapData?.timeSlice} in ${mapData?.localArea}, a region with a ${mapData?.climate} climate.
@@ -1284,26 +1303,34 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         **Weather:** ${weatherContext}
         **Tamed Companions:** ${tamedAnimalsContext || 'No tamed animals currently following the player.'}
         **Nearby Entities:** NPCs: ${nearbyNpcs}. Animals: ${nearbyAnimals}. Structures: ${nearbyStructures}.
+        ${familyContext}
+        ${lifeEventsContext}
     `;
 
     const metaKeywords = ['game', 'ChatGPT', 'simulation', 'software', 'developer', 'code', 'AI', 'reality', 'app', 'developer'];
     const isMetaQuestion = metaKeywords.some(kw => playerQuery.toLowerCase().includes(kw));
     const isComplexQuery = playerQuery.toLowerCase().includes('what are') || playerQuery.toLowerCase().includes('explain') || playerQuery.length > 50;
 
+    // Simple action keywords - these warrant brief responses
+    const simpleActionKeywords = ['look', 'observe', 'go', 'walk', 'move', 'wait', 'rest', 'sleep'];
+    const isSimpleAction = simpleActionKeywords.some(kw => playerQuery.toLowerCase().includes(kw)) && playerQuery.length < 25;
+
     let personaInstruction = '';
     if (isMetaQuestion) {
         personaInstruction = "Adopt the persona of the author Henry James. Respond with a complex, multi-clause sentence, focusing on introspection, consciousness, and the subtle nuances of perception. Your prose should be dense and analytical, exploring the very nature of the player's query as a construct of observation within this simulated reality.";
     } else if (isComplexQuery) {
-        personaInstruction = "Respond as a knowledgeable and detailed narrator. Provide a thorough, two-paragraph answer that fully explores the player's query within the game's context.";
+        personaInstruction = "Respond as a knowledgeable, interesting narrator. Provide clear, direct description and explanation in between one sentence to up two SHORT paragraphs (length is up to you and context dependent). Theoretically you could even respond with a single word. Use concrete details, not abstractions, and make it historically informed but also evocative and a bit witty - think Robert Graves or Oliver Sacks. Your response can weave historical context naturally into the narrative if it makes sense but dont be didactic. Mention the people and places nearby naturalistically, as if describing things visible to you in this specific, grounded setting. Don't be exhaustive, just describe the people and places and things most striking or evident from this locale. BE BRIEF - 100 words max.";
+    } else if (isSimpleAction) {
+        personaInstruction = "Respond with 1-3 crisp sentences. Focus on immediate, concrete sensory details. No historical elaboration needed for simple actions. Just describe what happens or what's seen. Think: clear, direct, vivid.";
     } else {
-        personaInstruction = "Respond as a direct and concise narrator. Provide a brief, two- or three-sentence answer that directly addresses the player's simple question.";
+        personaInstruction = "Respond as a knowledgeable narrator - a professional historian and skilled writer. Match your length to the query's complexity: simple queries get 2-3 sentences, substantive queries can expand to 1-2 SHORT paragraphs (but never more). Ground everything in historically accurate reality. Weave in historical details naturally and specifically - not didactically. Think Hemingway meets a witty museum curator: grounded, specific, concise, but erudite when it serves the story. Mention nearby people and places as they would naturally strike you in this moment. Don't catalog everything - just the most vivid or telling details. No purple prose.";
     }
 
     // Educational mode enhancement
     const educationalEnhancement = isEducationalMode ? `
 **🎓 EDUCATIONAL MODE ACTIVE - ENHANCED DIDACTIC NARRATION:**
 
-You are now operating as a HISTORIAN-NARRATOR - think of yourself as a professor leading a field trip through history. Your responses must be information-dense and pedagogically valuable while maintaining immersion.
+You are now operating as a HISTORIAN-NARRATOR - think of yourself as a professor leading a field trip through history. Your responses must be information-dense and pedagogically valuable while maintaining immersion and staying relatively short - no more than 300 words.
 
 **Required Enhancements:**
 
@@ -1362,9 +1389,18 @@ You are now operating as a HISTORIAN-NARRATOR - think of yourself as a professor
         **Task:**
         Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI.
         If the player asks you something that seems like they are toying with you or testing the nature of their world, Adopt the persona of the author Henry James. Respond with a complex, multi-clause sentence, focusing on introspection, consciousness, and the subtle nuances of perception - but sort of funny?
+
+        **CRITICAL RULES:**
+        - **CANONICAL FAMILY/LIFE DATA**: If the player asks "who am I", "who are my parents", "tell me about my past", or similar questions about their identity/history, you MUST ONLY use the information provided in "Player's Family" and "Player's Life Timeline" sections above. DO NOT invent family members or life events. If no family data is provided, say you don't recall details about your origins.
         - If the player mentions "my pet", "my animal", "my companion" or asks about their tamed creatures, you MUST acknowledge and describe their specific tamed animals by name/species
         - When the player uses "observe" or asks "what do I see", include their tamed animals in the description (e.g., "Your tamed hedgehog scurries beside you, sniffing curiously at the ground")
-        - CRITICAL: If the Immediate Position section mentions the player is on a vessel/ship, you MUST acknowledge this in your response. They are aboard their vessel, not standing on land.
+        - If the Immediate Position section mentions the player is on a vessel/ship, you MUST acknowledge this in your response. They are aboard their vessel, not standing on land.
+
+        **FORMATTING REQUIREMENTS:**
+        - Use paragraph breaks. Break responses into 2-3 paragraphs.
+        - Use **bold markdown** for NPC names on first mention. Example: "**Marcus the Merchant** greets you."
+        - Use ***bold-italic markdown*** for key locations. Example: "***The Temple of Apollo*** stands before you."
+        - Write with literary clarity. Favor strong verbs and concrete nouns. Include one or two vivid sensory details. Weave in historical context naturally (materials, customs, trade goods, seasonal rhythms) without being didactic. Think: elegant museum prose that teaches while it enchants.
 
     `;
     
@@ -1434,7 +1470,7 @@ When describing what the player observes, adopt a more scholarly, information-de
     const prompt = `
         ${educationalObservationEnhancement}
 
-        You are the narrator for an immersive, text-based, raw and unflinching, super-historically-accurate educational historical simulation game. Describe what the player character experiences through their senses. Be precise, crisp (no purple prose!) yet evocative.
+        You are the narrator for an immersive, historically-accurate simulation game. Write like a historian-novelist - think Robert Graves or Oliver Sacks. Describe what the player experiences through vivid sensory details. Be literary but grounded. Weave in small historical observations naturally (what materials things are made from, seasonal details, evidence of trade or craft). Make it beautiful and informative without being pedantic.
 
         CONTEXT:
         - View: I am in a ${viewMode} view.

@@ -386,6 +386,7 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     topmask: `${uid}-topmask`,
     panelFeather: `${uid}-panelFeather`,
     rainbow: `${uid}-rainbow`,
+    hazeVertical: `${uid}-hazevert`,
   };
 
   /* -------------------- Puddles + ripple/splash layout -------------------- */
@@ -505,6 +506,14 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
           <stop offset="60%" stopColor="#00ff00" />
           <stop offset="80%" stopColor="#0000ff" />
           <stop offset="100%" stopColor="#8b00ff" />
+        </linearGradient>
+
+        {/* Haze vertical fade - transparent at top, opaque at bottom */}
+        <linearGradient id={ids.hazeVertical} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={isNight ? P.fogDense : P.fogSoft} stopOpacity="0" />
+          <stop offset="30%" stopColor={isNight ? P.fogDense : P.fogSoft} stopOpacity="0" />
+          <stop offset="60%" stopColor={isNight ? P.fogDense : P.fogSoft} stopOpacity="0.6" />
+          <stop offset="100%" stopColor={isNight ? P.fogDense : P.fogSoft} stopOpacity="1" />
         </linearGradient>
 
         {/* Ripple clip paths for each puddle */}
@@ -841,7 +850,7 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
 
       {/* Soft global haze/fog veil if present */}
       {hazeOverlay > 0.05 && (
-        <rect x="0" y="0" width={width} height={height} fill={isNight ? P.fogDense : P.fogSoft} opacity={Math.min(0.25, 0.12 + hazeOverlay * 0.3)} />
+        <rect x="0" y="0" width={width} height={height} fill={`url(#${ids.hazeVertical})`} opacity={Math.min(0.25, 0.12 + hazeOverlay * 0.3)} />
       )}
     </svg>
   );
