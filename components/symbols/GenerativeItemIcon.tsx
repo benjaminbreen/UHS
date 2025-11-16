@@ -242,6 +242,9 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       if (name.includes('arrow') || name.includes('bolt') || name.includes('quiver')) return 'arrow';
       if (name.includes('dart')) return 'dart';
       if (name.includes('staff') || name.includes('wand') || name.includes('rod') || name.includes('scepter')) return 'staff';
+      if (name.includes('cane')) return 'cane';
+      if (name.includes('pole') || name.includes('pike')) return 'pole';
+      if (name.includes('crook') || name.includes('shepherd')) return 'crook';
       if (name.includes('flail')) return 'flail';
       if (name.includes('whip') || name.includes('lash')) return 'whip';
       if (name.includes('shield') || name.includes('buckler')) return 'shield';
@@ -272,6 +275,11 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       if (name.includes('tikka') || name.includes('passa') || name.includes('maang')) return 'hair_ornament';
     }
     
+    // === CLOAK SLOT ===
+    if (slot === 'cloak') {
+      if (name.includes('cloak') || name.includes('mantle') || name.includes('cape')) return 'cloak';
+    }
+
     // === TORSO/BODY ===
     if (slot === 'torso') {
       // Robes and gowns
@@ -280,17 +288,17 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       if (name.includes('hanfu') || name.includes('qipao') || name.includes('kimono')) return 'asian_robe';
       if (name.includes('toga') || name.includes('stola') || name.includes('peplos')) return 'toga';
       if (name.includes('sari') || name.includes('lehenga')) return 'sari';
-      
+
       // Fitted tops
       if (name.includes('tunic') || name.includes('kirtle')) return 'tunic';
       if (name.includes('jerkin') || name.includes('doublet') || name.includes('vest')) return 'jerkin';
       if (name.includes('bodice') || name.includes('corset')) return 'bodice';
       if (name.includes('choli') || name.includes('blouse')) return 'blouse';
       if (name.includes('shirt') || name.includes('chemise')) return 'shirt';
-      
-      // Outerwear
+      if (name.includes('top') && !name.includes('tank top')) return 'shirt'; // Basic top → shirt
+
+      // Outerwear (coat, poncho, apron - but NOT cloak, that's in its own slot)
       if (name.includes('surcoat') || name.includes('houppelande') || name.includes('coat')) return 'coat';
-      if (name.includes('cloak') || name.includes('mantle')) return 'cloak';
       if (name.includes('poncho')) return 'poncho';
       if (name.includes('apron')) return 'apron';
       
@@ -352,13 +360,13 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     }
     
     // === JEWELRY ===
-    if (slot === 'amulet' || slot === 'ring1' || slot === 'ring2') {
+    if (slot === 'amulet' || slot === 'ring' || slot === 'ring1' || slot === 'ring2' || slot === 'necklace' || slot === 'accessory') {
       if (name.includes('ring') || slot.includes('ring')) return 'ring';
       if (name.includes('amulet') || name.includes('pendant') || name.includes('locket')) return 'amulet';
       if (name.includes('necklace') || name.includes('choker') || name.includes('mala') || name.includes('haar')) return 'necklace';
       if (name.includes('bracelet') || name.includes('armlet') || name.includes('bangle') || name.includes('kada') || name.includes('vanki')) return 'bracelet';
       if (name.includes('brooch') || name.includes('pin') || name.includes('cufflink') || name.includes('tupu')) return 'brooch';
-      if (name.includes('earring')) return 'earring';
+      if (name.includes('earring') || name.includes('ear stud')) return 'earring';
       if (name.includes('anklet') || name.includes('payal')) return 'anklet';
     }
     
@@ -511,6 +519,7 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     if (name.includes('bell')) return 'bell';
     if (name.includes('bedroll') || name.includes('sleeping bag')) return 'bedroll';
     if (name.includes('blanket')) return 'blanket';
+    if (name.includes('mat') || name.includes('rug') && !name.includes('drug')) return 'mat';
     if (name.includes('flint')) return 'flint';
 if (name.includes('broom')) return 'broom';
 if (name.includes('coal')) return 'coal';
@@ -564,6 +573,8 @@ if (name.includes('pocket watch') || name.includes('pocketwatch')) return 'pocke
 if (name.includes('gourd flask') || (name.includes('gourd') && name.includes('flask'))) return 'gourd_flask';
 if (name.includes('leather bag')) return 'leather_bag';
 if (name.includes('purse')) return 'purse';
+if (name.includes('mortar') && name.includes('pestle')) return 'mortar_pestle';
+if (name.includes('salve') || name.includes('ointment') || name.includes('balm')) return 'salve';
 // (Your existing logic already handles 'bag'/'sack'/'pouch' and 'map')
 
 // === APPAREL / CULTURAL ===
@@ -1015,7 +1026,107 @@ if (name.includes('cheese')) return 'cheese';
           [6,10],[7,10],[8,10],[9,10],[10,10],
         ], colors.secondary);
         break;
-        
+
+      case 'cane':
+        // Walking cane with curved handle
+        svgContent = pixels([ // Curved handle top
+          [8,4],[9,4],[10,4],[11,4],
+          [7,5],[11,5],[12,5],
+          [7,6],[12,6],
+          [7,7],[12,7],
+          [8,8],[9,8],[10,8],[11,8],[12,8],
+        ], colors.primary) +
+        pixels([ // Shaft/body
+          [11,9],[11,10],[11,11],[11,12],[11,13],[11,14],[11,15],[11,16],[11,17],[11,18],[11,19],[11,20],
+        ], colors.primary) +
+        pixels([ // Shaft side (gives it thickness)
+          [10,10],[10,11],[10,12],[10,13],[10,14],[10,15],[10,16],[10,17],[10,18],[10,19],
+        ], colors.secondary, 0.8) +
+        pixels([ // Wood grain/texture
+          [11,10],[11,12],[11,14],[11,16],[11,18],
+        ], colors.secondary, 0.4) +
+        pixels([ // Handle highlights (polished)
+          [9,4],[10,4],
+          [8,8],[9,8],
+        ], '#ffffff', 0.5) +
+        pixels([ // Metal ferrule at bottom
+          [10,20],[11,20],[12,20],
+        ], '#999999');
+        break;
+
+      case 'pole':
+        // Long pole/pike weapon
+        svgContent = pixels([ // Metal spearhead
+          [12,3],
+          [11,4],[12,4],[13,4],
+          [11,5],[12,5],[13,5],
+          [12,6],
+        ], '#C0C0C0') +
+        pixels([ // Spearhead edge/shine
+          [12,3],[12,4],[13,4],
+        ], '#ffffff', 0.8) +
+        pixels([ // Socket/binding
+          [11,7],[12,7],[13,7],
+          [11,8],[12,8],[13,8],
+        ], '#8B6F47') +
+        pixels([ // Long wooden shaft
+          [11,9],[12,9],[13,9],
+          [11,10],[12,10],[13,10],
+          [11,11],[12,11],[13,11],
+          [11,12],[12,12],[13,12],
+          [11,13],[12,13],[13,13],
+          [11,14],[12,14],[13,14],
+          [11,15],[12,15],[13,15],
+          [11,16],[12,16],[13,16],
+          [11,17],[12,17],[13,17],
+          [11,18],[12,18],[13,18],
+          [11,19],[12,19],[13,19],
+          [11,20],[12,20],[13,20],
+        ], colors.primary) +
+        pixels([ // Wood texture/grain
+          [12,10],[12,12],[12,14],[12,16],[12,18],
+        ], colors.secondary, 0.5) +
+        pixels([ // Shaft highlights
+          [13,9],[13,11],[13,13],[13,15],[13,17],
+        ], '#ffffff', 0.3);
+        break;
+
+      case 'crook':
+        // Shepherd's crook with distinctive curved hook
+        svgContent = pixels([ // Curved hook at top
+          [9,5],[10,5],[11,5],[12,5],
+          [8,6],[12,6],[13,6],
+          [7,7],[13,7],
+          [7,8],[13,8],
+          [7,9],[13,9],
+          [8,10],[12,10],[13,10],
+          [9,11],[10,11],[11,11],[12,11],
+        ], colors.primary) +
+        pixels([ // Long shaft
+          [11,12],[11,13],[11,14],[11,15],[11,16],[11,17],[11,18],[11,19],[11,20],
+        ], colors.primary) +
+        pixels([ // Shaft thickness (side)
+          [10,13],[10,14],[10,15],[10,16],[10,17],[10,18],[10,19],
+        ], colors.secondary, 0.8) +
+        pixels([ // Wood grain texture
+          [11,13],[11,15],[11,17],[11,19],
+        ], colors.secondary, 0.4) +
+        pixels([ // Hook inner curve
+          [9,6],[10,6],[11,6],
+          [8,7],[12,7],
+          [8,8],[12,8],
+          [8,9],[12,9],
+          [9,10],[10,10],[11,10],
+        ], 'transparent') +
+        pixels([ // Highlights on curve
+          [10,5],[11,5],
+          [8,6],[13,7],
+        ], '#ffffff', 0.4) +
+        pixels([ // Bottom ferrule
+          [10,20],[11,20],[12,20],
+        ], '#8B7355');
+        break;
+
       case 'flail':
         // Agricultural flail - wooden handle with hinged beater
         svgContent = pixels([
@@ -1067,25 +1178,57 @@ if (name.includes('cheese')) return 'cheese';
         break;
         
       case 'hat':
-        svgContent = pixels([
-          // Brim
-          [4,10],[5,10],[6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],
-          [3,11],[4,11],[5,11],[6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],
-        ], colors.secondary) +
-        pixels([
-          // Crown
-          [5,7],[6,7],[7,7],[8,7],[9,7],[10,7],[11,7],
-          [5,8],[6,8],[7,8],[8,8],[9,8],[10,8],[11,8],
-          [5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[11,9],
-        ], colors.primary) +
-        pixels([
-          // Top
-          [6,6],[7,6],[8,6],[9,6],[10,6],
-        ], colors.primary) +
-        pixels([
-          // Hat band
-          [5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[11,9],
-        ], colors.accent);
+        // Check if it's a straw hat (conical Asian peasant hat)
+        if ((item?.name || '').toLowerCase().includes('straw')) {
+          // Conical straw hat (triangular/conical shape)
+          svgContent = pixels([
+            // Top point
+            [12,6],
+            // Upper cone
+            [11,7],[12,7],[13,7],
+            [10,8],[11,8],[12,8],[13,8],[14,8],
+            [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+            // Middle cone
+            [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+            [7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],
+            // Wide brim
+            [6,12],[7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],[17,12],[18,12],
+            [5,13],[6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],[18,13],[19,13],
+          ], '#E8D7A0') +
+          pixels([
+            // Straw weave texture
+            [11,8],[13,8],
+            [10,9],[12,9],[14,9],
+            [9,10],[11,10],[13,10],[15,10],
+            [8,11],[10,11],[12,11],[14,11],[16,11],
+          ], '#D4C5A0', 0.5) +
+          pixels([
+            // Shadow underside of brim
+            [6,13],[7,13],[8,13],[16,13],[17,13],[18,13],
+          ], '#C4A670', 0.6);
+        } else {
+          // Regular hat - larger
+          svgContent = pixels([
+            // Brim
+            [6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],[18,11],
+            [5,12],[6,12],[7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],[17,12],[18,12],[19,12],
+          ], colors.secondary) +
+          pixels([
+            // Crown
+            [8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],
+            [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+            [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+            [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],
+          ], colors.primary) +
+          pixels([
+            // Top
+            [10,6],[11,6],[12,6],[13,6],[14,6],
+          ], colors.primary) +
+          pixels([
+            // Hat band
+            [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],
+          ], colors.accent);
+        }
         break;
         
       case 'helmet':
@@ -1330,38 +1473,174 @@ if (name.includes('cheese')) return 'cheese';
           [7,12],[7,13],[8,14],
         ], '#000000', 0.2);
         break;
-        
-      case 'necklace':
-        // Improved necklace with clear chain and pendant
-        svgContent = pixels([ // Chain links
-          [10,5],[11,5],[12,5],[13,5],
-          [9,6],[10,6],[13,6],[14,6],
-          [8,7],[9,7],[14,7],[15,7],
-          [7,8],[8,8],[15,8],[16,8],
-          [7,9],[16,9],
-          [7,10],[16,10],
-          [7,11],[16,11],
-          [8,12],[15,12],
-          [8,13],[9,13],[14,13],[15,13],
-          [9,14],[10,14],[13,14],[14,14],
-          [10,15],[11,15],[12,15],[13,15],
+
+      case 'earring':
+        // Large dangling earring with prominent hook and gem - centered
+        svgContent = pixels([ // Hook (curved ear wire)
+          [11,5],[12,5],[13,5],
+          [10,6],[13,6],[14,6],
+          [10,7],[14,7],
+          [10,8],[14,8],
+          [11,9],[13,9],
         ], colors.primary) +
-        pixels([ // Chain highlight
-          [10,6],[13,6],
-          [8,8],[15,8],
-          [8,12],[15,12],
-          [10,14],[13,14],
-        ], colors.accent, 0.5) +
-        pixels([ // Pendant gem
-          [11,16],[12,16],
-          [10,17],[11,17],[12,17],[13,17],
-          [11,18],[12,18],
+        pixels([ // Hook shine/metallic highlight
+          [12,5],[13,6],
+        ], '#ffffff', 0.6) +
+        pixels([ // Connector chain
+          [12,10],
+          [12,11],
+          [12,12],
+        ], colors.primary) +
+        pixels([ // Large gem/pendant (diamond shape)
+          [11,13],[12,13],[13,13],
+          [10,14],[11,14],[12,14],[13,14],[14,14],
+          [9,15],[10,15],[11,15],[12,15],[13,15],[14,15],[15,15],
+          [10,16],[11,16],[12,16],[13,16],[14,16],
+          [11,17],[12,17],[13,17],
+          [12,18],
         ], colors.accent) +
-        pixels([ // Gem shine
-          [11,17],
-        ], '#ffffff', 0.7);
+        pixels([ // Gem brilliant shine (top facets)
+          [12,13],[13,14],
+        ], '#ffffff', 1.0) +
+        pixels([ // Gem highlights
+          [11,14],[12,14],
+          [10,15],[11,15],
+        ], '#ffffff', 0.7) +
+        pixels([ // Gem depth/shadow
+          [13,16],[14,16],
+          [12,17],[13,17],
+        ], colors.accent, 0.5) +
+        pixels([ // Deep shadow at bottom
+          [12,18],
+        ], '#000000', 0.4);
         break;
-        
+
+      case 'armor':
+        // Chainmail/plate armor breastplate
+        svgContent = pixels([ // Shoulder plates
+          [7,5],[8,5],[9,5],
+          [6,6],[7,6],[8,6],[9,6],
+          [15,5],[16,5],[17,5],
+          [15,6],[16,6],[17,6],[18,6],
+        ], colors.primary) +
+        pixels([ // Main breastplate
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+          [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+          [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+          [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) +
+        pixels([ // Chainmail texture/rivets
+          [9,8],[11,8],[13,8],[15,8],
+          [10,9],[12,9],[14,9],
+          [9,10],[11,10],[13,10],[15,10],
+          [10,11],[12,11],[14,11],
+        ], colors.secondary, 0.6) +
+        pixels([ // Metallic highlights
+          [11,7],[13,7],
+          [10,8],[14,8],
+          [11,9],[13,9],
+        ], '#ffffff', 0.5) +
+        pixels([ // Shadows
+          [8,9],[8,10],[9,12],[10,13],
+        ], '#000000', 0.3);
+        break;
+
+      case 'necklace':
+        // Very large, prominent necklace with thick chain and large pendant - perfectly centered
+        svgContent = pixels([ // Top chain (thick metal links)
+          [11,5],[12,5],[13,5],
+          [10,6],[11,6],[12,6],[13,6],[14,6],
+          [9,7],[10,7],[13,7],[14,7],[15,7],
+          [8,8],[9,8],[14,8],[15,8],[16,8],
+          [7,9],[8,9],[15,9],[16,9],[17,9],
+        ], colors.primary) +
+        pixels([ // Left side chain descending
+          [6,10],[7,10],
+          [6,11],[7,11],
+          [7,12],[8,12],
+          [8,13],[9,13],
+          [9,14],[10,14],
+        ], colors.primary) +
+        pixels([ // Right side chain descending
+          [17,10],[18,10],
+          [17,11],[18,11],
+          [16,12],[17,12],
+          [15,13],[16,13],
+          [14,14],[15,14],
+        ], colors.primary) +
+        pixels([ // Chain highlights (metallic shine)
+          [12,5],[13,6],
+          [10,7],[14,7],
+          [8,8],[16,8],
+          [7,10],[17,10],
+          [8,13],[16,13],
+        ], '#ffffff', 0.8) +
+        pixels([ // Pendant connector/bail
+          [11,15],[12,15],[13,15],
+          [11,16],[13,16],
+        ], colors.primary) +
+        pixels([ // Large gemstone pendant (teardrop shape)
+          [11,17],[12,17],[13,17],
+          [10,18],[11,18],[12,18],[13,18],[14,18],
+          [10,19],[11,19],[12,19],[13,19],[14,19],
+          [11,20],[12,20],[13,20],
+        ], colors.accent) +
+        pixels([ // Brilliant gem shine (top highlight)
+          [12,17],[13,18],
+        ], '#ffffff', 1.0) +
+        pixels([ // Secondary gem highlights
+          [11,18],[12,18],
+        ], '#ffffff', 0.7) +
+        pixels([ // Gem depth/shadows
+          [10,19],[14,19],
+          [11,20],[13,20],
+        ], colors.accent, 0.5);
+        break;
+
+      case 'amulet':
+        // Amulet/pendant with decorative design and chain
+        svgContent = pixels([ // Chain attachment (simple cord)
+          [12,4],
+          [11,5],[13,5],
+          [10,6],[14,6],
+          [9,7],[15,7],
+          [9,8],[15,8],
+          [10,9],[14,9],
+          [11,10],[13,10],
+        ], colors.primary) +
+        pixels([ // Amulet body (circular medallion)
+          [10,12],[11,12],[12,12],[13,12],[14,12],
+          [9,13],[10,13],[14,13],[15,13],
+          [8,14],[9,14],[15,14],[16,14],
+          [8,15],[16,15],
+          [8,16],[16,16],
+          [9,17],[15,17],
+          [10,18],[14,18],
+          [11,19],[12,19],[13,19],
+        ], colors.primary) +
+        pixels([ // Decorative symbol/gem in center
+          [11,14],[12,14],[13,14],
+          [11,15],[12,15],[13,15],
+          [11,16],[12,16],[13,16],
+          [12,17],
+        ], colors.accent) +
+        pixels([ // Metallic highlights on rim
+          [11,12],[12,12],
+          [9,13],[10,13],
+          [8,14],
+        ], '#ffffff', 0.6) +
+        pixels([ // Center gem shine
+          [12,14],[12,15],
+        ], '#ffffff', 0.9) +
+        pixels([ // Decorative pattern around center
+          [10,14],[14,14],
+          [10,16],[14,16],
+        ], colors.secondary, 0.7);
+        break;
+
       case 'potion':
         // Magical potion with glowing liquid
         svgContent = pixels([
@@ -1947,7 +2226,100 @@ if (name.includes('cheese')) return 'cheese';
           [10,8],[15,8],
         ], '#FFF8DC', 0.8);
         break;
-        
+
+      case 'potato':
+        // Large russet potato with eyes and texture
+        svgContent = pixels([
+          // Main potato body (oval shape)
+          [10,8],[11,8],[12,8],[13,8],[14,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+          [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+          [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],
+          [8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],
+          [9,14],[10,14],[11,14],[12,14],[13,14],[14,14],[15,14],
+          [10,15],[11,15],[12,15],[13,15],[14,15],
+        ], '#C19A6B') +
+        pixels([
+          // Darker brown patches (russet texture)
+          [8,10],[8,11],
+          [9,14],[15,14],
+          [10,15],[14,15],
+        ], '#A0826D', 0.7) +
+        pixels([
+          // Lighter highlights (top/rounded surface)
+          [11,9],[12,9],[13,9],
+          [10,10],[11,10],[12,10],
+        ], '#D4B896', 0.6) +
+        pixels([
+          // Potato eyes (small dark spots)
+          [10,11],[14,12],
+          [11,13],
+        ], '#6B5635', 0.8) +
+        pixels([
+          // Dirt/soil marks
+          [9,12],[15,13],
+        ], '#8B7355', 0.5) +
+        pixels([
+          // Shadow underside
+          [9,14],[10,14],[11,14],[12,14],[13,14],[14,14],
+        ], '#8B6F47', 0.4);
+        break;
+
+      case 'corn':
+        // Ear of corn with kernels and husk
+        svgContent = pixels([
+          // Corn cob body (yellow kernels)
+          [11,6],[12,6],[13,6],
+          [10,7],[11,7],[12,7],[13,7],[14,7],
+          [10,8],[11,8],[12,8],[13,8],[14,8],
+          [10,9],[11,9],[12,9],[13,9],[14,9],
+          [10,10],[11,10],[12,10],[13,10],[14,10],
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+          [10,12],[11,12],[12,12],[13,12],[14,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+          [11,14],[12,14],[13,14],
+        ], '#FFD700') +
+        pixels([
+          // Individual kernels (darker rows for texture)
+          [10,8],[12,8],[14,8],
+          [11,9],[13,9],
+          [10,10],[12,10],[14,10],
+          [11,11],[13,11],
+          [10,12],[12,12],[14,12],
+          [11,13],[13,13],
+        ], '#F4C430', 0.6) +
+        pixels([
+          // Green husk leaves (left side)
+          [8,7],[9,7],
+          [7,8],[8,8],[9,8],
+          [7,9],[8,9],
+          [8,10],[9,10],
+          [8,11],[9,11],
+          [9,12],
+        ], '#6B8E23') +
+        pixels([
+          // Green husk leaves (right side)
+          [15,7],[16,7],
+          [15,8],[16,8],[17,8],
+          [15,9],[16,9],[17,9],
+          [15,10],[16,10],
+          [15,11],[16,11],
+          [15,12],
+        ], '#6B8E23') +
+        pixels([
+          // Brown corn silk at top
+          [10,5],[11,5],[12,5],[13,5],[14,5],
+          [11,4],[12,4],[13,4],
+        ], '#8B7355', 0.7) +
+        pixels([
+          // Highlights on kernels
+          [11,7],[12,7],
+          [11,8],[13,8],
+          [12,9],
+        ], '#FFFACD', 0.4);
+        break;
+
       case 'scroll':
         // Large centered scroll
         svgContent = pixels([
@@ -3011,6 +3383,53 @@ if (name.includes('cheese')) return 'cheese';
         ], '#6b6b6b', 0.4);
         break;
 
+    case 'hide':
+        // Animal hide/pelt with fur texture and irregular shape
+        svgContent = pixels([
+          // Main hide body (irregular animal skin shape)
+          [10,6],[11,6],[12,6],[13,6],[14,6],
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+          [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+          [7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],
+          [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],
+          [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+          [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],
+          [9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],
+          [10,14],[11,14],[12,14],[13,14],[14,14],
+        ], colors.primary || '#8B6F47') +
+        pixels([
+          // Darker fur edges (ragged outline)
+          [10,6],[14,6],
+          [9,7],[15,7],
+          [8,8],[16,8],
+          [7,9],[17,9],
+          [7,10],[17,10],
+          [8,11],[16,11],
+          [9,13],[15,13],
+          [10,14],[14,14],
+        ], colors.secondary || '#654321', 0.8) +
+        pixels([
+          // Lighter belly/center area
+          [11,9],[12,9],[13,9],
+          [11,10],[12,10],[13,10],
+          [11,11],[12,11],[13,11],
+          [11,12],[12,12],
+        ], colors.accent || '#B8956B', 0.5) +
+        pixels([
+          // Fur texture/tufts (scattered)
+          [9,8],[11,8],[13,8],[15,8],
+          [8,9],[10,9],[14,9],[16,9],
+          [9,10],[13,10],[15,10],
+          [10,11],[14,11],
+          [10,12],[13,12],[15,12],
+        ], '#3F2F1D', 0.3) +
+        pixels([
+          // Shadow/depth
+          [8,12],[16,12],
+          [9,13],[15,13],
+        ], '#000000', 0.2);
+        break;
+
     case 'leather': // Also for Hide
         // Improved leather/hide with better shape and texture
         svgContent = pixels([ // Main leather piece (irregular shape)
@@ -3297,6 +3716,40 @@ if (name.includes('cheese')) return 'cheese';
         ], colors.accent, 0.4);
         break;
 
+    case 'hose':
+        // Form-fitting hose/tights/leggings
+        svgContent = pixels([ // Thin waistband (more fitted than trousers)
+            [8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],
+        ], colors.secondary) + pixels([ // Left leg (narrow and form-fitting)
+            [8,7],[9,7],[10,7],[11,7],
+            [8,8],[9,8],[10,8],[11,8],
+            [8,9],[9,9],[10,9],[11,9],
+            [8,10],[9,10],[10,10],[11,10],
+            [8,11],[9,11],[10,11],[11,11],
+            [8,12],[9,12],[10,12],[11,12],
+            [8,13],[9,13],[10,13],[11,13],
+            [8,14],[9,14],[10,14],[11,14],
+            [8,15],[9,15],[10,15],[11,15],
+        ], colors.primary) + pixels([ // Right leg (narrow and form-fitting)
+            [13,7],[14,7],[15,7],[16,7],
+            [13,8],[14,8],[15,8],[16,8],
+            [13,9],[14,9],[15,9],[16,9],
+            [13,10],[14,10],[15,10],[16,10],
+            [13,11],[14,11],[15,11],[16,11],
+            [13,12],[14,12],[15,12],[16,12],
+            [13,13],[14,13],[15,13],[16,13],
+            [13,14],[14,14],[15,14],[16,14],
+            [13,15],[14,15],[15,15],[16,15],
+        ], colors.primary) + pixels([ // Shading to show form-fitting nature (no gap between legs)
+            [12,7],[12,8],[12,9],[12,10],[12,11],[12,12],[12,13],[12,14],[12,15],
+        ], colors.secondary, 0.3) + pixels([ // Highlights on thighs (smooth fabric)
+            [9,8],[10,8],
+            [14,8],[15,8],
+            [9,10],
+            [15,10],
+        ], colors.accent, 0.5);
+        break;
+
     case 'sandals':
         svgContent = pixels([ // Sole
             [6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],
@@ -3334,25 +3787,67 @@ if (name.includes('cheese')) return 'cheese';
         break;
 
     case 'cloak':
-        svgContent = pixels([ // Clasp
+        // Dramatic flowing cloak with prominent clasp
+        svgContent = pixels([ // Large decorative clasp/brooch
+            [11,4],[12,4],[13,4],
+            [10,5],[11,5],[12,5],[13,5],[14,5],
             [11,6],[12,6],[13,6],
-        ], colors.accent) + pixels([ // Main fabric
-            [8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5],[16,5],
-            [7,6],[8,6],[9,6],[10,6],[14,6],[15,6],[16,6],[17,6],
-            [7,7],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],[17,7],
-            [6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],[17,8],[18,8],
-            [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],[18,9],
-            [6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],[18,10],
-            [6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],[18,11],
-            [7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],[17,12],
-            [7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],
-            [8,14],[9,14],[10,14],[11,14],[12,14],[13,14],[14,14],[15,14],[16,14],
-        ], colors.primary) + pixels([ // Folds/shadows
-            [11,8],[12,8],[13,8],
-            [10,9],[11,9],[12,9],[13,9],[14,9],
-            [10,10],[11,10],[12,10],[13,10],[14,10],
-            [11,11],[12,11],[13,11],
-        ], colors.secondary, 0.7);
+        ], colors.accent) +
+        pixels([ // Clasp gem/center
+            [12,5],
+        ], '#ffffff', 0.9) +
+        pixels([ // Collar/neck opening (gap between cloak sides)
+            [11,7],[12,7],[13,7],
+        ], 'transparent') +
+        pixels([ // Left side of cloak (flowing down)
+            [9,5],[10,5],
+            [8,6],[9,6],[10,6],
+            [7,7],[8,7],[9,7],[10,7],
+            [6,8],[7,8],[8,8],[9,8],[10,8],
+            [6,9],[7,9],[8,9],[9,9],[10,9],
+            [5,10],[6,10],[7,10],[8,10],[9,10],[10,10],
+            [5,11],[6,11],[7,11],[8,11],[9,11],[10,11],
+            [5,12],[6,12],[7,12],[8,12],[9,12],[10,12],
+            [6,13],[7,13],[8,13],[9,13],[10,13],[11,13],
+            [7,14],[8,14],[9,14],[10,14],[11,14],
+            [8,15],[9,15],[10,15],[11,15],
+            [9,16],[10,16],[11,16],
+        ], colors.primary) +
+        pixels([ // Right side of cloak (flowing down)
+            [14,5],[15,5],
+            [14,6],[15,6],[16,6],
+            [14,7],[15,7],[16,7],[17,7],
+            [14,8],[15,8],[16,8],[17,8],[18,8],
+            [14,9],[15,9],[16,9],[17,9],[18,9],
+            [14,10],[15,10],[16,10],[17,10],[18,10],[19,10],
+            [14,11],[15,11],[16,11],[17,11],[18,11],[19,11],
+            [14,12],[15,12],[16,12],[17,12],[18,12],[19,12],
+            [13,13],[14,13],[15,13],[16,13],[17,13],[18,13],
+            [13,14],[14,14],[15,14],[16,14],[17,14],
+            [13,15],[14,15],[15,15],[16,15],
+            [13,16],[14,16],[15,16],
+        ], colors.primary) +
+        pixels([ // Dramatic folds/shadows on left side
+            [7,8],[8,9],[9,10],
+            [6,11],[7,12],[8,13],
+            [9,14],[10,15],
+        ], colors.secondary, 0.8) +
+        pixels([ // Dramatic folds/shadows on right side
+            [17,8],[16,9],[15,10],
+            [18,11],[17,12],[16,13],
+            [15,14],[14,15],
+        ], colors.secondary, 0.8) +
+        pixels([ // Deep creases/central folds
+            [10,8],[14,8],
+            [10,10],[14,10],
+            [10,12],[14,12],
+        ], colors.secondary, 0.6) +
+        pixels([ // Highlights on fabric edges
+            [9,6],[15,6],
+            [8,7],[16,7],
+            [7,9],[17,9],
+            [6,11],[18,11],
+        ], '#ffffff', 0.3);
         break;
 
     case 'coat':
@@ -3470,7 +3965,7 @@ if (name.includes('cheese')) return 'cheese';
 
               case 'bone': {
         // Smart: render 'bear claw' when name mentions "claw"
-        if (name.includes('claw')) {
+        if ((item?.name || '').toLowerCase().includes('claw')) {
           // Curved talon with keratin shine + shadow
           svgContent =
             pixels(
@@ -3517,9 +4012,10 @@ if (name.includes('cheese')) return 'cheese';
 
       case 'leather': {
         // Smart: render 'bear hide' pelt when name mentions hide/pelt (esp. bear)
-        const pelt = name.includes('hide') || name.includes('pelt');
+        const itemName = (item?.name || '').toLowerCase();
+        const pelt = itemName.includes('hide') || itemName.includes('pelt');
         if (pelt) {
-          const fur = name.includes('bear') ? '#5A452D' : (colors.primary || '#8B6F47');
+          const fur = itemName.includes('bear') ? '#5A452D' : (colors.primary || '#8B6F47');
           svgContent =
             pixels(
               // Ragged pelt silhouette
@@ -3567,35 +4063,68 @@ if (name.includes('cheese')) return 'cheese';
       }
 
       case 'herb': {
-        // Herb bundle with twine if name mentions 'bundle'
-        const bundle = name.includes('bundle') || name.includes('束');
+        // Large herb bundle with prominent leaves and twine binding
+        const itemName = (item?.name || '').toLowerCase();
+        const bundle = itemName.includes('bundle') || itemName.includes('bunch') || itemName.includes('束');
         svgContent =
           pixels(
-            // Stems
-            [[9,12],[10,12],[11,12],[12,12],[13,12]],
-            '#6B8E23'
-          ) +
-          pixels(
-            // Leaves cluster
+            // Leafy tops (larger, more prominent)
             [
-              [8,9],[9,9],[10,9],[11,9],
-              [8,10],[9,10],[10,10],[11,10],[12,10],
-              [9,11],[10,11],[11,11],[12,11]
+              [10,5],[11,5],[12,5],[13,5],[14,5],
+              [9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],
+              [8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],
+              [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+              [10,9],[11,9],[12,9],[13,9],[14,9]
             ],
             colors.primary || '#4E8A4F'
           ) +
+          pixels(
+            // Leaf detail/veins
+            [
+              [10,6],[12,6],[14,6],
+              [9,7],[11,7],[13,7],[15,7],
+              [10,8],[12,8],[14,8]
+            ],
+            '#2D5A3D', 0.5
+          ) +
+          pixels(
+            // Bright highlights on leaves
+            [
+              [11,5],[13,5],
+              [10,6],[14,6],
+              [11,7],[13,7]
+            ],
+            '#CFE9CF', 0.6
+          ) +
+          pixels(
+            // Stems (thick bunch)
+            [
+              [11,10],[12,10],[13,10],
+              [11,11],[12,11],[13,11],
+              [11,12],[12,12],[13,12],
+              [11,13],[12,13],[13,13],
+              [11,14],[12,14],[13,14],
+              [11,15],[12,15],[13,15],
+              [11,16],[12,16],[13,16]
+            ],
+            '#6B8E23'
+          ) +
           (bundle
             ? pixels(
-                // Twine tie
-                [[9,12],[10,13],[11,13],[12,13]],
+                // Twine/rope binding (wrapped around)
+                [
+                  [10,12],[11,12],[12,12],[13,12],[14,12],
+                  [10,13],[14,13],
+                  [11,14],[13,14]
+                ],
                 '#8B6F47'
+              ) +
+              pixels(
+                // Twine highlights
+                [[11,12],[13,12]],
+                '#A0826D', 0.6
               )
-            : '') +
-          pixels(
-            // Highlights
-            [[9,9],[11,10]],
-            '#CFE9CF', 0.35
-          );
+            : '');
         break;
       }
 
@@ -3725,6 +4254,40 @@ if (name.includes('cheese')) return 'cheese';
           );
         break;
       }
+
+      case 'mat':
+        // Woven mat/rug with texture
+        svgContent = pixels([ // Mat body (rectangular)
+          [6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],[17,8],[18,8],
+          [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],[18,9],
+          [6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],[18,10],
+          [6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],[18,11],
+          [6,12],[7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],[17,12],[18,12],
+          [6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],[18,13],
+          [6,14],[7,14],[8,14],[9,14],[10,14],[11,14],[12,14],[13,14],[14,14],[15,14],[16,14],[17,14],[18,14],
+          [6,15],[7,15],[8,15],[9,15],[10,15],[11,15],[12,15],[13,15],[14,15],[15,15],[16,15],[17,15],[18,15],
+        ], colors.primary) +
+        pixels([ // Horizontal weave pattern
+          [6,9],[8,9],[10,9],[12,9],[14,9],[16,9],[18,9],
+          [7,10],[9,10],[11,10],[13,10],[15,10],[17,10],
+          [6,11],[8,11],[10,11],[12,11],[14,11],[16,11],[18,11],
+          [7,12],[9,12],[11,12],[13,12],[15,12],[17,12],
+          [6,13],[8,13],[10,13],[12,13],[14,13],[16,13],[18,13],
+          [7,14],[9,14],[11,14],[13,14],[15,14],[17,14],
+        ], colors.secondary, 0.4) +
+        pixels([ // Vertical weave pattern (interlaced)
+          [7,8],[7,10],[7,12],[7,14],
+          [9,9],[9,11],[9,13],[9,15],
+          [11,8],[11,10],[11,12],[11,14],
+          [13,9],[13,11],[13,13],[13,15],
+          [15,8],[15,10],[15,12],[15,14],
+          [17,9],[17,11],[17,13],[17,15],
+        ], colors.accent, 0.3) +
+        pixels([ // Frayed edges (texture)
+          [6,8],[18,8],
+          [6,15],[18,15],
+        ], colors.secondary, 0.6);
+        break;
 
       case 'flint': {
         // Sharp-edged flint stone for fire-starting
@@ -4385,36 +4948,112 @@ if (name.includes('cheese')) return 'cheese';
       }
 
       case 'oil': {
-        // Jug with droplet
+        // Larger oil jug with prominent droplet
         svgContent =
           pixels(
             // Jug body
             [
-              [10,7],[11,7],[12,7],
-              [9,8],[13,8],
-              [9,9],[13,9],
-              [9,10],[13,10],
-              [10,11],[11,11],[12,11]
+              [11,6],[12,6],[13,6],
+              [10,7],[11,7],[12,7],[13,7],[14,7],
+              [9,8],[10,8],[14,8],[15,8],
+              [9,9],[10,9],[14,9],[15,9],
+              [9,10],[10,10],[14,10],[15,10],
+              [9,11],[10,11],[14,11],[15,11],
+              [10,12],[11,12],[12,12],[13,12],[14,12]
             ],
             colors.primary || '#C08C3A'
           ) +
           pixels(
             // Handle
-            [[13,8],[14,9],[13,10]],
+            [[15,8],[16,9],[16,10],[15,11]],
             colors.primary || '#C08C3A'
           ) +
           pixels(
-            // Oil droplet
-            [[15,12],[15,13],[15,14],[14,15],[16,15]],
+            // Spout
+            [[9,7],[8,8]],
+            colors.primary || '#C08C3A'
+          ) +
+          pixels(
+            // Large oil droplet falling
+            [
+              [6,10],[7,10],
+              [6,11],[7,11],
+              [6,12],[7,12],
+              [6,13]
+            ],
             '#E3C15A'
           ) +
           pixels(
-            // Shine
-            [[10,8],[11,9]],
-            '#F5DEB3', 0.4
+            // Jug shine
+            [[11,7],[12,8]],
+            '#F5DEB3', 0.5
+          ) +
+          pixels(
+            // Droplet shine
+            [[6,11]],
+            '#FFF8DC', 0.8
           );
         break;
       }
+
+      case 'mortar_pestle':
+        // Mortar and pestle (grinding tool)
+        svgContent = pixels([ // Mortar bowl
+          [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],
+          [7,13],[16,13],[17,13],
+          [7,14],[17,14],
+          [7,15],[17,15],
+          [8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16],[16,16],
+        ], colors.primary) +
+        pixels([ // Mortar inner bowl
+          [9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],
+          [9,14],[15,14],[16,14],
+          [10,15],[14,15],[15,15],
+        ], colors.secondary, 0.6) +
+        pixels([ // Pestle (angled grinding tool)
+          [13,5],[14,5],
+          [13,6],[14,6],[15,6],
+          [14,7],[15,7],[16,7],
+          [15,8],[16,8],
+          [16,9],
+        ], colors.primary) +
+        pixels([ // Pestle handle (thicker)
+          [13,5],[13,6],
+        ], colors.secondary, 0.8) +
+        pixels([ // Pestle head (rounded end)
+          [16,9],[17,9],[17,10],
+        ], colors.secondary) +
+        pixels([ // Ground substance in mortar
+          [11,14],[12,14],[13,14],[14,14],
+        ], '#8B7355', 0.6);
+        break;
+
+      case 'salve':
+        // Small jar/tin of salve
+        svgContent = pixels([ // Jar body (round)
+          [10,9],[11,9],[12,9],[13,9],[14,9],
+          [9,10],[10,10],[14,10],[15,10],
+          [9,11],[15,11],
+          [9,12],[15,12],
+          [9,13],[15,13],
+          [10,14],[11,14],[12,14],[13,14],[14,14],
+        ], colors.primary) +
+        pixels([ // Lid
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [10,7],[11,7],[12,7],[13,7],[14,7],
+        ], colors.secondary) +
+        pixels([ // Lid knob/handle
+          [12,6],
+        ], colors.secondary) +
+        pixels([ // Salve/ointment inside (visible through glass/light)
+          [10,10],[11,10],[12,10],[13,10],[14,10],
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+          [10,12],[11,12],[12,12],[13,12],[14,12],
+        ], '#E8D4A0', 0.7) +
+        pixels([ // Jar highlights (glass shine)
+          [10,9],[14,10],
+        ], '#ffffff', 0.6);
+        break;
 
       case 'vegetable': {
         // Carrot with greens
@@ -5680,24 +6319,42 @@ case 'cheese': {
         break;
 
       case 'headwrap':
-        // Traditional head wrap/turban
-        svgContent = pixels([
-          // Base wrap around head
-          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+        // Large traditional head wrap with draped fabric and folds
+        svgContent = pixels([ // Main wrap body (wrapped around head)
+          [10,6],[11,6],[12,6],[13,6],[14,6],
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+          [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
           [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
           [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
           [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [10,12],[11,12],[12,12],[13,12],[14,12],
         ], colors.primary) +
-        pixels([
-          // Draped section
-          [7,9],[7,10],[7,11],[7,12],
-          [17,9],[17,10],
+        pixels([ // Draped tail/end hanging down
+          [6,9],[7,9],
+          [6,10],[7,10],
+          [6,11],[7,11],
+          [6,12],[7,12],
+          [6,13],[7,13],
+          [7,14],
         ], colors.secondary) +
-        pixels([
-          // Fold lines/texture
-          [10,9],[12,9],[14,9],
-          [9,10],[13,10],[15,10],
-        ], colors.accent, 0.6);
+        pixels([ // Right side drape
+          [17,9],[18,9],
+          [17,10],[18,10],
+          [17,11],
+        ], colors.secondary, 0.9) +
+        pixels([ // Fabric folds/texture lines
+          [10,8],[12,8],[14,8],
+          [9,9],[11,9],[13,9],[15,9],
+          [10,10],[12,10],[14,10],
+        ], colors.accent, 0.5) +
+        pixels([ // Highlights on folds
+          [11,7],[13,7],
+          [10,8],[14,8],
+        ], '#ffffff', 0.4) +
+        pixels([ // Shadows in deeper folds
+          [9,10],[15,10],
+          [10,11],[14,11],
+        ], '#000000', 0.2);
         break;
 
       case 'bracelet':
@@ -6075,11 +6732,12 @@ case 'cheese': {
 
       default:
         // Check if baseSprites has a mapping for this item
-        const baseSpriteArchetype = getItemArchetypeMax(name);
-        
+        const itemName = (item?.name || '').toLowerCase();
+        const baseSpriteArchetype = getItemArchetypeMax(itemName);
+
         // Log items that have baseSprite mappings we haven't implemented yet
         if (baseSpriteArchetype && !['GENERIC', 'BOX', 'CRATE'].includes(baseSpriteArchetype)) {
-          console.log(`Item '${name}' has baseSprite archetype: ${baseSpriteArchetype} (not yet implemented in GenerativeItemIcon)`);
+          console.log(`Item '${itemName}' has baseSprite archetype: ${baseSpriteArchetype} (not yet implemented in GenerativeItemIcon)`);
         }
         
         // Generic item (warm wooden crate) - with golden corner if baseSprite mapping exists

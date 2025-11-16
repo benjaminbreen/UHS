@@ -332,6 +332,9 @@ const AppContent: React.FC = () => {
         isCampModalOpen,
         setIsCampModalOpen,
         showToast,
+        setPanelNotificationItem,
+        setPanelNotificationMode,
+        setPanelNotificationEntityName,
         showJournal,
         setShowJournal,
         showQuestsPanel,
@@ -484,7 +487,25 @@ const AppContent: React.FC = () => {
         handleStudyStarsToggle(false);
     }, [handleStudyStarsToggle]);
 
-    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning, isPlayerOnFarm, handleGlobalEventTriggered);
+    // Callback to dismiss status warning when health/fatigue recovers
+    const handleDismissStatusWarning = React.useCallback(() => {
+        setStatusWarning(null);
+    }, []);
+
+    // Callback for entity (NPC/animal) item pickups
+    const handleEntityItemPickup = React.useCallback((entityName: string, item: any, entityType: 'npc' | 'animal') => {
+        setPanelNotificationItem(item);
+        setPanelNotificationMode(entityType === 'npc' ? 'npc_collected' : 'animal_collected');
+        setPanelNotificationEntityName(entityName);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            setPanelNotificationItem(null);
+            setPanelNotificationEntityName(null);
+        }, 3000);
+    }, [setPanelNotificationItem, setPanelNotificationMode, setPanelNotificationEntityName]);
+
+    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression, handleStatusWarning, isPlayerOnFarm, handleGlobalEventTriggered, handleDismissStatusWarning, handleEntityItemPickup);
 
     // Handle disease progression queue
     React.useEffect(() => {

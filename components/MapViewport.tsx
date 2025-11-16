@@ -20,6 +20,7 @@ import gameSoundsService from '../services/gameSoundsService';
 import AmbianceDisplay from './AmbianceDisplay';
 import BottomPanel from './BottomPanel';
 import NewItemModal from './NewItemModal';
+import RareItemFoundToast from './ui/RareItemFoundToast';
 import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
@@ -75,7 +76,7 @@ interface MapViewportProps {
 const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, onFarmPanelChange, className, isStudyingStars = false }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
-        activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage, setToastMessage, toastDurationMs,
+        activeLens, infoModalTarget, panelNotificationItem, panelNotificationMode, panelNotificationEntityName, setPanelNotificationItem, rareItemFoundToast, setRareItemFoundToast, toastMessage, setToastMessage, toastDurationMs,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
         activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, activeFishingHutModal, setActiveFishingHutModal, inRuinRoguelike, setInRuinRoguelike, inMiningRoguelike, setInMiningRoguelike, miningRoguelikeData, setMiningRoguelikeData, useLlmForDescriptions, handleEncounter, setInfoModalTarget, showToast,
         setActiveMiningModal, setActivePoi, debugSettings,
@@ -1913,7 +1914,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         isMarketplaceModalOpen={!!activeMarketplaceModal}
                         onExitMarketplace={() => setActiveMarketplaceModal(null)}
                     />
-                    {panelNotificationItem && <NewItemModal item={panelNotificationItem} onClose={() => setPanelNotificationItem(null)} />}
+                    {panelNotificationItem && <NewItemModal item={panelNotificationItem} mode={panelNotificationMode} entityName={panelNotificationEntityName || undefined} onClose={() => setPanelNotificationItem(null)} />}
+                    {rareItemFoundToast && <RareItemFoundToast item={rareItemFoundToast} onClose={() => setRareItemFoundToast(null)} />}
                 </div>
               )}
             </div>

@@ -22,6 +22,7 @@ import NPCToast from '../NPCToast';
 import FarmOverviewTab from './FarmOverviewTab';
 import FarmFieldsTab from './FarmFieldsTab';
 import FarmWorkTab from './FarmWorkTab';
+import FarmRoguelikeWorkTab from './FarmRoguelikeWorkTab';
 import FarmFamilyTab from './FarmFamilyTab';
 import FarmTradeTab from './FarmTradeTab';
 import FarmAdvisorTab from './FarmAdvisorTab';
@@ -63,6 +64,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
   const [pendingWorkInit, setPendingWorkInit] = useState<string | null>(null);
   const [toastDismissed, setToastDismissed] = useState(false);
+  const [useRoguelikeWorkTab, setUseRoguelikeWorkTab] = useState(true); // Toggle for work tab display mode
 
   // Handle character click from FarmBanner
   const handleCharacterClick = (memberId: string) => {
@@ -200,7 +202,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   // Loading state
   if (farmStateHook.isLoading || !farmStateHook.farmState) {
     return (
-      <div className="fixed left-0 right-0 bottom-0 top-[72px] z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
         <div className="text-slate-400 text-lg">Loading farm...</div>
       </div>
     );
@@ -209,7 +211,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   // Error state
   if (farmStateHook.error) {
     return (
-      <div className="fixed left-0 right-0 bottom-0 top-[72px] z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black">
         <div className="text-center">
           <div className="text-red-400 text-lg mb-4">Failed to load farm</div>
           <button
@@ -224,7 +226,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   }
 
   return (
-    <div className="fixed left-0 right-0 bottom-0 top-[72px] z-50 flex bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+    <div className="fixed inset-0 z-50 flex bg-gradient-to-b from-slate-900 via-slate-950 to-black">
       {/* Transition overlay */}
       {farmStateHook.isTransitioning && (
         <div
@@ -313,8 +315,19 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
                 ))}
               </div>
 
-              {/* Empty space on right for symmetry */}
-              <div className="px-4 py-3 min-w-[280px]" />
+              {/* Work tab mode toggle (shown only when on work tab) */}
+              <div className="px-4 py-3 min-w-[280px] flex justify-end">
+                {activeTab === 'work' && (
+                  <button
+                    onClick={() => setUseRoguelikeWorkTab(!useRoguelikeWorkTab)}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600 shadow transition-colors"
+                    title={useRoguelikeWorkTab ? 'Switch to Text Mode' : 'Switch to Roguelike Mode'}
+                  >
+                    <span>{useRoguelikeWorkTab ? '📝' : '🎮'}</span>
+                    <span>{useRoguelikeWorkTab ? 'Text Mode' : 'Roguelike'}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -353,14 +366,28 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
             )}
 
             {activeTab === 'work' && (
-              <FarmWorkTab
-                farmState={farmStateHook.farmState}
-                headFarmer={farmStateHook.headFarmer}
-                llmHooks={farmLLMHook}
-                fieldHooks={farmFieldsHook}
-                season={props.season}
-                useLlm={props.useLlm || false}
-              />
+              useRoguelikeWorkTab ? (
+                <FarmRoguelikeWorkTab
+                  farmState={farmStateHook.farmState}
+                  setFarmState={farmStateHook.setFarmState}
+                  headFarmer={farmStateHook.headFarmer}
+                  llmHooks={farmLLMHook}
+                  fieldHooks={farmFieldsHook}
+                  season={props.season}
+                  useLlm={props.useLlm || false}
+                  onPlayerStateChange={props.onPlayerStateChange}
+                  onTimeAdvance={props.onTimeAdvance}
+                />
+              ) : (
+                <FarmWorkTab
+                  farmState={farmStateHook.farmState}
+                  headFarmer={farmStateHook.headFarmer}
+                  llmHooks={farmLLMHook}
+                  fieldHooks={farmFieldsHook}
+                  season={props.season}
+                  useLlm={props.useLlm || false}
+                />
+              )
             )}
 
             {activeTab === 'household' && (

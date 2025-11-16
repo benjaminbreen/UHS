@@ -729,14 +729,18 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                     }}
                     title="Click to select/deselect for crafting or view details"
                   >
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={isSelected}
                       onChange={noopHandler}
                       className="mr-1"
                       onClick={stopPropagation}
                     />
-                    <div className="text-sm flex-shrink-0">{animal.emoji}</div>
+                    {animal.imagePath ? (
+                      <img src={animal.imagePath} alt={animal.speciesName} className="w-6 h-6 flex-shrink-0" />
+                    ) : (
+                      <div className="text-sm flex-shrink-0">{animal.emoji}</div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-amber-200 text-sm truncate">
                         {animal.name || animal.speciesName}

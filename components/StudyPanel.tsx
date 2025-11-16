@@ -180,7 +180,11 @@ const StudyPanel: React.FC<StudyPanelProps> = ({
                             {encounteredAnimals.slice(0, 10).map((animal, idx) => (
                                 <div key={`animal-${idx}`} className="surface-muted rounded-lg px-3 py-2 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-lg">{animal.emoji || '🐾'}</span>
+                                        {animal.imagePath ? (
+                                          <img src={animal.imagePath} alt={animal.speciesName} className="w-6 h-6" />
+                                        ) : (
+                                          <span className="text-lg">{animal.emoji || '🐾'}</span>
+                                        )}
                                         <div>
                                             <p className="text-xs font-medium text-text-primary tracking-tight">{animal.speciesName}</p>
                                             <p className="text-xs text-text-muted leading-relaxed">{animal.gender} • {animal.age}</p>

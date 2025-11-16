@@ -12,7 +12,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         habitat: 'grassland', behaviorProfile: 'deer'
     },
     MOOSE: {
-        name: 'Moose', emoji: '🦌', type: 'Prey', social: 'solitary', sizeMultiplier: .7, attack: 4, defense: 6, maxHealth: 40, speed: 6, strength: 12, agility: 4, perception: 7, level: 6,
+        name: 'Moose', emoji: '🦌', imagePath: '/animals/moose.png', type: 'Prey', social: 'solitary', sizeMultiplier: .7, attack: 4, defense: 6, maxHealth: 40, speed: 6, strength: 12, agility: 4, perception: 7, level: 6,
         drops: [{ name: 'Venison', chance: 0.9 }, { name: 'Moose Hide', chance: 0.8 }],
         spawnBiomes: [BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.TUNDRA],
         spawnConditions: { climate: [ClimateType.COLD, ClimateType.TEMPERATE], remote: true, zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
@@ -117,7 +117,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         habitat: 'aquatic', behaviorProfile: 'wolf'
     },
     BISON: {
-        name: 'Bison', emoji: '🐃', type: 'Prey', social: 'herd', sizeMultiplier: .9, attack: 5, defense: 7, maxHealth: 55, speed: 5, strength: 14, agility: 3, perception: 5, level: 7,
+        name: 'Bison', emoji: '🐃', imagePath: '/animals/bison.png', type: 'Prey', social: 'herd', sizeMultiplier: .9, attack: 5, defense: 7, maxHealth: 55, speed: 5, strength: 14, agility: 3, perception: 5, level: 7,
         drops: [{ name: 'Bison Hide', chance: 0.9 }, { name: 'Meat', chance: 0.9 }],
         spawnBiomes: [BiomeType.GRASSLAND, BiomeType.STEPPE],
         spawnConditions: { zones: ['NORTH_AMERICAN_PRE_COLUMBIAN'] },
@@ -452,21 +452,21 @@ MULE: {
     
     // African additions
     HYENA: {
-        name: 'Hyena', emoji: '𓃥', type: 'Predator', social: 'herd', sizeMultiplier: 0.7, attack: 5, defense: 3, maxHealth: 18, speed: 7, strength: 6, agility: 6, perception: 8, level: 4,
+        name: 'Hyena', emoji: '𓃥', imagePath: '/animals/hyena.png', type: 'Predator', social: 'herd', sizeMultiplier: 0.7, attack: 5, defense: 3, maxHealth: 18, speed: 7, strength: 6, agility: 6, perception: 8, level: 4,
         drops: [{ name: 'Hyena Pelt', chance: 0.7 }, { name: 'Meat', chance: 0.6 }],
         spawnBiomes: [BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.STEPPE],
         spawnConditions: { zones: ['SUB_SAHARAN_AFRICAN'], nocturnal: true },
         habitat: 'grassland', behaviorProfile: 'wolf'
     },
     CHEETAH: {
-        name: 'Cheetah', emoji: '🐆', type: 'Predator', social: 'solitary', sizeMultiplier: 0.7, attack: 5, defense: 2, maxHealth: 16, speed: 10, strength: 5, agility: 10, perception: 9, level: 5,
+        name: 'Cheetah', emoji: '🐆', imagePath: '/animals/cheetah.png', type: 'Predator', social: 'solitary', sizeMultiplier: 0.7, attack: 5, defense: 2, maxHealth: 16, speed: 10, strength: 5, agility: 10, perception: 9, level: 5,
         drops: [{ name: 'Cheetah Pelt', chance: 0.7 }],
         spawnBiomes: [BiomeType.GRASSLAND, BiomeType.STEPPE],
         spawnConditions: { zones: ['SUB_SAHARAN_AFRICAN'], remote: true },
         habitat: 'grassland', behaviorProfile: 'wolf'
     },
     WARTHOG: {
-        name: 'Warthog', emoji: '🐗', type: 'Prey', social: 'herd', sizeMultiplier: 0.6, attack: 3, defense: 4, maxHealth: 15, speed: 6, strength: 5, agility: 5, perception: 5, level: 3,
+        name: 'Warthog', emoji: '🐗', imagePath: '/animals/warthog.png', type: 'Prey', social: 'herd', sizeMultiplier: 0.6, attack: 3, defense: 4, maxHealth: 15, speed: 6, strength: 5, agility: 5, perception: 5, level: 3,
         drops: [{ name: 'Tough Hide', chance: 0.7 }, { name: 'Warthog Tusk', chance: 0.4 }],
         spawnBiomes: [BiomeType.SCRUB, BiomeType.GRASSLAND],
         spawnConditions: { zones: ['SUB_SAHARAN_AFRICAN'] },
@@ -480,7 +480,7 @@ MULE: {
         habitat: 'grassland', behaviorProfile: 'deer'
     },
     BABOON: {
-        name: 'Baboon', emoji: '🐒', type: 'Prey', social: 'herd', sizeMultiplier: 0.6, attack: 4, defense: 3, maxHealth: 12, speed: 6, strength: 5, agility: 8, perception: 8, level: 3,
+        name: 'Baboon', emoji: '🐒', imagePath: '/animals/baboon.png', type: 'Prey', social: 'herd', sizeMultiplier: 0.6, attack: 4, defense: 3, maxHealth: 12, speed: 6, strength: 5, agility: 8, perception: 8, level: 3,
         drops: [{ name: 'Strange Fruit', chance: 0.3 }],
         spawnBiomes: [BiomeType.HILLS, BiomeType.MOUNTAIN, BiomeType.CLIFF],
         spawnConditions: { zones: ['SUB_SAHARAN_AFRICAN', 'MENA'] },
@@ -503,7 +503,7 @@ MULE: {
         habitat: 'wetland', behaviorProfile: 'bear'
     },
     YAK: {
-        name: 'Yak', emoji: '🐃', type: 'Prey', social: 'herd', sizeMultiplier: 0.9, attack: 3, defense: 6, maxHealth: 35, speed: 3, strength: 10, agility: 3, perception: 5, level: 5,
+        name: 'Yak', emoji: '🐃', imagePath: '/animals/yak.png', type: 'Prey', social: 'herd', sizeMultiplier: 0.9, attack: 3, defense: 6, maxHealth: 35, speed: 3, strength: 10, agility: 3, perception: 5, level: 5,
         drops: [{ name: 'Yak Wool', chance: 0.9 }, { name: 'Tough Hide', chance: 0.8 }, { name: 'Meat', chance: 0.9 }],
         spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.TUNDRA],
         spawnConditions: { climate: [ClimateType.COLD], zones: ['EAST_ASIAN'], regions: ['West China and Tibet'], minAltitude: 0.5 },
@@ -524,7 +524,7 @@ MULE: {
         habitat: 'forest', behaviorProfile: 'bear'
     },
     TAPIR: {
-        name: 'Tapir', emoji: '🐗', type: 'Prey', social: 'solitary', sizeMultiplier: 0.7, attack: 2, defense: 4, maxHealth: 18, speed: 5, strength: 6, agility: 4, perception: 5, level: 3,
+        name: 'Tapir', emoji: '🐗', imagePath: '/animals/tapir.png', type: 'Prey', social: 'solitary', sizeMultiplier: 0.7, attack: 2, defense: 4, maxHealth: 18, speed: 5, strength: 6, agility: 4, perception: 5, level: 3,
         drops: [{ name: 'Tough Hide', chance: 0.7 }],
         spawnBiomes: [BiomeType.JUNGLE, BiomeType.DENSE_FOREST, BiomeType.WETLANDS],
         spawnConditions: { zones: ['SOUTH_ASIAN', 'SOUTH_AMERICAN'], nocturnal: true },
@@ -533,28 +533,28 @@ MULE: {
 
     // American additions
     JAGUAR: {
-        name: 'Jaguar', emoji: '🐆', type: 'Predator', social: 'solitary', sizeMultiplier: 0.9, attack: 8, defense: 4, maxHealth: 30, speed: 7, strength: 9, agility: 8, perception: 8, level: 7,
+        name: 'Jaguar', emoji: '🐆', imagePath: '/animals/jaguar.png', type: 'Predator', social: 'solitary', sizeMultiplier: 0.9, attack: 8, defense: 4, maxHealth: 30, speed: 7, strength: 9, agility: 8, perception: 8, level: 7,
         drops: [{ name: 'Jaguar Pelt', chance: 0.7 }, { name: 'Meat', chance: 0.7 }],
         spawnBiomes: [BiomeType.JUNGLE, BiomeType.DENSE_FOREST, BiomeType.WETLANDS],
         spawnConditions: { zones: ['SOUTH_AMERICAN'], nocturnal: true, remote: true },
         habitat: 'forest', behaviorProfile: 'wolf'
     },
     PUMA: {
-        name: 'Puma', emoji: '🐆', type: 'Predator', social: 'solitary', sizeMultiplier: 0.8, attack: 6, defense: 3, maxHealth: 22, speed: 8, strength: 7, agility: 9, perception: 8, level: 5,
+        name: 'Puma', emoji: '🐆', imagePath: '/animals/puma.png', type: 'Predator', social: 'solitary', sizeMultiplier: 0.8, attack: 6, defense: 3, maxHealth: 22, speed: 8, strength: 7, agility: 9, perception: 8, level: 5,
         drops: [{ name: 'Puma Pelt', chance: 0.7 }],
         spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.FOREST, BiomeType.HILLS, BiomeType.GRASSLAND],
         spawnConditions: { zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], remote: true },
         habitat: 'mountain', behaviorProfile: 'wolf'
     },
     CARIBOU: {
-        name: 'Caribou', emoji: '🦌', type: 'Prey', social: 'herd', sizeMultiplier: 0.8, attack: 2, defense: 3, maxHealth: 20, speed: 7, strength: 7, agility: 6, perception: 8, level: 3,
+        name: 'Caribou', emoji: '🦌', imagePath: '/animals/caribou.png', type: 'Prey', social: 'herd', sizeMultiplier: 0.8, attack: 2, defense: 3, maxHealth: 20, speed: 7, strength: 7, agility: 6, perception: 8, level: 3,
         drops: [{ name: 'Caribou Hide', chance: 0.9 }, { name: 'Venison', chance: 0.9 }],
         spawnBiomes: [BiomeType.TUNDRA, BiomeType.TAIGA],
         spawnConditions: { climate: [ClimateType.COLD], zones: ['NORTH_AMERICAN_PRE_COLUMBIAN'], season: ['spring', 'fall'] },
         habitat: 'tundra', behaviorProfile: 'deer'
     },
     ELK: {
-        name: 'Elk', emoji: '🦌', type: 'Prey', social: 'herd', sizeMultiplier: 0.9, attack: 3, defense: 4, maxHealth: 30, speed: 6, strength: 9, agility: 5, perception: 7, level: 4,
+        name: 'Elk', emoji: '🦌', imagePath: '/animals/elk.png', type: 'Prey', social: 'herd', sizeMultiplier: 0.9, attack: 3, defense: 4, maxHealth: 30, speed: 6, strength: 9, agility: 5, perception: 7, level: 4,
         drops: [{ name: 'Elk Hide', chance: 0.9 }, { name: 'Venison', chance: 0.9 }],
         spawnBiomes: [BiomeType.FOREST, BiomeType.GRASSLAND, BiomeType.MOUNTAIN],
         spawnConditions: { zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'EUROPEAN'], season: ['fall', 'winter'] },

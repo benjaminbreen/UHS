@@ -57,7 +57,9 @@ const useCoreLoops = (
   onDiseaseProgression?: (events: DiseaseProgressionEvent[]) => void,
   onStatusWarning?: (type: 'health' | 'fatigue', severity: 'warning' | 'danger' | 'critical', currentValue: number, maxValue: number) => void,
   isPlayerOnFarm?: boolean,
-  onGlobalEventTriggered?: (event: any) => void
+  onGlobalEventTriggered?: (event: any) => void,
+  onDismissStatusWarning?: () => void,
+  onEntityItemPickup?: (entityName: string, item: Item, entityType: 'npc' | 'animal') => void
 ) => {
   const {
     setGameTimeMinutes,
@@ -124,6 +126,7 @@ const useCoreLoops = (
     currentMapSeed,
     handleMapTransition,
     updateStructureData,
+    removeDroppedItem,
     isSpecialMap,
     isEnteringSpecialMap,
     exitSpecialMap,
@@ -138,6 +141,8 @@ const useCoreLoops = (
     closeAllModals,
     togglePinnedTooltip,
     setPanelNotificationItem,
+    setPanelNotificationMode,
+    setRareItemFoundToast,
     setActiveMiningModal,
     setStructureModalTarget,
     setActiveGovernmentModal,
@@ -397,27 +402,24 @@ const useCoreLoops = (
                     }
                   });
 
-                  if (result.mortalityRisk && playerCharacter.diseaseHealth.currentDiseases.length > 0) {
+                  // Check if player died from disease (determined in diseaseService)
+                  if (result.isDead && playerCharacter.diseaseHealth.currentDiseases.length > 0) {
                     const mostSevere = playerCharacter.diseaseHealth.currentDiseases.reduce((worst: any, current: any) => {
                       const currentMortality = current.disease.mortalityRate * current.severity;
                       const worstMortality = worst.disease.mortalityRate * worst.severity;
                       return currentMortality > worstMortality ? current : worst;
                     });
 
-                    const deathChance = mostSevere.disease.mortalityRate * mostSevere.severity;
-
-                    if (Math.random() < deathChance) {
-                      // console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
-                      if (onDeath) {
-                        onDeath({
-                          type: 'disease',
-                          disease: mostSevere.disease,
-                          description: `Succumbed to ${mostSevere.disease.name}`
-                        });
-                      } else {
-                        // Fallback to alert if no handler provided
-                        alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
-                      }
+                    // console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
+                    if (onDeath) {
+                      onDeath({
+                        type: 'disease',
+                        disease: mostSevere.disease,
+                        description: `Succumbed to ${mostSevere.disease.name}`
+                      });
+                    } else {
+                      // Fallback to alert if no handler provided
+                      alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
                     }
                   }
 
@@ -602,6 +604,12 @@ const useCoreLoops = (
 
     // Reset health warning when health recovers above all thresholds
     if (healthPercent > 40) {
+      if (healthWarningShown.current !== null) {
+        // Dismiss the toast when health recovers
+        if (onDismissStatusWarning) {
+          onDismissStatusWarning();
+        }
+      }
       healthWarningShown.current = null;
     }
 
@@ -630,9 +638,15 @@ const useCoreLoops = (
 
     // Reset fatigue warning when fatigue drops below all thresholds
     if (fatiguePercent < 60) {
+      if (fatigueWarningShown.current !== null) {
+        // Dismiss the toast when fatigue recovers
+        if (onDismissStatusWarning) {
+          onDismissStatusWarning();
+        }
+      }
       fatigueWarningShown.current = null;
     }
-  }, [playerCharacter?.health, playerCharacter?.fatigue, isAnyModalOpen, isPlayerOnFarm, onStatusWarning, setNarrationHistory]);
+  }, [playerCharacter?.health, playerCharacter?.fatigue, isAnyModalOpen, isPlayerOnFarm, onStatusWarning, onDismissStatusWarning, setNarrationHistory]);
 
   // Clear animals when entering special or interior maps
   useEffect(() => {
@@ -664,7 +678,28 @@ const useCoreLoops = (
           for (let i = 0; i < draft.length; i++) {
             const animal = draft[i];
             if (Math.hypot(animal.x - playerPos.x, animal.y - playerPos.y) <= AI_UPDATE_RADIUS) {
-              const update = calculateAnimalUpdate(animal, draft, playerPos, mapData, npcs);
+              // Get dropped items for animal food seeking
+              const droppedItems = mapData?.terrainModifications?.droppedItems || [];
+              const update = calculateAnimalUpdate(animal, draft, playerPos, mapData, npcs, droppedItems);
+
+              // Check if animal "ate" a food item (is on same tile as dropped food)
+              const foodAtPosition = droppedItems.find(
+                dropped => dropped.x === animal.x && dropped.y === animal.y &&
+                (dropped.item.category === 'Food' || dropped.item.category === 'Consumable')
+              );
+              if (foodAtPosition && removeDroppedItem) {
+                const animalData = ANIMAL_DATA[animal.baseId];
+                const animalName = animalData?.name || animal.baseId;
+                console.log(`[Animal AI] ${animal.baseId} consumed ${foodAtPosition.item.name}`);
+
+                // Notify about animal picking up food
+                if (onEntityItemPickup) {
+                  onEntityItemPickup(animalName, foodAtPosition.item, 'animal');
+                }
+
+                removeDroppedItem(foodAtPosition.x, foodAtPosition.y);
+              }
+
               Object.assign(draft[i], update);
             }
           }
@@ -731,8 +766,37 @@ const useCoreLoops = (
             // Only update NPCs within range
             if (Math.hypot(npc.x - controlledIconX, npc.y - controlledIconY) <= AI_UPDATE_RADIUS) {
               try {
+                // Get dropped items from map
+                const droppedItems = mapData.terrainModifications?.droppedItems || [];
+
                 // Use safe wrapper to handle proxy issues
-                const updates = safeCalculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, undefined);
+                const updates = safeCalculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, undefined, droppedItems);
+
+                // Check if NPC picked up an item
+                if ((updates as any)._itemPickedUp) {
+                  const pickup = (updates as any)._itemPickedUp;
+                  // Remove item from dropped items list
+                  if (mapData.terrainModifications?.droppedItems) {
+                    const itemIndex = mapData.terrainModifications.droppedItems.findIndex(
+                      dropped => dropped.x === pickup.x && dropped.y === pickup.y
+                    );
+                    if (itemIndex !== -1) {
+                      const pickedUpItem = mapData.terrainModifications.droppedItems[itemIndex].item;
+
+                      // Notify about NPC picking up item
+                      if (onEntityItemPickup) {
+                        onEntityItemPickup(npc.name, pickedUpItem, 'npc');
+                      }
+
+                      // Use removeDroppedItem from map context to properly update cache
+                      if (removeDroppedItem) {
+                        removeDroppedItem(pickup.x, pickup.y);
+                      }
+                    }
+                  }
+                  // Remove the signal property before applying updates
+                  delete (updates as any)._itemPickedUp;
+                }
 
                 // Check if NPC is leaving the map - BUT ONLY ON STANDARD MAPS, NOT SPECIAL MAPS
                 if (updates.isLeavingMap && updates.mapExitDirection && mapData.mapType !== 'special') {
@@ -1934,6 +1998,37 @@ useEffect(() => {
         // Batch position updates to reduce re-renders
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
+
+        // Check for dropped items on this tile and auto-pickup
+        const droppedItems = mapData?.terrainModifications?.droppedItems || [];
+        const itemAtPosition = droppedItems.find(dropped => dropped.x === newLogicalX && dropped.y === newLogicalY);
+        if (itemAtPosition && removeDroppedItem) {
+          const pickedUpItem = removeDroppedItem(newLogicalX, newLogicalY);
+          if (pickedUpItem && playerCharacter) {
+            // Add to inventory
+            setPlayerCharacter(prev => prev ? { ...prev, inventory: addItemToInventory(prev.inventory, pickedUpItem) } : null);
+
+            // Check if item is rare or valuable for special toast
+            const isRare = pickedUpItem.rarity === 'Rare' || pickedUpItem.rarity === 'Ultra-rare' || pickedUpItem.rarity === 'Unique';
+            const isValuable = pickedUpItem.value >= 20;
+
+            if (isRare || isValuable) {
+              // Show special rare item toast
+              setRareItemFoundToast(pickedUpItem);
+              setTimeout(() => setRareItemFoundToast(null), 5000);
+            } else {
+              // Show normal notification
+              setPanelNotificationMode('acquired');
+              setPanelNotificationItem(pickedUpItem);
+              setTimeout(() => setPanelNotificationItem(null), 2500);
+            }
+
+            // Play pickup sound
+            gameSounds.playItemPickupSound('generic');
+            // Add to game log
+            addGameLogEntry(LogService.createItemAcquiredLog(pickedUpItem.name, 1, 'from the ground', gameDate, formattedTime));
+          }
+        }
 
         // Check if crossing a bridge and add narration
         if (targetTile.hasBridge) {

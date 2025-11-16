@@ -356,66 +356,74 @@ const REGIONAL_MEAT_VARIANTS: Record<CulturalZone, Record<HistoricalEra, string[
   }
 };
 
+// Jewelry-specific quality words (for rings, necklaces, earrings, etc.)
+const JEWELRY_QUALITY_WORDS: Record<ItemQuality, string[]> = {
+  'poor': ['Tarnished', 'Scratched', 'Worn', 'Dull'],
+  'standard': ['Simple', 'Plain'],
+  'good': ['Fine', 'Polished', 'Ornate', 'Elegant'],
+  'excellent': ['Exquisite', 'Jeweled', 'Masterwork', 'Brilliant']
+};
+
 // Context-appropriate quality descriptors by item category
 const CATEGORY_QUALITY_WORDS: Record<ItemCategory, Record<ItemQuality, string[]>> = {
   'Material': {
-    'poor': ['Impure', 'Crude', 'Raw', 'Low-grade', 'Inferior'],
-    'standard': ['Common', 'Regular', 'Basic', 'Standard', 'Plain'],
-    'good': ['Pure', 'Refined', 'Quality', 'High-grade', 'Select'],
-    'excellent': ['Pristine', 'Perfect', 'Superior', 'Premium', 'Flawless']
+    'poor': ['Impure', 'Raw', 'Low-grade'],
+    'standard': ['Common', 'Regular', 'Basic'],
+    'good': ['Pure', 'High-grade', 'Select'],
+    'excellent': ['Pristine', 'Premium']
   },
   'Food': {
     'poor': ['Tough', 'Stale', 'Spoiled', 'Rancid', 'Old'],
-    'standard': ['Common', 'Plain', 'Regular', 'Simple', 'Basic'],
-    'good': ['Fresh', 'Choice', 'Select', 'Quality', 'Fine'],
-    'excellent': ['Prime', 'Premium', 'Gourmet', 'Exceptional', 'Perfect']
+    'standard': ['Common', 'Plain', 'Regular'],
+    'good': ['Fresh', 'Choice', 'Select'],
+    'excellent': ['Prime', 'Premium', 'Gourmet']
   },
   'Weapon': {
-    'poor': ['Crude', 'Rusty', 'Bent', 'Damaged', 'Worn'],
-    'standard': ['Common', 'Standard', 'Basic', 'Simple', 'Regular'],
+    'poor': ['Rusty', 'Bent'],
+    'standard': ['Common', 'Standard'],
     'good': ['Fine', 'Sharp', 'Balanced', 'Quality', 'Well-made'],
     'excellent': ['Masterwork', 'Legendary', 'Exquisite', 'Perfect', 'Superior']
   },
   'Apparel': {
-    'poor': ['Torn', 'Patched', 'Threadbare', 'Worn', 'Faded'],
-    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
-    'good': ['Fine', 'Well-made', 'Quality', 'Elegant', 'Stylish'],
-    'excellent': ['Exquisite', 'Luxurious', 'Masterwork', 'Royal', 'Perfect']
+    'poor': ['Torn', 'Patched', 'Threadbare', 'Faded'],
+    'standard': ['Plain', 'Common'],
+    'good': ['Elegant', 'Stylish', 'Tailored'],
+    'excellent': ['Luxurious', 'Royal', 'Regal']
   },
   'Tool': {
-    'poor': ['Crude', 'Worn', 'Bent', 'Rusty', 'Damaged'],
-    'standard': ['Common', 'Standard', 'Basic', 'Simple', 'Regular'],
-    'good': ['Fine', 'Sturdy', 'Well-made', 'Quality', 'Reliable'],
-    'excellent': ['Masterwork', 'Professional', 'Perfect', 'Superior', 'Precision']
+    'poor': ['Bent', 'Rusty', 'Chipped'],
+    'standard': ['Common', 'Standard'],
+    'good': ['Reliable', 'Robust', 'Dependable'],
+    'excellent': ['Professional', 'Precision', 'Specialized']
   },
   'Document': {
-    'poor': ['Torn', 'Faded', 'Stained', 'Damaged', 'Weathered'],
-    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
-    'good': ['Fine', 'Clear', 'Well-preserved', 'Quality', 'Legible'],
-    'excellent': ['Pristine', 'Illuminated', 'Perfect', 'Masterwork', 'Mint']
+    'poor': ['Torn', 'Faded', 'Stained', 'Weathered'],
+    'standard': ['Plain', 'Common'],
+    'good': ['Clear', 'Well-preserved', 'Legible'],
+    'excellent': ['Illuminated', 'Mint', 'Ancient']
   },
   'Container': {
-    'poor': ['Cracked', 'Leaky', 'Worn', 'Damaged', 'Patched'],
-    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
-    'good': ['Sturdy', 'Well-made', 'Quality', 'Solid', 'Reliable'],
-    'excellent': ['Masterwork', 'Perfect', 'Superior', 'Exquisite', 'Flawless']
+    'poor': ['Cracked', 'Leaky', 'Patched'],
+    'standard': ['Plain', 'Common'],
+    'good': ['Reliable', 'Secure', 'Reinforced'],
+    'excellent': ['Lockable', 'Insulated', 'Waterproof']
   },
   'Special': {
-    'poor': ['Strange', 'Unusual', 'Odd', 'Mysterious', 'Worn'],
-    'standard': ['Common', 'Regular', 'Normal', 'Basic', 'Plain'],
-    'good': ['Remarkable', 'Notable', 'Impressive', 'Fine', 'Quality'],
-    'excellent': ['Legendary', 'Mythical', 'Divine', 'Sacred', 'Perfect']
+    'poor': ['Strange', 'Unusual', 'Odd', 'Mysterious'],
+    'standard': ['Normal', 'Common'],
+    'good': ['Remarkable', 'Notable', 'Impressive'],
+    'excellent': ['Mythical', 'Divine', 'Sacred']
   },
   'Consumable': {
-    'poor': ['Weak', 'Diluted', 'Expired', 'Stale', 'Inferior'],
-    'standard': ['Common', 'Regular', 'Basic', 'Standard', 'Plain'],
-    'good': ['Potent', 'Pure', 'Quality', 'Fresh', 'Strong'],
-    'excellent': ['Perfect', 'Premium', 'Superior', 'Exceptional', 'Pristine']
+    'poor': ['Weak', 'Diluted', 'Expired', 'Stale'],
+    'standard': ['Common', 'Regular'],
+    'good': ['Potent', 'Pure', 'Fresh', 'Strong'],
+    'excellent': ['Premium', 'Concentrated', 'Maximum']
   },
   'Armor': {
-    'poor': ['Dented', 'Rusty', 'Cracked', 'Worn', 'Damaged'],
-    'standard': ['Common', 'Standard', 'Basic', 'Simple', 'Regular'],
-    'good': ['Fine', 'Sturdy', 'Well-made', 'Quality', 'Solid'],
+    'poor': ['Dented', 'Rusty', 'Cracked'],
+    'standard': ['Common', 'Standard'],
+    'good': ['Reinforced', 'Tested', 'Battle-proven'],
     'excellent': ['Masterwork', 'Legendary', 'Perfect', 'Superior', 'Invincible']
   },
   'Ammunition': {
@@ -425,15 +433,15 @@ const CATEGORY_QUALITY_WORDS: Record<ItemCategory, Record<ItemQuality, string[]>
     'excellent': ['Perfectly Spherical', 'Flawless', 'Ideal', 'Perfect']
   },
   'Vessel': {
-    'poor': ['Cracked', 'Leaky', 'Worn', 'Damaged', 'Patched'],
-    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
-    'good': ['Sturdy', 'Well-made', 'Quality', 'Solid', 'Reliable'],
-    'excellent': ['Masterwork', 'Perfect', 'Superior', 'Exquisite', 'Flawless']
+    'poor': ['Cracked', 'Leaky', 'Patched'],
+    'standard': ['Plain', 'Common'],
+    'good': ['Reliable', 'Watertight', 'Sealed'],
+    'excellent': ['Reinforced', 'Insulated', 'Durable']
   },
   'Currency': {
-    'poor': ['Clipped', 'Worn', 'Debased', 'Counterfeit', 'Damaged'],
-    'standard': ['Common', 'Standard', 'Regular', 'Authentic', 'Basic'],
-    'good': ['Pure', 'Mint', 'Certified', 'Quality', 'Genuine'],
+    'poor': ['Clipped', 'Debased', 'Counterfeit'],
+    'standard': ['Authentic', 'Common'],
+    'good': ['Pure', 'Mint', 'Certified', 'Genuine'],
     'excellent': ['Pristine', 'Perfect', 'Uncirculated', 'Flawless', 'Rare']
   }
 };
@@ -675,47 +683,54 @@ export function generateContextualWeapon(
 
 // Era/Culture Gating System - Phase 6
 // Materials separated by category to avoid nonsense like "ceramic tunic"
-const ERA_MATERIALS_BY_CATEGORY: Record<HistoricalEra, { clothing: string[], weapons: string[], tools: string[], all: string[] }> = {
+const ERA_MATERIALS_BY_CATEGORY: Record<HistoricalEra, { clothing: string[], weapons: string[], tools: string[], jewelry: string[], all: string[] }> = {
   'PREHISTORY': {
     clothing: ['Hide', 'Fur', 'Plant Fiber', 'Woven Grass'],
     weapons: ['Stone', 'Wood', 'Bone', 'Antler', 'Flint'],
     tools: ['Stone', 'Wood', 'Bone', 'Clay', 'Antler'],
+    jewelry: ['Bone', 'Shell', 'Stone', 'Amber', 'Wood'],
     all: ['Stone', 'Wood', 'Bone', 'Hide', 'Antler', 'Flint', 'Clay']
   },
   'ANTIQUITY': {
     clothing: ['Linen', 'Wool', 'Leather', 'Cotton', 'Silk'],
     weapons: ['Bronze', 'Copper', 'Iron', 'Wood', 'Leather'],
     tools: ['Bronze', 'Copper', 'Iron', 'Wood', 'Stone', 'Ceramic'],
+    jewelry: ['Gold', 'Silver', 'Bronze', 'Copper', 'Ivory', 'Pearl', 'Jade'],
     all: ['Bronze', 'Copper', 'Iron', 'Wood', 'Stone', 'Leather', 'Silver', 'Gold', 'Ceramic', 'Linen', 'Wool']
   },
   'MEDIEVAL': {
     clothing: ['Wool', 'Linen', 'Leather', 'Silk', 'Cotton', 'Velvet'],
     weapons: ['Iron', 'Steel', 'Wood', 'Leather'],
     tools: ['Iron', 'Steel', 'Wood', 'Silver', 'Gold'],
+    jewelry: ['Gold', 'Silver', 'Iron', 'Brass', 'Pearl', 'Ruby', 'Emerald'],
     all: ['Iron', 'Steel', 'Wood', 'Leather', 'Silver', 'Gold', 'Cloth', 'Wool']
   },
   'RENAISSANCE_EARLY_MODERN': {
     clothing: ['Silk', 'Cotton', 'Wool', 'Linen', 'Velvet', 'Satin', 'Leather'],
     weapons: ['Steel', 'Iron', 'Wood', 'Gunpowder'],
     tools: ['Steel', 'Iron', 'Wood', 'Glass', 'Silver', 'Gold'],
+    jewelry: ['Gold', 'Silver', 'Platinum', 'Diamond', 'Sapphire', 'Ruby', 'Pearl'],
     all: ['Steel', 'Iron', 'Wood', 'Gunpowder', 'Glass', 'Silk', 'Cotton', 'Silver', 'Gold']
   },
   'INDUSTRIAL_ERA': {
     clothing: ['Cotton', 'Wool', 'Leather', 'Denim', 'Canvas'],
     weapons: ['Steel', 'Iron', 'Brass'],
     tools: ['Steel', 'Iron', 'Brass'],
+    jewelry: ['Gold', 'Silver', 'Platinum', 'Steel', 'Diamond', 'Ruby'],
     all: ['Steel', 'Iron', 'Coal', 'Brass', 'Cotton', 'Wool', 'Glass', ]
   },
   'MODERN_ERA': {
     clothing: ['Cotton', 'Polyester', 'Nylon', 'Leather', 'Denim'],
     weapons: ['Steel', 'Aluminum', 'Composite'],
     tools: ['Aluminum', 'Steel', ],
+    jewelry: ['Gold', 'Silver', 'Platinum', 'Titanium', 'Diamond', 'Synthetic Ruby'],
     all: ['Aluminum', 'Plastic', 'Steel', 'Glass',]
   },
   'FUTURE_ERA': {
     clothing: ['Merino Wool', 'Recycled Polyester', 'Organic Cotton', 'Hemp', 'Bamboo Fiber'],
     weapons: ['Carbon Fiber', 'Advanced Polymers', 'Titanium Alloy', 'Kevlar'],
     tools: ['Carbon Fiber', 'Silicon', 'Graphene', 'Advanced Ceramics'],
+    jewelry: ['Titanium', 'Tungsten', 'Carbon Fiber', 'Lab Diamond', 'Moissanite'],
     all: ['Polyester', 'Hemp', 'Bamboo Fiber']
   }
 };
@@ -1042,12 +1057,19 @@ function isValidMaterialForItem(material: string, itemName: string, equipmentSlo
   return true;
 }
 
-export function getEraAppropriateMaterial(baseMaterial: string, era: HistoricalEra, itemCategory?: ItemCategory): string {
+export function getEraAppropriateMaterial(baseMaterial: string, era: HistoricalEra, itemCategory?: ItemCategory, equipmentSlot?: string): string {
   const eraMaterials = ERA_MATERIALS_BY_CATEGORY[era];
-  
-  // Determine which material list to use based on item category
+
+  // Determine which material list to use based on item category and equipment slot
   let availableMaterials: string[];
-  if (itemCategory === 'Apparel') {
+
+  // Check if this is jewelry (rings, necklaces, earrings, bracelets, etc.)
+  const isJewelry = equipmentSlot && ['ring1', 'ring2', 'necklace', 'earring', 'bracelet'].includes(equipmentSlot);
+
+  if (isJewelry) {
+    // Jewelry should use jewelry materials (gold, silver, etc.), NOT clothing materials
+    availableMaterials = eraMaterials.jewelry;
+  } else if (itemCategory === 'Apparel') {
     availableMaterials = eraMaterials.clothing;
   } else if (itemCategory === 'Weapon') {
     availableMaterials = eraMaterials.weapons;
@@ -1056,20 +1078,20 @@ export function getEraAppropriateMaterial(baseMaterial: string, era: HistoricalE
   } else {
     availableMaterials = eraMaterials.all;
   }
-  
+
   // If base material is available in era and category, use it
   if (availableMaterials.some(m => m.toLowerCase() === baseMaterial.toLowerCase())) {
     return baseMaterial;
   }
-  
+
   // Otherwise find appropriate substitute from the category-specific list
   const materialCategory = getMaterialCategory(baseMaterial);
   const substitutes = availableMaterials.filter(m => getMaterialCategory(m) === materialCategory);
-  
+
   if (substitutes.length > 0) {
     return randomChoice(substitutes);
   }
-  
+
   // If no substitutes in same category, just pick from available materials for that item type
   return availableMaterials.length > 0 ? randomChoice(availableMaterials) : baseMaterial;
 }
@@ -1210,14 +1232,37 @@ export function generateProceduralName(
 
   // 1. Quality adjective (if not standard)
   if (options.quality && options.quality !== 'standard') {
-    const categoryQualityWords = CATEGORY_QUALITY_WORDS[baseItem.category]?.[options.quality];
-    const qualityWord = categoryQualityWords
-      ? randomChoice(categoryQualityWords)
-      : randomChoice(QUALITY_ADJECTIVES[options.quality]);
+    // Check if base name already has a descriptive adjective (like "Smooth Stone", "Fine Silk", etc.)
+    const baseNameHasAdjective = baseNameWords.length > 1 &&
+      baseNameWords.some(word => {
+        // Check if any word is a common adjective
+        const commonAdjectives = ['smooth', 'fine', 'rough', 'sharp', 'soft', 'hard', 'thick', 'thin',
+                                   'heavy', 'light', 'pure', 'crude', 'raw', 'refined', 'polished',
+                                   'simple', 'plain', 'basic', 'common', 'standard'];
+        return commonAdjectives.includes(word.toLowerCase());
+      });
 
-    // Only add if quality word isn't in base name
-    if (!wordAppearsIn(qualityWord, baseItem.name)) {
-      parts.push(qualityWord);
+    // Skip adding quality word if base name already has descriptive adjective
+    if (!baseNameHasAdjective) {
+      // Check if this is jewelry (rings, necklaces, earrings, etc.)
+      const isJewelry = baseItem.equipmentSlot && ['ring1', 'ring2', 'necklace', 'earring', 'bracelet'].includes(baseItem.equipmentSlot);
+
+      let qualityWord: string;
+      if (isJewelry) {
+        // Use jewelry-specific quality words
+        qualityWord = randomChoice(JEWELRY_QUALITY_WORDS[options.quality]);
+      } else {
+        // Use category-specific or default quality words
+        const categoryQualityWords = CATEGORY_QUALITY_WORDS[baseItem.category]?.[options.quality];
+        qualityWord = categoryQualityWords
+          ? randomChoice(categoryQualityWords)
+          : randomChoice(QUALITY_ADJECTIVES[options.quality]);
+      }
+
+      // Only add if quality word isn't in base name
+      if (!wordAppearsIn(qualityWord, baseItem.name)) {
+        parts.push(qualityWord);
+      }
     }
   }
 
@@ -1239,25 +1284,61 @@ export function generateProceduralName(
                       'INDUSTRIAL_ERA', 'MODERN_ERA', 'FUTURE_ERA'];
 
     if (!eraNames.includes(options.material)) {
-      // Check each word of the material
-      const materialWords = options.material.split(/\s+/);
       let shouldAddMaterial = true;
 
-      for (const materialWord of materialWords) {
-        // Skip if any significant word (3+ chars) is already in base name
-        if (materialWord.length >= 3 && wordAppearsIn(materialWord, baseItem.name)) {
-          shouldAddMaterial = false;
-          break;
-        }
-        // Skip if already in parts
-        if (parts.some(p => wordAppearsIn(materialWord, p))) {
-          shouldAddMaterial = false;
-          break;
+      // Check if base item's material is already in the name
+      // (e.g., "Leather Waterskin" - don't add "Copper" if "Leather" is already there)
+      if (baseItem.material) {
+        const baseMaterialWords = baseItem.material.split(/\s+/);
+        for (const baseMaterialWord of baseMaterialWords) {
+          if (baseMaterialWord.length >= 3 && wordAppearsIn(baseMaterialWord, baseItem.name)) {
+            // Base material is in the name, don't add a different material
+            shouldAddMaterial = false;
+            break;
+          }
         }
       }
 
-      if (shouldAddMaterial) {
-        parts.push(options.material);
+      // Check if material itself contains quality words (to avoid "Exceptional Premium Stone")
+      // Strip out quality words from material if present
+      const qualityWords = ['exceptional', 'premium', 'masterwork', 'exquisite', 'legendary',
+                            'pristine', 'perfect', 'flawless', 'superior', 'fine', 'quality',
+                            'select', 'choice', 'prime', 'gourmet'];
+      let cleanedMaterial = options.material;
+      const materialWords = options.material.split(/\s+/);
+
+      // If material contains a quality word, remove it to avoid duplication
+      const filteredMaterialWords = materialWords.filter(word =>
+        !qualityWords.includes(word.toLowerCase())
+      );
+
+      if (filteredMaterialWords.length < materialWords.length) {
+        cleanedMaterial = filteredMaterialWords.join(' ');
+        // If we stripped out all words, don't add the material
+        if (cleanedMaterial.trim() === '') {
+          shouldAddMaterial = false;
+        }
+      }
+
+      // Check each word of the cleaned material
+      if (shouldAddMaterial && cleanedMaterial) {
+        const cleanedMaterialWords = cleanedMaterial.split(/\s+/);
+        for (const materialWord of cleanedMaterialWords) {
+          // Skip if any significant word (3+ chars) is already in base name
+          if (materialWord.length >= 3 && wordAppearsIn(materialWord, baseItem.name)) {
+            shouldAddMaterial = false;
+            break;
+          }
+          // Skip if already in parts
+          if (parts.some(p => wordAppearsIn(materialWord, p))) {
+            shouldAddMaterial = false;
+            break;
+          }
+        }
+      }
+
+      if (shouldAddMaterial && cleanedMaterial) {
+        parts.push(cleanedMaterial);
       }
     }
   }
@@ -1455,9 +1536,14 @@ function generateBaseProperties(
   let culturalStyle: string | undefined;
 
   if (shouldHaveMaterial && baseItemClone.material) {
-    // Get era-appropriate material (deterministic based on era/category)
+    // Get era-appropriate material (deterministic based on era/category/slot)
     const baseMaterial = baseItemClone.material;
-    eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era as HistoricalEra, baseItemClone.category);
+    eraAppropriateMaterial = getEraAppropriateMaterial(
+      baseMaterial,
+      era as HistoricalEra,
+      baseItemClone.category,
+      baseItemClone.equipmentSlot
+    );
 
     // Validate the substituted material
     if (!isValidMaterialForItem(eraAppropriateMaterial, baseItemClone.name, baseItemClone.equipmentSlot)) {

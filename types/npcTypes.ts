@@ -114,7 +114,15 @@ export interface NpcEntity {
     direction: 'up' | 'down' | 'left' | 'right';
     walkFrame: number;
     onRoad: boolean;
-    aiState: 'idle' | 'wandering' | 'hostile_fleeing' | 'attacking_chasing';
+    aiState: 'idle' | 'wandering' | 'hostile_fleeing' | 'attacking_chasing' | 'seeking_item';
+
+    // Item seeking behavior
+    targetItem?: { x: number; y: number; item: Item };
+    pickupHistory?: Array<{
+        item: Item;
+        timestamp: number;
+        location: { x: number; y: number };
+    }>;
 
     // Context
     era: HistoricalEra;

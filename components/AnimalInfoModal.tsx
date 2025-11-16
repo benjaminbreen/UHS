@@ -9,6 +9,7 @@ import DiseaseModal from './DiseaseModal';
 import { ActiveDisease } from '../types/diseaseTypes';
 import { useGame } from '../contexts/GameContext';
 import { mapLocationToCulture } from '../utils/mapUtils';
+import AnimalPortrait from './AnimalPortrait';
 
 interface AnimalInfoModalProps {
   animal: AnimalEntity;
@@ -58,7 +59,9 @@ const AnimalInfoModal: React.FC<AnimalInfoModalProps> = ({ animal, onClose }) =>
         >
           <div className="flex items-start justify-between pb-2 mb-4 border-b border-gray-700">
             <div className="flex items-center">
-              <span className="mr-4 text-5xl">{animal.emoji}</span>
+              <div className="mr-4 w-16 h-16">
+                <AnimalPortrait animal={animal} size={64} />
+              </div>
               <div>
                 <h3 id="animal-modal-title" className="text-2xl font-bold text-blue-300 capitalize">
                     {animal.speciesName}
@@ -102,7 +105,9 @@ const AnimalInfoModal: React.FC<AnimalInfoModalProps> = ({ animal, onClose }) =>
         {/* Header */}
         <div className="flex items-start justify-between pb-2 mb-4 border-b border-gray-700">
           <div className="flex items-center flex-1">
-            <span className="mr-4 text-5xl">{animal.emoji}</span>
+            <div className="mr-4 w-16 h-16">
+              <AnimalPortrait animal={animal} size={64} />
+            </div>
             <div className="flex-1">
                 <div className="flex flex-wrap items-baseline">
                     <h3 id="animal-modal-title" className="text-2xl font-bold text-blue-300 capitalize">

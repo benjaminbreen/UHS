@@ -90,6 +90,7 @@ interface InventoryPanelEnhancedProps {
   onCraft?: (items: Item[], method: 'COMBINE' | 'DISAGGREGATE') => void;
   onStudy?: (items: Item[]) => void;
   onEat?: (item: Item) => void;
+  onDrop?: (item: Item) => void;
   deployVesselToMap?: (vesselItem: Item, playerX: number, playerY: number) => { success: boolean, vesselPosition?: { x: number, y: number } };
   deployBridgeToMap?: (bridgeItem: Item, playerX: number, playerY: number) => { success: boolean, bridgePosition?: { x: number, y: number } };
   playerX?: number | null;
@@ -111,6 +112,7 @@ export default function InventoryPanelEnhanced({
   onCraft,
   onStudy,
   onEat,
+  onDrop,
   deployVesselToMap,
   deployBridgeToMap,
   playerX,
@@ -398,7 +400,7 @@ export default function InventoryPanelEnhanced({
                           filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
                         }}
                       >
-                        <GenerativeItemIcon item={item} size={56} />
+                        <GenerativeItemIcon item={item} size={72} />
                       </div>
                     </div>
 
@@ -489,7 +491,7 @@ export default function InventoryPanelEnhanced({
                         filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
                       }}
                     >
-                      <GenerativeItemIcon item={item} size={40} />
+                      <GenerativeItemIcon item={item} size={56} />
                     </div>
 
                     {/* Item info */}
@@ -625,6 +627,7 @@ export default function InventoryPanelEnhanced({
                 }
               : undefined
           }
+          onDrop={onDrop}
           isDark={isDark}
         />
       )}
@@ -659,6 +662,7 @@ interface ItemDetailModalProps {
   onCraft?: (item: Item) => void;
   onEat?: (item: Item) => void;
   onStudy?: (item: Item) => void;
+  onDrop?: (item: Item) => void;
   onDeployVessel?: () => void;
   onDeployBridge?: () => void;
   isDark: boolean;
@@ -671,6 +675,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   onCraft,
   onEat,
   onStudy,
+  onDrop,
   onDeployVessel,
   onDeployBridge,
   isDark
@@ -942,6 +947,25 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               }}
             >
               Craft
+            </button>
+          )}
+
+          {onDrop && (
+            <button
+              onClick={() => {
+                onDrop(item);
+                setIsItemModalOpen(false);
+              }}
+              className="flex-1 px-5 py-4 rounded-lg font-bold text-base transition-all duration-200 hover:scale-105"
+              style={{
+                background: '#ef4444',
+                color: '#fff',
+                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Drop
             </button>
           )}
 

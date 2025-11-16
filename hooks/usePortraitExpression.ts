@@ -32,14 +32,14 @@ export function usePortraitExpression() {
     }
   }, []);
 
-  const flash = useCallback((e: PortraitExpression, ms = 2000) => {
+  const flash = useCallback((e: PortraitExpression, ms = 30000) => {
     // last-wins: cancel prior timer and set a new one
     if (timerRef.current) window.clearTimeout(timerRef.current);
     setExpr(e);
     timerRef.current = window.setTimeout(() => {
       setExpr(null);
       timerRef.current = null;
-    }, ms + 50); // slightly > portrait's own internal 2000ms
+    }, ms + 50); // slightly > portrait's own internal 30000ms
   }, []);
 
   useEffect(() => () => timerRef.current && window.clearTimeout(timerRef.current), []);

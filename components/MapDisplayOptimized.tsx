@@ -32,6 +32,7 @@ import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
 import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol, LavaSymbolCSS, MountainSymbol, SnowSymbol, BridgeSymbol } from './symbols';
 import RailroadStationSymbol from './symbols/RailroadStationSymbol';
 import DugEarthSymbol from './symbols/DugEarthSymbol';
+import DroppedItemMarker from './symbols/DroppedItemMarker';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
 import SpaceSymbol from './symbols/SpaceSymbol';
@@ -4051,6 +4052,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               );
             })}
 
+            {/* Dropped items - show item icons where player has dropped items */}
+            {mapData?.terrainModifications?.droppedItems?.map((dropped, index) => {
+              const x = dropped.x * TILE_SIZE_PX;
+              const y = dropped.y * TILE_SIZE_PX;
+              return (
+                <DroppedItemMarker
+                  key={`dropped-${dropped.x}-${dropped.y}-${index}`}
+                  item={dropped.item}
+                  x={x}
+                  y={y}
+                  cellSize={TILE_SIZE_PX}
+                />
+              );
+            })}
+
             {/* Multi-tile pillars layer - rendered above base tiles */}
             {isSpecialMap && (mapData as any)?.multiTileObjects && (() => {
               const multiTileObjects = (mapData as any).multiTileObjects || [];
@@ -4165,22 +4181,39 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     style={{ opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.3 : 1.0 }}
                     filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
                   />
-                  <text
-                    x={TILE_SIZE_PX/2}
-                    y={TILE_SIZE_PX/2}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fontSize={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
-                    className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
-                    style={{
-                      filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
-                      stroke: selectedAnimalId === animal.id ? 'yellow' : 'none',
-                      strokeWidth: selectedAnimalId === animal.id ? 2 : 0,
-                      opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.6 : 1.0
-                    }}
-                  >
-                    {animal.emoji}
-                  </text>
+                  {animal.imagePath ? (
+                    // Render PNG image if available
+                    <image
+                      href={animal.imagePath}
+                      x={TILE_SIZE_PX/2 - (TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)) / 2}
+                      y={TILE_SIZE_PX/2 - (TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)) / 2}
+                      width={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
+                      height={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
+                      className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
+                      style={{
+                        filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
+                        opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.6 : 1.0
+                      }}
+                    />
+                  ) : (
+                    // Fall back to emoji if no image
+                    <text
+                      x={TILE_SIZE_PX/2}
+                      y={TILE_SIZE_PX/2}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
+                      className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
+                      style={{
+                        filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
+                        stroke: selectedAnimalId === animal.id ? 'yellow' : 'none',
+                        strokeWidth: selectedAnimalId === animal.id ? 2 : 0,
+                        opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.6 : 1.0
+                      }}
+                    >
+                      {animal.emoji}
+                    </text>
+                  )}
                   {(hoveredAnimal?.id === animal.id || selectedAnimalId === animal.id) && (
                     <rect
                       x={0}
@@ -4237,19 +4270,35 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       fill="rgba(0, 255, 0, 0.2)"
                       filter={shouldUseBlurEffects ? "blur(4px)" : "none"}
                     />
-                    <text
-                      x={TILE_SIZE_PX/2}
-                      y={TILE_SIZE_PX/2}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontSize={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
-                      className="animate-ff6-idle-bob"
-                      style={{
-                        filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
-                      }}
-                    >
-                      {animal.emoji}
-                    </text>
+                    {animal.imagePath ? (
+                      // Render PNG image if available
+                      <image
+                        href={animal.imagePath}
+                        x={TILE_SIZE_PX/2 - (TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)) / 2}
+                        y={TILE_SIZE_PX/2 - (TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)) / 2}
+                        width={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
+                        height={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
+                        className="animate-ff6-idle-bob"
+                        style={{
+                          filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
+                        }}
+                      />
+                    ) : (
+                      // Fall back to emoji if no image
+                      <text
+                        x={TILE_SIZE_PX/2}
+                        y={TILE_SIZE_PX/2}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
+                        className="animate-ff6-idle-bob"
+                        style={{
+                          filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
+                        }}
+                      >
+                        {animal.emoji}
+                      </text>
+                    )}
                     {/* Small loyalty indicator */}
                     <rect
                       x={TILE_SIZE_PX * 0.2}

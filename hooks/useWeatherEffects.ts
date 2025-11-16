@@ -76,7 +76,7 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
           source: 'Cold Weather'
         },
         'cold',
-        '❄️ You are feeling cold! Find shelter or warm clothing.',
+        '❄️ You are cold! Find shelter.',
         'warning'
       );
 
@@ -87,7 +87,7 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
       
       // Warning at low health
       if (updates.health < 20 && updates.health > 0) {
-        showToast('⚠️ You are freezing! Your health is critically low!', 'error');
+        showToast('⚠️ You are freezing!', 'error');
       }
     } else {
       removeEffect('feeling_cold', 'cold');
@@ -102,7 +102,7 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
           source: 'Hot Weather'
         },
         'hot',
-        '🌡️ You are feeling hot! Movement will be more tiring.',
+        '🌡️ You are hot! Movement will be slow.',
         'warning'
       );
       
@@ -124,7 +124,7 @@ export const useWeatherEffects = (weather: WeatherState | null) => {
           source: weather.precipitation === 'rain' ? 'Rain' : 'Humidity'
         },
         'wet',
-        '💧 You are feeling wet! Movement will be more tiring.',
+        '💧 You are wet!',
         'info'
       );
       

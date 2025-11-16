@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { TamedAnimal } from '../services/animalTamingService';
 import { ANIMAL_DATA } from '../constants/index';
+import AnimalPortrait from './AnimalPortrait';
 
 interface AnimalCompanionModalProps {
   animal: TamedAnimal;
@@ -82,7 +83,9 @@ const AnimalCompanionModal: React.FC<AnimalCompanionModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-600/50">
           <div className="flex items-center gap-3">
-            <div className="text-3xl">{animal.emoji}</div>
+            <div className="w-12 h-12">
+              <AnimalPortrait animal={animal} size={48} />
+            </div>
             <div>
               <h2 className="text-xl font-bold text-white">
                 {isNaming ? (

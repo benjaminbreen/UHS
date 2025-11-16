@@ -32,8 +32,8 @@ interface AIConfig {
 }
 
 const AI_CONFIG: AIConfig = {
-    PLAYER_DETECTION_RADIUS: 12, // Increased from 8 - prey animals detect threats earlier
-    FLEE_DISTANCE: 10, // Increased from 5 - prey animals flee further
+    PLAYER_DETECTION_RADIUS: 14, // Balanced for performance - animals alert to humans
+    FLEE_DISTANCE: 12, // Balanced for performance
     ATTACK_DISTANCE: 1.5,
     CHASE_DISTANCE: 12,
     WANDER_RADIUS: 10,
@@ -210,7 +210,8 @@ export function calculateAnimalUpdate(
     allAnimals: AnimalEntity[],
     playerPos: Point,
     map: MapData,
-    allNpcs?: NpcEntity[]
+    allNpcs?: NpcEntity[],
+    droppedItems?: Array<{ x: number; y: number; item: any; timestamp: number }>
 ): Partial<AnimalEntity> {
     const memory = getAnimalMemory(animal.id, animal);
     const animalData = ANIMAL_DATA[animal.baseId];
@@ -232,12 +233,23 @@ export function calculateAnimalUpdate(
 
     const canSeePlayer = playerDist <= AI_CONFIG.PLAYER_DETECTION_RADIUS;
     
-    // Enhanced flight distances for prey based on size
+    // Enhanced flight distances for prey based on size (balanced for performance)
     const PREY_FLIGHT_DISTANCES = {
-        small: 3,   // Rabbits, squirrels flee at 3 tiles
-        medium: 5,  // Deer flee at 5 tiles
-        large: 7    // Elk, moose flee at 7 tiles
+        small: 5,   // Rabbits, squirrels flee at 5 tiles
+        medium: 8,  // Deer flee at 8 tiles
+        large: 10    // Elk, moose, elephants flee at 10 tiles
     };
+
+    // Special cases - animals that are extra wary of humans
+    const EXTRA_WARY_ANIMALS = [
+        'CHEETAH', 'LEOPARD', 'JAGUAR', 'COUGAR', 'PUMA',  // Big cats (except hunting)
+        'ELEPHANT', 'RHINOCEROS', 'HIPPOPOTAMUS', 'GIRAFFE',  // Megafauna
+        'GAZELLE', 'ANTELOPE', 'IMPALA', 'SPRINGBOK',  // Fast prey
+        'ZEBRA', 'WILDEBEEST'  // Herd animals
+    ];
+
+    const isExtraWary = EXTRA_WARY_ANIMALS.includes(animal.baseId);
+    const waryMultiplier = isExtraWary ? 1.5 : 1.0;
 
     // Check for threats and prey
     let nearestThreat: Point | null = null;
@@ -246,13 +258,14 @@ export function calculateAnimalUpdate(
     let nearestPreyDist = Infinity;
 
     if (animal.type === 'Prey') {
-        const flightDistance = PREY_FLIGHT_DISTANCES[animalData.size as keyof typeof PREY_FLIGHT_DISTANCES] || 4;
+        const baseFlightDistance = PREY_FLIGHT_DISTANCES[animalData.size as keyof typeof PREY_FLIGHT_DISTANCES] || 8;
+        const flightDistance = baseFlightDistance * waryMultiplier; // Apply extra wariness
 
         // Check player proximity with enhanced detection
         if (playerDist <= flightDistance) {
             nearestThreat = playerPos;
             nearestThreatDist = playerDist;
-            memory.adrenalineTimer = 10; // Stay alert for 10 ticks
+            memory.adrenalineTimer = isExtraWary ? 15 : 10; // Stay alert longer if extra wary
             memory.lastThreatPosition = playerPos;
         }
 
@@ -264,7 +277,7 @@ export function calculateAnimalUpdate(
                     if (predDist < nearestThreatDist) {
                         nearestThreat = { x: otherAnimal.x, y: otherAnimal.y };
                         nearestThreatDist = predDist;
-                        memory.adrenalineTimer = 15; // Stay extra alert for predators
+                        memory.adrenalineTimer = isExtraWary ? 20 : 15; // Stay extra alert for predators
                         memory.lastThreatPosition = { x: otherAnimal.x, y: otherAnimal.y };
                     }
                 }
@@ -278,7 +291,7 @@ export function calculateAnimalUpdate(
                 if (npcDist <= flightDistance && npcDist < nearestThreatDist) {
                     nearestThreat = { x: npc.x, y: npc.y };
                     nearestThreatDist = npcDist;
-                    memory.adrenalineTimer = 8;
+                    memory.adrenalineTimer = isExtraWary ? 12 : 8;
                 }
             }
         }
@@ -328,21 +341,81 @@ export function calculateAnimalUpdate(
             }
         }
 
-        // Avoid humans unless very hungry
-        if (playerDist <= 10 && (memory.hunger! < 80)) {
-            // Apex predators avoid humans more
-            const avoidanceDistance = animalData.size === 'large' ? 12 : 8;
+        // Predators avoid humans unless very hungry
+        if (memory.hunger! < 80) {
+            // Apex predators and big cats avoid humans at balanced distances
+            let avoidanceDistance = 10;
+            if (animalData.size === 'large') {
+                avoidanceDistance = 12; // Large predators wary
+            }
+            if (isExtraWary) {
+                avoidanceDistance = 14; // Cheetahs, leopards, jaguars extra cautious
+            }
+
             if (playerDist <= avoidanceDistance) {
                 nearestThreat = playerPos; // Will use avoiding behavior
             }
         }
+
+        // Check NPCs as threats too (predators avoid all humans) - only check nearby NPCs for performance
+        if (allNpcs && memory.hunger! < 80 && playerDist <= 20) { // Only check if player is somewhat nearby
+            for (const npc of allNpcs) {
+                const npcDist = Math.hypot(animal.x - npc.x, animal.y - npc.y);
+                if (npcDist > 15) continue; // Skip distant NPCs for performance
+
+                const avoidanceDistance = animalData.size === 'large' ? 12 : (isExtraWary ? 14 : 10);
+                if (npcDist <= avoidanceDistance && npcDist < nearestThreatDist) {
+                    nearestThreat = { x: npc.x, y: npc.y };
+                    nearestThreatDist = npcDist;
+                }
+            }
+        }
     }
-    
+
+    // Check for dropped food items (irresistible lure!)
+    let nearestFood: { x: number; y: number; item: any } | null = null;
+    let nearestFoodDist = Infinity;
+    const FOOD_DETECTION_RADIUS = 15; // Increased from 12 for stronger lure effect
+
+    if (droppedItems && droppedItems.length > 0) {
+        for (const dropped of droppedItems) {
+            // Check if item is food
+            const isFood = dropped.item.category === 'Food' ||
+                           dropped.item.category === 'Consumable' ||
+                           dropped.item.name?.toLowerCase().includes('meat') ||
+                           dropped.item.name?.toLowerCase().includes('bread') ||
+                           dropped.item.name?.toLowerCase().includes('grain') ||
+                           dropped.item.name?.toLowerCase().includes('vegetable');
+
+            if (isFood) {
+                const dist = Math.hypot(animal.x - dropped.x, animal.y - dropped.y);
+                if (dist <= FOOD_DETECTION_RADIUS && dist < nearestFoodDist) {
+                    nearestFood = dropped;
+                    nearestFoodDist = dist;
+                }
+            }
+        }
+
+        // Debug logging
+        if (nearestFood && Math.random() < 0.05) {
+            console.log(`[Animal AI] ${animalData.name} detected ${nearestFood.item.name} at distance ${nearestFoodDist.toFixed(1)}`);
+        }
+    }
+
     let newState = animal.aiState;
     let targetPos: Point | null = null;
 
     // --- State Transitions ---
-    if (animal.type === 'Predator') {
+    // FOOD FIRST - Make dropped food truly irresistible by checking it before threats!
+    if (nearestFood) {
+        // Dropped food overrides all other behaviors (perfect bait for hunting!)
+        newState = 'wandering';
+        targetPos = nearestFood;
+        if (Math.random() < 0.05) {
+            console.log(`[Animal AI] ${animalData.name} irresistibly drawn to ${nearestFood.item.name} at (${nearestFood.x}, ${nearestFood.y})`);
+        }
+    } else if (animal.type === 'Predator') {
+        // Only consider other behaviors if there's NO food nearby
         if (nearestThreat && memory.hunger! < 80) {
             // Avoid humans when not desperate
             newState = 'avoiding';
@@ -368,6 +441,7 @@ export function calculateAnimalUpdate(
             newState = 'wandering';
         }
     } else if (animal.type === 'Prey') {
+        // Only flee from threats if there's NO food nearby
         if (nearestThreat) {
             newState = 'fleeing';
             targetPos = nearestThreat;
@@ -442,13 +516,26 @@ export function calculateAnimalUpdate(
     }
     
     if(walkableNeighbors.length === 0) {
+        if (Math.random() < 0.05) {
+            console.log(`[Animal AI] ${animalData.name} at (${animal.x}, ${animal.y}) has NO walkable neighbors! Stuck. Type: ${animal.type}, isDomestic: ${animal.isDomestic}, targetPos:`, targetPos);
+        }
         memory.stuckCounter++;
         return { aiState: newState };
     }
     memory.stuckCounter = 0;
 
+    // Debug: Log when food-seeking animal has walkable neighbors
+    if (targetPos && Math.random() < 0.05) {
+        console.log(`[Animal AI] ${animalData.name} seeking food has ${walkableNeighbors.length} walkable neighbors`);
+    }
+
     // Movement probability system to reduce jittery movement
     const shouldMove = (state: string): boolean => {
+        // ALWAYS move when seeking food (irresistible lure!)
+        if (targetPos) {
+            return true;
+        }
+
         // Domestic animals in paddocks move less frequently (grazing behavior)
         if (animal.isDomestic && map.tiles[animal.y][animal.x].paddockType === 'Livestock') {
             switch(state) {
@@ -478,7 +565,14 @@ export function calculateAnimalUpdate(
         }
     };
 
-    if (!shouldMove(newState)) {
+    const willMove = shouldMove(newState);
+
+    // Debug: Log shouldMove decision for food-seeking animals
+    if (targetPos && Math.random() < 0.05) {
+        console.log(`[Animal AI] ${animalData.name} shouldMove(${newState}) = ${willMove}, targetPos:`, targetPos);
+    }
+
+    if (!willMove) {
         return { aiState: newState }; // Update state but don't move
     }
 
@@ -603,18 +697,38 @@ export function calculateAnimalUpdate(
 
         case 'wandering':
         default:
-            // Domestic animals should move much less frequently
-            const moveChance = animal.isDomestic ? (0.133 + Math.random() * 0.067) : 1.0; // 13.3% to 20% for domestic, 100% for wild
+            // If seeking food, move directly toward it (irresistible lure!)
+            if (targetPos) {
+                let bestTile: Tile | null = null;
+                let minDist = Infinity;
+                for (const neighbor of walkableNeighbors) {
+                    const distToTarget = Math.hypot(neighbor.x - targetPos.x, neighbor.y - targetPos.y);
+                    if (distToTarget < minDist) {
+                        minDist = distToTarget;
+                        bestTile = neighbor;
+                    }
+                }
+                if (bestTile) {
+                    nextPos = { x: bestTile.x, y: bestTile.y };
+                    if (Math.random() < 0.1) {
+                        console.log(`[Animal AI] Moving toward food: ${animal.x},${animal.y} -> ${nextPos.x},${nextPos.y}, target: ${targetPos.x},${targetPos.y}`);
+                    }
+                }
+            } else {
+                // Normal wandering behavior
+                // Domestic animals should move much less frequently
+                const moveChance = animal.isDomestic ? (0.133 + Math.random() * 0.067) : 1.0; // 13.3% to 20% for domestic, 100% for wild
 
-            if (Math.random() < moveChance) {
-                const weights = walkableNeighbors.map(n => getTerrainPreference(animal, n, map));
-                const totalWeight = weights.reduce((a, b) => a + b, 0);
-                let random = Math.random() * totalWeight;
-                for (let i = 0; i < walkableNeighbors.length; i++) {
-                    random -= weights[i];
-                    if (random <= 0) {
-                        nextPos = { x: walkableNeighbors[i].x, y: walkableNeighbors[i].y };
-                        break;
+                if (Math.random() < moveChance) {
+                    const weights = walkableNeighbors.map(n => getTerrainPreference(animal, n, map));
+                    const totalWeight = weights.reduce((a, b) => a + b, 0);
+                    let random = Math.random() * totalWeight;
+                    for (let i = 0; i < walkableNeighbors.length; i++) {
+                        random -= weights[i];
+                        if (random <= 0) {
+                            nextPos = { x: walkableNeighbors[i].x, y: walkableNeighbors[i].y };
+                            break;
+                        }
                     }
                 }
             }

@@ -324,6 +324,9 @@ export const useUIState = () => {
     const toastTimerRef = useRef<number | null>(null);
     const lastToastRef = useRef<{ message: string; timestamp: number } | null>(null);
     const [panelNotificationItem, setPanelNotificationItem] = useState<Item | null>(null);
+    const [panelNotificationMode, setPanelNotificationMode] = useState<'acquired' | 'dropped' | 'npc_collected' | 'animal_collected'>('acquired');
+    const [panelNotificationEntityName, setPanelNotificationEntityName] = useState<string | null>(null);
+    const [rareItemFoundToast, setRareItemFoundToast] = useState<Item | null>(null);
     const [floatingTextMessages, setFloatingTextMessages] = useState<FloatingTextMessage[]>([]);
     const [showAssessmentModal, setShowAssessmentModal] = useState<boolean>(false);
 
@@ -2099,7 +2102,7 @@ export const useUIState = () => {
         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal,
         globalEventModalData, setGlobalEventModalData,
         showLanguageTree, selectedLanguageId, showSessionSummaryModal,
-        isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem,
+        isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem, panelNotificationMode, panelNotificationEntityName, rareItemFoundToast,
         isRightSidebarVisible, setIsRightSidebarVisible,
         floatingTextMessages, containerPrompt,
         lootModalData, setLootModalData,
@@ -2133,7 +2136,7 @@ export const useUIState = () => {
         setShowJournal, setShowQuestsPanel, openQuestPanelWithWorkOffer, setShowGameModePanel,
         setShowInitialScenarioModal, setShowDeathModal, setShowNpcDeathModal, setShowDiseaseProgressionModal, setShowEventModal, setShowFactionsModal,
         setShowLanguageTree, setSelectedLanguageId, setShowSessionSummaryModal,
-        setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
+        setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem, setPanelNotificationMode, setPanelNotificationEntityName, setRareItemFoundToast,
         showFloatingText, removeFloatingText, showContainerPrompt, hideContainerPrompt,
         handleLooting, handleCloseLootModal, onTakeCoins,
         handleVictoryClose,

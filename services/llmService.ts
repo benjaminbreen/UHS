@@ -821,6 +821,21 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
         - Wealth: ${target.wealthLevel || 'modest'}
         ${previousSummaries ? `- Previous meeting: ${previousSummaries}` : '- First encounter with this person'}
         ${workOfferContext}
+        ${(() => {
+            // Add pickup history context if NPC has picked up items recently
+            if (isNpc(target) && target.pickupHistory && target.pickupHistory.length > 0) {
+                const recentPickups = target.pickupHistory.slice(-3); // Last 3 items picked up
+                const pickupList = recentPickups.map(pickup => {
+                    const timeAgo = Date.now() - pickup.timestamp;
+                    const hoursAgo = Math.floor(timeAgo / (1000 * 60 * 60));
+                    const timeDesc = hoursAgo < 1 ? 'just now' : hoursAgo < 24 ? `${hoursAgo}h ago` : 'recently';
+                    return `${pickup.item.name} (found ${timeDesc})`;
+                }).join(', ');
+
+                return `\n**ITEMS YOU FOUND RECENTLY:**\nYou picked up: ${pickupList}\n- You might mention these items if relevant to conversation\n- You can offer to trade them if player seems interested\n- Be curious or excited about unusual finds\n`;
+            }
+            return '';
+        })()}
 
         **CURRENT CONDITIONS:**
         Time: ${mapData.timeOfDay || 'Day'}
@@ -4204,6 +4219,169 @@ Rules:
     } catch (error) {
         console.error('Translation error:', error);
         return {};
+    }
+}
+
+/**
+ * Generate NPC's reaction to receiving a gift
+ */
+export async function generateGiftReaction(
+    npc: NpcEntity,
+    item: Item,
+    playerCharacter: PlayerCharacter,
+    mapData: MapData | null,
+    conversationTurns: number = 0
+): Promise<{ text: string; reputationChange: number }> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const year = mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1500;
+    const culturalZone = npc.culturalZone || 'EUROPEAN';
+    const location = mapData?.localArea || 'unknown location';
+
+    // Determine familiarity level
+    const reputation = playerCharacter.mapReputation || 50;
+    const hasGoodReputation = reputation >= 60;
+    const hasEstablishedConversation = conversationTurns > 2;
+    const knowsPlayerName = hasGoodReputation || hasEstablishedConversation;
+
+    // Build NPC context
+    const npcContext = `
+        NPC RECEIVING GIFT:
+        - Name: ${npc.name}
+        - Profession: ${npc.profession || 'commoner'}
+        - Social Class: ${npc.socialClass || 'Common'}
+        - Age: ${npc.age || 30}
+        - Gender: ${npc.gender || 'unknown'}
+        - Personality: ${npc.personality || 'neutral'}
+        - Wealth: ${npc.wealthLevel || 'modest'}
+
+        PLAYER GIVING GIFT:
+        ${knowsPlayerName ? `- Name: ${playerCharacter.name}` : '- A stranger/traveler'}
+        - Profession: ${playerCharacter.profession || 'traveler'}
+        - Social Class: ${playerCharacter.socialClass || 'Commoner'}
+        - Current Reputation: ${reputation}/100
+        - Conversation History: ${conversationTurns} exchanges
+        ${knowsPlayerName ? '- You KNOW their name' : '- You DO NOT know their name (recently met or stranger)'}
+
+        CONTEXT:
+        - Location: ${location}
+        - Cultural Zone: ${culturalZone}
+        - Year: ${year}
+        - Time: ${mapData?.timeOfDay || 12}:00
+
+        ITEM BEING GIFTED:
+        - Name: ${item.name}
+        - Description: ${item.description || 'A simple item'}
+        - Value: ${item.value || 0} coins
+        - Rarity: ${item.rarity || 'Common'}
+        - Category: ${item.category || 'Material'}
+        ${item.material ? `- Material: ${item.material}` : ''}
+    `;
+
+    const nameInstructions = knowsPlayerName
+        ? `You may use the player's name (${playerCharacter.name}) since you know them.`
+        : `IMPORTANT: Do NOT use the player's name. You just met them or barely know them. Address them as "stranger", "friend", "traveler", or use generic terms appropriate to the culture and era. Only use their name if you have good reason to know it.`;
+
+    const prompt = `You are roleplaying as ${npc.name}, a real person living in ${location} in the year ${year}.
+
+${npcContext}
+
+This ${knowsPlayerName ? 'person' : 'stranger'} has just given you ${item.name} as a gift.
+
+${nameInstructions}
+
+React authentically based on:
+1. **Item value and appropriateness**: Is this valuable? Useful for your profession? Culturally appropriate?
+2. **Your social status**: How should someone of your class receive gifts?
+3. **Relationship context**: Reputation (${reputation}/100) - Do you trust this person? Are they a stranger or acquaintance?
+4. **Cultural norms**: Gift-giving customs in ${culturalZone} culture circa ${year}
+5. **Your personality**: React according to your temperament and profession
+6. **Practical value**: Would this item actually be useful or desirable to you?
+
+POSSIBLE REACTIONS (choose appropriately):
+- **Grateful & Pleased** (+10 to +30 reputation): Useful gift, appropriate for relationship, culturally correct
+- **Mildly Appreciative** (+3 to +8 reputation): Acceptable but unremarkable gift
+- **Puzzled/Confused** (0 to +2 reputation): Strange or inappropriate gift that isn't offensive
+- **Offended/Insulted** (-10 to -30 reputation): Gift is insulting (too cheap for your status, culturally taboo, implies something offensive)
+- **Outraged** (-40 to -80 reputation): Gift is extremely inappropriate, offensive, or dangerous
+- **Suspicious** (-5 to -15 reputation): Gift seems like a bribe or has ulterior motives (especially from strangers!)
+
+Be specific about WHY you're reacting this way. Reference your profession, needs, cultural context.
+
+FORMAT (3 lines exactly):
+DIALOGUE: [1-3 sentences of realistic, culturally-appropriate reaction]
+REPUTATION: [increase/decrease/none]
+AMOUNT: [0-100]
+`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            generationConfig: {
+                temperature: 0.7,
+                topP: 0.95
+            }
+        });
+
+        const responseText = response.text || '';
+        console.log('[Gift Reaction] Raw LLM response:', responseText);
+
+        // Parse response
+        let dialogueText = '';
+        let reputationChange = 0;
+
+        try {
+            const dialogueMatch = responseText.match(/DIALOGUE:\s*(.+?)(?:\n|REPUTATION:|$)/si);
+            dialogueText = dialogueMatch?.[1]?.trim() || `Thank you for the ${item.name}.`;
+
+            const reputationMatch = responseText.match(/REPUTATION:\s*([^\n]+)/i);
+            const amountMatch = responseText.match(/AMOUNT:\s*(-?\d+)/i);
+
+            if (reputationMatch && amountMatch) {
+                const reputationType = reputationMatch[1].toLowerCase().trim();
+                const amount = parseInt(amountMatch[1]) || 0;
+
+                const negativeTypes = ['suspicious', 'offended', 'insulted', 'outraged', 'decrease', 'negative'];
+                const positiveTypes = ['grateful', 'pleased', 'appreciative', 'increase', 'positive', 'thankful'];
+                const neutralTypes = ['none', 'neutral', 'unchanged', 'puzzled', 'confused'];
+
+                if (negativeTypes.some(type => reputationType.includes(type))) {
+                    reputationChange = -Math.min(Math.abs(amount), 80);
+                } else if (positiveTypes.some(type => reputationType.includes(type))) {
+                    reputationChange = Math.min(Math.abs(amount), 30);
+                } else if (!neutralTypes.some(type => reputationType.includes(type))) {
+                    // Try to infer from amount sign
+                    reputationChange = Math.max(-80, Math.min(30, amount));
+                }
+            }
+
+            // Clean up dialogue
+            dialogueText = dialogueText
+                .replace(/REPUTATION:.*/i, '')
+                .replace(/AMOUNT:.*/i, '')
+                .trim();
+
+        } catch (parseError) {
+            console.warn('[Gift Reaction] Failed to parse gift reaction, using fallback:', parseError);
+            dialogueText = `Thank you for the ${item.name}. This is... interesting.`;
+            reputationChange = 0;
+        }
+
+        console.log('[Gift Reaction] Parsed dialogue:', dialogueText);
+        console.log('[Gift Reaction] Reputation change:', reputationChange);
+
+        return { text: dialogueText, reputationChange };
+
+    } catch (error) {
+        console.error('Error generating gift reaction:', error);
+        console.error('Gift reaction context:', { npcName: npc.name, itemName: item.name, culture: npc.culturalZone });
+
+        // Return a more graceful fallback
+        return {
+            text: `${npc.name} accepts the ${item.name} with a polite nod.`,
+            reputationChange: 0
+        };
     }
 }
 

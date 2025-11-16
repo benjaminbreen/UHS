@@ -11,6 +11,7 @@ import { TerrainStructure } from '../structures';
 import { Season } from '../ui';
 import { TimeOfDay } from '../ambiance';
 import { WeatherState } from '../../services/weatherService';
+import { Item } from '../index';
 
 // Re-export MapArchetype from enums.ts (zero-dependency file)
 export { MapArchetype } from '../enums';
@@ -132,5 +133,6 @@ export interface MapData {
   // Terrain modifications made by player actions
   terrainModifications?: {
     dugTiles?: Array<{x: number; y: number; timestamp: number}>;
+    droppedItems?: Array<{x: number; y: number; item: Item; timestamp: number}>;
   };
 }

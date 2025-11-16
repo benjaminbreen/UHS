@@ -67,7 +67,11 @@ const ButcherConfirmModal: React.FC<ButcherConfirmModalProps> = ({
           <div className="space-y-2 mb-4">
             {animals.map((animal) => (
               <div key={animal.id} className="flex items-center gap-3 bg-red-900/20 rounded-lg p-3 border border-red-700/30">
-                <div className="text-xl">{animal.emoji}</div>
+                {animal.imagePath ? (
+                  <img src={animal.imagePath} alt={animal.speciesName} className="w-8 h-8" />
+                ) : (
+                  <div className="text-xl">{animal.emoji}</div>
+                )}
                 <div className="flex-1">
                   <p className="text-red-100 font-medium">
                     {animal.name || animal.speciesName}

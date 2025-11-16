@@ -90,6 +90,9 @@ interface UseFarmLLMReturn {
   setFarmActionLog: (log: Array<{ action: string; timeElapsed: number }>) => void;
   handleFarmWorkCommand: (command: string) => Promise<void>;
   initializeWorkSession: (task: string) => void;
+
+  // Quick NPC talk for roguelike
+  handleQuickNpcTalk: (npc: FarmFamilyMember) => Promise<string>;
 }
 
 export function useFarmLLM({
@@ -907,6 +910,73 @@ export function useFarmLLM({
     }
   }, [farmWorkHistory, hoursWorkedToday, farmActionLog, farmState?.tileKey]);
 
+  // Quick NPC talk for roguelike - generates contextual dialogue
+  const handleQuickNpcTalk = useCallback(async (npc: FarmFamilyMember): Promise<string> => {
+    console.log('[useFarmLLM] handleQuickNpcTalk called:', {
+      npcName: npc.name,
+      useLlm,
+      hasFarmState: !!farmState,
+      culturalZone,
+      era
+    });
+
+    if (!useLlm || !farmState) {
+      console.log('[useFarmLLM] Using fallback response - useLlm:', useLlm, 'farmState:', !!farmState);
+      // Fallback non-LLM response
+      const taskText = npc.currentTask ? ` I'm ${npc.currentTask.toLowerCase()}.` : '';
+      return `"Hello there!${taskText}"`;
+    }
+
+    try {
+      console.log('[useFarmLLM] Calling LLM for NPC dialogue...');
+
+      // Convert to NpcEntity format for LLM
+      const npcEntity: NpcEntity = {
+        id: npc.id,
+        name: npc.name,
+        type: 'npc' as const,
+        x: 0,
+        y: 0,
+        health: npc.health,
+        maxHealth: npc.maxHealth,
+        age: npc.age,
+        gender: npc.gender.toLowerCase() as 'male' | 'female',
+        culturalZone: culturalZone,
+        occupation: npc.role.toLowerCase(),
+        personality: npc.traits?.map(t => t.name.toLowerCase()) || ['hardworking', 'practical'],
+        memory: {
+          conversationSummaries: [],
+          opinionOfPlayer: 50
+        }
+      };
+
+      // Create a casual greeting prompt
+      const greetingPrompt = `The player greets ${npc.name}. Respond with a brief, casual greeting (1-2 sentences) in character.${
+        npc.currentTask ? ` ${npc.name} is currently ${npc.currentTask.toLowerCase()}.` : ''
+      } Keep it natural and contextual to farm life in ${era}, ${culturalZone}.`;
+
+      console.log('[useFarmLLM] Prompt:', greetingPrompt);
+
+      // Call LLM with simple context
+      const response = await generateEncounterDialogue(
+        npcEntity,
+        [], // No conversation history for quick greetings
+        greetingPrompt,
+        playerCharacter,
+        culturalZone,
+        era,
+        timeOfDay
+      );
+
+      console.log('[useFarmLLM] LLM response received:', response);
+
+      return response || `"Hello! ${npc.currentTask ? `Just ${npc.currentTask.toLowerCase()}.` : 'Nice day, isn\'t it?'}"`;
+    } catch (error) {
+      console.error('[useFarmLLM] Quick NPC talk error:', error);
+      return `"Hello there! ${npc.currentTask ? `Busy ${npc.currentTask.toLowerCase()}.` : 'How are you?'}"`;
+    }
+  }, [useLlm, farmState, culturalZone, era, playerCharacter, timeOfDay]);
+
   return {
     // Family chat
     selectedMember,
@@ -954,5 +1024,8 @@ export function useFarmLLM({
     setFarmActionLog,
     handleFarmWorkCommand,
     initializeWorkSession,
+
+    // Quick NPC talk
+    handleQuickNpcTalk,
   };
 }

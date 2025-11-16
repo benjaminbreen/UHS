@@ -2,9 +2,12 @@
  * AnimalCombatSprite - Enhanced animated, pixel-art style animal sprites for combat.
  * Supports all animal species from the game with charming pixel art aesthetic,
  * proper scale and facing direction. More detailed but still distinctly pixel art.
+ *
+ * Now with PNG image support - checks for actual animal images first, falls back to pixel art.
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimalEntity } from '../../types';
+import { ANIMAL_DATA } from '../../constants';
 
 interface AnimalCombatSpriteProps {
   animal: AnimalEntity;
@@ -2285,12 +2288,53 @@ const ButterflySprite: React.FC<{ animation: string }> = ({ animation }) => {
     );
 };
 
-const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({ 
-    animal, 
-    animation, 
+// Cache for PNG availability checks to prevent repeated network requests
+const pngAvailabilityCache = new Map<string, boolean>();
+
+const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
+    animal,
+    animation,
     size = 128,
     facing
 }) => {
+    // PNG image detection state
+    const [pngImagePath, setPngImagePath] = useState<string | null>(null);
+    const [imageError, setImageError] = useState(false);
+
+    // Check for PNG image on mount or when animal changes - with caching
+    useEffect(() => {
+        const filename = animal.baseId.toLowerCase();
+        const cacheKey = filename;
+
+        // Check cache first
+        if (pngAvailabilityCache.has(cacheKey)) {
+            const isAvailable = pngAvailabilityCache.get(cacheKey);
+            if (isAvailable) {
+                setPngImagePath(`/animals/${filename}.png`);
+                setImageError(false);
+            } else {
+                setImageError(true);
+                setPngImagePath(null);
+            }
+            return;
+        }
+
+        // Not in cache, check for image
+        const path = `/animals/${filename}.png`;
+        const img = new Image();
+        img.onload = () => {
+            pngAvailabilityCache.set(cacheKey, true);
+            setPngImagePath(path);
+            setImageError(false);
+        };
+        img.onerror = () => {
+            pngAvailabilityCache.set(cacheKey, false);
+            setImageError(true);
+            setPngImagePath(null);
+        };
+        img.src = path;
+    }, [animal.baseId]);
+
     // Get animation class based on animal type and animation state
     const getAnimationClass = () => {
         const animalType = animal.type?.toLowerCase() || 'domestic';
@@ -2448,6 +2492,63 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
         }
     };
 
+    // Priority 1: If PNG image is available, use it
+    if (pngImagePath && !imageError) {
+        return (
+            <div className={getAnimationClass()} style={{
+                width: `${size}px`,
+                height: `${size}px`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transformOrigin: 'center center'
+            }}>
+                <img
+                    src={pngImagePath}
+                    alt={animal.baseId}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        transform: facing === 'left' ? 'scaleX(1)' : 'scaleX(-1)',
+                        filter: animal.type === 'Predator' ? 'drop-shadow(0 0 4px rgba(220, 38, 38, 0.5))' : 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.3))',
+                        imageRendering: 'auto'
+                    }}
+                    onError={() => {
+                        setImageError(true);
+                        setPngImagePath(null);
+                    }}
+                />
+            </div>
+        );
+    }
+
+    // Priority 2: Fall back to emoji if available
+    const animalData = ANIMAL_DATA[animal.baseId];
+    const emoji = animalData?.emoji || animal.emoji;
+    if (emoji) {
+        return (
+            <div className={getAnimationClass()} style={{
+                width: `${size}px`,
+                height: `${size}px`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transformOrigin: 'center center',
+                transform: facing === 'left' ? 'scaleX(1)' : 'scaleX(-1)',
+            }}>
+                <span style={{
+                    fontSize: `${size * 0.7}px`,
+                    lineHeight: 1,
+                    filter: animal.type === 'Predator' ? 'drop-shadow(0 0 4px rgba(220, 38, 38, 0.5))' : 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.3))',
+                }}>
+                    {emoji}
+                </span>
+            </div>
+        );
+    }
+
+    // Priority 3: Final fallback to pixel art SVG
     return (
         <div className={getAnimationClass()} style={{
             width: `${size}px`,
@@ -2472,7 +2573,7 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
                         </feMerge>
                     </filter>
                 </defs>
-                <g style={{ 
+                <g style={{
                     filter: animal.type === 'Predator' ? 'url(#animal-outline) url(#predatorGlow)' : 'url(#animal-outline)',
                     transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
                     transformOrigin: 'center'

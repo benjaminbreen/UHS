@@ -109,7 +109,11 @@ const AnimalListItem = React.memo(
         onClick={() => onClick(animal)}
         className={`flex items-center p-3 rounded-lg cursor-pointer ${isSelected ? 'bg-accent text-white border border-accent-active' : 'surface-muted text-text-primary hover:shadow-md'}`}
       >
-        <div className="text-2xl mr-3 flex-shrink-0">{animal.emoji}</div>
+        {animal.imagePath ? (
+          <img src={animal.imagePath} alt={animal.speciesName} className="w-8 h-8 mr-3 flex-shrink-0" />
+        ) : (
+          <div className="text-2xl mr-3 flex-shrink-0">{animal.emoji}</div>
+        )}
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate text-sm">{animal.speciesName}</p>
           <div className="text-xs text-text-muted flex items-center mt-1">
@@ -1241,17 +1245,14 @@ const LeftSidebar: React.FC<{
               </div>
               <div>
                 <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1.5">Climate</p>
-                <div className="flex items-center gap-1.5">
-                  {React.createElement(getClimateIcon(currentMapClimate), { className: "w-3.5 h-3.5 text-accent-primary flex-shrink-0" })}
-                  <p className="text-sm font-semibold text-accent-primary leading-tight truncate">{formatEnumString(currentMapClimate)}</p>
-                </div>
+                <p className="text-sm font-semibold text-accent-primary leading-tight">{formatEnumString(currentMapClimate)}</p>
               </div>
               <div className="pr-3 border-r border-[var(--surface-muted-border)]">
-                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1.5">Region</p>
+                <p className="text-[11px] text-cyan-500 dark:text-cyan-400 uppercase tracking-wide mb-1.5">Region</p>
                 <p className="text-sm font-semibold text-text-primary leading-tight">{currentRegion}</p>
               </div>
               <div>
-                <p className="text-[11px] text-text-secondary uppercase tracking-wide mb-1.5">Map Area</p>
+                <p className="text-[11px] text-emerald-500 dark:text-emerald-400 uppercase tracking-wide mb-1.5">Map Area</p>
                 <p className="text-sm font-semibold text-text-primary leading-tight">{localArea}</p>
               </div>
             </div>

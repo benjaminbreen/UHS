@@ -9,13 +9,13 @@ type SentencePool = AdjectivePool;
 
 // --- ADJECTIVE & SENTENCE POOLS ---
 
-const ageAdjectives: AdjectivePool = { low: ['young', 'spry', 'youthful'], mid: ['mature', 'adult'], high: ['old', 'aging', 'weathered', 'elderly'] };
-const speedAdjectives: AdjectivePool = { low: ['lethargic', 'plodding', 'sluggish', 'ponderous', 'slow'], mid: ['steady', 'unhurried', 'calm'], high: ['quick', 'spry', 'fleet-footed', 'lively', 'swift', 'jittery'] };
-const strengthAdjectives: AdjectivePool = { low: ['weak', 'delicate', 'frail'], mid: ['stout', 'sturdy', 'average'], high: ['powerful', 'burly', 'musclebound', 'hulking', 'massive'] };
-const agilityAdjectives: AdjectivePool = { low: ['clumsy', 'ponderous', 'awkward'], mid: ['measured', 'deliberate'], high: ['agile', 'graceful', 'nimble', 'lively'] };
-const perceptionAdjectives: AdjectivePool = { low: ['oblivious', 'dull-eyed', 'vacant'], mid: ['observant', 'watchful'], high: ['sharp-eyed', 'keen', 'alert', 'attentive', 'wary'] };
-const constitutionAdjectives: AdjectivePool = { low: ['frail', 'gaunt', 'weak'], mid: ['healthy', 'sturdy', 'hardy'], high: ['resilient', 'tough', 'robust', 'vigorous'] };
-const aggressionAdjectives: AdjectivePool = { low: ['timid', 'unassertive', 'passive'], mid: ['bold', 'confident'], high: ['aggressive', 'fierce', 'predatory', 'hostile'] };
+const ageAdjectives: AdjectivePool = { low: ['young', 'spry', 'youthful', 'juvenile', 'immature'], mid: ['mature', 'adult', 'prime'], high: ['old', 'aging', 'weathered', 'elderly', 'grizzled'] };
+const speedAdjectives: AdjectivePool = { low: ['lethargic', 'plodding', 'sluggish', 'ponderous', 'slow', 'languid'], mid: ['steady', 'unhurried', 'calm', 'moderate'], high: ['quick', 'spry', 'fleet-footed', 'lively', 'swift', 'jittery', 'darting', 'energetic'] };
+const strengthAdjectives: AdjectivePool = { low: ['weak', 'delicate', 'frail', 'feeble'], mid: ['stout', 'sturdy', 'average', 'solid'], high: ['powerful', 'burly', 'muscular', 'hulking', 'massive', 'mighty'] };
+const agilityAdjectives: AdjectivePool = { low: ['clumsy', 'ponderous', 'awkward', 'ungainly'], mid: ['measured', 'deliberate', 'coordinated'], high: ['agile', 'graceful', 'nimble', 'lively', 'acrobatic', 'spry'] };
+const perceptionAdjectives: AdjectivePool = { low: ['oblivious', 'dull-eyed', 'vacant', 'inattentive'], mid: ['observant', 'watchful', 'aware'], high: ['sharp-eyed', 'keen', 'alert', 'attentive', 'wary', 'vigilant'] };
+const constitutionAdjectives: AdjectivePool = { low: ['frail', 'gaunt', 'weak', 'sickly'], mid: ['healthy', 'sturdy', 'hardy', 'fit'], high: ['resilient', 'tough', 'robust', 'vigorous', 'hearty'] };
+const aggressionAdjectives: AdjectivePool = { low: ['timid', 'unassertive', 'passive', 'docile', 'meek', 'gentle'], mid: ['bold', 'confident', 'assertive', 'spirited'], high: ['aggressive', 'fierce', 'predatory', 'hostile', 'combative', 'territorial'] };
 
 const ageSentences: SentencePool = { low: ["It has the boundless energy of youth.", "It is a young specimen."], mid: ["It appears to be a mature adult.", "It is in its prime."], high: ["It is well past its prime.", "Its age is betrayed by its weathered appearance.", "This is an elderly creature."] };
 const speedSentences: SentencePool = { low: ["Its movements are slow and ponderous.", "It moves with considerable effort."], mid: ["It moves with a steady, unhurried gait."], high: ["It is constantly in motion.", "It moves with a nervous energy, quick to react."] };
@@ -32,7 +32,8 @@ const domesticSentences = { true: ["Years of domestication have left it gentle a
 export function generateAnimalDescriptions(animal: AnimalEntity): { short: string; long: string } {
     const { baseId, age, isDomestic, stats, speciesName, health } = animal;
     const animalData = ANIMAL_DATA[baseId];
-    const animalName = speciesName.toLowerCase();
+    // Keep the original capitalization of the species name
+    const animalName = speciesName;
 
     // Deterministic seeded random number generator based on the animal's unique ID and stats.
     let seed = parseInt(animal.id.replace(/\D/g, ''), 10);
@@ -44,13 +45,47 @@ export function generateAnimalDescriptions(animal: AnimalEntity): { short: strin
     };
 
     const getRandomFromPool = (pool: AdjectivePool, value: number) => {
-        const category = value > 7 ? 'high' : value > 4 ? 'mid' : 'low';
+        // Adjusted thresholds for better distribution
+        const category = value >= 7 ? 'high' : value >= 4 ? 'mid' : 'low';
         const list = pool[category];
         return list[Math.floor(seededRandom() * list.length)];
     };
-    
-    // Short description - simplified
-    const shortDesc = `${getRandomFromPool(aggressionAdjectives, animalData.attack)} ${animalName}`;
+
+    // Short description - use variety of stats for more diverse descriptions
+    // Randomly pick which aspect to describe based on seed
+    const aspectChoice = Math.floor(seededRandom() * 7);
+    let adjective: string;
+
+    switch(aspectChoice) {
+        case 0: // Age-based
+            const ageCategory = age < 3 ? 'low' : age > 12 ? 'high' : 'mid';
+            adjective = ageAdjectives[ageCategory][Math.floor(seededRandom() * ageAdjectives[ageCategory].length)];
+            break;
+        case 1: // Speed/agility
+            adjective = getRandomFromPool(agilityAdjectives, stats.agility);
+            break;
+        case 2: // Strength
+            adjective = getRandomFromPool(strengthAdjectives, stats.strength);
+            break;
+        case 3: // Perception
+            adjective = getRandomFromPool(perceptionAdjectives, stats.perception);
+            break;
+        case 4: // Constitution/health
+            const healthValue = Math.floor((health / 10) * 10); // Convert to 0-10 scale
+            adjective = getRandomFromPool(constitutionAdjectives, healthValue);
+            break;
+        case 5: // Domestic/wild behavior
+            adjective = isDomestic ?
+                (seededRandom() > 0.5 ? 'tame' : 'domesticated') :
+                (seededRandom() > 0.5 ? 'wild' : 'feral');
+            break;
+        default: // Aggression (using actual stats now, not base data)
+            // Calculate aggression from multiple stats
+            const aggressionScore = Math.floor((animalData.attack + stats.strength) / 2);
+            adjective = getRandomFromPool(aggressionAdjectives, aggressionScore);
+    }
+
+    const shortDesc = `${adjective.charAt(0).toUpperCase() + adjective.slice(1)} ${animalName}`;
 
     // Long description - only mention notable characteristics
     const notableTraits = [];

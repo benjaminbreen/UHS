@@ -3,7 +3,7 @@ import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
 import { gameSounds } from '../services/gameSoundsService';
 import { useModalKeyboard } from '../hooks/useModalKeyboard';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Database, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check, Sparkles, Zap, Globe, Shuffle, Trophy, Shield, Compass, Coins, Crown, Home, Scale } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Database, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check, Sparkles, Zap, Globe, Shuffle, Trophy, Shield, Compass, Coins, Crown, Home, Scale, Briefcase } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
@@ -38,6 +38,7 @@ import CityMapGlobe from './CityMapGlobe';
 import HexWorldMap from './HexWorldMap';
 import HexWorldGlobe from './HexWorldGlobe';
 import RailroadTestPanel from './RailroadTestPanel';
+import WorkOfferTestPanel from './WorkOfferTestPanel';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -196,6 +197,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showInteriorMapTest, setShowInteriorMapTest] = useState(false);
   const [showQuestTestPanel, setShowQuestTestPanel] = useState(false);
   const [showNpcTestPanel, setShowNpcTestPanel] = useState(false);
+  const [showWorkOfferTestPanel, setShowWorkOfferTestPanel] = useState(false);
   const [showFishingTestPanel, setShowFishingTestPanel] = useState(false);
   const [showAlternativeFishing, setShowAlternativeFishing] = useState(false);
   const [showFishingSystemTest, setShowFishingSystemTest] = useState(false);
@@ -1000,6 +1002,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       Quests
                     </button>
                     <button
+                      onClick={() => setShowWorkOfferTestPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Briefcase className="w-3 h-3" />
+                      Work Offers
+                    </button>
+                    <button
                       onClick={() => setShowSpecialMapTest(true)}
                       className="px-3 py-2 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-md transition-colors flex items-center justify-center gap-1"
                     >
@@ -1237,6 +1246,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <QuestTestingPanel
         isOpen={showQuestTestPanel}
         onClose={() => setShowQuestTestPanel(false)}
+      />
+
+      {/* Work Offer Test Panel */}
+      <WorkOfferTestPanel
+        isOpen={showWorkOfferTestPanel}
+        onClose={() => setShowWorkOfferTestPanel(false)}
+        playerCharacter={playerCharacter}
+        mapData={mapData}
       />
 
       {/* Primary Sources Dev Panel */}

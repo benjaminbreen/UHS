@@ -7,6 +7,7 @@ import { generateCombatTalkResponse, generateCombatItemResponse, generateCombatS
 import CombatSpritePixel from './symbols/CombatSpritePixel';
 import { AnimalCombatSprite } from './symbols';
 import { ProceduralPortrait } from './portraits';
+import AnimalPortrait from './AnimalPortrait';
 import { loadTamedAnimals, saveTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { getAnimalTexts } from '../constants/gameData/animalTexts';
 import gameSoundsService from '../services/gameSoundsService';
@@ -3620,17 +3621,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
                             size={120}
                         />
                     ) : isAnimal(opponent) ? (
-                        <div style={{
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '64px',
-                            background: 'linear-gradient(145deg, #2d3748, #1a202c)'
-                        }}>
-                            {ANIMAL_DATA[opponent.baseId]?.emoji || '🐾'}
-                        </div>
+                        <AnimalPortrait
+                            animal={opponent}
+                            size={120}
+                            className="bg-gradient-to-br from-slate-700 to-slate-800"
+                        />
                     ) : (
                         <div style={{
                             width: '100%',

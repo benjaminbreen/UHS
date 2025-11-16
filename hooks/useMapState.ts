@@ -25,6 +25,7 @@ import { dialectContinuumService } from '../services/dialectContinuumService';
 import { shouldTriggerEncounter, rollForLiminalEncounter, type LiminalEncounter } from '../services/liminalEncounterService';
 import { railroadNetworkService } from '../services/railroadNetworkService';
 import { clearAllWorkOffers } from '../services/workOfferStorage';
+import { spawnGroundItems } from '../services/groundItemSpawnService';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -424,6 +425,99 @@ export const useMapState = (props: useMapStateProps) => {
         });
     }, [currentWorldCoords.x, currentWorldCoords.y, mapDataCache, isSpecialMap]);
 
+    const addDroppedItem = useCallback((x: number, y: number, item: Item) => {
+        // Don't modify special maps
+        if (isSpecialMap) {
+            console.log('[addDroppedItem] Blocked - special map active');
+            return;
+        }
+
+        setMapData(prevMapData => {
+            if (!prevMapData) return null;
+
+            // Initialize terrainModifications if it doesn't exist
+            const terrainModifications = prevMapData.terrainModifications || {};
+            const droppedItems = terrainModifications.droppedItems || [];
+
+            // Add the new dropped item
+            const newDroppedItems = [...droppedItems, { x, y, item, timestamp: Date.now() }];
+
+            // Also update the cache for this map
+            const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+            const cachedEntry = mapDataCache.get(cacheKey);
+            if (cachedEntry) {
+                const newCachedMapData = {
+                    ...cachedEntry.mapData,
+                    terrainModifications: {
+                        ...cachedEntry.mapData.terrainModifications,
+                        droppedItems: newDroppedItems
+                    }
+                };
+                setMapDataCache(prevCache => new Map(prevCache).set(cacheKey, { ...cachedEntry, mapData: newCachedMapData }));
+            }
+
+            return {
+                ...prevMapData,
+                terrainModifications: {
+                    ...terrainModifications,
+                    droppedItems: newDroppedItems
+                }
+            };
+        });
+    }, [currentWorldCoords.x, currentWorldCoords.y, mapDataCache, isSpecialMap]);
+
+    const removeDroppedItem = useCallback((x: number, y: number): Item | null => {
+        if (isSpecialMap) {
+            console.log('[removeDroppedItem] Blocked - special map active');
+            return null;
+        }
+
+        let pickedUpItem: Item | null = null;
+
+        setMapData(prevMapData => {
+            if (!prevMapData) return null;
+
+            const terrainModifications = prevMapData.terrainModifications || {};
+            const droppedItems = terrainModifications.droppedItems || [];
+
+            // Find item at this location
+            const itemIndex = droppedItems.findIndex(dropped => dropped.x === x && dropped.y === y);
+            if (itemIndex === -1) {
+                console.log('[removeDroppedItem] No item at', x, y);
+                return prevMapData;
+            }
+
+            // Store the item before removing it
+            pickedUpItem = droppedItems[itemIndex].item;
+
+            // Remove the item
+            const newDroppedItems = droppedItems.filter((_, index) => index !== itemIndex);
+
+            // Also update the cache for this map
+            const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+            const cachedEntry = mapDataCache.get(cacheKey);
+            if (cachedEntry) {
+                const newCachedMapData = {
+                    ...cachedEntry.mapData,
+                    terrainModifications: {
+                        ...cachedEntry.mapData.terrainModifications,
+                        droppedItems: newDroppedItems
+                    }
+                };
+                setMapDataCache(prevCache => new Map(prevCache).set(cacheKey, { ...cachedEntry, mapData: newCachedMapData }));
+            }
+
+            return {
+                ...prevMapData,
+                terrainModifications: {
+                    ...terrainModifications,
+                    droppedItems: newDroppedItems
+                }
+            };
+        });
+
+        return pickedUpItem;
+    }, [currentWorldCoords.x, currentWorldCoords.y, mapDataCache, isSpecialMap]);
 
     const _selectRandomMapArea = useCallback(() => {
         // Filter out "Special" zone - it's only for WorldWeaver easter eggs
@@ -471,11 +565,34 @@ export const useMapState = (props: useMapStateProps) => {
 
         // FIXED: Pass zoneToUse as continent (it's the zone name like "Europe"), and regionToUse as region
         // The standardMapGenerator will derive the cultural zone from the continent parameter
-        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, isVolcanic || forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, edgesToUse, hasLakes, undefined, undefined, undefined ); 
-        const newAnimals = newMap.animals || []; 
+        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, isVolcanic || forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, edgesToUse, hasLakes, undefined, undefined, undefined );
+        const newAnimals = newMap.animals || [];
         let newNpcs = newMap.npcs || [];
         delete newMap.animals; delete newMap.npcs;
-        
+
+        // Spawn ground items for exploration
+        const groundItems = spawnGroundItems(newMap, gameState.gameDate.year, 'normal');
+        if (groundItems.length > 0) {
+            // Add ground items to terrainModifications
+            if (!newMap.terrainModifications) {
+                newMap.terrainModifications = {};
+            }
+            if (!newMap.terrainModifications.droppedItems) {
+                newMap.terrainModifications.droppedItems = [];
+            }
+            // Add ground items with timestamp
+            const itemsWithTimestamp = groundItems.map(({ x, y, item }) => ({
+                x,
+                y,
+                item,
+                timestamp: Date.now()
+            }));
+            newMap.terrainModifications.droppedItems = [
+                ...newMap.terrainModifications.droppedItems,
+                ...itemsWithTimestamp
+            ];
+        }
+
         // Load and merge persisted NPC data
         newNpcs = npcPersistenceService.loadAndMergeNpcs(newNpcs, seedToUse);
 
@@ -2093,6 +2210,8 @@ export const useMapState = (props: useMapStateProps) => {
         removeVegetation,
         updateMineralDeposit,
         addDugTile,
+        addDroppedItem,
+        removeDroppedItem,
         updateStructureData,
         deployVesselToMap,
         deployBridgeToMap,

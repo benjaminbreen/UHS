@@ -549,10 +549,12 @@ class DiseaseService {
     progressionEvents: string[];
     recoveryEvents: string[];
     mortalityRisk: boolean;
+    isDead: boolean;
   } {
     const progressionEvents: string[] = [];
     const recoveryEvents: string[] = [];
     let mortalityRisk = false;
+    let isDead = false;
 
     if (!entity.health?.currentDiseases) {
       return { progressionEvents, recoveryEvents, mortalityRisk, isDead };
@@ -603,6 +605,7 @@ class DiseaseService {
         const mortalityChance = this.calculateMortalityChance(entity, activeDisease);
         if (Math.random() < mortalityChance) {
           mortalityRisk = true;
+          isDead = true;
         }
       }
     }

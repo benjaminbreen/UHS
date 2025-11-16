@@ -3,11 +3,13 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
+import { Item } from '../types/itemTypes';
 import { generateEncounterDialogue, attemptTheft, handleTheftResponse, TheftAttempt } from '../services/encounterService';
-import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer } from '../services/llmService';
+import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer, generateGiftReaction } from '../services/llmService';
 import { TypewriterText } from '../hooks/useTypewriter';
 import NpcTradeInterface from './NpcTradeInterface';
 import { ProceduralPortrait, AnimatedPortrait } from './portraits';
+import AnimalPortrait from './AnimalPortrait';
 import { questService } from '../services/questService';
 import { Quest } from '../types/questTypes';
 import { questCompletionService } from '../services/questCompletionService';
@@ -15,7 +17,7 @@ import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
 import { GameModeType } from '../types/eventTypes';
 import { spatialDescriptionService } from '../services/spatialDescriptionService';
-import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart, Clock, Send, User, Home, ShoppingBag, ScrollText } from 'lucide-react';
+import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart, Clock, Send, User, Home, ShoppingBag, ScrollText, ChevronDown } from 'lucide-react';
 import NpcQuestPanel from './NpcQuestPanel';
 import NpcMedicalPanel from './NpcMedicalPanel';
 import { learningObjectivesService } from '../services/learningObjectivesService';
@@ -312,6 +314,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const [showLanguageTree, setShowLanguageTree] = useState(false);
     const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
 
+    // Gift giving state
+    const [showGiftModal, setShowGiftModal] = useState(false);
+    const [isGiftingInProgress, setIsGiftingInProgress] = useState(false);
+
     // Taming states
     const [tamingApproach, setTamingApproach] = useState('');
     const [tamingInProgress, setTamingInProgress] = useState(false);
@@ -347,6 +353,9 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const [selectedJournalEntry, setSelectedJournalEntry] = useState<string | null>(null);
     const [availableJournalEntries, setAvailableJournalEntries] = useState<any[]>([]);
     const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
+
+    // UI state
+    const [isCharacterPanelCollapsed, setIsCharacterPanelCollapsed] = useState(false);
     
     // Load journal entries from localStorage on mount
     useEffect(() => {
@@ -965,7 +974,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 playerCharacter.mapReputation = newReputation;
                 console.log(`[REPUTATION] Threat detected! -50 reputation for threatening language`);
             }
-            setTimeout(() => setReputationChange(null), 5000);
+            setTimeout(() => setReputationChange(null), 30000);
         }
         
         try {
@@ -1060,9 +1069,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     console.log(`[REPUTATION] Major change: ${response.reputationChange}`);
                 }
 
-                // Show reputation change for longer if it's significant
-                const displayDuration = Math.abs(response.reputationChange) >= 50 ? 5000 : 3000;
-                setTimeout(() => setReputationChange(null), displayDuration);
+                // Show reputation change for 30 seconds to match expression duration
+                setTimeout(() => setReputationChange(null), 30000);
 
                 // Handle work offer payment (coins earned) - add to updatedCharacter
                 if ((response as any).coinsEarned) {
@@ -1232,6 +1240,126 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         }
     };
     
+    // Handle giving a gift to the NPC
+    const handleGiveGift = useCallback(async (item: Item) => {
+        if (!isNpc(currentTarget) || !playerCharacter || !mapData) return;
+
+        setIsGiftingInProgress(true);
+        setShowGiftModal(false);
+
+        try {
+            // Generate LLM reaction
+            const reaction = await generateGiftReaction(
+                currentTarget as NpcEntity,
+                item,
+                playerCharacter,
+                mapData,
+                history.length
+            );
+
+            // Map reputation change to expression
+            const expr = mapRepDeltaToExpr(reaction.reputationChange);
+            if (expr) flashPortrait(expr, 30000);
+
+            // Update reputation
+            if (reaction.reputationChange !== 0) {
+                setReputationChange(reaction.reputationChange);
+                setTimeout(() => setReputationChange(null), 30000);
+            }
+
+            // Calculate new inventories (without mutation)
+            let newPlayerInventory = playerCharacter.inventory ? [...playerCharacter.inventory] : [];
+            const itemIndex = newPlayerInventory.findIndex(i => i.id === item.id);
+            if (itemIndex !== -1) {
+                if (item.quantity && item.quantity > 1) {
+                    // Decrement quantity
+                    newPlayerInventory[itemIndex] = {
+                        ...newPlayerInventory[itemIndex],
+                        quantity: (newPlayerInventory[itemIndex].quantity || 1) - 1
+                    };
+                } else {
+                    // Remove item completely
+                    newPlayerInventory.splice(itemIndex, 1);
+                }
+            }
+
+            // Calculate new NPC inventory
+            const npcTarget = currentTarget as NpcEntity;
+            let newNpcInventory = npcTarget.inventory ? [...npcTarget.inventory] : [];
+            const existingItemIndex = newNpcInventory.findIndex(i => i.id === item.id);
+            if (existingItemIndex !== -1) {
+                // Item exists, increment quantity
+                newNpcInventory[existingItemIndex] = {
+                    ...newNpcInventory[existingItemIndex],
+                    quantity: (newNpcInventory[existingItemIndex].quantity || 1) + 1
+                };
+            } else {
+                // Item doesn't exist, add it
+                newNpcInventory.push({ ...item, quantity: 1 });
+            }
+
+            // Create updated player character with new reputation and inventory
+            const oldReputation = playerCharacter.mapReputation || 50;
+            const newReputation = Math.max(0, Math.min(100, oldReputation + reaction.reputationChange));
+
+            const updatedPlayerCharacter = {
+                ...playerCharacter,
+                mapReputation: newReputation,
+                reputation: Math.min(100, (playerCharacter.reputation || 50) + reaction.reputationChange),
+                inventory: newPlayerInventory
+            };
+
+            // Create updated NPC with new inventory
+            const updatedNpc: NpcEntity = {
+                ...npcTarget,
+                inventory: newNpcInventory
+            };
+
+            // Update player state through parent callback
+            if (onUpdatePlayer) {
+                onUpdatePlayer(updatedPlayerCharacter);
+            }
+
+            // Add gift interaction to history
+            const playerGiftEntry: DialogueEntry = {
+                speaker: 'player',
+                text: `[Gives ${item.name} to ${currentTarget.name}]`,
+                timestamp: new Date()
+            };
+
+            const npcReactionEntry: DialogueEntry = {
+                speaker: 'npc',
+                text: reaction.text,
+                timestamp: new Date()
+            };
+
+            setHistory(prev => [...prev, playerGiftEntry, npcReactionEntry]);
+
+            // Update NPC in parent state
+            if (onUpdateNpc) {
+                onUpdateNpc(updatedNpc);
+            }
+
+        } catch (error) {
+            console.error('[Gift] Error handling gift transaction:', error);
+            console.error('[Gift] Context:', {
+                npcName: currentTarget.name,
+                itemName: item.name,
+                hasMapData: !!mapData,
+                hasPlayerCharacter: !!playerCharacter
+            });
+
+            const errorEntry: DialogueEntry = {
+                speaker: 'npc',
+                text: `${currentTarget.name} looks confused.`,
+                timestamp: new Date()
+            };
+            setHistory(prev => [...prev, errorEntry]);
+        } finally {
+            setIsGiftingInProgress(false);
+        }
+    }, [currentTarget, playerCharacter, mapData, flashPortrait, onUpdateNpc]);
+
     const handleClose = useCallback(() => {
         onClose(history);
         
@@ -1315,65 +1443,125 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             >
                 <div
                     data-surface="modal-panel"
-                    className="ff-panel theme-surface border sm:rounded-2xl max-w-5xl w-full h-[100vh] h-[100dvh] sm:h-[95vh] sm:h-[95dvh] md:h-[90vh] transition-all duration-300 overflow-hidden flex flex-col"
+                    className="surface-card border sm:rounded-2xl max-w-5xl w-full h-[100vh] h-[100dvh] sm:h-[95vh] sm:h-[95dvh] md:h-[90vh] transition-all duration-300 overflow-hidden flex flex-col shadow-modal"
                     style={{
-                        borderColor: 'var(--border-subtle)',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                        borderColor: 'var(--border-subtle)'
                     }}
                     onClick={e => e.stopPropagation()}
                 >
                     
                     {/* Header with reputation and language */}
-                    <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 border-b flex-shrink-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-subtle)' }}>
-                        <div className="flex items-center gap-2 text-sm">
-                            <span className="text-amber-600">⭐</span>
-                            <span style={{ color: 'var(--text-secondary)' }}>Reputation:</span>
-                            <span className={`font-semibold ${
+                    <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-subtle)' }}>
+                        <div className="flex items-center gap-2 sm:gap-3 text-sm">
+                            <span className="text-xl">⭐</span>
+                            <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>Reputation:</span>
+                            <span className={`text-sm sm:text-base font-bold ${
                                 playerCharacter.mapReputation >= 50 ? 'text-green-400' :
-                                playerCharacter.mapReputation >= 0 ? 'text-yellow-900' : 'text-red-400'
+                                playerCharacter.mapReputation >= 0 ? 'text-amber-500' : 'text-red-400'
                             }`}>
-                                {playerCharacter.mapReputation || 0} | {
-                                    playerCharacter.mapReputation >= 50 ? 'Friendly' :
-                                    playerCharacter.mapReputation >= 0 ? 'Neutral' : 'Hostile'
-                                }
+                                {playerCharacter.mapReputation || 0}
+                            </span>
+                            <span className={`hidden sm:inline text-xs font-medium ${
+                                playerCharacter.mapReputation >= 50 ? 'text-green-400' :
+                                playerCharacter.mapReputation >= 0 ? 'text-amber-500' : 'text-red-400'
+                            }`}>
+                                {playerCharacter.mapReputation >= 50 ? 'Friendly' :
+                                 playerCharacter.mapReputation >= 0 ? 'Neutral' : 'Hostile'}
                             </span>
                         </div>
                         {isNpc(target) && (
-                            <button 
-                                onClick={() => setUseRealLanguage(p => !p)} 
-                                className="px-5 py-2 bg-blue-600 text-white rounded-full font-['Press_Start_2P'] text-xs tracking-wider shadow-lg shadow-blue-600/30 hover:bg-blue-500 transition-all hover:shadow-blue-500/40 flex items-center gap-2"
+                            <button
+                                onClick={() => setUseRealLanguage(p => !p)}
+                                className="px-3 sm:px-5 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-semibold tracking-wide hover:bg-blue-500 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
                                 title={`Toggle between English and ${getHistoricalLanguage(target, mapData)}`}
                             >
-                                {useRealLanguage ? (
-                                    <>
-                                        <span>🌐</span>
-                                        <span>{getHistoricalLanguage(target, mapData)}</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>🇬🇧</span>
-                                        <span>English</span>
-                                    </>
-                                )}
+                                <span className="text-base">{useRealLanguage ? '🌐' : '🇬🇧'}</span>
+                                <span className="hidden sm:inline">{useRealLanguage ? getHistoricalLanguage(target, mapData) : 'English'}</span>
                             </button>
                         )}
                     </div>
                     
                     {/* Main content area - responsive layout */}
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-3 sm:p-6 flex-1 min-h-0 overflow-hidden">
-                        
-                        {/* Left column - Portrait and NPC info */}
-                        <div className="flex flex-row sm:flex-col gap-3 sm:gap-4 sm:w-[230px] flex-shrink-0">
-                            
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 flex-1 min-h-0 overflow-hidden">
+
+                        {/* Left column - Portrait and NPC info (collapsible on mobile) */}
+                        <div className={`flex flex-col gap-2.5 sm:gap-2.5 sm:min-w-[260px] sm:max-w-[300px] flex-shrink-0 transition-all duration-300`}>
+
+                            {/* Mobile collapse button */}
+                            <button
+                                onClick={() => setIsCharacterPanelCollapsed(!isCharacterPanelCollapsed)}
+                                className="sm:hidden flex items-center justify-between px-3 py-2 rounded-lg border transition-all"
+                                style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}
+                            >
+                                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                    {targetName}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCharacterPanelCollapsed ? '' : 'rotate-180'}`} style={{ color: 'var(--text-secondary)' }} />
+                            </button>
+
+                            {/* Collapsed minimal view (mobile only) */}
+                            {isCharacterPanelCollapsed && isNpc(target) && (
+                                <div className="sm:hidden px-3">
+                                    {target.memory && typeof target.memory.opinionOfPlayer === 'number' && (
+                                        <div className="relative w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-track-bg)' }}>
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-300 ${
+                                                    target.memory.opinionOfPlayer >= 70 ? 'bg-gradient-to-r from-green-600 to-green-500' :
+                                                    target.memory.opinionOfPlayer >= 50 ? 'bg-gradient-to-r from-blue-600 to-blue-500' :
+                                                    target.memory.opinionOfPlayer >= 30 ? 'bg-gradient-to-r from-yellow-600 to-yellow-500' :
+                                                    target.memory.opinionOfPlayer >= 10 ? 'bg-gradient-to-r from-orange-600 to-orange-500' :
+                                                    'bg-gradient-to-r from-red-600 to-red-500'
+                                                }`}
+                                                style={{ width: `${target.memory.opinionOfPlayer}%` }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Full character panel (hidden when collapsed on mobile) */}
+                            <div className={`flex flex-col gap-3 sm:gap-4 transition-all duration-300 overflow-hidden ${
+                                isCharacterPanelCollapsed ? 'max-h-0 sm:max-h-none opacity-0 sm:opacity-100' : 'max-h-[2000px] opacity-100'
+                            }`}>
+
                             {/* Portrait with quest indicator and animations */}
                             <div className="relative group">
                                 <div
-                                    className={`w-[100px] h-[100px] sm:w-[220px] sm:h-[200px] rounded-xl overflow-hidden border-3 transition-all duration-300 cursor-pointer relative ${
+                                    className={`w-full aspect-square rounded-xl overflow-hidden border-3 transition-all duration-500 cursor-pointer relative ${
                                         questOffer?.hasQuest || relevantQuests.length > 0
                                             ? 'border-amber-500 shadow-lg shadow-amber-500/20 animate-pulse-subtle'
                                             : 'hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20'
                                     }`}
-                                    style={{ borderColor: (questOffer?.hasQuest || relevantQuests.length > 0) ? undefined : 'var(--border-normal)' }}
+                                    style={(() => {
+                                        // Calculate glow effect based on reputation change
+                                        if (reputationChange !== null && reputationChange !== 0) {
+                                            const isPositive = reputationChange > 0;
+                                            const magnitude = Math.abs(reputationChange);
+
+                                            // Determine intensity: subtle (0-15), medium (15-30), intense (30+)
+                                            const glowSize = magnitude < 15 ? 8 : magnitude < 30 ? 16 : 24;
+                                            const glowOpacity = magnitude < 15 ? 0.4 : magnitude < 30 ? 0.6 : 0.8;
+
+                                            // Color: positive = emerald/green, negative = red/orange
+                                            const glowColor = isPositive
+                                                ? `34, 197, 94` // emerald-500 RGB
+                                                : `239, 68, 68`; // red-500 RGB
+
+                                            const borderColor = isPositive
+                                                ? `rgb(34, 197, 94)` // emerald-500
+                                                : `rgb(239, 68, 68)`; // red-500
+
+                                            return {
+                                                borderColor: borderColor,
+                                                boxShadow: `0 0 ${glowSize}px ${glowSize / 2}px rgba(${glowColor}, ${glowOpacity}), 0 0 ${glowSize * 2}px ${glowSize}px rgba(${glowColor}, ${glowOpacity / 2})`
+                                            };
+                                        }
+
+                                        // Default style when no reputation change
+                                        return {
+                                            borderColor: (questOffer?.hasQuest || relevantQuests.length > 0) ? undefined : 'var(--border-normal)'
+                                        };
+                                    })()}
                                     onClick={handlePortraitClick}
                                     title={`Click to see inner thoughts... (${3 - monologueClickCount} clicks remaining)`}
                                 >
@@ -1390,14 +1578,16 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     {isNpc(target) ? (
                                         <ProceduralPortrait
                                             character={target as any}
-                                            size={typeof window !== 'undefined' && window.innerWidth <= 640 ? 150 : 220}
+                                            size={300}
                                             temporaryExpression={portraitExpr}
                                             onExpressionComplete={clearPortrait}
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--surface-elevated)' }}>
-                                            <span className="text-8xl">{target.emoji || '🦌'}</span>
-                                        </div>
+                                        <AnimalPortrait
+                                            animal={target as AnimalEntity}
+                                            size={300}
+                                            className="bg-[var(--surface-elevated)]"
+                                        />
                                     )}
                                 </div>
                                 
@@ -1411,107 +1601,48 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
                             {/* NPC Info Panel */}
                             {isNpc(target) && (
-                                <div className="flex-1 sm:flex-none rounded-xl p-3 sm:p-3 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
-                                    <h2 className="text-lg sm:text-2xl font-bold text-amber-600 text-center mb-2 sm:mb-3 tracking-wide" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.0)' }}>
+                                <div className="flex-1 sm:flex-none rounded-xl p-2.5 sm:p-2.5 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                    <h2 className="text-lg sm:text-xl font-bold text-amber-400 dark:text-amber-300 text-center mb-2 sm:mb-2.5" style={{ fontFamily: '"Press Start 2P", monospace', letterSpacing: '0.05em', textShadow: '2px 2px 0px rgba(0,0,0,0.3)' }}>
                                         {targetName}
                                     </h2>
-                                    <div className="space-y-1 sm:space-y-1 text-xs sm:text-sm">
-                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                    <div className="space-y-0.5 text-xs sm:text-sm">
+                                        <div className="flex justify-between px-2 py-0.5 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                                             <span style={{ color: 'var(--text-secondary)' }}>Age:</span>
                                             <span>{target.age || 'Unknown'}</span>
                                         </div>
-                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                        <div className="flex justify-between px-2 py-0.5 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                                             <span style={{ color: 'var(--text-secondary)' }}>Gender:</span>
                                             <span className="capitalize">{target.gender || 'Unknown'}</span>
                                         </div>
-                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                        <div className="flex justify-between px-2 py-0.5 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                                             <span style={{ color: 'var(--text-secondary)' }}>Faith:</span>
                                             <span>{target.religiousAffiliation || 'Local Beliefs'}</span>
                                         </div>
-                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                        <div className="flex justify-between px-2 py-0.5 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                                             <span style={{ color: 'var(--text-secondary)' }}>Social Class:</span>
-                                            <span className="capitalize">{target.socialClass || 'Commoner'}</span>
+                                            <span className={`capitalize font-semibold ${
+                                                (target.socialClass || 'Commoner').toLowerCase().includes('noble') || (target.socialClass || '').toLowerCase().includes('royal') ? 'text-purple-400' :
+                                                (target.socialClass || '').toLowerCase().includes('merchant') || (target.socialClass || '').toLowerCase().includes('wealthy') ? 'text-blue-400' :
+                                                (target.socialClass || '').toLowerCase().includes('artisan') || (target.socialClass || '').toLowerCase().includes('craftsman') ? 'text-cyan-400' :
+                                                (target.socialClass || '').toLowerCase().includes('clergy') || (target.socialClass || '').toLowerCase().includes('scholar') ? 'text-amber-400' :
+                                                'text-slate-300'
+                                            }`}>
+                                                {target.socialClass || 'Commoner'}
+                                            </span>
                                         </div>
-                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                        <div className="flex justify-between px-2 py-0.5 rounded transition-colors" style={{ color: 'var(--text-primary)' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                                             <span style={{ color: 'var(--text-secondary)' }}>Profession:</span>
-                                            <span>{target.occupation || target.role || 'Unknown'}</span>
+                                            <span className={`font-medium ${
+                                                (target.occupation || target.role || '').toLowerCase().includes('king') || (target.occupation || target.role || '').toLowerCase().includes('queen') || (target.occupation || target.role || '').toLowerCase().includes('emperor') ? 'text-purple-400' :
+                                                (target.occupation || target.role || '').toLowerCase().includes('scholar') || (target.occupation || target.role || '').toLowerCase().includes('priest') || (target.occupation || target.role || '').toLowerCase().includes('mage') ? 'text-amber-400' :
+                                                (target.occupation || target.role || '').toLowerCase().includes('merchant') || (target.occupation || target.role || '').toLowerCase().includes('trader') ? 'text-blue-400' :
+                                                (target.occupation || target.role || '').toLowerCase().includes('smith') || (target.occupation || target.role || '').toLowerCase().includes('artisan') || (target.occupation || target.role || '').toLowerCase().includes('craftsman') ? 'text-cyan-400' :
+                                                (target.occupation || target.role || '').toLowerCase().includes('guard') || (target.occupation || target.role || '').toLowerCase().includes('soldier') ? 'text-red-400' :
+                                                'text-green-400'
+                                            }`}>
+                                                {target.occupation || target.role || 'Unknown'}
+                                            </span>
                                         </div>
-
-                                        {/* NPC Relationship Tracking */}
-                                        {target.memory && typeof target.memory.opinionOfPlayer === 'number' && (
-                                            <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Opinion:</span>
-                                                    <span className={`text-xs font-semibold ${
-                                                        target.memory.opinionOfPlayer >= 70 ? 'text-green-400' :
-                                                        target.memory.opinionOfPlayer >= 50 ? 'text-blue-400' :
-                                                        target.memory.opinionOfPlayer >= 30 ? 'text-yellow-400' :
-                                                        target.memory.opinionOfPlayer >= 10 ? 'text-orange-400' :
-                                                        'text-red-400'
-                                                    }`}>
-                                                        {target.memory.opinionOfPlayer >= 70 ? 'Friendly' :
-                                                         target.memory.opinionOfPlayer >= 50 ? 'Warm' :
-                                                         target.memory.opinionOfPlayer >= 30 ? 'Neutral' :
-                                                         target.memory.opinionOfPlayer >= 10 ? 'Cold' :
-                                                         'Hostile'}
-                                                    </span>
-                                                </div>
-
-                                                {/* Opinion bar (0-100 scale) */}
-                                                <div className="relative w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-track-bg)' }}>
-                                                    <div
-                                                        className={`h-full rounded-full transition-all duration-300 ${
-                                                            target.memory.opinionOfPlayer >= 70 ? 'bg-gradient-to-r from-green-600 to-green-500' :
-                                                            target.memory.opinionOfPlayer >= 50 ? 'bg-gradient-to-r from-blue-600 to-blue-500' :
-                                                            target.memory.opinionOfPlayer >= 30 ? 'bg-gradient-to-r from-yellow-600 to-yellow-500' :
-                                                            target.memory.opinionOfPlayer >= 10 ? 'bg-gradient-to-r from-orange-600 to-orange-500' :
-                                                            'bg-gradient-to-r from-red-600 to-red-500'
-                                                        }`}
-                                                        style={{ width: `${target.memory.opinionOfPlayer}%` }}
-                                                    />
-                                                </div>
-
-                                                {/* Numerical value */}
-                                                <div className="flex justify-center mt-1">
-                                                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                                        {target.memory.opinionOfPlayer}/100
-                                                    </span>
-                                                </div>
-
-                                                {/* Recent conversation summaries */}
-                                                {target.memory.conversationSummaries && target.memory.conversationSummaries.length > 0 && (
-                                                    <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                                                        <details className="group">
-                                                            <summary className="text-xs cursor-pointer flex items-center gap-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
-                                                                <span className="group-open:rotate-90 transition-transform">▶</span>
-                                                                Recent Interactions ({target.memory.conversationSummaries.slice(-3).length})
-                                                            </summary>
-                                                            <div className="mt-1 space-y-1.5 ml-3">
-                                                                {target.memory.conversationSummaries.slice(-3).reverse().map((summary, idx) => (
-                                                                    <div key={idx} className="text-xs italic border-l-2 pl-2" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-normal)' }}>
-                                                                        "{summary}"
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </details>
-                                                    </div>
-                                                )}
-
-                                                {/* Warning indicators based on playerRelationship if it exists */}
-                                                {target.playerRelationship?.willAttack && (
-                                                    <div className="mt-2 px-2 py-1 bg-red-900/30 border border-red-600/50 rounded text-xs text-red-300 flex items-center gap-1">
-                                                        <span>⚔️</span>
-                                                        <span>Will attack on sight</span>
-                                                    </div>
-                                                )}
-                                                {target.playerRelationship?.willConfront && !target.playerRelationship?.willAttack && (
-                                                    <div className="mt-2 px-2 py-1 bg-orange-900/30 border border-orange-600/50 rounded text-xs text-orange-300 flex items-center gap-1">
-                                                        <span>⚠️</span>
-                                                        <span>May confront you</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Language Historical Context - Subtle educational note */}
@@ -1648,46 +1779,145 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     </div>
                                 </div>
                             )}
+
+                            </div>
+                            {/* End of collapsible wrapper */}
                         </div>
-                        
+
                         {/* Right column - Conversation and interactions */}
                         <div className="flex-1 flex flex-col min-h-0 h-full">
                             
                             {/* Tab Navigation - Show for both NPCs and animals */}
-                                <nav className="flex gap-0 border-b mb-3 sm:mb-4 overflow-x-auto scrollbar-hide" style={{ borderColor: 'var(--border-normal)' }}>
+                                <nav className="flex gap-0.5 -mb-px overflow-x-auto scrollbar-hide" style={{ paddingBottom: '1px' }}>
                                     <button
                                         onClick={() => setActiveTab('dialogue')}
-                                        className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all relative whitespace-nowrap border-b-2 ${
+                                        className={`px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all relative whitespace-nowrap rounded-t-xl ${
                                             activeTab === 'dialogue'
-                                                ? 'text-blue-400 border-blue-400'
-                                                : 'border-transparent'
+                                                ? 'z-10'
+                                                : 'opacity-75 hover:opacity-100'
                                         }`}
-                                        style={activeTab !== 'dialogue' ? { color: 'var(--text-secondary)' } : undefined}
-                                        onMouseEnter={e => { if (activeTab !== 'dialogue') e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                        onMouseLeave={e => { if (activeTab !== 'dialogue') e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                        style={
+                                            activeTab === 'dialogue'
+                                                ? {
+                                                    backgroundColor: 'var(--surface-card-bg)',
+                                                    color: 'var(--text-primary)',
+                                                    borderTop: '2px solid var(--border-normal)',
+                                                    borderLeft: '1px solid var(--border-normal)',
+                                                    borderRight: '1px solid var(--border-normal)',
+                                                    borderBottom: '2px solid var(--surface-card-bg)',
+                                                    marginBottom: '-2px',
+                                                    boxShadow: '0 -2px 12px rgba(0,0,0,0.15)'
+                                                }
+                                                : {
+                                                    backgroundColor: 'var(--surface-elevated)',
+                                                    color: 'var(--text-secondary)',
+                                                    borderTop: '1px solid var(--border-subtle)',
+                                                    borderLeft: '1px solid var(--border-subtle)',
+                                                    borderRight: '1px solid var(--border-subtle)',
+                                                    borderBottom: '1px solid var(--border-normal)'
+                                                }
+                                        }
+                                        onMouseEnter={e => {
+                                            if (activeTab !== 'dialogue') {
+                                                e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                                e.currentTarget.style.color = 'var(--text-primary)';
+                                            }
+                                        }}
+                                        onMouseLeave={e => {
+                                            if (activeTab !== 'dialogue') {
+                                                e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)';
+                                                e.currentTarget.style.color = 'var(--text-secondary)';
+                                            }
+                                        }}
                                     >
                                         {isNpc(target) ? 'Dialogue' : 'Communicate'}
                                     </button>
                                     {isNpc(target) && (
-                                        <button 
-                                            onClick={() => setActiveTab('history')} 
-                                            className={`px-4 py-2.5 text-sm font-medium transition-all ${
-                                                activeTab === 'history' 
-                                                    ? 'text-blue-400 border-b-2 border-blue-400' 
-                                                    : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                        <button
+                                            onClick={() => setActiveTab('history')}
+                                            className={`px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all whitespace-nowrap rounded-t-xl ${
+                                                activeTab === 'history'
+                                                    ? 'z-10'
+                                                    : 'opacity-75 hover:opacity-100'
                                             }`}
+                                            style={
+                                                activeTab === 'history'
+                                                    ? {
+                                                        backgroundColor: 'var(--surface-card-bg)',
+                                                        color: 'var(--text-primary)',
+                                                        borderTop: '2px solid var(--border-normal)',
+                                                        borderLeft: '1px solid var(--border-normal)',
+                                                        borderRight: '1px solid var(--border-normal)',
+                                                        borderBottom: '2px solid var(--surface-card-bg)',
+                                                        marginBottom: '-2px',
+                                                        boxShadow: '0 -2px 12px rgba(0,0,0,0.15)'
+                                                    }
+                                                    : {
+                                                        backgroundColor: 'var(--surface-elevated)',
+                                                        color: 'var(--text-secondary)',
+                                                        borderTop: '1px solid var(--border-subtle)',
+                                                        borderLeft: '1px solid var(--border-subtle)',
+                                                        borderRight: '1px solid var(--border-subtle)',
+                                                        borderBottom: '1px solid var(--border-normal)'
+                                                    }
+                                            }
+                                            onMouseEnter={e => {
+                                                if (activeTab !== 'history') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                                    e.currentTarget.style.color = 'var(--text-primary)';
+                                                }
+                                            }}
+                                            onMouseLeave={e => {
+                                                if (activeTab !== 'history') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)';
+                                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                                }
+                                            }}
                                         >
                                             History
                                         </button>
                                     )}
                                     {isNpc(target) && (
-                                        <button 
-                                            onClick={() => setActiveTab('household')} 
-                                            className={`px-4 py-2.5 text-sm font-medium transition-all ${
-                                                activeTab === 'household' 
-                                                    ? 'text-blue-400 border-b-2 border-blue-400' 
-                                                    : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                        <button
+                                            onClick={() => setActiveTab('household')}
+                                            className={`px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all whitespace-nowrap rounded-t-xl ${
+                                                activeTab === 'household'
+                                                    ? 'z-10'
+                                                    : 'opacity-75 hover:opacity-100'
                                             }`}
+                                            style={
+                                                activeTab === 'household'
+                                                    ? {
+                                                        backgroundColor: 'var(--surface-card-bg)',
+                                                        color: 'var(--text-primary)',
+                                                        borderTop: '2px solid var(--border-normal)',
+                                                        borderLeft: '1px solid var(--border-normal)',
+                                                        borderRight: '1px solid var(--border-normal)',
+                                                        borderBottom: '2px solid var(--surface-card-bg)',
+                                                        marginBottom: '-2px',
+                                                        boxShadow: '0 -2px 12px rgba(0,0,0,0.15)'
+                                                    }
+                                                    : {
+                                                        backgroundColor: 'var(--surface-elevated)',
+                                                        color: 'var(--text-secondary)',
+                                                        borderTop: '1px solid var(--border-subtle)',
+                                                        borderLeft: '1px solid var(--border-subtle)',
+                                                        borderRight: '1px solid var(--border-subtle)',
+                                                        borderBottom: '1px solid var(--border-normal)'
+                                                    }
+                                            }
+                                            onMouseEnter={e => {
+                                                if (activeTab !== 'household') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                                    e.currentTarget.style.color = 'var(--text-primary)';
+                                                }
+                                            }}
+                                            onMouseLeave={e => {
+                                                if (activeTab !== 'household') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)';
+                                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                                }
+                                            }}
                                         >
                                             Household
                                         </button>
@@ -1704,23 +1934,56 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                 setActiveTab('taming');
                                             }
                                         }}
-                                        className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
+                                        className={`px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all relative whitespace-nowrap rounded-t-xl ${
                                             activeTab === 'trade' || activeTab === 'taming'
-                                                ? isNpc(target) ? 'text-amber-600 border-b-2 border-amber-400' : 'text-blue-400 border-b-2 border-blue-400'
-                                                : isNpc(target) && !tradeEnabled
-                                                    ? 'text-slate-600 hover:text-slate-500 border-b-2 border-transparent cursor-not-allowed'
-                                                    : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                                ? 'z-10'
+                                                : 'opacity-75 hover:opacity-100'
+                                        } ${
+                                            isNpc(target) && !tradeEnabled ? 'cursor-not-allowed !opacity-50' : ''
                                         } ${showTradeUnlockAnimation && isNpc(target) ? 'amber-glow-animation' : ''}`}
+                                        style={
+                                            activeTab === 'trade' || activeTab === 'taming'
+                                                ? {
+                                                    backgroundColor: 'var(--surface-card-bg)',
+                                                    color: isNpc(target) ? '#f59e0b' : 'var(--text-primary)',
+                                                    borderTop: '2px solid var(--border-normal)',
+                                                    borderLeft: '1px solid var(--border-normal)',
+                                                    borderRight: '1px solid var(--border-normal)',
+                                                    borderBottom: '2px solid var(--surface-card-bg)',
+                                                    marginBottom: '-2px',
+                                                    boxShadow: '0 -2px 12px rgba(0,0,0,0.15)'
+                                                }
+                                                : {
+                                                    backgroundColor: 'var(--surface-elevated)',
+                                                    color: isNpc(target) && !tradeEnabled ? 'var(--text-muted)' : 'var(--text-secondary)',
+                                                    borderTop: '1px solid var(--border-subtle)',
+                                                    borderLeft: '1px solid var(--border-subtle)',
+                                                    borderRight: '1px solid var(--border-subtle)',
+                                                    borderBottom: '1px solid var(--border-normal)'
+                                                }
+                                        }
+                                        onMouseEnter={e => {
+                                            if ((activeTab !== 'trade' && activeTab !== 'taming') && (!isNpc(target) || tradeEnabled)) {
+                                                e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                                e.currentTarget.style.color = 'var(--text-primary)';
+                                            }
+                                        }}
+                                        onMouseLeave={e => {
+                                            if ((activeTab !== 'trade' && activeTab !== 'taming') && (!isNpc(target) || tradeEnabled)) {
+                                                e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)';
+                                                e.currentTarget.style.color = 'var(--text-secondary)';
+                                            }
+                                        }}
                                         title={isNpc(target) && !tradeEnabled ? 'Trade not available yet' : undefined}
                                     >
                                         {isNpc(target) ? (
                                             <>
-                                                <span className={tradeEnabled ? 'text-amber-600' : ''}>Trade</span>
+                                                <span>Trade</span>
                                                 {!tradeEnabled && !showTradeUnlockAnimation && (
-                                                    <span className="ml-1 text-xs text-slate-600">🔒</span>
+                                                    <span className="ml-1 text-xs">🔒</span>
                                                 )}
                                                 {showTradeUnlockAnimation && (
-                                                    <span className="ml-1 text-xs text-amber-600 unlock-animation absolute">🔒</span>
+                                                    <span className="ml-1 text-xs unlock-animation absolute">🔒</span>
                                                 )}
                                             </>
                                         ) : 'Tame'}
@@ -1728,11 +1991,44 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     {(questOffer?.hasQuest || relevantQuests.length > 0) && (
                                         <button
                                             onClick={() => setActiveTab('quest')}
-                                            className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                            className={`px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
                                                 activeTab === 'quest'
-                                                    ? 'text-amber-600 border-b-2 border-amber-400'
-                                                    : 'text-amber-500 hover:text-amber-600 border-b-2 border-transparent'
+                                                    ? 'z-10'
+                                                    : 'opacity-75 hover:opacity-100'
                                             }`}
+                                            style={
+                                                activeTab === 'quest'
+                                                    ? {
+                                                        backgroundColor: 'var(--surface-card-bg)',
+                                                        color: '#f59e0b',
+                                                        borderTop: '2px solid var(--border-normal)',
+                                                        borderLeft: '1px solid var(--border-normal)',
+                                                        borderRight: '1px solid var(--border-normal)',
+                                                        borderBottom: '2px solid var(--surface-card-bg)',
+                                                        marginBottom: '-2px',
+                                                        boxShadow: '0 -2px 12px rgba(0,0,0,0.15)'
+                                                    }
+                                                    : {
+                                                        backgroundColor: 'var(--surface-elevated)',
+                                                        color: '#fbbf24',
+                                                        borderTop: '1px solid var(--border-subtle)',
+                                                        borderLeft: '1px solid var(--border-subtle)',
+                                                        borderRight: '1px solid var(--border-subtle)',
+                                                        borderBottom: '1px solid var(--border-normal)'
+                                                    }
+                                            }
+                                            onMouseEnter={e => {
+                                                if (activeTab !== 'quest') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                                    e.currentTarget.style.color = '#f59e0b';
+                                                }
+                                            }}
+                                            onMouseLeave={e => {
+                                                if (activeTab !== 'quest') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)';
+                                                    e.currentTarget.style.color = '#fbbf24';
+                                                }
+                                            }}
                                         >
                                             <span className="text-base">⚡</span>
                                             Quests
@@ -1741,11 +2037,44 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     {isNpc(target) && (
                                         <button
                                             onClick={() => setActiveTab('source')}
-                                            className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                            className={`px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap rounded-t-xl ${
                                                 activeTab === 'source'
-                                                    ? 'text-purple-400 border-b-2 border-purple-400'
-                                                    : 'text-purple-500 hover:text-purple-400 border-b-2 border-transparent'
+                                                    ? 'z-10'
+                                                    : 'opacity-75 hover:opacity-100'
                                             }`}
+                                            style={
+                                                activeTab === 'source'
+                                                    ? {
+                                                        backgroundColor: 'var(--surface-card-bg)',
+                                                        color: '#a78bfa',
+                                                        borderTop: '2px solid var(--border-normal)',
+                                                        borderLeft: '1px solid var(--border-normal)',
+                                                        borderRight: '1px solid var(--border-normal)',
+                                                        borderBottom: '2px solid var(--surface-card-bg)',
+                                                        marginBottom: '-2px',
+                                                        boxShadow: '0 -2px 12px rgba(0,0,0,0.15)'
+                                                    }
+                                                    : {
+                                                        backgroundColor: 'var(--surface-elevated)',
+                                                        color: '#c4b5fd',
+                                                        borderTop: '1px solid var(--border-subtle)',
+                                                        borderLeft: '1px solid var(--border-subtle)',
+                                                        borderRight: '1px solid var(--border-subtle)',
+                                                        borderBottom: '1px solid var(--border-normal)'
+                                                    }
+                                            }
+                                            onMouseEnter={e => {
+                                                if (activeTab !== 'source') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-hover-bg)';
+                                                    e.currentTarget.style.color = '#a78bfa';
+                                                }
+                                            }}
+                                            onMouseLeave={e => {
+                                                if (activeTab !== 'source') {
+                                                    e.currentTarget.style.backgroundColor = 'var(--surface-muted-bg)';
+                                                    e.currentTarget.style.color = '#c4b5fd';
+                                                }
+                                            }}
                                         >
                                             <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                                             <span className="hidden sm:inline">Present Document</span>
@@ -1775,7 +2104,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                             {/* Conversation Area */}
                             <div className="flex-1 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 overflow-y-auto conversation-scrollbar min-h-0 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
                                 {activeTab === 'dialogue' && (
-                                    <div className="space-y-4">
+                                    <div className="space-y-5">
                                         {history.length === 0 && isLoading ? (
                                             <div className="flex items-center justify-center py-20">
                                                 <div className="flex gap-2">
@@ -1797,10 +2126,18 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                             </div>
                                                         ) : (
                                                             // Regular dialogue
-                                                            <div className="flex items-start gap-3">
+                                                            <div className="flex items-start gap-3 pb-5 border-b border-opacity-30" style={{ borderColor: 'var(--border-subtle)' }}>
                                                                 <div className="flex-1">
-                                                                    <div className="flex items-baseline gap-2 mb-1">
-                                                                        <span className="font-semibold text-amber-600">
+                                                                    <div className="flex items-baseline gap-2 mb-2.5">
+                                                                        <span className={`font-bold ${
+                                                                            entry.speaker === 'player'
+                                                                                ? 'text-emerald-400 dark:text-emerald-300 text-base'
+                                                                                : 'text-amber-500 dark:text-amber-400 text-sm'
+                                                                        }`} style={{
+                                                                            fontFamily: entry.speaker === 'player' ? 'system-ui, -apple-system, sans-serif' : '"Press Start 2P", monospace',
+                                                                            letterSpacing: entry.speaker === 'player' ? 'normal' : '0.05em',
+                                                                            textShadow: entry.speaker === 'player' ? 'none' : '1px 1px 0px rgba(0,0,0,0.2)'
+                                                                        }}>
                                                                             {entry.speaker === 'player' ? 'You' : targetName}
                                                                         </span>
                                                                         <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
@@ -1808,7 +2145,12 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                             {getTimeAgo(entry.timestamp)}
                                                                         </span>
                                                                     </div>
-                                                                    <p className="leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                                                                    <p className="text-base sm:text-[17px] leading-relaxed" style={{
+                                                                        color: 'var(--text-primary)',
+                                                                        lineHeight: '1.75',
+                                                                        fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+                                                                        letterSpacing: '0.01em'
+                                                                    }}>
                                                                         {entry.translations && entry.language ? (
                                                                             // Render with translatable words
                                                                             parseDialogueWithTranslations(entry.text, entry.translations, entry.language)
@@ -2395,27 +2737,89 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
                                 {/* History tab */}
                                 {activeTab === 'history' && isNpc(target) && (
-                                    <div className="text-slate-300">
+                                    <div className="space-y-4" style={{ color: 'var(--text-primary)' }}>
+                                        {/* Opinion Meter - Relationship Status */}
+                                        {(() => {
+                                            // TODO: Implement per-NPC opinion tracking in social graph
+                                            // For now, initialize from reputation (48 = neutral) and store in target.memory.opinionOfPlayer
+                                            // Future: Track relationship changes over time, store in dedicated relationship system
+                                            const opinionValue = currentTarget.memory?.opinionOfPlayer ?? (playerCharacter.mapReputation || 48);
+
+                                            return (
+                                                <div className="rounded-xl p-4 border" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-normal)' }}>
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <Heart className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                                            Their Opinion of You
+                                                        </h3>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className={`text-lg font-bold ${
+                                                                opinionValue >= 70 ? 'text-green-400' :
+                                                                opinionValue >= 50 ? 'text-blue-400' :
+                                                                opinionValue >= 30 ? 'text-yellow-400' :
+                                                                opinionValue >= 10 ? 'text-orange-400' :
+                                                                'text-red-400'
+                                                            }`}>
+                                                                {opinionValue >= 70 ? 'Friendly' :
+                                                                 opinionValue >= 50 ? 'Warm' :
+                                                                 opinionValue >= 30 ? 'Neutral' :
+                                                                 opinionValue >= 10 ? 'Cold' :
+                                                                 'Hostile'}
+                                                            </span>
+                                                            <span className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>
+                                                                {opinionValue}/100
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Opinion bar (0-100 scale) */}
+                                                        <div className="relative w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-track-bg)' }}>
+                                                            <div
+                                                                className={`h-full rounded-full transition-all duration-500 ${
+                                                                    opinionValue >= 70 ? 'bg-gradient-to-r from-green-600 to-green-500' :
+                                                                    opinionValue >= 50 ? 'bg-gradient-to-r from-blue-600 to-blue-500' :
+                                                                    opinionValue >= 30 ? 'bg-gradient-to-r from-yellow-600 to-yellow-500' :
+                                                                    opinionValue >= 10 ? 'bg-gradient-to-r from-orange-600 to-orange-500' :
+                                                                    'bg-gradient-to-r from-red-600 to-red-500'
+                                                                }`}
+                                                                style={{ width: `${opinionValue}%` }}
+                                                            />
+                                                        </div>
+
+                                                        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                                                            {opinionValue >= 70 ? 'They genuinely like you and trust you.' :
+                                                             opinionValue >= 50 ? 'They have a positive impression of you.' :
+                                                             opinionValue >= 30 ? 'They are neutral toward you.' :
+                                                             opinionValue >= 10 ? 'They are wary or suspicious of you.' :
+                                                             'They actively dislike you.'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Conversation History */}
                                         {currentTarget.memory?.conversationSummaries && currentTarget.memory.conversationSummaries.length > 0 ? (
                                             <div className="space-y-3">
-                                                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-700">
-                                                    <ScrollText className="w-4 h-4 text-slate-400" />
-                                                    <h3 className="text-sm font-semibold text-slate-400">Previous Conversations</h3>
+                                                <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: 'var(--border-normal)' }}>
+                                                    <ScrollText className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                                                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                                        Previous Conversations
+                                                    </h3>
                                                 </div>
                                                 {currentTarget.memory.conversationSummaries.map((summary, index) => (
-                                                    <div key={index} className="bg-slate-700/30 rounded-lg p-4 text-sm hover:bg-slate-700/40 transition-colors">
+                                                    <div key={index} className="rounded-lg p-4 text-sm border transition-colors hover:border-opacity-100" style={{ backgroundColor: 'var(--surface-muted-bg)', borderColor: 'var(--border-subtle)' }}>
                                                         <div className="flex items-start gap-2">
-                                                            <span className="text-slate-500 mt-0.5">•</span>
-                                                            <p className="leading-relaxed">{summary}</p>
+                                                            <span style={{ color: 'var(--text-muted)' }} className="mt-0.5">•</span>
+                                                            <p className="leading-relaxed" style={{ color: 'var(--text-primary)' }}>{summary}</p>
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <div className="text-xs text-slate-500 text-center pt-2">
-                                                    Opinion of you: {currentTarget.memory.opinionOfPlayer || 50}/100
-                                                </div>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                                            <div className="flex flex-col items-center justify-center py-12" style={{ color: 'var(--text-muted)' }}>
                                                 <ScrollText className="w-8 h-8 mb-3 opacity-50" />
                                                 <p>No previous conversations</p>
                                                 <p className="text-xs mt-1">Start talking to build a history</p>
@@ -2744,15 +3148,28 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                         </div>
                     </div>
                     
-                    {/* Footer bar with Leave button */}
+                    {/* Footer bar with Gift and Leave buttons */}
                     <div className="border-t px-3 sm:px-6 flex-shrink-0" style={{
                         paddingTop: '6px',
                         paddingBottom: 'max(6px, env(safe-area-inset-bottom))',
                         backgroundColor: 'var(--surface-muted-bg)',
                         borderColor: 'var(--border-normal)'
                     }}>
-                        <div className="flex justify-end">
-                            <button 
+                        <div className="flex justify-between items-center gap-3">
+                            {/* Gift button (only for NPCs) */}
+                            {isNpc(target) && (
+                                <button
+                                    onClick={() => setShowGiftModal(true)}
+                                    disabled={npcWantsToLeave || isGiftingInProgress}
+                                    className="ff-action-button bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600"
+                                    style={{
+                                        minWidth: '100px'
+                                    }}
+                                >
+                                    🎁 Give Gift
+                                </button>
+                            )}
+                            <button
                                 onClick={handleClose}
                                 className="ff-action-button"
                             >
@@ -2828,6 +3245,111 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     initialLanguageId={selectedLanguageId}
                     currentYear={playerCharacter?.year || 1500}
                 />
+            )}
+
+            {/* Gift Selection Modal */}
+            {showGiftModal && (
+                <div
+                    className="modal-overlay theme-surface flex items-center justify-center p-4"
+                    onClick={() => setShowGiftModal(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        zIndex: 10000
+                    }}
+                >
+                    <div
+                        className="surface-card border rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+                        style={{ borderColor: 'var(--border-normal)' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="px-6 py-4 border-b flex items-center justify-between" style={{
+                            backgroundColor: 'var(--surface-elevated)',
+                            borderColor: 'var(--border-subtle)'
+                        }}>
+                            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                                🎁 Choose a Gift for {isNpc(currentTarget) ? currentTarget.name : 'them'}
+                            </h2>
+                            <button
+                                onClick={() => setShowGiftModal(false)}
+                                className="text-2xl hover:opacity-70 transition-opacity"
+                                style={{ color: 'var(--text-secondary)' }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Inventory Grid */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {playerCharacter?.inventory && playerCharacter.inventory.length > 0 ? (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {playerCharacter.inventory.map((item, idx) => (
+                                        <button
+                                            key={item.id || idx}
+                                            onClick={() => handleGiveGift(item)}
+                                            className="p-4 rounded-lg border-2 hover:border-purple-500 transition-all hover:shadow-lg group"
+                                            style={{
+                                                backgroundColor: 'var(--surface-elevated)',
+                                                borderColor: 'var(--border-normal)',
+                                                color: 'var(--text-primary)'
+                                            }}
+                                        >
+                                            <div className="flex flex-col items-center gap-2">
+                                                <span className="text-4xl">{item.emoji || '📦'}</span>
+                                                <div className="text-center">
+                                                    <div className="font-semibold text-sm line-clamp-2">
+                                                        {item.name}
+                                                    </div>
+                                                    {item.quantity && item.quantity > 1 && (
+                                                        <div className="text-xs text-purple-400 mt-1">
+                                                            ×{item.quantity}
+                                                        </div>
+                                                    )}
+                                                    <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                                        {item.value || 0} 💰
+                                                    </div>
+                                                    {item.rarity && item.rarity !== 'Common' && (
+                                                        <div className={`text-xs mt-1 font-medium ${
+                                                            item.rarity === 'Rare' ? 'text-blue-400' :
+                                                            item.rarity === 'Ultra-rare' ? 'text-purple-400' :
+                                                            item.rarity === 'Unique' ? 'text-amber-400' :
+                                                            'text-gray-400'
+                                                        }`}>
+                                                            {item.rarity}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12" style={{ color: 'var(--text-secondary)' }}>
+                                    <p className="text-lg mb-2">You have no items to give</p>
+                                    <p className="text-sm">Explore the world to find items you can gift to NPCs</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 border-t flex justify-end" style={{
+                            backgroundColor: 'var(--surface-muted-bg)',
+                            borderColor: 'var(--border-normal)'
+                        }}>
+                            <button
+                                onClick={() => setShowGiftModal(false)}
+                                className="ff-action-button"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );

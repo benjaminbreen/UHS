@@ -1,10 +1,11 @@
 /**
  * services/npcAIService.ts - Enhanced animal AI behavior for standard maps
  */
-import { AnimalEntity, Point, Tile, MapData, BiomeType, NpcEntity, PersonalGoal } from '../types';
+import { AnimalEntity, Point, Tile, MapData, BiomeType, NpcEntity, PersonalGoal, Item } from '../types';
 import { ANIMAL_DATA } from '../constants/index';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants/index';
 import { getHelperMode, updateLeadingNpc } from './npcHelperService';
+import { detectNearbyDroppedItems, isAdjacentToItem, recordItemPickup, isInterestedInItem } from './npcItemDetectionService';
 
 interface AIMemory {
     lastSeen: Point | null;
@@ -1075,7 +1076,8 @@ export function calculateNpcUpdate(
     playerPos: Point,
     map: MapData,
     gameTimeHours: number,
-    allNpcsInput?: NpcEntity[]
+    allNpcsInput?: NpcEntity[],
+    droppedItems?: Array<{ x: number; y: number; item: Item; timestamp: number }>
 ): Partial<NpcEntity> {
     // SAFETY CHECK 1: Validate NPC exists
     if (!npcInput || typeof npcInput !== 'object') {
@@ -1089,7 +1091,7 @@ export function calculateNpcUpdate(
 
     // Wrap entire function in try-catch for proxy safety
     try {
-        return calculateNpcUpdateUnsafe(npcInput, playerPos, map, gameTimeHours, allNpcsInput);
+        return calculateNpcUpdateUnsafe(npcInput, playerPos, map, gameTimeHours, allNpcsInput, droppedItems);
     } catch (error: any) {
         // SAFETY CHECK 3: Handle revoked proxy gracefully
         if (error.message?.includes('revoked') || error.message?.includes('perform')) {
@@ -1114,7 +1116,8 @@ function calculateNpcUpdateUnsafe(
     playerPos: Point,
     map: MapData,
     gameTimeHours: number,
-    allNpcsInput?: NpcEntity[]
+    allNpcsInput?: NpcEntity[],
+    droppedItemsInput?: Array<{ x: number; y: number; item: Item; timestamp: number }>
 ): Partial<NpcEntity> {
     let npc: NpcEntity;
     let allNpcs: NpcEntity[] | undefined;
@@ -1341,6 +1344,90 @@ function calculateNpcUpdateUnsafe(
                 x: bestTile.x,
                 y: bestTile.y
             };
+        }
+    }
+
+    // Check for nearby dropped items (only if not fleeing from danger)
+    const droppedItems = droppedItemsInput || [];
+    const nearbyItem = detectNearbyDroppedItems(npc, droppedItems);
+
+    // Debug logging for item detection
+    if (droppedItems.length > 0 && Math.random() < 0.01) {
+        console.log(`[NPC AI] ${npc.name} sees ${droppedItems.length} dropped items, nearbyItem:`, nearbyItem ? nearbyItem.item.name : 'none');
+    }
+
+    // If NPC is currently seeking an item
+    if (npc.aiState === 'seeking_item' && npc.targetItem) {
+        // Check if item still exists at target location
+        const itemStillExists = droppedItems.some(
+            dropped => dropped.x === npc.targetItem!.x && dropped.y === npc.targetItem!.y
+        );
+
+        if (!itemStillExists) {
+            // Item was picked up by someone else or removed
+            return {
+                aiState: 'idle',
+                targetItem: undefined
+            };
+        }
+
+        // Check if adjacent to target item
+        if (isAdjacentToItem(npc, npc.targetItem)) {
+            // Pick up the item!
+            const pickedUpItem = npc.targetItem.item;
+
+            // Add to inventory
+            const newInventory = [...(npc.inventory || []), pickedUpItem];
+
+            // Record pickup in history
+            recordItemPickup(npc, pickedUpItem, { x: npc.targetItem.x, y: npc.targetItem.y });
+
+            console.log(`[NPC AI] ${npc.name} picked up ${pickedUpItem.name} at (${npc.targetItem.x}, ${npc.targetItem.y})`);
+
+            // Return update with pickup (the caller will need to remove item from map)
+            return {
+                aiState: 'idle',
+                inventory: newInventory,
+                targetItem: undefined,
+                pickupHistory: npc.pickupHistory,
+                // Signal to caller that item should be removed from map
+                _itemPickedUp: { x: npc.targetItem.x, y: npc.targetItem.y }
+            } as any;
+        } else {
+            // Move toward target item
+            const allNeighbors = getNeighbors(npc.x, npc.y, map);
+            const walkableNeighbors = allNeighbors.filter(isWalkableForNpc);
+
+            if (walkableNeighbors.length > 0) {
+                const nextPos = moveTowards(
+                    { x: npc.x, y: npc.y },
+                    { x: npc.targetItem.x, y: npc.targetItem.y },
+                    walkableNeighbors
+                );
+
+                memory.nextMoveTime = now + 800 + Math.random() * 400; // Move quickly when seeking item
+
+                return {
+                    aiState: 'seeking_item',
+                    x: nextPos.x,
+                    y: nextPos.y
+                };
+            }
+        }
+    } else if (nearbyItem && isInterestedInItem(npc, nearbyItem.item)) {
+        // NPC is not currently seeking, but detected a nearby item
+        // Only seek items when idle or wandering (not when working or commuting)
+        if (npc.activity === 'idle' || npc.activity === 'wandering') {
+            console.log(`[NPC AI] ${npc.name} spotted ${nearbyItem.item.name} at (${nearbyItem.x}, ${nearbyItem.y}) - switching to seeking_item state`);
+            // Switch to seeking state
+            return {
+                aiState: 'seeking_item',
+                targetItem: nearbyItem
+            };
+        } else {
+            if (nearbyItem && Math.random() < 0.05) {
+                console.log(`[NPC AI] ${npc.name} sees ${nearbyItem.item.name} but is ${npc.activity}, not seeking`);
+            }
         }
     }
 

@@ -162,7 +162,8 @@ export async function generateWorkOffer(
 
     if (type.includes('market') || type.includes('bazaar') || name.includes('market')) {
       marketplaces.push(locationStr);
-    } else if (type.includes('ruin') || name.includes('ruin') || type.includes('ancient')) {
+    } else if (type === 'ruins' || type.includes('ancient_ruin') || (name.includes('ruin') && type.includes('ancient'))) {
+      // STRICT: Only actual ruins, not abandoned buildings
       ruins.push(locationStr);
     } else if (type.includes('temple') || type.includes('shrine') || type.includes('church') || type.includes('mosque') || type.includes('monastery') || name.includes('holy')) {
       religious.push(locationStr);
@@ -179,7 +180,7 @@ export async function generateWorkOffer(
     structureContext += '**MARKETPLACES** (good for buying goods):\n' + marketplaces.map(s => `- ${s}`).join('\n') + '\n\n';
   }
   if (ruins.length > 0) {
-    structureContext += '**RUINS/ANCIENT SITES** (good for exploration/investigation quests):\n' + ruins.map(s => `- ${s}`).join('\n') + '\n\n';
+    structureContext += '**RUINS/ANCIENT SITES** (ONLY these are explorable for scholars):\n' + ruins.map(s => `- ${s}`).join('\n') + '\n\n';
   }
   if (religious.length > 0) {
     structureContext += '**RELIGIOUS SITES** (good for delivery/pilgrimage tasks):\n' + religious.map(s => `- ${s}`).join('\n') + '\n\n';
@@ -188,8 +189,14 @@ export async function generateWorkOffer(
     structureContext += '**WORKSHOPS/CRAFTERS** (good for delivery of materials):\n' + workshops.map(s => `- ${s}`).join('\n') + '\n\n';
   }
   if (other.length > 0) {
-    structureContext += '**OTHER LOCATIONS**:\n' + other.map(s => `- ${s}`).join('\n');
+    structureContext += '**OTHER LOCATIONS** (NOT explorable - these are NOT ruins):\n' + other.map(s => `- ${s}`).join('\n');
   }
+
+  // Add explicit warning if no ruins exist
+  const hasRuins = ruins.length > 0;
+  const ruinsWarning = !hasRuins
+    ? '\n\n⚠️ **NO RUINS AVAILABLE** - Do NOT use "explore_location" taskType! Use "fetch_item" or "gather_resource" instead.\n'
+    : '';
 
   // Build animal context for hunting quests
   let animalContext = '';
@@ -295,55 +302,100 @@ Player Details:
 
 Nearby Locations:
 ${structureContext || '- No major structures nearby'}
-${animalContext}
-TASK: The player is asking you for work. Create a SIMPLE, SINGLE-OBJECTIVE task for them.
+${animalContext}${ruinsWarning}
 
-CRITICAL LOCATION RULES:
-1. **RUINS/ANCIENT SITES** → Use taskType "explore_location"
-   - Create culturally-specific, historically interesting exploration quests
-   - Ask player to "investigate" or "explore" and bring back "anything interesting"
-   - NEVER ask to "buy" things from ruins
-   - Payment: 30-50 coins (exploration is risky)
+TASK: The player is asking you for work. Create a SIMPLE, SINGLE-OBJECTIVE task that matches YOUR PROFESSION.
 
-2. **MARKETPLACES** → Use "buy_from_location"
-   - Ask to buy specific trade goods (silk, spices, tools, etc.)
-   - NOT basic materials like stone/wood
+**CRITICAL: PROFESSION COMES FIRST, NOT LOCATION**
 
-3. **WORKSHOPS/CRAFTERS** → Use "deliver_to_location"
-   - Deliver raw materials they need for their craft
+Your profession is **${npc.profession}**. Base your work request on what YOUR PROFESSION needs:
 
-4. **RELIGIOUS SITES** → Use "deliver_to_location" or "fetch_item"
-   - Offerings, sacred items, pilgrimage tasks
+**CRAFTSMEN (Blacksmith, Potter, Weaver, Carpenter):**
+- PRIMARY: Use "gather_resource" to request materials for your craft
+  - Blacksmith → iron ore, coal, metal scraps
+  - Potter → clay, glaze materials, firewood
+  - Weaver → wool, flax, dyes
+  - Carpenter → lumber, nails, wood planks
+- SECONDARY: If workshops/markets nearby, use "deliver_to_location" or "buy_from_location"
+- ❌ NEVER use "explore_location" unless you're a scholar/historian
 
-5. **ANIMALS/WILDLIFE** → Use "kill_animal" or "collect_animal_products"
-   - kill_animal: "Hunt the wolf terrorizing travelers" (targetAnimal: "Wolf")
-   - collect_animal_products: "Bring me 3 wolf pelts" (requiredItem: "Wolf Pelt", requiredQuantity: 3)
-   - ONLY use animals from the NEARBY ANIMALS list above!
-   - Products: pelts, hides, meat, antlers, tusks, feathers, bones
+**TANNERS (special case):**
+- PRIMARY: If animals nearby, use "collect_animal_products" for hides/pelts
+- SECONDARY: Use "gather_resource" for tanning bark, salt (processing materials)
+- ❌ NEVER use "explore_location"
 
-TASK VARIETY - Mix it up! Don't always ask for the same thing:
-- Scholars/Historians: exploration of ruins, fetch rare books, deliver documents
-- Craftsmen: deliver materials, gather specific resources
-- Merchants: buy trade goods from markets (NOT stone/wood)
-- Guards/Soldiers: hunt dangerous animals, patrol areas
-- Farmers: gather crops, scare animals, deliver produce
-- Religious: offerings, sacred items, pilgrimage deliveries
-- Nobles: luxury goods from markets, investigation of rumors
+**MERCHANTS/TRADERS:**
+- PRIMARY: Use "buy_from_location" if marketplace nearby
+- FALLBACK: Use "fetch_item" for specific trade goods (silk, spices, etc.)
+- ❌ NEVER use "explore_location" or "kill_animal"
+
+**GUARDS/SOLDIERS:**
+- PRIMARY: If animals nearby, use "kill_animal" or "collect_animal_products"
+- FALLBACK: Use "fetch_item" for weapons, armor, supplies
+- ❌ NEVER use "explore_location" unless you're investigating specific military threat
+
+**FARMERS:**
+- PRIMARY: Use "gather_resource" for crops, seeds, livestock needs
+- SECONDARY: If animals are pests/threats, use "kill_animal"
+- FALLBACK: Use "deliver_to_location" for produce to market
+- ❌ NEVER use "explore_location"
+
+**SCHOLARS/HISTORIANS/SCRIBES:**
+- ✅ Can use "explore_location" ONLY IF you see "**RUINS/ANCIENT SITES**" heading above
+- ✅ Can ONLY explore locations listed under that SPECIFIC heading
+- ❌ CANNOT explore locations under "**OTHER LOCATIONS**" (those are NOT ruins!)
+- ❌ "Abandoned Tower", "Derelict Site", "Old Building", "Abandoned Keep" are NOT ruins
+- ❌ If you see "⚠️ NO RUINS AVAILABLE" above, use "fetch_item" instead
+- Fallback: Use "fetch_item" for books, documents, scrolls, ancient texts
+
+**PRIESTS/CLERGY:**
+- PRIMARY: Use "deliver_to_location" for offerings to religious sites
+- SECONDARY: Use "fetch_item" for sacred objects
+- ❌ NEVER use "explore_location"
+
+**NOBLES:**
+- PRIMARY: If marketplace nearby, use "buy_from_location" for luxury goods
+- FALLBACK: Use "fetch_item" for fine items
+- ❌ NEVER use "explore_location" or "kill_animal"
+
+**EXPLORATION QUESTS ARE EXTREMELY RARE:**
+- ✅ ONLY scholars/historians can request exploration
+- ✅ ONLY if the **RUINS/ANCIENT SITES** section exists above
+- ❌ ABANDONED TOWERS are NOT ruins
+- ❌ DERELICT SITES are NOT ruins
+- ❌ OLD BUILDINGS are NOT ruins
+- ❌ If you're not a scholar, DO NOT use "explore_location" under ANY circumstances
+
+**FALLBACK WHEN NO IDEAL STRUCTURES:**
+If there are no nearby structures matching your profession:
+- Craftsmen → Request materials anyway (player can gather from wilderness)
+- Merchants → Request specific trade goods (player will find them)
+- Guards → Request weapons/armor maintenance items
+- Farmers → Request seeds, tools, or crop protection
+- Use "fetch_item" or "gather_resource", NOT "explore_location"
 
 GOOD EXAMPLES:
-✓ Scholar + Ruins: "I've heard tales of the ${ruins.length > 0 ? ruins[0].split('(')[0].trim() : 'ancient ruins'}. Investigate it and bring me any artifacts or writings you find. 40 coins." (explore_location)
+✓ Blacksmith (no mine nearby): "Bring me 5 iron ore. I don't care where you get it, just bring it. 20 coins." (gather_resource, requiredItem: "Iron Ore")
 ✓ Merchant + Market: "Go to the marketplace and buy me 3 bolts of fine silk. I'll pay 25 coins." (buy_from_location)
-✓ Blacksmith: "Bring me 5 iron ore from the mines. 20 coins." (gather_resource)
-✓ Priest: "Deliver these sacred scrolls to the temple. 15 coins." (deliver_to_location)
-✓ Guard + Animals: "Wolves have been attacking travelers on the north road. Hunt one down. 30 coins." (kill_animal, targetAnimal: "Wolf")
-✓ Tanner + Animals: "I need 3 deer hides for my leather work. Bring them to me. 25 coins." (collect_animal_products, requiredItem: "Deer Hide", requiredQuantity: 3)
+✓ Guard + Animals: "Wolves have been attacking travelers. Hunt one down. 30 coins." (kill_animal)
+✓ Tanner + Animals: "I need 3 deer hides for leather work. 25 coins." (collect_animal_products)
+✓ Scholar + ACTUAL RUINS: "Investigate the ancient temple ruins and bring me artifacts. 40 coins." (explore_location)
+✓ Farmer (no structures): "Gather 10 bundles of wheat for me. 15 coins." (gather_resource)
+✓ Potter (no workshop): "I need 8 clay deposits for my kiln. Find them and I'll pay 18 coins." (gather_resource)
 
-BAD EXAMPLES:
-✗ "Buy 3 coils of rope from the ruins" (ruins aren't shops!)
-✗ "Fetch me 10 limestone" (too boring, always stone)
-✗ "Get stone from quarry" (too generic, overdone)
+BAD EXAMPLES (DO NOT DO THESE):
+✗ Scholar: "Explore the Abandoned Keep" (Abandoned Keep is under OTHER LOCATIONS, not RUINS!)
+✗ Scholar: "Investigate the Derelict Site" (Derelict sites are NOT ruins!)
+✗ Scholar when no RUINS section exists: Using "explore_location" (NO RUINS = NO EXPLORATION!)
+✗ Blacksmith: "Explore the abandoned tower" (not a scholar, shouldn't explore)
+✗ Potter: "Investigate the old site" (not a scholar, shouldn't explore)
+✗ Farmer: "Explore the derelict building" (not a scholar, shouldn't explore)
+✗ Guard: "Go to the ruins" (not a scholar, should hunt animals or fetch supplies)
+✗ Merchant: "Hunt wolves" (merchants don't hire for hunting)
+✗ Tanner with no animals: "Gather tanning bark" (should use collect_animal_products if animals exist)
+✗ Any NPC + structure under "OTHER LOCATIONS": Using "explore_location" (OTHER ≠ RUINS!)
 
-Create the work offer now. Be creative and profession-appropriate!
+Create the work offer now. Remember: PROFESSION FIRST, then match to nearby locations if helpful. Most NPCs should use gather_resource or fetch_item, NOT explore_location!
 `.trim();
 
   try {

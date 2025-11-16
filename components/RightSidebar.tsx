@@ -21,7 +21,7 @@ import StudyPanel, { StudyData, StudiedItem } from './StudyPanel';
 import { StudyAction } from '../types/studyTypes';
 import { AnimatedPortrait } from './portraits';
 import { SKILL_DATA, SKILL_BUTTON_ORDER } from '../constants/index';
-import { SkillID } from '../types';
+import { SkillID, Item } from '../types';
 import ActionConfigModal from './ActionConfigModal';
 import { useStudyActions } from '../hooks/useStudyActions';
 import { journalService } from '../services/journalService';
@@ -30,6 +30,7 @@ import { AttributeBadgeList } from './AttributeBadge';
 import SourceDiscussionHistoryPanel from './SourceDiscussionHistoryPanel';
 import { loadDiscussionHistory } from '../services/sourceDiscussionPersistence';
 import { FaBook, FaBoxOpen, FaMicroscope, FaScroll } from 'react-icons/fa';
+import { removeItemFromInventory } from '../utils/inventoryUtils';
 
 const MIN_SIDEBAR_WIDTH = 400;
 const MAX_SIDEBAR_WIDTH = 700;
@@ -53,10 +54,10 @@ interface RightSidebarProps {
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = false }) => {
-  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, onEat, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen } = useUI();
+  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, onEat, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen, setPanelNotificationItem, setPanelNotificationMode } = useUI();
   const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
-  const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
-  const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone } = useMap();
+  const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel, setPlayerCharacter } = usePlayer();
+  const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone, addDroppedItem } = useMap();
 
   // Detect dark mode for tab border colors
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -143,6 +144,30 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     }
   };
 
+  // Handle dropping items on the map
+  const handleDropItem = useCallback((item: Item) => {
+    if (!playerCharacter || controlledIconX === null || controlledIconY === null || !addDroppedItem) {
+      console.warn('[handleDropItem] Missing required data');
+      return;
+    }
+
+    // Remove item from inventory (removeItemFromInventory returns { inventory, removedIds })
+    const result = removeItemFromInventory(playerCharacter.inventory, item.name, 1);
+    setPlayerCharacter({ ...playerCharacter, inventory: result.inventory });
+
+    // Add item to map at player's current position
+    addDroppedItem(controlledIconX, controlledIconY, item);
+
+    // Show "ITEM DROPPED" notification
+    setPanelNotificationMode('dropped');
+    setPanelNotificationItem(item);
+    setTimeout(() => setPanelNotificationItem(null), 2500);
+
+    // Trigger inventory update
+    if (onInventoryUpdate) {
+      onInventoryUpdate();
+    }
+  }, [playerCharacter, controlledIconX, controlledIconY, addDroppedItem, setPlayerCharacter, onInventoryUpdate, setPanelNotificationItem, setPanelNotificationMode]);
 
   /* ---------------------------- state & persistence --------------------------- */
   const [activeTab, setActiveTab] = useState<RightSidebarTab>('narrator');
@@ -703,15 +728,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   const isDisabled = selectedStudyItems.length < action.minItems || selectedStudyItems.length > action.maxItems;
                   return (
                     <div key={action.id} className="relative">
-                      <button
-                        onClick={() => handleStudyActionClick(action.id)}
+                      <div
+                        onClick={() => !isDisabled && !isStudyProcessing && handleStudyActionClick(action.id)}
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
-                        disabled={isDisabled || isStudyProcessing}
                         data-disabled={isDisabled || isStudyProcessing}
-                        className={getOptimizedButtonClassName(
-                          `action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold`
-                        )}
+                        className="action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold cursor-pointer"
                         style={{ aspectRatio: '1 / 0.88' }}
                       >
                         {/* Hotkey indicator */}
@@ -724,7 +746,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                           </div>
                         </div>
                         <span className="text-xs font-semibold leading-tight text-center text-[var(--text-primary)] tracking-tight">{action.name}</span>
-                      </button>
+                      </div>
 
                       {/* Tooltip - smart positioning based on button position */}
                       {hoveredButton === index && (
@@ -757,13 +779,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   if (!skill) return null;
                   return (
                     <div key={skillId} className="relative">
-                      <button
+                      <div
                         onClick={() => handleSkillClick(skillId)}
                         onMouseEnter={() => setHoveredButton(index)}
                         onMouseLeave={() => setHoveredButton(null)}
-                        className={getOptimizedButtonClassName(
-                          'action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold'
-                        )}
+                        className="action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold cursor-pointer"
                         style={{ aspectRatio: '1 / 0.88' }}
                       >
                         {/* Hotkey indicator */}
@@ -776,7 +796,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                           </div>
                         </div>
                         <span className="text-[10px] uppercase tracking-wider  leading-tight text-center text-[var(--text-primary)]">{skill.name}</span>
-                      </button>
+                      </div>
 
                       {/* Tooltip - smart positioning based on button position */}
                       {hoveredButton === index && (
@@ -894,6 +914,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                     setActiveTab('study');
                   }}
                   onEat={onEat}
+                  onDrop={handleDropItem}
                   deployVesselToMap={deployVesselToMap}
                   deployBridgeToMap={deployBridgeToMap}
                   playerX={controlledIconX}

@@ -604,10 +604,10 @@ const parseHairstyle = (
     }
   }
 
-  // Temporary expression timer (unchanged)
+  // Temporary expression timer - extended to 30 seconds
   useEffect(() => {
     if (temporaryExpression && onExpressionComplete) {
-      const timer = setTimeout(() => onExpressionComplete(), 2000);
+      const timer = setTimeout(() => onExpressionComplete(), 30000);
       return () => clearTimeout(timer);
     }
   }, [temporaryExpression, onExpressionComplete]);

@@ -144,6 +144,7 @@ export function spawnSingleAnimal(
                     speciesName: chosenSpecies?.name || animalData.name,
                     linnaeanName: chosenSpecies?.linnaeanName || 'N/A',
                     emoji: chosenSpecies?.emoji || animalData.emoji,
+                    imagePath: animalData.imagePath, // Custom PNG image path if available
                     x, y,
                     age: 1 + Math.floor(noise.random() * 15),
                     isDomestic: animalData.type === 'Domestic',

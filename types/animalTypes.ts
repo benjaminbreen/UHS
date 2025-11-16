@@ -13,6 +13,7 @@ export interface AnimalSpecies {
 export interface AnimalData {
   name: string;
   emoji: string;
+  imagePath?: string; // Optional path to custom PNG image in /public/animals/
   type: 'Prey' | 'Predator' | 'Domestic' | 'Ambient' | 'Mythical';
   social: 'solitary' | 'herd' | 'pack'; // NEW: Behavior grouping
   sizeMultiplier?: number; // Visual size multiplier (1.0 = default, 0.3 = tiny, 2.0 = huge)
@@ -60,6 +61,7 @@ export interface AnimalEntity {
   speciesName: string;
   linnaeanName: string;
   emoji: string;
+  imagePath?: string; // Optional path to custom PNG image in /public/animals/
   x: number; // grid x
   y: number; // grid y
   
