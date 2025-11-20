@@ -295,7 +295,7 @@ MULE: {
         drops: [{ name: 'Llama Wool', chance: 0.8 }, { name: 'Meat', chance: 0.7 }],
         spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.HILLS, BiomeType.GRASSLAND, BiomeType.FARMLAND],
         spawnConditions: {
-            zones: ['SOUTH_AMERICAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'], // Llamas were domesticated in South America, some in North America
+            zones: ['SOUTH_AMERICAN'], // Llamas were domesticated ONLY in South America (Andes), never in North America pre-contact
             minAltitude: 0.3,
             nearSettlement: true
         },

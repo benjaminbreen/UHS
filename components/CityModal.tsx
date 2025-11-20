@@ -17,6 +17,7 @@ import { cityDescriptionCacheService } from '../services/cityDescriptionCacheSer
 import { gameSounds } from '../services/gameSoundsService';
 import { imageGenerationService } from '../services/imageGenerationService';
 import { isSafari } from '../utils/safariUtils';
+import { getRandomCityEvent, rollCityEventOutcome, CityEvent, CityEventOutcome } from '../services/cityEventService';
 import {
     FaTimes,
     FaDoorOpen,
@@ -28,6 +29,8 @@ import {
     FaClock,
     FaLeaf,
     FaBuilding,
+    FaExclamationTriangle,
+    FaSearch,
 } from 'react-icons/fa';
 import {
     GiShop,
@@ -43,6 +46,7 @@ interface CityModalProps {
     season: Season;
     onClose: () => void;
     onEnterSpecialMap?: (config: any) => void;
+    onApplyEventOutcome?: (outcome: CityEventOutcome) => void;
 }
 
 /**
@@ -254,7 +258,7 @@ const determineWorkspaceArchetype = (businessType: string): string => {
 };
 
 const CityModal: React.FC<CityModalProps> = ({
-    tile, playerCharacter, mapData, gameTimeHours, season, onClose, onEnterSpecialMap
+    tile, playerCharacter, mapData, gameTimeHours, season, onClose, onEnterSpecialMap, onApplyEventOutcome
 }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'workspaces' | 'residents'>('overview');
     const [tileData, setTileData] = useState<any>(null);
@@ -262,6 +266,11 @@ const CityModal: React.FC<CityModalProps> = ({
     const [cityDescription, setCityDescription] = useState<string>('');
     const [descriptionLoading, setDescriptionLoading] = useState(false); // Start false for instant modal
     const [cachedCityImage, setCachedCityImage] = useState<string | null>(null);
+
+    // City Event state
+    const [cityEvent, setCityEvent] = useState<CityEvent | null>(null);
+    const [eventOutcome, setEventOutcome] = useState<CityEventOutcome | null>(null);
+    const [showEventOutcome, setShowEventOutcome] = useState(false);
 
     // Get all NPCs from mapData
     const allNpcs = mapData.npcs || [];
@@ -318,6 +327,39 @@ const CityModal: React.FC<CityModalProps> = ({
         loadCachedImage();
     }, [mapData, culturalZone, timeOfDay]);
 
+    // Trigger city event on modal open (50% chance)
+    useEffect(() => {
+        const dateInfo = parseDateString(mapData.timeSlice || '1500');
+        const year = dateInfo.year;
+
+        const event = getRandomCityEvent(era, culturalZone, year);
+        if (event) {
+            setCityEvent(event);
+        }
+    }, []); // Only run once on mount
+
+    // Handle city event choice
+    const handleEventChoice = useCallback((choiceIndex: number) => {
+        if (!cityEvent) return;
+
+        const choice = cityEvent.choices[choiceIndex];
+        const outcome = rollCityEventOutcome(choice.outcomes);
+
+        setEventOutcome(outcome);
+        setShowEventOutcome(true);
+
+        // Apply outcome effects to player character
+        if (onApplyEventOutcome) {
+            onApplyEventOutcome(outcome);
+        }
+
+    }, [cityEvent, onApplyEventOutcome]);
+
+    const dismissEvent = useCallback(() => {
+        setCityEvent(null);
+        setEventOutcome(null);
+        setShowEventOutcome(false);
+    }, []);
 
     // Get residents of this tile - REGISTRY FIRST approach
     const residents = useMemo(() => {
@@ -776,6 +818,115 @@ const CityModal: React.FC<CityModalProps> = ({
             <div className="flex-grow overflow-y-auto min-h-0 custom-scrollbar">
                 {activeTab === 'overview' && (
                     <div className="p-4 sm:p-6">
+                        {/* City Event Banner */}
+                        {cityEvent && !showEventOutcome && (
+                            <div className="mb-6 animate-in fade-in duration-500">
+                                <div className="rounded-lg p-5 shadow-xl border-2"
+                                    style={{
+                                        backgroundColor: 'var(--surface-card)',
+                                        borderColor: '#f59e0b', // amber-500
+                                    }}
+                                >
+                                    {/* Event Header */}
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <div className="flex-shrink-0 mt-1">
+                                            <FaExclamationTriangle className="text-amber-400" size={24} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-lg font-bold text-amber-300 mb-2">
+                                                Event in the City
+                                            </h3>
+                                            <p className="text-text-primary text-sm leading-relaxed">
+                                                {cityEvent.prompt}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Event Choices */}
+                                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                        <button
+                                            onClick={() => handleEventChoice(0)}
+                                            className="flex-1 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
+                                            style={{
+                                                backgroundColor: '#059669', // emerald-600
+                                                color: 'white',
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-center gap-2">
+                                                <FaSearch size={16} />
+                                                <span>{cityEvent.choices[0].text}</span>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleEventChoice(1)}
+                                            className="flex-1 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
+                                            style={{
+                                                backgroundColor: '#64748b', // slate-500
+                                                color: 'white',
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-center gap-2">
+                                                <FaTimes size={16} />
+                                                <span>{cityEvent.choices[1].text}</span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Event Outcome Display */}
+                        {showEventOutcome && eventOutcome && (
+                            <div className="mb-6 animate-in fade-in duration-500">
+                                <div className="rounded-lg p-5 shadow-xl border-2"
+                                    style={{
+                                        backgroundColor: 'var(--surface-card)',
+                                        borderColor: eventOutcome.result === 'death' ? '#dc2626' :
+                                                     eventOutcome.result === 'injury' ? '#ea580c' :
+                                                     eventOutcome.result === 'gold_gain' || eventOutcome.result === 'item' ? '#22c55e' :
+                                                     '#64748b',
+                                    }}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-1">
+                                            <h3 className="text-lg font-bold mb-2"
+                                                style={{
+                                                    color: eventOutcome.result === 'death' ? '#fca5a5' :
+                                                           eventOutcome.result === 'injury' ? '#fdba74' :
+                                                           eventOutcome.result === 'gold_gain' || eventOutcome.result === 'item' ? '#86efac' :
+                                                           '#cbd5e1'
+                                                }}
+                                            >
+                                                {eventOutcome.result === 'death' ? 'Fatal Outcome' :
+                                                 eventOutcome.result === 'injury' ? 'Injury Sustained' :
+                                                 eventOutcome.result === 'gold_gain' ? 'Fortune Favors You' :
+                                                 eventOutcome.result === 'gold_loss' ? 'Unfortunate Loss' :
+                                                 eventOutcome.result === 'item' ? 'Item Acquired' :
+                                                 eventOutcome.result === 'knowledge' ? 'Knowledge Gained' :
+                                                 eventOutcome.result === 'reputation_gain' ? 'Reputation Enhanced' :
+                                                 eventOutcome.result === 'reputation_loss' ? 'Reputation Damaged' :
+                                                 'Event Concluded'}
+                                            </h3>
+                                            <p className="text-text-primary text-sm leading-relaxed mb-4">
+                                                {eventOutcome.message}
+                                            </p>
+                                            <button
+                                                onClick={dismissEvent}
+                                                className="px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+                                                style={{
+                                                    backgroundColor: '#475569',
+                                                    color: 'white',
+                                                }}
+                                            >
+                                                Continue
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* LLM District Description */}
                         <div className="mb-6">
                             {descriptionLoading ? (

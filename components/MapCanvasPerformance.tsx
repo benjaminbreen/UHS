@@ -17,6 +17,15 @@ import { useTilePatterns } from './TilePatterns';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 
+// ========== FEATURE TOGGLES ==========
+/**
+ * ALTITUDE SHADING: Adds subtle lighting based on elevation
+ * Higher altitude = slightly brighter (more sun exposure)
+ * Lower altitude = slightly darker (more shadow)
+ * Set to FALSE to disable if it looks bad
+ */
+const ENABLE_ALTITUDE_SHADING = true;
+
 /** Edge perturbation controls (shoreline organics) */
 const NOISE_SCALE_COASTLINE_PERTURB = 0.2;
 const COASTLINE_PERTURB_AMOUNT = TILE_SIZE_PX * 0.25;
@@ -103,6 +112,38 @@ function hashToUnit(x: number, y: number, seed: number) {
   return (h >>> 0) / 4294967296;
 }
 
+/**
+ * Adjusts color brightness based on altitude for subtle 3D effect
+ * altitude: 0-1 (from tile data)
+ * returns: adjusted hex color
+ */
+function applyAltitudeShading(baseColor: string, altitude: number): string {
+  if (!ENABLE_ALTITUDE_SHADING) return baseColor;
+
+  // Parse hex color to RGB
+  const hex = baseColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+
+  // Altitude effect: ±10% brightness range
+  // 0.5 altitude = neutral (no change)
+  // 0.0 altitude = -10% brightness (darker valleys/lowlands)
+  // 1.0 altitude = +10% brightness (brighter peaks/highlands)
+  const altitudeFactor = 1 + ((altitude - 0.5) * 0.2); // 0.9 to 1.1 range
+
+  // Apply factor with clamping to 0-255
+  const newR = Math.min(255, Math.max(0, Math.round(r * altitudeFactor)));
+  const newG = Math.min(255, Math.max(0, Math.round(g * altitudeFactor)));
+  const newB = Math.min(255, Math.max(0, Math.round(b * altitudeFactor)));
+
+  // Convert back to hex
+  return '#' +
+    newR.toString(16).padStart(2, '0') +
+    newG.toString(16).padStart(2, '0') +
+    newB.toString(16).padStart(2, '0');
+}
+
 class MapCanvasRenderer {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
@@ -140,12 +181,12 @@ class MapCanvasRenderer {
   setCanvas(canvas: HTMLCanvasElement | null) {
     this.canvas = canvas;
     this.ctx = canvas
-      ? canvas.getContext('2d', {
+      ? (canvas.getContext('2d', {
           alpha: false,
           desynchronized: true,
           willReadFrequently: false,
           powerPreference: 'high-performance',
-        })
+        }) as CanvasRenderingContext2D | null)
       : null;
 
     // TESTING: Disabled backfaceVisibility to fix Safari blur issue
@@ -419,7 +460,9 @@ class MapCanvasRenderer {
       for (let x = 0; x < mapData.width; x++) {
         const tile = mapData.tiles[y][x];
         if (!tile.isLand) continue;
-        const color = getTileRenderColor(tile, mapData.climate, mapData.seed, season, mapData.mapAreaName);
+        const baseColor = getTileRenderColor(tile, mapData.climate, mapData.seed, season, mapData.mapAreaName);
+        // Apply altitude shading for subtle 3D effect (can be disabled via ENABLE_ALTITUDE_SHADING flag)
+        const color = applyAltitudeShading(baseColor, tile.altitude);
         const key = `${tile.biome}-${color}`;
         if (!tileBatches.has(key)) tileBatches.set(key, { tiles: [], color });
         tileBatches.get(key)!.tiles.push(tile);

@@ -41,7 +41,8 @@ export const DiscoveryTerminal: React.FC<DiscoveryTerminalProps> = ({
                             &gt; LOCATION: {ruinName} | ERA: {era} | ZONE: {culturalZone}
                         </div>
                         <div className="text-sm mt-1" style={{ color: '#00ff00' }}>
-                            &gt; DOCUMENTS RECOVERED: {discoveredSources.length} | STATUS: AUTHENTICATED
+                            &gt; DOCUMENTS RECOVERED: {discoveredSources.length}
+                            {discoveredSources.length > 0 && ' | STATUS: CATALOGUED'}
                         </div>
                     </div>
                     <button
@@ -92,24 +93,32 @@ export const DiscoveryTerminal: React.FC<DiscoveryTerminalProps> = ({
                         &gt; AVAILABLE DOCUMENTS:
                     </div>
                     <div className="grid grid-cols-1 gap-1 mb-4">
-                        {discoveredSources.map((source, idx) => (
-                            <button
-                                key={source.id}
-                                onClick={() => onSelectSource(source)}
-                                className="text-left p-2 hover:bg-green-900 hover:bg-opacity-20 transition-colors"
-                                style={{
-                                    color: selectedSource?.id === source.id ? '#00ff00' : '#008800',
-                                    borderLeft: selectedSource?.id === source.id ? '3px solid #00ff00' : '3px solid transparent',
-                                    paddingLeft: '10px'
-                                }}>
-                                [{idx + 1}] {source.title.substring(0, 60)}{source.title.length > 60 ? '...' : ''}
-                            </button>
-                        ))}
+                        {discoveredSources.length > 0 ? (
+                            discoveredSources.map((source, idx) => (
+                                <button
+                                    key={source.id}
+                                    onClick={() => onSelectSource(source)}
+                                    className="text-left p-2 hover:bg-green-900 hover:bg-opacity-20 transition-colors"
+                                    style={{
+                                        color: selectedSource?.id === source.id ? '#00ff00' : '#008800',
+                                        borderLeft: selectedSource?.id === source.id ? '3px solid #00ff00' : '3px solid transparent',
+                                        paddingLeft: '10px'
+                                    }}>
+                                    [{idx + 1}] {source.title.substring(0, 60)}{source.title.length > 60 ? '...' : ''}
+                                </button>
+                            ))
+                        ) : (
+                            <div className="text-sm p-4 text-center" style={{ color: '#008800' }}>
+                                No historical documents found in this location yet.
+                                <br />
+                                Continue exploring to discover primary sources.
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div className="text-sm mt-auto" style={{ color: '#00ff00', borderTop: '1px solid #00ff00', paddingTop: '10px' }}>
-                    [1-9] Select Document | [Q] Search Archive | [M/ESC] Close Terminal | [SPACE] Read More
+                    Click a document to read | [CLOSE] button to exit
                 </div>
             </div>
         </div>

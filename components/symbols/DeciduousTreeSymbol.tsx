@@ -104,7 +104,7 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
   }
 
   return (
-    <g filter="url(#symbolShadow)">
+    <g>
       {/* Trunk */}
       <path
         d={`

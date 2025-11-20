@@ -5,7 +5,9 @@ import { primarySourceService, PrimarySourceMetadata } from '../services/primary
 import { getBackgroundPaths, loadBackgroundImage } from '../services/backgroundSelectionService';
 import { JournalQuoteTooltip } from './JournalQuoteTooltip';
 import { journalQuoteService } from '../services/journalQuoteService';
-import { TooltipPosition } from '../types/journal';
+import { TooltipPosition, GameLogEntry, GameDate } from '../types/journal';
+import { LogService } from '../services/logService';
+import { AssessmentPrimarySourceLog } from '../types/assessment';
 
 interface PrimarySourceModalProps {
   source: PrimarySourceMetadata;
@@ -20,6 +22,15 @@ interface PrimarySourceModalProps {
   weather?: any;
   gameTime?: { hours: number; minutes: number };
   showToast?: (message: string, type?: 'success' | 'warning' | 'error' | 'info') => void;
+  // Phase 2: Enhanced logging
+  gameDate?: GameDate;
+  location?: string;
+  timeOfDay?: string;
+  formattedTime?: string;
+  onLogEvent?: (entry: GameLogEntry) => void;
+  // Phase 3: XP rewards and assessment
+  onAddXP?: (amount: number) => void;
+  onLogAssessment?: (log: AssessmentPrimarySourceLog) => void;
 }
 
 interface WikipediaContent {
@@ -62,7 +73,14 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
   culturalZone,
   weather,
   gameTime,
-  showToast
+  showToast,
+  gameDate,
+  location,
+  timeOfDay,
+  formattedTime,
+  onLogEvent,
+  onAddXP,
+  onLogAssessment
 }) => {
   // Determine initial tab based on source.defaultTab or fallback logic
   const getInitialTab = (): 'excerpt' | 'fulltext' | 'citation' | 'wikipedia' => {
@@ -93,6 +111,39 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const culturalGradient = getCulturalGradient(source.culturalZones);
+
+  // Log PRIMARY_SOURCE_READ event when modal opens
+  useEffect(() => {
+    if (onLogEvent && gameDate && formattedTime) {
+      const logEntry = LogService.createPrimarySourceReadLog(
+        source.title,
+        source.author,
+        source.year,
+        location || 'Unknown Location',
+        gameDate,
+        formattedTime,
+        timeOfDay
+      );
+      onLogEvent(logEntry);
+    }
+
+    // Log to assessment system
+    if (onLogAssessment) {
+      const assessmentLog: AssessmentPrimarySourceLog = {
+        timestamp: new Date().toISOString(),
+        sourceId: source.id || source.title,
+        sourceTitle: source.title,
+        action: 'open',
+        metadata: {
+          author: source.author,
+          year: source.year,
+          era: source.era,
+          culturalZones: source.culturalZones
+        }
+      };
+      onLogAssessment(assessmentLog);
+    }
+  }, []); // Only run once on mount
 
   // Handle text selection for journal quotes
   const handleTextSelection = useCallback(() => {
@@ -131,12 +182,51 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
     if (!selectedText) return;
 
     // Add game context if available
-    const gameContext = currentTile && gameTime ? {
-      location: `${currentTile.climate} region`, // Could be enhanced with more specific location
-      gameDate: { year: 1400, month: 1, day: 1 } // Would come from game state
+    const gameContext = gameDate ? {
+      location: location || 'Unknown Location',
+      gameDate: gameDate
     } : undefined;
 
     const addedQuote = journalQuoteService.addQuote(selectedText, source, gameContext);
+
+    // Dispatch event to notify JournalQuotesPanel
+    window.dispatchEvent(new Event('quoteAdded'));
+
+    // Log PRIMARY_SOURCE_QUOTED event
+    if (onLogEvent && gameDate && formattedTime) {
+      const logEntry = LogService.createPrimarySourceQuotedLog(
+        source.title,
+        source.author,
+        selectedText,
+        location || 'Unknown Location',
+        gameDate,
+        formattedTime,
+        timeOfDay
+      );
+      onLogEvent(logEntry);
+    }
+
+    // Award +1 XP for quoting primary source
+    if (onAddXP) {
+      onAddXP(1);
+    }
+
+    // Log to assessment system
+    if (onLogAssessment) {
+      const assessmentLog: AssessmentPrimarySourceLog = {
+        timestamp: new Date().toISOString(),
+        sourceId: source.id || source.title,
+        sourceTitle: source.title,
+        action: 'quote',
+        metadata: {
+          quoteLength: selectedText.length,
+          quotePreview: selectedText.substring(0, 100),
+          location: location || 'Unknown Location',
+          gameDate: gameDate
+        }
+      };
+      onLogAssessment(assessmentLog);
+    }
 
     // Clear selection and hide tooltip
     setShowQuoteTooltip(false);
@@ -145,9 +235,9 @@ export const PrimarySourceModal: React.FC<PrimarySourceModalProps> = ({
 
     // Show success toast
     if (showToast) {
-      showToast(`📖 Quote added to journal from "${source.title}"`, 'success');
+      showToast(`📖 Quote added to journal from "${source.title}" (+1 XP)`, 'success');
     }
-  }, [selectedText, source, currentTile, gameTime]);
+  }, [selectedText, source, gameDate, location, timeOfDay, formattedTime, onLogEvent, onAddXP, onLogAssessment, showToast]);
 
   // Cancel quote selection
   const handleCancelQuote = useCallback(() => {

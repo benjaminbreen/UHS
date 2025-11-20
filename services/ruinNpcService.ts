@@ -405,27 +405,27 @@ function generateMarginalLoot(
 
     // Profession-specific loot
     if (profession.includes('Bandit') || profession.includes('Brigand')) {
-        if (Math.random() > 0.5) loot.push(generateProceduralItem('DAGGER', culturalZone, era));
-        if (Math.random() > 0.7) loot.push(generateProceduralItem('GOLD_COINS', culturalZone, era));
+        if (Math.random() > 0.5) loot.push(generateProceduralItem('KNIFE', culturalZone, era));
+        if (Math.random() > 0.7) loot.push(generateProceduralItem('COIN', culturalZone, era));
     }
 
     if (profession.includes('Treasure Hunter') || profession.includes('Grave Robber')) {
-        if (Math.random() > 0.4) loot.push(generateProceduralItem('ANCIENT_ARTIFACT', culturalZone, era));
-        if (Math.random() > 0.6) loot.push(generateProceduralItem('MAP_FRAGMENT', culturalZone, era));
+        if (Math.random() > 0.4) loot.push(generateProceduralItem('BLESSED_ARTIFACT', culturalZone, era));
+        if (Math.random() > 0.6) loot.push(generateProceduralItem('SCROLL', culturalZone, era));
     }
 
     if (profession.includes('Scholar') || profession.includes('Archaeologist')) {
-        if (Math.random() > 0.5) loot.push(generateProceduralItem('JOURNAL', culturalZone, era));
-        if (Math.random() > 0.7) loot.push(generateProceduralItem('MAGNIFYING_GLASS', culturalZone, era));
+        if (Math.random() > 0.5) loot.push(generateProceduralItem('BOOK', culturalZone, era));
+        if (Math.random() > 0.7) loot.push(generateProceduralItem('QUILL', culturalZone, era));
     }
 
     if (profession.includes('Hermit')) {
-        if (Math.random() > 0.6) loot.push(generateProceduralItem('HERBS', culturalZone, era));
-        if (Math.random() > 0.8) loot.push(generateProceduralItem('HOLY_SYMBOL', culturalZone, era));
+        if (Math.random() > 0.6) loot.push(generateProceduralItem('MEDICINAL_HERBS', culturalZone, era));
+        if (Math.random() > 0.8) loot.push(generateProceduralItem('RELIGIOUS_TEXT', culturalZone, era));
     }
 
     // Always chance for basic items
-    if (Math.random() > 0.7) loot.push(generateProceduralItem('TORCH', culturalZone, era));
+    if (Math.random() > 0.7) loot.push(generateProceduralItem('CLAY_LAMP', culturalZone, era));
     if (Math.random() > 0.8) loot.push(generateProceduralItem('ROPE', culturalZone, era));
 
     return loot;

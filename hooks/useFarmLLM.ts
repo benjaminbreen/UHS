@@ -92,7 +92,7 @@ interface UseFarmLLMReturn {
   initializeWorkSession: (task: string) => void;
 
   // Quick NPC talk for roguelike
-  handleQuickNpcTalk: (npc: FarmFamilyMember) => Promise<string>;
+  handleQuickNpcTalk: (npc: FarmFamilyMember, userMessage?: string) => Promise<string>;
 }
 
 export function useFarmLLM({
@@ -138,6 +138,9 @@ export function useFarmLLM({
   const [currentFarmTime, setCurrentFarmTime] = useState(0);
   const [hoursWorkedToday, setHoursWorkedToday] = useState(0);
   const [farmActionLog, setFarmActionLog] = useState<Array<{ action: string; timeElapsed: number }>>([]);
+
+  // Quick NPC dialogue history - track last 10 exchanges for memory
+  const [quickNpcDialogueHistory, setQuickNpcDialogueHistory] = useState<Array<{ npcId: string; message: string; response: string; timestamp: number }>>([]);
 
   // Initialize farm work history with context-aware intro message
   // ALSO update when contract status changes
@@ -911,9 +914,10 @@ export function useFarmLLM({
   }, [farmWorkHistory, hoursWorkedToday, farmActionLog, farmState?.tileKey]);
 
   // Quick NPC talk for roguelike - generates contextual dialogue
-  const handleQuickNpcTalk = useCallback(async (npc: FarmFamilyMember): Promise<string> => {
+  const handleQuickNpcTalk = useCallback(async (npc: FarmFamilyMember, userMessage?: string): Promise<string> => {
     console.log('[useFarmLLM] handleQuickNpcTalk called:', {
       npcName: npc.name,
+      userMessage,
       useLlm,
       hasFarmState: !!farmState,
       culturalZone,
@@ -930,7 +934,46 @@ export function useFarmLLM({
     try {
       console.log('[useFarmLLM] Calling LLM for NPC dialogue...');
 
-      // Convert to NpcEntity format for LLM
+      // Build conversation history for this specific NPC
+      const npcHistory = quickNpcDialogueHistory
+        .filter(entry => entry.npcId === npc.id)
+        .slice(-5) // Last 5 exchanges
+        .map(entry => ({
+          role: 'player' as const,
+          text: entry.message,
+          response: entry.response,
+          timestamp: entry.timestamp
+        }));
+
+      // Build context-aware memory with conversation summaries
+      const conversationSummaries: string[] = [];
+      if (npcHistory.length > 0) {
+        conversationSummaries.push(`Recent exchanges: ${npcHistory.length} previous conversations`);
+      }
+
+      // Add contract/residency context to memory
+      const residencyStatus = farmState.residencyStatus;
+      if (residencyStatus) {
+        if (residencyStatus.playerStatus === 'worker') {
+          conversationSummaries.push(`Player has a work contract on this farm`);
+        } else if (residencyStatus.playerStatus === 'resident') {
+          conversationSummaries.push(`Player is a resident of this farm`);
+        }
+
+        if (residencyStatus.daysWorked > 0) {
+          conversationSummaries.push(`Player has worked here for ${residencyStatus.daysWorked} days`);
+        }
+
+        if (residencyStatus.currentContract) {
+          const contract = residencyStatus.currentContract;
+          conversationSummaries.push(`Active contract: ${contract.taskType} - ${contract.description}`);
+          if (contract.deadline) {
+            conversationSummaries.push(`Contract deadline: ${contract.deadline} hours remaining`);
+          }
+        }
+      }
+
+      // Convert to NpcEntity format for LLM with enriched memory
       const npcEntity: NpcEntity = {
         id: npc.id,
         name: npc.name,
@@ -945,37 +988,93 @@ export function useFarmLLM({
         occupation: npc.role.toLowerCase(),
         personality: npc.traits?.map(t => t.name.toLowerCase()) || ['hardworking', 'practical'],
         memory: {
-          conversationSummaries: [],
-          opinionOfPlayer: 50
+          conversationSummaries,
+          opinionOfPlayer: 50 + (residencyStatus?.daysWorked || 0) * 2 // Opinion improves with work
         }
       };
 
-      // Create a casual greeting prompt
-      const greetingPrompt = `The player greets ${npc.name}. Respond with a brief, casual greeting (1-2 sentences) in character.${
-        npc.currentTask ? ` ${npc.name} is currently ${npc.currentTask.toLowerCase()}.` : ''
-      } Keep it natural and contextual to farm life in ${era}, ${culturalZone}.`;
+      // Build enriched prompt with contract/residency context
+      let contextInfo = '';
+      if (residencyStatus?.playerStatus === 'worker' && residencyStatus.currentContract) {
+        contextInfo = ` IMPORTANT: The player is currently working on your farm under contract (${residencyStatus.currentContract.description}). Remember this context.`;
+      } else if (residencyStatus?.playerStatus === 'resident') {
+        contextInfo = ` The player is a resident of your farm.`;
+      } else if (residencyStatus?.daysWorked > 0) {
+        contextInfo = ` The player has worked on your farm before (${residencyStatus.daysWorked} days).`;
+      }
 
-      console.log('[useFarmLLM] Prompt:', greetingPrompt);
+      const prompt = userMessage
+        ? `The player says to ${npc.name}: "${userMessage}". Respond naturally in character (1-2 sentences).${
+            npc.currentTask ? ` ${npc.name} is currently ${npc.currentTask.toLowerCase()}.` : ''
+          }${contextInfo} Keep it contextual to farm life in ${era}, ${culturalZone}.`
+        : `The player greets ${npc.name}. Respond with a brief, casual greeting (1-2 sentences) in character.${
+            npc.currentTask ? ` ${npc.name} is currently ${npc.currentTask.toLowerCase()}.` : ''
+          }${contextInfo} Keep it natural and contextual to farm life in ${era}, ${culturalZone}.`;
 
-      // Call LLM with simple context
-      const response = await generateEncounterDialogue(
+      console.log('[useFarmLLM] Prompt:', prompt);
+      console.log('[useFarmLLM] Conversation history entries:', npcHistory.length);
+      console.log('[useFarmLLM] Memory summaries:', conversationSummaries);
+
+      // Convert all family members to NPC entities for context
+      const allNpcs: NpcEntity[] = farmState.family.members.map(member => ({
+        id: member.id,
+        name: member.name,
+        type: 'npc' as const,
+        x: 0,
+        y: 0,
+        health: member.health,
+        maxHealth: member.maxHealth,
+        age: member.age,
+        gender: member.gender.toLowerCase() as 'male' | 'female',
+        culturalZone: culturalZone,
+        occupation: member.role.toLowerCase(),
+        personality: member.traits?.map(t => t.name.toLowerCase()) || ['hardworking'],
+        memory: { conversationSummaries: [], opinionOfPlayer: 50 }
+      }));
+
+      // Build conversation history array for generateEncounterDialogue
+      const conversationHistory: DialogueEntry[] = npcHistory.map(h => ({
+        speaker: playerCharacter.name,
+        text: h.text,
+        timestamp: h.timestamp,
+        emotion: 'neutral'
+      }));
+
+      // Call LLM with conversation history
+      const result = await generateEncounterDialogue(
         npcEntity,
-        [], // No conversation history for quick greetings
-        greetingPrompt,
+        conversationHistory,  // ✅ Pass actual conversation history
+        prompt,
         playerCharacter,
-        culturalZone,
-        era,
-        timeOfDay
+        allNpcs,      // ✅ Array of NPCs
+        mapData,      // ✅ MapData object
+        false         // ✅ useRealLanguage (false = modern English)
       );
 
-      console.log('[useFarmLLM] LLM response received:', response);
+      console.log('[useFarmLLM] LLM response received:', result);
 
-      return response || `"Hello! ${npc.currentTask ? `Just ${npc.currentTask.toLowerCase()}.` : 'Nice day, isn\'t it?'}"`;
+      const responseText = result.text || `"Hello! ${npc.currentTask ? `Just ${npc.currentTask.toLowerCase()}.` : 'Nice day, isn\'t it?'}"`;
+
+      // Store dialogue in history for future context
+      setQuickNpcDialogueHistory(prev => {
+        const newEntry = {
+          npcId: npc.id,
+          message: userMessage || '[greeting]',
+          response: responseText,
+          timestamp: Date.now()
+        };
+
+        // Keep last 20 total exchanges across all NPCs
+        const updated = [...prev, newEntry];
+        return updated.slice(-20);
+      });
+
+      return responseText;
     } catch (error) {
       console.error('[useFarmLLM] Quick NPC talk error:', error);
       return `"Hello there! ${npc.currentTask ? `Busy ${npc.currentTask.toLowerCase()}.` : 'How are you?'}"`;
     }
-  }, [useLlm, farmState, culturalZone, era, playerCharacter, timeOfDay]);
+  }, [useLlm, farmState, culturalZone, era, playerCharacter, timeOfDay, mapData, quickNpcDialogueHistory, setQuickNpcDialogueHistory]);
 
   return {
     // Family chat

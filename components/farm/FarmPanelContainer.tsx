@@ -65,6 +65,7 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
   const [pendingWorkInit, setPendingWorkInit] = useState<string | null>(null);
   const [toastDismissed, setToastDismissed] = useState(false);
   const [useRoguelikeWorkTab, setUseRoguelikeWorkTab] = useState(true); // Toggle for work tab display mode
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
 
   // Handle character click from FarmBanner
   const handleCharacterClick = (memberId: string) => {
@@ -149,6 +150,30 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
       // Cleanup audio if needed
     };
   }, []);
+
+  // Save farm state when panel closes
+  useEffect(() => {
+    return () => {
+      // Save farm state to localStorage on unmount
+      farmStateHook.saveFarmState();
+    };
+  }, [farmStateHook.saveFarmState]);
+
+  // Auto-save farm state periodically (every 30 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (farmStateHook.farmState) {
+        farmStateHook.saveFarmState();
+        console.log('[FarmPanel] Auto-saved farm state');
+
+        // Show save indicator
+        setShowSaveIndicator(true);
+        setTimeout(() => setShowSaveIndicator(false), 2000);
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [farmStateHook]);
 
   // Handle work acceptance - switch to work tab and initialize session
   const handleAcceptWork = React.useCallback((tasks: string[], payment: { meals?: boolean; lodging?: boolean; coins?: number }) => {
@@ -265,6 +290,13 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
               onCharacterClick={handleCharacterClick}
             />
             <div className="absolute top-3 right-3 flex items-center gap-2">
+              {/* Save indicator */}
+              {showSaveIndicator && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-green-700/90 text-white border border-green-500/50 shadow-lg animate-fadeIn">
+                  <span className="text-green-300">✓</span>
+                  <span>Saved</span>
+                </div>
+              )}
               {props.useLlm && (
                 <button
                   onClick={farmLLMHook.refreshFarmFlavor}
@@ -371,12 +403,14 @@ export const FarmPanelContainer: React.FC<FarmPanelContainerProps> = (props) => 
                   farmState={farmStateHook.farmState}
                   setFarmState={farmStateHook.setFarmState}
                   headFarmer={farmStateHook.headFarmer}
+                  playerCharacter={props.playerCharacter}
                   llmHooks={farmLLMHook}
                   fieldHooks={farmFieldsHook}
                   season={props.season}
                   useLlm={props.useLlm || false}
                   onPlayerStateChange={props.onPlayerStateChange}
                   onTimeAdvance={props.onTimeAdvance}
+                  onClose={props.onClose}
                 />
               ) : (
                 <FarmWorkTab

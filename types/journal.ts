@@ -3,7 +3,43 @@
  */
 import { GameDate, DialogueEntry } from './index';
 
-export type GameLogEntryType = 'DIALOGUE' | 'COMBAT' | 'MAP_ENTRY' | 'SKILL_USE' | 'ITEM_ACQUIRED' | 'TRADE' | 'REST' | 'MILESTONE_COMBAT' | 'MILESTONE_EXPLORATION' | 'MILESTONE_ACHIEVEMENT' | 'QUEST_START' | 'QUEST_COMPLETE' | 'STUDY';
+export type GameLogEntryType =
+    // Original types
+    | 'DIALOGUE'
+    | 'COMBAT'
+    | 'MAP_ENTRY'
+    | 'SKILL_USE'
+    | 'ITEM_ACQUIRED'
+    | 'TRADE'
+    | 'REST'
+    | 'MILESTONE_COMBAT'
+    | 'MILESTONE_EXPLORATION'
+    | 'MILESTONE_ACHIEVEMENT'
+    | 'QUEST_START'
+    | 'QUEST_COMPLETE'
+    | 'STUDY'
+    // Phase 2: Enhanced logging types
+    | 'PRIMARY_SOURCE_READ'      // Player opened/read a primary source
+    | 'PRIMARY_SOURCE_QUOTED'    // Player added quote to journal
+    | 'DIALOGUE_CHOICE'          // Player made dialogue decision
+    | 'LEARNING_MOMENT'          // Educational insight or discovery
+    | 'HISTORICAL_DISCOVERY'     // Found historical artifact or learned historical fact
+    // Phase 3: Comprehensive logging types
+    | 'LOCATION_ENTRY'           // Entered a special location (fortress, palace, market, etc.)
+    | 'BUILDING_ENTRY'           // Entered a specific building
+    | 'CONTAINER_OPENED'         // Opened a container (chest, barrel, etc.)
+    | 'NPC_ENCOUNTER'            // Met or interacted with an NPC
+    | 'WORK_TASK_ACCEPTED'       // Accepted a work task from an NPC
+    | 'WORK_TASK_COMPLETED';     // Completed a work task
+
+export type GameLogCategory =
+    | 'combat'           // Combat-related events
+    | 'exploration'      // Travel and discovery
+    | 'social'           // Dialogue and NPC interactions
+    | 'trade'            // Commerce and trading
+    | 'education'        // Learning and primary sources
+    | 'progression'      // Quests and achievements
+    | 'survival';        // Rest, health, etc.
 
 export interface GameLogEntry {
     id: string;
@@ -13,6 +49,14 @@ export interface GameLogEntry {
     icon: string;
     summary: string;
     details?: string | DialogueEntry[]; // For expandable content like full dialogue or combat stats
+
+    // Phase 2: Enhanced contextual data
+    location?: string;          // Where this event happened
+    npcsInvolved?: string[];    // Names of NPCs involved in event
+    timeOfDay?: string;         // Morning, Afternoon, Evening, Night
+    tags?: string[];            // Auto-categorized tags for filtering
+    category?: GameLogCategory; // Primary category for this log entry
+    educationalValue?: number;  // 0-100 score for educational content (for teacher reports)
 }
 
 export interface PlayerJournalEntry {

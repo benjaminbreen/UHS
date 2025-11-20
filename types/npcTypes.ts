@@ -149,7 +149,9 @@ export interface NpcEntity {
 
     // Memory & Reputation
     memory: NpcMemory;
-    
+    threatenedByPlayerTimestamp?: number; // Timestamp when player threatened this NPC with weapon
+    wasThreatenedByWeapon?: boolean; // Flag to indicate NPC was threatened
+
     // Interior-specific behavior
     isHostile?: boolean;
     patrolRoute?: Point[];

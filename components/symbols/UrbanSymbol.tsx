@@ -660,7 +660,9 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
         </pattern>
       </defs>
       <rect x={x} y={y} width={size} height={size} fill={`url(#${groundPattern.patternId})`} />
-      {renderBuilding()}
+      <g style={{ filter: `hue-rotate(${((seed + tile.x * 17 + tile.y * 23) % 16) - 8}deg)` }}>
+        {renderBuilding()}
+      </g>
       {isCityCenter && (
         <g>
           <circle cx={x + size * 0.15} cy={y + size * 0.15} r={size * 0.12} fill="rgba(255,215,0,0.2)" />

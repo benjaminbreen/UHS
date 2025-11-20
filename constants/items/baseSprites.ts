@@ -126,6 +126,55 @@ export const EXTRA_SPRITES: Record<string, Record<string, string>> = {
     smoke: "M8,5 L7,3 M12,5 L11,3 M16,5 L15,3",
     band: "M10,12 L14,12",
   },
+  MEAT: {
+    slab: "M7,10 L17,10 L16,16 L8,16 Z",
+    marbling: "M9,12 L11,13 M13,12 L15,13 M10,14 L14,14",
+    bone: "M17,11 L19,11 L19,15 L17,15",
+  },
+  FISH: {
+    body: "M6,12 C6,10 8,9 12,9 C16,9 18,10 18,12 C18,14 16,15 12,15 C8,15 6,14 6,12 Z",
+    tail: "M18,12 L21,10 L21,14 Z",
+    fin: "M10,9 L9,7 L11,9",
+    eye: "M9,11 L9,12",
+    scales: "M10,11 L10,12 M12,11 L12,12 M14,11 L14,12",
+  },
+  HONEY_JAR: {
+    jar: "M9,7 L15,7 L16,9 L16,17 L8,17 L8,9 Z",
+    neck: "M10,6 L14,6",
+    honey: "M9,11 L15,11 L15,16 L9,16 Z",
+    drip: "M12,10 L12,11",
+  },
+  APPLE: {
+    body: "M12,8 C9,8 8,10 8,12 C8,15 10,17 12,17 C14,17 16,15 16,12 C16,10 15,8 12,8 Z",
+    stem: "M12,7 L12,8",
+    leaf: "M12,7 L14,6 L13,8",
+    highlight: "M10,10 L11,9",
+  },
+  DATES: {
+    date1: "M9,10 C9,8 11,8 11,10 L11,14 C11,16 9,16 9,14 Z",
+    date2: "M13,11 C13,9 15,9 15,11 L15,15 C15,17 13,17 13,15 Z",
+    wrinkle1: "M9,12 L11,12",
+    wrinkle2: "M13,13 L15,13",
+  },
+  TEA_LEAVES: {
+    pile: "M8,14 C8,12 16,12 16,14 C16,16 8,16 8,14 Z",
+    leaves: "M9,13 L10,14 M11,13 L12,14 M13,13 L14,14 M15,13 L16,14",
+  },
+  WINE_BOTTLE: {
+    bottle: "M10,8 L14,8 L15,10 L15,17 L9,17 L9,10 Z",
+    neck: "M11,6 L13,6 L13,8 L11,8 Z",
+    liquid: "M10,12 L14,12 L14,16 L10,16 Z",
+  },
+  BEER_MUG: {
+    mug: "M8,10 L16,10 L16,17 L8,17 Z",
+    handle: "M16,12 L18,12 L18,15 L16,15",
+    foam: "M8,10 C8,9 16,9 16,10",
+  },
+  ALE_FLASK: {
+    flask: "M10,8 C10,6 14,6 14,8 L14,16 C14,18 10,18 10,16 Z",
+    stopper: "M11,7 L13,7 L13,8 L11,8 Z",
+    handle: "M14,11 L16,11 L16,13 L14,13",
+  },
 
   // ===== GRAINS / LEGUMES (distinct silhouettes) =====
   WHEAT_SHEAF: {
@@ -373,6 +422,26 @@ export const EXTRA_SPRITES: Record<string, Record<string, string>> = {
     shard: "M7,10 L15,8 L17,12 L10,16 Z",
     crack: "M9,11 L14,10 L12,14",
   },
+  ACORNS: {
+    shell1: "M9,10 C9,8 11,7 11,10 L11,12 C11,13 9,13 9,12 Z",
+    shell2: "M13,11 C13,9 15,8 15,11 L15,13 C15,14 13,14 13,13 Z",
+    cap1: "M9,10 L11,10 L11,9 L9,9 Z",
+    cap2: "M13,11 L15,11 L15,10 L13,10 Z",
+  },
+  PINE_CONE: {
+    cone: "M10,8 L14,8 L15,14 L9,14 Z",
+    scales: "M10,9 L14,9 M10,11 L14,11 M10,13 L14,13",
+    stem: "M12,8 L12,6",
+  },
+  TREE_BARK: {
+    strip: "M8,8 L16,9 L15,16 L9,15 Z",
+    texture: "M10,10 L14,11 M10,13 L14,14",
+  },
+  PINE_RESIN: {
+    glob: "M10,10 C10,8 14,8 14,10 C14,14 10,14 10,10 Z",
+    drip: "M12,14 L12,16 L13,17",
+    shine: "M11,9 L12,8",
+  },
 
   // ===== SEA / SHORE =====
   SEA_GLASS: {
@@ -455,6 +524,16 @@ export const EXTRA_SPRITES: Record<string, Record<string, string>> = {
     shard: "M7,9 L14,7 L18,11 L15,17 L9,16 Z",
     edge: "M9,12 L15,10 L13,15",
   },
+  OBSIDIAN_BLADE: {
+    blade: "M10,5 L14,7 L15,13 L12,18 L9,13 L10,7 Z",
+    edge: "M11,8 L13,10 L12,15",
+    gleam: "M13,9 L14,8",
+  },
+  GEMSTONE: {
+    gem: "M9,9 L15,9 L17,12 L15,15 L9,15 L7,12 Z",
+    facets: "M9,9 L12,12 L15,9 M9,15 L12,12 L15,15 M7,12 L12,12 L17,12",
+    shine: "M11,10 L12,9",
+  },
   SULFUR: {
     cluster: "M8,10 L12,8 L16,10 L14,13 L10,13 Z",
     fumes: "M12,7 L11,6 M14,7 L13,6",
@@ -536,6 +615,11 @@ export const EXTRA_SPRITES: Record<string, Record<string, string>> = {
   BONES_SMALL: {
     bone: "M9,12 L15,12 M9,12 L8,11 L8,13 M15,12 L16,11 L16,13",
   },
+  BONE_NEEDLE: {
+    shaft: "M11,6 L13,6 L13,18 L11,18 Z",
+    point: "M11,18 L12,20 L13,18",
+    eye: "M12,8 m-0.5,0 a0.5,0.5 0 1,0 1,0 a0.5,0.5 0 1,0 -1,0",
+  },
 
   // ===== HATS / CAPS / CROWNS / HELMETS =====
   HAT_STRAW:   { brim: "M6,11 L18,11", crown: "M9,9 L15,9 L15,11 L9,11 Z", weave: "M8,10 L16,10" },
@@ -568,6 +652,19 @@ export const EXTRA_SPRITES: Record<string, Record<string, string>> = {
   SWORD_STRAIGHT: { blade: "M12,3 L13,5 L14,13 L12,20 L10,13 L11,5 Z", guard: "M8,13 L16,13", grip: "M11,13 L13,13 L13,17 L11,17 Z" },
   SWORD_KATANA:  { blade: "M12,3 L13,4 L14,13 Q13,16 12,20 Q11,16 10,13 L11,4 Z", tsuba: "M10,12 L14,12", wrap: "M11,13 L13,14 L11,15 L13,16" },
   SWORD_SCIMITAR:{ blade: "M10,4 Q16,6 18,10 Q14,14 10,18 L9,14 Z", guard: "M8,12 L12,13", grip: "M9,14 L11,18" },
+  GLADIUS: { blade: "M12,5 L13,7 L14,14 L12,17 L10,14 L11,7 Z", guard: "M9,14 L15,14", hilt: "M11,14 L13,14 L13,16 L11,16 Z" },
+  RAPIER: { blade: "M11.5,4 L12.5,4 L12.5,17 L11.5,17 Z", guard: "M9,16 L15,16 M10,15 L10,17 M14,15 L14,17", grip: "M11,17 L13,17 L13,19 L11,19 Z" },
+  MACE: { head: "M10,7 L14,7 L14,11 L10,11 Z M9,8 L10,9 M14,8 L15,9 M9,10 L10,11 M14,10 L15,11", shaft: "M11,11 L13,11 L13,18 L11,18 Z", handle: "M10,18 L14,18" },
+  CLUB: { head: "M9,6 C9,4 15,4 15,6 L15,10 L9,10 Z", shaft: "M11,10 L13,10 L13,18 L11,18 Z", grain: "M10,7 L11,8 M13,7 L14,8" },
+  HALBERD: { axe: "M8,6 L16,8 L12,10 Z", spike: "M12,4 L13,6 L11,6 Z", shaft: "M11.5,10 L12.5,10 L12.5,20 L11.5,20 Z", back: "M12,9 L17,11" },
+  JAVELIN: { point: "M12,4 L13,7 L11,7 Z", shaft: "M11.5,7 L12.5,7 L12.5,19 L11.5,19 Z", wrap: "M11,13 L13,13 M11,15 L13,15" },
+  LONGBOW: { bow: "M10,4 C8,8 8,16 10,20", bowback: "M14,4 C16,8 16,16 14,20", string: "M10,4 L10,20 M14,4 L14,20", grip: "M9,12 L15,12" },
+  CROSSBOW: { stock: "M9,12 L9,18 L15,18 L15,12 Z", bow: "M6,11 L18,11", string: "M7,10 L17,10", trigger: "M12,15 L13,16" },
+  SLING: { pouch: "M10,12 L14,12 L13,14 L11,14 Z", cord1: "M10,12 L6,8", cord2: "M14,12 L18,8", knot: "M12,13 L12,14" },
+  HAMMER_WEAPON: { head: "M7,8 L17,8 L17,11 L7,11 Z M8,7 L16,7 L18,8 L6,8 Z", shaft: "M11,11 L13,11 L13,19 L11,19 Z", grip: "M10,17 L14,17" },
+  SPEAR: { point: "M12,3 L14,8 L12,10 L10,8 Z", shaft: "M11,10 L13,10 L13,20 L11,20 Z", wrap: "M11,13 L13,13" },
+  STAFF: { shaft: "M11,5 L13,5 L13,20 L11,20 Z", knob: "M10,5 C10,4 14,4 14,5", grain: "M11.5,8 L11.5,18" },
+  AXE_WEAPON: { blade: "M8,8 L17,9 L16,12 L10,11 Z", shaft: "M11,11 L13,11 L13,19 L11,19 Z", edge: "M10,9 L15,10" },
 
   // ===== FOOD PROCESSING TOOLS =====
   QUERN_HAND: {
@@ -590,6 +687,39 @@ export const EXTRA_SPRITES: Record<string, Record<string, string>> = {
   SALTS_BLUE: {
     pile: "M8,12 L16,11 L14,15 L10,16 Z",
     glint: "M12,11 L13,10",
+  },
+  JADE_BEAD: {
+    bead: "M12,12 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0",
+    hole: "M12,12 m-0.5,0 a0.5,0.5 0 1,0 1,0 a0.5,0.5 0 1,0 -1,0",
+    shine: "M11,11 L12,10",
+  },
+
+  // ===== RELIGIOUS / CEREMONIAL =====
+  PRAYER_BEADS: {
+    string: "M6,12 L18,12",
+    bead1: "M7,12 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0",
+    bead2: "M10,12 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0",
+    bead3: "M13,12 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0",
+    bead4: "M16,12 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0",
+    tassel: "M18,12 L18,14 L19,15",
+  },
+  COWRIE_SHELL: {
+    shell: "M10,11 C10,9 14,9 14,11 C14,13 10,13 10,11 Z",
+    slit: "M10,11 L14,11",
+    ridges: "M11,10 L13,10 M11,12 L13,12",
+  },
+  ANCIENT_COIN: {
+    disk: "M12,12 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0",
+    profile: "M11,11 C11,10 12,10 13,11 L13,13",
+    text: "M10,14 L11,14 M13,14 L14,14",
+    wear: "M9,10 L10,9",
+  },
+  QUIPU: {
+    cord: "M12,6 L12,18",
+    knot1: "M10,8 L12,8 M10,9 L12,9",
+    knot2: "M14,10 L12,10 M14,11 L12,11",
+    knot3: "M10,13 L12,13 M10,14 L12,14",
+    knot4: "M14,15 L12,15 M14,16 L12,16",
   },
 };
 
@@ -656,6 +786,8 @@ export const EXPANDED_ITEM_ARCHETYPES: Record<string, string> = {
   candles: "CANDLE", candle: "CANDLE",
   religious_text: "BOOK",
   blessed_artifact: "RING",
+  prayer_beads: "PRAYER_BEADS", "prayer beads": "PRAYER_BEADS",
+  quipu: "QUIPU", inca_quipu: "QUIPU",
 
   // ----- JUNK / BASIC -----
   stick: "STICK",
@@ -665,6 +797,11 @@ export const EXPANDED_ITEM_ARCHETYPES: Record<string, string> = {
   damp_log: "LOG_DAMP",
   root: "ROOT_TOUGH",
   earthworm: "WORM",
+  acorns: "ACORNS", "handful of acorns": "ACORNS",
+  tree_bark: "TREE_BARK",
+  pine_resin: "PINE_RESIN",
+  pine_cone: "PINE_CONE",
+  bone_needle: "BONE_NEEDLE",
 
   // ----- COMMON ITEMS -----
   wooden_bowl: "BOWL",
@@ -701,10 +838,28 @@ export const EXPANDED_ITEM_ARCHETYPES: Record<string, string> = {
   silk_cloth: "BAG",
   ivory_tusk: "MAMMOTH_IVORY",
 
-  prayer_beads: "AMULET",
+  prayer_beads: "PRAYER_BEADS",
   katana: "SWORD_KATANA",
   scimitar: "SWORD_SCIMITAR",
   sword: "SWORD_STRAIGHT",
+  gladius: "GLADIUS",
+  rapier: "RAPIER",
+  mace: "MACE",
+  club: "CLUB",
+  cudgel: "CLUB",
+  halberd: "HALBERD",
+  javelin: "JAVELIN",
+  pilum: "JAVELIN",
+  longbow: "LONGBOW",
+  crossbow: "CROSSBOW",
+  sling: "SLING",
+  war_hammer: "HAMMER_WEAPON",
+  spear: "SPEAR",
+  fire_hardened_spear: "SPEAR",
+  staff: "STAFF",
+  quarterstaff: "STAFF",
+  walking_staff: "STAFF",
+  herding_staff: "STAFF",
 
   smiths_anvil: "ANVIL",
   forge_hearth: "FORGE",
@@ -770,6 +925,7 @@ export const EXPANDED_ITEM_ARCHETYPES: Record<string, string> = {
   river_reed: "RIVER_REED",
   duck_egg: "DUCK_EGG",
   seabird_egg: "SEABIRD_EGG",
+  cowrie_shell: "COWRIE_SHELL", "cowrie shell": "COWRIE_SHELL",
 
   // ----- DESERT / WETLAND / VOLCANIC / TUNDRA -----
   fossil: "FOSSIL",
@@ -782,6 +938,9 @@ export const EXPANDED_ITEM_ARCHETYPES: Record<string, string> = {
   ice_crystal: "ICE_CRYSTAL",
   amber: "AMBER",
   obsidian: "OBSIDIAN",
+  obsidian_blade: "OBSIDIAN_BLADE",
+  gemstone: "GEMSTONE",
+  gemstone_fragment: "GEMSTONE",
   sulfur: "SULFUR",
   pumice_stone: "PUMICE",
   volcanic_ash: "VOLCANIC_ASH",
@@ -789,7 +948,20 @@ export const EXPANDED_ITEM_ARCHETYPES: Record<string, string> = {
   // ----- ANIMAL PRODUCTS / OTHERS -----
   beef: "MEAT",
   venison: "MEAT",
+  meat: "MEAT",
   fish_meat: "FISH",
+  honey_jar: "HONEY_JAR",
+  honey: "HONEY_JAR",
+  apples: "APPLE",
+  apple: "APPLE",
+  dates: "DATES",
+  date: "DATES",
+  tea: "TEA_LEAVES",
+  tea_leaves: "TEA_LEAVES",
+  wine: "WINE_BOTTLE",
+  beer: "BEER_MUG",
+  ale: "ALE_FLASK",
+  cider: "ALE_FLASK",
   cow_hide: "BAG",
   deer_hide: "BAG",
   wolf_pelt: "BAG",
@@ -821,6 +993,8 @@ export const EXPANDED_ITEM_ARCHETYPES: Record<string, string> = {
   thread: "THREAD_SPOOL",
 
   coin: "RING",
+  ancient_coin: "ANCIENT_COIN", "ancient coin": "ANCIENT_COIN",
+  jade_bead: "JADE_BEAD", "jade bead": "JADE_BEAD",
 
   // ----- MEDICAL / MODERN / SPECIAL TOOLS -----
   briefcase: "BRIEFCASE",
@@ -929,6 +1103,30 @@ export const ITEM_ARCHETYPES_MAX: Record<string, string> = {
   "hand quern": "QUERN_HAND",
   "cheese press": "CHEESE_PRESS",
   "stone block": "STONE_BLOCK",
+
+  // New perimeter event items
+  "handful of acorns": "ACORNS",
+  "ancient coin": "ANCIENT_COIN",
+  "jade bead": "JADE_BEAD",
+  "cowrie shell": "COWRIE_SHELL",
+  "prayer beads": "PRAYER_BEADS",
+  "bone needle": "BONE_NEEDLE",
+  "inca quipu": "QUIPU",
+
+  // Tier 1 weapons
+  "war hammer": "HAMMER_WEAPON",
+  "roman gladius": "GLADIUS",
+  "fire hardened spear": "SPEAR",
+
+  // Tier 2 foods
+  "jar of honey": "HONEY_JAR",
+  "bottle of wine": "WINE_BOTTLE",
+  "mug of beer": "BEER_MUG",
+  "flask of ale": "ALE_FLASK",
+
+  // Tier 3 tools
+  "obsidian blade": "OBSIDIAN_BLADE",
+  "gemstone fragment": "GEMSTONE",
 };
 
 /** ------------------------------------------------------------------------

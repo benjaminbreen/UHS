@@ -32,6 +32,7 @@ export interface FarmPanelProps {
   season: Season;
   gameTimeHours: number;
   onProgressTime?: (months: number) => void;
+  onTimeAdvance?: (hours: number) => void;
   onShowEvent?: (event: any) => void;
   currentGameDay: number;
   useLlm?: boolean;
@@ -43,6 +44,7 @@ export interface FarmPanelProps {
 export interface PlayerStateChanges {
   health?: number;
   fatigue?: number;
+  currency?: number; // Coins earned or spent
   statusEffects?: Array<{
     type: string;
     name: string;
@@ -182,6 +184,21 @@ export const CROP_EMOJIS: Record<string, string> = {
   cherry: '🍒',
   dates: '🌴',
   date: '🌴',
+};
+
+// Mapping from crop names to item base IDs for inventory integration
+export const CROP_TO_ITEM_BASE_ID: Record<string, string> = {
+  wheat: 'WHEAT',
+  barley: 'BARLEY',
+  rice: 'RICE',
+  millet: 'MILLET',
+  corn: 'CORN',
+  maize: 'CORN',
+  cotton: 'COTTON',
+  flax: 'COTTON', // Flax item doesn't exist yet, using cotton as fallback
+  beans: 'PEAS', // Beans item doesn't exist yet, using peas as fallback
+  peas: 'PEAS',
+  lentils: 'LENTILS',
 };
 
 // ============================================================================

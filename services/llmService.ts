@@ -907,6 +907,10 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
 
         ${target.diseaseModifier ? `**DISEASE AWARENESS:**\n        ${target.diseaseModifier}` : ''}
 
+        ${(target as any).hostileModifier ? `**HOSTILE STATE:**\n        ${(target as any).hostileModifier}` : ''}
+
+        ${(target as any).workOfferContext ? `**WORK AVAILABILITY:**\n        ${(target as any).workOfferContext}` : ''}
+
         **REMEMBER YOUR IDENTITY:**
         You are ${target.name} (the ${target.role})
         You are talking to ${playerCharacter.name} (the player/stranger)

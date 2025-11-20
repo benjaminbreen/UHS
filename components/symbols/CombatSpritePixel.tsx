@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlayerCharacter } from '../../types/character';
 import { Appearance } from '../../types/appearance';
+import { detectItemColor, getEquippedItemColor, detectMaterialColor } from '../../utils/colorDetection';
 
 interface CombatSpriteProps {
     character: PlayerCharacter;
@@ -43,8 +44,8 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
     const { primary: clothingColor, secondary: secondaryColor } = appearance.palette;
 
     const mainHandItem = equippedItems?.main_hand;
-    const armorItem = equippedItems?.armor;
-    const helmetItem = equippedItems?.helmet;
+    const armorItem = equippedItems?.armor; // Note: torso slot is checked in getArmorColor()
+    const helmetItem = equippedItems?.head; // Correct slot name is 'head' not 'helmet'
 
     // Determine weapon type for animation
     const getWeaponType = (item: any): string => {
@@ -90,25 +91,48 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
     const skinRamp = createColorRamp(skinColor);
     const hairRamp = createColorRamp(isOld ? '#808080' : hairColor);
 
-    // Use armor/equipment colors if available, fallback to appearance palette
+    // Use armor/equipment colors with shared color detection utilities
     const getArmorColor = () => {
-        if (armorItem?.color) return armorItem.color;
-        if (armorItem?.culturalStyle) {
-            // Cultural armor colors
-            const culturalColors = {
-                'Roman': '#8B0000',     // Deep red
-                'Medieval': '#4A4A4A',  // Steel gray
-                'Japanese': '#2F4F4F',  // Dark slate gray
-                'Celtic': '#8B4513',    // Saddle brown
-                'Viking': '#556B2F',    // Dark olive green
-            };
-            return culturalColors[armorItem.culturalStyle as keyof typeof culturalColors] || clothingColor;
+        // Check for equipped armor with color
+        if (armorItem) {
+            return getEquippedItemColor(armorItem, clothingColor);
         }
+
+        // Check for equipped garment (torso clothing)
+        const garment = equippedItems?.torso;
+        if (garment) {
+            return getEquippedItemColor(garment, clothingColor);
+        }
+
+        // Fallback to palette
         return clothingColor;
     };
 
+    const getLegsColor = () => {
+        // Check for equipped legs item
+        const legsItem = equippedItems?.legs;
+        if (legsItem) {
+            return getEquippedItemColor(legsItem, secondaryColor || clothingColor);
+        }
+
+        // Fallback to secondary palette color
+        return secondaryColor || clothingColor;
+    };
+
+    const getBootsColor = () => {
+        // Check for equipped boots (slot name is 'feet' not 'boots')
+        const bootsItem = equippedItems?.feet;
+        if (bootsItem) {
+            return getEquippedItemColor(bootsItem, '#3d2314'); // Dark brown fallback
+        }
+
+        // Default to brown boots
+        return '#3d2314';
+    };
+
     const clothingRamp = createColorRamp(getArmorColor());
-    const pantsRamp = createColorRamp(secondaryColor || clothingColor);
+    const pantsRamp = createColorRamp(getLegsColor());
+    const bootsColor = getBootsColor();
 
     // Pixel-perfect sprite dimensions (integers only)
     const centerX = 20; // Center of 40px viewBox
@@ -128,9 +152,9 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
                 <Pixel x={centerX + 1} y={baseY - 8} w={2} h={8} color={pantsRamp.dark} />
                 <Pixel x={centerX + 1} y={baseY - 8} w={1} h={8} color={pantsRamp.light} />
 
-                {/* Feet */}
-                <Pixel x={centerX - 3} y={baseY - 1} w={2} h={1} color="#3d2314" />
-                <Pixel x={centerX + 1} y={baseY - 1} w={2} h={1} color="#3d2314" />
+                {/* Feet - uses actual boot color if equipped */}
+                <Pixel x={centerX - 3} y={baseY - 1} w={2} h={1} color={bootsColor} />
+                <Pixel x={centerX + 1} y={baseY - 1} w={2} h={1} color={bootsColor} />
 
                 {/* Torso */}
                 <Pixel x={centerX - 3} y={baseY - 15} w={6} h={7} color={clothingRamp.dark} />
@@ -328,29 +352,32 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
         }
     };
 
-    // Render helmet/headgear based on equipped item
+    // Render helmet/headgear based on equipped item with actual colors
     const renderHelmet = () => {
         if (!helmetItem) return null;
 
         const helmetName = helmetItem.name?.toLowerCase() || '';
+
+        // Use actual helmet color from item, with material-based fallback
+        const helmetBaseColor = getEquippedItemColor(helmetItem, secondaryColor);
+        const helmetMaterialColor = detectMaterialColor(helmetItem.material);
+
         const helmetColors = {
-            metal: helmetItem.culturalStyle === 'Roman' ? '#CD7F32' : // Bronze
-                   helmetItem.culturalStyle === 'Medieval' ? '#4A4A4A' : // Steel
-                   helmetItem.culturalStyle === 'Greek' ? '#CD7F32' : '#696969',
-            accent: '#C0C0C0',
-            dark: '#2F2F2F'
+            metal: helmetMaterialColor || helmetBaseColor,
+            accent: shadeColor(helmetMaterialColor || helmetBaseColor, 20),
+            dark: shadeColor(helmetMaterialColor || helmetBaseColor, -20)
         };
 
         if (helmetName.includes('cap') || helmetName.includes('hat')) {
-            // Simple cap/hat
+            // Simple cap/hat - use actual item color
             return (
                 <g className="helmet-cap">
-                    <Pixel x={centerX - 3} y={baseY - 23} w={6} h={2} color={clothingColor} />
-                    <Pixel x={centerX - 2} y={baseY - 22} w={4} h={1} color={shadeColor(clothingColor, 20)} />
+                    <Pixel x={centerX - 3} y={baseY - 23} w={6} h={2} color={helmetBaseColor} />
+                    <Pixel x={centerX - 2} y={baseY - 22} w={4} h={1} color={shadeColor(helmetBaseColor, 20)} />
                 </g>
             );
         } else if (helmetName.includes('helmet')) {
-            // Metal helmet
+            // Metal helmet - use material color
             return (
                 <g className="helmet-metal">
                     <Pixel x={centerX - 3} y={baseY - 23} w={6} h={3} color={helmetColors.metal} />
@@ -373,11 +400,11 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
                 </g>
             );
         } else {
-            // Generic headwear
+            // Generic headwear - use actual item color
             return (
                 <g className="helmet-generic">
-                    <Pixel x={centerX - 2} y={baseY - 22} w={4} h={1} color={helmetColors.metal} />
-                    <Pixel x={centerX - 1} y={baseY - 22} w={2} h={1} color={helmetColors.accent} />
+                    <Pixel x={centerX - 2} y={baseY - 22} w={4} h={1} color={helmetBaseColor} />
+                    <Pixel x={centerX - 1} y={baseY - 22} w={2} h={1} color={shadeColor(helmetBaseColor, 20)} />
                 </g>
             );
         }
@@ -387,13 +414,12 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
     const renderJewelry = () => {
         const jewelry = [];
 
-        // Check all equipment slots for jewelry items
+        // Check all VALID equipment slots for jewelry items
         const allEquippedItems = [
-            equippedItems?.accessory,
-            equippedItems?.accessory_2,
-            equippedItems?.jewelry,
-            equippedItems?.trinket,
-            ...(Array.isArray(equippedItems?.jewelry) ? equippedItems.jewelry : [])
+            equippedItems?.necklace,  // Correct slot name
+            equippedItems?.ring1,     // Correct slot name
+            equippedItems?.accessory, // Correct slot name
+            equippedItems?.belt       // May have decorative elements
         ].filter(Boolean);
 
         // Find earrings and necklaces/amulets
@@ -465,10 +491,13 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
     const renderWeapon = () => {
         if (!mainHandItem) return null;
 
+        // Use actual weapon item colors with material detection
+        const bladeColor = getEquippedItemColor(mainHandItem, '#C0C0C0');
+        const handleMaterialColor = detectMaterialColor(mainHandItem.material);
+
         const weaponColors = {
-            blade: mainHandItem.culturalStyle === 'Damascus' ? '#C0C0C0' :
-                   mainHandItem.culturalStyle === 'Japanese' ? '#E6E6FA' : '#C0C0C0',
-            handle: '#8B4513', // Brown handle
+            blade: bladeColor,
+            handle: handleMaterialColor || '#8B4513', // Use material color or default brown
             metal: '#FFD700'   // Gold fittings
         };
 
@@ -583,12 +612,21 @@ const CombatSpritePixel: React.FC<CombatSpriteProps> = ({ character, animation, 
     const renderArmor = () => {
         if (!armorItem) return null;
 
+        // Prioritize actual item color, then material, then cultural style
+        const baseArmorColor = getEquippedItemColor(armorItem, '#696969');
+        const armorMaterialColor = detectMaterialColor(armorItem.material);
+
+        // Use item color first, material second, cultural style as final fallback
+        const primaryColor = baseArmorColor !== '#696969' ? baseArmorColor :
+                           armorMaterialColor ||
+                           (armorItem.culturalStyle === 'Roman' ? '#8B0000' :
+                            armorItem.culturalStyle === 'Medieval' ? '#4A4A4A' :
+                            armorItem.culturalStyle === 'Japanese' ? '#2F4F4F' : '#696969');
+
         const armorColors = {
-            metal: armorItem.culturalStyle === 'Roman' ? '#8B0000' :
-                   armorItem.culturalStyle === 'Medieval' ? '#4A4A4A' :
-                   armorItem.culturalStyle === 'Japanese' ? '#2F4F4F' : '#696969',
-            accent: '#C0C0C0', // Silver accents
-            dark: '#2F2F2F'    // Dark edges
+            metal: primaryColor,
+            accent: shadeColor(primaryColor, 30), // Lighter accent
+            dark: shadeColor(primaryColor, -30)    // Darker edges
         };
 
         const armorName = armorItem.name?.toLowerCase() || '';

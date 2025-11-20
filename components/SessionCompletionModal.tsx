@@ -49,12 +49,12 @@ const SessionCompletionModal: React.FC<SessionCompletionModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[170] flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-[195] flex items-center justify-center px-4 py-6">
       <div
-        className="absolute inset-0 bg-[radial-gradient(circle_at_top,#334155_0%,#0f172a_45%,#020617_100%)] opacity-95"
+        className="absolute inset-0 z-[195] bg-[radial-gradient(circle_at_top,#334155_0%,#0f172a_45%,#020617_100%)] opacity-95"
         onClick={onClose}
       />
-      <div className="relative z-[180] w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/10 shadow-[0_40px_80px_rgba(2,6,23,0.55)]">
+      <div className="relative z-[205] w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/10 shadow-[0_40px_80px_rgba(2,6,23,0.55)]">
         <div className="relative bg-[rgba(15,23,42,0.92)] backdrop-blur-xl">
           <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(94,234,212,0.25)_0%,rgba(37,99,235,0)_70%)]" />
           <div className="relative px-8 pt-8 pb-6">

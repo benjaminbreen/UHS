@@ -15,7 +15,7 @@ export const JournalQuotesPanel: React.FC<JournalQuotesPanelProps> = () => {
     const [selectedEra, setSelectedEra] = useState<string>('all');
     const [filteredQuotes, setFilteredQuotes] = useState<JournalQuote[]>([]);
 
-    // Load quotes on mount
+    // Load quotes on mount and when new quotes are added
     useEffect(() => {
         const loadQuotes = () => {
             const savedQuotes = journalQuoteService.getQuotes();
@@ -24,9 +24,13 @@ export const JournalQuotesPanel: React.FC<JournalQuotesPanelProps> = () => {
 
         loadQuotes();
 
-        // Set up a simple refresh interval to catch new quotes
-        const interval = setInterval(loadQuotes, 2000);
-        return () => clearInterval(interval);
+        // Listen for custom event when quotes are added
+        const handleQuoteAdded = () => loadQuotes();
+        window.addEventListener('quoteAdded', handleQuoteAdded);
+
+        return () => {
+            window.removeEventListener('quoteAdded', handleQuoteAdded);
+        };
     }, []);
 
     // Filter quotes based on search and era
@@ -91,9 +95,9 @@ export const JournalQuotesPanel: React.FC<JournalQuotesPanelProps> = () => {
     }
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col">
             {/* Header with search and filters */}
-            <div className="p-4 border-b border-slate-600/30 space-y-3">
+            <div className="p-4 border-b border-slate-600/30 space-y-3 sticky top-0 bg-[var(--surface-card)] z-10">
                 {/* Search */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -133,7 +137,7 @@ export const JournalQuotesPanel: React.FC<JournalQuotesPanelProps> = () => {
             </div>
 
             {/* Quotes list */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="p-4 space-y-4">
                 {filteredQuotes.map((quote) => (
                     <div
                         key={quote.id}

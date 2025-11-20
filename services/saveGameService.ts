@@ -7,6 +7,8 @@
 import { PlayerCharacter, MapData, NpcEntity } from '../types';
 import { Quest } from '../types/questTypes';
 import { EventHistoryEntry } from '../types/eventTypes';
+import { GameLogEntry, PlayerJournalEntry, JournalQuote } from '../types/journal';
+import { AssessmentSession, AssessmentLogState, AssessmentLLMResult } from '../types/assessment';
 
 /**
  * Complete saved game state
@@ -19,7 +21,7 @@ export interface SavedGame {
   thumbnailEmoji: string;
   version: string;
   playTime: number; // minutes played
-  
+
   // Phase 1: Core state
   playerCharacter: PlayerCharacter;
   mapData: MapData;
@@ -33,7 +35,7 @@ export interface SavedGame {
   zone: string;
   region: string;
   mapArea: string;
-  
+
   // Phase 2: Extended state
   npcs?: NpcEntity[];
   activeQuests?: Quest[];
@@ -41,7 +43,16 @@ export interface SavedGame {
   eventHistory?: EventHistoryEntry[];
   reputation?: number;
   mapReputation?: number;
-  
+
+  // Phase 3: Assessment & Educational Data
+  gameLog?: GameLogEntry[];
+  playerJournal?: PlayerJournalEntry[];
+  assessmentSession?: AssessmentSession | null;
+  assessmentLogs?: AssessmentLogState;
+  llmAnalysis?: AssessmentLLMResult | null;
+  learningProgress?: any[];
+  journalQuotes?: JournalQuote[];
+
   // Additional context
   isInSpecialMap?: boolean;
   specialMapData?: any;
@@ -96,6 +107,13 @@ class SaveGameService {
       activeQuests?: Quest[];
       completedQuests?: Quest[];
       eventHistory?: EventHistoryEntry[];
+      gameLog?: GameLogEntry[];
+      playerJournal?: PlayerJournalEntry[];
+      assessmentSession?: AssessmentSession | null;
+      assessmentLogs?: AssessmentLogState;
+      llmAnalysis?: AssessmentLLMResult | null;
+      learningProgress?: any[];
+      journalQuotes?: JournalQuote[];
       isInSpecialMap?: boolean;
       specialMapData?: any;
       weatherState?: any;
@@ -120,7 +138,7 @@ class SaveGameService {
         thumbnailEmoji,
         version: this.VERSION,
         playTime: gameState.playTime || 0,
-        
+
         // Core state
         playerCharacter: this.cleanPlayerCharacter(gameState.playerCharacter),
         mapData: this.compressMapData(gameState.mapData),
@@ -134,7 +152,7 @@ class SaveGameService {
         zone: gameState.zone,
         region: gameState.region,
         mapArea: gameState.mapArea,
-        
+
         // Extended state
         npcs: gameState.npcs ? this.cleanNpcs(gameState.npcs) : undefined,
         activeQuests: gameState.activeQuests,
@@ -142,7 +160,16 @@ class SaveGameService {
         eventHistory: gameState.eventHistory,
         reputation: gameState.playerCharacter.reputation,
         mapReputation: gameState.playerCharacter.mapReputation,
-        
+
+        // Assessment & Educational Data
+        gameLog: gameState.gameLog,
+        playerJournal: gameState.playerJournal,
+        assessmentSession: gameState.assessmentSession,
+        assessmentLogs: gameState.assessmentLogs,
+        llmAnalysis: gameState.llmAnalysis,
+        learningProgress: gameState.learningProgress,
+        journalQuotes: gameState.journalQuotes,
+
         // Additional context
         isInSpecialMap: gameState.isInSpecialMap,
         specialMapData: gameState.specialMapData,

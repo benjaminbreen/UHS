@@ -25,6 +25,7 @@ import { llmQuestService } from '../services/llmQuestService';
 import { Quest } from '../types/questTypes';
 import { unifiedQuestPipeline, QuestGenerationContext } from '../services/unifiedQuestPipeline';
 import { worldEntityRegistry } from '../services/worldEntityRegistry';
+import { emergentQuestService } from '../services/emergentQuestService';
 import { Sparkles, ScrollText, Package, TrendingUp, AlertTriangle, Calendar, Award, Search, X, Grid3x3, List, Coins, TrendingDown, ShoppingCart, DollarSign } from 'lucide-react';
 import { marketEventSystem } from '../services/marketEventSystem';
 import { npcMarketParticipationService } from '../services/npcMarketParticipationService';
@@ -37,6 +38,7 @@ import { economicVictoryService, EconomicMilestone, EconomicAchievement } from '
 import { getCaravanDestinations, TravelDestination, TravelMode } from '../services/crossMapTravelService';
 import { useUI } from '../contexts/UIContext';
 import { isSafari } from '../utils/safariUtils';
+import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 
 interface MarketplaceModalProps {
   tile: Tile;
@@ -101,7 +103,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [dismissedCrises, setDismissedCrises] = useState<Set<string>>(new Set());
   const [marketplaceDataLoading, setMarketplaceDataLoading] = useState(false); // Start false for instant modal
   const [inventoryReady, setInventoryReady] = useState(false); // Track when full inventory is ready
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card'); // View mode toggle for buy/sell tabs
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list'); // View mode toggle for buy/sell tabs - default to list
 
   // Detect mobile
   const isMobile = useMemo(() => window.innerWidth <= 768, []);
@@ -403,7 +405,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     };
   };
   
-  // Generate NPC quest using unified pipeline for historical accuracy
+  // Generate NPC quest using emergentQuestService for contextual marketplace quests
   const generateNpcQuest = async (npc: NpcEntity, location: Tile, map: MapData): Promise<Quest | null> => {
     try {
       // Determine era and cultural zone
@@ -411,79 +413,40 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       const dateInfo = parseDateString(String(year));
       const currentZone = mapData.zone || 'Europe';
       const culturalZone = mapLocationToCulture(currentZone, year);
-      
-      // Build quest generation context
-      const context: QuestGenerationContext = {
+
+      // Build context for emergent quest service
+      const context = {
         mapData: map,
         playerLocation: { x: location.x, y: location.y },
-        playerStats: {
-          health: playerCharacter.health || 50,
-          reputation: playerCharacter.reputation || 10,
-          wealth: playerCharacter.currency || 10,
-          intelligence: playerCharacter.stats?.intelligence || 10,
-          strength: playerCharacter.stats?.strength || 10
-        },
-        zone: culturalZone,
-        era: dateInfo.era,
-        year: year,
-        season: season,
-        gameMode: 'commerce', // Marketplace context suggests commerce mode
-        triggerType: 'npc',
-        triggerEntity: npc.id,
         nearbyStructures: mapData.terrainStructures || [],
-        nearbyNPCs: npcs
+        nearbyNpcs: [...merchantNpcs, ...inhabitantsNpcs], // All marketplace NPCs available
+        currentYear: year,
+        culturalZone: culturalZone as CulturalZone,
+        era: dateInfo.era as HistoricalEra,
+        season: season,
+        playerReputation: playerCharacter.reputation || 10,
+        playerProfession: playerCharacter.profession
       };
 
-      // Generate quest through unified pipeline
-      const quest = await unifiedQuestPipeline.generateQuest(context);
-      
+      // Generate NPC-specific quest based on their profession and situation
+      const quest = emergentQuestService.generateNpcQuest(npc, context);
+
       if (quest) {
-        // Customize quest to come from this specific NPC
+        // Ensure quest is marked as available (not active yet)
+        quest.status = 'available' as const;
         quest.giver = npc.name;
         quest.giverLocation = { x: npc.x, y: npc.y };
-        quest.status = 'available' as const;
-        
-        // Ensure the first objective references the NPC if it's a social quest
-        if (quest.category === 'social' && quest.objectives.length > 0) {
-          quest.objectives[0].targetNpcId = npc.id;
-          quest.objectives[0].targetNpcName = npc.name;
-        }
-        
+
+        console.log(`[MarketplaceModal] Generated ${quest.category} quest "${quest.title}" from ${npc.name} (${npc.role || npc.profession})`);
         return quest;
       }
+
+      // emergentQuestService returns null if NPC doesn't have a suitable quest
+      return null;
     } catch (error) {
-      console.warn('[MarketplaceModal] Failed to generate unified quest:', error);
+      console.warn('[MarketplaceModal] Failed to generate emergent quest:', error);
+      return null;
     }
-    
-    // Fallback to simple quest if unified pipeline fails
-    return {
-      id: `quest_${npc.id}_${Date.now()}`,
-      title: 'Local Request',
-      description: `${npc.name} needs assistance with a local matter.`,
-      historicalContext: `Marketplace interactions often led to opportunities for trade and service.`,
-      category: 'social',
-      giver: npc.name,
-      giverLocation: { x: npc.x, y: npc.y },
-      objectives: [{
-        id: 'obj_1',
-        type: 'talk_to_npc',
-        description: `Speak with ${npc.name} about their needs`,
-        targetNpcId: npc.id,
-        targetNpcName: npc.name,
-        targetLocation: { x: npc.x, y: npc.y },
-        completed: false
-      }],
-      currentObjectiveIndex: 0,
-      rewards: [{
-        type: 'reputation',
-        amount: 5,
-        description: 'Local reputation +5'
-      }],
-      startLocation: { x: location.x, y: location.y },
-      startTime: Date.now(),
-      status: 'available' as const,
-      isLLMGenerated: false
-    };
   };
 
   // Initialize market conditions and faction data
@@ -1300,9 +1263,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     switch (activeTab) {
       case 'buy':
         return (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full relative">
+            {/* Radial gradient glow */}
+            <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(94,234,212,0.25)_0%,rgba(37,99,235,0)_70%)] pointer-events-none" />
             {/* View toggle and header */}
-            <div className="px-4 py-2 bg-[var(--surface-elevated)] border-b border-emerald-900/30 flex justify-between items-center">
+            <div className="px-4 py-1 bg-gradient-to-r from-slate-800/60 to-slate-900/40 border-b border-white/10 flex justify-between items-center relative z-10">
               <h3 className="text-lg font-semibold text-emerald-600 dark:text-emerald-300 flex items-baseline gap-2">
                 Market Goods
                 <span className="text-xs text-[var(--text-secondary)] font-normal">{marketInventory.length} items available</span>
@@ -1334,10 +1299,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
 
             {/* Goods display with enhanced styling */}
-            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
+            <div className="flex-1 px-5  overflow-y-auto p-3 bg-gradient-to-b from-slate-900/50 to-slate-800/30 relative z-10">
               {marketInventory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
-                  <span className="text-4xl mb-3">📦</span>
+                  <span className="text-4xl mb-2">📦</span>
                   <p className="text-lg">No goods match your search</p>
                   <p className="text-sm mt-1">Try different filters or come back later</p>
                 </div>
@@ -1350,14 +1315,28 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                       <div
                         key={`${good.itemId}-${index}`}
-                        className={`group flex items-center gap-4 p-3 rounded-lg transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} hover:shadow-lg ${
+                        className={`group flex items-center gap-4 p-1 rounded-lg transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} hover:bg-white/10 ${
                           questInfo.isQuest
-                            ? 'bg-gradient-to-r from-yellow-900/30 to-amber-900/20 border border-yellow-600/50 hover:border-yellow-500/70'
+                            ? 'bg-yellow-500/10 border border-yellow-500/30 hover:border-yellow-400/50'
                             : (good as any).crisisAffected
-                              ? 'bg-gradient-to-r from-red-900/30 to-red-800/20 border border-red-600/50 hover:border-red-500/70'
-                              : 'bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-card)] border border-[var(--border-normal)] hover:border-emerald-600/50'
+                              ? 'bg-red-500/10 border border-red-500/30 hover:border-red-400/50'
+                              : 'bg-white/5 border border-white/10 hover:border-white/20'
                         }`}
                       >
+                        {/* Item icon */}
+                        <div className="w-12 h-12 flex-shrink-0">
+                          {ITEM_DEFINITIONS[good.itemId]?.emoji ? (
+                            <div className="w-12 h-12 flex items-center justify-center text-3xl">
+                              {ITEM_DEFINITIONS[good.itemId].emoji}
+                            </div>
+                          ) : (
+                            <GenerativeItemIcon
+                              item={{ ...good, baseId: good.itemId, id: good.itemId } as Item}
+                              size={48}
+                            />
+                          )}
+                        </div>
+
                         {/* Item info section */}
                         <div className="flex-1 flex items-center gap-3 min-w-0">
                           <div>
@@ -1381,38 +1360,19 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                                 ) : null
                               )}
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {/* Quality badge */}
-                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                                good.quality === 'exceptional' ? 'bg-purple-900/40 text-purple-300' :
-                                good.quality === 'fine' ? 'bg-blue-900/40 text-blue-300' :
-                                good.quality === 'poor' ? 'bg-red-900/40 text-red-300' :
-                                'bg-[var(--surface-muted-bg)] text-[var(--text-secondary)]'
-                              }`}>
-                                {good.quality === 'exceptional' ? '✨' : good.quality === 'fine' ? '⭐' : good.quality === 'poor' ? '⚠️' : ''}
-                                {good.quality}
+                            <div className="flex items-center gap-2 text-xs text-white/60">
+                              {/* Compact stock indicator */}
+                              <span className={good.quantity <= 5 ? 'text-red-400' : good.quantity <= 15 ? 'text-yellow-400' : 'text-green-400'}>
+                                ×{good.quantity}
                               </span>
-                              {/* Origin badge */}
-                              {good.origin && (
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                  good.origin === 'local' ? 'bg-green-900/30 text-green-300' :
-                                  good.origin === 'regional' ? 'bg-blue-900/30 text-blue-300' :
-                                  good.origin === 'distant' ? 'bg-purple-900/30 text-purple-300' :
-                                  'bg-orange-900/30 text-orange-300'
-                                }`}>
-                                  {good.origin === 'local' ? '🏠' : good.origin === 'regional' ? '🗺️' : good.origin === 'distant' ? '⛵' : '🌟'}
-                                  {good.origin}
-                                </span>
-                              )}
-                              {/* Stock indicator */}
-                              <span className={`text-xs px-1.5 py-0.5 rounded flex items-center gap-1 ${
-                                good.quantity <= 5 ? 'bg-red-900/30 text-red-300' :
-                                good.quantity <= 15 ? 'bg-yellow-900/30 text-yellow-300' :
-                                'bg-green-900/30 text-green-300'
-                              }`}>
-                                {good.quantity <= 5 ? '🔴' : good.quantity <= 15 ? '🟡' : '🟢'}
-                                {good.quantity} in stock
-                              </span>
+                              {/* Quality emoji only */}
+                              {good.quality === 'exceptional' && <span title="Exceptional quality">✨</span>}
+                              {good.quality === 'fine' && <span title="Fine quality">⭐</span>}
+                              {good.quality === 'poor' && <span title="Poor quality">⚠️</span>}
+                              {/* Origin emoji only */}
+                              {good.origin === 'local' && <span title="Local">🏠</span>}
+                              {good.origin === 'regional' && <span title="Regional">🗺️</span>}
+                              {good.origin === 'distant' && <span title="Distant">⛵</span>}
                             </div>
                           </div>
                         </div>
@@ -1423,12 +1383,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             {good.basePrice !== good.currentPrice && (
                               <p className="text-xs text-[var(--text-muted)] line-through flex items-center justify-end gap-1">
                                 <Coins className="w-3 h-3" />
-                                {good.basePrice}
+                                {Number(good.basePrice).toFixed(1)}
                               </p>
                             )}
-                            <p className="text-lg font-bold text-amber-600 dark:text-amber-300 flex items-center justify-end gap-1.5">
-                              <Coins className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                              {good.currentPrice}
+                            <p className="text-xl font-bold text-amber-600 dark:text-amber-300 flex items-center justify-end gap-1.5">
+                              <Coins className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                              {Number(good.currentPrice).toFixed(1)}
                             </p>
                             {good.currentPrice !== good.basePrice && (
                               <p className={`text-xs font-medium ${
@@ -1595,12 +1555,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           {good.basePrice !== good.currentPrice && (
                             <p className="text-xs text-[var(--text-muted)] line-through flex items-center gap-1">
                               <Coins className="w-3 h-3" />
-                              {good.basePrice}
+                              {Number(good.basePrice).toFixed(1)}
                             </p>
                           )}
                           <p className="text-xl font-bold text-amber-600 dark:text-amber-300 drop-shadow-sm flex items-center gap-1.5">
                             <Coins className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                            {good.currentPrice}
+                            {Number(good.currentPrice).toFixed(1)}
                           </p>
                         </div>
                         <button
@@ -1632,9 +1592,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
       case 'sell':
         return (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full relative">
+            {/* Radial gradient glow */}
+            <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(251,191,36,0.25)_0%,rgba(37,99,235,0)_70%)] pointer-events-none" />
             {/* View toggle and header */}
-            <div className="px-4 py-2 bg-[var(--surface-elevated)] border-b border-amber-900/30 flex justify-between items-center">
+            <div className="px-4 py-2 bg-gradient-to-r from-slate-800/60 to-slate-900/40 border-b border-white/10 flex justify-between items-center relative z-10">
               <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-300 flex items-baseline gap-2">
                 Your Inventory
                 <span className="text-xs text-[var(--text-secondary)] font-normal">{playerSellableItems.length} items</span>
@@ -1666,7 +1628,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
 
             {/* Items display */}
-            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/50 to-slate-800/30 relative z-10">
               {playerSellableItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">🏎</span>
@@ -1730,11 +1692,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             <div className="text-right">
                               <p className="text-base font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                                 <Coins className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                                {item.sellPrice}
+                                {Number(item.sellPrice).toFixed(1)}
                               </p>
                               {item.value && item.value !== item.sellPrice && (
                                 <p className="text-xs text-[var(--text-muted)] line-through flex items-center justify-end gap-1">
-                                  {item.value}
+                                  {Number(item.value).toFixed(1)}
                                 </p>
                               )}
                             </div>
@@ -1747,7 +1709,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           className="w-full px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-md font-semibold text-sm transition-all transform hover:scale-105 shadow-md shadow-amber-900/30 flex items-center justify-center gap-1.5"
                         >
                           <DollarSign className="w-4 h-4" />
-                          Sell for {item.sellPrice}
+                          Sell for {Number(item.sellPrice).toFixed(1)}
                         </button>
                       </div>
                     );
@@ -1765,15 +1727,29 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     return (
                       <div
                         key={item.id}
-                        className={`group flex items-center justify-between p-4 rounded-lg transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} hover:shadow-lg ${
+                        className={`group flex items-center justify-between p-3 rounded-lg transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} hover:bg-white/10 ${
                           questInfo.isQuest
-                            ? 'bg-gradient-to-r from-yellow-900/30 to-amber-900/20 border border-yellow-600/50 hover:border-yellow-500/70 hover:shadow-yellow-900/30'
-                            : item.itemType === 'animal' 
-                              ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-700/50 hover:border-green-600/70 hover:shadow-green-900/30' 
-                              : 'bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-card)] border border-[var(--border-normal)] hover:border-amber-600/50 hover:shadow-amber-900/20'
+                            ? 'bg-yellow-500/10 border border-yellow-500/30 hover:border-yellow-400/50'
+                            : item.itemType === 'animal'
+                              ? 'bg-green-500/10 border border-green-500/30 hover:border-green-400/50'
+                              : 'bg-white/5 border border-white/10 hover:border-white/20'
                         }`}
                       >
                         <div className="flex items-center gap-3">
+                          {/* Item icon */}
+                          <div className="w-12 h-12 flex-shrink-0">
+                            {item.itemType === 'animal' ? (
+                              <div className="w-12 h-12 flex items-center justify-center text-3xl">
+                                {(item as any).emoji || '🐾'}
+                              </div>
+                            ) : ITEM_DEFINITIONS[item.baseId || item.id]?.emoji ? (
+                              <div className="w-12 h-12 flex items-center justify-center text-3xl">
+                                {ITEM_DEFINITIONS[item.baseId || item.id].emoji}
+                              </div>
+                            ) : (
+                              <GenerativeItemIcon item={item as Item} size={48} />
+                            )}
+                          </div>
                           <div>
                             <p className="font-medium text-[var(--text-primary)]">
                               {formatItemName(item.name)}
@@ -1806,12 +1782,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Market Offer</p>
                             <p className="text-xl font-bold text-amber-600 dark:text-amber-400 flex items-center justify-end gap-1.5">
                               <Coins className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                              {item.sellPrice}
+                              {Number(item.sellPrice).toFixed(1)}
                             </p>
                             {item.value && item.value !== item.sellPrice && (
                               <p className="text-xs text-[var(--text-muted)] line-through flex items-center justify-end gap-1">
                                 <Coins className="w-3 h-3" />
-                                Base: {item.value}
+                                Base: {Number(item.value).toFixed(1)}
                               </p>
                             )}
                           </div>
@@ -1833,13 +1809,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         );
         
       case 'trade':
+        console.log('[Merchants Tab] Rendering, merchant count:', merchantNpcs.length);
+        console.log('[Merchants Tab] Total NPCs:', npcs.length);
+        console.log('[Merchants Tab] Merchant NPCs:', merchantNpcs.map(m => ({ name: m.name, role: m.role })));
         return (
-          <div className="flex flex-col h-full">
-            <div className="p-4 bg-[var(--surface-elevated)] border-b border-amber-900/30">
+          <div className="flex flex-col h-full relative">
+            {/* Radial gradient glow */}
+            <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(168,85,247,0.25)_0%,rgba(37,99,235,0)_70%)] pointer-events-none" />
+            <div className="p-4 bg-gradient-to-r from-slate-800/60 to-slate-900/40 border-b border-white/10 relative z-10">
               <h3 className="text-lg font-semibold text-purple-300 mb-1">Traveling Merchants</h3>
               <p className="text-sm text-[var(--text-secondary)]">Negotiate special deals with wandering traders</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/50 to-slate-800/30 relative z-10">
               {merchantNpcs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">🏕️</span>
@@ -1949,6 +1930,109 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             )}
                           </div>
                         </div>
+
+                        {/* Merchant negotiation interface - shows when merchant is selected */}
+                        {selectedMerchant?.id === merchant.id && (
+                          <div className="mt-3 p-4 bg-gradient-to-br from-purple-950/40 to-slate-900/40 rounded-lg border border-purple-500/30">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-semibold text-purple-300 flex items-center gap-2">
+                                <span>💼</span>
+                                {merchant.name}'s Personal Inventory
+                              </h4>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedMerchant(null);
+                                }}
+                                className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                              >
+                                ✕ Close
+                              </button>
+                            </div>
+
+                            {merchant.inventory && merchant.inventory.length > 0 ? (
+                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {merchant.inventory.map((item, idx) => (
+                                  <div
+                                    key={`merchant-item-${idx}`}
+                                    className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-all"
+                                  >
+                                    {/* Item icon */}
+                                    <div className="w-10 h-10 flex-shrink-0">
+                                      {ITEM_DEFINITIONS[item.baseId || item.id]?.emoji ? (
+                                        <div className="w-10 h-10 flex items-center justify-center text-2xl">
+                                          {ITEM_DEFINITIONS[item.baseId || item.id].emoji}
+                                        </div>
+                                      ) : (
+                                        <GenerativeItemIcon item={item} size={40} />
+                                      )}
+                                    </div>
+
+                                    {/* Item info */}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-white truncate">
+                                        {item.name}
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs text-white/60">
+                                        {item.quality && (
+                                          <span className={
+                                            item.quality === 'excellent' ? 'text-purple-400' :
+                                            item.quality === 'good' ? 'text-blue-400' :
+                                            item.quality === 'poor' ? 'text-gray-400' :
+                                            'text-white/60'
+                                          }>
+                                            {item.quality}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Price and buy button */}
+                                    <div className="flex items-center gap-2">
+                                      <div className="text-right">
+                                        <p className="text-sm font-medium text-amber-400">
+                                          {Number((item.value || 0) * 1.2).toFixed(1)}
+                                        </p>
+                                        <p className="text-xs text-white/40">coins</p>
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Use existing buy logic
+                                          const tradeGood: TradeGood = {
+                                            itemId: item.baseId || item.id,
+                                            quantity: 1,
+                                            basePrice: (item.value || 0) * 1.2,
+                                            currentPrice: (item.value || 0) * 1.2,
+                                            volatility: 0,
+                                            quality: item.quality || 'standard',
+                                            origin: 'local'
+                                          };
+                                          handleBuy(tradeGood);
+                                        }}
+                                        disabled={playerCharacter.currency < (item.value || 0) * 1.2}
+                                        className="px-3 py-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        Buy
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-white/40">
+                                <p className="text-sm">This merchant has no items for sale</p>
+                                <p className="text-xs mt-1">Check back later</p>
+                              </div>
+                            )}
+
+                            <div className="mt-3 pt-3 border-t border-purple-500/20">
+                              <p className="text-xs text-purple-300/60 italic">
+                                💡 Merchant prices are typically 20% higher than market rates, but may offer rare items
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1960,12 +2044,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         
       case 'info':
         return (
-          <div className="flex flex-col h-full">
-            <div className="p-4 bg-[var(--surface-elevated)] border-b border-amber-900/30">
+          <div className="flex flex-col h-full relative">
+            {/* Radial gradient glow */}
+            <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(34,211,238,0.25)_0%,rgba(37,99,235,0)_70%)] pointer-events-none" />
+            <div className="p-4 bg-gradient-to-r from-slate-800/60 to-slate-900/40 border-b border-white/10 relative z-10">
               <h3 className="text-lg font-semibold text-cyan-300 mb-1">Market Intelligence</h3>
               <p className="text-sm text-[var(--text-secondary)]">Current conditions and trade opportunities</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)] space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/50 to-slate-800/30 relative z-10 space-y-4">
               {/* Fast Travel - Caravan Routes Card */}
               <div className={`bg-gradient-to-br from-[var(--surface-card)] to-[var(--surface-card)] border border-orange-700/30 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
                 <h4 className="text-sm font-semibold text-orange-400 mb-3 uppercase tracking-wide flex items-center gap-2">
@@ -2123,12 +2209,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         
       case 'people':
         return (
-          <div className="flex flex-col h-full">
-            <div className="p-4 bg-[var(--surface-elevated)] border-b border-amber-900/30">
+          <div className="flex flex-col h-full relative">
+            {/* Radial gradient glow */}
+            <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(59,130,246,0.25)_0%,rgba(37,99,235,0)_70%)] pointer-events-none" />
+            <div className="p-4 bg-gradient-to-r from-slate-800/60 to-slate-900/40 border-b border-white/10 relative z-10">
               <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 mb-1">Representative Inhabitants</h3>
               <p className="text-sm text-[var(--text-secondary)]">Local people you might encounter at the marketplace</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]">
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/50 to-slate-800/30 relative z-10">
               {inhabitantsNpcs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">👻</span>
@@ -2266,13 +2354,15 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         
       case 'analysis':
         return (
-          <div className="flex flex-col h-full">
-            <div className="p-4 bg-[var(--surface-elevated)] border-b border-red-900/30">
+          <div className="flex flex-col h-full relative">
+            {/* Radial gradient glow */}
+            <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(239,68,68,0.25)_0%,rgba(37,99,235,0)_70%)] pointer-events-none" />
+            <div className="p-4 bg-gradient-to-r from-slate-800/60 to-slate-900/40 border-b border-white/10 relative z-10">
               <h3 className="text-lg font-semibold text-red-300 mb-1">Market Analysis</h3>
               <p className="text-sm text-[var(--text-secondary)]">Economic trends, volatility, and market intelligence</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)] space-y-4">
-              
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/50 to-slate-800/30 relative z-10 space-y-4">
+
               {/* Crisis Quests Card */}
               {economicQuests.length > 0 && economicQuests.some(q => (q as any).economicContext?.crisis) && (
                 <div className={`bg-gradient-to-br from-orange-900/30 to-red-950/20 border border-orange-700/40 rounded-lg p-4 ${isSafari() ? '' : 'backdrop-blur-sm'}`}>
@@ -2710,10 +2800,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         zIndex: 50
       }}
     >
-      <div className={`border-2 border-amber-700/50 rounded-lg shadow-2xl flex flex-col overflow-hidden relative ${
+      <div className={`border border-white/10 rounded-lg shadow-2xl flex flex-col overflow-hidden relative ${
         isMobile ? 'w-full h-full rounded-none' : 'w-full h-full max-w-full max-h-full rounded-lg'
       }`}
-        style={{ backgroundColor: 'var(--bg-primary)' }}>
+        style={{ backgroundColor: 'rgba(15,23,42,0.92)' }}>
         {/* Mobile close button */}
         {isMobile && (
           <button
@@ -2797,8 +2887,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         )}
         
         {/* Compact marketplace header */}
-        <div className={`px-5 py-3 border-b border-amber-900/30 ${isSafari() ? '' : 'backdrop-blur-sm'}`}
-          style={{ backgroundColor: 'var(--surface-elevated)' }}>
+        <div className={`px-5 py-2.5 border-b border-white/10 ${isSafari() ? '' : 'backdrop-blur-xl'}`}
+          style={{ backgroundColor: 'rgba(15,23,42,0.6)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-300">
@@ -2818,7 +2908,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   {formatEraName(era)}
                 </span>
                 {marketAllegiance && (
-                  <span className="text-xs px-2.5 py-1 bg-amber-900/30 text-[var(--text-secondary)] rounded-md border border-amber-700/50 tracking-wide">
+                  <span className="text-lg px-2.5 py-1 bg-amber-900/30 text-[var(--text-secondary)] rounded-md border border-amber-700/50 tracking-wide">
                     {marketAllegiance.name}
                   </span>
                 )}
@@ -2826,7 +2916,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-xs tracking-wide" style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-sm tracking-wide" style={{ color: 'var(--text-secondary)' }}>
                 {mapData.localArea || mapData.continent || 'Unknown Lands'}
               </p>
               <div className="rounded-lg px-4 py-1.5 border border-amber-700/40"
@@ -2840,20 +2930,19 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         </div>
         
         {/* Enhanced tab navigation with historical theming */}
-        <div className="flex border-b border-amber-800/40"
-          style={{ backgroundColor: 'var(--surface-muted)' }}>
+        <div className="flex border-b border-white/10 bg-gradient-to-b from-slate-900/50 to-slate-800/30">
           {[
-            { id: 'buy', label: 'Buy', icon: '🛒' },
-            { id: 'sell', label: 'Sell', icon: '💰' },
-            { id: 'trade', label: 'Merchants', icon: '🤝' },
-            { id: 'people', label: 'People', icon: '👥' },
-            { id: 'info', label: 'Info', icon: '📜' },
-            { id: 'analysis', label: 'Trends', icon: '📊' }
+            { id: 'buy', label: 'Buy', icon: '🛒', count: marketInventory.length },
+            { id: 'sell', label: 'Sell', icon: '💰', count: playerSellableItems.length },
+            { id: 'trade', label: 'Merchants', icon: '🤝', count: merchantNpcs.length },
+            { id: 'people', label: 'People', icon: '👥', count: inhabitantsNpcs.length },
+            { id: 'info', label: 'Info', icon: '📜', count: null },
+            { id: 'analysis', label: 'Trends', icon: '📊', count: null }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`flex-1 py-3.5 px-4 font-semibold text-sm transition-all relative group ${
+              className={`flex-1 py-2.5 px-2 font-semibold text-sm transition-all relative group ${
                 activeTab === tab.id
                   ? tab.id === 'buy' ? 'bg-gradient-to-t from-emerald-800/40 to-transparent text-emerald-300 border-b-3 border-emerald-400' :
                     tab.id === 'sell' ? 'bg-gradient-to-t from-amber-800/40 to-transparent text-amber-300 border-b-3 border-amber-400' :
@@ -2871,6 +2960,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 {tab.icon}
               </span>
               <span className="ml-2">{tab.label}</span>
+              {tab.count !== null && tab.count !== undefined && (
+                <span className="ml-1 text-xs opacity-75">({tab.count})</span>
+              )}
               {activeTab === tab.id && (
                 <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-current to-transparent"></div>
               )}

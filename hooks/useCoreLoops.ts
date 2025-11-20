@@ -130,6 +130,8 @@ const useCoreLoops = (
     isSpecialMap,
     isEnteringSpecialMap,
     exitSpecialMap,
+    deployedVessels,
+    setDeployedVessels,
   } = useMap();
 
   const {
@@ -465,7 +467,8 @@ const useCoreLoops = (
                   'time',
                   `A new day begins: ${formatDateWithSeason(newDate, currentSeason)}`,
                   newDate,
-                  '00:00'
+                  '00:00',
+                  'Night' // Midnight
                 ));
 
                 return { day, month, year };
@@ -1809,7 +1812,7 @@ useEffect(() => {
             setPlayerCharacter(prev => prev ? { ...prev, inventory: addItemToInventory(prev.inventory, newItem) } : null);
             setPanelNotificationItem(newItem);
             setTimeout(() => setPanelNotificationItem(null), 2500);
-            addGameLogEntry(LogService.createItemAcquiredLog(newItem.name, 1, 'from the water', gameDate, formattedTime));
+            addGameLogEntry(LogService.createItemAcquiredLog(newItem.name, 1, 'from the water', gameDate, formattedTime, localArea, currentTimeOfDay));
           }
         }
 
@@ -1834,7 +1837,8 @@ useEffect(() => {
             `${newLogicalX > controlledIconX ? 'east' : newLogicalX < controlledIconX ? 'west' : newLogicalY > controlledIconY ? 'south' : 'north'}`,
             localArea || 'Unknown location',
             gameDate,
-            formattedTime
+            formattedTime,
+            currentTimeOfDay
           ));
         }
         return;
@@ -1865,7 +1869,8 @@ useEffect(() => {
           `Blocked: ${blockMessage}`,
           localArea || 'Unknown location',
           gameDate,
-          formattedTime
+          formattedTime,
+          currentTimeOfDay
         ));
         
         // Add to narration panel
@@ -1987,6 +1992,9 @@ useEffect(() => {
       }
     } else {
       if (newLogicalX === shipDockX && newLogicalY === shipDockY) {
+        // Remove the deployed vessel from the map when embarking
+        setDeployedVessels(prev => prev.filter(v => !(v.x === shipDockX && v.y === shipDockY)));
+
         setPlayerMode('ship');
         setControlledIconX(shipDockX!);
         setControlledIconY(shipDockY!);

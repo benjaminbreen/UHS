@@ -12,6 +12,7 @@ import { getFarmState, updateFarmState, FarmState, FarmFamilyMember } from '../s
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { useUI } from '../contexts/UIContext';
+import { loadFarmState as loadPersistedFarmState, saveFarmState as savePersistedFarmState } from '../services/farmPersistenceService';
 
 interface UseFarmStateOptions {
   tile: Tile;
@@ -41,6 +42,9 @@ interface UseFarmStateReturn {
   // Loading state
   isLoading: boolean;
   error: Error | null;
+
+  // Persistence
+  saveFarmState: () => void;
 }
 
 export function useFarmState({
@@ -150,7 +154,7 @@ export function useFarmState({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Load farm state
+  // Load farm state (with persistence support)
   useEffect(() => {
     let isMounted = true;
 
@@ -167,8 +171,19 @@ export function useFarmState({
       setError(null);
 
       try {
-        // getFarmState expects (tile, mapData, npcs) - it's a synchronous function
-        const state = getFarmState(tile, mapData, []);
+        // Try to load persisted state first
+        const mapSeed = mapData.seed || undefined;
+        const persistedState = loadPersistedFarmState(tile.x, tile.y, mapSeed);
+
+        let state: FarmState;
+        if (persistedState) {
+          console.log('[useFarmState] Loaded persisted farm state for', tile.x, tile.y);
+          state = persistedState;
+        } else {
+          console.log('[useFarmState] No persisted state found, generating new farm for', tile.x, tile.y);
+          // getFarmState expects (tile, mapData, npcs) - it's a synchronous function
+          state = getFarmState(tile, mapData, []);
+        }
 
         if (isMounted) {
           setFarmState(state);
@@ -189,6 +204,15 @@ export function useFarmState({
       isMounted = false;
     };
   }, [tile, mapData]);
+
+  // Save farm state to persistence
+  const saveFarmState = () => {
+    if (farmState && mapData) {
+      const mapSeed = mapData.seed || undefined;
+      savePersistedFarmState(farmState, tile.x, tile.y, mapSeed);
+      console.log('[useFarmState] Saved farm state for', tile.x, tile.y);
+    }
+  };
 
   return {
     // State
@@ -211,5 +235,8 @@ export function useFarmState({
     // Loading state
     isLoading,
     error,
+
+    // Persistence
+    saveFarmState,
   };
 }

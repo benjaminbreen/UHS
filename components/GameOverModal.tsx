@@ -1,8 +1,12 @@
-import React, { useEffect } from 'react';
-import { Skull, Heart, Calendar, MapPin, RotateCcw, Home, Star, Compass, Swords, Mountain, Sparkles, BookOpen, Users, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Skull, Heart, Calendar, MapPin, RotateCcw, Home, Star, Compass, Swords, Mountain, Sparkles, BookOpen, Users, MessageSquare, Download, FileText, Copy } from 'lucide-react';
 import { Disease } from '../types/diseaseTypes';
 import gameSoundsService from '../services/gameSoundsService';
-import { AssessmentSummary } from '../types/assessment';
+import { AssessmentSummary, AssessmentSession, AssessmentLogState, AssessmentResult } from '../types/assessment';
+import { exportService } from '../services/exportService';
+import { GameLogEntry } from '../types/journal';
+import { PlayerCharacter } from '../types';
+import { LearningProgress } from '../services/learningObjectivesService';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -32,6 +36,15 @@ interface GameOverModalProps {
   onRespawn?: (mode: 'descendant' | 'same-location' | 'random') => void;
   onViewAssessment?: () => void;
   assessmentSummary?: AssessmentSummary | null;
+
+  // Export-related props (optional - for full export functionality)
+  playerCharacter?: PlayerCharacter;
+  gameLog?: GameLogEntry[];
+  playerJournal?: any[];
+  assessmentSession?: AssessmentSession | null;
+  assessmentLogs?: AssessmentLogState;
+  llmAnalysis?: AssessmentResult | null;
+  learningProgress?: LearningProgress[];
 }
 
 const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -43,8 +56,17 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
   onMainMenu,
   onRespawn,
   onViewAssessment,
-  assessmentSummary
+  assessmentSummary,
+  playerCharacter,
+  gameLog = [],
+  playerJournal = [],
+  assessmentSession,
+  assessmentLogs = { npcEncounters: [], primarySources: [], playerInputs: [] },
+  llmAnalysis,
+  learningProgress
 }) => {
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+
   // Play peaceful music when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -54,6 +76,83 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
       gameSoundsService.stopFishingMusic();
     };
   }, [isOpen]);
+
+  // Export handlers
+  const handleExportJSON = () => {
+    if (!playerCharacter) {
+      setExportMessage('⚠️ Export data not available');
+      return;
+    }
+
+    const sessionExport = exportService.generateSessionExport({
+      playerCharacter,
+      gameLog,
+      playerJournal,
+      assessmentSession: assessmentSession || null,
+      assessmentLogs,
+      assessmentSummary,
+      llmAnalysis: llmAnalysis || null,
+      learningProgress,
+      causeOfDeath,
+      playerStats
+    });
+
+    exportService.downloadJSON(sessionExport);
+    setExportMessage('✅ Session report downloaded!');
+    setTimeout(() => setExportMessage(null), 3000);
+  };
+
+  const handleExportCSV = () => {
+    if (!playerCharacter) {
+      setExportMessage('⚠️ Export data not available');
+      return;
+    }
+
+    const sessionExport = exportService.generateSessionExport({
+      playerCharacter,
+      gameLog,
+      playerJournal,
+      assessmentSession: assessmentSession || null,
+      assessmentLogs,
+      assessmentSummary,
+      llmAnalysis: llmAnalysis || null,
+      learningProgress,
+      causeOfDeath,
+      playerStats
+    });
+
+    exportService.downloadCSV(sessionExport);
+    setExportMessage('✅ Grading report downloaded!');
+    setTimeout(() => setExportMessage(null), 3000);
+  };
+
+  const handleCopyToClipboard = async () => {
+    if (!playerCharacter) {
+      setExportMessage('⚠️ Export data not available');
+      return;
+    }
+
+    const sessionExport = exportService.generateSessionExport({
+      playerCharacter,
+      gameLog,
+      playerJournal,
+      assessmentSession: assessmentSession || null,
+      assessmentLogs,
+      assessmentSummary,
+      llmAnalysis: llmAnalysis || null,
+      learningProgress,
+      causeOfDeath,
+      playerStats
+    });
+
+    const success = await exportService.copyToClipboard(sessionExport);
+    if (success) {
+      setExportMessage('✅ Summary copied to clipboard!');
+    } else {
+      setExportMessage('⚠️ Failed to copy to clipboard');
+    }
+    setTimeout(() => setExportMessage(null), 3000);
+  };
 
   if (!isOpen) return null;
 
@@ -365,6 +464,47 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Export Buttons */}
+          {playerCharacter && (
+            <div className="pt-4 border-t border-slate-700/50">
+              <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Export Session Data
+              </h4>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  onClick={handleExportJSON}
+                  className="flex-1 rounded-lg border border-blue-500/50 bg-blue-500/15 px-4 py-2.5 text-sm font-medium text-blue-200 transition hover:bg-blue-500/25 flex items-center justify-center gap-2"
+                  title="Download complete session data as JSON (for detailed analysis)"
+                >
+                  <FileText className="w-4 h-4" />
+                  Full Report (JSON)
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="flex-1 rounded-lg border border-green-500/50 bg-green-500/15 px-4 py-2.5 text-sm font-medium text-green-200 transition hover:bg-green-500/25 flex items-center justify-center gap-2"
+                  title="Download grading summary as CSV (for spreadsheets)"
+                >
+                  <FileText className="w-4 h-4" />
+                  Grading (CSV)
+                </button>
+                <button
+                  onClick={handleCopyToClipboard}
+                  className="flex-1 rounded-lg border border-amber-500/50 bg-amber-500/15 px-4 py-2.5 text-sm font-medium text-amber-200 transition hover:bg-amber-500/25 flex items-center justify-center gap-2"
+                  title="Copy summary to clipboard"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy Summary
+                </button>
+              </div>
+              {exportMessage && (
+                <div className="mt-2 text-center text-sm font-medium text-green-300">
+                  {exportMessage}
+                </div>
+              )}
             </div>
           )}
 

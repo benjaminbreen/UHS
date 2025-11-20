@@ -59,6 +59,9 @@ export interface DungeonTile {
     isUnstable?: boolean;
     excavatable?: boolean;
     hasKey?: boolean;
+    secretPassage?: boolean;
+    examinable?: boolean;
+    examinableData?: any;
 }
 
 export interface DungeonPlayer {

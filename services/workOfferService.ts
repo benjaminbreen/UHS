@@ -71,11 +71,16 @@ const workOfferSchema = {
     },
     requiredItem: {
       type: Type.STRING,
-      description: "Item name if task requires fetching/buying an item"
+      description: "Generic description of items needed (e.g. 'medicinal herbs', 'metal ore', 'building materials', 'food supplies'). Be generic, not specific - players bring ANY matching item."
     },
     requiredQuantity: {
       type: Type.NUMBER,
       description: "How many of the item needed (default 1)"
+    },
+    acceptedCategories: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "Item categories accepted: 'ore' (any metal ore), 'wood' (any wood), 'stone', 'hide' (animal hides), 'herb' (medicinal plants), 'food', 'cloth', 'tool', 'weapon'. Use broad categories!"
     },
     targetLocationName: {
       type: Type.STRING,
@@ -286,6 +291,31 @@ ${hasPrimarySources ? '- Include document/artifact analysis tasks, source interp
 `;
   })();
 
+  // Determine historical era and appropriate materials
+  const year = parseInt(mapData.timeSlice || '1500');
+  let eraContext = '';
+  let materialExamples = '';
+
+  if (year < -3000) {
+    eraContext = 'PREHISTORY (Stone Age)';
+    materialExamples = 'obsidian, flint, bone tools, animal hides, plant fibers, natural dyes, stone, wood, shells, antler';
+  } else if (year < 500) {
+    eraContext = 'ANTIQUITY (Ancient Era)';
+    materialExamples = 'bronze, copper, iron, clay, wool, linen, papyrus, marble, wood, leather, simple glass';
+  } else if (year < 1500) {
+    eraContext = 'MEDIEVAL';
+    materialExamples = 'iron, steel, wool, leather, parchment, timber, stone, pottery, simple textiles, basic metals';
+  } else if (year < 1800) {
+    eraContext = 'EARLY MODERN/RENAISSANCE';
+    materialExamples = 'steel, fine textiles, paper, gunpowder, complex metalwork, porcelain, spices, books';
+  } else if (year < 1920) {
+    eraContext = 'INDUSTRIAL ERA';
+    materialExamples = 'machine-made goods, coal, steam power, mass-produced textiles, factory products, precision tools';
+  } else {
+    eraContext = 'MODERN ERA';
+    materialExamples = 'industrial products, synthetic materials, electronics, mass-manufactured goods';
+  }
+
   const prompt = `
 You are ${npc.name}, a ${npc.profession || 'person'} in ${mapData.localArea || 'this area'}.
 ${educationalContext}
@@ -294,6 +324,14 @@ Your Details:
 - Age: ${npc.age}
 - Wealth: ${(npc as any).wealthLevel || 'moderate'}
 - Profession: ${npc.profession}
+
+**HISTORICAL ERA: ${eraContext} (Year ${year})**
+**ERA-APPROPRIATE MATERIALS:** ${materialExamples}
+
+⚠️ **CRITICAL: Use ONLY materials appropriate to ${eraContext}!**
+- If you need tools/materials, request items from the list above
+- NO anachronistic items (no "fine chisels" in Stone Age, no "gunpowder" in Antiquity, etc.)
+- Match your requests to what would ACTUALLY exist in year ${year}
 
 Player Details:
 - Name: ${playerCharacter.name}
@@ -304,20 +342,49 @@ Nearby Locations:
 ${structureContext || '- No major structures nearby'}
 ${animalContext}${ruinsWarning}
 
-TASK: The player is asking you for work. Create a SIMPLE, SINGLE-OBJECTIVE task that matches YOUR PROFESSION.
+TASK: The player is asking you for work. Create a SIMPLE, SINGLE-OBJECTIVE task that matches YOUR PROFESSION and uses ERA-APPROPRIATE materials from ${eraContext}.
 
-**CRITICAL: PROFESSION COMES FIRST, NOT LOCATION**
+**CRITICAL RESTRICTIONS ON fetch_item:**
+fetch_item is a FALLBACK task type that should rarely be used. Most professions have better options:
+- ❌ Merchants CANNOT use fetch_item if marketplace nearby (use buy_from_location instead)
+- ❌ Scholars CANNOT EVER use fetch_item (use investigate_and_report or explore_location)
+- ❌ Scribes CANNOT EVER use fetch_item (use source_analysis or investigate_and_report)
+- ❌ Guards CANNOT use fetch_item for weapons/shields (use gather_resource or kill_animal)
+- ❌ Craftsmen should prefer gather_resource over fetch_item
+- ✅ ONLY use fetch_item if absolutely NO other task type fits
+
+**MANDATORY STRUCTURE MATCHING:**
+If you see a structure type below that matches your profession, you MUST use it (not optional):
+- Merchant + **MARKETPLACE** nearby → MUST use buy_from_location
+- Priest + **RELIGIOUS SITE** nearby → MUST use deliver_to_location
+- Crafter + **WORKSHOP** nearby → MUST use deliver_to_location
+- Scholar + **RUINS** nearby → MUST use explore_location
+Ignoring nearby appropriate structures is WRONG!
+
+**CRITICAL RULES:**
+1. **PROFESSION COMES FIRST, NOT LOCATION**
+2. **USE GENERIC ITEM DESCRIPTIONS** - Request categories, not specific items!
+   - ❌ BAD: "Bring me feverfew" (doesn't exist in game!)
+   - ✅ GOOD: "Bring me medicinal herbs" (accepts ANY herb)
+   - ❌ BAD: "I need serpent's tongue" (doesn't exist!)
+   - ✅ GOOD: "I need healing plants" (accepts ANY medicine)
+3. **SET acceptedCategories** - Use broad categories: 'ore', 'wood', 'stone', 'hide', 'herb', 'food', 'cloth', 'tool', 'weapon', 'metal', 'medicine'
 
 Your profession is **${npc.profession}**. Base your work request on what YOUR PROFESSION needs:
 
-**CRAFTSMEN (Blacksmith, Potter, Weaver, Carpenter):**
-- PRIMARY: Use "gather_resource" to request materials for your craft
-  - Blacksmith → iron ore, coal, metal scraps
-  - Potter → clay, glaze materials, firewood
-  - Weaver → wool, flax, dyes
-  - Carpenter → lumber, nails, wood planks
+**CRAFTSMEN (Blacksmith, Potter, Weaver, Carpenter, Toolmaker):**
+- PRIMARY: Use "gather_resource" to request materials **SPECIFIC TO YOUR CRAFT**
+  - PREHISTORY Toolmaker → flint, obsidian, bone, antler, stone
+  - PREHISTORY Weaver → plant fibers, animal sinew, natural dyes
+  - ANTIQUITY Potter → clay, natural glazes, firewood
+  - ANTIQUITY Jeweler → gemstones, precious metals, polishing materials (NOT clay!)
+  - MEDIEVAL Blacksmith → iron ore, coal, charcoal
+  - RENAISSANCE Weaver → wool, silk, fine dyes, cotton
+  - INDUSTRIAL Carpenter → machine-cut lumber, nails, precision tools
+- **⚠️ AVOID REPETITION**: If you're a Jeweler, request gems/metals (not clay). If you're a Miller, request grain (not clay). Request materials YOU actually use!
 - SECONDARY: If workshops/markets nearby, use "deliver_to_location" or "buy_from_location"
 - ❌ NEVER use "explore_location" unless you're a scholar/historian
+- ❌ NEVER request anachronistic materials!
 
 **TANNERS (special case):**
 - PRIMARY: If animals nearby, use "collect_animal_products" for hides/pelts
@@ -325,38 +392,69 @@ Your profession is **${npc.profession}**. Base your work request on what YOUR PR
 - ❌ NEVER use "explore_location"
 
 **MERCHANTS/TRADERS:**
-- PRIMARY: Use "buy_from_location" if marketplace nearby
-- FALLBACK: Use "fetch_item" for specific trade goods (silk, spices, etc.)
+- If **MARKETPLACE** is listed above → MUST use "buy_from_location" (REQUIRED!)
+- If no marketplace → Use "deliver_to_location" to bring goods to a location
+- LAST RESORT: If no structures at all → Use "gather_resource" for trade goods
+- ❌ NEVER use "fetch_item" if marketplace exists
 - ❌ NEVER use "explore_location" or "kill_animal"
 
 **GUARDS/SOLDIERS:**
-- PRIMARY: If animals nearby, use "kill_animal" or "collect_animal_products"
-- FALLBACK: Use "fetch_item" for weapons, armor, supplies
-- ❌ NEVER use "explore_location" unless you're investigating specific military threat
+- If animals nearby → Use "kill_animal" (hunt dangerous animals)
+- If NO animals → Use "investigate_and_report" (patrol routes, check safety, report bandits)
+- ALTERNATE: Use "gather_resource" for weapon maintenance (whetstones, oil, leather straps)
+- ❌ NEVER use "fetch_item" to get weapons/shields/armor (guards don't work that way!)
+- ❌ NEVER use "explore_location" unless investigating ruins for military purposes
 
-**FARMERS:**
-- PRIMARY: Use "gather_resource" for crops, seeds, livestock needs
+**FARMERS (including Bakers, Millers, Brewers):**
+- PRIMARY: Use "gather_resource" for crops, seeds, grain, wheat, barley
+- Bakers → Request wheat, flour, yeast, salt (NOT clay!)
+- Millers → Request grain, wheat to mill (NOT clay!)
+- Brewers/Tavern Keepers → Request barley, hops, yeast (NOT clay!)
 - SECONDARY: If animals are pests/threats, use "kill_animal"
 - FALLBACK: Use "deliver_to_location" for produce to market
 - ❌ NEVER use "explore_location"
 
-**SCHOLARS/HISTORIANS/SCRIBES:**
-- ✅ Can use "explore_location" ONLY IF you see "**RUINS/ANCIENT SITES**" heading above
-- ✅ Can ONLY explore locations listed under that SPECIFIC heading
-- ❌ CANNOT explore locations under "**OTHER LOCATIONS**" (those are NOT ruins!)
-- ❌ "Abandoned Tower", "Derelict Site", "Old Building", "Abandoned Keep" are NOT ruins
-- ❌ If you see "⚠️ NO RUINS AVAILABLE" above, use "fetch_item" instead
-- Fallback: Use "fetch_item" for books, documents, scrolls, ancient texts
+**SCHOLARS/HISTORIANS:**
+You are an EDUCATIONAL profession. Your quests MUST involve intellectual work:
+- If **RUINS/ANCIENT SITES** section exists above → MUST use "explore_location" (examine ruins, study artifacts)
+- ✅ Can ONLY explore locations under "**RUINS/ANCIENT SITES**" heading
+- ❌ CANNOT explore "**OTHER LOCATIONS**" (Abandoned Tower, Derelict Site, Old Building are NOT ruins!)
+- If NO ruins → MUST use "investigate_and_report" (study local customs, beliefs, trade patterns, social structures)
+- ALTERNATE: Use "compare_perspectives" (interview different social classes about an issue)
+- ❌ NEVER EVER use "fetch_item" or "gather_resource" - you're a scholar, not a laborer!
+
+**SCRIBES:**
+You are an EDUCATIONAL profession specializing in documents and records:
+- PRIMARY: Use "source_analysis" (analyze ancient inscriptions, legal documents, merchant records)
+- SECONDARY: Use "investigate_and_report" (record oral histories, document local events)
+- TERTIARY: Use "compare_perspectives" (gather different accounts of historical events)
+- ❌ NEVER EVER use "fetch_item" or "gather_resource" - you analyze sources, you don't fetch papyrus!
 
 **PRIESTS/CLERGY:**
-- PRIMARY: Use "deliver_to_location" for offerings to religious sites
-- SECONDARY: Use "fetch_item" for sacred objects
+- If **RELIGIOUS SITE** listed above → MUST use "deliver_to_location" (bring offerings/sacred items to temple)
+- If NO religious site nearby → Can use "fetch_item" for sacred objects (incense, amulets, etc.)
 - ❌ NEVER use "explore_location"
 
 **NOBLES:**
 - PRIMARY: If marketplace nearby, use "buy_from_location" for luxury goods
 - FALLBACK: Use "fetch_item" for fine items
 - ❌ NEVER use "explore_location" or "kill_animal"
+
+**SERVICE WORKERS (Bathhouse Attendants, Servants, Slaves, etc.):**
+- Request materials **YOU actually use in your job**:
+  - Bathhouse Attendant → olive oil, soap, clean water, towels (NOT clay!)
+  - Servant/Slave → cleaning supplies, water, firewood
+  - Architect → building materials (stone, brick, mortar)
+- ❌ Don't request random materials like clay unless you actually use it
+
+**IF YOUR PROFESSION IS NOT LISTED ABOVE:**
+Look at what your profession actually does and choose the appropriate task type:
+- If you make/craft things (Flintknapper, Hide Worker, Basket Weaver, etc.) → Use "gather_resource" for **YOUR SPECIFIC materials**
+- If you hunt/fish/gather food (Deer Hunter, Fisher, Berry Gatherer, etc.) → Use "kill_animal" or "collect_animal_products"
+- If you heal/perform rituals (Medicine Person, Shaman, Healer, etc.) → Use "fetch_item" for herbs/sacred items
+- If you grow/process food (any type of Farmer, Baker, Miller) → Use "gather_resource" for crops/grain (NOT clay!)
+- **⚠️ Think about what YOU actually need for YOUR job** - don't just request clay/wood by default
+- When in doubt → Use "gather_resource" for materials specific to your profession
 
 **EXPLORATION QUESTS ARE EXTREMELY RARE:**
 - ✅ ONLY scholars/historians can request exploration
@@ -374,14 +472,22 @@ If there are no nearby structures matching your profession:
 - Farmers → Request seeds, tools, or crop protection
 - Use "fetch_item" or "gather_resource", NOT "explore_location"
 
-GOOD EXAMPLES:
-✓ Blacksmith (no mine nearby): "Bring me 5 iron ore. I don't care where you get it, just bring it. 20 coins." (gather_resource, requiredItem: "Iron Ore")
-✓ Merchant + Market: "Go to the marketplace and buy me 3 bolts of fine silk. I'll pay 25 coins." (buy_from_location)
+GOOD EXAMPLES (generic requests with categories):
+✓ Toolmaker (PREHISTORY): "I need stone for making tools. Any hard stone will do. Bring me 5 pieces. 15 coins."
+   requiredItem: "stone for tools", acceptedCategories: ["stone"]
+✓ Hunter (PREHISTORY): "Bring me animal hides for our shelter. 3 hides. 20 coins."
+   requiredItem: "animal hides", acceptedCategories: ["hide", "pelt"]
+✓ Blacksmith (MEDIEVAL): "I need metal ore for forging. Bring me 5 pieces. 20 coins."
+   requiredItem: "metal ore", acceptedCategories: ["ore", "metal"]
+✓ Healer (ANTIQUITY): "I'm treating a fever patient. Bring me any medicinal herbs you can find. 3 bundles. 25 coins."
+   requiredItem: "medicinal herbs", acceptedCategories: ["herb", "medicine"]
+✓ Builder (ANTIQUITY): "I'm building a house. I need construction materials - wood and stone. Bring me 10 units. 30 coins."
+   requiredItem: "building materials", acceptedCategories: ["wood", "stone"]
+✓ Weaver (PREHISTORY): "I need fibers for weaving. Plant fibers, cloth scraps, anything I can weave with. 10 bundles. 12 coins."
+   requiredItem: "weaving materials", acceptedCategories: ["cloth", "fiber"]
 ✓ Guard + Animals: "Wolves have been attacking travelers. Hunt one down. 30 coins." (kill_animal)
-✓ Tanner + Animals: "I need 3 deer hides for leather work. 25 coins." (collect_animal_products)
-✓ Scholar + ACTUAL RUINS: "Investigate the ancient temple ruins and bring me artifacts. 40 coins." (explore_location)
-✓ Farmer (no structures): "Gather 10 bundles of wheat for me. 15 coins." (gather_resource)
-✓ Potter (no workshop): "I need 8 clay deposits for my kiln. Find them and I'll pay 18 coins." (gather_resource)
+✓ Scholar + ACTUAL RUINS: "Investigate the ancient temple ruins and bring back any artifacts. 40 coins." (explore_location)
+✓ Scribe: "Analyze the merchant guild records and tell me about trade patterns. 35 coins." (source_analysis)
 
 BAD EXAMPLES (DO NOT DO THESE):
 ✗ Scholar: "Explore the Abandoned Keep" (Abandoned Keep is under OTHER LOCATIONS, not RUINS!)
@@ -394,8 +500,34 @@ BAD EXAMPLES (DO NOT DO THESE):
 ✗ Merchant: "Hunt wolves" (merchants don't hire for hunting)
 ✗ Tanner with no animals: "Gather tanning bark" (should use collect_animal_products if animals exist)
 ✗ Any NPC + structure under "OTHER LOCATIONS": Using "explore_location" (OTHER ≠ RUINS!)
+✗ Healer: "Bring me feverfew" requiredItem: "feverfew" (WRONG - feverfew doesn't exist! Use generic "medicinal herbs" + acceptedCategories: ["herb"])
+✗ Healer: "I need serpent's tongue" requiredItem: "serpent's tongue" (WRONG - doesn't exist! Use "healing plants" + ["medicine"])
+✗ Blacksmith: "Bring me Damascus steel" requiredItem: "Damascus steel" (WRONG - too specific! Use "metal ore" + ["ore", "metal"])
+✗ Builder: "I need mahogany planks" requiredItem: "mahogany planks" (WRONG - too specific! Use "wood" + ["wood"])
+✗ Jeweler: "Bring me rubies" requiredItem: "rubies" (WRONG - too specific! Use "gemstones" + ["stone", "metal"])
+✗ ANY NPC: Requesting specific item names instead of categories!
+✗ ANY NPC: Not setting acceptedCategories field!
+✗ Merchant + Marketplace: Using "fetch_item" (WRONG - use buy_from_location!)
+✗ Scholar: Using "fetch_item" (WRONG - use investigate_and_report!)
+✗ ANY NPC: Requesting items not appropriate to ${eraContext}!
 
-Create the work offer now. Remember: PROFESSION FIRST, then match to nearby locations if helpful. Most NPCs should use gather_resource or fetch_item, NOT explore_location!
+**FINAL TASK TYPE PRIORITY CHECK (by profession):**
+- Merchant: buy_from_location (if marketplace) > deliver_to_location > gather_resource >> NEVER fetch_item
+- Scholar: explore_location (if ruins) > investigate_and_report > compare_perspectives >> NEVER fetch_item
+- Scribe: source_analysis > investigate_and_report > compare_perspectives >> NEVER fetch_item
+- Guard: kill_animal (if animals) > investigate_and_report > gather_resource >> NEVER fetch_item for weapons
+- Craftsmen: gather_resource > deliver_to_location (if workshop) >> fetch_item (rare)
+- Priest: deliver_to_location (if religious site) > fetch_item (sacred objects only)
+- Farmers: gather_resource > kill_animal (pests) > deliver_to_location
+
+Create the work offer now. Remember:
+1. Check if MANDATORY structure matching applies to your profession
+2. Use profession-specific task types (NOT generic fetch_item)
+3. Educational professions (Scholar/Scribe) NEVER use fetch_item
+4. Use only ERA-APPROPRIATE materials from ${eraContext}
+5. **ALWAYS set acceptedCategories** - Use broad categories: 'ore', 'wood', 'stone', 'hide', 'herb', 'food', 'cloth', 'tool', 'weapon', 'metal', 'medicine'
+6. **Use GENERIC descriptions** - "medicinal herbs" not "feverfew", "metal ore" not "Damascus steel"
+7. **Player can bring ANY item matching your categories** - Be flexible!
 `.trim();
 
   try {
@@ -459,6 +591,7 @@ Create the work offer now. Remember: PROFESSION FIRST, then match to nearby loca
       description: data.description,
       requiredItem: data.requiredItem,
       requiredQuantity: data.requiredQuantity || 1,
+      acceptedCategories: data.acceptedCategories || [],
       targetLocation,
       targetAnimal: data.targetAnimal,
       acceptsAnyItem: taskType === 'explore_location' || taskType === 'investigate_and_report', // Exploration/investigation quests accept any item
@@ -486,6 +619,33 @@ Create the work offer now. Remember: PROFESSION FIRST, then match to nearby loca
 }
 
 /**
+ * Helper: Check if an item matches accepted categories
+ */
+function matchesCategory(item: any, acceptedCategories: string[]): boolean {
+  for (const category of acceptedCategories) {
+    const cat = category.toLowerCase();
+    const itemName = (item.name || '').toLowerCase();
+    const itemCategory = (item.category || '').toLowerCase();
+    const itemMaterial = (item.material || '').toLowerCase();
+
+    // Check by category keyword
+    if (cat === 'ore' && itemName.includes('ore')) return true;
+    if (cat === 'wood' && (itemMaterial === 'wood' || itemName.includes('wood') || itemName.includes('log') || itemName.includes('timber'))) return true;
+    if (cat === 'stone' && (itemMaterial === 'stone' || itemName.includes('stone') || itemName.includes('rock'))) return true;
+    if (cat === 'hide' && itemName.includes('hide')) return true;
+    if (cat === 'pelt' && itemName.includes('pelt')) return true;
+    if (cat === 'herb' && (item.medicineType === 'HERBAL_REMEDY' || itemName.includes('herb'))) return true;
+    if (cat === 'food' && itemCategory === 'food') return true;
+    if (cat === 'cloth' && (itemMaterial === 'cloth' || itemMaterial === 'wool' || itemMaterial === 'linen')) return true;
+    if (cat === 'tool' && itemCategory === 'tool') return true;
+    if (cat === 'weapon' && itemCategory === 'weapon') return true;
+    if (cat === 'medicine' && item.medicineType) return true;
+    if (cat === 'metal' && (itemMaterial === 'iron' || itemMaterial === 'copper' || itemMaterial === 'bronze' || itemMaterial === 'steel')) return true;
+  }
+  return false;
+}
+
+/**
  * Check if a work offer has been completed
  */
 export function checkWorkCompletion(
@@ -503,7 +663,15 @@ export function checkWorkCompletion(
   switch (offer.taskType) {
     case 'fetch_item':
     case 'buy_from_location':
-      // Check if player has required item in inventory
+      // Check if player has ANY item matching the accepted categories
+      if (offer.acceptedCategories && offer.acceptedCategories.length > 0) {
+        const hasMatchingItem = playerCharacter.inventory.some(item =>
+          matchesCategory(item, offer.acceptedCategories!) &&
+          item.quantity >= (offer.requiredQuantity || 1)
+        );
+        return hasMatchingItem ? 'completed' : 'in_progress';
+      }
+      // Fallback: exact name match (for backwards compatibility with old quests)
       const hasItem = playerCharacter.inventory.some(item =>
         item.name.toLowerCase() === offer.requiredItem?.toLowerCase() &&
         item.quantity >= (offer.requiredQuantity || 1)
@@ -529,7 +697,15 @@ export function checkWorkCompletion(
       return 'in_progress';
 
     case 'gather_resource':
-      // Similar to fetch_item
+      // Check if player has ANY item matching the accepted categories
+      if (offer.acceptedCategories && offer.acceptedCategories.length > 0) {
+        const hasMatchingResource = playerCharacter.inventory.some(item =>
+          matchesCategory(item, offer.acceptedCategories!) &&
+          item.quantity >= (offer.requiredQuantity || 1)
+        );
+        return hasMatchingResource ? 'completed' : 'in_progress';
+      }
+      // Fallback: partial name match (for backwards compatibility)
       const hasResource = playerCharacter.inventory.some(item =>
         item.name.toLowerCase().includes(offer.requiredItem?.toLowerCase() || '') &&
         item.quantity >= (offer.requiredQuantity || 1)

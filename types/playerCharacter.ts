@@ -9,6 +9,7 @@ import { FamilyMember, LifeEvent } from './npcTypes';
 import { InteriorViewState, Point } from './index';
 import { CharacterHealth } from './diseaseTypes';
 import { AttributeBadge } from './attributeTypes';
+import type { JournalEntry } from '../components/JournalViewport';
 
 export type EquipmentSlot = 'head' | 'torso' | 'legs' | 'feet' | 
                           'main_hand' | 'off_hand' | 
@@ -109,6 +110,7 @@ export interface PlayerCharacter {
     
     party: PartyMember[];
     eventLog: GameEvent[];
+    journalEntries?: JournalEntry[]; // Knowledge entries gained from events
     statusEffects: StatusEffect[];
     attributes?: AttributeBadge[]; // Character's special attributes/badges
 

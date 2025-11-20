@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NpcEntity } from '../../types';
+import { detectItemColor, getEquippedItemColor } from '../../utils/colorDetection';
 
 interface NpcIconProps {
   npc: NpcEntity;
@@ -18,109 +19,159 @@ const adjustColorBrightness = (color: string, percent: number): string => {
   return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 };
 
-const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInteriorMap = false }) => {
+// ⚡ PERFORMANCE: Categorization functions moved outside component
+// These are now created ONCE and shared by all NPCs instead of being recreated every render
+const categorizeHeadgear = (headgearItem: { name: string; material: string } | null): string | null => {
+  if (!headgearItem || headgearItem.name === 'None' || headgearItem.name === 'none') return null;
+
+  const name = headgearItem.name.toLowerCase();
+
+  // Hair ornaments and jewelry - should be small or invisible
+  if (name.includes('passa') || name.includes('tikka') || name.includes('maang') ||
+      name.includes('rakhdi') || name.includes('hairpin') || name.includes('hairpiece') ||
+      name.includes('comb') || name.includes('flower') || name.includes('garland') ||
+      name.includes('ornament') || name.includes('jewel')) {
+    return 'ornament';
+  }
+
+  // Circlets and crowns - thin band
+  if (name.includes('circlet') || name.includes('crown') || name.includes('tiara') ||
+      name.includes('diadem') || name.includes('coronet')) {
+    return 'circlet';
+  }
+
+  // Turbans - wrapped style
+  if (name.includes('turban') || name.includes('pagri') || name.includes('safa')) {
+    return 'turban';
+  }
+
+  // Helmets - metal covering
+  if (name.includes('helmet')) {
+    return 'helmet';
+  }
+
+  // Caps and simple hats
+  if (name.includes('cap') || name.includes('beret') || name.includes('fez')) {
+    return 'cap';
+  }
+
+  // Default hat shape
+  return 'hat';
+};
+
+const categorizeGarment = (garmentItem: { name: string; material: string } | null): string => {
+  if (!garmentItem) return 'tunic';
+
+  const name = garmentItem.name.toLowerCase();
+
+  // Dresses and gowns - flowing
+  if (name.includes('dress') || name.includes('gown') || name.includes('saree') ||
+      name.includes('cheongsam') || name.includes('qipao')) {
+    return 'dress';
+  }
+
+  // Robes - loose and long
+  if (name.includes('robe') || name.includes('caftan') || name.includes('abaya') ||
+      name.includes('toga') || name.includes('kimono') || name.includes('djellaba')) {
+    return 'robe';
+  }
+
+  // Skirts
+  if (name.includes('skirt') || name.includes('kilt')) {
+    return 'skirt';
+  }
+
+  // Pants and trousers
+  if (name.includes('pants') || name.includes('trousers') || name.includes('breeches') ||
+      name.includes('hose') || name.includes('leggings')) {
+    return 'pants';
+  }
+
+  // Default tunic/shirt
+  return 'tunic';
+};
+
+// ⚡ PERFORMANCE: Custom React.memo comparison function
+// Only re-render when appearance/animation actually changes, NOT on position changes
+const arePropsEqual = (prevProps: NpcIconProps, nextProps: NpcIconProps) => {
+  const prev = prevProps.npc;
+  const next = nextProps.npc;
+
+  // Re-render if any of these change
+  return (
+    prev.appearance === next.appearance &&
+    prev.age === next.age &&
+    prev.gender === next.gender &&
+    prev.direction === next.direction &&
+    prev.walkFrame === next.walkFrame &&
+    prev.equippedItems === next.equippedItems &&
+    prevProps.size === nextProps.size &&
+    prevProps.tileSize === nextProps.tileSize &&
+    prevProps.isInteriorMap === nextProps.isInteriorMap
+  );
+};
+
+const NpcIcon: React.FC<NpcIconProps> = ({ npc, size, tileSize, isInteriorMap = false }) => {
   const { direction, walkFrame, gender } = npc;
 
   if (!npc.appearance) {
     // Render a fallback or loading state if appearance data is not ready
-    return null; 
+    return null;
   }
 
-  const { skinColor, build, facialHair, footwear, headgear, height, hairLength, facialHairStyle, jewelry, garment, belt } = npc.appearance;
+  const {
+    skinColor, build, facialHair, footwear, headgear, height, hairLength, facialHairStyle, jewelry, garment, belt,
+    // Phase 1 enhancements
+    faceShape, hairTexture, skinTexture, eyebrowThickness, markings
+  } = npc.appearance;
   const { primary: clothingColor, secondary: secondaryColor, accent: accentColor } = npc.appearance.palette;
-  
-  // Make elderly NPCs have gray hair (matching ProceduralPortrait behavior)
-  const isElderly = npc.age >= 60;
-  const hairColor = isElderly ? '#808080' : npc.appearance.hairColor;
-
-  // Helper function to categorize headgear
-  const categorizeHeadgear = (headgearItem: { name: string; material: string } | null) => {
-    if (!headgearItem || headgearItem.name === 'None' || headgearItem.name === 'none') return null;
-    
-    const name = headgearItem.name.toLowerCase();
-    
-    // Hair ornaments and jewelry - should be small or invisible
-    if (name.includes('passa') || name.includes('tikka') || name.includes('maang') || 
-        name.includes('rakhdi') || name.includes('hairpin') || name.includes('hairpiece') ||
-        name.includes('comb') || name.includes('flower') || name.includes('garland') ||
-        name.includes('ornament') || name.includes('jewel')) {
-      return 'ornament';
-    }
-    
-    // Circlets and crowns - thin band
-    if (name.includes('circlet') || name.includes('crown') || name.includes('tiara') ||
-        name.includes('diadem') || name.includes('coronet')) {
-      return 'circlet';
-    }
-    
-    // Turbans - wrapped style
-    if (name.includes('turban') || name.includes('pagri') || name.includes('safa')) {
-      return 'turban';
-    }
-    
-    // Helmets - metal covering
-    if (name.includes('helmet')) {
-      return 'helmet';
-    }
-    
-    // Caps and simple hats
-    if (name.includes('cap') || name.includes('beret') || name.includes('fez')) {
-      return 'cap';
-    }
-    
-    // Default hat shape
-    return 'hat';
-  };
-
-  // Helper function to categorize garments
-  const categorizeGarment = (garmentItem: { name: string; material: string } | null) => {
-    if (!garmentItem) return 'tunic';
-    
-    const name = garmentItem.name.toLowerCase();
-    
-    // Dresses and gowns - flowing
-    if (name.includes('dress') || name.includes('gown') || name.includes('saree') ||
-        name.includes('cheongsam') || name.includes('qipao')) {
-      return 'dress';
-    }
-    
-    // Robes - loose and long
-    if (name.includes('robe') || name.includes('caftan') || name.includes('abaya') ||
-        name.includes('toga') || name.includes('kimono') || name.includes('djellaba')) {
-      return 'robe';
-    }
-    
-    // Skirts
-    if (name.includes('skirt') || name.includes('kilt')) {
-      return 'skirt';
-    }
-    
-    // Pants and trousers
-    if (name.includes('pants') || name.includes('trousers') || name.includes('breeches') ||
-        name.includes('hose') || name.includes('leggings')) {
-      return 'pants';
-    }
-    
-    // Default tunic/shirt
-    return 'tunic';
-  };
 
   const isFemale = gender === 'Female';
-  const headgearType = categorizeHeadgear(headgear);
-  const garmentType = categorizeGarment(garment);
 
-  // FIX: Convert absolute height in cm to a relative scaling factor to prevent oversized sprites.
-  // The sprite was designed around a baseline height. We scale the size of the sprite
-  // relative to how much the character's height deviates from an average.
-  const AVG_NPC_HEIGHT_CM = isFemale ? 165 : 175;
-  // Clamp the scaling factor to a reasonable range (e.g., 0.8x to 1.3x) to prevent extreme sizes.
-  const heightScale = Math.min(Math.max(height / AVG_NPC_HEIGHT_CM, 0.8), 1.3);
+  // ⚡ PERFORMANCE: Memoize derived values that don't change often
+  const hairColor = useMemo(() => {
+    const isElderly = npc.age >= 60;
+    return isElderly ? '#808080' : npc.appearance.hairColor;
+  }, [npc.age, npc.appearance.hairColor]);
 
-  // Base size multiplier - make NPC icons 7-9px tall (slightly larger than original 6-8px)
-  const BASE_SCALE = 1.1; // 1.1x makes 6-8px become ~7-9px
+  const headgearType = useMemo(() => categorizeHeadgear(headgear), [headgear]);
+  const garmentType = useMemo(() => categorizeGarment(garment), [garment]);
 
-  const actualSize = size * heightScale * BASE_SCALE;
-  const p = actualSize / 24;
+  // Phase 1 enhancements: Face shape and hair texture helpers
+  const faceShapeConfig = {
+    'round': { headWidthModifier: 1.15, jawWidthModifier: 1.15, chinWidthModifier: 1.1 },
+    'oval': { headWidthModifier: 1.0, jawWidthModifier: 1.0, chinWidthModifier: 1.0 },  // Default
+    'square': { headWidthModifier: 1.08, jawWidthModifier: 1.15, chinWidthModifier: 1.12 },
+    'long': { headWidthModifier: 0.85, jawWidthModifier: 0.85, chinWidthModifier: 0.75 },
+    'heart': { headWidthModifier: 1.1, jawWidthModifier: 0.95, chinWidthModifier: 0.8 },
+    'diamond': { headWidthModifier: 0.92, jawWidthModifier: 1.05, chinWidthModifier: 0.95 }
+  };
+  const faceConfig = faceShapeConfig[faceShape || 'oval'] || faceShapeConfig['oval'];
+
+  // ⚡ PERFORMANCE: Memoize hair color helpers (used multiple times in rendering)
+  const hairHighlightColor = useMemo(() => adjustColorBrightness(hairColor, 15), [hairColor]);
+  const hairShadowColor = useMemo(() => adjustColorBrightness(hairColor, -12), [hairColor]);
+
+  // Keep function versions for backward compatibility (these now just return the memoized values)
+  const getHairHighlightColor = () => hairHighlightColor;
+  const getHairShadowColor = () => hairShadowColor;
+
+  // ⚡ PERFORMANCE: Memoize size calculations
+  const { actualSize, p } = useMemo(() => {
+    // FIX: Convert absolute height in cm to a relative scaling factor to prevent oversized sprites.
+    const AVG_NPC_HEIGHT_CM = isFemale ? 165 : 175;
+    // Clamp the scaling factor to a reasonable range (e.g., 0.8x to 1.3x) to prevent extreme sizes.
+    const heightScale = Math.min(Math.max(height / AVG_NPC_HEIGHT_CM, 0.8), 1.3);
+
+    // Base size multiplier - make NPC icons 7-9px tall (slightly larger than original 6-8px)
+    const BASE_SCALE = 1.1; // 1.1x makes 6-8px become ~7-9px
+
+    const calcSize = size * heightScale * BASE_SCALE;
+    return {
+      actualSize: calcSize,
+      p: calcSize / 24
+    };
+  }, [size, height, isFemale]);
 
   const walkSpeed = 0.09;
   const walkCycle = walkFrame * walkSpeed;
@@ -195,6 +246,16 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
     }
   }
   
+  // ⚡ PERFORMANCE: Memoize leg color calculation
+  const legColor = useMemo(() => {
+    // Check equipped legs item first
+    if (npc.equippedItems?.legs) {
+      return getEquippedItemColor(npc.equippedItems.legs, secondaryColor);
+    }
+    // Fall back to garment-based logic
+    return garmentType === 'pants' ? clothingColor : skinColor;
+  }, [npc.equippedItems?.legs, garmentType, clothingColor, skinColor, secondaryColor]);
+
   const renderPolishedSprite = () => {
     const elements: JSX.Element[] = [];
     const yOffset = -bodyBob;
@@ -204,7 +265,6 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
 
     // Render legs based on garment type
     const showLegs = garmentType !== 'dress' && garmentType !== 'robe';
-    const legColor = garmentType === 'pants' ? clothingColor : skinColor;
     
     if (showLegs) {
       // Visible legs for pants/skirts/tunics - thinner and more proportional
@@ -322,8 +382,11 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
       <rect key="right-forearm" x={shoulderWidth / 2 - p * 0.7} y={p * 3.5 + sleeveLength + yOffset + rightArmOffset} width={armWidth} height={p * 2.5} fill={skinColor} rx={p * 0.3} />
     );
     
-    // Head and Neck - more refined with pixel art curves
-    const headWidth = isFemale ? p * 3.8 : p * 4.2;
+    // Head and Neck - enhanced with face shape variations (Phase 1)
+    const baseHeadWidth = isFemale ? p * 3.8 : p * 4.2;
+    const headWidth = baseHeadWidth * faceConfig.headWidthModifier;
+    const jawWidth = baseHeadWidth * faceConfig.jawWidthModifier;
+    const chinWidth = baseHeadWidth * faceConfig.chinWidthModifier;
     const headHeight = isFemale ? p * 4 : p * 4.2;
     const neckWidth = isFemale ? p * 1.5 : p * 1.8;
     
@@ -349,12 +412,30 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
     
     // Hair - simple shapes that show with headgear
     const hasHat = headgearType && headgearType !== 'ornament' && headgearType !== 'circlet';
-    
+
     if (hairLength !== 'bald') {
       if (hairLength === 'very_short' || hairLength === 'short') {
-        // Short hair - adjusted for new head position
+        // Short hair - covers top of head without covering eyes
         if (!hasHat) {
-          elements.push(<rect key="hair" x={-headWidth / 2 - p * 0.2} y={-p * 2 + yOffset} width={headWidth + p * 0.4} height={p * 1.5} fill={hairColor} rx={p * 0.2} />);
+          elements.push(<rect key="hair" x={-headWidth / 2 - p * 0.2} y={-p * 2 + yOffset} width={headWidth + p * 0.4} height={p * 1.3} fill={hairColor} rx={p * 0.2} />);
+          // Hair Texture (Phase 1) - short
+          if (hairTexture === 'curly') {
+            elements.push(
+              <rect key="hair-curl-1" x={-headWidth / 2} y={-p * 1.8 + yOffset} width={p * 0.4} height={p * 0.4} fill={getHairHighlightColor()} opacity={0.7} />,
+              <rect key="hair-curl-2" x={headWidth / 2 - p * 0.8} y={-p * 1.7 + yOffset} width={p * 0.4} height={p * 0.4} fill={getHairHighlightColor()} opacity={0.6} />
+            );
+          } else if (hairTexture === 'wavy') {
+            elements.push(
+              <rect key="hair-wave-1" x={-headWidth / 2} y={-p * 1.8 + yOffset} width={p * 1.2} height={p * 0.25} fill={getHairHighlightColor()} opacity={0.5} />,
+              <rect key="hair-wave-2" x={headWidth / 2 - p * 1.4} y={-p * 1.6 + yOffset} width={p * 1} height={p * 0.25} fill={getHairShadowColor()} opacity={0.4} />
+            );
+          } else if (hairTexture === 'coily' || hairTexture === 'kinky') {
+            elements.push(
+              <rect key="hair-coil-1" x={-headWidth / 2 - p * 0.1} y={-p * 1.9 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.8} />,
+              <rect key="hair-coil-2" x={0} y={-p * 1.95 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.7} />,
+              <rect key="hair-coil-3" x={headWidth / 2 - p * 0.5} y={-p * 1.85 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.7} />
+            );
+          }
         }
         // Small sideburns visible with hat
         if (hasHat) {
@@ -362,18 +443,74 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
           elements.push(<rect key="hair-side-r" x={headWidth / 2 - p * 0.2} y={-p * 1 + yOffset} width={p * 0.5} height={p * 1} fill={hairColor} />);
         }
       } else if (hairLength === 'long' || hairLength === 'very_long') {
-        // Long hair - adjusted for new head position
+        // Long hair - covers top of head without covering eyes
         if (!hasHat) {
-          elements.push(<rect key="hair-top" x={-headWidth / 2 - p * 0.5} y={-p * 2 + yOffset} width={headWidth + p} height={p * 2.5} fill={hairColor} rx={p * 0.3} />);
+          elements.push(<rect key="hair-top" x={-headWidth / 2 - p * 0.5} y={-p * 2 + yOffset} width={headWidth + p} height={p * 1.3} fill={hairColor} rx={p * 0.3} />);
+          // Hair Texture (Phase 1) - long top
+          if (hairTexture === 'curly') {
+            elements.push(
+              <rect key="hair-curl-1" x={-headWidth / 2 - p * 0.3} y={-p * 1.8 + yOffset} width={p * 0.5} height={p * 0.5} fill={getHairHighlightColor()} opacity={0.7} />,
+              <rect key="hair-curl-2" x={headWidth / 2 - p * 0.5} y={-p * 1.7 + yOffset} width={p * 0.5} height={p * 0.5} fill={getHairHighlightColor()} opacity={0.7} />
+            );
+          } else if (hairTexture === 'wavy') {
+            elements.push(
+              <rect key="hair-wave-1" x={-headWidth / 2 - p * 0.4} y={-p * 1.7 + yOffset} width={p * 1.5} height={p * 0.25} fill={getHairHighlightColor()} opacity={0.5} />,
+              <rect key="hair-wave-2" x={headWidth / 2 - p * 1.5} y={-p * 1.5 + yOffset} width={p * 1.3} height={p * 0.25} fill={getHairShadowColor()} opacity={0.4} />
+            );
+          } else if (hairTexture === 'coily' || hairTexture === 'kinky') {
+            elements.push(
+              <rect key="hair-coil-1" x={-headWidth / 2 - p * 0.3} y={-p * 1.9 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.8} />,
+              <rect key="hair-coil-2" x={0} y={-p * 2 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.8} />,
+              <rect key="hair-coil-3" x={headWidth / 2 - p * 0.2} y={-p * 1.85 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.7} />
+            );
+          }
         }
-        // Hair flowing down sides (visible with or without hat)
+        // Hair flowing down sides (visible with or without hat) - starts below eyes
         const longHairWidth = isFemale ? p * 1.2 : p * 1;
-        elements.push(<rect key="hair-long-l" x={-headWidth / 2 - p * 0.5} y={p * 0.5 + yOffset} width={longHairWidth} height={p * 3} fill={hairColor} rx={p * 0.2} />);
-        elements.push(<rect key="hair-long-r" x={headWidth / 2 - p * 0.5} y={p * 0.5 + yOffset} width={longHairWidth} height={p * 3} fill={hairColor} rx={p * 0.2} />);
+        elements.push(<rect key="hair-long-l" x={-headWidth / 2 - p * 0.5} y={p * 1.5 + yOffset} width={longHairWidth} height={p * 3} fill={hairColor} rx={p * 0.2} />);
+        elements.push(<rect key="hair-long-r" x={headWidth / 2 - p * 0.5} y={p * 1.5 + yOffset} width={longHairWidth} height={p * 3} fill={hairColor} rx={p * 0.2} />);
+        // Hair Texture (Phase 1) - long sides
+        if (hairTexture === 'curly') {
+          elements.push(
+            <rect key="hair-curl-side-l" x={-headWidth / 2 - p * 0.4} y={p * 1.5 + yOffset} width={p * 0.4} height={p * 0.6} fill={getHairHighlightColor()} opacity={0.6} />,
+            <rect key="hair-curl-side-r" x={headWidth / 2 - p * 0.3} y={p * 1.8 + yOffset} width={p * 0.4} height={p * 0.5} fill={getHairHighlightColor()} opacity={0.6} />
+          );
+        } else if (hairTexture === 'wavy') {
+          elements.push(
+            <rect key="hair-wave-side-l" x={-headWidth / 2 - p * 0.4} y={p * 1.2 + yOffset} width={longHairWidth * 0.6} height={p * 1.2} fill={getHairHighlightColor()} opacity={0.4} />,
+            <rect key="hair-wave-side-r" x={headWidth / 2 - p * 0.4} y={p * 1.5 + yOffset} width={longHairWidth * 0.6} height={p * 1} fill={getHairShadowColor()} opacity={0.4} />
+          );
+        } else if (hairTexture === 'coily' || hairTexture === 'kinky') {
+          elements.push(
+            <rect key="hair-coil-side-l1" x={-headWidth / 2 - p * 0.4} y={p * 1 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.7} />,
+            <rect key="hair-coil-side-l2" x={-headWidth / 2 - p * 0.3} y={p * 2.2 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.6} />,
+            <rect key="hair-coil-side-r1" x={headWidth / 2 - p * 0.3} y={p * 1.3 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.7} />,
+            <rect key="hair-coil-side-r2" x={headWidth / 2 - p * 0.2} y={p * 2.5 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.6} />
+          );
+        }
       } else {
-        // Medium hair (default) - adjusted for new head position
+        // Medium hair (default) - covers top of head without covering eyes
         if (!hasHat) {
-          elements.push(<rect key="hair" x={-headWidth / 2 - p * 0.5} y={-p * 2 + yOffset} width={headWidth + p} height={p * 2.5} fill={hairColor} rx={p * 0.3} />);
+          elements.push(<rect key="hair" x={-headWidth / 2 - p * 0.5} y={-p * 2 + yOffset} width={headWidth + p} height={p * 1.4} fill={hairColor} rx={p * 0.3} />);
+          // Hair Texture (Phase 1) - medium
+          if (hairTexture === 'curly') {
+            elements.push(
+              <rect key="hair-curl-1" x={-headWidth / 2 - p * 0.3} y={-p * 1.8 + yOffset} width={p * 0.4} height={p * 0.4} fill={getHairHighlightColor()} opacity={0.7} />,
+              <rect key="hair-curl-2" x={0} y={-p * 1.9 + yOffset} width={p * 0.4} height={p * 0.4} fill={getHairHighlightColor()} opacity={0.7} />,
+              <rect key="hair-curl-3" x={headWidth / 2 - p * 0.5} y={-p * 1.75 + yOffset} width={p * 0.4} height={p * 0.4} fill={getHairHighlightColor()} opacity={0.6} />
+            );
+          } else if (hairTexture === 'wavy') {
+            elements.push(
+              <rect key="hair-wave-1" x={-headWidth / 2 - p * 0.4} y={-p * 1.8 + yOffset} width={p * 1.5} height={p * 0.25} fill={getHairHighlightColor()} opacity={0.5} />,
+              <rect key="hair-wave-2" x={headWidth / 2 - p * 1.3} y={-p * 1.6 + yOffset} width={p * 1.2} height={p * 0.25} fill={getHairShadowColor()} opacity={0.4} />
+            );
+          } else if (hairTexture === 'coily' || hairTexture === 'kinky') {
+            elements.push(
+              <rect key="hair-coil-1" x={-headWidth / 2 - p * 0.3} y={-p * 1.9 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.8} />,
+              <rect key="hair-coil-2" x={-p * 0.15} y={-p * 2 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.7} />,
+              <rect key="hair-coil-3" x={headWidth / 2 - p * 0.4} y={-p * 1.85 + yOffset} width={p * 0.3} height={p * 0.3} fill={getHairHighlightColor()} opacity={0.7} />
+            );
+          }
         } else {
           // Hair visible at sides with hat
           elements.push(<rect key="hair-side-l" x={-headWidth / 2 - p * 0.5} y={-p * 1 + yOffset} width={p * 0.8} height={p * 2} fill={hairColor} rx={p * 0.2} />);
@@ -485,7 +622,86 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
     elements.push(
       <rect key="mouth" x={-p * 0.5} y={p * 1.6 + yOffset} width={p * 1} height={p * 0.15} fill="#000" opacity={0.3} />
     );
-    
+
+    // Skin Texture Details (Phase 1)
+    if (skinTexture === 'freckled') {
+      elements.push(
+        <rect key="freckle-1" x={-p * 1.2} y={p * 0.3 + yOffset} width={p * 0.25} height={p * 0.25} fill="#8B4513" opacity={0.6} />,
+        <rect key="freckle-2" x={p * 0.9} y={p * 0.3 + yOffset} width={p * 0.25} height={p * 0.25} fill="#8B4513" opacity={0.6} />,
+        <rect key="freckle-3" x={-p * 0.15} y={p * 0.8 + yOffset} width={p * 0.25} height={p * 0.25} fill="#8B4513" opacity={0.5} />
+      );
+    }
+    if (skinTexture === 'weathered') {
+      elements.push(
+        <rect key="weather-1" x={-p * 0.6} y={-p * 0.8 + yOffset} width={p * 0.3} height={p * 0.25} fill={adjustColorBrightness(skinColor, -15)} opacity={0.7} />,
+        <rect key="weather-2" x={p * 0.3} y={-p * 0.8 + yOffset} width={p * 0.3} height={p * 0.25} fill={adjustColorBrightness(skinColor, -15)} opacity={0.7} />,
+        <rect key="weather-3" x={-p * 1.2} y={p * 0.5 + yOffset} width={p * 0.4} height={p * 0.3} fill={adjustColorBrightness(skinColor, -10)} opacity={0.6} />
+      );
+    }
+    if (skinTexture === 'scarred') {
+      elements.push(
+        <rect key="scar-1" x={-p * 0.9} y={p * 0.2 + yOffset} width={p * 0.25} height={p * 1.2} fill="#ffdddd" opacity={0.8} />,
+        <rect key="scar-2" x={-p * 1.2} y={p * 0.2 + yOffset} width={p * 0.25} height={p * 1} fill="#ffeeee" opacity={0.6} />
+      );
+    }
+    if (skinTexture === 'rough') {
+      elements.push(
+        <rect key="rough-1" x={-p * 1} y={-p * 0.2 + yOffset} width={p * 0.25} height={p * 0.25} fill={adjustColorBrightness(skinColor, -12)} opacity={0.5} />,
+        <rect key="rough-2" x={p * 0.6} y={p * 0.4 + yOffset} width={p * 0.25} height={p * 0.25} fill={adjustColorBrightness(skinColor, -12)} opacity={0.5} />
+      );
+    }
+
+    // Markings (Phase 1)
+    if (markings && markings.length > 0) {
+      markings.slice(0, 3).forEach((marking, idx) => {
+        if (marking.type === 'scar' && marking.location.toLowerCase().includes('face')) {
+          elements.push(
+            <rect
+              key={`marking-scar-${idx}`}
+              x={-p * 0.6}
+              y={p * 0.2 + yOffset}
+              width={p * 0.3}
+              height={p * 1.5}
+              fill={marking.color || '#ffdddd'}
+              opacity={0.7}
+            />
+          );
+        } else if (marking.type === 'tattoo' && marking.location.toLowerCase().includes('face')) {
+          elements.push(
+            <rect
+              key={`marking-tattoo-${idx}`}
+              x={-p * 1.5}
+              y={p * 0.2 + yOffset}
+              width={p * 0.6}
+              height={p * 0.9}
+              fill={marking.color || '#4169E1'}
+              opacity={0.6}
+            />
+          );
+        } else if (marking.type === 'beauty_mark') {
+          elements.push(
+            <circle
+              key={`marking-beauty-${idx}`}
+              cx={p * 1.2}
+              cy={p * 1 + yOffset}
+              r={p * 0.2}
+              fill="#3a3a3a"
+            />
+          );
+        } else if (marking.type === 'mole') {
+          elements.push(
+            <circle
+              key={`marking-mole-${idx}`}
+              cx={-p * 1}
+              cy={p * 1.2 + yOffset}
+              r={p * 0.25}
+              fill="#654321"
+            />
+          );
+        }
+      });
+    }
+
     // Facial hair - simple shapes - adjusted for new head position
     if (facialHair && gender === 'Male') {
       if (facialHairStyle === 'mustache' || facialHairStyle === 'full_beard') {
@@ -550,7 +766,14 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
   const ICON_SCALE = isInteriorMap ? 3 : 1;
 
   return (
-    <g transform={`translate(${baseX}, ${baseY}) scale(${ICON_SCALE})`} style={{ shapeRendering: 'geometricPrecision' }}>
+    <g
+      transform={`translate(${baseX}, ${baseY - 5}) scale(${ICON_SCALE})`}
+      style={{
+        shapeRendering: 'geometricPrecision',  // Sharper edges for pixel art
+        imageRendering: 'crisp-edges',          // Better pixel rendering
+        willChange: 'transform',                // GPU acceleration hint
+      }}
+    >
       {/* Disease indicator - greenish circle around sick NPCs */}
       {hasDiseases && (
         <circle
@@ -589,6 +812,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize, isInt
       </g>
     </g>
   );
-});
+};
 
-export default NpcIcon;
+// ⚡ PERFORMANCE: Export memoized component with custom comparison
+export default React.memo(NpcIcon, arePropsEqual);

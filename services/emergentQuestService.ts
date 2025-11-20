@@ -414,25 +414,27 @@ export class EmergentQuestService {
     if (npc.health?.currentDiseases && npc.health.currentDiseases.length > 0) {
       return this.generateMedicineQuest(npc, context);
     }
-    
-    // Check NPC profession for relevant quests
-    if (npc.profession?.toLowerCase().includes('merchant') || npc.profession?.toLowerCase().includes('trader')) {
+
+    // Check NPC profession/role for relevant quests (check both fields for compatibility)
+    const profession = (npc.profession || npc.role || '').toLowerCase();
+
+    if (profession.includes('merchant') || profession.includes('trader')) {
       return this.generateTradeQuest(npc, context);
     }
-    
-    if (npc.profession?.toLowerCase().includes('priest') || npc.profession?.toLowerCase().includes('monk')) {
+
+    if (profession.includes('priest') || profession.includes('monk')) {
       return this.generateReligiousQuest(npc, context);
     }
-    
-    if (npc.profession?.toLowerCase().includes('farmer')) {
+
+    if (profession.includes('farmer')) {
       return this.generateFarmQuest(npc, context);
     }
-    
+
     // Random personal request
     if (Math.random() < 0.3) {
       return this.generatePersonalQuest(npc, context);
     }
-    
+
     return null;
   }
 

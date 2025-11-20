@@ -22,7 +22,7 @@ const PauseModal: React.FC<PauseModalProps> = ({ isOpen, onClose }) => {
           PAUSED
         </div>
         <div className="text-slate-400 text-xs mb-3">
-          Press <kbd className="px-1.5 py-0.5 bg-slate-700 rounded border border-slate-600 font-mono text-[10px]">Space</kbd> or click to resume
+          Press <kbd className="px-1.5 py-0.5 bg-slate-700 rounded border border-slate-600 font-mono text-[10px]">ESC</kbd> or click to resume
         </div>
         <button
           onClick={onClose}

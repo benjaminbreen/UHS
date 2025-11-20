@@ -275,21 +275,21 @@ export function getFarmState(
   // Determine more granular prosperity level
   let prosperityLevel: 'subsistence' | 'small' | 'moderate' | 'thriving' = 'small'; // Default fallback
   if (economicRoll > 0.85) {
-    prosperityLevel = 'thriving';  // 8 fields
+    prosperityLevel = 'thriving';  // 4 fields
   } else if (economicRoll > 0.6) {
-    prosperityLevel = 'moderate';   // 6 fields
+    prosperityLevel = 'moderate';   // 4 fields
   } else if (economicRoll > 0.3) {
-    prosperityLevel = 'small';      // 4 fields
+    prosperityLevel = 'small';      // 3 fields
   } else {
     prosperityLevel = 'subsistence'; // 2 fields
   }
 
-  // Initialize fields based on prosperity level
+  // Initialize fields based on prosperity level (max 4 for manageability)
   const fieldCounts = {
     'subsistence': 2,
-    'small': 4,
-    'moderate': 6,
-    'thriving': 8
+    'small': 3,
+    'moderate': 4,
+    'thriving': 4
   };
 
   const numFields = fieldCounts[prosperityLevel];

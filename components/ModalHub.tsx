@@ -48,6 +48,8 @@ import { questService } from '../services/questService';
 import { eventService } from '../services/eventService';
 import { PrimarySourceMetadata } from '../services/primarySourceService';
 import { poiServiceHandler } from '../services/poiServiceHandler';
+import { journalQuoteService } from '../services/journalQuoteService';
+import { LogService } from '../services/logService';
 
 // Lazy load heavy data modals
 const PrimarySourceModal = lazy(() => import('./PrimarySourceModal').then(module => ({ default: module.PrimarySourceModal })));
@@ -111,7 +113,9 @@ const ModalHub: React.FC = () => {
         contextualTooltipsEnabled, toggleContextualTooltips, resetAllTooltips,
         showFactoryPanel, setShowFactoryPanel,
         showFactoryContractModal, setShowFactoryContractModal,
-        activeFactoryData, setActiveFactoryData
+        activeFactoryData, setActiveFactoryData,
+        recordPrimarySourceEvent,
+        assessmentSession, assessmentLogs
     } = useUI();
 
     const {
@@ -126,8 +130,8 @@ const ModalHub: React.FC = () => {
         setControlledIconX, setControlledIconY
     } = usePlayer();
 
-    
-    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay, setGameDate, setGameTimeHours } = useGame();
+
+    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay, setGameDate, setGameTimeHours, addGameLogEntry, formattedTime, gameLog, playerJournal } = useGame();
 
     // Initialize entity health service when map changes
     useEffect(() => {
@@ -158,14 +162,14 @@ const ModalHub: React.FC = () => {
     // Create current game state for saving
     const currentGameState = React.useMemo(() => {
         if (!playerCharacter || !mapData) return undefined;
-        
+
         return {
             playerCharacter,
             mapData,
             mapSeed: initialGameSeed.toString(),
-            currentLocation: { 
-                x: playerCharacter.x || 0, 
-                y: playerCharacter.y || 0 
+            currentLocation: {
+                x: playerCharacter.x || 0,
+                y: playerCharacter.y || 0
             },
             year: gameDate.year,
             month: gameDate.month,
@@ -179,11 +183,19 @@ const ModalHub: React.FC = () => {
             activeQuests: questService.getActiveQuests(),
             completedQuests: questService.getCompletedQuests(),
             eventHistory: eventService.getEventHistory(),
+            // Assessment & Educational Data
+            gameLog: gameLog,
+            playerJournal: playerJournal,
+            assessmentSession: assessmentSession,
+            assessmentLogs: assessmentLogs,
+            llmAnalysis: null, // LLM analysis is computed on-demand, not stored in state
+            learningProgress: [], // TODO: Add learning progress tracking
+            journalQuotes: journalQuoteService.getQuotes(),
             isInSpecialMap: isSpecialMap,
             specialMapData: isSpecialMap ? mapData : undefined,
             playTime: 0 // TODO: Track actual play time
         };
-    }, [playerCharacter, mapData, initialGameSeed, gameDate, gameTimeHours, currentZone, currentRegion, npcs, isSpecialMap]);
+    }, [playerCharacter, mapData, initialGameSeed, gameDate, gameTimeHours, currentZone, currentRegion, npcs, isSpecialMap, gameLog, playerJournal, assessmentSession, assessmentLogs]);
     
     // Handle loading a saved game
     const handleLoadGame = useCallback((save: SavedGame) => {
@@ -701,6 +713,21 @@ const ModalHub: React.FC = () => {
                                 );
                             }
 
+                            // Log container opening
+                            if (gameDate && formattedTime) {
+                                const itemNames = allItems.map(item => item.name);
+                                const location = currentRegion || currentZone || 'Unknown';
+                                const logEntry = LogService.createContainerOpenedLog(
+                                    containerModalData.containerType,
+                                    itemNames,
+                                    location,
+                                    gameDate,
+                                    formattedTime,
+                                    currentTimeOfDay
+                                );
+                                addGameLogEntry(logEntry);
+                            }
+
                             // Show toast notification
                             showToast(`You ${action} ${itemCount} item${itemCount > 1 ? 's' : ''}`, isTheft ? 'warning' : 'success');
 
@@ -783,6 +810,21 @@ const ModalHub: React.FC = () => {
                         gameTime={gameTimeHours !== undefined && gameTimeMinutes !== undefined ?
                             { hours: gameTimeHours, minutes: gameTimeMinutes } : undefined}
                         showToast={showToast}
+                        gameDate={gameDate}
+                        location={currentRegion || currentZone || 'Unknown Location'}
+                        timeOfDay={currentTimeOfDay}
+                        formattedTime={formattedTime}
+                        onLogEvent={addGameLogEntry}
+                        onAddXP={(amount) => {
+                            onCharacterUpdate(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    xp: (prev.xp || 0) + amount
+                                };
+                            });
+                        }}
+                        onLogAssessment={recordPrimarySourceEvent}
                     />
                 </Suspense>
             )}

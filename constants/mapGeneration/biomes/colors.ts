@@ -28,7 +28,7 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.DENSE_CITY]: '#808080', // Gray for dense structures
   [BiomeType.URBAN]: '#ef4444', // Legacy
   [BiomeType.JUNGLE]: '#2d7a3f', // rich jungle green (between FOREST and DENSE_FOREST)
-  [BiomeType.DESERT]: '#fde68a', 
+  [BiomeType.DESERT]: '#e8c468', // Warmer, more Sahara-like 
   [BiomeType.OASIS]: '#bfc478',   
   [BiomeType.WETLANDS]: '#bdbd93', 
   [BiomeType.REEF]: '#20B2AA',     
@@ -44,7 +44,7 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.SALT_FLATS]: '#f5f5f5',    // Off-white
   [BiomeType.HOT_SPRINGS]: '#778899',   // Bluish-Grayish base for ground (water will be different)
   [BiomeType.RUINS]: '#777777',        // Neutral Grey for stone ruins, symbol will vary
-  [BiomeType.ESTUARY]: '#4595d6', // Placeholder, will be blended dynamically
+  [BiomeType.ESTUARY]: '#8b7355', // Muddy brown for tidal mudflats (low tide)
   [BiomeType.FRESHWATER_LAKE]: '#2e5a9a', // Slightly lighter deep blue for base
   [BiomeType.CLIFF]: '#A08C7D', // Stony grey-brown for cliffs
   [BiomeType.PALACE]: '#c0b0ff', // A light, royal purple/lavender

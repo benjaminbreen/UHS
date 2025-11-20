@@ -3,6 +3,7 @@
  */
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { MapData, AnimalEntity, NpcEntity, MapAnalysisData, MapArchetype, ClimateType, AltitudeSetting, EdgeTileInfo, GameDate, AdjacencyDirection, Item, MapAreaDefinition, PlayerCharacter, BiomeType, MapGenerationParams, SocietalProfile, HistoricalEra, TerrainStructure, DeployedVessel } from '../types';
+import { DeployedStructure } from '../types/structureTypes';
 import { SpecialMapConfig, SpecialMapData, InteractionZone, ExitZone } from '../types/specialMapTypes';
 import { proceduralGenerateMap } from '../generation/standardMap/standardMapGenerator';
 import { generateSpecialMap } from '../generation/specialMap/specialMapGenerator';
@@ -83,6 +84,7 @@ interface CachedMapEntry {
   animals: AnimalEntity[];
   npcs: NpcEntity[];
   deployedVessels: DeployedVessel[];
+  deployedStructures?: DeployedStructure[]; // Player-deployed structures (tents, houses, etc.)
   seed: number;
   archetype: MapArchetype;
   climate: ClimateType;
@@ -169,6 +171,7 @@ export const useMapState = (props: useMapStateProps) => {
     }, []);
     
     const [deployedVessels, setDeployedVessels] = useState<DeployedVessel[]>([]);
+    const [deployedStructures, setDeployedStructures] = useState<DeployedStructure[]>([]);
     const [mapDataCache, setMapDataCache] = useState<Map<string, CachedMapEntry>>(new Map());
     const [currentWorldCoords, setCurrentWorldCoords] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
 
@@ -2029,6 +2032,89 @@ export const useMapState = (props: useMapStateProps) => {
         return { success: true, bridgePosition: bridgeLocation };
     }, [mapData, currentWorldCoords, mapDataCache]);
 
+    const deployStructureToMap = useCallback((structureItem: Item, structureType: 'tent' | 'stone_house', playerX: number, playerY: number): { success: boolean, structurePosition?: { x: number, y: number } } => {
+        if (!mapData) return { success: false };
+
+        console.log(`[deployStructureToMap] Deploying ${structureType} near (${playerX}, ${playerY})`);
+
+        // Find a suitable land tile near the player
+        const findNearestLandTile = (originX: number, originY: number) => {
+            const searchRadius = 3; // Check within 3 tiles
+            const candidates: Array<{ x: number; y: number; distance: number }> = [];
+
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+                    if (dx === 0 && dy === 0) continue; // Skip the player's current position
+
+                    const x = originX + dx;
+                    const y = originY + dy;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+                        const tile = mapData.tiles[y]?.[x];
+                        console.log(`[deployStructureToMap] Checking tile (${x}, ${y}): isLand=${tile?.isLand}, biome=${tile?.biome}`);
+
+                        if (tile && tile.isLand) {
+                            // Check if spot is already occupied by another structure
+                            const isOccupied = deployedStructures.some(s => s.x === x && s.y === y);
+                            if (!isOccupied) {
+                                candidates.push({ x, y, distance });
+                            } else {
+                                console.log(`[deployStructureToMap] Land tile at (${x}, ${y}) is occupied by another structure`);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (candidates.length > 0) {
+                // Sort by distance and return the closest
+                candidates.sort((a, b) => a.distance - b.distance);
+                const chosen = candidates[0];
+                console.log(`[deployStructureToMap] Found ${candidates.length} land tiles, choosing closest at (${chosen.x}, ${chosen.y}) distance ${chosen.distance.toFixed(2)}`);
+                return { x: chosen.x, y: chosen.y };
+            }
+
+            console.log('[deployStructureToMap] No land tiles found in search area');
+            return null;
+        };
+
+        const landPosition = findNearestLandTile(playerX, playerY);
+        if (!landPosition) {
+            console.warn('[deployStructureToMap] No suitable land tile found within 3 tiles');
+            return { success: false };
+        }
+
+        // Create deployed structure
+        const deployedStructure: DeployedStructure = {
+            id: `structure_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            structureItem,
+            type: structureType,
+            x: landPosition.x,
+            y: landPosition.y,
+            deployedAt: Date.now(),
+            condition: 100,
+            isOwned: true
+        };
+
+        // Add to current map
+        setDeployedStructures(prevStructures => [...prevStructures, deployedStructure]);
+
+        // Update cache
+        const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+        const cachedEntry = mapDataCache.get(cacheKey);
+        if (cachedEntry) {
+            const updatedStructures = [...(cachedEntry.deployedStructures || []), deployedStructure];
+            setMapDataCache(prevCache => new Map(prevCache).set(cacheKey, {
+                ...cachedEntry,
+                deployedStructures: updatedStructures
+            }));
+        }
+
+        console.log(`[deployStructureToMap] Deployed ${structureType} at (${landPosition.x}, ${landPosition.y})`);
+        return { success: true, structurePosition: { x: landPosition.x, y: landPosition.y } };
+    }, [mapData, deployedStructures, currentWorldCoords, mapDataCache]);
+
     /**
      * Fast travel to a specific map area (for caravans, teleportation, etc.)
      * Unlike onStartNewWorldAtLocation, this preserves world state and just moves the player
@@ -2114,6 +2200,7 @@ export const useMapState = (props: useMapStateProps) => {
             setAnimals(newAnimals);
             setNpcs(newNpcs);
             setDeployedVessels([]);
+            setDeployedStructures([]);
 
             // Cache the new map
             const urbanData = urbanTileRegistry.serialize();
@@ -2122,6 +2209,7 @@ export const useMapState = (props: useMapStateProps) => {
                 animals: newAnimals,
                 npcs: newNpcs,
                 deployedVessels: [],
+                deployedStructures: [],
                 seed: mapSeedToUse,
                 archetype: foundAreaDef.archetype,
                 climate: foundAreaDef.climate,
@@ -2175,6 +2263,7 @@ export const useMapState = (props: useMapStateProps) => {
         npcs, setNpcs,
         addPersistedMerchant,
         deployedVessels, setDeployedVessels,
+        deployedStructures, setDeployedStructures,
         mapDataCache, setMapDataCache,
         currentWorldCoords, setCurrentWorldCoords,
         localArea, setLocalArea,
@@ -2215,6 +2304,7 @@ export const useMapState = (props: useMapStateProps) => {
         updateStructureData,
         deployVesselToMap,
         deployBridgeToMap,
+        deployStructureToMap,
         pendingScenarioData,
         setPendingScenarioData,
         

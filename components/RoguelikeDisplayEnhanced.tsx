@@ -20,7 +20,7 @@ import ContainerModal from './ContainerModal';
 import { getASCIIPortrait, framePortrait, getHealthBar, applyCulturalStyle } from '../services/asciiPortraitService';
 import { ruinsEnemyService, RuinsEnemy } from '../services/ruinsEnemyService';
 import { historicalEncounterService, HistoricalEncounter, EncounterChoice } from '../services/historicalEncounterService';
-import { contextualManuscriptService, ContextualManuscript, TranslationPuzzle } from '../services/contextualManuscriptService';
+import { getRandomDiscovery, rollOutcome, DiscoveryPrompt } from '../constants/ruinDiscoveries';
 import {
     generateRuinNPCs,
     getRuinAnimals,
@@ -38,11 +38,8 @@ import { ruinsMetricsService } from '../services/ruinsMetricsService';
 import { ruinsDataBridge } from '../services/ruinsDataBridge';
 import { requestDiscoveryNarrative } from '../services/ruinsContentBroker';
 import { DiscoveryTerminal } from './ruins/DiscoveryTerminal';
-import { TranslationLab } from './ruins/TranslationLab';
-import { ExpeditionPanel } from './ruins/ExpeditionPanel';
-import { ExpeditionCard } from '../generation/ruins/data';
-import { ExpeditionCardState, KnowledgeState, ActiveCardEffects } from '../engine/ruins/expedition';
 import { eventBus } from '../services/eventBus';
+import { generateEnvironmentalDiscovery } from '../services/environmentalStorytellingService';
 
 interface RoguelikeDisplayEnhancedProps {
     ruinType: {
@@ -82,6 +79,16 @@ interface AmbianceText {
     color: string;
     opacity: number;
     duration: number;
+}
+
+// Journal entry for environmental discoveries
+interface JournalEntry {
+    id: string;
+    title: string;
+    description: string;
+    category: 'architecture' | 'mural' | 'evidence' | 'inscription' | 'artifact';
+    timestamp: number;
+    location: { depth: number; chamber: string };
 }
 
 // Attack animation for real-time combat
@@ -547,24 +554,11 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
     const [encounterOutcome, setEncounterOutcome] = useState<string | null>(null);
 
-    // Translation minigame state
-    const [currentTranslationPuzzle, setCurrentTranslationPuzzle] = useState<TranslationPuzzle | null>(null);
-    const [currentContextualManuscript, setCurrentContextualManuscript] = useState<ContextualManuscript | null>(null);
-    const [showTranslationModal, setShowTranslationModal] = useState(false);
-    const [playerTranslationGuesses, setPlayerTranslationGuesses] = useState<string[]>([]);
-    const [translationResult, setTranslationResult] = useState<{ success: boolean; accuracy: number; feedback: string } | null>(null);
-    const [knowledge, setKnowledge] = useState<KnowledgeState>({ score: 0, tags: [] });
-    const knowledgeRef = useRef(0);
-    const [expeditionCards, setExpeditionCards] = useState<ExpeditionCardState[]>([]);
-    const [activeCardEffects, setActiveCardEffects] = useState<ActiveCardEffects>({
-        revealRoom: false,
-        translationBoost: false,
-        combatAdvantage: false
-    });
-    const [translationStats, setTranslationStats] = useState<{ successes: number; lastMedium?: string }>({
-        successes: 0,
-        lastMedium: undefined
-    });
+    // Simple discovery system state
+    const [currentDiscoveryPrompt, setCurrentDiscoveryPrompt] = useState<any | null>(null);
+    const [showDiscoveryModal, setShowDiscoveryModal] = useState(false);
+    const [discoveryLocation, setDiscoveryLocation] = useState<{ x: number; y: number } | null>(null);
+
     const [dungeonDimensions, setDungeonDimensions] = useState({ width: 60, height: 30 });
     const containerRef = useRef<HTMLDivElement>(null);
     const [playerInput, setPlayerInput] = useState(''); // For NPC dialogue input
@@ -577,69 +571,14 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const runStartRef = useRef<number>(0);
     const currentDepthRef = useRef(currentDepth);
 
-    const evaluateCardUnlock = useCallback(
-        (card: ExpeditionCard, knowledgeState: KnowledgeState, stats: { successes: number; lastMedium?: string }) => {
-            const condition = (card.unlockCondition || '').toLowerCase();
-            if (!condition) return true;
-            if (condition.includes('astronomy')) {
-                return knowledgeState.tags.includes('astronomy');
-            }
-            if (condition.includes('translation')) {
-                return stats.successes > 0 && (!condition.includes('textile') || stats.lastMedium === 'textile');
-            }
-            if (condition.includes('military')) {
-                return knowledgeState.tags.includes('military');
-            }
-            return false;
-        },
-        []
-    );
-
     useEffect(() => {
         currentDepthRef.current = currentDepth;
     }, [currentDepth]);
 
     useEffect(() => {
-        knowledgeRef.current = knowledge.score;
-    }, [knowledge.score]);
-
-    useEffect(() => {
-        const cards = ruinsDataBridge
-            .getExpeditionCards({
-                culturalZone: culturalContext.culturalZone,
-                era: culturalContext.era
-            })
-            .map(card => ({
-                card,
-                unlocked: !card.unlockCondition,
-                used: false
-            }));
-        setExpeditionCards(cards);
-        setActiveCardEffects({
-            revealRoom: false,
-            translationBoost: false,
-            combatAdvantage: false
-        });
-    }, [culturalContext.culturalZone, culturalContext.era]);
-
-    useEffect(() => {
-        setExpeditionCards(prev =>
-            prev.map(state =>
-                state.unlocked
-                    ? state
-                    : evaluateCardUnlock(state.card, knowledge, translationStats)
-                        ? { ...state, unlocked: true }
-                        : state
-            )
-        );
-    }, [knowledge, translationStats, evaluateCardUnlock]);
-
-    useEffect(() => {
         const runId = `ruin-${structureId}-${Date.now()}`;
         runIdRef.current = runId;
         runStartRef.current = Date.now();
-        setKnowledge({ score: 0, tags: [] });
-        setTranslationStats({ successes: 0, lastMedium: undefined });
         eventBus.emit('ruins.roguelike.active', true);
         ruinsMetricsService.record('ruins.run.start', {
             runId,
@@ -655,8 +594,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 runId,
                 ruinId: structureId,
                 durationMs,
-                depth: currentDepthRef.current,
-                knowledgeScore: knowledgeRef.current
+                depth: currentDepthRef.current
             });
             eventBus.emit('ruins.roguelike.active', false);
         };
@@ -671,7 +609,12 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     
     const [combatTarget, setCombatTarget] = useState<Entity | null>(null);
     const [discoveredSources, setDiscoveredSources] = useState<PrimarySourceMetadata[]>([]);
-    
+
+    // Journal and examination system
+    const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+    const [currentExamination, setCurrentExamination] = useState<JournalEntry | null>(null);
+    const [showExaminationModal, setShowExaminationModal] = useState(false);
+
     // Sound effects and ambiance
     const [soundEffects, setSoundEffects] = useState<SoundEffect[]>([]);
     const [ambianceTexts, setAmbianceTexts] = useState<AmbianceText[]>([]);
@@ -813,85 +756,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     }, [currentDialogue, playerInput, isWaitingForResponse, structureLocation, currentDepth,
         culturalContext, ruinType, playerCharacter, addMessage]);
 
-    const handlePlayCard = useCallback((cardId: string) => {
-        const state = expeditionCards.find(card => card.card.id === cardId);
-        if (!state) return;
-        if (!state.unlocked) {
-            addMessage('This expedition tactic has not been unlocked yet.');
-            return;
-        }
-        if (state.used) {
-            addMessage('You have already employed this tactic during this expedition.');
-            return;
-        }
-
-        const effect = state.card.effectType;
-        if (effect === 'reveal_room') {
-            setActiveCardEffects(prev => ({ ...prev, revealRoom: true }));
-            let direction: string | null = null;
-            setDungeon(prev => {
-                for (let y = 0; y < prev.length; y++) {
-                    const row = prev[y];
-                    for (let x = 0; x < row.length; x++) {
-                        const tile = row[x];
-                        if (tile.type === 'discovery' && !tile.hasBeenDiscovered && !tile.visible) {
-                            const newRow = [...row];
-                            newRow[x] = { ...tile, visible: true };
-                            const newDungeon = [...prev];
-                            newDungeon[y] = newRow;
-                            const dx = x - player.x;
-                            const dy = y - player.y;
-                            if (Math.abs(dx) > Math.abs(dy)) {
-                                direction = dx > 0 ? 'east' : 'west';
-                            } else if (dy !== 0) {
-                                direction = dy > 0 ? 'south' : 'north';
-                            } else {
-                                direction = 'beneath your feet';
-                            }
-                            return newDungeon;
-                        }
-                    }
-                }
-                return prev;
-            });
-            addMessage(direction
-                ? `Charts reveal a hidden chamber to the ${direction}.`
-                : 'Your charts show no additional hidden chambers.');
-            setTimeout(() => setActiveCardEffects(prev => ({ ...prev, revealRoom: false })), 2000);
-        } else if (effect === 'boost_translation') {
-            setActiveCardEffects(prev => ({ ...prev, translationBoost: true }));
-            addMessage('Your expedition linguist prepares to assist with complex translations.');
-        } else if (effect === 'combat_advantage') {
-            setActiveCardEffects(prev => ({ ...prev, combatAdvantage: true }));
-            addMessage('You rally the team, gaining an edge in upcoming confrontations.');
-        } else if (effect === 'increase_loot') {
-            addMessage('You carefully catalogue artifacts, improving your odds of valuable finds.');
-            setKnowledge(prev => {
-                const tags = Array.from(new Set([...prev.tags, 'economy']));
-                return { score: prev.score + 5, tags };
-            });
-        } else if (effect === 'knowledge_bonus') {
-            setKnowledge(prev => {
-                const tags = Array.from(new Set([...prev.tags, 'scholarship']));
-                return { score: prev.score + 15, tags };
-            });
-            addMessage('Field notes synthesize into a breakthrough insight.');
-        } else {
-            addMessage('You organize your notes, ready for what lies ahead.');
-        }
-
-        setExpeditionCards(prev =>
-            prev.map(card => card.card.id === cardId ? { ...card, used: true } : card)
-        );
-
-        ruinsMetricsService.record('ruins.card.played', {
-            runId: runIdRef.current,
-            ruinId: structureId,
-            cardId,
-            effect,
-            depth: currentDepth
-        });
-    }, [expeditionCards, addMessage, setDungeon, player.x, player.y, setActiveCardEffects, setKnowledge, currentDepth, structureId]);
 
     // Track which rooms have been entered for chamber discovery
     const [discoveredRooms, setDiscoveredRooms] = useState<Set<string>>(new Set());
@@ -1242,10 +1106,9 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         
         // Calculate attack tiles
         const attackTiles = getAttackPattern(player.x, player.y, direction, weaponType);
-        
-        // Create attack animation with power multiplier
-        const advantageMultiplier = activeCardEffects.combatAdvantage ? 1.25 : 1;
-        const baseDamage = ((weapon.damage || 2) + (player.attack || 0)) * advantageMultiplier;
+
+        // Create attack animation
+        const baseDamage = (weapon.damage || 2) + (player.attack || 0);
         const attackAnim: AttackAnimation = {
             id: `attack_${attackIdRef.current++}`,
             type: weaponType === 'spear' ? 'thrust' : weaponType === 'axe' ? 'arc' : 'slash',
@@ -1270,39 +1133,87 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             const hitEntity = entities.find(e => e.x === tile.x && e.y === tile.y && e.hp > 0);
             if (hitEntity) {
                 // Calculate damage
-                const damage = Math.max(1, attackAnim.damage - (hitEntity.defense || 0));
-                
+                const baseDamage = Math.max(1, attackAnim.damage - (hitEntity.defense || 0));
+
+                // Critical hit chance (15%)
+                const isCritical = Math.random() < 0.15;
+                const damage = isCritical ? Math.floor(baseDamage * 1.5) : baseDamage;
+
                 // Apply damage
-                setEntities(prev => prev.map(e => 
-                    e.id === hitEntity.id 
+                setEntities(prev => prev.map(e =>
+                    e.id === hitEntity.id
                         ? { ...e, hp: Math.max(0, e.hp - damage) }
                         : e
                 ));
-                
-                // Visual feedback
-                createSoundEffect('SLASH!', tile.x, tile.y, '#ff0000', 'shake');
-                addMessage(`You hit ${hitEntity.name} for ${damage} damage!`);
-                
+
+                // Blood splatter effects - multiple droplets for visual impact
+                const bloodSymbols = ['●', '•', '·'];
+                for (let i = 0; i < 3; i++) {
+                    const offsetX = (Math.random() - 0.5) * 2;
+                    const offsetY = (Math.random() - 0.5) * 2;
+                    setTimeout(() => {
+                        createSoundEffect(
+                            bloodSymbols[i % bloodSymbols.length],
+                            tile.x,
+                            tile.y,
+                            '#8B0000',
+                            'float'
+                        );
+                    }, i * 50);
+                }
+
+                // Damage number display
+                createSoundEffect(
+                    `-${damage}${isCritical ? '!' : ''}`,
+                    tile.x,
+                    tile.y,
+                    isCritical ? '#ff00ff' : '#ff0000',
+                    'shake'
+                );
+
+                addMessage(`You hit ${hitEntity.name} for ${damage} damage${isCritical ? ' - CRITICAL!' : ''}!`);
+
+                // Screen shake on critical hit
+                if (isCritical) {
+                    const container = document.querySelector('.absolute.inset-0.bg-black') as HTMLElement;
+                    if (container) {
+                        container.style.animation = 'shake 0.3s ease-in-out';
+                        setTimeout(() => {
+                            container.style.animation = '';
+                        }, 300);
+                    }
+                }
+
                 // Knockback for hammer
                 if (weaponType === 'hammer') {
                     const knockX = tile.x + dx;
                     const knockY = tile.y + dy;
                     if (dungeon[knockY]?.[knockX]?.type === 'floor') {
-                        setEntities(prev => prev.map(e => 
-                            e.id === hitEntity.id 
+                        setEntities(prev => prev.map(e =>
+                            e.id === hitEntity.id
                                 ? { ...e, x: knockX, y: knockY }
                                 : e
                         ));
                         createSoundEffect('KNOCK!', knockX, knockY, '#ffaa00', 'shake');
                     }
                 }
-                
-                // Remove dead entities
+
+                // Death animation - mark entity as dying instead of removing immediately
                 if (hitEntity.hp - damage <= 0) {
                     addMessage(`${hitEntity.name} is defeated!`);
+                    setEntities(prev => prev.map(e =>
+                        e.id === hitEntity.id
+                            ? { ...e, dying: true, hp: 0 }
+                            : e
+                    ));
+
+                    // Create death animation - fade to bones
+                    createSoundEffect('💀', tile.x, tile.y, '#666666', 'float');
+
+                    // Remove entity after death animation
                     setTimeout(() => {
                         setEntities(prev => prev.filter(e => e.id !== hitEntity.id));
-                    }, 500);
+                    }, 1000);
                 }
             }
             
@@ -1322,7 +1233,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             setWeaponSwinging(false);
             weaponSwingingRef.current = false;
         }, 200);
-    }, [player, entities, dungeon, getAttackPattern, createSoundEffect, addMessage, handleEnvironmentalInteraction, activeCardEffects.combatAdvantage]);
+    }, [player, entities, dungeon, getAttackPattern, createSoundEffect, addMessage, handleEnvironmentalInteraction]);
     
     // Perform special charged attack
     const performChargedSpecial = useCallback((direction: string, powerLevel: number) => {
@@ -2218,7 +2129,161 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 }
             }
         });
-        
+
+        // Add examinable environmental storytelling elements (3-6 per floor)
+        const numExaminables = 3 + Math.floor(Math.random() * 4);
+        const examinableTypes: Array<'architecture' | 'mural' | 'evidence' | 'inscription' | 'artifact'> =
+            ['architecture', 'mural', 'evidence', 'inscription', 'artifact'];
+
+        for (let i = 0; i < numExaminables; i++) {
+            const room = rooms[Math.floor(Math.random() * rooms.length)];
+            const type = examinableTypes[Math.floor(Math.random() * examinableTypes.length)];
+            const discovery = generateEnvironmentalDiscovery(type, culturalContext.culturalZone, culturalContext.era);
+
+            // All examinables are placed on floor tiles so player can walk onto them
+            let targetTiles: Array<{x: number, y: number}> = [];
+
+            // Place on floor tiles
+            for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
+                for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
+                    if (newDungeon[y]?.[x]?.type === 'floor' && !newDungeon[y][x].examinable) {
+                        targetTiles.push({ x, y });
+                    }
+                }
+            }
+
+            if (targetTiles.length > 0) {
+                const pos = targetTiles[Math.floor(Math.random() * targetTiles.length)];
+                newDungeon[pos.y][pos.x] = {
+                    ...newDungeon[pos.y][pos.x],
+                    examinable: true,
+                    examinableData: {
+                        ...discovery,
+                        id: `examine-${currentDepth}-${i}`,
+                        timestamp: Date.now(),
+                        location: { depth: currentDepth, chamber: currentChamber }
+                    }
+                };
+
+                // Add visual marker for examinable items
+                if (type === 'artifact') {
+                    newDungeon[pos.y][pos.x].description = `A ${discovery.title.toLowerCase()} lies here (press SPACE to examine)`;
+                } else if (type === 'architecture') {
+                    newDungeon[pos.y][pos.x].description = `Interesting ${type} here (press SPACE to examine)`;
+                } else {
+                    newDungeon[pos.y][pos.x].description = `${discovery.title} (press SPACE to examine)`;
+                }
+            }
+        }
+
+        // Add secret passages (hidden doors in walls) - 2-4 per floor
+        const numSecrets = 2 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numSecrets && i < rooms.length - 1; i++) {
+            const room = rooms[i];
+            // Find wall tiles adjacent to the room
+            const wallTiles: Array<{x: number, y: number}> = [];
+
+            // Check all four walls of the room
+            for (let x = room.x; x < room.x + room.width; x++) {
+                // Top wall
+                if (room.y > 0 && newDungeon[room.y - 1][x].type === 'wall') {
+                    wallTiles.push({ x, y: room.y - 1 });
+                }
+                // Bottom wall
+                if (room.y + room.height < DUNGEON_HEIGHT && newDungeon[room.y + room.height][x].type === 'wall') {
+                    wallTiles.push({ x, y: room.y + room.height });
+                }
+            }
+            for (let y = room.y; y < room.y + room.height; y++) {
+                // Left wall
+                if (room.x > 0 && newDungeon[y][room.x - 1].type === 'wall') {
+                    wallTiles.push({ x: room.x - 1, y });
+                }
+                // Right wall
+                if (room.x + room.width < DUNGEON_WIDTH && newDungeon[y][room.x + room.width].type === 'wall') {
+                    wallTiles.push({ x: room.x + room.width, y });
+                }
+            }
+
+            if (wallTiles.length > 0) {
+                const secretPos = wallTiles[Math.floor(Math.random() * wallTiles.length)];
+                newDungeon[secretPos.y][secretPos.x] = {
+                    ...newDungeon[secretPos.y][secretPos.x],
+                    type: 'wall',
+                    secretPassage: true,
+                    excavatable: true,
+                    description: 'This wall seems different from the others... (press SPACE to examine)'
+                };
+            }
+        }
+
+        // Add boulders and weak walls - 3-6 boulders, 1-3 weak walls per floor (rare!)
+        const numBoulders = 3 + Math.floor(Math.random() * 4);
+        const numWeakWalls = 1 + Math.floor(Math.random() * 3);
+
+        // Add weak walls in random wall positions
+        for (let i = 0; i < numWeakWalls; i++) {
+            const wallTiles: Array<{x: number, y: number}> = [];
+            for (let y = 1; y < DUNGEON_HEIGHT - 1; y++) {
+                for (let x = 1; x < DUNGEON_WIDTH - 1; x++) {
+                    if (newDungeon[y][x].type === 'wall' &&
+                        !newDungeon[y][x].secretPassage &&
+                        !newDungeon[y][x].examinable) {
+                        // Check if adjacent to floor (only walls bordering rooms)
+                        const adjacentToFloor =
+                            (newDungeon[y-1]?.[x]?.type === 'floor') ||
+                            (newDungeon[y+1]?.[x]?.type === 'floor') ||
+                            (newDungeon[y]?.[x-1]?.type === 'floor') ||
+                            (newDungeon[y]?.[x+1]?.type === 'floor');
+                        if (adjacentToFloor) {
+                            wallTiles.push({ x, y });
+                        }
+                    }
+                }
+            }
+
+            if (wallTiles.length > 0) {
+                const pos = wallTiles[Math.floor(Math.random() * wallTiles.length)];
+                newDungeon[pos.y][pos.x] = {
+                    type: 'weak_wall',
+                    visible: false,
+                    explored: false,
+                    breakable: true,
+                    durability: 100,
+                    description: 'A crumbling, weak section of wall'
+                };
+            }
+        }
+
+        // Add boulders in corridor and room floor positions
+        const boulderTiles: Array<{x: number, y: number}> = [];
+        for (let y = 1; y < DUNGEON_HEIGHT - 1; y++) {
+            for (let x = 1; x < DUNGEON_WIDTH - 1; x++) {
+                if (newDungeon[y][x].type === 'floor') {
+                    // Check if there's space around it (not near entrance or important features)
+                    const nearEntrance = Math.abs(x - startX) < 3 && Math.abs(y - startY) < 3;
+                    const nearChest = newDungeon[y][x].type === 'chest';
+                    if (!nearEntrance && !nearChest) {
+                        boulderTiles.push({ x, y });
+                    }
+                }
+            }
+        }
+
+        for (let i = 0; i < numBoulders && boulderTiles.length > 0; i++) {
+            const idx = Math.floor(Math.random() * boulderTiles.length);
+            const pos = boulderTiles[idx];
+            boulderTiles.splice(idx, 1);
+
+            newDungeon[pos.y][pos.x] = {
+                type: 'boulder',
+                visible: false,
+                explored: false,
+                pushable: true,
+                description: 'A large boulder blocks the way'
+            };
+        }
+
         // Add light sources (braziers, crystals) in special rooms
         rooms.forEach(room => {
             if (room.type === 'altar' || room.type === 'treasure' || room.type === 'library') {
@@ -2244,7 +2309,98 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 }
             }
         });
-        
+
+        // Add room-specific atmospheric decorations
+        rooms.forEach(room => {
+            const roomFloorTiles = [];
+            for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
+                for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
+                    if (newDungeon[y]?.[x]?.type === 'floor') {
+                        roomFloorTiles.push({ x, y });
+                    }
+                }
+            }
+
+            if (roomFloorTiles.length === 0) return;
+
+            switch (room.type) {
+                case 'altar':
+                    // Altars: Add altar piece in center, scattered offerings around it
+                    const altarCenter = {
+                        x: room.x + Math.floor(room.width / 2),
+                        y: room.y + Math.floor(room.height / 2)
+                    };
+                    if (newDungeon[altarCenter.y]?.[altarCenter.x]?.type === 'floor') {
+                        newDungeon[altarCenter.y][altarCenter.x] = {
+                            ...newDungeon[altarCenter.y][altarCenter.x],
+                            type: 'altar',
+                            description: `An ancient altar dedicated to ${culturalContext.culturalZone} deities`
+                        };
+                    }
+                    break;
+
+                case 'library':
+                    // Libraries: Scattered book piles (debris) representing fallen bookshelves
+                    const numBookPiles = Math.min(3, Math.floor(roomFloorTiles.length / 8));
+                    for (let i = 0; i < numBookPiles; i++) {
+                        const idx = Math.floor(Math.random() * roomFloorTiles.length);
+                        const tile = roomFloorTiles[idx];
+                        roomFloorTiles.splice(idx, 1);
+                        newDungeon[tile.y][tile.x] = {
+                            ...newDungeon[tile.y][tile.x],
+                            type: 'debris',
+                            description: 'Scattered scrolls and crumbling books'
+                        };
+                    }
+                    break;
+
+                case 'treasure':
+                    // Treasure rooms: Scattered coins/gems (represented as rubble with description)
+                    const numPiles = Math.min(4, Math.floor(roomFloorTiles.length / 6));
+                    for (let i = 0; i < numPiles; i++) {
+                        const idx = Math.floor(Math.random() * roomFloorTiles.length);
+                        const tile = roomFloorTiles[idx];
+                        roomFloorTiles.splice(idx, 1);
+                        newDungeon[tile.y][tile.x] = {
+                            ...newDungeon[tile.y][tile.x],
+                            type: 'rubble',
+                            description: 'Glittering coins and gems scattered about'
+                        };
+                    }
+                    break;
+
+                case 'guard':
+                    // Guard rooms: Weapon racks (pillars) and armor stands (statues)
+                    const numRacks = Math.min(2, Math.floor(roomFloorTiles.length / 10));
+                    for (let i = 0; i < numRacks; i++) {
+                        const idx = Math.floor(Math.random() * roomFloorTiles.length);
+                        const tile = roomFloorTiles[idx];
+                        roomFloorTiles.splice(idx, 1);
+                        newDungeon[tile.y][tile.x] = {
+                            ...newDungeon[tile.y][tile.x],
+                            type: i % 2 === 0 ? 'pillar' : 'statue',
+                            description: i % 2 === 0 ? 'An empty weapon rack' : 'A suit of ancient armor on display'
+                        };
+                    }
+                    break;
+
+                case 'storage':
+                    // Storage rooms: Extra rubble/debris piles
+                    const numDebris = Math.min(5, Math.floor(roomFloorTiles.length / 5));
+                    for (let i = 0; i < numDebris; i++) {
+                        const idx = Math.floor(Math.random() * roomFloorTiles.length);
+                        const tile = roomFloorTiles[idx];
+                        roomFloorTiles.splice(idx, 1);
+                        newDungeon[tile.y][tile.x] = {
+                            ...newDungeon[tile.y][tile.x],
+                            type: 'debris',
+                            description: 'Broken crates and scattered supplies'
+                        };
+                    }
+                    break;
+            }
+        });
+
         // Add primary source manuscripts in library rooms
         try {
             // Get contextually appropriate manuscripts instead of random ones
@@ -2614,6 +2770,91 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 weight: 5,
                 description: 'A heavy stone boulder that can be pushed'
             };
+        }
+
+        // Water features - flooded areas, streams, and pools
+        // More common on deeper levels (underground springs, flooding)
+        const waterChance = 0.3 + (currentDepth * 0.1); // Increases with depth
+
+        if (Math.random() < waterChance) {
+            // 1. Small water pools in rooms (puddles, cisterns)
+            const numPools = 1 + Math.floor(Math.random() * 2); // 1-2 pools
+            for (let i = 0; i < numPools; i++) {
+                if (rooms.length === 0) break;
+                const room = rooms[Math.floor(Math.random() * rooms.length)];
+
+                // Create a small pool (2x2 to 4x4)
+                const poolSize = 2 + Math.floor(Math.random() * 3);
+                const poolX = room.x + 1 + Math.floor(Math.random() * Math.max(1, room.width - poolSize - 2));
+                const poolY = room.y + 1 + Math.floor(Math.random() * Math.max(1, room.height - poolSize - 2));
+
+                for (let py = poolY; py < poolY + poolSize && py < room.y + room.height - 1; py++) {
+                    for (let px = poolX; px < poolX + poolSize && px < room.x + room.width - 1; px++) {
+                        if (newDungeon[py]?.[px]?.type === 'floor') {
+                            newDungeon[py][px] = {
+                                type: 'water',
+                                visible: false,
+                                explored: false,
+                                description: 'A pool of stagnant water'
+                            };
+                        }
+                    }
+                }
+            }
+
+            // 2. Flooded corridors/channels (30% chance)
+            if (Math.random() < 0.3 && rooms.length >= 2) {
+                const room1 = rooms[Math.floor(Math.random() * rooms.length)];
+                const room2 = rooms[Math.floor(Math.random() * rooms.length)];
+
+                if (room1 !== room2) {
+                    // Create a thin stream connecting two rooms
+                    const startX = room1.x + Math.floor(room1.width / 2);
+                    const startY = room1.y + Math.floor(room1.height / 2);
+                    const endX = room2.x + Math.floor(room2.width / 2);
+                    const endY = room2.y + Math.floor(room2.height / 2);
+
+                    let currentX = startX;
+                    let currentY = startY;
+
+                    // Trace path and fill with water
+                    while ((currentX !== endX || currentY !== endY) && Math.abs(currentX - startX) + Math.abs(currentY - startY) < 50) {
+                        if (newDungeon[currentY]?.[currentX]?.type === 'floor') {
+                            newDungeon[currentY][currentX] = {
+                                type: 'water',
+                                visible: false,
+                                explored: false,
+                                description: 'A shallow stream flows here'
+                            };
+                        }
+
+                        // Move toward target
+                        if (currentX < endX) currentX++;
+                        else if (currentX > endX) currentX--;
+                        else if (currentY < endY) currentY++;
+                        else if (currentY > endY) currentY--;
+                    }
+                }
+            }
+
+            // 3. Flooded chamber (rare, deeper levels only)
+            if (currentDepth >= 3 && Math.random() < 0.15 && rooms.length > 2) {
+                const floodedRoom = rooms[1 + Math.floor(Math.random() * (rooms.length - 1))]; // Not entrance
+                const floodDepth = 0.3 + Math.random() * 0.4; // 30-70% flooded
+
+                for (let y = floodedRoom.y; y < floodedRoom.y + floodedRoom.height; y++) {
+                    for (let x = floodedRoom.x; x < floodedRoom.x + floodedRoom.width; x++) {
+                        if (newDungeon[y]?.[x]?.type === 'floor' && Math.random() < floodDepth) {
+                            newDungeon[y][x] = {
+                                type: 'water',
+                                visible: false,
+                                explored: false,
+                                description: 'Deep water fills this chamber'
+                            };
+                        }
+                    }
+                }
+            }
         }
 
         // Weak walls - breakable for secret passages
@@ -3117,7 +3358,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     );
                     const isBefriended = isNpcBefriended(entity.id, locationId);
 
-                    if (!entity.hostile || entity.hp <= 0 || isBefriended) return entity;
+                    if (!entity.hostile || entity.hp <= 0 || entity.dying || isBefriended) return entity;
                     
                     // Initialize AI properties if not set
                     if (!entity.moveSpeed) {
@@ -3546,96 +3787,114 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         }
     }, [structureLocation, currentDepth, culturalContext.era, culturalContext.culturalZone, ruinType.name, playerCharacter.name, playerCharacter.profession, player, addMessage]);
 
-    const handleTranslationWordSelect = useCallback((word: string) => {
-        if (!currentTranslationPuzzle) return;
-        setPlayerTranslationGuesses(prev => {
-            const gapIndex = prev.length;
-            if (gapIndex >= currentTranslationPuzzle.correctSolution.length) {
-                return prev;
-            }
-            const next = [...prev];
-            next[gapIndex] = word;
-            return next;
-        });
-    }, [currentTranslationPuzzle]);
+    // Handle discovery choice
+    const handleDiscoveryChoice = useCallback((choiceIndex: number) => {
+        if (!currentDiscoveryPrompt || !discoveryLocation) return;
 
-    const handleTranslationClear = useCallback(() => {
-        setPlayerTranslationGuesses([]);
-    }, []);
+        const outcomes = currentDiscoveryPrompt.outcomes[choiceIndex];
+        if (!outcomes) return;
 
-    const handleTranslationClose = useCallback(() => {
-        setShowTranslationModal(false);
-        setCurrentTranslationPuzzle(null);
-        setCurrentContextualManuscript(null);
-        setPlayerTranslationGuesses([]);
-        setTranslationResult(null);
-    }, []);
+        // Roll for outcome
+        const outcome = rollOutcome(outcomes);
 
-    const handleTranslationSubmit = useCallback(() => {
-        if (!currentTranslationPuzzle || !currentContextualManuscript) return;
+        // Show outcome message
+        addMessage(outcome.message);
 
-        const baseResult = contextualManuscriptService.checkTranslation(
-            currentTranslationPuzzle,
-            playerTranslationGuesses
-        );
+        // Apply outcome effects
+        const { x, y } = discoveryLocation;
 
-        let adjustedResult = baseResult;
-        if (!baseResult.success && activeCardEffects.translationBoost) {
-            const boostedAccuracy = Math.min(100, baseResult.accuracy + 20);
-            const boostedSuccess = boostedAccuracy >= 70;
-            adjustedResult = {
-                success: boostedSuccess,
-                accuracy: boostedAccuracy,
-                feedback: boostedSuccess
-                    ? 'Your expedition expertise clarifies the remaining glyphs.'
-                    : baseResult.feedback
-            };
+        switch (outcome.result) {
+            case 'staircase':
+                // Create stairs down at discovery location
+                setDungeon(prevDungeon => {
+                    const newDungeon = [...prevDungeon];
+                    if (newDungeon[y] && newDungeon[y][x]) {
+                        newDungeon[y][x] = {
+                            ...newDungeon[y][x],
+                            type: 'stairs_down',
+                            visible: true,
+                            explored: true
+                        };
+                    }
+                    return newDungeon;
+                });
+                gameSoundsService.playItemPickupSound('generic'); // Positive sound
+                break;
+
+            case 'trap':
+                // Trigger trap damage
+                setPlayer(prev => ({
+                    ...prev,
+                    hp: Math.max(0, prev.hp - 10)
+                }));
+                onHealthChange?.(-10);
+                addMessage('You take 10 damage!');
+                gameSoundsService.playWallBumpSound(); // Negative sound
+                break;
+
+            case 'item':
+                // Spawn random item from available items
+                const availableItems = Object.values(ITEM_DEFINITIONS).filter(item => {
+                    return !item.name.toLowerCase().includes('modern') && !item.name.toLowerCase().includes('gun');
+                });
+                const item = availableItems[Math.floor(Math.random() * availableItems.length)];
+                if (item) {
+                    const itemInstance = {
+                        ...item,
+                        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        quantity: 1,
+                    };
+                    onInventoryAdd?.(itemInstance);
+                    addMessage(`You found: ${item.name}!`);
+                    gameSoundsService.playItemPickupSound('generic');
+                }
+                break;
+
+            case 'secret_room':
+                // Reveal hidden area nearby (convert nearby walls to floors)
+                setDungeon(prevDungeon => {
+                    const newDungeon = [...prevDungeon];
+                    // Reveal a small 3x3 area adjacent to discovery
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = x + dx + 2; // Offset to one side
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < dungeonDimensions.width &&
+                                ny >= 0 && ny < dungeonDimensions.height &&
+                                newDungeon[ny] && newDungeon[ny][nx] &&
+                                newDungeon[ny][nx].type === 'wall') {
+                                newDungeon[ny][nx] = {
+                                    type: 'floor',
+                                    visible: true,
+                                    explored: true
+                                };
+                            }
+                        }
+                    }
+                    return newDungeon;
+                });
+                gameSoundsService.playItemPickupSound('generic'); // Positive sound
+                break;
+
+            case 'nothing':
+                // No effect, just the message
+                break;
         }
 
-        setTranslationResult(adjustedResult);
-
-        ruinsMetricsService.record('ruins.translation.completed', {
-            runId: runIdRef.current,
-            ruinId: structureId,
-            manuscriptId: currentContextualManuscript.id,
-            success: adjustedResult.success,
-            accuracy: adjustedResult.accuracy,
-            depth: currentDepth
-        });
-
-        setTranslationStats(prev => ({
-            successes: adjustedResult.success ? prev.successes + 1 : prev.successes,
-            lastMedium: (currentContextualManuscript.materialType || '').toLowerCase()
-        }));
-
-        if (adjustedResult.success) {
-            setDiscoveredSources(prev => [...prev, currentContextualManuscript as PrimarySourceMetadata]);
-            addMessage(`Successfully translated: "${currentContextualManuscript.title}"`);
-            if (currentContextualManuscript.historicalContext) {
-                setTimeout(() => {
-                    addMessage(`Historical significance: ${currentContextualManuscript.historicalContext}`);
-                }, 100);
-            }
-            setKnowledge(prev => {
-                const tags = Array.from(new Set([...prev.tags, 'linguistics']));
-                const score = prev.score + 12;
-                return { score, tags };
-            });
-        } else {
-            addMessage('The translation remains incomplete. Perhaps a different approach is needed.');
-        }
-
-        if (activeCardEffects.translationBoost) {
-            setActiveCardEffects(prev => ({ ...prev, translationBoost: false }));
-        }
+        // Close modal
+        setShowDiscoveryModal(false);
+        setCurrentDiscoveryPrompt(null);
+        setDiscoveryLocation(null);
     }, [
-        currentTranslationPuzzle,
-        currentContextualManuscript,
-        playerTranslationGuesses,
-        activeCardEffects.translationBoost,
+        currentDiscoveryPrompt,
+        discoveryLocation,
         addMessage,
-        currentDepth,
-        structureId
+        onHealthChange,
+        onInventoryAdd,
+        culturalContext.culturalZone,
+        culturalContext.era,
+        ruinType.age,
+        dungeonDimensions
     ]);
 
     // Handle player movement
@@ -3654,6 +3913,139 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         if (event.type === 'BLOCKED_WALL') {
             addMessage('You bump into a wall.');
             gameSoundsService.playWallBumpSound();
+            return;
+        }
+
+        if (event.type === 'BLOCKED_WEAK_WALL') {
+            // Weak wall auto-breaks on bump
+            setDungeon(prev => {
+                const newDungeon = [...prev];
+                if (newDungeon[event.y] && newDungeon[event.y][event.x]) {
+                    newDungeon[event.y][event.x] = {
+                        type: 'floor',
+                        visible: true,
+                        explored: true
+                    };
+                }
+                return newDungeon;
+            });
+            addMessage('The weakened wall crumbles as you push against it! *CRASH*');
+            createSoundEffect('*CRASH*', event.x, event.y, '#888888', 'shake');
+            gameSoundsService.playWallBumpSound();
+            return;
+        }
+
+        if (event.type === 'BLOCKED_BOULDER') {
+            // Boulder collision - try to push it
+            const boulderX = event.x;
+            const boulderY = event.y;
+            let pushX = boulderX + event.dx;
+            let pushY = boulderY + event.dy;
+
+            // Get direction name for message
+            const directionNames: { [key: string]: string } = {
+                '0,-1': 'north',
+                '0,1': 'south',
+                '-1,0': 'west',
+                '1,0': 'east'
+            };
+            const direction = directionNames[`${event.dx},${event.dy}`] || 'away';
+
+            // Check if destination is valid
+            if (pushX >= 0 && pushX < dungeonDimensions.width &&
+                pushY >= 0 && pushY < dungeonDimensions.height) {
+                const destTile = dungeon[pushY]?.[pushX];
+
+                // Check if boulder breaks through weak wall
+                if (destTile && destTile.type === 'weak_wall') {
+                    // Boulder crashes through weak wall and stops
+                    setDungeon(prev => {
+                        const newDungeon = [...prev];
+                        // Remove boulder from old position
+                        newDungeon[boulderY][boulderX] = { type: 'floor', visible: true, explored: true };
+                        // Weak wall breaks and boulder stops there
+                        newDungeon[pushY][pushX] = {
+                            type: 'boulder',
+                            visible: true,
+                            explored: true,
+                            pushable: true,
+                            description: 'A boulder that crashed through the wall'
+                        };
+                        return newDungeon;
+                    });
+                    addMessage(`The boulder smashes through the crumbling wall! *CRASH*`);
+                    createSoundEffect('*CRASH*', pushX, pushY, '#888888', 'shake');
+                    gameSoundsService.playWallBumpSound();
+                    return;
+                }
+
+                if (destTile && (destTile.type === 'floor' || destTile.type === 'water' || destTile.type === 'discovery')) {
+                    // 30% chance boulder keeps rolling downhill
+                    const keepsRolling = Math.random() < 0.3;
+                    let finalX = pushX;
+                    let finalY = pushY;
+                    let rolledExtra = false;
+
+                    if (keepsRolling) {
+                        // Boulder keeps rolling in same direction until it hits a wall
+                        let checkX = pushX + event.dx;
+                        let checkY = pushY + event.dy;
+
+                        while (checkX >= 0 && checkX < dungeonDimensions.width &&
+                               checkY >= 0 && checkY < dungeonDimensions.height) {
+                            const checkTile = dungeon[checkY]?.[checkX];
+                            if (checkTile && (checkTile.type === 'floor' || checkTile.type === 'water' || checkTile.type === 'discovery')) {
+                                finalX = checkX;
+                                finalY = checkY;
+                                checkX += event.dx;
+                                checkY += event.dy;
+                                rolledExtra = true;
+                            } else {
+                                break; // Hit an obstacle
+                            }
+                        }
+                    }
+
+                    // Successfully push boulder
+                    setDungeon(prev => {
+                        const newDungeon = [...prev];
+                        // Remove boulder from old position
+                        newDungeon[boulderY][boulderX] = { type: 'floor', visible: true, explored: true };
+                        // Place boulder at final position
+                        const finalDestTile = newDungeon[finalY][finalX];
+                        if (finalDestTile.type === 'water') {
+                            // Boulder falls into water, doesn't reappear
+                            newDungeon[finalY][finalX] = { type: 'water', visible: true, explored: true };
+                        } else {
+                            newDungeon[finalY][finalX] = {
+                                ...finalDestTile,
+                                type: 'boulder',
+                                pushable: true,
+                                visible: true,
+                                explored: true
+                            };
+                        }
+                        return newDungeon;
+                    });
+
+                    if (dungeon[finalY][finalX].type === 'water') {
+                        addMessage('You push the boulder into the water. *SPLASH*');
+                        createSoundEffect('*SPLASH*', finalX, finalY, '#4488ff', 'normal');
+                    } else if (rolledExtra) {
+                        addMessage(`You roll the boulder ${direction}. It keeps rolling downhill! *CRASH*`);
+                        createSoundEffect('*CRASH*', finalX, finalY, '#8B4513', 'shake');
+                        gameSoundsService.playWallBumpSound(); // Crash sound
+                    } else {
+                        addMessage(`You roll the boulder ${direction}.`);
+                        createSoundEffect('*rumble*', finalX, finalY, '#8B4513', 'shake');
+                        gameSoundsService.playWallBumpSound(); // Rumble sound
+                    }
+                } else {
+                    addMessage('You walk into a large boulder! It won\'t budge.');
+                }
+            } else {
+                addMessage('You walk into a large boulder! It won\'t budge.');
+            }
             return;
         }
 
@@ -3697,7 +4089,16 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     if (tile.hasItem) {
                         newPlayer.inventory.push(tile.hasItem);
                         addMessage(`You found: ${tile.hasItem.name}!`);
-                        onInventoryAdd?.(tile.hasItem);
+
+                        // Convert ItemDefinition to Item instance for parent game
+                        const itemInstance = {
+                            ...tile.hasItem,
+                            id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            quantity: 1,
+                        };
+                        console.log('[RoguelikeDisplay] Calling onInventoryAdd with item:', itemInstance.name, 'ID:', itemInstance.id);
+                        onInventoryAdd?.(itemInstance);
+
                         gameSoundsService.playItemPickupSound('generic');
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
@@ -3709,32 +4110,13 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     
                 case 'manuscript':
                     if (tile.hasManuscript) {
-                        const manuscript = tile.hasManuscript as ContextualManuscript;
-
-                        // Check if this is a contextual manuscript with translation puzzle
-                        if (manuscript.scriptType && manuscript.translationDifficulty) {
-                            // This is a contextual manuscript requiring translation
-                            setCurrentContextualManuscript(manuscript);
-                            const puzzle = contextualManuscriptService.generateTranslationPuzzle(manuscript);
-                            setCurrentTranslationPuzzle(puzzle);
-                            setShowTranslationModal(true);
-                            setPlayerTranslationGuesses([]);
-                            setTranslationResult(null);
-                            setTranslationStats(prev => ({
-                                successes: prev.successes,
-                                lastMedium: (manuscript.materialType || '').toLowerCase()
-                            }));
-                            addMessage(`You found an ancient ${manuscript.materialType}: "${manuscript.title}"`);
-                            addMessage(`Script type: ${manuscript.scriptType.toUpperCase()}. Press T to translate.`);
-                            gameSoundsService.playManuscriptSound();
-                        } else {
-                            // Standard manuscript handling
-                            newPlayer.manuscripts.push(tile.hasManuscript);
-                            addMessage(`You discovered: "${tile.hasManuscript.title}"!`);
-                            addMessage('Press M to read the manuscript.');
-                            gameSoundsService.playManuscriptSound();
-                            setDiscoveredSources(prev => [...prev, tile.hasManuscript]);
-                        }
+                        // Auto-collect manuscript - no puzzle!
+                        newPlayer.manuscripts.push(tile.hasManuscript);
+                        addMessage(`You discovered: "${tile.hasManuscript.title}"!`);
+                        addMessage('Press M to read your manuscripts.');
+                        gameSoundsService.playManuscriptSound();
+                        setDiscoveredSources(prev => [...prev, tile.hasManuscript]);
+                        createSoundEffect('*scroll*', newX, newY, '#d4af37', 'float');
 
                         // Remove manuscript from map after discovery
                         setDungeon(prevDungeon => {
@@ -3864,129 +4246,54 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     break;
                     
                 case 'debris':
-                    addMessage('Rubble and debris block the path here.');
+                    if (tile.description) {
+                        addMessage(`You see ${tile.description.toLowerCase()}.`);
+                    } else {
+                        addMessage('Rubble and debris scattered here.');
+                    }
+                    break;
+
+                case 'rubble':
+                    if (tile.description) {
+                        addMessage(`You notice ${tile.description.toLowerCase()}.`);
+                    } else {
+                        addMessage('Piles of rubble lie scattered about.');
+                    }
+                    break;
+
+                case 'pillar':
+                    if (tile.description) {
+                        addMessage(`${tile.description}`);
+                    } else {
+                        addMessage('A stone pillar stands here.');
+                    }
                     break;
 
                 case 'discovery':
                     if (!tile.hasBeenDiscovered) {
-                        const discoveryId = tile.discoveryId ?? `discovery_${structureId}_${newX}_${newY}`;
-
-                        setDungeon(prevDungeon => {
-                            const newDungeon = [...prevDungeon];
-                            newDungeon[newY][newX] = {
-                                ...tile,
-                                discoveryId,
-                                hasBeenDiscovered: true,
-                                type: 'floor' // Convert to floor after discovery
-                            };
-                            return newDungeon;
-                        });
-
-                        // Determine which room we're in
+                        // Get random discovery prompt
                         const currentRoom = currentRooms.find(room =>
                             newX >= room.x && newX < room.x + room.width &&
                             newY >= room.y && newY < room.y + room.height
                         );
                         const roomType = currentRoom?.type || 'corridor';
+                        const discoveryPrompt = getRandomDiscovery(roomType);
 
-                        // Calculate when these ruins were built based on their age
-                        const currentYear = mapData?.year || parseInt(mapData?.timeSlice || '1500');
-                        const constructionPeriod = calculateRuinConstructionPeriod(ruinType.age, currentYear);
-                        const appropriateLanguages = getLanguagesForRuin(culturalContext.culturalZone, constructionPeriod.era);
-                        const structureTypeForTemplates = (ruinType.originalType || ruinType.name || 'ruins').toLowerCase();
-
-                        addMessage('You make an interesting discovery...');
-                        gameSoundsService.playManuscriptSound();
-
-                        const templates = ruinsDataBridge.getDiscoveryTemplates({
-                            culturalZone: culturalContext.culturalZone,
-                            era: culturalContext.era,
-                            structureType: structureTypeForTemplates,
-                            room: roomType
+                        // Mark tile as discovered
+                        setDungeon(prevDungeon => {
+                            const newDungeon = [...prevDungeon];
+                            newDungeon[newY][newX] = {
+                                ...tile,
+                                hasBeenDiscovered: true,
+                                type: 'floor'
+                            };
+                            return newDungeon;
                         });
 
-                        const fallbackTemplate = {
-                            id: `fallback-${roomType}`,
-                            room: roomType,
-                            structureTypes: [structureTypeForTemplates],
-                            culturalZones: [culturalContext.culturalZone],
-                            eras: [culturalContext.era],
-                            scriptedElements: [],
-                            recommendedArtifacts: [],
-                            knowledgeTags: []
-                        };
-
-                        const template = templates[0] ?? fallbackTemplate;
-
-                        requestDiscoveryNarrative({
-                            ruinId: structureId,
-                            discoveryTemplate: template,
-                            year: constructionPeriod.year,
-                            culturalZone: culturalContext.culturalZone,
-                            era: constructionPeriod.era,
-                            structureType: structureTypeForTemplates,
-                            room: roomType,
-                            depth: currentDepth,
-                            mapLocation: mapData?.mapAreaName
-                        }).then(narrative => {
-                            const languageNote = `[Written in ${appropriateLanguages[0]}${appropriateLanguages.length > 1 ? ' with annotations in ' + appropriateLanguages[1] : ''}]\n\n`;
-                            const fullDiscoveryText = `${languageNote}${narrative.description}\n\n${narrative.followUpQuestion}`;
-
-                            setCurrentDiscoveryText(fullDiscoveryText);
-                            setDiscoveries(prev => [...prev, fullDiscoveryText]);
-
-                            let updatedScore = knowledge.score;
-                            let updatedTags = knowledge.tags;
-                            setKnowledge(prev => {
-                                const increment = template.knowledgeTags.length > 0 ? 10 : 5;
-                                const combinedTags = template.knowledgeTags.length > 0
-                                    ? Array.from(new Set([...prev.tags, ...template.knowledgeTags]))
-                                    : prev.tags;
-                                updatedScore = prev.score + increment;
-                                updatedTags = combinedTags;
-                                return { score: updatedScore, tags: combinedTags };
-                            });
-
-                            const discoverySource = {
-                                id: discoveryId,
-                                title: narrative.title,
-                                content: fullDiscoveryText,
-                                description: fullDiscoveryText,
-                                period: `${constructionPeriod.year} CE - ${constructionPeriod.era}`,
-                                keywords: template.knowledgeTags,
-                                contentType: 'discovery',
-                                metadata: {
-                                    originalLanguages: appropriateLanguages,
-                                    templateId: template.id,
-                                    sourceType: narrative.isFallback ? 'fallback' : 'llm',
-                                    citations: narrative.citations
-                                }
-                            } as any;
-
-                            if (narrative.citations?.length) {
-                                (discoverySource as any).citations = narrative.citations;
-                            }
-
-                            setSelectedSource(discoverySource);
-                            setShowSourceReader(true);
-
-                            ruinsMetricsService.record('ruins.discovery.viewed', {
-                                runId: runIdRef.current,
-                                ruinId: structureId,
-                                discoveryId,
-                                templateId: template.id,
-                                sourceType: narrative.isFallback ? 'fallback' : 'llm',
-                                knowledgeScore: updatedScore,
-                                knowledgeTags: updatedTags
-                            });
-                        }).catch(error => {
-                            console.error('Failed to assemble discovery narrative:', error);
-                            const fallbackText = `[Written in ${appropriateLanguages[0]}]\n\nYou catalog architectural fragments that hint at forgotten stories.`;
-                            setCurrentDiscoveryText(fallbackText);
-                            setDiscoveries(prev => [...prev, fallbackText]);
-                        });
-                    } else {
-                        addMessage('You have already examined this area.');
+                        // Show discovery modal
+                        setCurrentDiscoveryPrompt(discoveryPrompt);
+                        setDiscoveryLocation({ x: newX, y: newY });
+                        setShowDiscoveryModal(true);
                     }
                     break;
                     
@@ -4024,10 +4331,60 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             newDungeon[newY][newX] = { ...tile, type: 'floor', hasTorch: undefined };
                             return newDungeon;
                         });
+                    } else {
+                        addMessage('A flickering torch illuminates the area.');
                     }
                     break;
+
+                case 'water':
+                    addMessage('You splash through shallow water.');
+                    createSoundEffect('*splash*', newX, newY, '#4488ff', 'normal');
+                    break;
+
+                case 'chasm':
+                    addMessage('You peer into a dark chasm. The depths are unfathomable.');
+                    break;
+
+                case 'pillar':
+                    if (tile.description) {
+                        addMessage(`${tile.description}`);
+                    } else {
+                        addMessage('You pass by an ancient stone pillar.');
+                    }
+                    break;
+
+                case 'brazier':
+                    addMessage('Heat radiates from a bronze brazier.');
+                    createSoundEffect('*crackle*', newX, newY, '#ff4400', 'float');
+                    break;
+
+                case 'campfire':
+                    addMessage('You warm yourself by the campfire.');
+                    createSoundEffect('*crackle*', newX, newY, '#ff5500', 'float');
+                    break;
+
+                case 'entrance':
+                    addMessage('You stand at the entrance to the ruins.');
+                    break;
+
+                case 'door':
+                    addMessage('You pass through a doorway.');
+                    break;
+
+                case 'open_door':
+                    addMessage('You walk through an open archway.');
+                    break;
+
+                case 'floor':
+                    // Silent for regular floor - just footsteps
+                    break;
+
+                case 'boulder':
+                    // This shouldn't happen as boulders block movement, but just in case
+                    addMessage('You squeeze past a massive boulder.');
+                    break;
             }
-            
+
             // Play footstep sound if player actually moved
             if (newPlayer.x !== prev.x || newPlayer.y !== prev.y) {
                 gameSoundsService.playFootstepSound();
@@ -4058,7 +4415,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         mapData,
         currentRooms,
         discoveries,
-        knowledge,
         currentDepth
     ]);
 
@@ -4135,6 +4491,33 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 event.stopPropagation();
 
                 const currentTile = dungeon[player.y]?.[player.x];
+
+                // Check for examinable environmental storytelling elements first
+                if (currentTile?.examinable && currentTile?.examinableData) {
+                    setCurrentExamination(currentTile.examinableData as JournalEntry);
+                    setShowExaminationModal(true);
+                    gameSoundsService.playItemPickupSound('generic'); // Discovery sound
+                    return;
+                }
+
+                // Check for secret passages
+                if (currentTile?.secretPassage) {
+                    addMessage('You examine the wall closely... It feels hollow! You reveal a secret passage!');
+                    gameSoundsService.playTreasureOpeningSound();
+                    setDungeon(prevDungeon => {
+                        const newDungeon = [...prevDungeon];
+                        newDungeon[player.y][player.x] = {
+                            type: 'floor',
+                            visible: true,
+                            explored: true,
+                            description: 'A newly discovered secret passage'
+                        };
+                        return newDungeon;
+                    });
+                    createSoundEffect('*crumble*', player.x, player.y, '#888888', 'shake');
+                    return;
+                }
+
                 if (currentTile?.type === 'chest' && !currentTile.chestOpened) {
                     // Open the chest
                     const contents = currentTile.containerContents;
@@ -4156,7 +4539,15 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                     inventory: [...prev.inventory, item]
                                 }));
                                 itemNames.push(item.name);
-                                onInventoryAdd?.(item);
+
+                                // Convert ItemDefinition to Item instance for parent game
+                                const itemInstance = {
+                                    ...item,
+                                    id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                                    quantity: item.quantity || 1,
+                                };
+                                console.log('[RoguelikeDisplay] Calling onInventoryAdd from chest with item:', itemInstance.name, 'ID:', itemInstance.id);
+                                onInventoryAdd?.(itemInstance);
                             }
                         });
 
@@ -4200,21 +4591,95 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             return newDungeon;
                         });
                     }
+                } else if (currentTile?.type === 'debris') {
+                    // Examine debris in detail
+                    const detailedDescriptions = [
+                        'You sift through the debris. Mostly worthless scraps and dust.',
+                        'Broken pottery shards, rotted wood, and tarnished metal pieces.',
+                        'The remains of what was once valuable, now reduced to refuse.',
+                        'Old bones, rusted nails, and fragments of cloth peek through the rubble.'
+                    ];
+                    const description = detailedDescriptions[Math.floor(Math.random() * detailedDescriptions.length)];
+                    addMessage(description);
+                } else if (currentTile?.type === 'rubble') {
+                    // Examine rubble in detail - might find small treasures
+                    const detailedDescriptions = [
+                        'You carefully search through the rubble. Mostly broken masonry and dust.',
+                        'Chunks of carved stone, worn by time. Perhaps once part of grand architecture.',
+                        'The rubble shifts slightly as you examine it. Nothing of value here.',
+                        'Fragments of decorated tiles and crumbling mortar fill the pile.'
+                    ];
+                    const description = detailedDescriptions[Math.floor(Math.random() * detailedDescriptions.length)];
+                    addMessage(description);
+
+                    // 20% chance to find a small coin or gem
+                    if (Math.random() < 0.2) {
+                        const goldFound = 5 + Math.floor(Math.random() * 15);
+                        setPlayer(prev => ({ ...prev, gold: prev.gold + goldFound }));
+                        onGoldChange?.(player.gold + goldFound);
+                        addMessage(`Hidden beneath, you discover ${goldFound} gold!`);
+                        gameSoundsService.playGoldPickupSound();
+                        createSoundEffect('*clink*', player.x, player.y, '#ffdd00', 'float');
+                    }
+                } else if (currentTile?.type === 'pillar') {
+                    // Examine pillar in detail
+                    const detailedDescriptions = [
+                        'A weathered stone pillar. Ancient carvings have worn smooth with age.',
+                        'The pillar stands resolute, a testament to forgotten builders.',
+                        'Faint traces of paint still cling to the pillar\'s surface.',
+                        'The pillar\'s base shows chisel marks from its original carving.'
+                    ];
+                    const description = detailedDescriptions[Math.floor(Math.random() * detailedDescriptions.length)];
+                    addMessage(description);
+                } else if (currentTile?.type === 'discovery' && currentTile.hasBeenDiscovered) {
+                    // Discovery tile that's already been used - give a random item
+                    const availableItems = Object.values(ITEM_DEFINITIONS).filter(item => {
+                        return !item.name.toLowerCase().includes('modern') && !item.name.toLowerCase().includes('gun');
+                    });
+                    const item = availableItems[Math.floor(Math.random() * availableItems.length)];
+
+                    if (item) {
+                        const itemInstance = {
+                            ...item,
+                            id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            quantity: 1,
+                        };
+                        onInventoryAdd?.(itemInstance);
+                        addMessage(`You find ${item.name} hidden here!`);
+                        gameSoundsService.playItemPickupSound('generic');
+
+                        // Remove the discovery marker
+                        setDungeon(prevDungeon => {
+                            const newDungeon = [...prevDungeon];
+                            newDungeon[player.y][player.x] = {
+                                type: 'floor',
+                                visible: true,
+                                explored: true
+                            };
+                            return newDungeon;
+                        });
+                    }
                 }
                 return;
             }
 
             // OTHER ACTIONS
-            if (['escape', 'm', '>', 'h', 't', 'p', 'b', 'e', 'q'].includes(keyLower)) {
+            if (['escape', 'm', '>', 'h', 'p', 'b', 'e', 'q'].includes(keyLower)) {
                 event.preventDefault();
                 event.stopPropagation();
 
+                // Define adjacent tiles for environmental interactions (shared across multiple cases)
+                const adjacentTiles = [
+                    { x: player.x, y: player.y - 1 }, // North
+                    { x: player.x, y: player.y + 1 }, // South
+                    { x: player.x - 1, y: player.y }, // West
+                    { x: player.x + 1, y: player.y }  // East
+                ];
+
                 switch (keyLower) {
                     case 'escape':
-                        // Close translation modal first, then encounter modal, then exit
-                        if (showTranslationModal) {
-                            handleTranslationClose();
-                        } else if (showEncounterModal) {
+                        // Close encounter modal, then exit
+                        if (showEncounterModal) {
                             setShowEncounterModal(false);
                             setCurrentEncounter(null);
                             setSelectedChoiceId(null);
@@ -4232,18 +4697,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             }
                         } else {
                             addMessage('No manuscripts discovered yet. Look for § symbols.');
-                        }
-                        break;
-                    case 't':
-                        // Toggle translation modal if we have a contextual manuscript discovered
-                        if (currentContextualManuscript && currentTranslationPuzzle) {
-                            if (showTranslationModal) {
-                                handleTranslationClose();
-                            } else {
-                                setShowTranslationModal(true);
-                            }
-                        } else {
-                            addMessage('No ancient texts requiring translation found yet.');
                         }
                         break;
                     case '>':
@@ -4338,122 +4791,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             }
                         }
                         break;
-                    case 't':
-                        // Try to talk/negotiate with nearby hostile NPC
-                        const nearbyHostile = entities.find(e => 
-                            e.hostile && 
-                            e.canNegotiate && 
-                            e.hp > 0 &&
-                            Math.abs(e.x - player.x) <= 1 && 
-                            Math.abs(e.y - player.y) <= 1
-                        );
-                        
-                        if (nearbyHostile) {
-                            addMessage(`You attempt to negotiate with the ${nearbyHostile.name}...`);
-                            generateNegotiationDialogue({
-                                npcType: nearbyHostile.type,
-                                npcName: nearbyHostile.name,
-                                era: culturalContext.era,
-                                culturalZone: culturalContext.culturalZone,
-                                ruinType: ruinType.name,
-                                currentDepth: currentDepth,
-                                playerName: playerCharacter.name,
-                                playerProfession: playerCharacter.profession,
-                                isHostile: true,
-                                hasWeapon: player.weapon !== undefined,
-                                playerHealth: player.hp,
-                                playerMaxHealth: player.maxHp
-                            }).then(result => {
-                                addMessage(`${nearbyHostile.name}: "${result.response}"`);
-                                if (result.success) {
-                                    // Store as befriended NPC
-                                    const locationId = getRuinLocationId(
-                                        structureLocation?.[0] || 0,
-                                        structureLocation?.[1] || 0,
-                                        currentDepth
-                                    );
-
-                                    const persistedNpc = storeBefriendedNpc(
-                                        nearbyHostile as any,
-                                        locationId,
-                                        culturalContext.culturalZone,
-                                        culturalContext.era
-                                    );
-
-                                    // Make NPC non-hostile and update name
-                                    setEntities(prev => prev.map(e =>
-                                        e.id === nearbyHostile.id
-                                            ? { ...e, hostile: false, name: persistedNpc.fullName || e.name }
-                                            : e
-                                    ));
-                                    addMessage(`You've befriended ${persistedNpc.fullName}! They will remember you.`);
-                                } else {
-                                    addMessage(`Negotiation failed! The ${nearbyHostile.name} becomes more aggressive!`);
-                                }
-                            });
-                        } else {
-                            addMessage("There's no one nearby to talk to.");
-                        }
-                        break;
-                    case 'p':
-                        // Push objects (boulders, etc.)
-                        const adjacentTiles = [
-                            { x: player.x, y: player.y - 1 }, // North
-                            { x: player.x, y: player.y + 1 }, // South
-                            { x: player.x - 1, y: player.y }, // West
-                            { x: player.x + 1, y: player.y }  // East
-                        ];
-                        
-                        const pushableTile = adjacentTiles.find(pos => {
-                            const tile = dungeon[pos.y]?.[pos.x];
-                            return tile?.pushable && tile.type === 'boulder';
-                        });
-                        
-                        if (pushableTile) {
-                            handleEnvironmentalInteraction(pushableTile.x, pushableTile.y, 'push');
-                        } else {
-                            addMessage("There's nothing nearby to push.");
-                        }
-                        break;
-                    case 'b':
-                        // Break weak walls/objects
-                        const breakableTile = adjacentTiles.find(pos => {
-                            const tile = dungeon[pos.y]?.[pos.x];
-                            return tile?.breakable && ['weak_wall', 'ice_wall', 'vine_wall'].includes(tile.type);
-                        });
-                        
-                        if (breakableTile) {
-                            handleEnvironmentalInteraction(breakableTile.x, breakableTile.y, 'break');
-                        } else {
-                            addMessage("There's nothing nearby to break.");
-                        }
-                        break;
-                    case 'e':
-                        // Extinguish fires
-                        const fireTile = adjacentTiles.find(pos => {
-                            const tile = dungeon[pos.y]?.[pos.x];
-                            return tile?.type === 'fire_trap' || tile?.type === 'brazier';
-                        });
-                        
-                        if (fireTile) {
-                            handleEnvironmentalInteraction(fireTile.x, fireTile.y, 'douse');
-                        } else {
-                            addMessage("There's no fire nearby to extinguish.");
-                        }
-                        break;
-                    case 'q':
-                        // Activate mechanisms
-                        const mechanismTile = adjacentTiles.find(pos => {
-                            const tile = dungeon[pos.y]?.[pos.x];
-                            return tile?.type === 'ancient_mechanism' && !tile.isActivated;
-                        });
-                        
-                        if (mechanismTile) {
-                            handleEnvironmentalInteraction(mechanismTile.x, mechanismTile.y, 'activate');
-                        } else {
-                            addMessage("There's no mechanism nearby to activate.");
-                        }
-                        break;
                 }
             }
         };
@@ -4504,7 +4841,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             window.removeEventListener('keydown', handleKeyPress);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [movePlayer, onExit, player, dungeon, generateDungeon, addMessage, currentDepth, discoverNewChamber, entities, culturalContext, ruinType, playerCharacter, performMeleeAttack, performRangedAttack, performChargedSpecial, chargingAttack, chargeDirection, chargeLevel, showEncounterModal, currentEncounter, selectedChoiceId, encounterOutcome, setShowEncounterModal, setCurrentEncounter, setSelectedChoiceId, setEncounterOutcome, onHealthChange, showTranslationModal, currentTranslationPuzzle, currentContextualManuscript]);
+    }, [movePlayer, onExit, player, dungeon, generateDungeon, addMessage, currentDepth, discoverNewChamber, entities, culturalContext, ruinType, playerCharacter, performMeleeAttack, performRangedAttack, performChargedSpecial, chargingAttack, chargeDirection, chargeLevel, showEncounterModal, currentEncounter, selectedChoiceId, encounterOutcome, setShowEncounterModal, setCurrentEncounter, setSelectedChoiceId, setEncounterOutcome, onHealthChange]);
 
     
     // Generate a special LLM-powered NPC when entering ruins
@@ -4635,58 +4972,148 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         return getMaterialWallPattern(material);
     }, [ruinType.material]);
 
+    // Calculate light intensity at a tile based on nearby light sources
+    const calculateLightLevel = useCallback((x: number, y: number): number => {
+        let maxLight = 0;
+
+        // Check all tiles in the dungeon for light sources
+        for (let dy = -6; dy <= 6; dy++) {
+            for (let dx = -6; dx <= 6; dx++) {
+                const checkX = x + dx;
+                const checkY = y + dy;
+
+                if (checkY >= 0 && checkY < dungeon.length && checkX >= 0 && checkX < dungeon[0].length) {
+                    const tile = dungeon[checkY][checkX];
+
+                    // Check if tile is a light source
+                    const isLightSource = tile.type === 'torch' ||
+                                        tile.type === 'brazier' ||
+                                        tile.type === 'campfire' ||
+                                        tile.lightSource === true;
+
+                    if (isLightSource) {
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const lightRadius = tile.lightRadius || 3;
+
+                        if (distance <= lightRadius) {
+                            // Light falls off with distance
+                            const intensity = 1 - (distance / lightRadius);
+                            maxLight = Math.max(maxLight, intensity);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Also check if player has a torch (always light around player)
+        if (player.hasTorch) {
+            const distToPlayer = Math.sqrt((x - player.x) ** 2 + (y - player.y) ** 2);
+            if (distToPlayer <= 4) {
+                const intensity = 1 - (distToPlayer / 4);
+                maxLight = Math.max(maxLight, intensity * 0.8);
+            }
+        }
+
+        return maxLight;
+    }, [dungeon, player]);
+
     const getTileDisplay = (tile: DungeonTile, x: number, y: number) => {
         // Check for player - classic @ symbol
         if (x === player.x && y === player.y) {
             return { char: '@', color: 'text-amber-400', glow: false };
         }
-        
+
         // Check for static particles at this position
         const particle = particles.find(p => Math.floor(p.x) === x && Math.floor(p.y) === y);
         if (particle && tile.visible && tile.type === 'floor') {
             return { char: particle.char, color: particle.color, glow: false };
         }
-        
-        // Check for entities
-        const entity = entities.find(e => e.x === x && e.y === y && e.hp > 0);
+
+        // Check for entities (including dying ones)
+        const entity = entities.find(e => e.x === x && e.y === y && (e.hp > 0 || e.dying));
         if (entity && tile.visible) {
             // Use emoji sprite if available, otherwise fall back to ASCII symbol
-            const displayChar = entity.emoji || entity.symbol;
-            return { char: displayChar, color: entity.color, glow: false };
+            const displayChar = entity.dying ? '💀' : (entity.emoji || entity.symbol);
+            const entityColor = entity.dying ? 'text-gray-500' : entity.color;
+            return { char: displayChar, color: entityColor, glow: false, customColor: entity.dying ? '#666666' : undefined };
         }
-        
+
         // Not visible and not explored = darkness
         if (!tile.visible && !tile.explored) {
             return { char: ' ', color: 'text-black', glow: false };
         }
-        
+
         // Explored but not currently visible = dimmed
         const dimmed = !tile.visible && tile.explored;
-        
+
+        // Calculate dynamic lighting for this tile
+        const lightLevel = tile.visible ? calculateLightLevel(x, y) : 0;
+
+        // Examinable environmental storytelling elements - show with special symbol
+        if (tile.examinable && tile.visible) {
+            return {
+                char: '✦', // Sparkle to indicate something interesting
+                color: dimmed ? 'text-amber-700' : 'text-amber-300',
+                glow: true,
+                customColor: dimmed ? '#b8860b' : '#d4af37'
+            };
+        }
+
         switch (tile.type) {
             case 'wall':
-                // Use material-specific wall pattern
+                // Use material-specific wall pattern with dynamic lighting
                 const wallChar = wallPattern;
-                // Apply material color as inline style
+                // Calculate opacity based on light level
+                const wallOpacity = dimmed ? '40' : Math.floor(50 + (lightLevel * 150)).toString(16).padStart(2, '0');
+                // Secret passages look subtly different (slightly dimmer)
+                const wallColor = tile.secretPassage ? materialColors.wall + '99' : materialColors.wall + wallOpacity;
                 return {
                     char: wallChar,
-                    color: 'material-wall', // Custom class we'll handle with inline style
-                    customColor: dimmed ? materialColors.wall + '66' : materialColors.wall,
+                    color: 'material-wall',
+                    customColor: wallColor,
+                    glow: false
+                };
+            case 'weak_wall':
+                // Weak walls use cultural patterns to indicate they're breakable
+                const weakWallChars: Record<string, string[]> = {
+                    MENA: ['◆', '❖', '⌂', '◇', '◈', '✦'],
+                    EAST_ASIAN: ['◎', '○', '◉', '⊙', '◐', '◑'],
+                    EUROPEAN: ['┼', '╬', '†', '‡', '✠', '✙'],
+                    SOUTH_ASIAN: ['✦', '✧', '◈', '◊', '◆', '✺'],
+                    SUB_SAHARAN_AFRICAN: ['◊', '◇', '○', '●', '◐', '◑'],
+                    OCEANIA: ['○', '◎', '◉', '⊚', '⊙', '◌'],
+                    NORTH_AMERICAN_PRE_COLUMBIAN: ['◆', '◇', '△', '▽', '◊', '○'],
+                    SOUTH_AMERICAN: ['◆', '◇', '○', '●', '◈', '◊'],
+                    NORTH_AMERICAN_COLONIAL: ['┼', '╬', '†', '‡', '✠', '◊']
+                };
+                const weakChars = weakWallChars[culturalContext.culturalZone] || ['▒'];
+                const weakChar = weakChars[Math.floor(Math.random() * weakChars.length)];
+                return {
+                    char: weakChar,
+                    color: dimmed ? 'text-gray-700' : 'text-gray-500',
                     glow: false
                 };
             case 'floor':
-                // Use different floor patterns
+                // Use different floor patterns with dynamic lighting
                 const floorChars = ['·', '.', '˙'];
                 const floorChar = floorChars[Math.floor((x * 7 + y * 3) % 3)];
-                // Apply material floor color
+                // Calculate opacity based on light level (darker base for floors)
+                const floorOpacity = dimmed ? '30' : Math.floor(40 + (lightLevel * 120)).toString(16).padStart(2, '0');
                 return {
                     char: floorChar,
                     color: 'material-floor',
-                    customColor: dimmed ? materialColors.floor + '44' : materialColors.floor + '99',
+                    customColor: materialColors.floor + floorOpacity,
                     glow: false
                 };
-            case 'door': 
-                return { char: '╬', color: dimmed ? 'text-amber-800' : 'text-amber-600', glow: false }; // Better door
+            case 'door':
+                // Closed door with better character
+                return { char: '▓', color: dimmed ? 'text-amber-800' : 'text-amber-600', glow: false };
+            case 'open_door':
+                // Open door or archway
+                return { char: '▒', color: dimmed ? 'text-amber-900' : 'text-amber-700', glow: false };
+            case 'archway':
+                // Decorative archway
+                return { char: '∩', color: dimmed ? 'text-gray-600' : 'text-gray-400', glow: false };
             case 'chest':
                 if (!tile.chestOpened) {
                     return { char: '☒', color: dimmed ? 'text-amber-700' : 'text-amber-400', glow: !dimmed }; // Closed chest
@@ -4715,9 +5142,9 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             case 'rubble':
                 return { char: '•', color: dimmed ? 'text-gray-700' : 'text-gray-500', glow: false };
             case 'water':
-                // Animated water effect
-                const waterChars = ['≈', '~', '∼'];
-                const waterChar = waterChars[Math.floor(Date.now() / 800) % waterChars.length];
+                // Animated water effect - faster cycling
+                const waterChars = ['≈', '~', '∼', '≋'];
+                const waterChar = waterChars[Math.floor(Date.now() / 400) % waterChars.length];
                 return { char: waterChar, color: dimmed ? 'text-blue-800' : 'text-blue-500', glow: false };
             case 'chasm':
                 return { char: '░', color: dimmed ? 'text-gray-900' : 'text-gray-800', glow: false };
@@ -4726,22 +5153,47 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             case 'food':
                 return { char: '♣', color: dimmed ? 'text-green-700' : 'text-green-400', glow: !dimmed }; // Club for food
             case 'torch':
-                return { char: '†', color: dimmed ? 'text-orange-700' : 'text-orange-400', glow: !dimmed }; // Dagger/torch
+                // Animated torch flame - cycles through different flame shapes
+                const torchChars = ['⟡', '✦', '✧', '❋', '✺'];
+                const torchChar = torchChars[Math.floor(Date.now() / 250) % torchChars.length];
+                const torchColors = ['#ff8800', '#ffaa00', '#ff6600', '#ffcc00'];
+                const torchColor = torchColors[Math.floor(Date.now() / 250) % torchColors.length];
+                return {
+                    char: torchChar,
+                    color: dimmed ? 'text-orange-700' : 'text-orange-400',
+                    glow: !dimmed,
+                    customColor: dimmed ? undefined : torchColor
+                };
+            case 'brazier':
+                // Animated brazier with different fire pattern
+                const brazierChars = ['▲', '▴', '▵', '△'];
+                const brazierChar = brazierChars[Math.floor(Date.now() / 200) % brazierChars.length];
+                return {
+                    char: brazierChar,
+                    color: dimmed ? 'text-red-700' : 'text-red-500',
+                    glow: !dimmed,
+                    customColor: dimmed ? undefined : '#ff4400'
+                };
             case 'campfire':
-                return { char: '∆', color: dimmed ? 'text-red-700' : 'text-red-500', glow: !dimmed }; // Delta for fire
+                // Animated campfire - most energetic flame
+                const campfireChars = ['⟨⟩', '⟪⟫', '≪≫', '‹›', '«»'];
+                const campfireChar = campfireChars[Math.floor(Date.now() / 300) % campfireChars.length];
+                const campfireColors = ['#ff3300', '#ff5500', '#ff7700'];
+                const campfireColor = campfireColors[Math.floor(Date.now() / 300) % campfireColors.length];
+                return {
+                    char: campfireChar,
+                    color: dimmed ? 'text-red-700' : 'text-red-500',
+                    glow: !dimmed,
+                    customColor: dimmed ? undefined : campfireColor
+                };
             case 'inscription':
                 return { char: '≡', color: dimmed ? 'text-amber-700' : 'text-amber-500', glow: false }; // Triple bar for text
             case 'mural':
                 return { char: '▣', color: dimmed ? 'text-indigo-700' : 'text-indigo-400', glow: false }; // Filled square for art
-            case 'torch':
-                // Already handled above but add animated effect here
-                const torchChars = ['◈', '◉', '◎'];
-                const torchChar = torchChars[Math.floor(Date.now() / 400) % torchChars.length];
-                return { char: torchChar, color: dimmed ? 'text-orange-700' : 'text-orange-500', glow: !dimmed };
             case 'debris':
                 return { char: '∙', color: dimmed ? 'text-gray-700' : 'text-gray-500', glow: false };
             case 'locked_door':
-                return { char: '▩', color: dimmed ? 'text-red-800' : 'text-red-600', glow: false };
+                return { char: '█', color: dimmed ? 'text-red-800' : 'text-red-600', glow: false }; // Solid block for locked door
             case 'discovery':
                 if (!tile.hasBeenDiscovered) {
                     return {
@@ -4756,8 +5208,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 return { char: '.', color: dimmed ? 'text-gray-700' : 'text-gray-600', glow: false };
             case 'boulder':
                 return { char: '●', color: dimmed ? 'text-gray-600' : 'text-gray-300', glow: false };
-            case 'weak_wall':
-                return { char: '▒', color: dimmed ? 'text-gray-700' : 'text-gray-500', glow: false };
             // Removed fantasy trap types - keeping only realistic traps
             default: 
                 return { char: '?', color: 'text-white', glow: false };
@@ -4775,7 +5225,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     <p className="text-xl mb-4" style={{ color: '#ff9500' }}>
                         The ancient ruins have claimed your life...
                     </p>
-                    <p className="text-lg mb-2" style={{ color: '#ffa500' }}>Gold collected: {player.gold}</p>
+                    <p className="text-lg mb-2" style={{ color: '#ffa500' }}>Gold collected: {Math.round(player.gold)}</p>
                     <p className="text-lg mb-2" style={{ color: '#ffa500' }}>Items found: {player.inventory.length}</p>
                     <p className="text-lg mb-6" style={{ color: '#ffa500' }}>Manuscripts discovered: {player.manuscripts.length}</p>
                     <button
@@ -4822,14 +5272,14 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         ▓ {ruinType.name || 'Ancient Ruins'} ▓
                     </h1>
                     <div className="flex gap-3 text-sm font-bold flex-wrap">
-                        <span style={{ color: '#ff6b00' }}>HP: {player.hp}/{player.maxHp}</span>
-                        <span style={{ color: '#ffaa00' }}>Gold: {player.gold}</span>
-                        <span style={{ color: '#ff8800' }}>Lv: {player.level}</span>
-                        <span style={{ color: '#66ff66' }}>EXP: {player.experience || 0}/{player.nextLevelExp || 100}</span>
+                        <span style={{ color: '#ff6b00' }}>HP: {Math.round(player.hp)}/{Math.round(player.maxHp)}</span>
+                        <span style={{ color: '#ffaa00' }}>Gold: {Math.round(player.gold)}</span>
+                        <span style={{ color: '#ff8800' }}>Lv: {Math.round(player.level)}</span>
+                        <span style={{ color: '#66ff66' }}>EXP: {Math.round(player.experience || 0)}/{Math.round(player.nextLevelExp || 100)}</span>
                         <span style={{ color: player.hunger && player.hunger < 30 ? '#ff4444' : '#88ff88' }}>
-                            Hunger: {player.hunger || 100}%
+                            Hunger: {Math.round(player.hunger || 100)}%
                         </span>
-                        {player.hasTorch && <span style={{ color: '#ffcc00' }}>🕯️ {player.torchTurns}</span>}
+                        {player.hasTorch && <span style={{ color: '#ffcc00' }}>🕯️ {Math.round(player.torchTurns || 0)}</span>}
                         <span style={{ color: '#ff7700' }}>Turn: {turnCount}</span>
                         {/* Help button moved to top bar */}
                         <button
@@ -5285,17 +5735,17 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
       
             
-            {/* Always visible legend - bottom right corner */}
-            <div className="absolute bottom-4 right-4 p-3 rounded" 
-                 style={{ 
-                     backgroundColor: 'rgba(26, 26, 26, 0.9)', 
+            {/* Always visible legend - top right corner, below header */}
+            <div className="absolute top-16 right-4 p-2 rounded"
+                 style={{
+                     backgroundColor: '#0a0a0a',
                      border: '1px solid #ff6b00',
-                     maxWidth: '220px'
+                     maxWidth: '200px'
                  }}>
-                <h3 className="text-xs font-bold mb-2" style={{ color: '#ff9500' }}>
+                <h3 className="text-xs font-bold mb-1" style={{ color: '#ff9500', fontSize: '10px' }}>
                     LEGEND
                 </h3>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs" style={{ fontSize: '10px' }}>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0" style={{ fontSize: '9px', lineHeight: '1.4' }}>
                     <div className="flex items-center gap-1">
                         <span className="text-amber-400">@</span>
                         <span style={{ color: '#ff8800' }}>You</span>
@@ -5317,21 +5767,21 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         <span style={{ color: '#ff8800' }}>Food</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <span className="text-orange-400">†</span>
-                        <span style={{ color: '#ff8800' }}>Torch</span>
+                        <span className="text-cyan-400">↓</span>
+                        <span style={{ color: '#ff8800' }}>Stairs</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <span className="text-amber-300">§</span>
                         <span style={{ color: '#ff8800' }}>Scroll</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <span className="text-cyan-400">↓</span>
-                        <span style={{ color: '#ff8800' }}>Stairs</span>
+                        <span className="text-amber-300">✦</span>
+                        <span style={{ color: '#ff8800' }}>Examine</span>
                     </div>
                 </div>
-                <div className="mt-2 pt-2 border-t border-gray-700" style={{ fontSize: '10px', color: '#ff8800' }}>
-                    <div>Arrows: Move | WASD: Attack (hold to charge)</div>
-                    <div>Shift+WASD: Ranged | ESC: Exit | H: Help</div>
+                <div className="mt-1 pt-1 border-t" style={{ fontSize: '8px', color: '#ff8800', lineHeight: '1.2', borderColor: '#ff6b00' }}>
+                    <div>↑↓←→ Move • WASD Attack • Space Interact</div>
+                    <div>H Help • ESC Exit</div>
                 </div>
             </div>
             
@@ -5381,7 +5831,72 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     );
                 })}
             </div>
-            
+
+            {/* HP bars for enemies */}
+            <div className="absolute inset-0 pointer-events-none" style={{ overflow: 'hidden' }}>
+                {entities.filter(e => e.hp > 0 || e.dying).map(entity => {
+                    // Calculate position relative to the map container
+                    const mapContainer = containerRef.current?.querySelector('pre');
+                    if (!mapContainer) return null;
+
+                    const mapRect = mapContainer.getBoundingClientRect();
+                    const containerRect = containerRef.current?.getBoundingClientRect();
+
+                    if (!containerRect) return null;
+
+                    // Calculate tile position within viewport
+                    const tileX = entity.x - viewportOffset.x;
+                    const tileY = entity.y - viewportOffset.y;
+
+                    // Only show if within viewport
+                    if (tileX < 0 || tileX >= VIEWPORT_WIDTH || tileY < 0 || tileY >= VIEWPORT_HEIGHT) {
+                        return null;
+                    }
+
+                    // Calculate screen position of the HP bar (above the entity)
+                    const screenX = (mapRect.left - containerRect.left) + (tileX * zoomLevel) + (zoomLevel / 2);
+                    const screenY = (mapRect.top - containerRect.top) + (tileY * zoomLevel) - (zoomLevel * 0.3);
+
+                    const hpPercent = (entity.hp / (entity.maxHp || entity.hp)) * 100;
+                    const barWidth = zoomLevel * 0.8;
+                    const barHeight = 3;
+
+                    return (
+                        <div
+                            key={`hp-${entity.id}`}
+                            className="absolute"
+                            style={{
+                                left: `${screenX}px`,
+                                top: `${screenY}px`,
+                                transform: 'translate(-50%, -100%)',
+                                zIndex: 999,
+                                opacity: entity.dying ? 0.3 : 0.9
+                            }}
+                        >
+                            {/* HP bar background */}
+                            <div style={{
+                                width: `${barWidth}px`,
+                                height: `${barHeight}px`,
+                                backgroundColor: '#333',
+                                border: '1px solid #666',
+                                borderRadius: '2px',
+                                overflow: 'hidden'
+                            }}>
+                                {/* HP bar fill */}
+                                <div style={{
+                                    width: `${hpPercent}%`,
+                                    height: '100%',
+                                    backgroundColor: hpPercent > 60 ? '#00ff00' :
+                                                     hpPercent > 30 ? '#ffaa00' : '#ff0000',
+                                    transition: 'width 0.3s ease-out, background-color 0.3s ease-out',
+                                    boxShadow: `0 0 4px ${hpPercent > 60 ? '#00ff00' : hpPercent > 30 ? '#ffaa00' : '#ff0000'}`
+                                }}/>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
             {/* Ambiance text */}
             {ambianceTexts.map(ambiance => (
                 <div
@@ -5438,26 +5953,35 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 }
                 
                 @keyframes soundFadeOut {
-                    0% { 
-                        opacity: 1; 
+                    0% {
+                        opacity: 1;
                         transform: translate(-50%, -50%) scale(1);
                     }
-                    30% { 
-                        opacity: 1; 
+                    30% {
+                        opacity: 1;
                         transform: translate(-50%, -50%) scale(1.05);
                     }
-                    70% { 
-                        opacity: 1; 
+                    70% {
+                        opacity: 1;
                         transform: translate(-50%, -50%) scale(1);
                     }
                     85% {
                         opacity: 0.7;
                         transform: translate(-50%, -50%) scale(0.95);
                     }
-                    100% { 
-                        opacity: 0;
-                        transform: translate(-50%, -50%) scale(0.8);
-                    }
+                }
+
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    10% { transform: translateX(-4px) translateY(2px); }
+                    20% { transform: translateX(4px) translateY(-2px); }
+                    30% { transform: translateX(-4px) translateY(2px); }
+                    40% { transform: translateX(4px) translateY(-2px); }
+                    50% { transform: translateX(-2px) translateY(1px); }
+                    60% { transform: translateX(2px) translateY(-1px); }
+                    70% { transform: translateX(-2px) translateY(1px); }
+                    80% { transform: translateX(2px) translateY(-1px); }
+                    90% { transform: translateX(-1px); }
                 }
             `}</style>
 
@@ -5720,18 +6244,147 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 </div>
             )}
 
-            {/* Translation Minigame Modal - Full Screen Overlay */}
-            {showTranslationModal && currentTranslationPuzzle && currentContextualManuscript && (
-                <TranslationLab
-                    manuscript={currentContextualManuscript}
-                    puzzle={currentTranslationPuzzle}
-                    guesses={playerTranslationGuesses}
-                    result={translationResult}
-                    onSelectWord={handleTranslationWordSelect}
-                    onClear={handleTranslationClear}
-                    onSubmit={handleTranslationSubmit}
-                    onClose={handleTranslationClose}
-                />
+            {/* Discovery Choice Modal */}
+            {showDiscoveryModal && currentDiscoveryPrompt && (
+                <div className="absolute inset-0 flex items-center justify-center z-50"
+                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}>
+                    <div className="max-w-2xl w-full mx-4 p-6 border-2 rounded"
+                         style={{
+                             backgroundColor: '#0a0a0a',
+                             borderColor: '#ff6b00',
+                             boxShadow: '0 0 20px #ff6b00',
+                             fontFamily: 'monospace'
+                         }}>
+                        {/* Prompt Text */}
+                        <div className="mb-6 text-center">
+                            <p className="text-xl font-bold mb-4" style={{ color: '#ff6b00' }}>
+                                {currentDiscoveryPrompt.prompt}
+                            </p>
+                        </div>
+
+                        {/* Choice Buttons */}
+                        <div className="flex gap-4 justify-center">
+                            <button
+                                onClick={() => handleDiscoveryChoice(0)}
+                                className="px-6 py-3 font-bold rounded transition-all hover:scale-105"
+                                style={{
+                                    backgroundColor: '#ff6b00',
+                                    color: '#0a0a0a',
+                                    boxShadow: '0 0 10px #ff6b00',
+                                    minWidth: '150px'
+                                }}
+                            >
+                                {currentDiscoveryPrompt.options[0]}
+                            </button>
+                            <button
+                                onClick={() => handleDiscoveryChoice(1)}
+                                className="px-6 py-3 font-bold rounded transition-all hover:scale-105"
+                                style={{
+                                    backgroundColor: '#666',
+                                    color: '#fff',
+                                    boxShadow: '0 0 10px #666',
+                                    minWidth: '150px'
+                                }}
+                            >
+                                {currentDiscoveryPrompt.options[1]}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Environmental Examination Modal */}
+            {showExaminationModal && currentExamination && (
+                <div className="absolute inset-0 flex items-center justify-center z-50"
+                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.92)' }}>
+                    <div className="max-w-3xl w-full mx-4 p-8 border-2 rounded-lg"
+                         style={{
+                             backgroundColor: '#1a1410',
+                             borderColor: '#d4af37',
+                             boxShadow: '0 0 30px rgba(212, 175, 55, 0.3)',
+                             fontFamily: 'Georgia, serif'
+                         }}>
+
+                        {/* Category badge */}
+                        <div className="text-center mb-4">
+                            <span className="px-4 py-1 rounded-full text-xs uppercase tracking-wider"
+                                  style={{
+                                      backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                                      color: '#d4af37',
+                                      border: '1px solid #d4af37'
+                                  }}>
+                                {currentExamination.category}
+                            </span>
+                        </div>
+
+                        {/* Title */}
+                        <h2 className="text-3xl font-bold text-center mb-6"
+                            style={{
+                                color: '#d4af37',
+                                textShadow: '0 0 10px rgba(212, 175, 55, 0.5)',
+                                fontFamily: 'Georgia, serif'
+                            }}>
+                            {currentExamination.title}
+                        </h2>
+
+                        {/* Description */}
+                        <div className="mb-8 px-4">
+                            <p className="text-lg leading-relaxed"
+                               style={{
+                                   color: '#e8d4a8',
+                                   textAlign: 'justify',
+                                   lineHeight: '1.8'
+                               }}>
+                                {currentExamination.description}
+                            </p>
+                        </div>
+
+                        {/* Location info */}
+                        <div className="text-center text-sm mb-6"
+                             style={{ color: '#a89968', fontStyle: 'italic' }}>
+                            Discovered in {currentExamination.location.chamber}, Depth {currentExamination.location.depth}
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="flex gap-4 justify-center">
+                            <button
+                                onClick={() => {
+                                    // Save to journal if not already saved
+                                    if (!journalEntries.find(e => e.id === currentExamination.id)) {
+                                        setJournalEntries(prev => [...prev, currentExamination]);
+                                        addMessage(`Saved to journal: ${currentExamination.title}`);
+                                    }
+                                    setShowExaminationModal(false);
+                                    setCurrentExamination(null);
+                                }}
+                                className="px-8 py-3 font-semibold rounded transition-all hover:scale-105"
+                                style={{
+                                    backgroundColor: '#d4af37',
+                                    color: '#1a1410',
+                                    boxShadow: '0 0 15px rgba(212, 175, 55, 0.4)',
+                                    fontFamily: 'Georgia, serif',
+                                    fontSize: '16px'
+                                }}>
+                                📖 Save to Journal
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowExaminationModal(false);
+                                    setCurrentExamination(null);
+                                }}
+                                className="px-8 py-3 font-semibold rounded transition-all hover:scale-105"
+                                style={{
+                                    backgroundColor: 'rgba(100, 100, 100, 0.5)',
+                                    color: '#d4af37',
+                                    border: '2px solid #8b7355',
+                                    fontFamily: 'Georgia, serif',
+                                    fontSize: '16px'
+                                }}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

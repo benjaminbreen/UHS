@@ -1,7 +1,7 @@
 /**
  * components/MapViewport.tsx - Encapsulates the main content area including map displays.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import './TopNavBarPolished.css'; // Import for map fade animations
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
@@ -17,18 +17,21 @@ import PlayerTooltip from './PlayerTooltip';
 import { HelperModeNotification } from './HelperModeNotification';
 import { useHelperNpcMovement } from '../hooks/useHelperNpcMovement';
 import gameSoundsService from '../services/gameSoundsService';
+import { LogService } from '../services/logService';
 import AmbianceDisplay from './AmbianceDisplay';
 import BottomPanel from './BottomPanel';
 import NewItemModal from './NewItemModal';
 import RareItemFoundToast from './ui/RareItemFoundToast';
+import ThreatToast from './ui/ThreatToast';
 import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
+import { CityEventOutcome } from '../services/cityEventService';
 import RuinStructureModal from './RuinStructureModal';
 import GovernmentDistrictModal from './GovernmentDistrictModal';
 import FishingHutModal from './FishingHutModal';
 import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
-import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay, HistoricalEra } from '../types';
+import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay, HistoricalEra, VegetationEntity, Item, CulturalZone, Season } from '../types';
 import { getHistoricalPeriod } from '../constants/characterData/names';
 import TimeAwareBackground from './TimeAwareBackground';
 import HorizonLayer from './HorizonLayer';
@@ -61,8 +64,97 @@ import { useWeatherEffects } from '../hooks/useWeatherEffects';
 import { poiDescriptionService } from '../services/poiDescriptionService';
 import { poiDialogueService } from '../services/poiDialogueService';
 import { getDayOfYear } from '../utils/dateUtils';
+import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
 
 type ActivePanel = 'farm' | null;
+
+/**
+ * Generate an appropriate item drop based on tree type, cultural zone, era, and season
+ */
+function generateTreeDrop(
+    vegetation: VegetationEntity,
+    zone: string,
+    era: HistoricalEra,
+    season: Season
+): Item | null {
+    const { speciesName, symbol, baseType } = vegetation;
+
+    // Define drop tables based on tree type
+    const dropTables: Record<string, string[]> = {
+        // Pine trees -> pine cones
+        pine: ['PINE_CONE'],
+
+        // Palm trees -> coconuts (tropical zones only)
+        palm: zone === 'OCEANIA' || zone === 'SOUTH_ASIAN' || zone === 'SUB_SAHARAN_AFRICAN'
+            ? ['COCONUT']
+            : ['PINE_CONE'], // fallback
+
+        // Deciduous trees -> acorns, fruits depending on zone/era
+        deciduous: (() => {
+            const options: string[] = ['ACORNS'];
+
+            // European/East Asian zones get apples
+            if (zone === 'EUROPEAN' || zone === 'EAST_ASIAN') {
+                options.push('APPLE_CORE'); // They find apple cores (apples partially eaten by birds/animals)
+            }
+
+            // Mediterranean zones get olives, figs, citrus
+            if (zone === 'MENA' || zone === 'EUROPEAN') {
+                if (Math.random() < 0.3) options.push('OLIVES');
+                if (Math.random() < 0.2) options.push('CITRUS_FRUIT');
+            }
+
+            return options;
+        })(),
+
+        // Cactus -> cactus fruit
+        cactus: ['CACTUS_FRUIT'],
+
+        // Bushes -> berries or generic fruit
+        bush: ['STRANGE_FRUIT', 'ACORNS'] // Strange fruit represents wild berries/small fruits
+    };
+
+    // Get appropriate drops for this tree type
+    const possibleDrops = dropTables[symbol] || dropTables[baseType] || ['PINE_CONE'];
+
+    // Randomly select one item from possible drops
+    const itemBaseId = possibleDrops[Math.floor(Math.random() * possibleDrops.length)];
+
+    // Look up the item definition
+    const itemDef = ITEM_DEFINITIONS[itemBaseId];
+
+    if (!itemDef) {
+        console.warn(`[Tree Drop] Item definition not found: ${itemBaseId}`);
+        return null;
+    }
+
+    // Create the item instance
+    const item: Item = {
+        id: `tree-drop-${Date.now()}-${Math.random()}`,
+        baseId: itemDef.baseId,
+        name: itemDef.name,
+        description: itemDef.description || '',
+        emoji: itemDef.emoji,
+        category: itemDef.category,
+        rarity: itemDef.rarity || 'Common',
+        value: itemDef.value || 1,
+        weight: itemDef.weight || 0.1,
+        stackable: itemDef.stackable !== false,
+        quantity: 1,
+        condition: 100,
+        material: itemDef.material,
+        quality: 'standard',
+        attack: itemDef.attack || 0,
+        defense: itemDef.defense || 0,
+        sustenance: itemDef.sustenance || 0,
+        wearable: itemDef.wearable || false,
+        wieldable: itemDef.wieldable || false,
+        throwable: itemDef.throwable || false,
+        craftingValue: itemDef.craftingValue || 0
+    };
+
+    return item;
+}
 
 interface MapViewportProps {
   mapVisible?: boolean;
@@ -90,9 +182,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
 
     const {
         currentWorldCoords, mapData, currentMapSeed,
-        visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData,
+        visibleAnimals, visibleNpcs, deployedVessels, deployedStructures, mapAnalysisData,
         enterSpecialMap, exitSpecialMap, isSpecialMap,
-        addPersistedMerchant, setNpcs,
+        addPersistedMerchant, setNpcs, setAnimals,
         fastTravelToArea,
     } = useMap();
 
@@ -105,11 +197,11 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         addItemsToInventory, setPlayerCharacter
     } = usePlayer();
 
-    const { 
-        sunPosition, currentTimeOfDay, formattedDate, season, ambianceText,
+    const {
+        sunPosition, currentTimeOfDay, formattedDate, formattedTime, season, ambianceText,
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
         isLoading, isLoadingFromCache, setGameDate, gameDate, currentRegion,
-        currentZone, gameLog
+        currentZone, gameLog, addGameLogEntry, setGameTimeHours
     } = useGame();
     
     // Calculate current era from formatted date
@@ -350,9 +442,336 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         });
     }, [mapData, setContainerModalData]);
 
-    // Keyboard handler for container interaction
+    // Weapon swing animation state
+    const [isSwinging, setIsSwinging] = useState(false);
+    const [swingTimestamp, setSwingTimestamp] = useState(0);
+    const [isCharging, setIsCharging] = useState(false);
+    const [chargeStartTime, setChargeStartTime] = useState(0);
+    const [isPowerSwing, setIsPowerSwing] = useState(false);
+    const [swingImpactTiles, setSwingImpactTiles] = useState<Set<string>>(new Set());
+    const [shakenTrees, setShakenTrees] = useState<Map<string, number>>(new Map());
+    const [threatToasts, setThreatToasts] = useState<Array<{
+        id: string;
+        entityName: string;
+        entityType: 'npc' | 'animal';
+        reaction: 'flee' | 'hostile';
+    }>>([]);
+
+    // Track entities we've already initiated combat with (to prevent repeated triggers)
+    const combatInitiatedEntities = useRef<Set<string>>(new Set());
+
+    // Player facing direction (for WASD controls)
+    const [playerDirection, setPlayerDirection] = useState<'north' | 'south' | 'east' | 'west'>('south');
+
+    // Handle swing impact on nearby entities
+    const handleSwingImpact = useCallback(() => {
+        if (!mapData || controlledIconX === null || controlledIconY === null) {
+            console.log('[Swing Impact] Skipped - missing map data or player position');
+            return;
+        }
+
+        console.log(`[Swing Impact] Checking impact at player position (${controlledIconX}, ${controlledIconY})`);
+
+        // Get tiles within 1 square of player
+        const impactTiles: {x: number, y: number}[] = [];
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (dx === 0 && dy === 0) continue; // Skip player's own tile
+                const tx = controlledIconX + dx;
+                const ty = controlledIconY + dy;
+                if (tx >= 0 && tx < mapData.width && ty >= 0 && ty < mapData.height) {
+                    impactTiles.push({x: tx, y: ty});
+                }
+            }
+        }
+
+        const tileKeys = new Set(impactTiles.map(t => `${t.x},${t.y}`));
+        setSwingImpactTiles(tileKeys);
+
+        // Check for trees and shake them
+        const newShakenTrees = new Map(shakenTrees);
+        let treesFound = 0;
+
+        // Check both tile biomes AND vegetation objects
+        impactTiles.forEach(pos => {
+            const tile = mapData.tiles[pos.y]?.[pos.x];
+
+            // Check if tile has forest-type biome OR vegetation
+            const isForestTile = tile && (tile.biome === 'FOREST' || tile.biome === 'DENSE_FOREST' || tile.biome === 'JUNGLE');
+            const hasVegetation = mapData.vegetation?.some(veg => veg.x === pos.x && veg.y === pos.y);
+
+            if (isForestTile || hasVegetation) {
+                const key = `${pos.x},${pos.y}`;
+                newShakenTrees.set(key, Date.now());
+                treesFound++;
+                console.log(`[Tree Shake] Shaking tree at (${pos.x}, ${pos.y}) - forestTile: ${isForestTile}, hasVeg: ${hasVegetation}`);
+            }
+        });
+
+        console.log(`[Tree Shake] Found ${treesFound} trees to shake out of ${impactTiles.length} impact tiles`);
+        setShakenTrees(newShakenTrees);
+
+        // Check for item drops from shaken trees (5% chance)
+        impactTiles.forEach(pos => {
+            const hasVegetation = mapData.vegetation?.some(veg => veg.x === pos.x && veg.y === pos.y);
+
+            if (hasVegetation && Math.random() < 0.05) {
+                const veg = mapData.vegetation?.find(v => v.x === pos.x && v.y === pos.y);
+                if (veg) {
+                    const droppedItem = generateTreeDrop(veg, currentZone, currentEra, season);
+                    if (droppedItem) {
+                        addItemsToInventory([droppedItem]);
+                        setPanelNotificationItem(droppedItem);
+                        addGameLogEntry({
+                            message: `A ${droppedItem.name} fell from the tree!`,
+                            timestamp: Date.now(),
+                            type: 'discovery'
+                        } as any);
+                    }
+                }
+            }
+        });
+
+        // Clear impact tiles and shake effects after animation
+        setTimeout(() => {
+            setSwingImpactTiles(new Set());
+            // Remove old shakes (older than 500ms)
+            const cleanedShakes = new Map(
+                Array.from(newShakenTrees.entries()).filter(([_, time]) => Date.now() - time < 500)
+            );
+            setShakenTrees(cleanedShakes);
+        }, 400);
+
+        // Check for NPCs in impact range
+        const impactedNpcs = visibleNpcs.filter(npc =>
+            impactTiles.some(pos => npc.x === pos.x && npc.y === pos.y)
+        );
+
+        // Update NPCs to flee or become hostile
+        if (impactedNpcs.length > 0) {
+            const now = Date.now();
+            let firstHostileNpc: any = null; // Track first NPC to confront player
+
+            const updatedNpcs = visibleNpcs.map(npc => {
+                const wasImpacted = impactedNpcs.some(impacted => impacted.id === npc.id);
+                if (!wasImpacted) return npc;
+
+                // 40% chance they flee, 60% chance they get angry and confront you
+                const willFlee = Math.random() < 0.4;
+
+                if (willFlee) {
+                    // Calculate flee direction (away from player)
+                    const dx = npc.x - controlledIconX;
+                    const dy = npc.y - controlledIconY;
+                    const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                    // Flee 5-8 tiles away
+                    const fleeDistance = 5 + Math.floor(Math.random() * 4);
+                    const fleeX = Math.max(0, Math.min(mapData.width - 1,
+                        Math.round(npc.x + (dx / distance) * fleeDistance)));
+                    const fleeY = Math.max(0, Math.min(mapData.height - 1,
+                        Math.round(npc.y + (dy / distance) * fleeDistance)));
+
+                    console.log(`[Swing Impact] ${npc.name} is frightened and flees!`);
+
+                    return {
+                        ...npc,
+                        aiState: 'hostile_fleeing' as const,
+                        targetX: fleeX,
+                        targetY: fleeY,
+                        movement: 'fleeing' as const,
+                        threatenedByPlayerTimestamp: now, // Remember being threatened
+                        wasThreatenedByWeapon: true
+                    };
+                } else {
+                    // Become hostile
+                    console.log(`[Swing Impact] ${npc.name} is angry and readies for combat!`);
+
+                    const hostileNpc = {
+                        ...npc,
+                        isHostile: true,
+                        aiState: 'attacking_chasing' as const,
+                        targetX: controlledIconX,
+                        targetY: controlledIconY,
+                        threatenedByPlayerTimestamp: now, // Remember being threatened
+                        wasThreatenedByWeapon: true
+                    };
+
+                    // Track first hostile NPC to open encounter modal
+                    if (!firstHostileNpc) {
+                        firstHostileNpc = hostileNpc;
+                    }
+
+                    return hostileNpc;
+                }
+            });
+
+            setNpcs(updatedNpcs);
+
+            // Automatically open encounter modal for first hostile NPC
+            if (firstHostileNpc) {
+                console.log(`[Swing Impact] Auto-opening encounter modal for hostile ${firstHostileNpc.name}`);
+                console.log(`[Swing Impact] Hostile NPC flags: wasThreatenedByWeapon=${firstHostileNpc.wasThreatenedByWeapon}, aiState=${firstHostileNpc.aiState}, isHostile=${firstHostileNpc.isHostile}`);
+
+                // Wait longer to ensure state has fully updated
+                setTimeout(() => {
+                    // Get the freshly updated NPC from the state
+                    const freshNpc = visibleNpcs.find(n => n.id === firstHostileNpc.id);
+                    if (freshNpc) {
+                        console.log(`[Swing Impact] Opening encounter with fresh NPC: wasThreatenedByWeapon=${freshNpc.wasThreatenedByWeapon}, aiState=${freshNpc.aiState}`);
+                        handleEncounter(freshNpc);
+                    } else {
+                        console.log(`[Swing Impact] Fresh NPC not found, using original`);
+                        handleEncounter(firstHostileNpc);
+                    }
+                }, 800); // Longer delay to ensure React state has updated
+            }
+
+            // Create toast notifications for impacted NPCs
+            const newToasts = impactedNpcs.map((npc, idx) => {
+                const willFlee = Math.random() < 0.4; // Match the flee probability (40%)
+                return {
+                    id: `threat-${npc.id}-${Date.now()}-${idx}`,
+                    entityName: npc.name,
+                    entityType: 'npc' as const,
+                    reaction: willFlee ? 'flee' as const : 'hostile' as const
+                };
+            });
+            setThreatToasts(prev => [...prev, ...newToasts]);
+
+            // Remove toasts after they auto-hide
+            setTimeout(() => {
+                setThreatToasts(prev => prev.filter(t => !newToasts.some(nt => nt.id === t.id)));
+            }, 3500);
+        }
+
+        // Check for animals in impact range
+        const impactedAnimals = visibleAnimals.filter(animal =>
+            impactTiles.some(pos => animal.x === pos.x && animal.y === pos.y)
+        );
+
+        // Update animals to flee or attack
+        if (impactedAnimals.length > 0) {
+            const updatedAnimals = visibleAnimals.map(animal => {
+                const wasImpacted = impactedAnimals.some(impacted => impacted.id === animal.id);
+                if (!wasImpacted) return animal;
+
+                // 80% chance they flee, 20% chance they attack (if aggressive)
+                const willFlee = Math.random() < 0.8;
+
+                if (willFlee) {
+                    // Calculate flee direction (away from player)
+                    const dx = animal.x - controlledIconX;
+                    const dy = animal.y - controlledIconY;
+                    const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                    // Flee 8-12 tiles away (animals flee farther than NPCs)
+                    const fleeDistance = 8 + Math.floor(Math.random() * 5);
+                    const fleeX = Math.max(0, Math.min(mapData.width - 1,
+                        Math.round(animal.x + (dx / distance) * fleeDistance)));
+                    const fleeY = Math.max(0, Math.min(mapData.height - 1,
+                        Math.round(animal.y + (dy / distance) * fleeDistance)));
+
+                    console.log(`[Swing Impact] ${animal.speciesName} is startled and flees!`);
+
+                    return {
+                        ...animal,
+                        aiState: 'fleeing' as const,
+                        target: { x: fleeX, y: fleeY }
+                    };
+                } else {
+                    // Become aggressive and chase player
+                    console.log(`[Swing Impact] ${animal.speciesName} turns aggressive!`);
+
+                    return {
+                        ...animal,
+                        aiState: 'attacking' as const,
+                        target: playerCharacter?.id || null // Target the player
+                    };
+                }
+            });
+
+            setAnimals(updatedAnimals);
+
+            // Create toast notifications for impacted animals
+            const animalToasts = impactedAnimals.map((animal, idx) => {
+                const willFlee = Math.random() < 0.8; // Match the flee probability
+                return {
+                    id: `threat-${animal.id}-${Date.now()}-${idx}`,
+                    entityName: animal.speciesName,
+                    entityType: 'animal' as const,
+                    reaction: willFlee ? 'flee' as const : 'hostile' as const
+                };
+            });
+            setThreatToasts(prev => [...prev, ...animalToasts]);
+
+            // Remove toasts after they auto-hide
+            setTimeout(() => {
+                setThreatToasts(prev => prev.filter(t => !animalToasts.some(at => at.id === t.id)));
+            }, 3500);
+        }
+
+    }, [mapData, controlledIconX, controlledIconY, visibleNpcs, visibleAnimals, shakenTrees, setNpcs, setAnimals, playerCharacter]);
+
+    // Auto-trigger combat when hostile NPCs/animals reach the player
     useEffect(() => {
-        const handleKeyPress = (e: KeyboardEvent) => {
+        if (controlledIconX === null || controlledIconY === null || !playerCharacter) return;
+
+        // Check for hostile NPCs on player tile or adjacent tiles
+        const hostileNpcsNearby = visibleNpcs.filter(npc => {
+            if (!npc.isHostile && npc.aiState !== 'attacking_chasing') return false;
+            if (combatInitiatedEntities.current.has(npc.id)) return false; // Skip if already initiated
+
+            const distance = Math.abs(npc.x - controlledIconX) + Math.abs(npc.y - controlledIconY);
+            return distance <= 1; // On same tile or adjacent
+        });
+
+        // Check for attacking animals on player tile or adjacent tiles
+        const attackingAnimalsNearby = visibleAnimals.filter(animal => {
+            if (animal.aiState !== 'attacking') return false;
+            if (combatInitiatedEntities.current.has(animal.id)) return false; // Skip if already initiated
+
+            const distance = Math.abs(animal.x - controlledIconX) + Math.abs(animal.y - controlledIconY);
+            return distance <= 1; // On same tile or adjacent
+        });
+
+        // Trigger encounter with first hostile entity found
+        if (hostileNpcsNearby.length > 0) {
+            const npc = hostileNpcsNearby[0];
+            console.log(`[Auto Combat] Hostile NPC ${npc.name} has reached the player! Initiating combat...`);
+            combatInitiatedEntities.current.add(npc.id);
+
+            // Use handleEncounter to open encounter modal (not NPC modal)
+            handleEncounter(npc);
+
+            // Clear from initiated list after 10 seconds (in case combat is cancelled)
+            setTimeout(() => {
+                combatInitiatedEntities.current.delete(npc.id);
+            }, 10000);
+        } else if (attackingAnimalsNearby.length > 0) {
+            const animal = attackingAnimalsNearby[0];
+            console.log(`[Auto Combat] Attacking ${animal.speciesName} has reached the player! Initiating combat...`);
+            combatInitiatedEntities.current.add(animal.id);
+
+            // Use handleEncounter to open encounter modal (not animal modal)
+            handleEncounter(animal);
+
+            // Clear from initiated list after 10 seconds (in case combat is cancelled)
+            setTimeout(() => {
+                combatInitiatedEntities.current.delete(animal.id);
+            }, 10000);
+        }
+    }, [visibleNpcs, visibleAnimals, controlledIconX, controlledIconY, playerCharacter, handleEncounter]);
+
+    // Keyboard handler for container interaction and weapon swing
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if user is typing in an input field
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                return;
+            }
+
             // Check if E key is pressed and we're in a special map
             if (e.key === 'e' || e.key === 'E') {
                 if (isSpecialMap && mapData?.tiles && controlledIconX !== null && controlledIconY !== null) {
@@ -375,11 +794,68 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     }
                 }
             }
+
+            // Check if spacebar is pressed for weapon swing
+            if (e.key === ' ' && !isSwinging && !isCharging) {
+                // Start charging
+                console.log('[Weapon Swing] Charge started');
+                setIsCharging(true);
+                setChargeStartTime(Date.now());
+            }
+
+            // WASD keys for directional facing (no movement)
+            if (e.key === 'w' || e.key === 'W') {
+                setPlayerDirection('north');
+            } else if (e.key === 'a' || e.key === 'A') {
+                setPlayerDirection('west');
+            } else if (e.key === 's' || e.key === 'S') {
+                setPlayerDirection('south');
+            } else if (e.key === 'd' || e.key === 'D') {
+                setPlayerDirection('east');
+            }
         };
 
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [isSpecialMap, mapData, controlledIconX, controlledIconY, openContainer]);
+        const handleKeyUp = (e: KeyboardEvent) => {
+            // Ignore if user is typing in an input field
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                return;
+            }
+
+            // Release spacebar - execute swing
+            if (e.key === ' ' && isCharging) {
+                const chargeTime = Date.now() - chargeStartTime;
+                const isPower = chargeTime >= 500; // 500ms charge for power swing
+
+                console.log(`[Weapon Swing] Swing executed (${isPower ? 'POWER' : 'normal'}) - charge time: ${chargeTime}ms`);
+
+                setIsCharging(false);
+                setIsSwinging(true);
+                setIsPowerSwing(isPower);
+                setSwingTimestamp(Date.now());
+
+                // Trigger impact effect at peak of swing (60% through animation)
+                const impactDelay = isPower ? 360 : 240; // 60% of animation duration
+                setTimeout(() => {
+                    console.log('[Weapon Swing] Impact triggered');
+                    handleSwingImpact();
+                }, impactDelay);
+
+                // Reset after animation completes (longer for power swing)
+                setTimeout(() => {
+                    setIsSwinging(false);
+                    setIsPowerSwing(false);
+                }, isPower ? 600 : 400);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [isSpecialMap, mapData, controlledIconX, controlledIconY, openContainer, isSwinging, isCharging, chargeStartTime, handleSwingImpact]);
 
     // Detect if player is standing on a container (for UI button)
     useEffect(() => {
@@ -481,7 +957,41 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
             });
         }
     });
-    
+
+    // Function to advance time by hours (for farm sleep, etc.)
+    const handleTimeAdvance = useCallback((hours: number) => {
+        if (!gameDate) return;
+
+        let newHours = gameTimeHours + hours;
+        let newDay = gameDate.day;
+        let newMonth = gameDate.month;
+        let newYear = gameDate.year;
+
+        // Handle day overflow
+        while (newHours >= 24) {
+            newHours -= 24;
+            newDay += 1;
+
+            // Handle month overflow (assuming 30 days per month for simplicity)
+            if (newDay > 30) {
+                newDay = 1;
+                newMonth += 1;
+
+                // Handle year overflow
+                if (newMonth > 12) {
+                    newMonth = 1;
+                    newYear += 1;
+                }
+            }
+        }
+
+        // Update time and date
+        setGameTimeHours(newHours);
+        setGameDate({ ...gameDate, day: newDay, month: newMonth, year: newYear });
+
+        console.log(`[Time Advance] Advanced ${hours} hours. New time: ${newHours}:00, New date: ${newMonth}/${newDay}/${newYear}`);
+    }, [gameDate, gameTimeHours, setGameDate, setGameTimeHours]);
+
     // Function to progress time by months
     const handleProgressTime = useCallback((months: number) => {
         if (!gameDate) return;
@@ -882,9 +1392,22 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     }, []);
 
     const handlePlayerIconClick = useCallback((e?: React.MouseEvent) => {
-        console.log('[MapViewport] Player icon clicked - opening camp modal');
-        // Directly open the camp modal when player icon is clicked
-        setShowCampModal(true);
+        console.log('[MapViewport] Player icon clicked - starting zoom sequence');
+
+        // Step 1: Trigger zoom to show ~4-5 tiles around player (zoom level 2.8)
+        eventBus.emit('player:zoom', { targetZoom: 2.8, duration: 2000 });
+
+        // Step 2: After 2 seconds, trigger player blink
+        setTimeout(() => {
+            console.log('[MapViewport] Triggering player blink');
+            eventBus.emit('player:blink');
+
+            // Step 3: After blink completes (150ms), open camp modal
+            setTimeout(() => {
+                console.log('[MapViewport] Opening camp modal');
+                setShowCampModal(true);
+            }, 200);
+        }, 2000);
     }, []);
 
     const handleShipClick = useCallback(() => {
@@ -1116,8 +1639,241 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                 season={season}
                 onEnterSpecialMap={(config) => {
                     console.log('[CityModal] Entering special map with config:', config);
+
+                    // Log special map entry
+                    if (gameDate && formattedTime) {
+                        const locationName = config.structureName || config.archetype;
+                        const leader = config.authorityContext?.leader?.name || null;
+                        const parentLocation = currentRegion || currentZone || 'Unknown';
+
+                        const logEntry = LogService.createLocationEntryLog(
+                            config.archetype,
+                            locationName,
+                            leader,
+                            parentLocation,
+                            gameDate,
+                            formattedTime,
+                            currentTimeOfDay
+                        );
+                        addGameLogEntry(logEntry);
+                    }
+
                     enterSpecialMap(config);
                     setActiveCityModal(null);
+                }}
+                onApplyEventOutcome={(outcome: CityEventOutcome) => {
+                    // Apply city event outcomes to player character
+                    switch (outcome.result) {
+                        case 'gold_gain':
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                const amount = outcome.value as number;
+                                return {
+                                    ...prev,
+                                    currency: prev.currency + amount,
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Gained ${amount} gold from a city event`,
+                                            type: 'system' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            showToast?.(`Gained ${outcome.value} gold!`, 'success');
+                            break;
+
+                        case 'gold_loss':
+                            const lostGold = outcome.value as number;
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    currency: Math.max(0, prev.currency - lostGold),
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Lost ${lostGold} gold in a city event`,
+                                            type: 'system' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            showToast?.(`Lost ${lostGold} gold.`, 'error');
+                            break;
+
+                        case 'item':
+                            const itemId = outcome.value as string;
+                            const itemDef = ITEM_DEFINITIONS[itemId];
+                            if (itemDef) {
+                                const newItem: Item = {
+                                    id: `${itemId}_${Date.now()}`,
+                                    baseId: itemId,
+                                    name: itemDef.name,
+                                    emoji: itemDef.emoji,
+                                    value: itemDef.value,
+                                    weight: itemDef.weight,
+                                    rarity: itemDef.rarity,
+                                    category: itemDef.category,
+                                    quality: 'standard'
+                                };
+                                addItemsToInventory([newItem]);
+                                setPlayerCharacter(prev => {
+                                    if (!prev) return prev;
+                                    return {
+                                        ...prev,
+                                        eventLog: [
+                                            ...prev.eventLog,
+                                            {
+                                                id: `event-${Date.now()}`,
+                                                timestamp: Date.now(),
+                                                description: `Received ${itemDef.name} from a city event`,
+                                                type: 'discovery' as const
+                                            }
+                                        ]
+                                    };
+                                });
+                                showToast?.(`Received ${itemDef.name}!`, 'success');
+                            } else {
+                                console.error(`[CityEvent] Unknown item ID: ${itemId}`);
+                            }
+                            break;
+
+                        case 'injury':
+                            const damage = outcome.value as number;
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    health: Math.max(0, prev.health - damage),
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Injured in a city event (lost ${damage} health)`,
+                                            type: 'system' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            showToast?.(`Injured! Lost ${damage} health.`, 'error');
+                            break;
+
+                        case 'death':
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    health: 0,
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Died in a city event`,
+                                            type: 'system' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            showToast?.('You have died.', 'error');
+                            // onPlayerDeath should trigger automatically when health reaches 0
+                            break;
+
+                        case 'reputation_gain':
+                            const repGain = outcome.value as number;
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    mapReputation: (prev.mapReputation || 0) + repGain,
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Gained ${repGain} reputation from a city event`,
+                                            type: 'system' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            showToast?.(`Reputation increased by ${repGain}!`, 'success');
+                            break;
+
+                        case 'reputation_loss':
+                            const repLoss = outcome.value as number;
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    mapReputation: (prev.mapReputation || 0) - repLoss,
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Lost ${repLoss} reputation from a city event`,
+                                            type: 'system' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            showToast?.(`Reputation decreased by ${repLoss}.`, 'error');
+                            break;
+
+                        case 'knowledge':
+                            const knowledgeDesc = outcome.value as string;
+                            const XP_GAIN = 10; // XP for learning something new
+                            const REP_GAIN = 5; // Reputation for being seen as learned
+
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    experience: Math.min(prev.experience + XP_GAIN, prev.maxExperience),
+                                    mapReputation: (prev.mapReputation || 0) + REP_GAIN,
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Learned: ${knowledgeDesc}`,
+                                            type: 'skill_gain' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            showToast?.(`Gained knowledge: ${knowledgeDesc} (+${XP_GAIN} XP, +${REP_GAIN} reputation)`, 'success');
+                            break;
+
+                        case 'nothing':
+                            // Still log that the event happened
+                            setPlayerCharacter(prev => {
+                                if (!prev) return prev;
+                                return {
+                                    ...prev,
+                                    eventLog: [
+                                        ...prev.eventLog,
+                                        {
+                                            id: `event-${Date.now()}`,
+                                            timestamp: Date.now(),
+                                            description: `Encountered a city event with no lasting impact`,
+                                            type: 'system' as const
+                                        }
+                                    ]
+                                };
+                            });
+                            break;
+
+                        default:
+                            console.warn(`[CityEvent] Unknown outcome type: ${outcome.result}`);
+                    }
                 }}
             />;
         }
@@ -1146,6 +1902,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                         formattedDate={`Year ${gameDate?.year || 1650}, Day ${gameDate?.day || 1}`}
                         onRoguelikeModeChange={setInRuinRoguelike}
                         onPlayerDeath={onPlayerDeath}
+                        onCharacterUpdate={setPlayerCharacter}
                     />
                 );
             }
@@ -1207,6 +1964,25 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     onClose={() => setActiveGovernmentModal(null)}
                     onEnterSpecialMap={(config) => {
                         console.log('[GovernmentDistrictModal] Entering special map with config:', config);
+
+                        // Log special map entry
+                        if (gameDate && formattedTime) {
+                            const locationName = config.structureName || config.archetype;
+                            const leader = config.authorityContext?.leader?.name || null;
+                            const parentLocation = currentRegion || currentZone || 'Unknown';
+
+                            const logEntry = LogService.createLocationEntryLog(
+                                config.archetype,
+                                locationName,
+                                leader,
+                                parentLocation,
+                                gameDate,
+                                formattedTime,
+                                currentTimeOfDay
+                            );
+                            addGameLogEntry(logEntry);
+                        }
+
                         enterSpecialMap(config);
                         setActiveGovernmentModal(null);
                     }}
@@ -1268,6 +2044,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     animals={visibleAnimals}
                     npcs={visibleNpcs}
                     deployedVessels={deployedVessels || []}
+                    deployedStructures={deployedStructures || []}
                     onDevHover={handleDevHover}
                     onDevCommandClick={handleDevCommandClick}
                     onStructureClick={setStructureModalTarget}
@@ -1380,6 +2157,13 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     onStationClick={handleStationClick}
                     onHarborClick={handleHarborClick}
                     isLoading={isLoading}
+                    isSwinging={isSwinging}
+                    swingTimestamp={swingTimestamp}
+                    isCharging={isCharging}
+                    isPowerSwing={isPowerSwing}
+                    shakenTrees={shakenTrees}
+                    playerDirection={playerDirection}
+                    onDirectionChange={setPlayerDirection}
                 />
             );
         }
@@ -1916,6 +2700,17 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     />
                     {panelNotificationItem && <NewItemModal item={panelNotificationItem} mode={panelNotificationMode} entityName={panelNotificationEntityName || undefined} onClose={() => setPanelNotificationItem(null)} />}
                     {rareItemFoundToast && <RareItemFoundToast item={rareItemFoundToast} onClose={() => setRareItemFoundToast(null)} />}
+
+                    {/* Threat toasts for weapon swing impacts */}
+                    {threatToasts.map(toast => (
+                        <ThreatToast
+                            key={toast.id}
+                            entityName={toast.entityName}
+                            entityType={toast.entityType}
+                            reaction={toast.reaction}
+                            onClose={() => setThreatToasts(prev => prev.filter(t => t.id !== toast.id))}
+                        />
+                    ))}
                 </div>
               )}
             </div>
@@ -1933,6 +2728,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
               season={season}
               gameTimeHours={gameTimeHours}
               onProgressTime={handleProgressTime}
+              onTimeAdvance={handleTimeAdvance}
               onShowEvent={handleShowWorkEvent}
               onInitiateEncounter={handleEncounter}
               onPlayerStateChange={handleFarmPlayerStateChange}

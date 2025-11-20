@@ -41,7 +41,7 @@ const PalmTreeSymbol: React.FC<PalmTreeSymbolProps> = React.memo(({ seed }) => {
   }
 
   return (
-    <g filter="url(#symbolShadow)">
+    <g>
       {/* Simplified trunk - just a single path */}
       <path 
         d={`M 11 22 L ${trunkTopX - 0.5} ${trunkTopY} L ${trunkTopX + 0.5} ${trunkTopY} L 13 22 Z`}

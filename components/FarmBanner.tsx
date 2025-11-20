@@ -2037,8 +2037,8 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
           {/* Animated bucket */}
           <g transform={`translate(0, ${10 + Math.sin(slowTick * 0.05) * 5})`}>
             <rect x={-3} y={0} width={6} height={5} fill="#7b4f2a" />
-            <rect x={-4} y={0} width={1} height={-10} fill="#8B7355" /> {/* Rope */}
-            <rect x={3} y={0} width={1} height={-10} fill="#8B7355" /> {/* Rope */}
+            <rect x={-4} y={-10} width={1} height={10} fill="#8B7355" /> {/* Rope */}
+            <rect x={3} y={-10} width={1} height={10} fill="#8B7355" /> {/* Rope */}
           </g>
 
           {/* Water trough */}

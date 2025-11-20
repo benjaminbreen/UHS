@@ -526,6 +526,12 @@ export function degradeItem(
 function addRandomPets(playerCharacter: PlayerCharacter): void {
     const currentYear = playerCharacter.year || 1500;
     const profession = playerCharacter.profession || '';
+    const culturalZone = playerCharacter.culturalZone;
+
+    // Old World domesticated animals that should NOT appear in Pre-Columbian Americas
+    const OLD_WORLD_ANIMALS = ['SHEEP', 'COW', 'HORSE', 'GOAT'];
+    const PRE_COLUMBIAN_ZONES = ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'];
+    const isPreColumbian = culturalZone && PRE_COLUMBIAN_ZONES.includes(culturalZone);
 
     // Use classification system instead of hardcoded arrays
     const petChanceMultiplier = getPetChanceMultiplier(profession);
@@ -546,6 +552,13 @@ function addRandomPets(playerCharacter: PlayerCharacter): void {
     // Eccentric pets for unusual professions
     if (canHaveEccentricPets(profession) && Math.random() < 0.05) {
         const randomPet = ECCENTRIC_PETS[Math.floor(Math.random() * ECCENTRIC_PETS.length)];
+
+        // Skip Old World animals for Pre-Columbian characters
+        if (isPreColumbian && OLD_WORLD_ANIMALS.includes(randomPet)) {
+            console.log(`[RandomPets] Skipping ${randomPet} for ${culturalZone} character (Old World animal)`);
+            return; // Don't add this pet
+        }
+
         createStartingCompanion(randomPet, playerCharacter);
     }
 }
@@ -716,7 +729,22 @@ export function assembleStartingPackage(
     
     // Handle starting companion animals
     if (playerCharacter && pkg.companions) {
+        // Old World domesticated animals that should NOT appear in Pre-Columbian Americas
+        const OLD_WORLD_ANIMALS = ['SHEEP', 'COW', 'HORSE', 'GOAT'];
+        const PRE_COLUMBIAN_ZONES = ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'];
+
+        // Get cultural zone from either character property or color options
+        const culturalZone = playerCharacter.culturalZone || colorOptions?.culture;
+
         pkg.companions.forEach(animalBaseId => {
+            // Skip Old World animals for Pre-Columbian American characters
+            if (culturalZone &&
+                PRE_COLUMBIAN_ZONES.includes(culturalZone) &&
+                OLD_WORLD_ANIMALS.includes(animalBaseId)) {
+                console.log(`[StartingPackage] Skipping ${animalBaseId} for ${culturalZone} character (Old World animal)`);
+                return; // Skip this companion
+            }
+
             createStartingCompanion(animalBaseId, playerCharacter);
         });
     }

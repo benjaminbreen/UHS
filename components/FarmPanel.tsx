@@ -15,6 +15,7 @@ interface FarmPanelProps {
     season: Season;
     gameTimeHours?: number;
     onProgressTime?: (months: number) => void;
+    onTimeAdvance?: (hours: number) => void;
     onShowEvent?: (event: any) => void;
     onInitiateEncounter?: (target: any) => void;
     onPlayerStateChange?: (changes: {
@@ -27,7 +28,7 @@ interface FarmPanelProps {
 
 const FarmPanel: React.FC<FarmPanelProps> = ({
     tile, mapData, playerCharacter, npcs, onClose, onBuy, onSell, useLlm, season,
-    gameTimeHours, onProgressTime, onShowEvent, onInitiateEncounter, onPlayerStateChange
+    gameTimeHours, onProgressTime, onTimeAdvance, onShowEvent, onInitiateEncounter, onPlayerStateChange
 }) => {
     const { gameDate } = useGame();
 
@@ -49,6 +50,7 @@ const FarmPanel: React.FC<FarmPanelProps> = ({
             season={season}
             gameTimeHours={gameTimeHours || new Date().getHours()}
             onProgressTime={onProgressTime}
+            onTimeAdvance={onTimeAdvance}
             onShowEvent={onShowEvent}
             currentGameDay={currentGameDay}
             useLlm={useLlm}

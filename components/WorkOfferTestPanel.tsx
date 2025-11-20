@@ -7,7 +7,10 @@ import React, { useState } from 'react';
 import { X, Play, CheckCircle, XCircle, AlertTriangle, Briefcase, MapPin, Coins } from 'lucide-react';
 import { generateWorkOffer } from '../services/workOfferService';
 import { WorkOffer } from '../types/workOffer';
-import { NpcEntity, PlayerCharacter, MapData } from '../types';
+import { NpcEntity, PlayerCharacter, MapData, HistoricalEra } from '../types';
+import { PROFESSIONS, CulturalZone } from '../constants/characterData/professions';
+import { mapLocationToCulture } from '../utils/mapUtils';
+import { parseDateString } from '../utils/dateUtils';
 
 interface WorkOfferTestPanelProps {
     isOpen: boolean;
@@ -52,7 +55,7 @@ const WorkOfferTestPanel: React.FC<WorkOfferTestPanelProps> = ({
         taskTypeCounts: Record<string, number>;
     } | null>(null);
     const [useRealMapData, setUseRealMapData] = useState(true);
-    const [numRandomTests, setNumRandomTests] = useState(10);
+    const [numRandomTests, setNumRandomTests] = useState(20);
 
     const testScenarios: TestScenario[] = [
         {
@@ -174,19 +177,98 @@ const WorkOfferTestPanel: React.FC<WorkOfferTestPanelProps> = ({
     const generateRandomScenarios = (count: number): TestScenario[] => {
         if (!mapData || !playerCharacter) return [];
 
+        // Determine era and cultural zone from map data
+        const dateInfo = parseDateString(mapData.timeSlice || '1500');
+        const era = (dateInfo.era || HistoricalEra.MEDIEVAL) as HistoricalEra;
+        const culturalZone = mapLocationToCulture(mapData.localArea || '', dateInfo.year) as CulturalZone;
+
+        console.log(`[Work Offer Test] Using ${culturalZone} / ${era} for profession selection`);
+
+        // Get actual professions from the era/culture
+        const eraData = PROFESSIONS[culturalZone]?.[era];
+        const availableProfessions: Array<{ name: string; class: string; expectedTypes: string[]; expectedItems: string[] }> = [];
+
+        if (eraData) {
+            // Iterate through all social classes
+            for (const [socialClass, roles] of Object.entries(eraData)) {
+                if (typeof roles === 'object' && roles !== null) {
+                    for (const [roleName, _roleData] of Object.entries(roles)) {
+                        // Categorize profession to determine expected task types
+                        const lowerRole = roleName.toLowerCase();
+                        let expectedTypes: string[] = [];
+                        let expectedItems: string[] = [];
+
+                        // Craftsmen/makers
+                        if (lowerRole.includes('smith') || lowerRole.includes('potter') || lowerRole.includes('weaver') ||
+                            lowerRole.includes('carpenter') || lowerRole.includes('knapper') || lowerRole.includes('maker') ||
+                            lowerRole.includes('worker') && !lowerRole.includes('farm')) {
+                            expectedTypes = ['gather_resource', 'deliver_to_location', 'fetch_item'];
+                            expectedItems = ['material', 'resource', 'craft'];
+                        }
+                        // Hunters/gatherers
+                        else if (lowerRole.includes('hunter') || lowerRole.includes('gather') || lowerRole.includes('fisher')) {
+                            expectedTypes = ['kill_animal', 'collect_animal_products', 'gather_resource'];
+                            expectedItems = ['animal', 'hunt', 'food'];
+                        }
+                        // Guards/warriors
+                        else if (lowerRole.includes('guard') || lowerRole.includes('warrior') || lowerRole.includes('soldier')) {
+                            expectedTypes = ['kill_animal', 'collect_animal_products', 'investigate_and_report', 'gather_resource'];
+                            expectedItems = ['patrol', 'protect', 'weapon'];
+                        }
+                        // Merchants/traders
+                        else if (lowerRole.includes('merchant') || lowerRole.includes('trader')) {
+                            expectedTypes = ['buy_from_location', 'deliver_to_location', 'gather_resource'];
+                            expectedItems = ['goods', 'trade'];
+                        }
+                        // Scholars/scribes
+                        else if (lowerRole.includes('scholar') || lowerRole.includes('scribe') || lowerRole.includes('clerk')) {
+                            expectedTypes = ['source_analysis', 'investigate_and_report', 'compare_perspectives', 'explore_location'];
+                            expectedItems = ['document', 'study', 'analyze'];
+                        }
+                        // Priests/healers/spiritual
+                        else if (lowerRole.includes('priest') || lowerRole.includes('cleric') || lowerRole.includes('monk') ||
+                                 lowerRole.includes('shaman') || lowerRole.includes('medicine') || lowerRole.includes('healer')) {
+                            expectedTypes = ['deliver_to_location', 'fetch_item', 'investigate_and_report'];
+                            expectedItems = ['sacred', 'holy', 'healing', 'herbs'];
+                        }
+                        // Farmers
+                        else if (lowerRole.includes('farm') || lowerRole.includes('grower') || lowerRole.includes('cultivat')) {
+                            expectedTypes = ['gather_resource', 'deliver_to_location', 'kill_animal'];
+                            expectedItems = ['crops', 'seeds', 'grain'];
+                        }
+                        // Nobles
+                        else if (lowerRole.includes('noble') || lowerRole.includes('lord') || lowerRole.includes('lady')) {
+                            expectedTypes = ['fetch_item', 'buy_from_location'];
+                            expectedItems = ['luxury', 'fine'];
+                        }
+                        // Default: laborer/craftsman
+                        else {
+                            expectedTypes = ['gather_resource', 'fetch_item'];
+                            expectedItems = ['material', 'tool'];
+                        }
+
+                        availableProfessions.push({
+                            name: roleName,
+                            class: socialClass,
+                            expectedTypes,
+                            expectedItems
+                        });
+                    }
+                }
+            }
+        }
+
+        // Fallback to generic professions if era data not found
+        if (availableProfessions.length === 0) {
+            console.warn(`[Work Offer Test] No professions found for ${culturalZone}/${era}, using fallbacks`);
+            availableProfessions.push(
+                { name: 'Laborer', class: 'Common', expectedTypes: ['gather_resource', 'fetch_item'], expectedItems: ['material', 'tool'] },
+                { name: 'Hunter', class: 'Common', expectedTypes: ['kill_animal', 'collect_animal_products'], expectedItems: ['animal', 'hunt'] }
+            );
+        }
+
         const scenarios: TestScenario[] = [];
-        const professions = [
-            { name: 'Blacksmith', class: 'Artisan', expectedTypes: ['gather_resource', 'deliver_to_location', 'fetch_item'], expectedItems: ['iron', 'ore', 'metal'] },
-            { name: 'Town Guard', class: 'Common', expectedTypes: ['kill_animal', 'collect_animal_products'], expectedItems: ['wolf', 'hunt', 'protect'] },
-            { name: 'Merchant', class: 'Merchant', expectedTypes: ['buy_from_location', 'deliver_to_location'], expectedItems: ['silk', 'goods', 'trade'] },
-            { name: 'Scholar', class: 'Scholar', expectedTypes: ['explore_location', 'investigate_and_report'], expectedItems: ['artifact', 'document'] },
-            { name: 'Farmer', class: 'Peasant', expectedTypes: ['gather_resource', 'deliver_to_location', 'kill_animal'], expectedItems: ['wheat', 'grain', 'pests'] },
-            { name: 'Tanner', class: 'Artisan', expectedTypes: ['collect_animal_products', 'kill_animal', 'gather_resource'], expectedItems: ['hide', 'pelt', 'leather', 'bark', 'salt'] },
-            { name: 'Potter', class: 'Artisan', expectedTypes: ['gather_resource', 'deliver_to_location'], expectedItems: ['clay', 'glaze'] },
-            { name: 'Priest', class: 'Clergy', expectedTypes: ['deliver_to_location', 'fetch_item', 'debate_topic'], expectedItems: ['sacred', 'holy', 'offering'] },
-            { name: 'Noble', class: 'Noble', expectedTypes: ['fetch_item', 'buy_from_location'], expectedItems: ['luxury', 'fine'] },
-            { name: 'Scribe', class: 'Scholar', expectedTypes: ['investigate_and_report', 'source_analysis'], expectedItems: ['document', 'manuscript'] }
-        ];
+        const professions = availableProfessions;
 
         // Get actual structures and animals from map
         const actualStructures = mapData.terrainStructures || [];
@@ -261,6 +343,23 @@ const WorkOfferTestPanel: React.FC<WorkOfferTestPanelProps> = ({
         const description = offer.description.toLowerCase();
         const taskType = offer.taskType;
 
+        // Check if acceptedCategories is set (for fetch/gather quests)
+        if ((taskType === 'fetch_item' || taskType === 'gather_resource') &&
+            (!offer.acceptedCategories || offer.acceptedCategories.length === 0)) {
+            issues.push(`Missing acceptedCategories - should use generic categories like 'ore', 'wood', 'herb', etc.`);
+        } else if (offer.acceptedCategories && offer.acceptedCategories.length > 0) {
+            strengths.push(`Using category-based matching: [${offer.acceptedCategories.join(', ')}]`);
+        }
+
+        // Check if requiredItem is too specific (common mistake)
+        if (offer.requiredItem) {
+            const specificItems = ['feverfew', 'serpent', 'damascus', 'mahogany', 'rubies', 'emerald', 'sapphire'];
+            const isTooSpecific = specificItems.some(item => offer.requiredItem?.toLowerCase().includes(item));
+            if (isTooSpecific) {
+                issues.push(`Item description too specific: "${offer.requiredItem}" - should be generic like "medicinal herbs" or "metal ore"`);
+            }
+        }
+
         // Check if task type matches expected
         const isExpectedType = scenario.expectedTypes.includes(taskType);
         if (!isExpectedType) {
@@ -303,6 +402,37 @@ const WorkOfferTestPanel: React.FC<WorkOfferTestPanelProps> = ({
             }
             if (taskType === 'collect_animal_products' && (description.includes('hide') || description.includes('pelt'))) {
                 strengths.push('Tanner requesting animal products - realistic');
+            }
+        }
+
+        if (profession.includes('scholar')) {
+            if (taskType === 'fetch_item') {
+                issues.push('Scholar should NEVER use fetch_item - use explore_location or investigate_and_report');
+            }
+            if (taskType === 'explore_location' || taskType === 'investigate_and_report' || taskType === 'compare_perspectives') {
+                strengths.push('Scholar using educational quest type - realistic');
+            }
+        }
+
+        if (profession.includes('scribe')) {
+            if (taskType === 'fetch_item' || taskType === 'gather_resource') {
+                issues.push('Scribe should NEVER use fetch_item/gather_resource - use source_analysis or investigate_and_report');
+            }
+            if (taskType === 'source_analysis' || taskType === 'investigate_and_report') {
+                strengths.push('Scribe using educational quest type - realistic');
+            }
+        }
+
+        if (profession.includes('merchant')) {
+            const hasMarketplace = scenario.structures.some(s =>
+                s.structureType?.toLowerCase().includes('market') ||
+                s.name?.toLowerCase().includes('market')
+            );
+            if (hasMarketplace && taskType === 'fetch_item') {
+                issues.push('Merchant with marketplace nearby should use buy_from_location, not fetch_item');
+            }
+            if (hasMarketplace && taskType === 'buy_from_location') {
+                strengths.push('Merchant correctly using marketplace - realistic');
             }
         }
 
@@ -662,13 +792,21 @@ const WorkOfferTestPanel: React.FC<WorkOfferTestPanelProps> = ({
 
                                             {result.offer && (
                                                 <div className="space-y-1">
-                                                    <div className="flex items-center gap-2 text-sm">
+                                                    <div className="flex items-center gap-2 text-sm flex-wrap">
                                                         <span className="px-2 py-0.5 bg-blue-900/30 border border-blue-600/30 rounded text-blue-300 text-xs font-medium">
                                                             {result.taskType}
                                                         </span>
                                                         <span className="text-[var(--text-secondary)]">|</span>
                                                         <Coins className="w-3 h-3 text-yellow-500" />
                                                         <span className="text-yellow-400 font-medium">{result.payment} coins</span>
+                                                        {result.offer.acceptedCategories && result.offer.acceptedCategories.length > 0 && (
+                                                            <>
+                                                                <span className="text-[var(--text-secondary)]">|</span>
+                                                                <span className="text-xs text-purple-400">
+                                                                    Categories: [{result.offer.acceptedCategories.join(', ')}]
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                     <p className="text-sm text-[var(--text-secondary)] italic">
                                                         "{result.description}"

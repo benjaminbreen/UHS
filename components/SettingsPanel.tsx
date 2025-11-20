@@ -3,7 +3,8 @@ import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
 import { gameSounds } from '../services/gameSoundsService';
 import { useModalKeyboard } from '../hooks/useModalKeyboard';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Database, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check, Sparkles, Zap, Globe, Shuffle, Trophy, Shield, Compass, Coins, Crown, Home, Scale, Briefcase } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Database, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check, Sparkles, Zap, Globe, Shuffle, Trophy, Shield, Compass, Coins, Crown, Home, Scale, Briefcase, FileText } from 'lucide-react';
+import { exportService } from '../services/exportService';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
@@ -188,6 +189,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // Share URL state
   const [shareableURL, setShareableURL] = useState('');
   const [copiedShareURL, setCopiedShareURL] = useState(false);
+
+  // Export state
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   // Developer testing panels
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
@@ -466,9 +470,61 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   const clearAllImmunities = () => {
     if (!playerCharacter?.health) return;
-    
+
     playerCharacter.health.immunities = [];
     console.log('All immunities cleared');
+  };
+
+  const handleExportProgress = () => {
+    if (!playerCharacter) {
+      setExportMessage('⚠️ No active game session to export');
+      setTimeout(() => setExportMessage(null), 3000);
+      return;
+    }
+
+    try {
+      // Extract data from currentGameState or use defaults
+      const gameLog = currentGameState?.gameLog || [];
+      const playerJournal = currentGameState?.playerJournal || [];
+      const assessmentSession = currentGameState?.assessmentSession || null;
+      const assessmentLogs = currentGameState?.assessmentLogs || {
+        npcEncounters: [],
+        primarySources: [],
+        playerInputs: []
+      };
+      const llmAnalysis = currentGameState?.llmAnalysis || null;
+      const learningProgress = currentGameState?.learningProgress || [];
+
+      // Get player stats from current state
+      const playerStats = {
+        daysAlive: playerCharacter.daysAlive || 0,
+        location: playerLocation || 'Unknown',
+        distanceTraveled: playerCharacter.distanceTraveled || 0,
+        itemsCollected: playerCharacter.inventory?.length || 0,
+        questsCompleted: playerCharacter.questsCompleted || 0,
+        npcsMetTotal: playerCharacter.npcsMetTotal || 0,
+      };
+
+      const sessionExport = exportService.generateSessionExport({
+        playerCharacter,
+        gameLog,
+        playerJournal,
+        assessmentSession,
+        assessmentLogs,
+        assessmentSummary: assessmentSession?.summary || null,
+        llmAnalysis,
+        learningProgress,
+        playerStats,
+      });
+
+      exportService.downloadJSON(sessionExport);
+      setExportMessage('✅ Progress exported successfully!');
+      setTimeout(() => setExportMessage(null), 3000);
+    } catch (error) {
+      console.error('Export failed:', error);
+      setExportMessage('❌ Export failed. Please try again.');
+      setTimeout(() => setExportMessage(null), 3000);
+    }
   };
 
   return (
@@ -599,6 +655,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <Save className="w-5 h-5" />
               <span>Manage Saved Games</span>
             </button>
+
+            {/* Export Progress Button */}
+            <button
+              onClick={handleExportProgress}
+              className="w-full px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2.5 active:scale-[0.98]"
+            >
+              <FileText className="w-5 h-5" />
+              <span>Export Session Data</span>
+            </button>
+            {exportMessage && (
+              <div className={`mt-2 text-center text-sm font-medium rounded-lg p-2 ${
+                exportMessage.includes('✅') ? 'bg-green-500/10 text-green-400' :
+                exportMessage.includes('❌') ? 'bg-red-500/10 text-red-400' :
+                'bg-amber-500/10 text-amber-400'
+              }`}>
+                {exportMessage}
+              </div>
+            )}
 
             {/* Share URL Section */}
             <div className="p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]">

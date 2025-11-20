@@ -39,7 +39,7 @@ const PineTreeSymbol: React.FC<PineTreeSymbolProps> = React.memo(({ seed, season
   const showSnow = season === 'winter' && (climate === ClimateType.COLD || climate === ClimateType.TEMPERATE);
 
   return (
-    <g filter="url(#symbolShadow)">
+    <g>
       <polygon points={`12,${y1} ${p1_x1},${p1_y1} ${p1_x2},${p1_y2}`} fill="#22543d" />
       <polygon points={`12,${y1} ${p2_x1},${p2_y1} ${p2_x2},${p2_y2}`} fill="#2f855a" />
       <polygon points={`12,${y1} ${p3_x1},${p3_y1} ${p3_x2},${p3_y2}`} fill="#48bb78" />

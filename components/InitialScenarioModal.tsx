@@ -421,6 +421,21 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
             setShouldRenderPortrait(false);
         }
     }, [isOpen, isSafari]);
+
+    // Keyboard handler - close modal with Enter or Escape
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
     
     if (!isOpen) return null;
 

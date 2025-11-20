@@ -142,12 +142,23 @@ export function generateEncounterDialogue(
 
             // Return payment dialogue with data for EncounterModalUpdated to process
             const npc = target as NpcEntity;
-            const paymentMessage = `Excellent work, ${playerCharacter.name}! I can see you've completed the task. Here's your payment of ${completedOffer.payment} coins as promised. Your reputation has improved in this area.`;
+            const paymentMessage = `Excellent work, ${playerCharacter.name}! I can see you've completed the task. Here's your payment of ${completedOffer.payment} coins as promised.`;
+
+            // Calculate NPC trust boost based on payment (higher pay = harder task = more trust)
+            const trustBoost = Math.min(30, Math.floor(completedOffer.payment / 2) + 15); // 15-30 trust boost
 
             return Promise.resolve({
                 text: paymentMessage,
-                reputationChange: 5, // Reputation boost
-                coinsEarned: completedOffer.payment
+                reputationChange: 5, // Area reputation boost (kept small)
+                npcTrustChange: trustBoost, // Significant NPC-specific trust boost
+                coinsEarned: completedOffer.payment,
+                workTaskCompleted: {
+                    taskDescription: completedOffer.description,
+                    taskType: completedOffer.taskType,
+                    payment: completedOffer.payment,
+                    npcName: npc.name,
+                    trustGained: trustBoost
+                }
             } as any);
         }
     }
@@ -169,7 +180,108 @@ export function generateEncounterDialogue(
         // Mild symptoms - NPC shows concern
         diseaseModifier = `NOTE: The player looks somewhat unwell. You notice they don't look entirely healthy and may show mild concern.`;
     }
-    
+
+    // Check for hostile/threatened state
+    let hostileModifier = '';
+
+    // Debug: Log the NPC's state
+    if ('name' in target) {
+        console.log(`[Encounter Service] Checking hostile state for ${target.name}:`);
+        console.log(`  - aiState: ${('aiState' in target) ? target.aiState : 'N/A'}`);
+        console.log(`  - isHostile: ${('isHostile' in target) ? target.isHostile : 'N/A'}`);
+        console.log(`  - wasThreatenedByWeapon: ${('wasThreatenedByWeapon' in target) ? target.wasThreatenedByWeapon : 'N/A'}`);
+        console.log(`  - threatenedByPlayerTimestamp: ${('threatenedByPlayerTimestamp' in target) ? target.threatenedByPlayerTimestamp : 'N/A'}`);
+    }
+
+    if ('aiState' in target && target.aiState === 'attacking_chasing') {
+        // NPC is actively hostile and chasing the player
+        console.log(`[Encounter Service] 🔥 APPLYING FURIOUS ATTACKING MODIFIER`);
+        hostileModifier = `🔥 CRITICAL - YOU ARE FURIOUS AND ATTACKING: This person just attacked you or threatened you with a weapon! You are ENRAGED and want to FIGHT or PUNISH them. YELL at them in ALL CAPS! Demand to know why they attacked you! Threaten them with violence or justice! Be extremely angry and aggressive!`;
+    } else if ('isHostile' in target && target.isHostile) {
+        // NPC is marked as hostile
+        console.log(`[Encounter Service] ⚠️ APPLYING HOSTILE MODIFIER`);
+        hostileModifier = `⚠️ IMPORTANT - YOU ARE HOSTILE: You are hostile toward this person. Be aggressive, threatening, or confrontational. You may yell (use CAPS for emphasis). Show your anger or hostility clearly.`;
+    } else if ('wasThreatenedByWeapon' in target && target.wasThreatenedByWeapon) {
+        const timeSinceThreat = target.threatenedByPlayerTimestamp
+            ? (Date.now() - target.threatenedByPlayerTimestamp) / 1000
+            : Infinity;
+
+        if (timeSinceThreat < 300) { // Within 5 minutes
+            console.log(`[Encounter Service] ⚠️ APPLYING WEAPON THREAT MODIFIER (${Math.floor(timeSinceThreat)}s ago)`);
+            hostileModifier = `⚠️ VERY IMPORTANT: This person just swung a weapon at you ${Math.floor(timeSinceThreat)} seconds ago! You are still VERY ANGRY, FRIGHTENED, or BOTH. YELL at them (use CAPS)! Demand an explanation! You might threaten to call for help or fight back!`;
+        }
+    }
+
+    if (!hostileModifier) {
+        console.log(`[Encounter Service] ℹ️ No hostile modifier applied - NPC appears calm`);
+    }
+
+    // Check for available work offers for this NPC
+    let workOfferContext = '';
+    if ('id' in target && target.id) {
+        const npc = target as NpcEntity;
+        const workOffers = getWorkOffersForNpc(target.id);
+        const availableOffers = workOffers.filter(offer => !offer.accepted && !offer.completed && !offer.failed);
+
+        if (availableOffers.length > 0 && npc.memory) {
+            const opinion = npc.memory.opinionOfPlayer || 0;
+
+            // Check for spontaneous offer factors (even for strangers)
+            const highPayingTask = availableOffers.some(offer => offer.payment >= 30);
+            const multipleTasksBacklog = availableOffers.length >= 3;
+            const isDesperateRole = npc.role?.toLowerCase().includes('merchant') ||
+                                   npc.role?.toLowerCase().includes('trader') ||
+                                   npc.role?.toLowerCase().includes('farmer');
+            const isFriendlyPersonality = npc.personality?.traits?.includes('friendly') ||
+                                         npc.personality?.traits?.includes('helpful');
+
+            // Calculate spontaneous offer chance (0-100)
+            let spontaneousChance = 0;
+            if (opinion < 20) {
+                // Base 15% chance for strangers
+                spontaneousChance = 15;
+                if (highPayingTask) spontaneousChance += 20; // Urgent/valuable work
+                if (multipleTasksBacklog) spontaneousChance += 15; // Overwhelmed with tasks
+                if (isDesperateRole) spontaneousChance += 15; // Roles that need workers
+                if (isFriendlyPersonality) spontaneousChance += 20; // Naturally outgoing
+            }
+
+            const shouldOfferSpontaneously = Math.random() * 100 < spontaneousChance;
+
+            // NPCs with high opinion (50+) always proactively mention work
+            if (opinion >= 50) {
+                workOfferContext = `IMPORTANT: You trust ${playerCharacter.name} and have work available for them. ` +
+                    `You have ${availableOffers.length} task${availableOffers.length > 1 ? 's' : ''} that need doing. ` +
+                    `Proactively mention you have work available if appropriate in the conversation. ` +
+                    `Be friendly and encouraging since you trust them (trust level: ${opinion}/100).`;
+            } else if (opinion >= 20) {
+                // Moderate opinion - mention work if asked
+                workOfferContext = `NOTE: You have ${availableOffers.length} task${availableOffers.length > 1 ? 's' : ''} available. ` +
+                    `Mention it if the player asks about work or jobs. ` +
+                    `Your trust in them is growing (trust level: ${opinion}/100).`;
+            } else if (shouldOfferSpontaneously) {
+                // Stranger with spontaneous offer
+                let offerReason = '';
+                if (highPayingTask) offerReason = 'You have an urgent, high-paying task that needs doing. ';
+                if (multipleTasksBacklog) offerReason = 'You are overwhelmed with work and desperate for help. ';
+                if (isDesperateRole) offerReason = 'Your business needs workers. ';
+                if (isFriendlyPersonality) offerReason = 'You are naturally friendly and outgoing. ';
+
+                workOfferContext = `SPONTANEOUS WORK OFFER: ${offerReason}` +
+                    `You have ${availableOffers.length} task${availableOffers.length > 1 ? 's' : ''} available. ` +
+                    `Even though you don't know ${playerCharacter.name} well (trust: ${opinion}/100), ` +
+                    `you're willing to mention the work early in the conversation if it comes up naturally. ` +
+                    `Don't force it, but bring it up if they seem capable or if the conversation allows. ` +
+                    `You might say something like "Say, you wouldn't be looking for work, would you?" or ` +
+                    `"I don't suppose you'd be interested in earning some coins?"`;
+            } else {
+                // Low opinion - still have work but don't offer unless asked
+                workOfferContext = `You have work available but don't fully trust ${playerCharacter.name} yet (trust level: ${opinion}/100). ` +
+                    `Only mention it if directly asked about work.`;
+            }
+        }
+    }
+
     // Check if this is a special map with enhanced context
     if (isSpecialMapData(mapData)) {
         const specialMapContext = getSpecialMapContext(mapData, target as NpcEntity);
@@ -178,6 +290,8 @@ export function generateEncounterDialogue(
         const enhancedTarget = {
             ...target,
             diseaseModifier, // Add disease awareness to NPC context
+            hostileModifier, // Add hostile/threatened state context
+            workOfferContext, // Add work offer context
             specialMapContext: {
                 ...specialMapContext,
                 // Add role-specific context based on archetype
@@ -238,10 +352,12 @@ export function generateEncounterDialogue(
         return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
     }
 
-    // Regular encounter for non-special maps - add disease awareness
+    // Regular encounter for non-special maps - add disease awareness, hostile state, and work context
     const enhancedTarget = {
         ...target,
-        diseaseModifier // Add disease awareness to regular encounters too
+        diseaseModifier, // Add disease awareness to regular encounters too
+        hostileModifier, // Add hostile/threatened state context
+        workOfferContext // Add work offer context
     } as any;
 
     return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);

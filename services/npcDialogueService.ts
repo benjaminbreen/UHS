@@ -71,6 +71,15 @@ export async function generateNpcGreeting(
     atmosphericPrompt = atmosphericContextService.getNpcPromptAdditions(atmosphericContext);
   }
 
+  // Check if NPC was recently threatened (within last 5 minutes)
+  const wasRecentlyThreatened = npc.wasThreatenedByWeapon &&
+    npc.threatenedByPlayerTimestamp &&
+    (Date.now() - npc.threatenedByPlayerTimestamp) < 300000; // 5 minutes
+
+  const threatContext = wasRecentlyThreatened
+    ? '\n\n⚠️ IMPORTANT: This person just swung a weapon at you moments ago! You are frightened, angry, or both. Address this immediately - demand an explanation, express fear/anger, or warn them to stay back. This should dominate your response.'
+    : '';
+
   const prompt = `
 You are ${npc.name}, a ${npc.age}-year-old ${npc.role} in ${context.location} during ${context.year}.
 
@@ -85,7 +94,7 @@ CONTEXT:
 - Cultural Zone: ${context.culturalZone}
 - Location: ${context.isMarketplace ? 'marketplace' : 'local area'}
 - Time: ${context.timeOfDay || 'midday'}
-- Season: ${context.season || 'spring'}${atmosphericPrompt}
+- Season: ${context.season || 'spring'}${atmosphericPrompt}${threatContext}
 
 ${playerCharacter ? `A ${playerCharacter.profession} named ${playerCharacter.name} approaches you.` : 'Someone approaches you.'}
 
@@ -130,6 +139,15 @@ export async function generateNpcResponse(
     atmosphericPrompt = atmosphericContextService.getNpcPromptAdditions(atmosphericContext);
   }
 
+  // Check if NPC was recently threatened (within last 5 minutes)
+  const wasRecentlyThreatened = npc.wasThreatenedByWeapon &&
+    npc.threatenedByPlayerTimestamp &&
+    (Date.now() - npc.threatenedByPlayerTimestamp) < 300000; // 5 minutes
+
+  const threatContext = wasRecentlyThreatened
+    ? '\n\n⚠️ IMPORTANT: This person just swung a weapon at you moments ago! You are frightened, angry, or both. You should acknowledge this threat in your response - demand they explain themselves, express fear/anger, refuse to cooperate, or threaten to call for help. Do not ignore this!'
+    : '';
+
   const prompt = `
 You are ${npc.name}, a ${npc.age}-year-old ${npc.role} in ${context.location} during ${context.year}.
 
@@ -143,7 +161,7 @@ CHARACTER DETAILS:
 CONTEXT:
 - Era: ${context.era}
 - Cultural Zone: ${context.culturalZone}
-- Location: ${context.isMarketplace ? 'marketplace' : 'local area'}${atmosphericPrompt}
+- Location: ${context.isMarketplace ? 'marketplace' : 'local area'}${atmosphericPrompt}${threatContext}
 
 ${playerCharacter ? `${playerCharacter.name}, a ${playerCharacter.profession}, says to you: "${playerInput}"` : `Someone says to you: "${playerInput}"`}
 

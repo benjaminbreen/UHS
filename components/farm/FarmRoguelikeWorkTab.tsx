@@ -10,19 +10,22 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Season, CulturalZone, HistoricalEra } from '../../types';
+import { Season, CulturalZone, HistoricalEra, PlayerCharacter } from '../../types';
 import { FarmState, FarmFamilyMember, FieldState } from '../../services/farmService';
-import { CROP_EMOJIS } from './types';
+import { CROP_EMOJIS, CROP_TO_ITEM_BASE_ID } from './types';
+import FarmerWarningModal from '../FarmerWarningModal';
+import { gameSounds } from '../../services/gameSoundsService';
 
 interface FarmRoguelikeWorkTabProps {
   farmState: FarmState;
   setFarmState: (state: FarmState | ((prev: FarmState) => FarmState)) => void;
   headFarmer: FarmFamilyMember | null;
+  playerCharacter: PlayerCharacter; // Parent's character state for fatigue tracking
   llmHooks: {
     hoursWorkedToday: number;
     farmActionLog: Array<{ action: string; timeElapsed: number }>;
     currentFarmTime: number;
-    handleQuickNpcTalk: (npc: FarmFamilyMember) => Promise<string>;
+    handleQuickNpcTalk: (npc: FarmFamilyMember, userMessage?: string) => Promise<string>;
   };
   fieldHooks: {
     validCrops: string[];
@@ -32,9 +35,12 @@ interface FarmRoguelikeWorkTabProps {
   onPlayerStateChange?: (changes: {
     health?: number;
     fatigue?: number;
+    currency?: number;
     statusEffects?: Array<{ type: string; name: string; duration: number }>;
+    inventory?: { add?: any[]; remove?: string[] };
   }) => void;
   onTimeAdvance?: (hours: number) => void;
+  onClose?: () => void;
 }
 
 // Tile types for the farm
@@ -62,18 +68,123 @@ interface FarmTile {
 interface FarmPlayer {
   x: number;
   y: number;
-  hasWaterBucket: boolean;
-  waterBucketFull: boolean;
-  hasSeedBag: boolean;
   selectedSeed?: string;
-  fatigue: number;
-  maxFatigue: number;
+  // Note: Fatigue is tracked in parent playerCharacter, not here
 }
 
 // Map dimensions
 const MAP_WIDTH = 45;
 const MAP_HEIGHT = 28;
 const TILE_SIZE = 20; // pixels - increased from 16 for better visibility
+
+// A* Pathfinding Implementation
+interface PathNode {
+  x: number;
+  y: number;
+  g: number; // Cost from start
+  h: number; // Heuristic to goal
+  f: number; // Total cost (g + h)
+  parent: PathNode | null;
+}
+
+function heuristic(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); // Manhattan distance
+}
+
+function findPath(
+  start: { x: number; y: number },
+  goal: { x: number; y: number },
+  farmMap: FarmTile[][]
+): { x: number; y: number }[] {
+  const openSet: PathNode[] = [];
+  const closedSet = new Set<string>();
+
+  const startNode: PathNode = {
+    x: start.x,
+    y: start.y,
+    g: 0,
+    h: heuristic(start, goal),
+    f: heuristic(start, goal),
+    parent: null
+  };
+
+  openSet.push(startNode);
+
+  while (openSet.length > 0) {
+    // Find node with lowest f score
+    openSet.sort((a, b) => a.f - b.f);
+    const current = openSet.shift()!;
+
+    // Check if we reached the goal (or adjacent to goal)
+    if (Math.abs(current.x - goal.x) <= 1 && Math.abs(current.y - goal.y) <= 1) {
+      // Reconstruct path
+      const path: { x: number; y: number }[] = [];
+      let node: PathNode | null = current;
+      while (node) {
+        path.unshift({ x: node.x, y: node.y });
+        node = node.parent;
+      }
+      return path;
+    }
+
+    const key = `${current.x},${current.y}`;
+    closedSet.add(key);
+
+    // Check all neighbors (4 directions)
+    const neighbors = [
+      { x: current.x + 1, y: current.y },
+      { x: current.x - 1, y: current.y },
+      { x: current.x, y: current.y + 1 },
+      { x: current.x, y: current.y - 1 }
+    ];
+
+    for (const neighbor of neighbors) {
+      // Bounds check
+      if (neighbor.x < 0 || neighbor.x >= MAP_WIDTH || neighbor.y < 0 || neighbor.y >= MAP_HEIGHT) {
+        continue;
+      }
+
+      // Walkability check
+      const tile = farmMap[neighbor.y]?.[neighbor.x];
+      if (!tile || !tile.walkable) {
+        continue;
+      }
+
+      const neighborKey = `${neighbor.x},${neighbor.y}`;
+      if (closedSet.has(neighborKey)) {
+        continue;
+      }
+
+      const g = current.g + 1;
+      const h = heuristic(neighbor, goal);
+      const f = g + h;
+
+      // Check if neighbor is already in open set
+      const existingIndex = openSet.findIndex(n => n.x === neighbor.x && n.y === neighbor.y);
+      if (existingIndex >= 0) {
+        // Update if we found a better path
+        if (g < openSet[existingIndex].g) {
+          openSet[existingIndex].g = g;
+          openSet[existingIndex].f = f;
+          openSet[existingIndex].parent = current;
+        }
+      } else {
+        // Add to open set
+        openSet.push({
+          x: neighbor.x,
+          y: neighbor.y,
+          g,
+          h,
+          f,
+          parent: current
+        });
+      }
+    }
+  }
+
+  // No path found - return empty
+  return [];
+}
 
 // Seeded random number generator
 class SeededRandom {
@@ -362,21 +473,23 @@ function generateFarmLayout(
     }
   }
 
-  // Place well (randomized near farmhouse)
-  const wellX = farmhouseX + rng.nextInt(5, 8);
-  const wellY = farmhouseY + rng.nextInt(0, 2);
-  if (wellY >= 0 && wellY < MAP_HEIGHT && wellX >= 0 && wellX < MAP_WIDTH) {
-    map[wellY][wellX] = {
-      type: 'well',
-      symbol: style.well.symbol,
-      color: style.well.color,
-      backgroundColor: '#1a2a3a',
-      walkable: false,
-      interactable: true,
-      interactionType: 'water_source',
-    };
-    pathPoints.push({ x: wellX, y: wellY, type: 'well' });
-  }
+  // Place well (ALWAYS near farmhouse, guaranteed placement)
+  let wellX = farmhouseX + rng.nextInt(5, 8);
+  let wellY = farmhouseY + rng.nextInt(0, 2);
+  // Ensure well is within bounds (critical - farms MUST have water!)
+  wellX = Math.max(0, Math.min(MAP_WIDTH - 1, wellX));
+  wellY = Math.max(0, Math.min(MAP_HEIGHT - 1, wellY));
+
+  map[wellY][wellX] = {
+    type: 'well',
+    symbol: style.well.symbol,
+    color: style.well.color,
+    backgroundColor: '#1a2a3a',
+    walkable: false,
+    interactable: true,
+    interactionType: 'water_source',
+  };
+  pathPoints.push({ x: wellX, y: wellY, type: 'well' });
 
   // Place barn if livestock exists (randomized placement)
   if (farmState.livestock && farmState.livestock.length > 0) {
@@ -469,11 +582,11 @@ function placeFieldsStrips(
   farmhouseX: number,
   farmhouseY: number
 ) {
-  // Medieval European strip farming - long narrow fields
+  // Medieval European strip farming - long narrow fields (smaller, more manageable)
   const startX = 12;
   const startY = 2;
   const stripWidth = 3;
-  const stripLength = rng.nextInt(18, 22);
+  const stripLength = rng.nextInt(8, 11); // Reduced from 18-22 to 8-11
 
   farmState.fields.forEach((field, index) => {
     const fx = startX + index * (stripWidth + 1);
@@ -491,8 +604,8 @@ function placeFieldsSquares(
   farmhouseX: number,
   farmhouseY: number
 ) {
-  // Modern efficient squares
-  const fieldSize = rng.nextInt(7, 9);
+  // Modern efficient squares (smaller, more manageable)
+  const fieldSize = rng.nextInt(5, 7); // Reduced from 7-9 to 5-7
   const spacing = 2;
   const startX = 14;
   const startY = 2;
@@ -515,8 +628,8 @@ function placeFieldsPaddies(
   farmhouseX: number,
   farmhouseY: number
 ) {
-  // Asian rice paddies with water channels
-  const paddySize = rng.nextInt(6, 8);
+  // Asian rice paddies with water channels (smaller, more manageable)
+  const paddySize = rng.nextInt(5, 7); // Reduced from 6-8 to 5-7
   const spacing = 1; // Narrow channels between
   const startX = 13;
   const startY = 3;
@@ -614,14 +727,14 @@ function placeFieldsTerraced(
   farmhouseX: number,
   farmhouseY: number
 ) {
-  // Terraced fields ascending
+  // Terraced fields ascending (smaller, more manageable)
   const startX = 12;
   const terraceHeight = 5;
 
   farmState.fields.forEach((field, index) => {
     const fy = 4 + index * (terraceHeight + 2);
     const fx = startX + (index % 2) * 2; // Slight zigzag
-    const width = rng.nextInt(12, 18);
+    const width = rng.nextInt(8, 12); // Reduced from 12-18 to 8-12
 
     createFieldArea(map, field, index, fx, fy, width, terraceHeight, style, 'terraced', rng);
 
@@ -649,8 +762,8 @@ function placeFieldsRows(
   farmhouseX: number,
   farmhouseY: number
 ) {
-  // Standard rows pattern
-  const fieldWidth = rng.nextInt(7, 10);
+  // Standard rows pattern (smaller, more manageable)
+  const fieldWidth = rng.nextInt(6, 8); // Reduced from 7-10 to 6-8
   const fieldHeight = rng.nextInt(5, 7);
   const spacing = 2;
   const startX = 14;
@@ -764,12 +877,14 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
   farmState,
   setFarmState,
   headFarmer,
+  playerCharacter,
   llmHooks,
   fieldHooks,
   season,
   useLlm,
   onPlayerStateChange,
   onTimeAdvance,
+  onClose,
 }) => {
   const { hoursWorkedToday, farmActionLog, currentFarmTime, handleQuickNpcTalk } = llmHooks;
   const { validCrops } = fieldHooks;
@@ -778,16 +893,11 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
   const [player, setPlayer] = useState<FarmPlayer>({
     x: 7, // Start at farmhouse door
     y: 5,
-    hasWaterBucket: true,
-    waterBucketFull: false,
-    hasSeedBag: true,
     selectedSeed: validCrops[0] || 'wheat',
-    fatigue: 0,
-    maxFatigue: 100,
   });
 
   // UI state
-  const [message, setMessage] = useState<string>('Use Arrows to move. Space: Interact | W: Water | P: Plant | H: Harvest | F: Feed | T: Talk');
+  const [message, setMessage] = useState<string>('Use Arrow Keys to move around the farm. Press Space to interact with objects and people.');
   const [showCropSelector, setShowCropSelector] = useState(false);
   const [selectedFieldId, setSelectedFieldId] = useState<number | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -819,6 +929,15 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
   // Hovered tile for context display
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
 
+  // Action confirmation modal state
+  const [actionConfirmation, setActionConfirmation] = useState<{
+    action: string;
+    fieldId: number;
+    timeRequired: number;
+    fatigueRequired: number;
+    onConfirm: () => void;
+  } | null>(null);
+
   // Time progression tracking
   const [localGameDay, setLocalGameDay] = useState(Math.floor(currentFarmTime / 24));
   const [localGameHour, setLocalGameHour] = useState(currentFarmTime % 24);
@@ -826,11 +945,29 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
   // Barn storage (crops harvested and stored)
   const [barnStorage, setBarnStorage] = useState<{ [crop: string]: number }>({});
 
+  // End-of-day summary tracking
+  const [showDaySummary, setShowDaySummary] = useState(false);
+  const [dailyStats, setDailyStats] = useState({
+    fieldsWatered: 0,
+    fieldsPlanted: 0,
+    fieldsHarvested: 0,
+    cropsCollected: 0,
+    npcsTalked: new Set<string>(),
+    hoursWorked: 0,
+    coinsEarned: 0,
+  });
+
   // NPC positions (family members on the map)
   const [npcPositions, setNpcPositions] = useState<{ [id: string]: { x: number; y: number } }>({});
 
+  // Farmer confrontation state (for working past 8pm)
+  const [farmerApproaching, setFarmerApproaching] = useState(false);
+  const [showFarmerWarning, setShowFarmerWarning] = useState(false);
+  const farmerApproachIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const farmerPathRef = useRef<{ x: number; y: number }[]>([]);
+  const farmerPathIndexRef = useRef(0);
+
   // Animated stat values for smooth transitions
-  const [displayedFatigue, setDisplayedFatigue] = useState(0);
   const [displayedDay, setDisplayedDay] = useState(localGameDay);
   const [displayedHour, setDisplayedHour] = useState(localGameHour);
 
@@ -870,6 +1007,62 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
       setToastMessages(prev => prev.filter(t => t.id !== id));
     }, 4000);
   }, []);
+
+  // Calculate field size multiplier based on farm prosperity and field count
+  const getFieldSizeMultiplier = useCallback((fieldId: number): number => {
+    const totalFields = farmState.fields.length;
+    const prosperity = farmState.prosperityLevel;
+
+    // Base size by prosperity (subsistence=small fields, thriving=large fields)
+    const baseSizes = {
+      'subsistence': 0.6,  // Small plots
+      'small': 0.8,
+      'moderate': 1.0,     // Average size
+      'thriving': 1.4      // Large fields
+    };
+
+    const baseSize = baseSizes[prosperity] || 1.0;
+
+    // Fewer fields = each field is larger
+    const fieldCountFactor = Math.max(0.7, Math.min(1.5, 8 / totalFields));
+
+    // Some variation between fields
+    const fieldVariation = 0.9 + (fieldId % 3) * 0.1; // 0.9x to 1.1x
+
+    return baseSize * fieldCountFactor * fieldVariation;
+  }, [farmState.fields.length, farmState.prosperityLevel]);
+
+  // Calculate realistic time and fatigue for farm actions
+  const calculateActionCost = useCallback((action: 'water' | 'plant' | 'harvest', fieldId: number) => {
+    const sizeMultiplier = getFieldSizeMultiplier(fieldId);
+
+    // Base times (hours) and fatigue for a standard field
+    const baseCosts = {
+      water: { time: 2.0, fatigue: 4 },    // 2 hours for average field
+      plant: { time: 3.0, fatigue: 6 },    // 3 hours for planting
+      harvest: { time: 4.0, fatigue: 10 }  // 4 hours for harvesting
+    };
+
+    const base = baseCosts[action];
+
+    return {
+      time: Math.round(base.time * sizeMultiplier * 10) / 10,  // Round to 0.1 hours
+      fatigue: Math.ceil(base.fatigue * sizeMultiplier)
+    };
+  }, [getFieldSizeMultiplier]);
+
+  // Check if working past 8 PM
+  const checkTimeLimit = useCallback((hoursToAdd: number): 'proceed' | 'warning' | 'blocked' => {
+    const currentHour = currentFarmTime % 24;
+    const newHour = (currentHour + hoursToAdd) % 24;
+
+    if (currentHour >= 20) {
+      return 'blocked'; // Already past 8 PM
+    } else if (newHour >= 20 || (currentHour + hoursToAdd >= 20 && currentHour < 20)) {
+      return 'warning'; // Would work past 8 PM
+    }
+    return 'proceed';
+  }, [currentFarmTime]);
 
   // Process daily crop growth
   const processDailyGrowth = useCallback(() => {
@@ -936,20 +1129,222 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
     showToast('🌅 New day! Crops have grown.', 'info');
   }, [setFarmState, showToast]);
 
+  // Reset daily stats
+  const resetDailyStats = useCallback(() => {
+    setDailyStats({
+      fieldsWatered: 0,
+      fieldsPlanted: 0,
+      fieldsHarvested: 0,
+      cropsCollected: 0,
+      npcsTalked: new Set<string>(),
+      hoursWorked: 0,
+      coinsEarned: 0,
+    });
+  }, []);
+
+  // Sleep in farmhouse - advance to next morning
+  const handleSleep = useCallback(() => {
+    // Calculate payment before showing summary
+    let payment = 0;
+    const contract = farmState?.residencyStatus?.currentContract;
+
+    if (contract && contract.payment.coins) {
+      // Base payment from contract
+      payment = contract.payment.coins;
+
+      // Bonus for extra work (if player did more than expected)
+      const totalWorkDone = dailyStats.fieldsWatered + dailyStats.fieldsPlanted + dailyStats.fieldsHarvested;
+      if (totalWorkDone > 10) {
+        const bonusMultiplier = Math.min((totalWorkDone - 10) / 10, 0.5); // Up to 50% bonus
+        payment = Math.floor(payment * (1 + bonusMultiplier));
+      }
+    } else if (dailyStats.fieldsWatered > 0 || dailyStats.fieldsPlanted > 0 || dailyStats.fieldsHarvested > 0) {
+      // No contract - calculate fair day wage based on work done
+      payment = Math.floor(
+        dailyStats.fieldsWatered * 2 +
+        dailyStats.fieldsPlanted * 3 +
+        dailyStats.fieldsHarvested * 5
+      );
+    }
+
+    // Award payment to player
+    if (payment > 0 && onPlayerStateChange) {
+      onPlayerStateChange({ currency: payment });
+
+      // Update daily stats to show in summary
+      setDailyStats(prev => ({ ...prev, coinsEarned: payment }));
+    }
+
+    // Show end-of-day summary first (if player did any work or earned coins)
+    if (dailyStats.fieldsWatered > 0 || dailyStats.fieldsPlanted > 0 || dailyStats.fieldsHarvested > 0 || payment > 0) {
+      setShowDaySummary(true);
+    }
+
+    // Calculate hours to advance to next morning (6 AM)
+    const currentHour = currentFarmTime % 24;
+    const hoursUntilMorning = currentHour < 6
+      ? (6 - currentHour)  // Same day, advance to 6 AM
+      : (24 - currentHour + 6);  // Next day, advance to 6 AM
+
+    // Advance time to morning
+    if (onTimeAdvance) {
+      onTimeAdvance(hoursUntilMorning);
+    }
+
+    // Reset fatigue (good night's rest!)
+    if (onPlayerStateChange) {
+      onPlayerStateChange({ fatigue: -playerCharacter.fatigue }); // Reset to 0
+    }
+
+    // Process daily growth
+    processDailyGrowth();
+
+    // Show message
+    const paymentMessage = payment > 0 ? ` You earned ${payment} coins today!` : '';
+    setMessage(`😴 You sleep soundly. Morning arrives with fresh energy!${paymentMessage}`);
+    showToast('🌅 A new day begins!', 'success');
+
+    // Note: Daily stats will be reset when user closes the summary modal
+  }, [currentFarmTime, onTimeAdvance, processDailyGrowth, dailyStats, showToast, farmState, onPlayerStateChange, playerCharacter]);
+
   // Detect day changes
   useEffect(() => {
     const newDay = Math.floor(currentFarmTime / 24);
     const newHour = currentFarmTime % 24;
 
     if (newDay > localGameDay) {
-      // Day has advanced!
+      // Day has advanced! Show summary of previous day's work
+      if (dailyStats.fieldsWatered > 0 || dailyStats.fieldsPlanted > 0 || dailyStats.fieldsHarvested > 0) {
+        setShowDaySummary(true);
+      }
       setLocalGameDay(newDay);
       setLocalGameHour(newHour);
       processDailyGrowth();
     } else if (newHour !== localGameHour) {
       setLocalGameHour(newHour);
     }
-  }, [currentFarmTime, localGameDay, localGameHour, processDailyGrowth]);
+  }, [currentFarmTime, localGameDay, localGameHour, processDailyGrowth, dailyStats]);
+
+  // Farmer confrontation system - triggers when working past 8pm
+  useEffect(() => {
+    const currentHour = currentFarmTime % 24;
+
+    // If already showing modal or farmer is approaching, don't retrigger
+    if (showFarmerWarning || farmerApproaching) return;
+
+    // Check if it's past 8pm (20:00)
+    if (currentHour >= 20 && headFarmer) {
+      // Verify farmer has a position
+      if (!npcPositions[headFarmer.id]) {
+        console.warn('[FarmerConfront] Farmer has no position, cannot start approach');
+        return;
+      }
+
+      // Calculate A* path from farmer to player
+      const farmerPos = npcPositions[headFarmer.id];
+      const path = findPath(farmerPos, player, farmMap);
+
+      if (path.length === 0) {
+        console.warn('[FarmerConfront] No path found from farmer to player');
+        // Show modal immediately if no path
+        setShowFarmerWarning(true);
+        return;
+      }
+
+      // Store path and reset index
+      farmerPathRef.current = path;
+      farmerPathIndexRef.current = 0;
+
+      // Start farmer approach
+      setFarmerApproaching(true);
+      setMessage('🚨 The farmer notices you working too late and starts walking toward you!');
+      showToast('⚠️ Farmer approaching!', 'warning');
+
+      // Play sound effects
+      gameSounds.playNPCApproachSound();
+      gameSounds.playNotificationSound('warning');
+
+      // Use ref to track current player position to recalculate path if needed
+      const playerPosRef = { x: player.x, y: player.y };
+      let lastRecalculation = Date.now();
+
+      const moveFarmerAlongPath = () => {
+        if (!headFarmer) return;
+
+        // Update player position reference
+        setPlayer(currentPlayer => {
+          playerPosRef.x = currentPlayer.x;
+          playerPosRef.y = currentPlayer.y;
+          return currentPlayer;
+        });
+
+        setNpcPositions(prev => {
+          const farmerPos = prev[headFarmer.id];
+          if (!farmerPos) {
+            console.warn('[FarmerConfront] Farmer position lost, stopping approach');
+            clearInterval(farmerApproachIntervalRef.current!);
+            setFarmerApproaching(false);
+            return prev;
+          }
+
+          // Check if farmer reached player (or adjacent)
+          const dx = playerPosRef.x - farmerPos.x;
+          const dy = playerPosRef.y - farmerPos.y;
+          if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+            // Farmer has reached the player, show modal
+            clearInterval(farmerApproachIntervalRef.current!);
+            farmerApproachIntervalRef.current = null;
+            setFarmerApproaching(false);
+            setShowFarmerWarning(true);
+            return prev;
+          }
+
+          // Check if player moved significantly - recalculate path every 2 seconds
+          const now = Date.now();
+          if (now - lastRecalculation > 2000) {
+            const newPath = findPath(farmerPos, playerPosRef, farmMap);
+            if (newPath.length > 0) {
+              farmerPathRef.current = newPath;
+              farmerPathIndexRef.current = 0;
+              lastRecalculation = now;
+            }
+          }
+
+          // Move to next position in path
+          farmerPathIndexRef.current++;
+          if (farmerPathIndexRef.current >= farmerPathRef.current.length) {
+            // Reached end of path, recalculate
+            const newPath = findPath(farmerPos, playerPosRef, farmMap);
+            if (newPath.length > 0) {
+              farmerPathRef.current = newPath;
+              farmerPathIndexRef.current = 1; // Skip index 0 (current position)
+            } else {
+              // No path available, stop moving
+              return prev;
+            }
+          }
+
+          const nextPos = farmerPathRef.current[farmerPathIndexRef.current];
+
+          return {
+            ...prev,
+            [headFarmer.id]: { x: nextPos.x, y: nextPos.y }
+          };
+        });
+      };
+
+      // Start moving farmer every 300ms
+      farmerApproachIntervalRef.current = setInterval(moveFarmerAlongPath, 300);
+    }
+
+    // Cleanup interval on unmount
+    return () => {
+      if (farmerApproachIntervalRef.current) {
+        clearInterval(farmerApproachIntervalRef.current);
+        farmerApproachIntervalRef.current = null;
+      }
+    };
+  }, [currentFarmTime, headFarmer, npcPositions, farmerApproaching, showFarmerWarning, showToast]);
 
   // Handle player movement with interactive obstacles
   const handleMove = useCallback((dx: number, dy: number) => {
@@ -991,11 +1386,16 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
             if (roll < 0.05) {
               // Broke the fence!
               setMessage('💥 You damaged the fence while climbing!');
-              setPlayer(prev => ({ ...prev, x: newX, y: newY, fatigue: Math.min(prev.fatigue + 2, prev.maxFatigue) }));
-              // Could update farm state to track broken fences
+              setPlayer(prev => ({ ...prev, x: newX, y: newY }));
+              if (onPlayerStateChange) {
+                onPlayerStateChange({ fatigue: 2 }); // Damaged fence, more tiring
+              }
             } else {
               setMessage('You carefully climb over the fence.');
-              setPlayer(prev => ({ ...prev, x: newX, y: newY, fatigue: Math.min(prev.fatigue + 1, prev.maxFatigue) }));
+              setPlayer(prev => ({ ...prev, x: newX, y: newY }));
+              if (onPlayerStateChange) {
+                onPlayerStateChange({ fatigue: 1 }); // Normal climbing fatigue
+              }
             }
             setShowPrompt(false);
           }
@@ -1004,12 +1404,19 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         return;
       }
 
-      // Farmhouse/Barn - offer to enter
-      if (targetTile.type === 'farmhouse' || targetTile.type === 'barn') {
+      // Farmhouse - allow walking onto it (sleep is triggered with Space bar)
+      if (targetTile.type === 'farmhouse') {
+        setPlayer(prev => ({ ...prev, x: newX, y: newY }));
+        setMessage('🏠 You are at the farmhouse. Press Space to sleep and end the day.');
+        return;
+      }
+
+      // Barn - offer to enter
+      if (targetTile.type === 'barn') {
         setPromptData({
-          message: `Enter the ${targetTile.type}?`,
+          message: `Enter the barn?`,
           onConfirm: () => {
-            setMessage(`You step into the ${targetTile.type}.`);
+            setMessage(`You step into the barn.`);
             setPlayer(prev => ({ ...prev, x: newX, y: newY }));
             setShowPrompt(false);
           }
@@ -1050,9 +1457,9 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
     showToast('Waiting for response...', 'info');
 
     try {
-      // Call LLM
-      console.log('[FarmRoguelike] Calling handleQuickNpcTalk...');
-      const response = await handleQuickNpcTalk(activeNpcChat.npc);
+      // Call LLM with user's message
+      console.log('[FarmRoguelike] Calling handleQuickNpcTalk with message:', userMessage);
+      const response = await handleQuickNpcTalk(activeNpcChat.npc, userMessage);
       console.log('[FarmRoguelike] Received response:', response);
 
       // Add NPC response to chat
@@ -1077,64 +1484,17 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
 
   // Handle watering
   const handleWater = useCallback(() => {
-    const currentTile = farmMap[player.y][player.x];
-
-    // Check if standing on or adjacent to well
-    let wellTile = null;
-    if (currentTile.interactionType === 'water_source') {
-      wellTile = currentTile;
-    } else {
-      // Check adjacent tiles for well
-      const adjacentOffsets = [
-        { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
-        { dx: 0, dy: -1 }, { dx: 0, dy: 1 }
-      ];
-      for (const { dx, dy } of adjacentOffsets) {
-        const checkX = player.x + dx;
-        const checkY = player.y + dy;
-        if (checkX >= 0 && checkX < MAP_WIDTH && checkY >= 0 && checkY < MAP_HEIGHT) {
-          const tile = farmMap[checkY][checkX];
-          if (tile.interactionType === 'water_source') {
-            wellTile = tile;
-            break;
-          }
-        }
-      }
-    }
-
-    // Refill at well
-    if (wellTile) {
-      if (!player.waterBucketFull) {
-        setPlayer(prev => ({ ...prev, waterBucketFull: true }));
-
-        // Create water filling effect (blue particles from well)
-        const wellX = player.x * TILE_SIZE;
-        const wellY = player.y * TILE_SIZE;
-        const fillParticles = Array.from({ length: 8 }, (_, i) => ({
-          x: wellX + Math.random() * TILE_SIZE - TILE_SIZE / 2,
-          y: wellY - 10 - Math.random() * 20,
-          symbol: '💧',
-          id: Date.now() + i,
-        }));
-        setParticles(fillParticles);
-
-        setMessage('💧 Filled water bucket at well');
-        showToast('💧 Bucket filled!', 'success');
-      } else {
-        setMessage('Water bucket is already full');
-        showToast('Bucket already full', 'info');
-      }
+    // Block actions while farmer is approaching
+    if (farmerApproaching) {
+      setMessage('🚨 The farmer is coming - you need to stop working!');
+      showToast('❌ Cannot work while farmer approaching!', 'warning');
       return;
     }
 
-    // Water field
-    if (currentTile.type === 'field' && currentTile.fieldId !== undefined) {
-      if (!player.waterBucketFull) {
-        setMessage('⚠️ Water bucket is empty! Go to the well (💧) to refill.');
-        showToast('⚠️ Bucket empty!', 'warning');
-        return;
-      }
+    const currentTile = farmMap[player.y][player.x];
 
+    // Water field directly (no bucket system)
+    if (currentTile.type === 'field' && currentTile.fieldId !== undefined) {
       const fieldId = currentTile.fieldId;
       const field = farmState.fields[fieldId];
 
@@ -1144,74 +1504,123 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         return;
       }
 
-      // Update field moisture
-      const moistureLevels = ['dry', 'moist', 'wet', 'flooded'];
-      const currentIndex = moistureLevels.indexOf(field.moisture);
-      const newMoisture = moistureLevels[Math.min(currentIndex + 1, moistureLevels.length - 1)] as any;
+      // Calculate realistic time/fatigue cost
+      const cost = calculateActionCost('water', fieldId);
 
-      setFarmState(prev => {
-        const newFields = [...prev.fields];
-        newFields[fieldId] = {
-          ...newFields[fieldId],
-          moisture: newMoisture,
-          lastWatered: Math.floor(currentFarmTime / 24), // Current game day
-        };
+      // Check fatigue level before working
+      if (playerCharacter.fatigue + cost.fatigue >= 90) {
+        setMessage('🥵 This task would exhaust you! Rest before continuing.');
+        showToast('❌ Too tired for this task!', 'warning');
+        return;
+      }
 
-        return { ...prev, fields: newFields };
+      // Check time limit
+      const timeCheck = checkTimeLimit(cost.time);
+      if (timeCheck === 'blocked') {
+        setMessage('🌙 It\'s too late to start work! The farmer insists you rest.');
+        showToast('❌ Too late to work (past 8 PM)', 'warning');
+        return;
+      }
+
+      // Show confirmation modal
+      setActionConfirmation({
+        action: 'Water Field',
+        fieldId,
+        timeRequired: cost.time,
+        fatigueRequired: cost.fatigue,
+        onConfirm: () => {
+          // Update field moisture
+          const moistureLevels = ['dry', 'moist', 'wet', 'flooded'];
+          const currentIndex = moistureLevels.indexOf(field.moisture);
+          const newMoisture = moistureLevels[Math.min(currentIndex + 1, moistureLevels.length - 1)] as any;
+
+          setFarmState(prev => {
+            const newFields = [...prev.fields];
+            newFields[fieldId] = {
+              ...newFields[fieldId],
+              moisture: newMoisture,
+              lastWatered: Math.floor(currentFarmTime / 24),
+            };
+            return { ...prev, fields: newFields };
+          });
+
+          // Track daily stats
+          setDailyStats(prev => ({ ...prev, fieldsWatered: prev.fieldsWatered + 1 }));
+
+          // Visual effects
+          const rippleId = Date.now();
+          setWaterRipples(prev => [...prev, { x: player.x, y: player.y, id: rippleId }]);
+          setTimeout(() => setWaterRipples(prev => prev.filter(r => r.id !== rippleId)), 800);
+
+          const tileKey = `${player.x}-${player.y}`;
+          setFlashingTiles(prev => new Set(prev).add(tileKey));
+          setTimeout(() => {
+            setFlashingTiles(prev => {
+              const next = new Set(prev);
+              next.delete(tileKey);
+              return next;
+            });
+          }, 300);
+
+          const dropletCount = 12;
+          const newDroplets = Array.from({ length: dropletCount }, (_, i) => ({
+            x: player.x * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
+            y: player.y * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
+            symbol: '💧',
+            id: Date.now() + i,
+          }));
+          setParticles(newDroplets);
+
+          // Time passes - ADVANCE TIME
+          if (onTimeAdvance) {
+            onTimeAdvance(cost.time);
+          }
+
+          if (onPlayerStateChange) {
+            onPlayerStateChange({ fatigue: cost.fatigue });
+          }
+
+          // Check if worked past 8 PM
+          const newHour = (currentFarmTime + cost.time) % 24;
+          if (timeCheck === 'warning' || (newHour >= 20 && currentFarmTime % 24 < 20)) {
+            setTimeout(() => {
+              showToast('🌙 The farmer calls out: "It\'s getting late! Come inside before you catch cold!"', 'warning');
+              setMessage('🌙 The farmer insists you come inside for the night. Press Space at the farmhouse to sleep.');
+            }, 1000);
+          }
+
+          setMessage(`💧 Watered Field ${fieldId + 1}! (${cost.time.toFixed(1)} hours)`);
+          showToast(`✅ Watered (now ${newMoisture})`, 'success');
+        }
       });
-
-      // Consume water and add fatigue
-      setPlayer(prev => ({ ...prev, waterBucketFull: false, fatigue: Math.min(prev.fatigue + 3, prev.maxFatigue) }));
-
-      // Create satisfying water ripple effect
-      const rippleId = Date.now();
-      setWaterRipples(prev => [...prev, { x: player.x, y: player.y, id: rippleId }]);
-      setTimeout(() => {
-        setWaterRipples(prev => prev.filter(r => r.id !== rippleId));
-      }, 800);
-
-      // Flash the tile for feedback
-      const tileKey = `${player.x}-${player.y}`;
-      setFlashingTiles(prev => new Set(prev).add(tileKey));
-      setTimeout(() => {
-        setFlashingTiles(prev => {
-          const next = new Set(prev);
-          next.delete(tileKey);
-          return next;
-        });
-      }, 300);
-
-      // Create water droplet particles
-      const dropletCount = 12;
-      const newDroplets = Array.from({ length: dropletCount }, (_, i) => ({
-        x: player.x * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
-        y: player.y * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
-        symbol: '💧',
-        id: Date.now() + i,
-      }));
-      setParticles(newDroplets);
-
-      // Time passes - ADVANCE TIME
-      if (onTimeAdvance) {
-        onTimeAdvance(0.5);
-      }
-
-      if (onPlayerStateChange) {
-        onPlayerStateChange({ fatigue: 3 });
-      }
-
-      setMessage(`💧 Watered Field ${fieldId + 1}! (0.5 hours)`);
-      showToast(`✅ Watered (now ${newMoisture})`, 'success');
     } else {
       setMessage('Nothing to water here. Stand on a field to water it.');
     }
-  }, [player, farmMap, farmState.fields, setFarmState, currentFarmTime, onPlayerStateChange, onTimeAdvance, showToast]);
+  }, [player, farmMap, farmState.fields, setFarmState, currentFarmTime, onPlayerStateChange, onTimeAdvance, showToast, playerCharacter, calculateActionCost, checkTimeLimit]);
 
   // Handle planting
   const handlePlant = useCallback(() => {
+    // Block actions while farmer is approaching
+    if (farmerApproaching) {
+      setMessage('🚨 The farmer is coming - you need to stop working!');
+      showToast('❌ Cannot work while farmer approaching!', 'warning');
+      return;
+    }
+
     const currentTile = farmMap[player.y][player.x];
 
     if (currentTile.type === 'field' && currentTile.fieldId !== undefined) {
+      // Check fatigue level before working
+      if (playerCharacter.fatigue >= 90) {
+        setMessage('🥵 You\'re too exhausted to work! Rest before continuing.');
+        showToast('❌ Too tired to work!', 'warning');
+        return;
+      } else if (playerCharacter.fatigue >= 70) {
+        showToast('⚠️ You\'re very tired! Consider resting soon.', 'warning');
+      } else if (playerCharacter.fatigue >= 50) {
+        showToast('😓 Getting tired...', 'warning');
+      }
+
       const fieldId = currentTile.fieldId;
       const field = farmState.fields[fieldId];
 
@@ -1226,7 +1635,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
     } else {
       setMessage('You need to be standing on a fallow field to plant.');
     }
-  }, [player, farmMap, farmState.fields]);
+  }, [player, farmMap, farmState.fields, playerCharacter, showToast]);
 
   // Confirm crop selection
   const confirmPlant = useCallback((crop: string) => {
@@ -1234,37 +1643,87 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
 
     const cropEmoji = CROP_EMOJIS[crop] || '🌱';
 
-    setFarmState(prev => {
-      const newFields = [...prev.fields];
-      newFields[selectedFieldId] = {
-        ...newFields[selectedFieldId],
-        crop,
-        growthStage: 'planted',
-        lastWorked: Math.floor(currentFarmTime / 24),
-        daysToHarvest: 30, // Simplified for demo
-      };
-      return { ...prev, fields: newFields };
-    });
+    // Calculate realistic time/fatigue cost
+    const cost = calculateActionCost('plant', selectedFieldId);
 
-    setPlayer(prev => ({ ...prev, fatigue: Math.min(prev.fatigue + 5, prev.maxFatigue) }));
-
-    // Time passes - ADVANCE TIME
-    if (onTimeAdvance) {
-      onTimeAdvance(1);
+    // Check fatigue level
+    if (playerCharacter.fatigue + cost.fatigue >= 90) {
+      setMessage('🥵 This task would exhaust you! Rest before continuing.');
+      showToast('❌ Too tired for this task!', 'warning');
+      setShowCropSelector(false);
+      setSelectedFieldId(null);
+      return;
     }
 
-    if (onPlayerStateChange) {
-      onPlayerStateChange({ fatigue: 5 });
+    // Check time limit
+    const timeCheck = checkTimeLimit(cost.time);
+    if (timeCheck === 'blocked') {
+      setMessage('🌙 It\'s too late to start work! The farmer insists you rest.');
+      showToast('❌ Too late to work (past 8 PM)', 'warning');
+      setShowCropSelector(false);
+      setSelectedFieldId(null);
+      return;
     }
 
-    setMessage(`🌱 Planted ${crop} in Field ${selectedFieldId + 1}! (1 hour)`);
-    showToast(`✅ Planted ${cropEmoji} ${crop}`, 'success');
+    // Close crop selector first
     setShowCropSelector(false);
-    setSelectedFieldId(null);
-  }, [selectedFieldId, setFarmState, currentFarmTime, onPlayerStateChange, onTimeAdvance, showToast]);
+
+    // Show confirmation modal
+    setActionConfirmation({
+      action: 'Plant Crops',
+      fieldId: selectedFieldId,
+      timeRequired: cost.time,
+      fatigueRequired: cost.fatigue,
+      onConfirm: () => {
+        setFarmState(prev => {
+          const newFields = [...prev.fields];
+          newFields[selectedFieldId] = {
+            ...newFields[selectedFieldId],
+            crop,
+            growthStage: 'planted',
+            lastWorked: Math.floor(currentFarmTime / 24),
+            daysToHarvest: 30,
+          };
+          return { ...prev, fields: newFields };
+        });
+
+        // Track daily stats
+        setDailyStats(prev => ({ ...prev, fieldsPlanted: prev.fieldsPlanted + 1 }));
+
+        // Time passes - ADVANCE TIME
+        if (onTimeAdvance) {
+          onTimeAdvance(cost.time);
+        }
+
+        if (onPlayerStateChange) {
+          onPlayerStateChange({ fatigue: cost.fatigue });
+        }
+
+        // Check if worked past 8 PM
+        const newHour = (currentFarmTime + cost.time) % 24;
+        if (timeCheck === 'warning' || (newHour >= 20 && currentFarmTime % 24 < 20)) {
+          setTimeout(() => {
+            showToast('🌙 The farmer calls out: "It\'s getting late! Come inside before you catch cold!"', 'warning');
+            setMessage('🌙 The farmer insists you come inside for the night. Press Space at the farmhouse to sleep.');
+          }, 1000);
+        }
+
+        setMessage(`🌱 Planted ${crop} in Field ${selectedFieldId + 1}! (${cost.time.toFixed(1)} hours)`);
+        showToast(`✅ Planted ${cropEmoji} ${crop}`, 'success');
+        setSelectedFieldId(null);
+      }
+    });
+  }, [selectedFieldId, setFarmState, currentFarmTime, onPlayerStateChange, onTimeAdvance, showToast, calculateActionCost, checkTimeLimit, playerCharacter, currentFarmTime]);
 
   // Handle harvest with yield calculation
   const handleHarvest = useCallback(() => {
+    // Block actions while farmer is approaching
+    if (farmerApproaching) {
+      setMessage('🚨 The farmer is coming - you need to stop working!');
+      showToast('❌ Cannot work while farmer approaching!', 'warning');
+      return;
+    }
+
     const currentTile = farmMap[player.y][player.x];
 
     if (currentTile.type === 'field' && currentTile.fieldId !== undefined) {
@@ -1278,85 +1737,159 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         return;
       }
 
-      const cropName = field.crop || 'crops';
-      const cropEmoji = field.crop && CROP_EMOJIS[field.crop] ? CROP_EMOJIS[field.crop] : '🌾';
+      // Calculate realistic time/fatigue cost
+      const cost = calculateActionCost('harvest', fieldId);
 
-      // Calculate yield based on field health and size
-      const baseYield = {
-        wheat: 12,
-        barley: 10,
-        rice: 18,
-        millet: 15,
-        corn: 14,
-        cotton: 8,
-        flax: 10,
-        beans: 10,
-        peas: 11,
-        lentils: 9,
-      };
+      // Check fatigue level before working
+      if (playerCharacter.fatigue + cost.fatigue >= 90) {
+        setMessage('🥵 This task would exhaust you! Rest before continuing.');
+        showToast('❌ Too tired for this task!', 'warning');
+        return;
+      }
 
-      const cropBaseYield = baseYield[field.crop as keyof typeof baseYield] || 10;
-      const healthMultiplier = field.health / 100; // 100% health = 1.0x, 50% = 0.5x
-      const yieldAmount = Math.max(1, Math.floor(cropBaseYield * healthMultiplier));
+      // Check time limit
+      const timeCheck = checkTimeLimit(cost.time);
+      if (timeCheck === 'blocked') {
+        setMessage('🌙 It\'s too late to start work! The farmer insists you rest.');
+        showToast('❌ Too late to work (past 8 PM)', 'warning');
+        return;
+      }
 
-      // Create particle effects at harvest location
-      const particleCount = 8;
-      const newParticles = Array.from({ length: particleCount }, (_, i) => ({
-        x: player.x * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
-        y: player.y * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
-        symbol: cropEmoji,
-        id: Date.now() + i,
-      }));
-      setParticles(newParticles);
+      // Show confirmation modal
+      setActionConfirmation({
+        action: 'Harvest Crops',
+        fieldId,
+        timeRequired: cost.time,
+        fatigueRequired: cost.fatigue,
+        onConfirm: () => {
+          const cropName = field.crop || 'crops';
+          const cropEmoji = field.crop && CROP_EMOJIS[field.crop] ? CROP_EMOJIS[field.crop] : '🌾';
 
-      // Add to harvested crops log
-      setHarvestedCrops(prev => [...prev, {
-        crop: cropName,
-        fieldId: fieldId,
-        timestamp: Date.now(),
-      }]);
+          // Calculate yield based on field health and size
+          const baseYield = {
+            wheat: 12,
+            barley: 10,
+            rice: 18,
+            millet: 15,
+            corn: 14,
+            cotton: 8,
+            flax: 10,
+            beans: 10,
+            peas: 11,
+            lentils: 9,
+          };
 
-      // Add to barn storage
-      setBarnStorage(prev => ({
-        ...prev,
-        [cropName]: (prev[cropName] || 0) + yieldAmount,
-      }));
+          const cropBaseYield = baseYield[field.crop as keyof typeof baseYield] || 10;
+          const healthMultiplier = field.health / 100;
+          const yieldAmount = Math.max(1, Math.floor(cropBaseYield * healthMultiplier));
 
-      // Harvest the field
-      setFarmState(prev => {
-        const newFields = [...prev.fields];
-        newFields[fieldId] = {
-          ...newFields[fieldId],
-          crop: null,
-          growthStage: 'fallow',
-          health: 100,
-        };
-        return { ...prev, fields: newFields };
+          // Create particle effects
+          const particleCount = 8;
+          const newParticles = Array.from({ length: particleCount }, (_, i) => ({
+            x: player.x * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
+            y: player.y * TILE_SIZE + Math.random() * TILE_SIZE - TILE_SIZE / 2,
+            symbol: cropEmoji,
+            id: Date.now() + i,
+          }));
+          setParticles(newParticles);
+
+          // Add to harvested crops log
+          setHarvestedCrops(prev => [...prev, {
+            crop: cropName,
+            fieldId: fieldId,
+            timestamp: Date.now(),
+          }]);
+
+          // Add to barn storage
+          setBarnStorage(prev => ({
+            ...prev,
+            [cropName]: (prev[cropName] || 0) + yieldAmount,
+          }));
+
+          // Track daily stats
+          setDailyStats(prev => ({
+            ...prev,
+            fieldsHarvested: prev.fieldsHarvested + 1,
+            cropsCollected: prev.cropsCollected + yieldAmount
+          }));
+
+          // Harvest the field
+          setFarmState(prev => {
+            const newFields = [...prev.fields];
+            newFields[fieldId] = {
+              ...newFields[fieldId],
+              crop: null,
+              growthStage: 'fallow',
+              health: 100,
+            };
+            return { ...prev, fields: newFields };
+          });
+
+          // Time passes - ADVANCE TIME
+          if (onTimeAdvance) {
+            onTimeAdvance(cost.time);
+          }
+
+          // Add harvested crops to player inventory
+          if (onPlayerStateChange) {
+            const itemBaseId = CROP_TO_ITEM_BASE_ID[cropName.toLowerCase()];
+            if (itemBaseId) {
+              const harvestedItem = {
+                id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                baseId: itemBaseId,
+                quantity: yieldAmount,
+              };
+
+              onPlayerStateChange({
+                fatigue: cost.fatigue,
+                inventory: { add: [harvestedItem] }
+              });
+            } else {
+              onPlayerStateChange({ fatigue: cost.fatigue });
+            }
+          }
+
+          // Check if worked past 8 PM
+          const newHour = (currentFarmTime + cost.time) % 24;
+          if (timeCheck === 'warning' || (newHour >= 20 && currentFarmTime % 24 < 20)) {
+            setTimeout(() => {
+              showToast('🌙 The farmer calls out: "It\'s getting late! Come inside before you catch cold!"', 'warning');
+              setMessage('🌙 The farmer insists you come inside for the night. Press Space at the farmhouse to sleep.');
+            }, 1000);
+          }
+
+          setMessage(`🌾 Harvested ${yieldAmount} ${cropName} from Field ${fieldId + 1}! Added to inventory. (${cost.time.toFixed(1)} hours)`);
+          showToast(`✅ +${yieldAmount} ${cropEmoji} ${cropName} added to inventory!`, 'success');
+        }
       });
-
-      setPlayer(prev => ({ ...prev, fatigue: Math.min(prev.fatigue + 8, prev.maxFatigue) }));
-
-      // Time passes - ADVANCE TIME
-      if (onTimeAdvance) {
-        onTimeAdvance(2);
-      }
-
-      if (onPlayerStateChange) {
-        onPlayerStateChange({ fatigue: 8 });
-      }
-
-      setMessage(`🌾 Harvested ${yieldAmount} ${cropName} from Field ${fieldId + 1}! (2 hours)`);
-      showToast(`✅ +${yieldAmount} ${cropEmoji} ${cropName}!`, 'success');
     } else {
       setMessage('Nothing ready to harvest here.');
     }
-  }, [player, farmMap, farmState.fields, setFarmState, onPlayerStateChange, onTimeAdvance, showToast]);
+  }, [player, farmMap, farmState.fields, setFarmState, onPlayerStateChange, onTimeAdvance, showToast, playerCharacter, calculateActionCost, checkTimeLimit, currentFarmTime]);
 
   // Handle livestock feeding
   const handleFeed = useCallback(() => {
+    // Block actions while farmer is approaching
+    if (farmerApproaching) {
+      setMessage('🚨 The farmer is coming - you need to stop working!');
+      showToast('❌ Cannot work while farmer approaching!', 'warning');
+      return;
+    }
+
     const currentTile = farmMap[player.y][player.x];
 
     if (currentTile.interactionType === 'feed_livestock') {
+      // Check fatigue level before working
+      if (playerCharacter.fatigue >= 90) {
+        setMessage('🥵 You\'re too exhausted to work! Rest before continuing.');
+        showToast('❌ Too tired to work!', 'warning');
+        return;
+      } else if (playerCharacter.fatigue >= 70) {
+        showToast('⚠️ You\'re very tired! Consider resting soon.', 'warning');
+      } else if (playerCharacter.fatigue >= 50) {
+        showToast('😓 Getting tired...', 'warning');
+      }
+
       if (!farmState.livestock || farmState.livestock.length === 0) {
         setMessage('No livestock to feed.');
         showToast('No livestock here', 'info');
@@ -1376,8 +1909,6 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         return { ...prev, livestock: newLivestock };
       });
 
-      setPlayer(prev => ({ ...prev, fatigue: Math.min(prev.fatigue + 4, prev.maxFatigue) }));
-
       // Time passes - ADVANCE TIME
       if (onTimeAdvance) {
         onTimeAdvance(0.75);
@@ -1392,7 +1923,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
     } else {
       setMessage('No livestock nearby. Go to the barn.');
     }
-  }, [player, farmMap, farmState.livestock, setFarmState, currentFarmTime, onPlayerStateChange, onTimeAdvance, showToast]);
+  }, [player, farmMap, farmState.livestock, setFarmState, currentFarmTime, onPlayerStateChange, onTimeAdvance, showToast, playerCharacter]);
 
   // Smart interaction handler (space bar) - detects context and performs appropriate action
   const handleSmartInteraction = useCallback(() => {
@@ -1408,9 +1939,15 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
       });
 
       if (adjacentNpc) {
-        // Show loading state
-        showToast('💬 Talking...', 'info');
-        setMessage(`You greet ${adjacentNpc.name}...`);
+        // Track NPC conversation
+        setDailyStats(prev => ({
+          ...prev,
+          npcsTalked: new Set(prev.npcsTalked).add(adjacentNpc.id)
+        }));
+
+        // Show clear action feedback
+        setMessage(`💬 Talking to ${adjacentNpc.name}...`);
+        showToast('💬 Starting conversation...', 'info');
 
         // Call LLM for dialogue
         handleQuickNpcTalk(adjacentNpc).then(response => {
@@ -1426,14 +1963,16 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
       }
     }
 
-    // At water source - refill bucket
-    if (currentTile.interactionType === 'water_source') {
-      handleWater();
+    // At farmhouse - sleep and end day
+    if (currentTile.type === 'farmhouse') {
+      setMessage('😴 Entering farmhouse to sleep...');
+      handleSleep();
       return;
     }
 
     // At livestock pen - feed animals
     if (currentTile.interactionType === 'feed_livestock') {
+      setMessage('🐄 Feeding livestock...');
       handleFeed();
       return;
     }
@@ -1444,26 +1983,74 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
 
       // Mature crop - harvest
       if (field.growthStage === 'mature') {
+        setMessage(`🌾 Harvesting Field ${currentTile.fieldId + 1} (${field.crop})...`);
         handleHarvest();
         return;
       }
 
       // Fallow field - plant
       if (field.growthStage === 'fallow') {
+        setMessage(`🌱 Planting Field ${currentTile.fieldId + 1}...`);
         handlePlant();
         return;
       }
 
       // Growing crop - water
       if (field.crop) {
+        setMessage(`💧 Watering Field ${currentTile.fieldId + 1} (${field.crop})...`);
         handleWater();
         return;
       }
     }
 
+    // Check for pickable items nearby (rocks, wood, clutter on ground)
+    const pickableItems = [
+      { tile: currentTile, dx: 0, dy: 0 },
+      ...([
+        { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+        { dx: 0, dy: -1 }, { dx: 0, dy: 1 }
+      ].map(offset => {
+        const checkX = player.x + offset.dx;
+        const checkY = player.y + offset.dy;
+        if (checkX >= 0 && checkX < MAP_WIDTH && checkY >= 0 && checkY < MAP_HEIGHT) {
+          return { tile: farmMap[checkY][checkX], ...offset };
+        }
+        return null;
+      }).filter(Boolean))
+    ];
+
+    for (const item of pickableItems) {
+      if (!item || !item.tile) continue;
+
+      // Check if it's a pickable terrain type (grass with stones, tree for wood, etc.)
+      const pickableTypes: { [key: string]: { itemId: string; name: string; emoji: string } } = {
+        'tree': { itemId: 'LOG', name: 'Log', emoji: '🪵' },
+        'empty': { itemId: 'STONE_BLOCK', name: 'Stone', emoji: '🪨' },
+      };
+
+      const pickable = pickableTypes[item.tile.type];
+      if (pickable && onPlayerStateChange) {
+        // Pick up the item
+        const pickedItem = {
+          id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          baseId: pickable.itemId,
+          quantity: 1,
+        };
+
+        onPlayerStateChange({
+          inventory: { add: [pickedItem] }
+        });
+
+        setMessage(`${pickable.emoji} Picked up ${pickable.name}!`);
+        showToast(`✅ +1 ${pickable.emoji} ${pickable.name}`, 'success');
+        return;
+      }
+    }
+
     // Default - show helpful message
-    setMessage('Nothing to interact with here. Try standing on a field, near an NPC, or at the well.');
-  }, [player, farmMap, farmState, npcPositions, showToast, handleWater, handleFeed, handleHarvest, handlePlant, handleQuickNpcTalk]);
+    setMessage('⚠️ Nothing to interact with here. Walk to a field, stand next to an NPC, or go to the farmhouse, then press Space.');
+    showToast('Nothing to do here', 'warning');
+  }, [player, farmMap, farmState, npcPositions, showToast, handleWater, handleFeed, handleHarvest, handlePlant, handleQuickNpcTalk, handleSleep, onPlayerStateChange]);
 
   // Keyboard controls - with aggressive event capture to prevent overworld movement
   useEffect(() => {
@@ -1490,8 +2077,8 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         return;
       }
 
-      // Check if this is a movement or action key we handle
-      const isOurKey = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'w', 'p', 'h', 'f', 't'].includes(key);
+      // Check if this is a movement or action key we handle (just arrows and space now)
+      const isOurKey = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key);
 
       // ALWAYS prevent default and stop propagation for our keys, even if modals are open
       // This prevents overworld from capturing the events
@@ -1523,58 +2110,9 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         return;
       }
 
-      // Smart interaction (Space bar) - context-aware
+      // Smart interaction (Space bar) - context-aware, handles everything
       if (key === ' ') {
         handleSmartInteraction();
-        return;
-      }
-
-      // Direct action keys
-      if (key === 'w') {
-        handleWater();
-        return;
-      }
-      if (key === 'p') {
-        handlePlant();
-        return;
-      }
-      if (key === 'h') {
-        handleHarvest();
-        return;
-      }
-      if (key === 'f') {
-        handleFeed();
-        return;
-      }
-      if (key === 't') {
-        // Talk to nearby NPC
-        if (farmState && farmState.family) {
-          const adjacentNpc = farmState.family.members.find(member => {
-            const npcPos = npcPositions[member.id];
-            if (!npcPos) return false;
-            const distance = Math.abs(player.x - npcPos.x) + Math.abs(player.y - npcPos.y);
-            return distance === 1;
-          });
-
-          if (adjacentNpc) {
-            // Show loading state
-            showToast('💬 Talking...', 'info');
-            setMessage(`You greet ${adjacentNpc.name}...`);
-
-            // Call LLM for dialogue
-            handleQuickNpcTalk(adjacentNpc).then(response => {
-              showToast(`${adjacentNpc.name}: ${response}`, 'info');
-              setMessage(`${adjacentNpc.name} says: ${response}`);
-            }).catch(error => {
-              console.error('Talk error:', error);
-              const fallback = `"Hello! ${adjacentNpc.currentTask ? `Busy ${adjacentNpc.currentTask.toLowerCase()}.` : 'How are you?'}"`;
-              showToast(`${adjacentNpc.name}: ${fallback}`, 'info');
-              setMessage(`${adjacentNpc.name} says: ${fallback}`);
-            });
-          } else {
-            showToast('No one nearby to talk to', 'warning');
-          }
-        }
         return;
       }
     };
@@ -1582,7 +2120,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
     // Use capture phase to intercept before other handlers
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, [handleMove, handleWater, handlePlant, handleHarvest, handleFeed, handleSmartInteraction, showCropSelector, showPrompt, player, npcPositions, farmState, showToast, activeNpcChat, sendNpcMessage]);
+  }, [handleMove, handleSmartInteraction, showCropSelector, showPrompt, activeNpcChat, sendNpcMessage]);
 
   // Auto-dismiss messages
   useEffect(() => {
@@ -1603,28 +2141,6 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
     }
   }, [particles]);
 
-  // Animate fatigue changes smoothly
-  useEffect(() => {
-    const target = player.fatigue;
-    if (displayedFatigue === target) return;
-
-    const diff = target - displayedFatigue;
-    const step = diff > 0 ? Math.ceil(diff / 10) : Math.floor(diff / 10);
-
-    const interval = setInterval(() => {
-      setDisplayedFatigue(prev => {
-        const next = prev + step;
-        if ((step > 0 && next >= target) || (step < 0 && next <= target)) {
-          clearInterval(interval);
-          return target;
-        }
-        return next;
-      });
-    }, 30);
-
-    return () => clearInterval(interval);
-  }, [player.fatigue, displayedFatigue]);
-
   // Animate day/hour changes smoothly
   useEffect(() => {
     if (displayedDay !== localGameDay) {
@@ -1644,97 +2160,125 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
   const currentTile = farmMap[player.y]?.[player.x];
   const currentField = currentTile?.fieldId !== undefined ? farmState.fields[currentTile.fieldId] : null;
 
+  // Handle farmer warning modal actions
+  const handleGoToBed = useCallback(() => {
+    setShowFarmerWarning(false);
+    setFarmerApproaching(false);
+    // Advance to morning (6am next day)
+    const currentDay = Math.floor(currentFarmTime / 24);
+    const nextMorning = (currentDay + 1) * 24 + 6; // 6am next day
+    const hoursToAdvance = nextMorning - currentFarmTime;
+
+    if (onTimeAdvance) {
+      onTimeAdvance(hoursToAdvance);
+    }
+
+    // Reset fatigue
+    if (onPlayerStateChange) {
+      onPlayerStateChange({ fatigue: -playerCharacter.fatigue });
+    }
+
+    // Note: Daily growth will be processed by the day detection useEffect
+    // when time advances, so we don't call processDailyGrowth() here to avoid duplication
+
+    setMessage('😴 You went to bed. Morning arrives with fresh energy!');
+    showToast('🌅 A new day begins!', 'success');
+  }, [currentFarmTime, onTimeAdvance, onPlayerStateChange, playerCharacter, showToast]);
+
+  const handleLeaveFarm = useCallback(() => {
+    setShowFarmerWarning(false);
+    setFarmerApproaching(false);
+
+    // Call the parent's onClose to exit the farm
+    if (onClose) {
+      onClose();
+    }
+  }, [onClose]);
+
   return (
     <div className="flex gap-4 h-full">
       {/* Main game area */}
       <div className="flex-1 flex flex-col gap-3">
-        {/* HUD */}
-        <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-sm">
-                <span className="text-slate-400">📅 Day:</span>
-                <span className="ml-2 font-semibold text-purple-400 transition-all duration-200">{displayedDay}</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-slate-400">🕐 Time:</span>
-                <span className="ml-2 font-semibold text-cyan-400 transition-all duration-200">{Math.floor(displayedHour)}:00</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-slate-400">⏱️ Worked:</span>
-                <span className="ml-2 font-semibold text-amber-400 transition-all duration-200">{hoursWorkedToday.toFixed(1)}h</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-slate-400">😓 Fatigue:</span>
-                <span className={`ml-2 font-semibold transition-all duration-200 ${
-                  displayedFatigue > 70 ? 'text-red-500' : displayedFatigue > 40 ? 'text-orange-400' : 'text-red-400'
-                }`}>{displayedFatigue}/{player.maxFatigue}</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-slate-400">🪣 Water:</span>
-                <span className={`ml-2 font-semibold ${player.waterBucketFull ? 'text-blue-400' : 'text-slate-500'}`}>
-                  {player.waterBucketFull ? 'Full' : 'Empty'}
-                </span>
-              </div>
+        {/* HUD - Combined info bar (always visible, fixed space) */}
+        <div className="bg-slate-900/50 rounded-xl p-3 py-2 border border-slate-800/60">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left: Tile hover info OR message (priority to message) */}
+            <div className="text-sm min-h-[20px] flex items-center flex-1">
+              {message ? (
+                <span className="text-amber-200 font-medium">{message}</span>
+              ) : hoveredTile ? (
+                (() => {
+                  const tile = farmMap[hoveredTile.y]?.[hoveredTile.x];
+                  if (!tile) return <span className="text-slate-500 italic">Unknown tile</span>;
+
+                  // Check for NPC
+                  const npcAtTile = farmState?.family?.members.find(member => {
+                    const npcPos = npcPositions[member.id];
+                    return npcPos && npcPos.x === hoveredTile.x && npcPos.y === hoveredTile.y;
+                  });
+                  if (npcAtTile) {
+                    return <span className="text-purple-300">👤 <strong>{npcAtTile.name}</strong> ({npcAtTile.role}) → <kbd className="px-2 py-1 bg-purple-600/30 border border-purple-500/50 rounded font-bold text-purple-100 text-sm">SPACE</kbd> to talk</span>;
+                  }
+
+                  if (tile.type === 'farmhouse') {
+                    return <span className="text-amber-300">🏠 <strong>Farmhouse</strong> → <kbd className="px-2 py-1 bg-amber-600/30 border border-amber-500/50 rounded font-bold text-amber-100 text-sm">SPACE</kbd> to sleep & end day</span>;
+                  }
+
+                  if (tile.interactionType === 'water_source') {
+                    return <span className="text-blue-300">💧 <strong>Well</strong> → <kbd className="px-2 py-1 bg-blue-600/30 border border-blue-500/50 rounded font-bold text-blue-100 text-sm">SPACE</kbd> to fill bucket</span>;
+                  }
+
+                  if (tile.interactionType === 'feed_livestock') {
+                    return <span className="text-green-300">🐄 <strong>Livestock Pen</strong> → <kbd className="px-2 py-1 bg-green-600/30 border border-green-500/50 rounded font-bold text-green-100 text-sm">SPACE</kbd> to feed animals</span>;
+                  }
+
+                  if (tile.type === 'field' && tile.fieldId !== undefined) {
+                    const field = farmState.fields[tile.fieldId];
+                    if (field.growthStage === 'mature') {
+                      return <span className="text-green-400">🌾 <strong>Field {tile.fieldId + 1}</strong> - {field.crop} (Ready!) → <kbd className="px-2 py-1 bg-green-600/30 border border-green-500/50 rounded font-bold text-green-100 text-sm">SPACE</kbd> to harvest</span>;
+                    }
+                    if (field.growthStage === 'fallow') {
+                      return <span className="text-amber-300">🌱 <strong>Field {tile.fieldId + 1}</strong> (Empty) → <kbd className="px-2 py-1 bg-amber-600/30 border border-amber-500/50 rounded font-bold text-amber-100 text-sm">SPACE</kbd> to plant</span>;
+                    }
+                    if (field.crop) {
+                      return <span className="text-cyan-300">💧 <strong>Field {tile.fieldId + 1}</strong> - {field.crop} ({field.moisture}) → <kbd className="px-2 py-1 bg-cyan-600/30 border border-cyan-500/50 rounded font-bold text-cyan-100 text-sm">SPACE</kbd> to water</span>;
+                    }
+                  }
+
+                  return <span className="text-slate-400 capitalize">{tile.type.replace(/_/g, ' ')}</span>;
+                })()
+              ) : (
+                <span className="text-slate-500 italic">Move around to see what you can do</span>
+              )}
             </div>
-            <div className="text-xs text-slate-400 flex flex-col gap-0.5">
-              <div>Arrows: Move | Space: Interact (smart)</div>
-              <div>W: Water | P: Plant | H: Harvest | F: Feed | T: Talk</div>
+
+            {/* Right: Keyboard controls and Exit button */}
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-slate-400">
+                <div className="font-bold text-slate-300 mb-0.5">
+                  <kbd className="px-1.5 py-0.5 bg-amber-600/30 border border-amber-500/50 rounded text-amber-100">SPACE</kbd> is the interaction button
+                </div>
+                <div className="text-[10px]">
+                  Arrows: Move | W: water, P: plant, H: harvest, F: feed, T: talk
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  // Return to main map by closing the farm panel
+                  // The onClose callback is handled by the parent FarmPanelContainer
+                  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                }}
+                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg border border-slate-600 hover:border-slate-500 transition-colors"
+                title="Exit farm and return to world map"
+              >
+                🚪 Exit Farm
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Hover context tooltip */}
-        {hoveredTile && (
-          <div className="bg-slate-800/95 border border-slate-600/60 rounded-lg px-3 py-2 text-xs text-slate-200 shadow-lg">
-            {(() => {
-              const tile = farmMap[hoveredTile.y]?.[hoveredTile.x];
-              if (!tile) return null;
-
-              // Check for NPC
-              const adjacentNpc = farmState?.family?.members.find(member => {
-                const npcPos = npcPositions[member.id];
-                return npcPos && Math.abs(player.x - npcPos.x) + Math.abs(player.y - npcPos.y) === 1;
-              });
-              if (adjacentNpc && hoveredTile.x === npcPositions[adjacentNpc.id]?.x && hoveredTile.y === npcPositions[adjacentNpc.id]?.y) {
-                return <span>💬 Press <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">Space</kbd> to talk</span>;
-              }
-
-              if (tile.interactionType === 'water_source') {
-                return <span>💧 Press <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">Space</kbd> to fill bucket</span>;
-              }
-
-              if (tile.interactionType === 'feed_livestock') {
-                return <span>🐄 Press <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">Space</kbd> to feed animals</span>;
-              }
-
-              if (tile.type === 'field' && tile.fieldId !== undefined) {
-                const field = farmState.fields[tile.fieldId];
-                if (field.growthStage === 'mature') {
-                  return <span>🌾 Press <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">Space</kbd> or <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">H</kbd> to harvest</span>;
-                }
-                if (field.growthStage === 'fallow') {
-                  return <span>🌱 Press <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">Space</kbd> or <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">P</kbd> to plant</span>;
-                }
-                if (field.crop) {
-                  return <span>💧 Press <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">Space</kbd> or <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">W</kbd> to water ({field.moisture})</span>;
-                }
-              }
-
-              return <span className="text-slate-400">{tile.type.replace(/_/g, ' ')}</span>;
-            })()}
-          </div>
-        )}
-
-        {/* Message bar */}
-        {message && (
-          <div className="bg-amber-900/30 border border-amber-600/40 rounded-lg px-4 py-2 text-sm text-amber-200 animate-in slide-in-from-top">
-            {message}
-          </div>
-        )}
-
         {/* Farm map */}
-        <div className="flex-1 bg-slate-950 rounded-xl p-4 border border-slate-800/60 overflow-auto relative">
+        <div className="flex-1 bg-slate-950 rounded-xl p-3 py-2 border border-slate-800/60 overflow-auto relative">
           <div
             style={{
               position: 'relative',
@@ -1783,13 +2327,21 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
                   }
                 }
 
+                // Check if this NPC is the approaching farmer
+                const isApproachingFarmer = farmerApproaching &&
+                                            npcAtPosition &&
+                                            headFarmer &&
+                                            npcAtPosition.id === headFarmer.id;
+
                 if (isPlayer) {
                   displaySymbol = '@';
                   displayColor = '#FFD700';
                 } else if (npcAtPosition) {
                   displaySymbol = '@';
                   // Different colors for different roles
-                  displayColor = npcAtPosition.role === 'Farmer' ? '#00FFFF' :
+                  // Approaching farmer gets bright red/warning color
+                  displayColor = isApproachingFarmer ? '#FF4444' :
+                                npcAtPosition.role === 'Farmer' ? '#00FFFF' :
                                 npcAtPosition.role === 'Laborer' ? '#FFA500' :
                                 npcAtPosition.role === 'Child' ? '#FF69B4' :
                                 '#FFFFFF';
@@ -1798,6 +2350,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
                 return (
                   <div
                     key={`${x}-${y}`}
+                    className={isApproachingFarmer ? 'farmer-approaching-pulse' : ''}
                     style={{
                       width: `${TILE_SIZE}px`,
                       height: `${TILE_SIZE}px`,
@@ -1807,9 +2360,11 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
                       alignItems: 'center',
                       justifyContent: 'center',
                       border: isPlayer ? '2px solid #FFD700' :
+                              isApproachingFarmer ? '2px solid #FF4444' :
                               (tile.interactable || npcAtPosition) ? '1px solid rgba(255, 215, 0, 0.3)' : 'none',
                       cursor: (tile.interactable || npcAtPosition) ? 'pointer' : 'default',
                       boxShadow: isPlayer ? '0 0 12px rgba(255, 215, 0, 0.6)' :
+                                 isApproachingFarmer ? '0 0 20px rgba(255, 68, 68, 0.9)' :
                                  isFlashing ? '0 0 16px rgba(65, 105, 225, 0.8)' : 'none',
                       transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
                     }}
@@ -1881,6 +2436,21 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
                 transform: translateY(-40px) scale(1.5);
               }
             }
+            @keyframes farmerPulse {
+              0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(255, 68, 68, 0.9);
+              }
+              50% {
+                transform: scale(1.15);
+                box-shadow: 0 0 30px rgba(255, 68, 68, 1), 0 0 40px rgba(255, 0, 0, 0.5);
+              }
+            }
+            .farmer-approaching-pulse {
+              animation: farmerPulse 1s ease-in-out infinite;
+              font-weight: bold;
+              font-size: 1.2em;
+            }
             @keyframes rippleExpand {
               0% {
                 transform: scale(0.5);
@@ -1914,7 +2484,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
 
         {/* Current tile info */}
         {currentField && (
-          <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/60">
+          <div className="bg-slate-900/50 rounded-xl p-3 py-2 border border-slate-800/60">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-sm font-semibold text-amber-400">Field {(currentTile.fieldId || 0) + 1}</span>
@@ -1962,7 +2532,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         )}
 
         {/* Fields overview */}
-        <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 p-3 flex-1 overflow-auto">
+        <div className="bg-slate-900/50 rounded-xl border border-slate-800/60 p-3 py-2 flex-1 overflow-auto">
           <h4 className="text-sm font-semibold text-amber-400 mb-2 uppercase">Fields Status</h4>
           <div className="space-y-2">
             {farmState.fields.map((field, idx) => {
@@ -2097,7 +2667,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
           {activeNpcChat && (
             <div className="bg-purple-900/20 border border-purple-600/30 rounded-xl p-3 mt-3">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-semibold text-purple-400 uppercase">💬 Chat with {activeNpcChat.npc.name}</h4>
+                <h4 className="text-xs font-semibold text-purple-400 uppercase">💬 Chat with {activeNpcChat.npc.name}</h4>
                 <button
                   onClick={() => {
                     setActiveNpcChat(null);
@@ -2129,7 +2699,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
                       <div className="font-semibold text-[10px] mb-0.5 opacity-70">
                         {msg.from === 'player' ? 'You' : activeNpcChat.npc.name}
                       </div>
-                      <div className="leading-relaxed">{msg.text}</div>
+                      <div className="leading-relaxed text-sm ">{msg.text}</div>
                     </div>
                   ))
                 )}
@@ -2148,7 +2718,7 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
                     }
                   }}
                   placeholder="Type your message..."
-                  className="flex-1 px-2 py-1.5 bg-slate-800/60 border border-slate-600/40 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500/60"
+                  className="flex-1 px-2 py-1.5 bg-slate-800/60 border border-slate-600/40 rounded text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500/60"
                   autoFocus
                 />
                 <button
@@ -2199,6 +2769,99 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
         </div>
       )}
 
+      {/* End-of-Day Summary Modal */}
+      {showDaySummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-gradient-to-br from-slate-900 via-amber-950/30 to-slate-900 border-2 border-amber-500 rounded-xl p-8 max-w-lg shadow-2xl">
+            <h3 className="text-3xl font-bold text-amber-400 mb-6 text-center flex items-center justify-center gap-3">
+              <span>🌅</span>
+              <span>Day {localGameDay} Complete!</span>
+              <span>🌅</span>
+            </h3>
+
+            <div className="bg-slate-800/50 rounded-lg p-6 mb-6 border border-slate-700">
+              <h4 className="text-lg font-semibold text-amber-300 mb-4 text-center">Your Accomplishments</h4>
+              <div className="space-y-3">
+                {dailyStats.fieldsWatered > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2 bg-blue-900/20 border border-blue-700/30 rounded">
+                    <span className="text-slate-200 flex items-center gap-2">
+                      <span className="text-xl">💧</span>
+                      <span>Fields Watered</span>
+                    </span>
+                    <span className="text-2xl font-bold text-blue-400">{dailyStats.fieldsWatered}</span>
+                  </div>
+                )}
+                {dailyStats.fieldsPlanted > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2 bg-green-900/20 border border-green-700/30 rounded">
+                    <span className="text-slate-200 flex items-center gap-2">
+                      <span className="text-xl">🌱</span>
+                      <span>Fields Planted</span>
+                    </span>
+                    <span className="text-2xl font-bold text-green-400">{dailyStats.fieldsPlanted}</span>
+                  </div>
+                )}
+                {dailyStats.fieldsHarvested > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2 bg-amber-900/20 border border-amber-700/30 rounded">
+                    <span className="text-slate-200 flex items-center gap-2">
+                      <span className="text-xl">🌾</span>
+                      <span>Fields Harvested</span>
+                    </span>
+                    <span className="text-2xl font-bold text-amber-400">{dailyStats.fieldsHarvested}</span>
+                  </div>
+                )}
+                {dailyStats.cropsCollected > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2 bg-yellow-900/20 border border-yellow-700/30 rounded">
+                    <span className="text-slate-200 flex items-center gap-2">
+                      <span className="text-xl">🌽</span>
+                      <span>Crops Collected</span>
+                    </span>
+                    <span className="text-2xl font-bold text-yellow-400">{dailyStats.cropsCollected}</span>
+                  </div>
+                )}
+                {dailyStats.npcsTalked.size > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2 bg-purple-900/20 border border-purple-700/30 rounded">
+                    <span className="text-slate-200 flex items-center gap-2">
+                      <span className="text-xl">👥</span>
+                      <span>People Talked To</span>
+                    </span>
+                    <span className="text-2xl font-bold text-purple-400">{dailyStats.npcsTalked.size}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Section */}
+              {dailyStats.coinsEarned > 0 && (
+                <div className="mt-6 pt-6 border-t-2 border-amber-500/30">
+                  <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-yellow-900/40 via-amber-900/40 to-yellow-900/40 border-2 border-yellow-500/50 rounded-lg shadow-lg">
+                    <span className="text-amber-200 font-semibold text-lg flex items-center gap-3">
+                      <span className="text-3xl">💰</span>
+                      <span>Payment Earned</span>
+                    </span>
+                    <span className="text-4xl font-bold text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]">
+                      {dailyStats.coinsEarned} coins
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {dailyStats.fieldsWatered === 0 && dailyStats.fieldsPlanted === 0 && dailyStats.fieldsHarvested === 0 && dailyStats.coinsEarned === 0 && (
+                <p className="text-center text-slate-400 italic py-4">A quiet day on the farm...</p>
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                setShowDaySummary(false);
+                resetDailyStats();
+              }}
+              className="w-full px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Continue to Day {localGameDay + 1}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Prompt modal for interactive decisions */}
       {showPrompt && promptData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
@@ -2232,6 +2895,73 @@ export const FarmRoguelikeWorkTab: React.FC<FarmRoguelikeWorkTabProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Action Confirmation Modal */}
+      {actionConfirmation && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-amber-500/40 rounded-xl shadow-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2">
+              {actionConfirmation.action === 'Water Field' && '💧'}
+              {actionConfirmation.action === 'Plant Crops' && '🌱'}
+              {actionConfirmation.action === 'Harvest Crops' && '🌾'}
+              {actionConfirmation.action}?
+            </h3>
+
+            <div className="space-y-3 mb-6">
+              <div className="bg-slate-800/60 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-slate-400 text-sm">Field</span>
+                  <span className="text-white font-semibold">Field {actionConfirmation.fieldId + 1}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-slate-400 text-sm">Time Required</span>
+                  <span className="text-amber-400 font-semibold">{actionConfirmation.timeRequired.toFixed(1)} hours</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 text-sm">Fatigue Cost</span>
+                  <span className="text-red-400 font-semibold">+{actionConfirmation.fatigueRequired}</span>
+                </div>
+              </div>
+
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+                <div className="text-xs text-blue-300">
+                  Current time: <span className="font-semibold">{Math.floor(currentFarmTime % 24)}:00</span>
+                  {' → '}
+                  After work: <span className="font-semibold">{Math.floor((currentFarmTime + actionConfirmation.timeRequired) % 24)}:00</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setActionConfirmation(null)}
+                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  actionConfirmation.onConfirm();
+                  setActionConfirmation(null);
+                }}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Farmer Warning Modal - appears when working past 8pm */}
+      {showFarmerWarning && headFarmer && (
+        <FarmerWarningModal
+          farmer={headFarmer}
+          currentHour={Math.floor(currentFarmTime % 24)}
+          onLeaveFarm={handleLeaveFarm}
+          onGoToBed={handleGoToBed}
+        />
       )}
     </div>
   );

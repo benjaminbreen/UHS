@@ -105,7 +105,7 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
         if (mappedColor) return mappedColor;
       }
 
-      // 1) explicit color tokens in the name
+      // 1) explicit color tokens in the name OR material
       const tokens: Array<[string, string]> = [
         ['navy', '#000080'], ['crimson', '#DC143C'], ['scarlet', '#FF2400'], ['red', '#DC143C'],
         ['blue', '#4169E1'], ['azure', '#007FFF'], ['green', '#228B22'], ['emerald', '#50C878'],
@@ -117,10 +117,14 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
         ['pearl', '#FFF8DC'], ['jade', '#00A86B'], ['sapphire', '#0F52BA'], ['amethyst', '#9966CC'],
         ['ruby', '#E0115F'],
       ];
-      const tok = tokens.find(([t]) => name.includes(t));
-      if (tok) return tok[1];
+      // Check name first, then material (prioritize explicit color over material type)
+      const nameToken = tokens.find(([t]) => name.includes(t));
+      if (nameToken) return nameToken[1];
 
-      // 2) material defaults
+      const materialToken = tokens.find(([t]) => material.includes(t));
+      if (materialToken) return materialToken[1];
+
+      // 2) material defaults (only apply if no color keyword found)
       if (material.includes('leather')) return '#8B4513';
       if (material.includes('felt')) return '#6D6D75';
       if (material.includes('wool')) return '#A0A0A8';

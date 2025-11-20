@@ -1,7 +1,7 @@
 /**
  * hooks/useGameState.ts - Manages the game's clock, logs, and overall state.
  */
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { GameDate, Season, TimeOfDay, SunPosition, GameLogEntry, PlayerJournalEntry, NarrationMessage, Tile, AdjacencyDirection, MapArchetype, ActionableTile, HistoricalEra } from '../types';
 import { getDaysInMonth, formatDateWithSeason } from '../utils/dateUtils';
 import { LogService } from '../services/logService';
@@ -76,7 +76,28 @@ export const useGameState = () => {
     const [playerInput, setPlayerInput] = useState<string>('');
     const [ambianceText, setAmbianceText] = useState<string>("");  // Ambiance system deprecated
     const [lastAmbianceUpdateHour, setLastAmbianceUpdateHour] = useState<number>(-1);
-    
+
+    // Restore game log and player journal from saved game
+    useEffect(() => {
+        const savedGameDataString = localStorage.getItem('savedGameData');
+        if (savedGameDataString) {
+            try {
+                const savedGame = JSON.parse(savedGameDataString);
+                if (savedGame.gameLog) {
+                    setGameLog(savedGame.gameLog);
+                    console.log('[useGameState] Restored game log:', savedGame.gameLog.length, 'entries');
+                }
+                if (savedGame.playerJournal) {
+                    setPlayerJournal(savedGame.playerJournal);
+                    console.log('[useGameState] Restored player journal:', savedGame.playerJournal.length, 'entries');
+                }
+                // Don't remove savedGameData yet - other hooks may need it
+            } catch (error) {
+                console.error('[useGameState] Error restoring game log/journal:', error);
+            }
+        }
+    }, []); // Run once on mount
+
     // UI Context State
     const [actionableTile, setActionableTile] = useState<ActionableTile | null>(null);
     const [contextualMessage, setContextualMessage] = useState<string | null>(null);

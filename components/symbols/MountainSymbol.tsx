@@ -114,7 +114,7 @@ const MountainSymbol: React.FC<MountainSymbolProps> = React.memo(({ x, y, size, 
   }, [mountains, seed, altitude, climate, season]);
   
   return (
-    <g transform={`translate(${x}, ${y})`}>
+    <g transform={`translate(${x}, ${y - size * 0.15})`}>
       {/* Mountain peaks */}
       {mountains.map((mountain, i) => (
         <g key={i}>

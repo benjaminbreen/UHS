@@ -28,6 +28,7 @@ import { journalService } from '../services/journalService';
 import { Settings } from 'lucide-react';
 import { AttributeBadgeList } from './AttributeBadge';
 import SourceDiscussionHistoryPanel from './SourceDiscussionHistoryPanel';
+import { JournalQuotesPanel } from './JournalQuotesPanel';
 import { loadDiscussionHistory } from '../services/sourceDiscussionPersistence';
 import { FaBook, FaBoxOpen, FaMicroscope, FaScroll } from 'react-icons/fa';
 import { removeItemFromInventory } from '../utils/inventoryUtils';
@@ -959,15 +960,64 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           )}
 
           {activeTab === 'sources' && (
-            <div className="h-full animate-fadeIn">
-                <SourceDiscussionHistoryPanel
-                  discussions={discussionHistory.discussions}
-                  sources={discussionHistory.sources}
-                  onSelectDiscussion={(discussion) => {
-                    // Could open a modal showing full discussion details
-                    console.log('Selected discussion:', discussion);
-                  }}
-                />
+            <div className="h-full overflow-y-auto animate-fadeIn">
+              {/* Source Discussions - compact placeholder if empty */}
+              {discussionHistory.discussions.length > 0 ? (
+                <div className="mb-4">
+                  <div className="p-3 border-b border-surface-muted sticky top-0 bg-[var(--surface-card)] z-10">
+                    <h3 className="text-sm font-semibold text-[var(--color-warning)] flex items-center gap-2">
+                      <span>📜</span>
+                      Source Discussions
+                    </h3>
+                    <p className="text-xs text-text-muted mt-1">
+                      {discussionHistory.discussions.length} discussion{discussionHistory.discussions.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="p-2 space-y-2">
+                    {discussionHistory.discussions.map((discussion, index) => {
+                      const source = discussionHistory.sources.find(s => s.id === discussion.sourceId);
+                      if (!source) return null;
+
+                      return (
+                        <div
+                          key={`${discussion.sourceId}-${index}`}
+                          onClick={() => console.log('Selected discussion:', discussion)}
+                          className="surface-muted rounded-lg p-3 hover:surface-card hover:border-[var(--color-warning)]/30 transition-all cursor-pointer group"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-text-primary group-hover:text-[var(--color-warning)] transition-colors line-clamp-1">
+                                {source.title}
+                              </h4>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-text-muted">
+                                <span>👤 {discussion.npcName}</span>
+                                <span>📍 {discussion.location}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-background-secondary rounded p-2 mb-2">
+                            <p className="text-xs text-text-secondary italic line-clamp-2">
+                              "{discussion.dialogue[0]}"
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-text-muted">
+                              {new Date(discussion.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 text-center text-text-muted border-b border-surface-muted">
+                  <p className="text-xs opacity-75">No source discussions yet</p>
+                </div>
+              )}
+
+              {/* Quotes Section */}
+              <JournalQuotesPanel />
             </div>
           )}
         </div>

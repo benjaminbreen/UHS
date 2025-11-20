@@ -8,6 +8,8 @@ export interface MovementContext {
 
 export type MovementEvent =
     | { type: 'BLOCKED_WALL'; x: number; y: number; tile: DungeonTile }
+    | { type: 'BLOCKED_WEAK_WALL'; x: number; y: number; tile: DungeonTile }
+    | { type: 'BLOCKED_BOULDER'; x: number; y: number; tile: DungeonTile; dx: number; dy: number }
     | { type: 'ENTITY_ENCOUNTER'; entity: Entity; x: number; y: number }
     | { type: 'STEP'; x: number; y: number; tile: DungeonTile };
 
@@ -44,6 +46,36 @@ export function evaluatePlayerMove(
                     x: targetX,
                     y: targetY,
                     tile: targetTile
+                }
+            ]
+        };
+    }
+
+    if (targetTile.type === 'weak_wall') {
+        return {
+            player,
+            events: [
+                {
+                    type: 'BLOCKED_WEAK_WALL',
+                    x: targetX,
+                    y: targetY,
+                    tile: targetTile
+                }
+            ]
+        };
+    }
+
+    if (targetTile.type === 'boulder') {
+        return {
+            player,
+            events: [
+                {
+                    type: 'BLOCKED_BOULDER',
+                    x: targetX,
+                    y: targetY,
+                    tile: targetTile,
+                    dx,
+                    dy
                 }
             ]
         };

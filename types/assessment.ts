@@ -27,7 +27,7 @@ export interface AssessmentPrimarySourceLog {
   timestamp: string;
   sourceId: string;
   sourceTitle?: string;
-  action: 'open' | 'close' | 'note' | 'highlight';
+  action: 'open' | 'close' | 'note' | 'highlight' | 'quote';
   metadata?: Record<string, unknown>;
 }
 

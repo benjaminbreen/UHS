@@ -30,9 +30,10 @@ export interface WorkOffer {
   description: string;            // "Fetch me some water by end of day"
 
   // SIMPLE requirements - only ONE of these is used per task
-  requiredItem?: string;          // Item name (e.g., "Water") - undefined for explore_location (accepts any item)
+  requiredItem?: string;          // Generic description (e.g., "medicinal herbs", "metal ore") - NOT specific item names
   requiredQuantity?: number;      // How many (default 1)
   deliveredQuantity?: number;     // How many have been delivered so far (partial delivery)
+  acceptedCategories?: string[];  // Broad categories accepted: 'ore', 'wood', 'stone', 'hide', 'herb', 'food', etc.
   targetLocation?: {              // Where to go
     x: number;
     y: number;

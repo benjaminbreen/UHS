@@ -1299,20 +1299,39 @@ export function generateProceduralName(
         }
       }
 
+      // FAILSAFE: Remove duplicate material types (e.g., "silk white leather" → "white leather")
+      // Common material types that shouldn't appear together
+      const materialTypes = ['silk', 'leather', 'wool', 'linen', 'cotton', 'velvet', 'satin',
+                             'felt', 'fur', 'hide', 'iron', 'steel', 'bronze', 'copper', 'gold',
+                             'silver', 'brass', 'wood', 'stone', 'clay', 'glass'];
+      const materialWords = options.material.toLowerCase().split(/\s+/);
+      const foundMaterials = materialWords.filter(word => materialTypes.includes(word));
+
+      // If multiple material types found, keep only the last one (most specific)
+      let cleanedMaterial = options.material;
+      if (foundMaterials.length > 1) {
+        // Remove all but the last material type
+        const materialsToRemove = foundMaterials.slice(0, -1);
+        let materialWordsList = options.material.split(/\s+/);
+        materialWordsList = materialWordsList.filter(word =>
+          !materialsToRemove.includes(word.toLowerCase())
+        );
+        cleanedMaterial = materialWordsList.join(' ');
+      }
+
       // Check if material itself contains quality words (to avoid "Exceptional Premium Stone")
       // Strip out quality words from material if present
       const qualityWords = ['exceptional', 'premium', 'masterwork', 'exquisite', 'legendary',
                             'pristine', 'perfect', 'flawless', 'superior', 'fine', 'quality',
                             'select', 'choice', 'prime', 'gourmet'];
-      let cleanedMaterial = options.material;
-      const materialWords = options.material.split(/\s+/);
+      const materialWordsFiltered = cleanedMaterial.split(/\s+/);
 
       // If material contains a quality word, remove it to avoid duplication
-      const filteredMaterialWords = materialWords.filter(word =>
+      const filteredMaterialWords = materialWordsFiltered.filter(word =>
         !qualityWords.includes(word.toLowerCase())
       );
 
-      if (filteredMaterialWords.length < materialWords.length) {
+      if (filteredMaterialWords.length < materialWordsFiltered.length) {
         cleanedMaterial = filteredMaterialWords.join(' ');
         // If we stripped out all words, don't add the material
         if (cleanedMaterial.trim() === '') {
@@ -1329,7 +1348,7 @@ export function generateProceduralName(
             shouldAddMaterial = false;
             break;
           }
-          // Skip if already in parts
+          // Skip if already in parts (including color)
           if (parts.some(p => wordAppearsIn(materialWord, p))) {
             shouldAddMaterial = false;
             break;
@@ -1615,6 +1634,26 @@ export function generateProceduralItem(
   const age = generateAge(era);
   const condition = generateCondition(quality, age);
 
+  // FAILSAFE: Clean duplicate materials from material string
+  const cleanMaterialString = (material: string): string => {
+    const materialTypes = ['silk', 'leather', 'wool', 'linen', 'cotton', 'velvet', 'satin',
+                           'felt', 'fur', 'hide', 'iron', 'steel', 'bronze', 'copper', 'gold',
+                           'silver', 'brass', 'wood', 'stone', 'clay', 'glass'];
+    const materialWords = material.toLowerCase().split(/\s+/);
+    const foundMaterials = materialWords.filter(word => materialTypes.includes(word));
+
+    // If multiple material types found, keep only the last one (most specific)
+    if (foundMaterials.length > 1) {
+      const materialsToRemove = foundMaterials.slice(0, -1);
+      let originalWords = material.split(/\s+/);
+      originalWords = originalWords.filter(word =>
+        !materialsToRemove.includes(word.toLowerCase())
+      );
+      return originalWords.join(' ');
+    }
+    return material;
+  };
+
   // Create item instance combining cached base properties with random variations
   let item: Item = {
     ...baseProperties.baseItem,
@@ -1624,7 +1663,7 @@ export function generateProceduralItem(
     condition,  // Random per instance
     culturalStyle: baseProperties.culturalStyle,  // From cache
     age,  // Random per instance
-    material: baseProperties.eraAppropriateMaterial  // From cache
+    material: cleanMaterialString(baseProperties.eraAppropriateMaterial)  // From cache, cleaned
   };
   
   // Apply colors FIRST so we can use them in the name

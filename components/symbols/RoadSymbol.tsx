@@ -148,6 +148,20 @@ const RoadSymbol: React.FC<RoadSymbolProps> = React.memo(({
     />
   );
 
+  // Add darker center line for depth (all road types)
+  const centerX = x + size / 2 + staticValues.centerLineOffset * 2;
+  elements.push(
+    <rect
+      key="center-depth"
+      x={centerX - 0.5}
+      y={y}
+      width={1}
+      height={size}
+      fill={roadStyle.edgeColor}
+      opacity="0.25"
+    />
+  );
+
   // Add texture based on road type
   if (roadStyle.texture === 'cobblestone') {
     // Cobblestone pattern for ancient roads

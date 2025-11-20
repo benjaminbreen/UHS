@@ -11,6 +11,9 @@ import { questService } from '../services/questService';
 import { generateCulturalRuinName } from '../services/roguelikeService';
 import { generateRuinQuest } from '../constants/questTemplates/ruinQuestTemplates';
 import { parseDateString } from '../utils/dateUtils';
+import { getRandomPerimeterEvent, rollPerimeterOutcome, PerimeterEvent, PerimeterEventOutcome } from '../services/perimeterEventService';
+import { generateItem } from '../services/itemGenerationService';
+import type { JournalEntry } from './JournalViewport';
 import { 
     FaSkull, 
     FaScroll, 
@@ -95,6 +98,7 @@ interface RuinStructureModalProps {
     formattedDate?: string;
     onRoguelikeModeChange?: (inRoguelike: boolean) => void;
     onPlayerDeath?: (deathInfo: any) => void;
+    onCharacterUpdate?: (character: any) => void;
 }
 
 const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
@@ -108,13 +112,19 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
     currentLocation,
     formattedDate,
     onRoguelikeModeChange,
-    onPlayerDeath
+    onPlayerDeath,
+    onCharacterUpdate
 }) => {
+    console.log('[RuinStructureModal] Component rendered with onCharacterUpdate:', onCharacterUpdate);
     const { name, location, state, customData } = structure;
     const [activeTab, setActiveTab] = useState<'overview' | 'exploration' | 'artifacts'>('overview');
     const [discoverableSources, setDiscoverableSources] = useState<PrimarySource[]>([]);
     const [discoveredSources, setDiscoveredSources] = useState<PrimarySource[]>([]);
     const [inRoguelike, setInRoguelike] = useState(false);
+    const [currentPerimeterEvent, setCurrentPerimeterEvent] = useState<PerimeterEvent | null>(null);
+    const [showPerimeterEvent, setShowPerimeterEvent] = useState(false);
+    const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
+    const [eventOutcome, setEventOutcome] = useState<PerimeterEventOutcome | null>(null);
 
     // Callbacks to avoid inline functions
     const handleTabChange = useCallback((tab: 'overview' | 'exploration' | 'artifacts') => {
@@ -127,8 +137,56 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
     }, [onRoguelikeModeChange]);
 
     const handleSearchPerimeter = useCallback(() => {
-        console.log('Search perimeter');
-    }, []);
+        // Get current era and year from map data
+        const dateInfo = parseDateString(mapData.timeSlice || '1500');
+        const era = dateInfo.era;
+        const year = dateInfo.year;
+
+        // Get cultural zone from structure
+        const culturalZone = structure.culturalZone as any;
+
+        // Get random perimeter event for this era, cultural zone, and year
+        const event = getRandomPerimeterEvent(era, culturalZone, year);
+        if (event) {
+            setCurrentPerimeterEvent(event);
+            setShowPerimeterEvent(true);
+            setSelectedChoice(null);
+            setEventOutcome(null);
+        } else {
+            // Fallback: No custom events match this context, show generic "nothing found"
+            console.log(`[RuinStructureModal] No custom events for ${era}, ${culturalZone}, ${year} - showing fallback`);
+            setCurrentPerimeterEvent({
+                id: 'nothing_found',
+                era: era,
+                prompt: "You made a thorough search but found nothing.",
+                choices: [{
+                    text: "Continue exploring",
+                    outcomes: [{ chance: 1.0, result: 'nothing', message: 'You move on.' }]
+                }, {
+                    text: "Continue exploring",
+                    outcomes: [{ chance: 1.0, result: 'nothing', message: 'You move on.' }]
+                }, {
+                    text: "Continue exploring",
+                    outcomes: [{ chance: 1.0, result: 'nothing', message: 'You move on.' }]
+                }] as any
+            });
+            setShowPerimeterEvent(true);
+            setSelectedChoice(null);
+            setEventOutcome(null);
+        }
+    }, [mapData.timeSlice, structure.culturalZone]);
+
+    // Handle ESC key to close modal
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && !inRoguelike) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose, inRoguelike]);
 
     // Get ruin exploration progress
     const structureId = `${structure.location[0]}-${structure.location[1]}`;
@@ -386,17 +444,50 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                 }}
                 structureLocation={structure.location}
                 onHealthChange={(newHealth) => {
-                    if (playerCharacter) playerCharacter.health = newHealth;
+                    if (onCharacterUpdate) {
+                        // Use functional update to get the latest state
+                        onCharacterUpdate((prevCharacter: any) => ({
+                            ...prevCharacter,
+                            health: newHealth
+                        }));
+                    }
                 }}
                 onInventoryAdd={(item) => {
-                    if (playerCharacter) {
-                        if (!playerCharacter.inventory) playerCharacter.inventory = [];
-                        playerCharacter.inventory.push(item);
+                    console.log('[RuinStructureModal] onInventoryAdd called with item:', item.name);
+                    console.log('[RuinStructureModal] onCharacterUpdate exists?', !!onCharacterUpdate);
+                    console.log('[RuinStructureModal] onCharacterUpdate type:', typeof onCharacterUpdate);
+
+                    if (onCharacterUpdate) {
+                        try {
+                            // Use functional update to get the latest state
+                            onCharacterUpdate((prevCharacter: any) => {
+                                console.log('[RuinStructureModal] Inside functional update, prevCharacter:', prevCharacter);
+                                if (!prevCharacter) {
+                                    console.error('[RuinStructureModal] prevCharacter is null/undefined!');
+                                    return prevCharacter;
+                                }
+                                const currentInventory = prevCharacter?.inventory || [];
+                                const updatedCharacter = {
+                                    ...prevCharacter,
+                                    inventory: [...currentInventory, item]
+                                };
+                                console.log('[RuinStructureModal] Adding item to inventory:', item.name, 'New inventory length:', updatedCharacter.inventory.length);
+                                return updatedCharacter;
+                            });
+                        } catch (error) {
+                            console.error('[RuinStructureModal] Error in onInventoryAdd:', error);
+                        }
+                    } else {
+                        console.error('[RuinStructureModal] onCharacterUpdate is not defined!');
                     }
                 }}
                 onGoldChange={(newGold) => {
-                    if (playerCharacter) {
-                        playerCharacter.currency = (playerCharacter.currency || 0) + newGold;
+                    if (onCharacterUpdate) {
+                        // Use functional update to get the latest state
+                        onCharacterUpdate((prevCharacter: any) => ({
+                            ...prevCharacter,
+                            currency: (prevCharacter?.currency || 0) + newGold
+                        }));
                     }
                 }}
                 onPlayerDeath={onPlayerDeath}
@@ -775,6 +866,276 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                 </div>
 
             </div>
+
+            {/* Perimeter Event Modal */}
+            {showPerimeterEvent && currentPerimeterEvent && (
+                <div className="fixed inset-0 flex items-center justify-center z-[100]"
+                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.92)' }}>
+                    <div className="max-w-3xl w-full mx-4 p-8 border-2 rounded-lg"
+                         style={{
+                             backgroundColor: '#0a0a0a',
+                             borderColor: '#ff6b00',
+                             boxShadow: '0 0 30px rgba(255, 107, 0, 0.4)',
+                             fontFamily: 'monospace'
+                         }}>
+                        {/* Event Prompt */}
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold mb-4" style={{ color: '#ff9500' }}>
+                                Perimeter Search
+                            </h3>
+                            <p className="text-base leading-relaxed" style={{ color: '#ffa500' }}>
+                                {currentPerimeterEvent.prompt}
+                            </p>
+                        </div>
+
+                        {!eventOutcome ? (
+                            (currentPerimeterEvent.id === 'generic_finding' || currentPerimeterEvent.id === 'nothing_found') ? (
+                                /* Generic Finding or Nothing Found - Just show Okay button */
+                                <button
+                                    onClick={() => {
+                                        setShowPerimeterEvent(false);
+                                        setCurrentPerimeterEvent(null);
+                                        setEventOutcome(null);
+                                    }}
+                                    className="w-full px-6 py-3 font-bold rounded-lg transition-all duration-200 hover:scale-105"
+                                    style={{
+                                        backgroundColor: '#ff6b00',
+                                        color: '#0a0a0a',
+                                        boxShadow: '0 0 15px rgba(255, 107, 0, 0.5)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.boxShadow = '0 0 25px rgba(255, 107, 0, 0.8)';
+                                        e.currentTarget.style.backgroundColor = '#ff8800';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.boxShadow = '0 0 15px rgba(255, 107, 0, 0.5)';
+                                        e.currentTarget.style.backgroundColor = '#ff6b00';
+                                    }}
+                                >
+                                    Okay
+                                </button>
+                            ) : (
+                                /* Choice Selection for actual events */
+                                <div className="space-y-3">
+                                    <p className="text-sm mb-4" style={{ color: '#ff8800' }}>
+                                        What do you do?
+                                    </p>
+                                    {currentPerimeterEvent.choices.map((choice, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setSelectedChoice(idx)}
+                                            className={`w-full px-4 py-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
+                                                selectedChoice === idx ? 'ring-2 ring-amber-500' : ''
+                                            }`}
+                                            style={{
+                                                backgroundColor: selectedChoice === idx ? '#ff6b00' : '#1a1a1a',
+                                                color: selectedChoice === idx ? '#000' : '#ff8800',
+                                                border: '1px solid #ff6b00',
+                                                boxShadow: '0 0 10px rgba(255, 107, 0, 0.2)'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 107, 0, 0.5)';
+                                                e.currentTarget.style.borderColor = '#ff8800';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 107, 0, 0.2)';
+                                                e.currentTarget.style.borderColor = '#ff6b00';
+                                            }}
+                                        >
+                                            <span className="font-bold">{idx + 1}.</span> {choice.text}
+                                        </button>
+                                    ))}
+
+                                    {selectedChoice !== null && (
+                                        <button
+                                            onClick={() => {
+                                                const choice = currentPerimeterEvent.choices[selectedChoice];
+                                                const outcome = rollPerimeterOutcome(choice.outcomes);
+                                                setEventOutcome(outcome);
+                                            }}
+                                            className="w-full px-6 py-3 font-bold rounded-lg mt-4 transition-all duration-200 hover:scale-105"
+                                            style={{
+                                                backgroundColor: '#ff6b00',
+                                                color: '#0a0a0a',
+                                                boxShadow: '0 0 15px rgba(255, 107, 0, 0.5)'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.boxShadow = '0 0 25px rgba(255, 107, 0, 0.8)';
+                                                e.currentTarget.style.backgroundColor = '#ff8800';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.boxShadow = '0 0 15px rgba(255, 107, 0, 0.5)';
+                                                e.currentTarget.style.backgroundColor = '#ff6b00';
+                                            }}
+                                        >
+                                            Confirm Choice
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        ) : (
+                            /* Outcome Display */
+                            <div>
+                                <div className="mb-6 p-4 rounded-lg" style={{
+                                    backgroundColor: '#1a1a1a',
+                                    border: '1px solid ' + (
+                                        eventOutcome.result === 'death' ? '#ff0000' :
+                                        eventOutcome.result === 'injury' ? '#ff8800' :
+                                        eventOutcome.result === 'gold_gain' || eventOutcome.result === 'item' ? '#00ff00' :
+                                        '#888888'
+                                    )
+                                }}>
+                                    <p className="text-base leading-relaxed mb-3" style={{ color: '#ffa500' }}>
+                                        {eventOutcome.message}
+                                    </p>
+
+                                    {/* Display specific outcomes */}
+                                    {eventOutcome.result === 'gold_gain' && (
+                                        <p className="text-green-400 font-bold">
+                                            +{eventOutcome.value} Gold
+                                        </p>
+                                    )}
+                                    {eventOutcome.result === 'gold_loss' && (
+                                        <p className="text-red-400 font-bold">
+                                            -{eventOutcome.value} Gold
+                                        </p>
+                                    )}
+                                    {eventOutcome.result === 'item' && (
+                                        <p className="text-green-400 font-bold">
+                                            Item Found: {eventOutcome.value}
+                                        </p>
+                                    )}
+                                    {eventOutcome.result === 'item_loss' && (
+                                        <p className="text-red-400 font-bold">
+                                            Item Lost: {eventOutcome.value}
+                                        </p>
+                                    )}
+                                    {eventOutcome.result === 'injury' && (
+                                        <p className="text-orange-400 font-bold">
+                                            -{eventOutcome.value} Health
+                                        </p>
+                                    )}
+                                    {eventOutcome.result === 'knowledge' && (
+                                        <p className="text-blue-400 font-bold italic">
+                                            {eventOutcome.value}
+                                        </p>
+                                    )}
+                                    {eventOutcome.result === 'death' && (
+                                        <p className="text-red-500 font-bold text-xl">
+                                            ☠ YOU HAVE DIED ☠
+                                        </p>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        if (eventOutcome.result === 'death' && onPlayerDeath) {
+                                            onPlayerDeath({
+                                                type: 'event',
+                                                description: eventOutcome.message,
+                                                location: name
+                                            });
+                                        } else {
+                                            // Apply outcomes to character
+                                            if (onCharacterUpdate && playerCharacter) {
+                                                onCharacterUpdate((prev: any) => {
+                                                    const updates: any = { ...prev };
+
+                                                    // Gold gain/loss
+                                                    if (eventOutcome.result === 'gold_gain') {
+                                                        updates.currency = (prev.currency || 0) + (eventOutcome.value as number);
+                                                    }
+                                                    if (eventOutcome.result === 'gold_loss') {
+                                                        updates.currency = Math.max(0, (prev.currency || 0) - (eventOutcome.value as number));
+                                                    }
+
+                                                    // Injury
+                                                    if (eventOutcome.result === 'injury') {
+                                                        updates.health = Math.max(0, (prev.health || 100) - (eventOutcome.value as number));
+                                                    }
+
+                                                    // Item gain
+                                                    if (eventOutcome.result === 'item' && typeof eventOutcome.value === 'string') {
+                                                        const newItem = generateItem(eventOutcome.value, {
+                                                            culture: playerCharacter.culturalZone,
+                                                            era: playerCharacter.era,
+                                                            privilege: playerCharacter.socialContext?.privilege || 0.5
+                                                        });
+                                                        if (newItem) {
+                                                            updates.inventory = [...(prev.inventory || []), newItem];
+                                                        }
+                                                    }
+
+                                                    // Item loss
+                                                    if (eventOutcome.result === 'item_loss' && typeof eventOutcome.value === 'string') {
+                                                        const inventory = prev.inventory || [];
+                                                        const itemIndex = inventory.findIndex((item: any) =>
+                                                            item.baseId === eventOutcome.value || item.name.includes(eventOutcome.value)
+                                                        );
+                                                        if (itemIndex !== -1) {
+                                                            updates.inventory = inventory.filter((_: any, idx: number) => idx !== itemIndex);
+                                                        }
+                                                    }
+
+                                                    // Knowledge gain - add journal entry and XP
+                                                    if (eventOutcome.result === 'knowledge' && typeof eventOutcome.value === 'string') {
+                                                        const journalEntry: JournalEntry = {
+                                                            id: `perimeter-${Date.now()}`,
+                                                            title: 'Perimeter Discovery',
+                                                            content: eventOutcome.value,
+                                                            location: currentLocation || name,
+                                                            date: formattedDate || new Date().toLocaleDateString(),
+                                                            timestamp: Date.now(),
+                                                            culturalZone: playerCharacter.culturalZone
+                                                        };
+                                                        updates.journalEntries = [...(prev.journalEntries || []), journalEntry];
+
+                                                        // Award XP for knowledge gain
+                                                        const xpGain = 15;
+                                                        updates.experience = (prev.experience || 0) + xpGain;
+
+                                                        // Level up if needed
+                                                        if (updates.experience >= prev.maxExperience) {
+                                                            updates.level = (prev.level || 1) + 1;
+                                                            updates.experience = updates.experience - prev.maxExperience;
+                                                            updates.maxExperience = Math.floor(prev.maxExperience * 1.5);
+                                                        }
+                                                    }
+
+                                                    return updates;
+                                                });
+                                            }
+                                        }
+
+                                        setShowPerimeterEvent(false);
+                                        setCurrentPerimeterEvent(null);
+                                        setEventOutcome(null);
+                                        setSelectedChoice(null);
+                                    }}
+                                    className="w-full px-6 py-3 font-bold rounded-lg transition-all duration-200 hover:scale-105"
+                                    style={{
+                                        backgroundColor: eventOutcome.result === 'death' ? '#ff0000' : '#ff6b00',
+                                        color: '#0a0a0a',
+                                        boxShadow: eventOutcome.result === 'death' ? '0 0 15px rgba(255, 0, 0, 0.5)' : '0 0 15px rgba(255, 107, 0, 0.5)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        const isDeath = eventOutcome.result === 'death';
+                                        e.currentTarget.style.boxShadow = isDeath ? '0 0 25px rgba(255, 0, 0, 0.8)' : '0 0 25px rgba(255, 107, 0, 0.8)';
+                                        e.currentTarget.style.backgroundColor = isDeath ? '#cc0000' : '#ff8800';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        const isDeath = eventOutcome.result === 'death';
+                                        e.currentTarget.style.boxShadow = isDeath ? '0 0 15px rgba(255, 0, 0, 0.5)' : '0 0 15px rgba(255, 107, 0, 0.5)';
+                                        e.currentTarget.style.backgroundColor = isDeath ? '#ff0000' : '#ff6b00';
+                                    }}
+                                >
+                                    {eventOutcome.result === 'death' ? 'Your life flashes before your eyes' : 'Continue'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

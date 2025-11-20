@@ -21,6 +21,7 @@ import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart, Clock, Send, User
 import NpcQuestPanel from './NpcQuestPanel';
 import NpcMedicalPanel from './NpcMedicalPanel';
 import { learningObjectivesService } from '../services/learningObjectivesService';
+import { LogService } from '../services/logService';
 import NpcHouseholdPanel from './NpcHouseholdPanel';
 import DiseaseContractedModal from './DiseaseContractedModal';
 import { useUI } from '../contexts/UIContext';
@@ -287,7 +288,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 }) => {
     const { showToast, setCurrentEvent, setSelectedPrimarySource, openQuestPanelWithWorkOffer, showFloatingText } = useUI();
     const { worldData } = useMap();
-    const { gameDate, currentZone, currentRegion } = useGame();
+    const { gameDate, currentZone, currentRegion, addGameLogEntry, formattedTime, currentTimeOfDay } = useGame();
 
     // Get the most up-to-date NPC from allNpcs (in case memory was updated)
     const currentTarget = isNpc(target)
@@ -444,7 +445,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             
             if (result.success === 'tamed') {
                 // Success! Add to party
-                const tamedAnimal = createTamedAnimal(target, playerCharacter);
+                const tamedAnimal = createTamedAnimal(target, playerCharacter, gameDate);
                 addToParty(tamedAnimal);
                 
                 // Check if this was theft
@@ -1062,6 +1063,9 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     const screenCenterX = window.innerWidth / 2;
                     const screenCenterY = window.innerHeight / 2;
                     showFloatingText(`+${response.reputationChange} Reputation`, 'success', screenCenterX, screenCenterY - 20, 3000);
+
+                    // Show toast for reputation gain
+                    showToast(`+${response.reputationChange} Reputation in this area`, 'success');
                 }
 
                 // Log significant reputation changes
@@ -1079,6 +1083,56 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     const screenCenterX = window.innerWidth / 2;
                     const screenCenterY = window.innerHeight / 2;
                     showFloatingText(`+${(response as any).coinsEarned} Coins`, 'gold', screenCenterX, screenCenterY + 20, 3000);
+                }
+
+                // Handle work task completion
+                if ((response as any).workTaskCompleted && gameDate && formattedTime) {
+                    const taskData = (response as any).workTaskCompleted;
+                    const location = currentRegion || currentZone || 'Unknown';
+
+                    // Log work task completion
+                    const logEntry = LogService.createWorkTaskCompletedLog(
+                        taskData.taskDescription,
+                        taskData.taskType,
+                        taskData.payment,
+                        taskData.npcName,
+                        location,
+                        gameDate,
+                        formattedTime,
+                        currentTimeOfDay
+                    );
+                    addGameLogEntry(logEntry);
+
+                    // Show success toast
+                    showToast(`✅ Work Task Completed: "${taskData.taskDescription}" (+${taskData.payment} coins, +${taskData.trustGained} trust)`, 'success');
+                }
+
+                // Handle NPC-specific trust change
+                if ((response as any).npcTrustChange && isNpc(currentTarget)) {
+                    const trustChange = (response as any).npcTrustChange;
+                    const npcEntity = currentTarget as NpcEntity;
+
+                    // Update NPC's opinion of player
+                    const currentOpinion = npcEntity.memory?.opinionOfPlayer || 0;
+                    const newOpinion = Math.max(-100, Math.min(100, currentOpinion + trustChange));
+
+                    const updatedNpc = {
+                        ...npcEntity,
+                        memory: {
+                            ...npcEntity.memory,
+                            opinionOfPlayer: newOpinion
+                        }
+                    };
+
+                    // Update NPC via callback
+                    if (onUpdateNpc) {
+                        onUpdateNpc(updatedNpc);
+                    }
+
+                    // Show floating text for trust gain
+                    const screenCenterX = window.innerWidth / 2;
+                    const screenCenterY = window.innerHeight / 2 + 40;
+                    showFloatingText(`+${trustChange} Trust with ${npcEntity.name}`, 'info', screenCenterX, screenCenterY, 3000);
                 }
 
                 // Update player character via callback

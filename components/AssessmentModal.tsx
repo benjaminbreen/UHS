@@ -546,13 +546,13 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[160] flex items-center justify-center">
+    <div className="fixed inset-0 z-[190] flex items-center justify-center">
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-[190]"
         data-surface="modal-overlay"
         onClick={() => onClose(true)}
       />
-      <div className="relative z-[170] w-full max-w-6xl px-4 py-6 sm:px-6">
+      <div className="relative z-[200] w-full max-w-6xl px-4 py-6 sm:px-6">
         <div
           className="flex max-h-[90vh] flex-col overflow-hidden rounded-3xl border"
           data-surface="modal-panel"

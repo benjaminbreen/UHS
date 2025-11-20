@@ -138,6 +138,7 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
     
     // Special handling for ruins
     if (structure.structureType === 'ruin') {
+        console.log('[TerrainStructureModal] Rendering RuinStructureModal with onCharacterUpdate:', onCharacterUpdate);
         return (
             <RuinStructureModal
                 structure={structure}
@@ -149,6 +150,7 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                 playerCharacter={playerCharacter}
                 currentLocation={currentLocation}
                 formattedDate={formattedDate}
+                onCharacterUpdate={onCharacterUpdate}
             />
         );
     }

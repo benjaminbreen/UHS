@@ -40,6 +40,7 @@ import { LogService } from './services/logService';
 import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetectionService';
 import { worldWeaverObjectiveHandler } from './services/worldWeaverObjectiveHandler';
 import { worldWeaverNotificationService } from './services/worldWeaverNotificationService';
+import { journalQuoteService } from './services/journalQuoteService';
 import { useURLGameConfig } from './hooks/useURLGameConfig';
 import FactionTooltip from './components/FactionTooltip';
 import PlayerTooltip from './components/PlayerTooltip';
@@ -112,6 +113,20 @@ const AppContent: React.FC = () => {
         return () => { if (cleanup) cleanup(); };
     }, []);
 
+    // Clean up savedGameData after all hooks have restored their state
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            const savedGameDataString = localStorage.getItem('savedGameData');
+            if (savedGameDataString) {
+                localStorage.removeItem('savedGameData');
+                localStorage.removeItem('restoringFromSave');
+                console.log('[App] Cleaned up saved game restoration data');
+            }
+        }, 2000); // Wait 2 seconds to ensure all hooks have initialized
+
+        return () => clearTimeout(timer);
+    }, []);
+
     // Parse URL config FIRST, before any hooks that use game state
     const urlConfig = React.useMemo(() => {
         // Check for pending save load FIRST
@@ -133,10 +148,17 @@ const AppContent: React.FC = () => {
                 // Store the full saved game data for restoration
                 localStorage.setItem('restoringFromSave', 'true');
                 localStorage.setItem('savedGameData', JSON.stringify(savedGame));
-                
+
+                // Restore journal quotes to journalQuoteService
+                if (savedGame.journalQuotes && savedGame.journalQuotes.length > 0) {
+                    // Clear existing quotes and restore saved ones
+                    localStorage.setItem('uhs_journal_quotes', JSON.stringify(savedGame.journalQuotes));
+                    console.log('[App] Restored', savedGame.journalQuotes.length, 'journal quotes');
+                }
+
                 // Initialize seed manager with the saved seed
                 SeedManager.getInstance(savedGame.mapSeed);
-                
+
                 // Store character and game mode for restoration
                 localStorage.setItem('urlCharacterData', JSON.stringify(savedGame.playerCharacter));
                 localStorage.setItem('urlGameMode', savedGame.gameMode);
@@ -362,6 +384,8 @@ const AppContent: React.FC = () => {
         setSelectedLanguageId,
         showSessionSummaryModal,
         setShowSessionSummaryModal,
+        showEndGameConfirm,
+        setShowEndGameConfirm,
         showFactoryPanel,
         showAssessmentModal,
         closeAssessmentModal,
@@ -1321,6 +1345,49 @@ const AppContent: React.FC = () => {
           messages={floatingTextMessages}
           onMessageComplete={removeFloatingText}
         />
+
+        {/* End Game Confirmation Modal */}
+        {showEndGameConfirm && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center">
+            <div
+              className="absolute inset-0 z-[200] bg-[color:var(--surface-modal-overlay-bg,rgba(15,23,42,0.55))]"
+              onClick={() => setShowEndGameConfirm(false)}
+            />
+            <div
+              className="relative z-[210] w-full max-w-md rounded-3xl border px-6 py-6 shadow-[0_32px_60px_rgba(15,23,42,0.28)]"
+              data-surface="modal-panel"
+            >
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-semibold text-[color:var(--text-primary)]">End Current Session?</h3>
+                  <p className="text-sm leading-relaxed text-[color:var(--text-secondary)]">
+                    You&rsquo;ll open the assessment report with a full summary of your playthrough. You can continue afterwards without losing progress.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--accent-primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--button-primary-text)] shadow-[0_18px_36px_rgba(75,119,104,0.28)] transition hover:bg-[color:var(--accent-primary-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-primary-hover)]/60 focus-visible:ring-offset-2"
+                    onClick={() => {
+                      setShowEndGameConfirm(false);
+                      triggerAssessmentReview({ initiatedBy: 'player', trigger: 'manual_end' }, { openModal: false });
+                      setShowSessionSummaryModal(true);
+                    }}
+                  >
+                    View Assessment
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex w-full items-center justify-center rounded-2xl border border-[color:var(--surface-muted-border)] bg-[color:var(--surface-muted-bg)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text-primary)] transition hover:bg-[color:var(--surface-muted-hover-bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--surface-muted-border)]/40 focus-visible:ring-offset-2"
+                    onClick={() => setShowEndGameConfirm(false)}
+                  >
+                    Keep Playing
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <SessionCompletionModal
           isOpen={showSessionSummaryModal}

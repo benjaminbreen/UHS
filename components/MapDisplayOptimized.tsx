@@ -7,6 +7,7 @@
 import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, memo } from 'react';
 import * as ReactDOM from 'react-dom';
 import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
+import { DeployedStructure } from '../types/structureTypes';
 import { useUnifiedAnimations, ENABLE_UNIFIED_ANIMATIONS } from '../hooks/useUnifiedAnimations';
 import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { fireService } from '../services/fireService';
@@ -35,6 +36,7 @@ import DugEarthSymbol from './symbols/DugEarthSymbol';
 import DroppedItemMarker from './symbols/DroppedItemMarker';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
+import StructureSymbol from './symbols/StructureSymbol';
 import SpaceSymbol from './symbols/SpaceSymbol';
 import UnderseaSymbol from './symbols/UnderseaSymbol';
 import CloudSymbol from './symbols/CloudSymbol';
@@ -255,6 +257,7 @@ interface MapDisplayOptimizedProps {
   animals: AnimalEntity[];
   npcs: NpcEntity[];
   deployedVessels: DeployedVessel[];
+  deployedStructures: DeployedStructure[];
   onDevHover: (data: DevTooltipDisplayData | null) => void;
   onDevCommandClick: (data: DevTooltipDisplayData) => void;
   onStructureClick: (structure: TerrainStructure) => void;
@@ -305,6 +308,13 @@ interface MapDisplayOptimizedProps {
   onStationClick?: (tile: Tile) => void;
   onHarborClick?: (tile: Tile) => void;
   isLoading?: boolean; // For coordinating camera positioning with map transition fades
+  isSwinging?: boolean; // Weapon swing animation state
+  swingTimestamp?: number; // Timestamp for swing animation
+  isCharging?: boolean; // Charging power swing
+  isPowerSwing?: boolean; // Is this a power swing
+  shakenTrees?: Map<string, number>; // Map of "x,y" coordinates to shake timestamp
+  playerDirection?: 'north' | 'south' | 'east' | 'west'; // Player facing direction
+  onDirectionChange?: (direction: 'north' | 'south' | 'east' | 'west') => void; // Callback when direction changes
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
@@ -313,6 +323,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   animals,
   npcs,
   deployedVessels,
+  deployedStructures,
   onDevHover,
   onDevCommandClick, 
   onStructureClick,
@@ -350,7 +361,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   onContainerClick,
   onStationClick,
   onHarborClick,
-  isLoading = false
+  isLoading = false,
+  isSwinging = false,
+  swingTimestamp = 0,
+  isCharging = false,
+  isPowerSwing = false,
+  shakenTrees = new Map(),
+  playerDirection = 'south',
+  onDirectionChange
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -366,6 +384,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   // POI hover state
   const [hoveredPOI, setHoveredPOI] = useState<TerrainStructure | null>(null);
   const [hoveredPOICoords, setHoveredPOICoords] = useState<{x: number, y: number} | null>(null);
+
+  // Player animation tracking (direction is now passed as prop from MapViewport)
+  const [walkFrame, setWalkFrame] = useState<0 | 1>(0); // 2-frame walk cycle
+  const prevPlayerPosRef = useRef({ x: logicalControlledIconX, y: logicalControlledIconY });
 
   // Hover tooltip state for tiles (farms and urban areas)
   const [hoveredTile, setHoveredTile] = useState<Tile | null>(null);
@@ -389,6 +411,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   
   // Simple boat state - just a trigger for re-render
   const [boatTick, setBoatTick] = useState(0);
+
+  // Tree shake animation state - triggers re-renders while trees are shaking
+  const [shakeTick, setShakeTick] = useState(0);
 
   // Helper functions for hostile detection
   const isNpcHostile = (npc: NpcEntity): boolean => {
@@ -562,6 +587,34 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     setTamedAnimals(animals);
   }, [logicalControlledIconX, logicalControlledIconY]);
 
+  // Update player direction and walk animation based on movement
+  useEffect(() => {
+    const prevPos = prevPlayerPosRef.current;
+    const currentPos = { x: logicalControlledIconX, y: logicalControlledIconY };
+
+    if (prevPos.x !== currentPos.x || prevPos.y !== currentPos.y) {
+      // Determine direction based on largest movement component
+      const dx = currentPos.x - prevPos.x;
+      const dy = currentPos.y - prevPos.y;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Horizontal movement is dominant
+        const newDirection = dx > 0 ? 'east' : 'west';
+        onDirectionChange?.(newDirection);
+      } else if (Math.abs(dy) > 0) {
+        // Vertical movement is dominant
+        const newDirection = dy < 0 ? 'north' : 'south';
+        onDirectionChange?.(newDirection);
+      }
+
+      // Toggle walk frame for animation (0 <-> 1)
+      setWalkFrame(prev => (prev === 0 ? 1 : 0));
+
+      // Update previous position
+      prevPlayerPosRef.current = currentPos;
+    }
+  }, [logicalControlledIconX, logicalControlledIconY]);
+
   // Listen for fire changes and batch updates with RAF (OLD SYSTEM - disabled if unified enabled)
   useEffect(() => {
     if (ENABLE_UNIFIED_ANIMATIONS) return; // Skip if using unified system
@@ -599,6 +652,39 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       eventBus.off('npc:highlight', handleNpcHighlight);
     };
   }, []);
+
+  // Tree shake animation - trigger re-renders while trees are shaking
+  useEffect(() => {
+    if (shakenTrees.size === 0) return;
+
+    let animationFrameId: number;
+    const shakeDuration = 500; // Must match the duration in the render logic
+
+    const animate = () => {
+      const now = Date.now();
+      let hasActiveShakes = false;
+
+      // Check if any shakes are still active
+      shakenTrees.forEach((startTime) => {
+        if (now - startTime < shakeDuration) {
+          hasActiveShakes = true;
+        }
+      });
+
+      if (hasActiveShakes) {
+        setShakeTick(prev => prev + 1);
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [shakenTrees]);
 
   // Track player movement direction
   const prevPlayerPos = useRef({ x: logicalControlledIconX, y: logicalControlledIconY });
@@ -1178,6 +1264,54 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       window.removeEventListener('centerMapOnLocation', handleCenterMapOnLocation as EventListener);
     };
   }, [mapData, zoomLevel]);
+
+  // Listen for player zoom event (triggered when player icon is clicked)
+  useEffect(() => {
+    const handlePlayerZoom = ({ targetZoom, duration }: { targetZoom: number; duration: number }) => {
+      if (!containerRef.current || logicalControlledIconX === null || logicalControlledIconY === null) return;
+
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+
+      const startZoom = zoomLevel;
+      const startTime = performance.now();
+
+      const animateZoom = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Easing function (ease-in-out)
+        const eased = progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+        const newZoom = startZoom + (targetZoom - startZoom) * eased;
+
+        // Center on player at new zoom level
+        const iconSvgX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+        const iconSvgY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+        const newPanX = containerWidth / 2 - iconSvgX * newZoom;
+        const newPanY = containerHeight / 2 - iconSvgY * newZoom;
+
+        setZoomLevel(newZoom);
+        setPanX(newPanX);
+        setPanY(newPanY);
+        currentPanX.current = newPanX;
+        currentPanY.current = newPanY;
+        targetPanX.current = newPanX;
+        targetPanY.current = newPanY;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateZoom);
+        }
+      };
+
+      requestAnimationFrame(animateZoom);
+    };
+
+    eventBus.on('player:zoom', handlePlayerZoom);
+    return () => eventBus.off('player:zoom', handlePlayerZoom);
+  }, [logicalControlledIconX, logicalControlledIconY, zoomLevel]);
 
   const throttledOnDevHover = useCallback(rafThrottle(onDevHover, 16), [onDevHover]);
 
@@ -2235,9 +2369,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   </feMerge>
                 </filter>
                 <filter id="symbolShadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-                  <feOffset dx="2" dy="2" result="offsetblur"/>
-                  <feFlood floodColor="#000000" floodOpacity="0.3"/>
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                  <feOffset dx="3" dy="3" result="offsetblur"/>
+                  <feFlood floodColor="#000000" floodOpacity="0.45"/>
                   <feComposite in2="offsetblur" operator="in"/>
                   <feMerge>
                     <feMergeNode/>
@@ -2267,8 +2401,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </filter>
                 <filter id="symbolShadow" x="-50%" y="-50%" width="200%" height="200%">
                   {/* Simple offset shadow without blur for Safari */}
-                  <feOffset in="SourceAlpha" dx="2" dy="2" result="offsetblur"/>
-                  <feFlood floodColor="#000000" floodOpacity="0.2"/>
+                  <feOffset in="SourceAlpha" dx="3" dy="3" result="offsetblur"/>
+                  <feFlood floodColor="#000000" floodOpacity="0.35"/>
                   <feComposite in2="offsetblur" operator="in"/>
                   <feMerge>
                     <feMergeNode/>
@@ -2329,14 +2463,22 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             </pattern>
             
             <linearGradient id="beachGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="rgba(255,248,220,0.2)" />
-              <stop offset="100%" stopColor="rgba(255,248,220,0)" />
+              <stop offset="0%" stopColor="#fde68a" stopOpacity="1" />
+              <stop offset="40%" stopColor="#f4d03f" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#e8c468" stopOpacity="0.3" />
             </linearGradient>
             
             <linearGradient id="cliffShadow" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="rgba(0,0,0,0.3)" />
               <stop offset="100%" stopColor="rgba(0,0,0,0)" />
             </linearGradient>
+
+            {/* Atmospheric distance fade for depth perception */}
+            <radialGradient id="atmosphereFade" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stopColor="transparent" />
+              <stop offset="70%" stopColor="rgba(200,210,220,0.05)" />
+              <stop offset="100%" stopColor="rgba(180,190,200,0.15)" />
+            </radialGradient>
             
             <pattern id="marshPattern" x="0" y="0" width={TILE_SIZE_PX} height={TILE_SIZE_PX} patternUnits="userSpaceOnUse">
               <circle cx={TILE_SIZE_PX * 0.3} cy={TILE_SIZE_PX * 0.3} r="2" fill="rgba(107,142,35,0.2)" />
@@ -2507,6 +2649,27 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   // FIXED: Direct returns instead of elements array to prevent re-rendering
                   if(tile.biome === BiomeType.CLIFF) {
                     return <CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />;
+                  }
+                  if(tile.biome === BiomeType.BEACH) {
+                    // Add foam edge detail to beaches
+                    return (
+                      <g key={`beach-foam-${tile.x}-${tile.y}`}>
+                        <path
+                          d={`M ${symbolX} ${symbolY + TILE_SIZE_PX * 0.2} Q ${symbolX + TILE_SIZE_PX * 0.25} ${symbolY + TILE_SIZE_PX * 0.15}, ${symbolX + TILE_SIZE_PX * 0.5} ${symbolY + TILE_SIZE_PX * 0.2} T ${symbolX + TILE_SIZE_PX} ${symbolY + TILE_SIZE_PX * 0.2}`}
+                          stroke="rgba(255,255,255,0.6)"
+                          strokeWidth="1.5"
+                          fill="none"
+                          strokeDasharray="3,2"
+                        />
+                        <path
+                          d={`M ${symbolX} ${symbolY + TILE_SIZE_PX * 0.8} Q ${symbolX + TILE_SIZE_PX * 0.25} ${symbolY + TILE_SIZE_PX * 0.75}, ${symbolX + TILE_SIZE_PX * 0.5} ${symbolY + TILE_SIZE_PX * 0.8} T ${symbolX + TILE_SIZE_PX} ${symbolY + TILE_SIZE_PX * 0.8}`}
+                          stroke="rgba(255,255,255,0.4)"
+                          strokeWidth="1"
+                          fill="none"
+                          strokeDasharray="2,3"
+                        />
+                      </g>
+                    );
                   }
                   if(tile.biome === BiomeType.MANGROVE) {
                     return <MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />;
@@ -2912,7 +3075,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Hills and Vegetation layer - rendered ABOVE roads/streams so they don't appear cut over */}
             {/* Hills - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
-              <g filter="url(#symbolShadow)">
+              <g>
                 {visibleTiles.map((tile) => {
                   if (tile.biome !== BiomeType.HILLS) return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
@@ -3086,10 +3249,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             )}
             
             {/* Vegetation (trees, bushes, etc) */}
+            <g>
             {shouldRenderVegetation && vegetation?.map(veg => {
               const renderX = veg.x * TILE_SIZE_PX;
               const renderY = veg.y * TILE_SIZE_PX;
-              
+
               const symbolComponents: Record<string, React.FC<any>> = {
                 'pine': PineTreeSymbol,
                 'palm': PalmTreeSymbol,
@@ -3097,13 +3261,31 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 'cactus': CactusSymbol,
                 'bush': BushSymbol,
               };
-              
+
               const SymbolComponent = symbolComponents[veg.symbol];
+
+              // Check if this tree is being shaken
+              const treeKey = `${veg.x},${veg.y}`;
+              const shakeStartTime = shakenTrees.get(treeKey);
+              let shakeOffsetX = 0;
+
+              if (shakeStartTime) {
+                const elapsed = Date.now() - shakeStartTime;
+                const shakeDuration = 500; // 500ms shake
+
+                if (elapsed < shakeDuration) {
+                  // Oscillating shake with decay
+                  const progress = elapsed / shakeDuration;
+                  const intensity = (1 - progress) * 3; // Start at 3px, decay to 0
+                  const frequency = 15; // Oscillation speed
+                  shakeOffsetX = Math.sin(elapsed / 50 * frequency) * intensity;
+                }
+              }
 
               if (SymbolComponent) {
                 return (
-                  <g key={veg.id} 
-                     transform={`translate(${renderX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
+                  <g key={veg.id}
+                     transform={`translate(${renderX + shakeOffsetX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
                     <SymbolComponent seed={seed + veg.x * 13 + veg.y * 31} season={season} climate={climate} />
                   </g>
                 );
@@ -3125,7 +3307,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </text>
               );
             })}
-            
+            </g>
+
             {/* Urban and structure symbols layer (rendered ABOVE terrain features) - VIEWPORT CULLED */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
@@ -4147,6 +4330,23 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               ))}
             </g>
 
+            {/* Deployed Structures layer */}
+            <g>
+              {(deployedStructures || []).map(structure => (
+                <g key={structure.id}
+                   style={{cursor: isDragging ? 'inherit' : 'default', pointerEvents: isDragging ? 'none' : 'auto'}}
+                   className="smooth-movement"
+                   transform={`translate(${structure.x * TILE_SIZE_PX}, ${structure.y * TILE_SIZE_PX})`}>
+                  <StructureSymbol
+                    structure={structure}
+                    x={TILE_SIZE_PX/2}
+                    y={TILE_SIZE_PX/2}
+                    size={TILE_SIZE_PX * 0.4}
+                  />
+                </g>
+              ))}
+            </g>
+
             {/* Animals and NPCs layer  */}
             <g>
               {(animals || []).filter(animal => {
@@ -4214,6 +4414,34 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       {animal.emoji}
                     </text>
                   )}
+
+                  {/* Exclamation mark for fleeing/attacking animals */}
+                  {(animal.aiState === 'fleeing' || animal.aiState === 'attacking') && (
+                    <g transform={`translate(${TILE_SIZE_PX * 0.65}, ${-TILE_SIZE_PX * 0.3})`}>
+                      {/* Circle background */}
+                      <circle
+                        cx="0"
+                        cy="0"
+                        r={TILE_SIZE_PX * 0.15}
+                        fill={animal.aiState === 'fleeing' ? '#fbbf24' : '#ef4444'}
+                        stroke="#000"
+                        strokeWidth="1"
+                      />
+                      {/* Exclamation mark */}
+                      <text
+                        x="0"
+                        y="0"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize={TILE_SIZE_PX * 0.22}
+                        fontWeight="bold"
+                        fill="#fff"
+                      >
+                        !
+                      </text>
+                    </g>
+                  )}
+
                   {(hoveredAnimal?.id === animal.id || selectedAnimalId === animal.id) && (
                     <rect
                       x={0}
@@ -4261,14 +4489,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       ry={TILE_SIZE_PX * 0.1 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
                       fill="rgba(0,0,0,0.3)"
                       filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
-                    />
-                    {/* Green glow to indicate tamed */}
-                    <circle
-                      cx={TILE_SIZE_PX/2}
-                      cy={TILE_SIZE_PX/2}
-                      r={TILE_SIZE_PX * 0.6}
-                      fill="rgba(0, 255, 0, 0.2)"
-                      filter={shouldUseBlurEffects ? "blur(4px)" : "none"}
                     />
                     {animal.imagePath ? (
                       // Render PNG image if available
@@ -4454,6 +4674,33 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   })()}
                   
                   <NpcIcon npc={npc} size={TILE_SIZE_PX * 1.2} tileSize={TILE_SIZE_PX} />
+
+                  {/* Exclamation mark for fleeing/hostile NPCs */}
+                  {(npc.aiState === 'hostile_fleeing' || npc.aiState === 'attacking_chasing' || npc.isHostile) && (
+                    <g transform={`translate(${TILE_SIZE_PX * 0.65}, ${-TILE_SIZE_PX * 0.3})`}>
+                      {/* Circle background */}
+                      <circle
+                        cx="0"
+                        cy="0"
+                        r={TILE_SIZE_PX * 0.15}
+                        fill={npc.aiState === 'hostile_fleeing' ? '#fbbf24' : '#ef4444'}
+                        stroke="#000"
+                        strokeWidth="1"
+                      />
+                      {/* Exclamation mark */}
+                      <text
+                        x="0"
+                        y="0"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize={TILE_SIZE_PX * 0.22}
+                        fontWeight="bold"
+                        fill="#fff"
+                      >
+                        !
+                      </text>
+                    </g>
+                  )}
 
                   {/* NPC Helper Mode Overlay */}
                   <NpcHelperOverlay
@@ -4682,6 +4929,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                           x={displayPixelIconX}
                           y={displayPixelIconY}
                           character={playerCharacter}
+                          direction={playerDirection}
+                          walkFrame={walkFrame}
+                          isSwinging={isSwinging}
+                          swingTimestamp={swingTimestamp}
+                          isCharging={isCharging}
+                          isPowerSwing={isPowerSwing}
+                          onClick={onPlayerIconClick}
                         />
                       </g>
                     )}
@@ -4732,8 +4986,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   <defs>
                     {/* Light source glow gradients */}
                     <radialGradient id="warm-light-glow" cx="50%" cy="50%" r="100%">
-                      <stop offset="0%" stopColor="#ffb347" stopOpacity="0.15" />
-                      <stop offset="30%" stopColor="#ff8c00" stopOpacity="0.08" />
+                      <stop offset="0%" stopColor="#ffb347" stopOpacity="0.35" />
+                      <stop offset="30%" stopColor="#ff8c00" stopOpacity="0.18" />
                       <stop offset="60%" stopColor="#ff6b35" stopOpacity="0.04" />
                       <stop offset="100%" stopColor="#d2691e" stopOpacity="0" />
                     </radialGradient>
@@ -4827,6 +5081,17 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 })}
               </g>
             )}
+
+            {/* Atmospheric fade overlay for depth perception - renders on top */}
+            <rect
+              x="0"
+              y="0"
+              width={svgWidth}
+              height={svgHeight}
+              fill="url(#atmosphereFade)"
+              pointerEvents="none"
+              opacity="0.6"
+            />
           </g>
         </svg>
         </div>
@@ -5174,6 +5439,7 @@ const arePropsEqual = (prevProps: MapDisplayOptimizedProps, nextProps: MapDispla
     prevProps.animals?.length === nextProps.animals?.length &&
     prevProps.npcs?.length === nextProps.npcs?.length &&
     prevProps.deployedVessels?.length === nextProps.deployedVessels?.length &&
+    prevProps.deployedStructures?.length === nextProps.deployedStructures?.length &&
 
     // Selection states
     prevProps.selectedAnimalId === nextProps.selectedAnimalId &&

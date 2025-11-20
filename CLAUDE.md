@@ -159,6 +159,125 @@ Every biome can have its own specific background file before falling back to alt
 - **Creator**: Benjamin Breen, Historian at UCSC
 - **Purpose**: Educational history simulation game for both general public and history students
 
+## Perimeter Events System (November 2025) ✅
+
+### Overview
+**Perimeter events** are narrative encounters that occur when players search ruins. They are a core educational feature providing authentic historical vignettes across all eras and cultural zones.
+
+**Key File**: `/services/perimeterEventService.ts` (1782 lines, 50+ events)
+**Trigger**: Player clicks "Search Perimeter" in RuinStructureModal
+**Selection**: Filtered by era, cultural zone, and year range
+
+### Event Structure
+```typescript
+interface PerimeterEvent {
+  id: string;
+  era: HistoricalEra;
+  culturalZones?: CulturalZone[];  // If omitted, event is universal
+  yearMin?: number;                // Optional year range
+  yearMax?: number;
+  prompt: string;                  // The scenario presented to player
+  choices: PerimeterEventChoice[]; // 2-4 choices with probabilistic outcomes
+}
+```
+
+### Design Principles (Established November 2025)
+
+All perimeter events follow these core principles:
+
+1. **Concise**: Remove verbose descriptions, purple prose, and clichés. Get to the human situation quickly.
+2. **Authentic**: Real human historical experiences, not lectures or Hollywood scenarios. Period-appropriate attitudes and conflicts.
+3. **Ambiguous**: No obvious right/wrong choices. Outcomes reflect historical complexity and moral ambiguity.
+4. **Plain Language**: Avoid flowery prose, over-the-top drama, and theatrical descriptions. Use direct, clear prose.
+5. **Concrete Details**: Specific, tangible situations over abstract concepts. Show, don't lecture.
+6. **Respectful Education**: Educational without being didactic. No political speeches or modern moralizing inserted into historical contexts.
+
+### November 2025 Major Rewrite
+
+**Status**: 15 problematic events completely rewritten ✅
+
+**Problems Addressed**:
+- Too preachy/didactic (modern activism speeches, climate lectures)
+- Overly fantastical/dramatic (witch trials, cursed tombs, conspiracy theories)
+- Purple prose and clichés (10+ "dying soldier" variations)
+- Anachronistic attitudes (modern perspectives in historical settings)
+- Obvious moral choices (cartoonish villains vs. heroes)
+
+**Key Transformations**:
+
+| Before | After | Improvement |
+|--------|-------|-------------|
+| `modern_indigenous_activists` | `modern_family_visit` | Preachy activism → Quiet personal connection |
+| `modern_climate_threat` | `modern_erosion` | Abstract lecture → Immediate concrete crisis |
+| `medieval_witch_trial` | `medieval_property_dispute` | Melodrama → Real human conflict |
+| `medieval_flagellants` | `medieval_plague_refugees` | Theatrical fervor → Practical suffering |
+| `renaissance_scientific_instruments` | `renaissance_hidden_equipment` | Galileo lecture → Mystery and tension |
+| `renaissance_art_forger` | `renaissance_copyist` | Borgia conspiracy → Pragmatic moral choice |
+| `industrial_child_laborers` | `industrial_family_excavation` | Exploitation melodrama → Family economics |
+| `antiquity_cursed_tomb` | `antiquity_sealed_chamber` | Supernatural curse → Engineering challenge |
+| `modern_rival` | `modern_survey_team` | Villain stereotype → Professional dynamics |
+
+**New Events Created**:
+- `medieval_veteran` - Crusader reintegration struggles
+- `modern_photographer` - Magazine commission vs. authentic history
+- `modern_land_survey` - Development ethics and preservation
+- `industrial_expedition` - Colonial archaeology with local perspective
+- `medieval_shipwreck_survivor` - Maritime trade realities
+
+### Writing Guidelines for New Events
+
+When creating new perimeter events:
+
+**DO:**
+- Present realistic scenarios people actually encountered
+- Include period-appropriate beliefs and attitudes (even if uncomfortable to modern readers)
+- Offer 2-4 choices with genuine pros/cons
+- Use concrete, specific details (names of objects, visible conditions, direct speech)
+- Show consequences that reflect historical realities
+- Include knowledge outcomes that teach without lecturing
+
+**DON'T:**
+- Insert modern political commentary or activism
+- Make one choice obviously "correct"
+- Use purple prose, fantasy tropes, or adventure clichés
+- Have NPCs deliver historical lectures
+- Resort to dying soldier templates
+- Add supernatural elements (curses, prophecies, etc.)
+- Create conspiracy theories or thriller plots
+
+### Related Systems
+
+**City Events**: Similar narrative system for urban encounters (not yet documented - may need similar review)
+**POI Events**: Point-of-interest encounters triggered by map exploration
+**NPC Dialogue**: Conversation trees with historical NPCs (separate system)
+
+### Technical Implementation
+
+Events are filtered by:
+1. **Era matching** (required)
+2. **Year range** (optional, for era-specific events like "Song Dynasty 960-1279")
+3. **Cultural zone** (optional, events without zones are universal)
+
+Fallback behavior was removed in November 2025 - better to show no event than an anachronistic one.
+
+**Example Good Event** (medieval_veteran):
+```typescript
+{
+  id: 'medieval_veteran',
+  era: HistoricalEra.MEDIEVAL,
+  culturalZones: ['EUROPEAN', 'MENA'],
+  prompt: "An old man camps near the ruins. His tent contains military gear - old,
+    well-maintained, from foreign wars. He's organized his camp with military precision.
+    'Twenty years I was gone,' he tells you. 'Came back and my family's land was taken.
+    My wife remarried, thought I was dead. Can't blame her.' He pokes the fire.
+    'I keep my things here. Can't sell them. Can't throw them away. They're all I have
+    from those years.'",
+  // Choices offer help, conversation, or leaving him be - all with uncertain outcomes
+}
+```
+
+**Why This Works**: Specific human situation, period-appropriate attitudes, no lecture, concrete details, morally ambiguous choices, authentic historical challenge (veteran reintegration).
+
 ## Audio System Best Practices (September 2025)
 
 ### **Procedural Audio Design Philosophy**

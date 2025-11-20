@@ -209,6 +209,7 @@ export const useUIState = () => {
     // Language Family Tree modal state
     const [showLanguageTree, setShowLanguageTree] = useState<boolean>(false);
     const [showSessionSummaryModal, setShowSessionSummaryModal] = useState<boolean>(false);
+    const [showEndGameConfirm, setShowEndGameConfirm] = useState<boolean>(false);
     const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
 
     // Dev Tooltip
@@ -343,6 +344,27 @@ export const useUIState = () => {
         primarySources: [],
         playerInputs: []
     });
+
+    // Restore assessment data from saved game
+    useEffect(() => {
+        const savedGameDataString = localStorage.getItem('savedGameData');
+        if (savedGameDataString) {
+            try {
+                const savedGame = JSON.parse(savedGameDataString);
+                if (savedGame.assessmentSession) {
+                    setAssessmentSession(savedGame.assessmentSession);
+                    console.log('[useUIState] Restored assessment session');
+                }
+                if (savedGame.assessmentLogs) {
+                    setAssessmentLogs(savedGame.assessmentLogs);
+                    console.log('[useUIState] Restored assessment logs');
+                }
+                // Don't remove savedGameData yet - other hooks may need it
+            } catch (error) {
+                console.error('[useUIState] Error restoring assessment data:', error);
+            }
+        }
+    }, []); // Run once on mount
 
     const setActiveMarketplaceModal = useCallback((data: { tile: Tile } | null) => {
         _setActiveMarketplaceModal(data);
@@ -2101,7 +2123,7 @@ export const useUIState = () => {
         showJournal, showQuestsPanel, highlightedWorkOfferId, showGameModePanel,
         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal,
         globalEventModalData, setGlobalEventModalData,
-        showLanguageTree, selectedLanguageId, showSessionSummaryModal,
+        showLanguageTree, selectedLanguageId, showSessionSummaryModal, showEndGameConfirm,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem, panelNotificationMode, panelNotificationEntityName, rareItemFoundToast,
         isRightSidebarVisible, setIsRightSidebarVisible,
         floatingTextMessages, containerPrompt,
@@ -2135,7 +2157,7 @@ export const useUIState = () => {
         setIsCampModalOpen,
         setShowJournal, setShowQuestsPanel, openQuestPanelWithWorkOffer, setShowGameModePanel,
         setShowInitialScenarioModal, setShowDeathModal, setShowNpcDeathModal, setShowDiseaseProgressionModal, setShowEventModal, setShowFactionsModal,
-        setShowLanguageTree, setSelectedLanguageId, setShowSessionSummaryModal,
+        setShowLanguageTree, setSelectedLanguageId, setShowSessionSummaryModal, setShowEndGameConfirm,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem, setPanelNotificationMode, setPanelNotificationEntityName, setRareItemFoundToast,
         showFloatingText, removeFloatingText, showContainerPrompt, hideContainerPrompt,
         handleLooting, handleCloseLootModal, onTakeCoins,
