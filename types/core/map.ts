@@ -8,8 +8,7 @@ import { AnimalEntity } from '../animalTypes';
 import { NpcEntity } from '../npcTypes';
 import { VegetationEntity } from '../vegetationTypes';
 import { TerrainStructure } from '../structures';
-import { Season } from '../ui';
-import { TimeOfDay } from '../ambiance';
+import { Season, TimeOfDay } from '../ui';
 import { WeatherState } from '../../services/weatherService';
 import { Item } from '../index';
 

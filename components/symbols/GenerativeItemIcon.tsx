@@ -6824,4 +6824,32 @@ case 'cheese': {
 
 };
 
-export default GenerativeItemIcon;
+// Custom comparison function to prevent unnecessary re-renders
+// Only re-render if item properties actually change
+const arePropsEqual = (
+  prevProps: GenerativeItemIconProps,
+  nextProps: GenerativeItemIconProps
+): boolean => {
+  // If same reference, don't re-render
+  if (prevProps.item === nextProps.item && prevProps.size === nextProps.size && prevProps.className === nextProps.className) {
+    return true;
+  }
+
+  // If different items, check key properties
+  if (!prevProps.item || !nextProps.item) {
+    return prevProps.item === nextProps.item;
+  }
+
+  // Compare essential item properties that affect rendering
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.name === nextProps.item.name &&
+    prevProps.item.material === nextProps.item.material &&
+    prevProps.item.color === nextProps.item.color &&
+    prevProps.item.category === nextProps.item.category &&
+    prevProps.size === nextProps.size &&
+    prevProps.className === nextProps.className
+  );
+};
+
+export default React.memo(GenerativeItemIcon, arePropsEqual);

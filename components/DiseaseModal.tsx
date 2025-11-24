@@ -3,7 +3,7 @@ import { X, Activity, TrendingUp, Heart, AlertTriangle, Zap, BookOpen, CheckCirc
 import { ActiveDisease } from '../types/diseaseTypes';
 import { primarySourceService } from '../services/primarySourceService';
 import { culturalMedicalKnowledge } from '../services/culturalMedicalKnowledge';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
 
 interface DiseaseModalProps {

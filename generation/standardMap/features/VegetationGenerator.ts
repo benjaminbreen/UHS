@@ -4,6 +4,8 @@
 import { Tile, ClimateType, BiomeType, MapData, VegetationEntity, VegetationBaseType, VegetationSpecies } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
 import { VEGETATION_SPECIES_DATA } from '../../../constants/index';
+// TEMPORARILY DISABLED FOR TESTING
+// import { getTransitionStrength, getVegetationDensityModifier } from '../../../utils/biomeTransitionUtils';
 
 let vegetationIdCounter = 0;
 
@@ -447,10 +449,15 @@ export function generateVegetation(mapData: MapData, noise: ValueNoise): Vegetat
           const biomeMultiplier = getBiomeDensityMultiplier(tile.biome);
           const clusterBonus = getClusterBonus(x, y);
           const waterBonus = getWaterProximityBonus(tile, tiles);
-          
+
+          // BIOME TRANSITION MODIFIER - TEMPORARILY DISABLED FOR TESTING
+          // const transitionStrength = getTransitionStrength(x, y, tiles);
+          // const transitionModifier = getVegetationDensityModifier(transitionStrength, 0.6);
+          const transitionModifier = 1.0; // Disabled - no transition effect
+
           // FINAL THRESHOLD with all factors
           const finalThreshold = climateThreshold - biodiversityBonus - clusterBonus - waterBonus;
-          const adjustedNoise = baseNoise * biomeMultiplier;
+          const adjustedNoise = baseNoise * biomeMultiplier * transitionModifier;
           
           // SPECIAL BONUSES for valuable/rare locations
           let specialBonus = 0;

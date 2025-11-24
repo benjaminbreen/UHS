@@ -6,7 +6,7 @@
 import React, { useState, useRef } from 'react';
 import { fishingGameState } from '../services/fishingGameStateService';
 import { FishingDataService } from '../services/fishingDataService';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { ClimateType } from '../types';
 
 // Hardcoded for testing - avoids import issues

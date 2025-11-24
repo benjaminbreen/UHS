@@ -6,6 +6,7 @@ import { Tile, NpcEntity, Item, TerrainStructure } from './index';
 export type AltitudeSetting = 'standard' | 'high' | 'low';
 export type ViewMode = 'standard' | 'detail' | 'interior';
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
+export type TimeOfDay = 'Predawn' | 'Dawn' | 'Morning' | 'Midday' | 'Afternoon' | 'Late Afternoon' | 'Golden Hour' | 'Dusk' | 'Late Twilight' | 'Early Evening' | 'Night';
 export type LensMode = 'none' | 'flammability' | 'biodiversity' | 'healthiness' | 'sacrality' | 'safety' | 'minerals';
 
 export interface NarrationMessage {

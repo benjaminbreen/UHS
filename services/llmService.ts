@@ -2,13 +2,12 @@
  * services/llmService.ts - Centralized service for all Gemini API interactions.
  */
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile, BiomeType } from '../types';
+import { InteriorEntity, InteriorMapData, PlayerContext, Item, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile, BiomeType } from '../types';
 import { StudyContext, StudyAction } from '../types/studyTypes';
 import type { Season } from '../types';
 import { CulturalZone, ANIMAL_DATA } from '../constants/index';
 import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 // FACTION_DATA is loaded on-demand - see getAllFactionData() where needed
-import { generateAmbianceText } from "./ambianceGenerator";
 import { generateNpcName } from "../generation/common/npcUtils";
 import { mapLocationToCulture } from "../utils/mapUtils";
 import { ValueNoise } from "../utils/noise";
@@ -22,6 +21,7 @@ import { atmosphericContextService } from './atmosphericContextService';
 import { getCropNutrientEffects, evaluateCropRotation } from './cropNutrientService';
 import { getWorkOffersForNpc } from './workOfferStorage';
 import { learningObjectivesService } from './learningObjectivesService';
+import { generateWitnessContextForLLM, generateWitnessReactionModifier } from './npcWitnessService';
 
 // Cache for historical events to avoid regenerating them every dialogue
 interface HistoricalEventCache {
@@ -801,7 +801,31 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
 `;
     })();
 
+    // CRITICAL: If NPC is hostile, this MUST override everything else
+    const hostileOverride = (target as any).hostileModifier ? (
+        console.log(`[LLM Service] 🔥🔥🔥 HOSTILE OVERRIDE AT TOP OF PROMPT: ${(target as any).hostileModifier.substring(0, 100)}...`),
+        `
+🚨🚨🚨 CRITICAL OVERRIDE - READ THIS FIRST 🚨🚨🚨
+
+${(target as any).hostileModifier}
+
+THIS OVERRIDES ALL OTHER INSTRUCTIONS BELOW. You are FURIOUS and ATTACKING right now.
+Your response MUST reflect extreme anger. YELL at them. Use ALL CAPS.
+Demand to know why they attacked you. Threaten them with violence or calling for help.
+DO NOT give a calm greeting. DO NOT be friendly. BE ENRAGED.
+
+`
+    ) : (console.log('[LLM Service] ℹ️ No hostile override - normal dialogue'), '');
+
+    // CRITICAL: If NPC witnessed violence, they should react with fear/anger
+    const witnessOverride = isNpc(target) ? generateWitnessReactionModifier(target, playerCharacter.name) : '';
+    if (witnessOverride) {
+        console.log(`[LLM Service] 👁️👁️👁️ WITNESS OVERRIDE: ${target.name} witnessed violent event`);
+    }
+
     const prompt = `
+        ${hostileOverride}
+        ${witnessOverride}
         ${educationalEnhancement}
         CONTEXT: ${mapData.localArea}, Year ${mapData.timeSlice}
         ROLE: ${target.name}, ${target.age}yo ${target.role}
@@ -820,6 +844,14 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
         - Health: ${target.health?.currentDiseases?.length > 0 ? `Sick with ${target.health.currentDiseases[0].disease.name}` : 'Healthy'}
         - Wealth: ${target.wealthLevel || 'modest'}
         ${previousSummaries ? `- Previous meeting: ${previousSummaries}` : '- First encounter with this person'}
+        ${(() => {
+            // Add witness context if NPC has witnessed player events
+            if (isNpc(target)) {
+                const witnessContext = generateWitnessContextForLLM(target, playerCharacter.name);
+                return witnessContext ? `- What you witnessed: ${witnessContext}` : '';
+            }
+            return '';
+        })()}
         ${workOfferContext}
         ${(() => {
             // Add pickup history context if NPC has picked up items recently
@@ -907,8 +939,6 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
 
         ${target.diseaseModifier ? `**DISEASE AWARENESS:**\n        ${target.diseaseModifier}` : ''}
 
-        ${(target as any).hostileModifier ? `**HOSTILE STATE:**\n        ${(target as any).hostileModifier}` : ''}
-
         ${(target as any).workOfferContext ? `**WORK AVAILABILITY:**\n        ${(target as any).workOfferContext}` : ''}
 
         **REMEMBER YOUR IDENTITY:**
@@ -944,11 +974,12 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
         ${target.profession?.toLowerCase().includes('guard') ?
             'GUARD: Give ONE warning before attacking defiant intruders. You dont leave, you stand your ground.' : ''}
 
-        FORMAT (4 lines exactly):
+        FORMAT (5 lines exactly):
         DIALOGUE: [1-4 sentences of realistic dialogue]
         REPUTATION: [increase/decrease/none]
         AMOUNT: [0-100]
         TRADE: [yes/no - YES if you're willing to trade/sell/buy items with player]
+        ACTION: [talk/leave/attack - 'talk' to continue conversation, 'leave' if you want to end it and walk away, 'attack' if you're enraged enough to fight]
     `;
     
     try {
@@ -969,6 +1000,7 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
         let dialogueText = '';
         let reputationChange = 0;
         let tradeMatch = null;
+        let actionMatch = null;
 
         try {
             // Extract dialogue
@@ -1004,11 +1036,15 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
                 }
             }
             
+            // Extract ACTION field
+            actionMatch = responseText.match(/ACTION:\s*([^\n]+)/i);
+
             // Clean up dialogue text - remove any stray format markers
             dialogueText = dialogueText
                 .replace(/REPUTATION:.*/i, '')
                 .replace(/AMOUNT:.*/i, '')
                 .replace(/TRADE:.*/i, '')
+                .replace(/ACTION:.*/i, '')
                 .replace(/```.*?```/gs, '')
                 .trim();
         } catch (parseError) {
@@ -1093,35 +1129,68 @@ ${intensityPrompts[settings.difficulty] || intensityPrompts['realistic']}
             console.log(`[NPC Dialogue] ${target.name} is offering to trade. Dialogue: "${npcText}"`);
         }
 
-        // Determine additional flags based on reputation change and NPC type
+        // Parse ACTION field from LLM response
+        let shouldLeave = false;
+        let shouldAttack = false;
+
+        if (actionMatch) {
+            const action = actionMatch[1].toLowerCase().trim();
+            console.log(`[NPC Dialogue] ACTION field detected: "${action}"`);
+
+            if (action === 'attack') {
+                shouldAttack = true;
+                console.log('[NPC Dialogue] NPC explicitly wants to attack (from ACTION field)');
+            } else if (action === 'leave') {
+                shouldLeave = true;
+                console.log('[NPC Dialogue] NPC explicitly wants to leave (from ACTION field)');
+            }
+        }
+
+        // Fallback logic if no ACTION field was provided
+        if (!actionMatch) {
+            // Determine additional flags based on reputation change and NPC type
+            const shouldCallAuthorities = reputationChange <= -100;
+            shouldLeave = shouldCallAuthorities || reputationChange <= -70 || wantsToLeaveNaturally;
+
+            // Guards should attack if player is defiant/threatening and they're a guard
+            // Check both the reputation change and if this is a guard or soldier
+            const isGuardOrSoldier = target.profession?.toLowerCase().includes('guard') ||
+                                     target.profession?.toLowerCase().includes('soldier') ||
+                                     target.profession?.toLowerCase().includes('warrior') ||
+                                     target.profession?.toLowerCase().includes('knight');
+
+            // Guards attack if: player is threatening AND they're a guard type
+            // OR if player has been warned multiple times (history > 4 exchanges with negative reputation)
+            const previousWarnings = Array.isArray(history) && history.length > 0 && typeof history[0] !== 'string' ?
+                (history as DialogueEntry[]).filter(h =>
+                    h.speaker === 'npc' &&
+                    (h.text.toLowerCase().includes('leave') ||
+                     h.text.toLowerCase().includes('stop') ||
+                     h.text.toLowerCase().includes('warning'))
+                ).length : 0;
+
+            shouldAttack = isGuardOrSoldier && (
+                (reputationChange <= -50 && !shouldCallAuthorities) || // Threatening but not authority-calling level
+                (previousWarnings >= 2 && reputationChange < 0) || // Multiple warnings ignored
+                (playerInput.toLowerCase().includes('make me') ||
+                 playerInput.toLowerCase().includes('never') ||
+                 playerInput.toLowerCase().includes('fight me') ||
+                 playerInput.toLowerCase().includes('try and stop me'))
+            );
+        }
+
         const shouldCallAuthorities = reputationChange <= -100;
-        const shouldLeave = shouldCallAuthorities || reputationChange <= -70 || wantsToLeaveNaturally;
-        
-        // Guards should attack if player is defiant/threatening and they're a guard
-        // Check both the reputation change and if this is a guard or soldier
-        const isGuardOrSoldier = target.profession?.toLowerCase().includes('guard') || 
+        const isGuardOrSoldier = target.profession?.toLowerCase().includes('guard') ||
                                  target.profession?.toLowerCase().includes('soldier') ||
                                  target.profession?.toLowerCase().includes('warrior') ||
                                  target.profession?.toLowerCase().includes('knight');
-        
-        // Guards attack if: player is threatening AND they're a guard type
-        // OR if player has been warned multiple times (history > 4 exchanges with negative reputation)
         const previousWarnings = Array.isArray(history) && history.length > 0 && typeof history[0] !== 'string' ?
-            (history as DialogueEntry[]).filter(h => 
-                h.speaker === 'npc' && 
-                (h.text.toLowerCase().includes('leave') || 
-                 h.text.toLowerCase().includes('stop') || 
+            (history as DialogueEntry[]).filter(h =>
+                h.speaker === 'npc' &&
+                (h.text.toLowerCase().includes('leave') ||
+                 h.text.toLowerCase().includes('stop') ||
                  h.text.toLowerCase().includes('warning'))
             ).length : 0;
-        
-        const shouldAttack = isGuardOrSoldier && (
-            (reputationChange <= -50 && !shouldCallAuthorities) || // Threatening but not authority-calling level
-            (previousWarnings >= 2 && reputationChange < 0) || // Multiple warnings ignored
-            (playerInput.toLowerCase().includes('make me') || 
-             playerInput.toLowerCase().includes('never') ||
-             playerInput.toLowerCase().includes('fight me') ||
-             playerInput.toLowerCase().includes('try and stop me'))
-        )
         
         // Debug logging for guard behavior
         if (isGuardOrSoldier) {

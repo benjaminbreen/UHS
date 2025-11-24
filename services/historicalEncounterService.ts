@@ -1,5 +1,5 @@
-import { CulturalZone } from '../types/ambiance';
-import { HistoricalEra } from '../types/ambiance';
+import { CulturalZone } from '../types';
+import { HistoricalEra } from '../types';
 
 export interface HistoricalEncounter {
     id: string;

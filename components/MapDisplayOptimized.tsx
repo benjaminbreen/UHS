@@ -8,6 +8,7 @@ import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMe
 import * as ReactDOM from 'react-dom';
 import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
 import { DeployedStructure } from '../types/structureTypes';
+import { WeatherState } from '../services/weatherService';
 import { useUnifiedAnimations, ENABLE_UNIFIED_ANIMATIONS } from '../hooks/useUnifiedAnimations';
 import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { fireService } from '../services/fireService';
@@ -279,6 +280,7 @@ interface MapDisplayOptimizedProps {
   selectedNpcId?: string | null;
   formattedDate: string;
   season: Season;
+  weather?: WeatherState | null;
   currentLocation: string;
   iconRotation: number;
   velocity: { x: number; y: number };
@@ -345,6 +347,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   selectedNpcId,
   formattedDate,
   season,
+  weather,
   currentLocation,
   iconRotation,
   velocity,
@@ -782,49 +785,53 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     return visible;
   }, [visibleTileGrid, mapData?.tiles, flatTiles]);
 
-  // Memoized filter operations - PERFORMANCE: Avoid filtering 10k elements every render
+  // Memoized filter operations - PERFORMANCE: Use visibleTiles instead of flatTiles (1024 → ~200 tiles)
   const desertParticleTiles = useMemo(() => {
     if (!mapData?.seed) return [];
-    return flatTiles
+    return visibleTiles
       .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
       .filter(tile => (tile.x + tile.y * 7 + mapData.seed) % 5 === 0);
-  }, [flatTiles, mapData?.seed]);
+  }, [visibleTiles, mapData?.seed]);
 
   const snowEffectTiles = useMemo(() => {
     if (!mapData?.seed) return [];
-    return flatTiles.filter(tile =>
+    return visibleTiles.filter(tile =>
       (tile.biome === BiomeType.SNOW || tile.biome === BiomeType.TUNDRA) &&
       tile.isLand &&
       (tile.x + tile.y * 11 + mapData.seed) % 3 === 0
     );
-  }, [flatTiles, mapData?.seed]);
+  }, [visibleTiles, mapData?.seed]);
 
+  // PERFORMANCE: Use visibleTiles for viewport-specific features (saves ~800 iterations)
   const mountainTiles = useMemo(() => {
-    return flatTiles.filter(tile =>
+    return visibleTiles.filter(tile =>
       tile.biome === BiomeType.MOUNTAIN ||
       tile.biome === BiomeType.HIGH_PEAK
     );
-  }, [flatTiles]);
+  }, [visibleTiles]);
 
   const waterTiles = useMemo(() => {
-    return flatTiles.filter(tile => !tile.isLand);
-  }, [flatTiles]);
+    return visibleTiles.filter(tile => !tile.isLand);
+  }, [visibleTiles]);
 
   const overlayTiles = useMemo(() => {
-    return flatTiles.filter(tile => tile.overlayObject);
-  }, [flatTiles]);
+    return visibleTiles.filter(tile => tile.overlayObject);
+  }, [visibleTiles]);
+
+  // Pre-create Set for faster light source type lookups
+  const LIGHT_SOURCE_BIOMES = useMemo(() => new Set([
+    BiomeType.TORCH, BiomeType.BRAZIER, BiomeType.FIRE_PIT,
+    BiomeType.HEARTH, BiomeType.CHANDELIER, BiomeType.LANTERN
+  ]), []);
+
+  const LIGHT_SOURCE_OVERLAY_TYPES = useMemo(() => new Set(['CANDELABRA', 'TORCH', 'BRAZIER']), []);
 
   const lightSourceTiles = useMemo(() => {
-    return flatTiles.filter(tile =>
-      tile.biome === BiomeType.TORCH ||
-      tile.biome === BiomeType.BRAZIER ||
-      tile.biome === BiomeType.FIRE_PIT ||
-      tile.biome === BiomeType.HEARTH ||
-      tile.biome === BiomeType.CHANDELIER ||
-      tile.biome === BiomeType.LANTERN ||
-      (tile.overlayObject?.type && ['CANDELABRA', 'TORCH', 'BRAZIER'].includes(tile.overlayObject.type.toString()))
+    return visibleTiles.filter(tile =>
+      LIGHT_SOURCE_BIOMES.has(tile.biome) ||
+      (tile.overlayObject?.type && LIGHT_SOURCE_OVERLAY_TYPES.has(tile.overlayObject.type.toString()))
     );
-  }, [flatTiles]);
+  }, [visibleTiles, LIGHT_SOURCE_BIOMES, LIGHT_SOURCE_OVERLAY_TYPES]);
 
 
 
@@ -1117,29 +1124,33 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const containerWidth = containerRef.current?.clientWidth || 0;
     const containerHeight = containerRef.current?.clientHeight || 0;
 
-    console.log('[CAMERA DEBUG] Camera centering effect triggered', {
-      hasMapData: !!mapData,
-      hasIconX: logicalControlledIconX !== null,
-      hasIconY: logicalControlledIconY !== null,
-      hasContainer: !!containerRef.current,
-      containerWidth,
-      containerHeight,
-      iconX: logicalControlledIconX,
-      iconY: logicalControlledIconY,
-      isAlreadyCentered: hasCenteredOnCurrentMap.current,
-      hasEverCentered: hasEverCentered.current,
-      isLoading: isLoading,
-      currentSeed: mapData?.seed,
-      prevSeed: prevMapSeed.current,
-      currentPanX: currentPanX.current,
-      currentPanY: currentPanY.current,
-      targetPanX: targetPanX.current,
-      targetPanY: targetPanY.current
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[CAMERA DEBUG] Camera centering effect triggered', {
+        hasMapData: !!mapData,
+        hasIconX: logicalControlledIconX !== null,
+        hasIconY: logicalControlledIconY !== null,
+        hasContainer: !!containerRef.current,
+        containerWidth,
+        containerHeight,
+        iconX: logicalControlledIconX,
+        iconY: logicalControlledIconY,
+        isAlreadyCentered: hasCenteredOnCurrentMap.current,
+        hasEverCentered: hasEverCentered.current,
+        isLoading: isLoading,
+        currentSeed: mapData?.seed,
+        prevSeed: prevMapSeed.current,
+        currentPanX: currentPanX.current,
+        currentPanY: currentPanY.current,
+        targetPanX: targetPanX.current,
+        targetPanY: targetPanY.current
+      });
+    }
 
     // Wait for all required data
     if (!mapData || logicalControlledIconX === null || logicalControlledIconY === null || !containerRef.current) {
-      console.log('[CAMERA DEBUG] Early return: missing required data');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Early return: missing required data');
+      }
       return;
     }
 
@@ -1147,10 +1158,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const isNewMap = prevMapSeed.current !== mapData.seed;
 
     if (isNewMap) {
-      console.log('[CAMERA DEBUG] New map detected, resetting centered flag', {
-        oldSeed: prevMapSeed.current,
-        newSeed: mapData.seed
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] New map detected, resetting centered flag', {
+          oldSeed: prevMapSeed.current,
+          newSeed: mapData.seed
+        });
+      }
       hasCenteredOnCurrentMap.current = false;
       // DON'T update prevMapSeed yet - only after successful centering
     }
@@ -1163,40 +1176,50 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const heightChanged = lastHeight > 0 && Math.abs(containerHeight - lastHeight) > 100;
 
     if ((widthChanged || heightChanged) && containerWidth > lastWidth && containerHeight > lastHeight) {
-      console.log('[CAMERA DEBUG] Container size increased significantly, re-centering', {
-        oldSize: `${lastWidth}x${lastHeight}`,
-        newSize: `${containerWidth}x${containerHeight}`
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Container size increased significantly, re-centering', {
+          oldSize: `${lastWidth}x${lastHeight}`,
+          newSize: `${containerWidth}x${containerHeight}`
+        });
+      }
       hasCenteredOnCurrentMap.current = false;
     }
 
     // Don't recenter if already centered on this map (and container size hasn't changed)
     if (hasCenteredOnCurrentMap.current && !isNewMap) {
-      console.log('[CAMERA DEBUG] Early return: already centered');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Early return: already centered');
+      }
       return;
     }
 
     // Don't center during map transitions - UNLESS this is the very first centering
     // (Initial load must center even if isLoading is true)
     if (isLoading && hasEverCentered.current) {
-      console.log('[CAMERA DEBUG] Early return: map transition in progress');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Early return: map transition in progress');
+      }
       return;
     }
 
     // Only center if we have valid container dimensions (already declared at top)
     if (containerWidth > 0 && containerHeight > 0) {
-      console.log('[CAMERA DEBUG] Executing immediate camera center (no delay)');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Executing immediate camera center (no delay)');
+      }
 
       const iconSvgX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
       const iconSvgY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
 
       // Set final zoom and pan immediately for responsive map transitions
       const endZoom = INITIAL_ZOOM_LEVEL;
-      console.log('[CAMERA DEBUG] Setting zoom and camera position', {
-        playerX: logicalControlledIconX,
-        playerY: logicalControlledIconY,
-        timestamp: performance.now()
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Setting zoom and camera position', {
+          playerX: logicalControlledIconX,
+          playerY: logicalControlledIconY,
+          timestamp: performance.now()
+        });
+      }
 
       // Calculate final pan position to center on player
       const finalPanX = containerWidth / 2 - iconSvgX * endZoom;
@@ -1218,7 +1241,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       if (svgRef.current) svgRef.current.style.transform = newTransform;
       if (canvasRef.current) canvasRef.current.style.transform = newTransform;
 
-      console.log('[CAMERA DEBUG] Camera position set complete');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Camera position set complete');
+      }
 
       // Mark as centered immediately to prevent other effects from interfering
       hasCenteredOnCurrentMap.current = true;
@@ -1226,7 +1251,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       prevMapSeed.current = mapData.seed; // NOW mark this seed as handled (after successful centering)
       lastCenterContainerSize.current = { width: containerWidth, height: containerHeight }; // Store container size used for centering
     } else {
-      console.log('[CAMERA DEBUG] Container not sized yet, will retry on next render');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[CAMERA DEBUG] Container not sized yet, will retry on next render');
+      }
       // prevMapSeed NOT updated - effect will run again when dependencies change
     }
   }, [mapData?.seed, logicalControlledIconX, logicalControlledIconY, isLoading, containerDimensions.width, containerDimensions.height]);
@@ -1339,6 +1366,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   // Memoize railroad filtering to prevent re-filtering on every render
   const railroadPaths = useMemo(() => {
     return pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
+  }, [pathObjects]);
+
+  // PERFORMANCE: Cache path bounds to avoid expensive regex/parsing on every render
+  const pathBoundsCache = useMemo(() => {
+    const cache = new Map<string, { minX: number, minY: number, maxX: number, maxY: number } | null>();
+    pathObjects?.forEach(path => {
+      cache.set(path.id, getPathBounds(path.svgD));
+    });
+    return cache;
   }, [pathObjects]);
 
   // Memoize sorted railroads for train selection (only railroad paths with actual rails, not ties)
@@ -2188,17 +2224,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   }, []);
 
   // Simple day/night detection for UI purposes only (no color tinting)
+  // Throttled to reduce vignette transition stutter
   const timeOfDayData = useMemo(() => {
     const hour = gameTimeHours;
     const minute = gameTimeMinutes || 0;
     const fractionalHour = hour + (minute / 60);
-    
+
     const isNight = fractionalHour < 6 || fractionalHour >= 20;
     const isDawn = fractionalHour >= 5 && fractionalHour < 7;
     const isDusk = fractionalHour >= 18 && fractionalHour < 21;
     const isDay = fractionalHour >= 8 && fractionalHour < 18;
 
     // Calculate night intensity for components that need it
+    // Rounded to nearest 0.1 to prevent constant re-renders
     let nightIntensity = 0;
     if (isNight) {
       if (fractionalHour >= 20) {
@@ -2212,6 +2250,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         nightIntensity = Math.max(0, 1 - ((fractionalHour - 4) / 2));
       }
     }
+
+    // Round to nearest 0.1 to throttle updates and reduce GPU repaints
+    nightIntensity = Math.round(nightIntensity * 10) / 10;
 
     return { isNight, isDawn, isDusk, isDay, nightIntensity };
   }, [gameTimeHours, gameTimeMinutes]);
@@ -2463,9 +2504,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             </pattern>
             
             <linearGradient id="beachGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#fde68a" stopOpacity="1" />
-              <stop offset="40%" stopColor="#f4d03f" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#e8c468" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="#f4a460" stopOpacity="1" />
+              <stop offset="40%" stopColor="#daa06d" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#c19a6b" stopOpacity="0.3" />
             </linearGradient>
             
             <linearGradient id="cliffShadow" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -2651,22 +2692,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     return <CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />;
                   }
                   if(tile.biome === BiomeType.BEACH) {
-                    // Add foam edge detail to beaches
+                    // Subtle foam edge detail (single line, very subtle)
                     return (
                       <g key={`beach-foam-${tile.x}-${tile.y}`}>
                         <path
                           d={`M ${symbolX} ${symbolY + TILE_SIZE_PX * 0.2} Q ${symbolX + TILE_SIZE_PX * 0.25} ${symbolY + TILE_SIZE_PX * 0.15}, ${symbolX + TILE_SIZE_PX * 0.5} ${symbolY + TILE_SIZE_PX * 0.2} T ${symbolX + TILE_SIZE_PX} ${symbolY + TILE_SIZE_PX * 0.2}`}
-                          stroke="rgba(255,255,255,0.6)"
-                          strokeWidth="1.5"
-                          fill="none"
-                          strokeDasharray="3,2"
-                        />
-                        <path
-                          d={`M ${symbolX} ${symbolY + TILE_SIZE_PX * 0.8} Q ${symbolX + TILE_SIZE_PX * 0.25} ${symbolY + TILE_SIZE_PX * 0.75}, ${symbolX + TILE_SIZE_PX * 0.5} ${symbolY + TILE_SIZE_PX * 0.8} T ${symbolX + TILE_SIZE_PX} ${symbolY + TILE_SIZE_PX * 0.8}`}
-                          stroke="rgba(255,255,255,0.4)"
+                          stroke="rgba(255,255,255,0.15)"
                           strokeWidth="1"
                           fill="none"
-                          strokeDasharray="2,3"
                         />
                       </g>
                     );
@@ -2697,17 +2730,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   if(tile.biome === BiomeType.PARK) {
                     return <ParkSymbol key={`park-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />;
                   }
-                  if(tile.biome === BiomeType.HARBOR_DISTRICT) {
-                    // Get era and cultural style for harbor district
-                    const { era: harborEra } = parseDateString(formattedDate);
-                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
-                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
-                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
-                      year = -year;
-                    }
-                    const harborCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
-                    return <HarborDistrictSymbol key={`harbor-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={harborEra} culturalStyle={harborCulturalStyle} mapTiles={mapData.tiles} />;
-                  }
+                  // HARBOR_DISTRICT moved to line ~2788 with proper interaction handlers
                   if(tile.biome === BiomeType.INDUSTRIAL_DISTRICT) {
                     // Get era and cultural style for industrial district
                     const { era: industrialEra } = parseDateString(formattedDate);
@@ -2787,7 +2810,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         }}
                         style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}
                       >
-                        <HarborDistrictSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} era={harborEra} culturalStyle={harborCulturalStyle} seed={tileSeed} />
+                        <HarborDistrictSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={harborEra} culturalStyle={harborCulturalStyle} mapTiles={mapData.tiles} />
                         {hoveredTile === tile && (
                           <rect
                             x={symbolX}
@@ -2876,8 +2899,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Roads and paths layer - rendered BELOW buildings but ABOVE terrain */}
             <g mask="url(#waterMask)">
               {pathObjects?.map((path) => {
-                // Viewport culling for performance
-                const pathBounds = getPathBounds(path.svgD);
+                // Viewport culling for performance - use cached bounds
+                const pathBounds = pathBoundsCache.get(path.id);
                 if (pathBounds) {
                   const buffer = TILE_SIZE_PX * 2;
                   const viewLeft = -panX / zoomLevel - buffer;
@@ -3072,107 +3095,87 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
-            {/* Hills and Vegetation layer - rendered ABOVE roads/streams so they don't appear cut over */}
-            {/* Hills - VIEWPORT CULLED */}
+            {/* CONSOLIDATED: Elevation Features (Hills + Mountains) - VIEWPORT CULLED */}
+            {/* PERFORMANCE: Consolidates 2 separate passes into 1 (2x faster) */}
             {shouldRenderDetailedSymbols && (
               <g>
                 {visibleTiles.map((tile) => {
-                  if (tile.biome !== BiomeType.HILLS) return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
-                  const tileSeed = seed + tile.x * 31 + tile.y * 37;
-                  return <HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>;
-                })}
-              </g>
-            )}
-            
-            {/* Mountains - VIEWPORT CULLED */}
-            {shouldRenderDetailedSymbols && (
-              <g filter="url(#symbolShadow)">
-                {visibleTiles.map((tile) => {
-                  if (tile.biome !== BiomeType.MOUNTAIN) return null;
-                  const symbolX = tile.x * TILE_SIZE_PX;
-                  const symbolY = tile.y * TILE_SIZE_PX;
-                  const tileSeed = seed + tile.x * 47 + tile.y * 53;
-                  const altitude = tile.altitude || 0.7; // Use tile altitude if available
-                  return <MountainSymbol key={`mountain-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} altitude={altitude} climate={climate} season={season} />;
-                })}
-              </g>
-            )}
-            
-            {/* Ethereal Realms - Space, Undersea, Heaven/Clouds - VIEWPORT CULLED */}
-            {shouldRenderDetailedSymbols && (
-              <g>
-                {visibleTiles.map((tile) => {
-                  // Space tiles (AIR biome in ARID climate)
-                  if (tile.biome === BiomeType.AIR && climate === ClimateType.ARID) {
-                    const symbolX = tile.x * TILE_SIZE_PX;
-                    const symbolY = tile.y * TILE_SIZE_PX;
-                    // Use stable seed based on tile position, not the map seed
-                    const tileSeed = tile.x * 137 + tile.y * 149 + 12345;
-                    return <SpaceSymbol key={`space-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />;
+
+                  // Hills
+                  if (tile.biome === BiomeType.HILLS) {
+                    const tileSeed = seed + tile.x * 31 + tile.y * 37;
+                    return <HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>;
                   }
 
-                  // Cloud/Heaven tiles (AIR biome in other climates)
-                  if (tile.biome === BiomeType.AIR && climate !== ClimateType.ARID) {
-                    const symbolX = tile.x * TILE_SIZE_PX;
-                    const symbolY = tile.y * TILE_SIZE_PX;
-                    // Use stable seed based on tile position
-                    const tileSeed = tile.x * 163 + tile.y * 173 + 54321;
-                    return <CloudSymbol key={`cloud-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} climate={climate} />;
-                  }
-
-                  // Undersea tiles
-                  if (tile.biome === BiomeType.UNDERSEA) {
-                    const symbolX = tile.x * TILE_SIZE_PX;
-                    const symbolY = tile.y * TILE_SIZE_PX;
-                    // Use stable seed based on tile position
-                    const tileSeed = tile.x * 181 + tile.y * 191 + 98765;
-                    return <UnderseaSymbol key={`undersea-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />;
+                  // Mountains (with shadow filter)
+                  if (tile.biome === BiomeType.MOUNTAIN) {
+                    const tileSeed = seed + tile.x * 47 + tile.y * 53;
+                    const altitude = tile.altitude || 0.7;
+                    return (
+                      <g key={`mountain-${tile.x}-${tile.y}`} filter="url(#symbolShadow)">
+                        <MountainSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} altitude={altitude} climate={climate} season={season} />
+                      </g>
+                    );
                   }
 
                   return null;
                 })}
               </g>
             )}
-
-            {/* Snow and seasonal riverbank snow - VIEWPORT CULLED */}
+            
+            {/* CONSOLIDATED: Upper Effects Layer - Ethereal Realms, Snow, Lava, Paddocks - VIEWPORT CULLED */}
+            {/* PERFORMANCE: Consolidates 4 separate passes into 1 (4x faster) */}
             {shouldRenderDetailedSymbols && (
               <g>
                 {visibleTiles.map((tile) => {
+                  const symbolX = tile.x * TILE_SIZE_PX;
+                  const symbolY = tile.y * TILE_SIZE_PX;
+
+                  // Space tiles (AIR biome in ARID climate)
+                  if (tile.biome === BiomeType.AIR && climate === ClimateType.ARID) {
+                    const tileSeed = tile.x * 137 + tile.y * 149 + 12345;
+                    return <SpaceSymbol key={`space-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />;
+                  }
+
+                  // Cloud/Heaven tiles (AIR biome in other climates)
+                  if (tile.biome === BiomeType.AIR && climate !== ClimateType.ARID) {
+                    const tileSeed = tile.x * 163 + tile.y * 173 + 54321;
+                    return <CloudSymbol key={`cloud-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} climate={climate} />;
+                  }
+
+                  // Undersea tiles
+                  if (tile.biome === BiomeType.UNDERSEA) {
+                    const tileSeed = tile.x * 181 + tile.y * 191 + 98765;
+                    return <UnderseaSymbol key={`undersea-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />;
+                  }
+
                   // Regular snow tiles
                   if (tile.biome === BiomeType.SNOW) {
-                    const symbolX = tile.x * TILE_SIZE_PX;
-                    const symbolY = tile.y * TILE_SIZE_PX;
                     const tileSeed = seed + tile.x * 59 + tile.y * 61;
                     return <SnowSymbol key={`snow-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} gameTime={gameTimeHours} />;
                   }
-                  
+
                   // Riverbank tiles in cold climates get seasonal snow
-                  if (tile.biome === BiomeType.RIVERBANK && 
+                  if (tile.biome === BiomeType.RIVERBANK &&
                       (climate === ClimateType.TEMPERATE || climate === ClimateType.CONTINENTAL || climate === ClimateType.ARCTIC)) {
-                    // Winter = full snow, Spring/Fall = dusting of snow
-                    const shouldHaveSnow = (season === 'Winter') || 
-                                          (season === 'Spring' && Math.random() > 0.5) || 
+                    const shouldHaveSnow = (season === 'Winter') ||
+                                          (season === 'Spring' && Math.random() > 0.5) ||
                                           (season === 'Fall' && Math.random() > 0.3);
-                    
+
                     if (shouldHaveSnow) {
-                      const symbolX = tile.x * TILE_SIZE_PX;
-                      const symbolY = tile.y * TILE_SIZE_PX;
                       const tileSeed = seed + tile.x * 71 + tile.y * 73;
-                      
-                      // Light snow overlay for riverbanks (semi-transparent)
                       return (
                         <g key={`riverbank-snow-${tile.x}-${tile.y}`}>
-                          <rect 
-                            x={symbolX} 
-                            y={symbolY} 
-                            width={TILE_SIZE_PX} 
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
                             height={TILE_SIZE_PX}
                             fill="rgba(250, 250, 255, 0.2)"
                             opacity={season === 'Winter' ? 0.6 : 0.3}
                           />
-                          {/* Occasional sparkle on winter riverbanks */}
                           {season === 'Winter' && Math.random() > 0.8 && (
                             <circle
                               cx={symbolX + TILE_SIZE_PX / 2}
@@ -3186,43 +3189,25 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       );
                     }
                   }
-                  
-                  return null;
-                })}
-              </g>
-            )}
-            
-            {/* Lava tiles - dramatic animated effect - VIEWPORT CULLED */}
-            {shouldRenderDetailedSymbols && (
-              <g>
-                {visibleTiles.map((tile) => {
-                  if (tile.biome !== BiomeType.ACTIVE_LAVA) return null;
-                  const lavaX = tile.x * TILE_SIZE_PX;
-                  const lavaY = tile.y * TILE_SIZE_PX;
-                  const lavaSeed = seed + tile.x * 47 + tile.y * 53;
-                  return (
-                    <LavaSymbolCSS 
-                      key={`lava-${tile.x}-${tile.y}`}
-                      x={lavaX}
-                      y={lavaY}
-                      size={TILE_SIZE_PX}
-                      seed={lavaSeed}
-                    />
-                  );
-                })}
-              </g>
-            )}
-            
-            {/* Animal Paddocks (fences) - VIEWPORT CULLED */}
-            {shouldRenderDetailedSymbols && (
-              <g>
-                {visibleTiles.map((tile) => {
-                  if (tile.paddockType !== 'Livestock') return null;
-                  const symbolX = tile.x * TILE_SIZE_PX;
-                  const symbolY = tile.y * TILE_SIZE_PX;
-                  
-                  // Get adjacent tiles to determine which fences to draw
-                  const adjacentTiles = {
+
+                  // Lava tiles
+                  if (tile.biome === BiomeType.ACTIVE_LAVA) {
+                    const lavaSeed = seed + tile.x * 47 + tile.y * 53;
+                    return (
+                      <LavaSymbolCSS
+                        key={`lava-${tile.x}-${tile.y}`}
+                        x={symbolX}
+                        y={symbolY}
+                        size={TILE_SIZE_PX}
+                        seed={lavaSeed}
+                      />
+                    );
+                  }
+
+                  // Animal Paddocks (fences)
+                  if (tile.paddockType === 'Livestock') {
+                    // Get adjacent tiles to determine which fences to draw
+                    const adjacentTiles = {
                     north: tile.y > 0 ? tiles[tile.y - 1][tile.x] : undefined,
                     south: tile.y < MAP_HEIGHT_TILES - 1 ? tiles[tile.y + 1][tile.x] : undefined,
                     east: tile.x < MAP_WIDTH_TILES - 1 ? tiles[tile.y][tile.x + 1] : undefined,
@@ -3244,12 +3229,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       culturalZone={culturalZone}
                     />
                   );
+                  }
+
+                  return null;
                 })}
               </g>
             )}
             
             {/* Vegetation (trees, bushes, etc) */}
-            <g>
+            <g style={{ pointerEvents: 'none' }}>
             {shouldRenderVegetation && vegetation?.map(veg => {
               const renderX = veg.x * TILE_SIZE_PX;
               const renderY = veg.y * TILE_SIZE_PX;
@@ -3283,10 +3271,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               }
 
               if (SymbolComponent) {
+                // Use fixed position-based seed - stable and performant
+                const vegSeed = veg.x * 73856093 + veg.y * 19349663;
                 return (
                   <g key={veg.id}
                      transform={`translate(${renderX + shakeOffsetX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
-                    <SymbolComponent seed={seed + veg.x * 13 + veg.y * 31} season={season} climate={climate} />
+                    <SymbolComponent seed={vegSeed} season={season} climate={climate} weather={weather} />
                   </g>
                 );
               }
@@ -4222,6 +4212,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             })()}
 
             {/* Dug tiles - show earth piles where player has dug */}
+            <g style={{ pointerEvents: 'none' }}>
             {mapData?.terrainModifications?.dugTiles?.map(dugTile => {
               const x = dugTile.x * TILE_SIZE_PX;
               const y = dugTile.y * TILE_SIZE_PX;
@@ -4234,8 +4225,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 />
               );
             })}
+            </g>
 
             {/* Dropped items - show item icons where player has dropped items */}
+            <g style={{ pointerEvents: 'none' }}>
             {mapData?.terrainModifications?.droppedItems?.map((dropped, index) => {
               const x = dropped.x * TILE_SIZE_PX;
               const y = dropped.y * TILE_SIZE_PX;
@@ -4249,6 +4242,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 />
               );
             })}
+            </g>
 
             {/* Multi-tile pillars layer - rendered above base tiles */}
             {isSpecialMap && (mapData as any)?.multiTileObjects && (() => {
@@ -4278,7 +4272,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             })()}
 
             {/* Mineral deposits layer - subtle glints on the map */}
-            {mapData && shouldRenderAnimations && flatTiles.filter(tile => 
+            <g style={{ pointerEvents: 'none' }}>
+            {mapData && shouldRenderAnimations && flatTiles.filter(tile =>
               tile.mineralDeposit && tile.mineralDeposit.quantity > 0
             ).map(tile => (
               <MineralGlintSymbol
@@ -4291,6 +4286,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 shouldAnimate={false}
               />
             ))}
+            </g>
 
             {/* Deployed Vessels layer */}
             <g>
@@ -5109,7 +5105,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         />
       )}
 
-      {/* Optimized vignette effect - simplified for better performance */}
+      {/* Optimized vignette effect - throttled transitions for performance */}
       <div className="absolute inset-0 pointer-events-none">
         {isSpecialMap ? (
           // Interior vignette - simple, no blend modes
@@ -5117,28 +5113,25 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             className="absolute inset-0"
             style={{
               opacity: 0.4,
-              background: 'radial-gradient(ellipse 70% 60% at center, transparent 35%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.5) 100%)',
-              willChange: 'opacity'
+              background: 'radial-gradient(ellipse 70% 60% at center, transparent 35%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.5) 100%)'
             }}
           />
         ) : timeOfDayData.isNight ? (
           // Night vignette - midnight blue quality, extends further inward
           <div
-            className="absolute inset-0 transition-opacity duration-2000"
+            className="absolute inset-0 transition-opacity duration-700"
             style={{
               opacity: 0.6 + (timeOfDayData.nightIntensity * 0.2),
-              background: 'radial-gradient(ellipse 65% 60% at center, transparent 25%, rgba(10,15,35,0.4) 55%, rgba(5,10,25,0.65) 85%, rgba(0,5,15,0.8) 100%)',
-              willChange: 'opacity'
+              background: 'radial-gradient(ellipse 65% 60% at center, transparent 25%, rgba(10,15,35,0.4) 55%, rgba(5,10,25,0.65) 85%, rgba(0,5,15,0.8) 100%)'
             }}
           />
         ) : (
           // Day vignette - standard daytime look
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 transition-opacity duration-700"
             style={{
               opacity: 0.7,
-              background: 'radial-gradient(ellipse at center, transparent 10%, rgba(0,0,0,0.15) 65%, rgba(0,0,0,0.4) 100%)',
-              willChange: 'opacity'
+              background: 'radial-gradient(ellipse at center, transparent 10%, rgba(0,0,0,0.15) 65%, rgba(0,0,0,0.4) 100%)'
             }}
           />
         )}
@@ -5432,8 +5425,8 @@ const arePropsEqual = (prevProps: MapDisplayOptimizedProps, nextProps: MapDispla
     prevProps.playerMode === nextProps.playerMode &&
     prevProps.activeLens === nextProps.activeLens &&
 
-    // Game time that affects rendering
-    Math.floor(prevProps.gameTimeHours / 4) === Math.floor(nextProps.gameTimeHours / 4) && // Only update every 4 hours
+    // Game time that affects rendering - reduced sensitivity for better performance
+    Math.floor(prevProps.gameTimeHours / 6) === Math.floor(nextProps.gameTimeHours / 6) && // Only update every 6 hours (was 4)
 
     // Array length comparisons for performance (deep comparison is expensive)
     prevProps.animals?.length === nextProps.animals?.length &&
@@ -5448,7 +5441,11 @@ const arePropsEqual = (prevProps: MapDisplayOptimizedProps, nextProps: MapDispla
     // Ship/vessel state
     prevProps.shipDockX === nextProps.shipDockX &&
     prevProps.shipDockY === nextProps.shipDockY &&
-    prevProps.currentVessel === nextProps.currentVessel
+    prevProps.currentVessel === nextProps.currentVessel &&
+
+    // Weather comparison - only check values that affect rendering (prevent object reference issues)
+    prevProps.weather?.precipitation === nextProps.weather?.precipitation &&
+    prevProps.weather?.temperature === nextProps.weather?.temperature
   );
 };
 

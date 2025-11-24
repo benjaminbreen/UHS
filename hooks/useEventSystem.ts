@@ -15,8 +15,6 @@ import {
 } from '../types/eventTypes';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
-import { questService } from '../services/questService';
-import { questTriggerService } from '../services/questTriggerService';
 import { useGame } from '../contexts/GameContext';
 import { getSeasonFromDate, parseDateString } from '../utils/dateUtils';
 
@@ -133,28 +131,9 @@ export function useEventSystem() {
    */
   useEffect(() => {
     if (!playerCharacter || playerCharacter.x === undefined || playerCharacter.y === undefined) return;
-    
-    // Check quest progress at current location (will auto-complete location objectives)
-    questService.checkQuestProgress(playerCharacter.x, playerCharacter.y);
-    
-    // Also check for any auto-completable objectives
-    questService.checkAutoCompletableObjectives(playerCharacter);
-    
-    // Trigger contextual quest generation based on player movement
-    if (currentTile && worldData && currentZone && gameDate) {
-      const context = {
-        player: playerCharacter,
-        tile: currentTile,
-        mapData: worldData,
-        culturalZone: currentZone as any, // Type will be matched in service
-        era: parseDateString(String(gameDate.year)).era,
-        gameMode: currentMode?.name
-      };
-      
-      // Check for movement-based quest triggers
-      questTriggerService.onPlayerMove(context);
-    }
-  }, [playerCharacter?.x, playerCharacter?.y, worldData, currentTile, currentZone, gameDate, currentMode]); // Added dependencies for quest triggers
+
+    // Quest system removed - no quest progress tracking
+  }, [playerCharacter?.x, playerCharacter?.y, worldData, currentTile, currentZone, gameDate, currentMode]);
 
   /**
    * Check for event triggers periodically

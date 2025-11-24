@@ -4,7 +4,7 @@
  */
 import { MapData, Tile, PathType } from '../types';
 import { BiomeType } from '../types/enums';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import {
   getRailroadDestinations,
   TravelDestination,

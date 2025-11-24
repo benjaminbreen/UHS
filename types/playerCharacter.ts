@@ -3,7 +3,7 @@
  */
 import { Item } from './itemTypes';
 import { Gender, WealthLevel, CulturalZone, Appearance } from './characterData';
-import { HistoricalEra } from './ambiance';
+import { HistoricalEra } from './enums';
 import { StatusEffect } from './combat';
 import { FamilyMember, LifeEvent } from './npcTypes';
 import { InteriorViewState, Point } from './index';

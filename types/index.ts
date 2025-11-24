@@ -8,7 +8,6 @@ export * from './core/map';
 export * from './core/geometry';
 export * from './biomes/base';
 export * from './biomes/climate';
-export * from './ambiance';
 export * from './interiorMapTypes';
 export * from './animalTypes';
 export * from './skillTypes';

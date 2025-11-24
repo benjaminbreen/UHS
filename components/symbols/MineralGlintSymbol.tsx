@@ -165,4 +165,4 @@ const MineralGlintSymbol: React.FC<MineralGlintSymbolProps> = ({
     }
 };
 
-export default MineralGlintSymbol;
+export default React.memo(MineralGlintSymbol);

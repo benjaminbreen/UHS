@@ -4,7 +4,7 @@
  */
 
 import { CulturalZone } from '../types/characterData';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { BiomeType, ClimateType } from '../types';
 
 export type FishSizeCategory = 'tiny' | 'small' | 'medium' | 'large' | 'huge';

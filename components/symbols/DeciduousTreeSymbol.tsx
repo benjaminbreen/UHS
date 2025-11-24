@@ -5,14 +5,16 @@
 import React from 'react';
 import { ValueNoise } from '../../utils/noise';
 import { Season, ClimateType } from '../../types';
+import { WeatherState } from '../../services/weatherService';
 
 interface DeciduousTreeSymbolProps {
   seed: number;
   season: Season;
   climate?: ClimateType;
+  weather?: WeatherState | null;
 }
 
-const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ seed, season, climate }) => {
+const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = ({ seed, season, climate, weather }) => {
   const localRand = React.useMemo(() => new ValueNoise(seed).random, [seed]);
 
   const isVariant = localRand() < 0.4; // 40% chance of showing the smaller tree variant
@@ -103,6 +105,9 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
     });
   }
 
+  // Weather-based snow detection
+  const isSnowing = weather?.precipitation === 'snow' && weather?.temperature !== undefined && weather.temperature < 2;
+
   return (
     <g>
       {/* Trunk */}
@@ -158,8 +163,51 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
             const flowerY = 12 + (localRand() - 0.5) * baseRadius;
             return <circle key={`flower-${i}`} cx={flowerX} cy={flowerY} r="0.6" fill={localRand() > 0.5 ? '#f9a8d4' : '#c084fc'} opacity="0.8" />;
         })}
+
+        {/* Snow on branches (when tree is bare in winter and snowing) */}
+        {isSnowing && effectiveSeason === 'winter' && (
+          <g opacity="0.6">
+            {/* Snow on branch tips */}
+            <circle cx={10} cy={trunkY - 2} r="1.2" fill="white" />
+            <circle cx={14} cy={trunkY - 2} r="1.2" fill="white" />
+            {!isVariant && (
+              <>
+                <circle cx={11} cy={trunkY - 3} r="1" fill="white" />
+                <circle cx={13} cy={trunkY - 3} r="1" fill="white" />
+              </>
+            )}
+          </g>
+        )}
+
+        {/* Snow highlights on foliage (when snowing and tree has leaves) */}
+        {isSnowing && effectiveSeason !== 'winter' && foliage.length > 0 && (
+          <g opacity="0.4">
+            {foliage.slice(0, 2).map((layer, i) => (
+              <ellipse
+                key={`snow-${layer.key}`}
+                cx={layer.cx}
+                cy={layer.cy - 0.5}
+                rx={layer.rx * 0.6}
+                ry={layer.ry * 0.4}
+                fill="white"
+              />
+            ))}
+          </g>
+        )}
     </g>
   );
-});
+};
 
-export default DeciduousTreeSymbol;
+// Custom comparison to prevent re-renders when weather object reference changes but values are same
+const arePropsEqual = (prevProps: DeciduousTreeSymbolProps, nextProps: DeciduousTreeSymbolProps): boolean => {
+  return (
+    prevProps.seed === nextProps.seed &&
+    prevProps.season === nextProps.season &&
+    prevProps.climate === nextProps.climate &&
+    // Deep compare weather properties instead of object reference
+    prevProps.weather?.precipitation === nextProps.weather?.precipitation &&
+    prevProps.weather?.temperature === nextProps.weather?.temperature
+  );
+};
+
+export default React.memo(DeciduousTreeSymbol, arePropsEqual);

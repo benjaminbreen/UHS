@@ -6,7 +6,7 @@
 import { Tile, BiomeType, HistoricalEra } from '../../../types';
 import { OverlayObjectType } from '../../../types/core/tile';
 import { SpecialMapConfig, InteractionZone, ExitZone } from '../../../types/specialMapTypes';
-import { CulturalZone } from '../../../types/ambiance';
+import { CulturalZone } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
 import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
 import { addCulturalLighting } from '../culturalFurnitureSystem';

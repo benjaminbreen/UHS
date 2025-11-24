@@ -4,7 +4,7 @@
  */
 
 import { Disease, DiseaseSeverity } from '../types/diseaseTypes';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
 
 interface HistoricalMedicalContext {

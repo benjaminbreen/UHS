@@ -7,7 +7,7 @@
 
 import { ADJACENCIES, LIMINAL_SEQUENCES } from '../constants/gameData/adjacencies';
 import { CITIES_DATA, CityDefinition } from '../constants/gameData/cities';
-import { HistoricalEra, CulturalZone } from '../types/ambiance';
+import { HistoricalEra, CulturalZone } from '../types';
 import type { LiminalSequence } from '../types/geography';
 import { mapLocationToCulture } from '../utils/mapUtils';
 

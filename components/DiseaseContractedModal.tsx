@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Disease, PlayerCharacter } from '../types';
 import { DISEASE_QUOTES } from '../constants/gameData/diseaseQuotes';
 import { culturalMedicalKnowledge } from '../services/culturalMedicalKnowledge';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
 import { Scroll } from 'lucide-react';
 

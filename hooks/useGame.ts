@@ -55,8 +55,6 @@ export const useGameState = () => {
     const [isNarratorLoading, setIsNarratorLoading] = useState<boolean>(false);
     const [narrationHistory, setNarrationHistory] = useState<NarrationMessage[]>([ { sender: 'narrator-special', text: 'You can ask "What do I see?" or describe an action like "I check the desk for hidden drawers."' } ]);
     const [playerInput, setPlayerInput] = useState<string>('');
-    const [ambianceText, setAmbianceText] = useState<string>("");  // Ambiance system deprecated
-    const [lastAmbianceUpdateHour, setLastAmbianceUpdateHour] = useState<number>(-1);
     
     // UI Context State
     const [actionableTile, setActionableTile] = useState<{ type: 'farm' | 'city' | 'marketplace' | 'building' | 'explore'; tile: Tile } | null>(null);
@@ -131,8 +129,6 @@ export const useGameState = () => {
         isNarratorLoading,
         narrationHistory,
         playerInput,
-        ambianceText,
-        lastAmbianceUpdateHour,
         actionableTile,
         contextualMessage,
         season,
@@ -157,8 +153,6 @@ export const useGameState = () => {
         setIsNarratorLoading,
         setNarrationHistory,
         setPlayerInput,
-        setAmbianceText,
-        setLastAmbianceUpdateHour,
         setActionableTile,
         setContextualMessage,
         setCurrentZone,

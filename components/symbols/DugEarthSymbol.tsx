@@ -71,4 +71,4 @@ const DugEarthSymbol: React.FC<DugEarthSymbolProps> = ({ x, y, cellSize }) => {
   );
 };
 
-export default DugEarthSymbol;
+export default React.memo(DugEarthSymbol);

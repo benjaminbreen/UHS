@@ -57,9 +57,6 @@ export {
 // UI Strings - Small, frequently used
 export * from './uiStrings';
 
-// Ambiance Text Constants - Small
-export * from './ambiance';
-
 // Item Lists for procedural generation - Medium size but frequently used
 export * from './gameData/itemDefinitions';
 export * from './gameData/lootTables';

@@ -1,5 +1,5 @@
 /**
- * hooks/useCoreLoops.ts - Encapsulates the main game loops for time, AI, and ambiance.
+ * hooks/useCoreLoops.ts - Encapsulates the main game loops for time and AI.
  */
 import { useEffect, useRef } from 'react';
 import { produce } from 'immer';
@@ -25,14 +25,11 @@ import { generateNPCApproachNarration } from '../services/llmService';
 import { fireService } from '../services/fireService';
 import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ANIMAL_DATA, ITEM_DEFINITIONS } from '../constants/index';
-import { generateAmbianceText } from '../services/ambianceGenerator';
-import { AmbianceContext, BiomeType, Item, PlayerContext, TerrainStructureType, TerrainStructure } from '../types';
+import { BiomeType, Item, PlayerContext, TerrainStructureType, TerrainStructure } from '../types';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils';
 import { LogService } from '../services/logService';
 import DiseaseService from '../services/diseaseService';
-import { questService } from '../services/questService';
-import { questTriggerService } from '../services/questTriggerService';
 import { isTerrainPassable, getTerrainBlockMessage, getTerrainDamage } from '../constants/terrainPassability';
 import gameSounds from '../services/gameSoundsService';
 import { getFootstepMaterial } from '../services/biomeFootstepService';
@@ -41,6 +38,7 @@ import { DiseaseProgressionEvent } from '../services/diseaseNotificationService'
 import { Disease } from '../types/diseaseTypes';
 import { NpcEntity } from '../types/npcTypes';
 import { getActiveWorkOffers, updateWorkOffer, cleanupOrphanedWorkOffers } from '../services/workOfferStorage';
+import { cleanupOldWitnessedEvents } from '../services/npcWitnessService';
 import { checkWorkCompletion, completeWorkOffer } from '../services/workOfferService';
 import { checkForEvent, getGlobalEventsLLMContext, cleanupExpiredEvents } from '../services/globalEventService';
 
@@ -68,9 +66,6 @@ const useCoreLoops = (
     setGameDate,
     gameTimeHours,
     gameDate,
-    lastAmbianceUpdateHour,
-    setLastAmbianceUpdateHour,
-    setAmbianceText,
     currentTimeOfDay,
     moveCount,
     setMoveCount,
@@ -155,7 +150,6 @@ const useCoreLoops = (
   const moveLoopId = useRef<number | null>(null);
   const lastMoveTime = useRef<number>(0);
   const moveIntervalMs = 250; // Consistent movement speed - slightly slower but smoother
-  const questsInitialized = useRef<boolean>(false);
   const lastDiseaseCheckMove = useRef<number>(0);
   const nextMoveAllowed = useRef<number>(0); // Track when next move is allowed
   const npcNarrationHistory = useRef<Set<string>>(new Set()); // Track NPCs who have had narration generated
@@ -170,85 +164,7 @@ const useCoreLoops = (
   const INITIAL_REPEAT_DELAY_MS = 200; // delay after the very first step of a hold
   const CONTINUOUS_REPEAT_MS = 400; // cadence while key is held
 
-  // Reset quest initialization when map changes
-  useEffect(() => {
-    questsInitialized.current = false;
-    // console.log('[QuestInit] Reset questsInitialized flag for new map');
-  }, [mapData]);
-  
-  // Update quest service context when game data changes
-  useEffect(() => {
-    if (!mapData || !playerCharacter || !currentZone) return;
-    
-    const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
-    const dateInfo = parseDateString(String(gameDate.year));
-    const playerLocation = { 
-      x: controlledIconX || 50, 
-      y: controlledIconY || 50 
-    };
-    
-    // Update quest service with current context
-    questService.updateContext(culturalZone, dateInfo.era, playerLocation);
-    
-    // console.log('[QuestService] Context updated:', { zone: culturalZone, era: dateInfo.era, location: playerLocation });
-  }, [mapData, currentZone, gameDate.year, controlledIconX, controlledIconY]);
-  
-  // Quest Initialization - Generate quests when map and player are ready
-  useEffect(() => {
-    if (!mapData || !playerCharacter || questsInitialized.current) return;
-    
-    // Always reset quest service for fresh game starts
-    // console.log('[QuestInit] Resetting quest service for fresh game start');
-    questService.resetQuestService();
-    questTriggerService.reset(); // Reset quest trigger state for new game
-    
-    // Don't initialize quests for special maps
-    if (isSpecialMap) {
-      // console.log('[QuestInit] Skipping quest generation for special map');
-      return;
-    }
-
-    // Defer quest generation by 1 second to improve initial load performance
-    const questGenerationTimeout = setTimeout(async () => {
-      try {
-        const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
-        const dateInfo = parseDateString(String(gameDate.year));
-
-        const playerStats = playerCharacter ? {
-          health: playerCharacter.health || 50,
-          reputation: playerCharacter.reputation || 10,
-          wealth: playerCharacter.inventory?.filter(item => item.value).reduce((sum, item) => sum + (item.value || 0), 0) || 10,
-          intelligence: playerCharacter.stats?.intelligence || 10,
-          strength: playerCharacter.stats?.strength || 10
-        } : undefined;
-        
-        const generatedQuests = await questService.generateInitialQuests(
-          'standard',
-          mapData.terrainStructures || [],
-          { x: controlledIconX || 50, y: controlledIconY || 50 },
-          culturalZone,
-          dateInfo.era,
-          mapData,
-          playerStats
-        );
-
-        // DEPRECATED: This code was trying to add additional procedural quests
-        // but numQuests and validStructures are undefined, causing runtime errors
-        // The unified quest pipeline now handles all quest generation
-
-        const finalQuestCount = questService.getActiveQuests().length;
-        // console.log(`[QuestInit] Successfully initialized ${finalQuestCount} quests`);
-        questsInitialized.current = true;
-      } catch (error) {
-        console.error('[QuestInit] Failed to generate initial quests:', error);
-      }
-    }, 1000);
-
-    // Cleanup timeout if component unmounts
-    return () => clearTimeout(questGenerationTimeout);
-  }, [mapData, playerCharacter, controlledIconX, controlledIconY, currentZone, gameDate, isSpecialMap]);
-
-  // Game Clock
+  // Game Clock - Reduced frequency for better performance
   useEffect(() => {
     const clockInterval = setInterval(() => {
       if (isAnyModalOpen) return;
@@ -388,6 +304,13 @@ const useCoreLoops = (
                   showToast(`${orphanedCount} work offer${orphanedCount > 1 ? 's' : ''} failed due to NPC disappearance.`);
                 }
 
+                // Cleanup old witnessed events once per day (events older than 24 hours)
+                const currentGameTime = Date.now();
+                const cleanedNpcs = cleanupOldWitnessedEvents(npcs, currentGameTime, 24);
+                if (cleanedNpcs !== npcs) {
+                  setNpcs(cleanedNpcs);
+                }
+
                 // Disease progression on new day for player character
                 if (playerCharacter?.diseaseHealth?.currentDiseases?.length > 0) {
                   const diseaseService = DiseaseService.getInstance();
@@ -479,7 +402,7 @@ const useCoreLoops = (
         }
         return newMinutes;
       });
-    }, 1000);
+    }, 2000); // Reduced from 1000ms for better performance
     return () => clearInterval(clockInterval);
   }, [isAnyModalOpen]); // Remove playerCharacter to prevent frequent recreations
 
@@ -517,7 +440,7 @@ const useCoreLoops = (
     return () => clearInterval(playTimeInterval);
   }, [playerCharacter?.id]); // Only re-run if player character changes
 
-  // Drowning system - check every second when player is in water
+  // Drowning system - check when player is in water
   useEffect(() => {
     const drowningInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter || viewMode !== 'standard') return;
@@ -570,7 +493,7 @@ const useCoreLoops = (
           }]);
         }
       }
-    }, 1000); // Check every second
+    }, 2000); // Reduced frequency for better performance
 
     return () => clearInterval(drowningInterval);
   }, [isAnyModalOpen, playerCharacter, viewMode, controlledIconX, controlledIconY, mapData, playerMode, onDeath, setPlayerCharacter, setNarrationHistory]);
@@ -662,9 +585,9 @@ const useCoreLoops = (
   useEffect(() => {
     const MIN_ANIMALS = 5;
     const AI_UPDATE_RADIUS = 30;
-    // Reduce animal AI update frequency on Safari
+    // Reduce animal AI update frequency for better performance
     const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const ANIMAL_TICK_INTERVAL = isSafari ? 3000 : 1500; // Safari: 3s, Others: 1.5s
+    const ANIMAL_TICK_INTERVAL = isSafari ? 4000 : 2500; // Safari: 4s, Others: 2.5s (increased for performance)
 
     const tickInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter) return;
@@ -735,9 +658,9 @@ const useCoreLoops = (
   useEffect(() => {
     const AI_UPDATE_RADIUS = 30;
     const UPDATE_BUCKETS = 4; // Spread NPCs across 4 update buckets
-    // Reduce update frequency on Safari for better performance
+    // Reduce update frequency for better performance
     const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const TICK_INTERVAL = isSafari ? 2000 : 1000; // Safari: 2s, Others: 1s
+    const TICK_INTERVAL = isSafari ? 3000 : 2000; // Safari: 3s, Others: 2s (increased for performance)
 
     const tickInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter) return;
@@ -835,24 +758,34 @@ const useCoreLoops = (
               controlledIconX,
               controlledIconY
             );
-            
+
             // If any NPCs approached, trigger dialogue
             if (approachingNPCs.length > 0) {
               const closestNPC = approachingNPCs[0];
-              
-              // Generate hostile dialogue asynchronously
-              generateLowReputationDialogue(closestNPC, playerCharacter, mapData).then(dialogue => {
+
+              // CRITICAL FIX: Extract data from Immer draft BEFORE async operation
+              // The draft will be revoked after produce() completes
+              const npcSnapshot = {
+                name: closestNPC.name,
+                id: closestNPC.id,
+                age: closestNPC.age,
+                role: closestNPC.role,
+                memory: closestNPC.memory
+              };
+
+              // Generate hostile dialogue asynchronously (using snapshot, not draft)
+              generateLowReputationDialogue(npcSnapshot as any, playerCharacter, mapData).then(dialogue => {
                 // Add to narration history
                 setNarrationHistory(prev => [...prev, {
                   sender: 'narrator',
-                  text: `${closestNPC.name} approaches you with a hostile expression: "${dialogue}"`
+                  text: `${npcSnapshot.name} approaches you with a hostile expression: "${dialogue}"`
                 }]);
               }).catch(err => {
                 console.error('Failed to generate low reputation dialogue:', err);
                 // Fallback message
                 setNarrationHistory(prev => [...prev, {
                   sender: 'narrator',
-                  text: `${closestNPC.name} approaches you with a hostile expression: "You're not welcome here. Leave!"`
+                  text: `${npcSnapshot.name} approaches you with a hostile expression: "You're not welcome here. Leave!"`
                 }]);
               });
             }
@@ -1292,69 +1225,6 @@ const useCoreLoops = (
       }
     });
   }, [gameDate.day]); // Reruns every time the game day changes
-
-  // Ambiance Refresh
-  useEffect(() => {
-    // Update every 6 hours (4 times per day: 0, 6, 12, 18)
-    const shouldUpdateByTime = gameTimeHours % 6 === 0 && gameTimeHours !== lastAmbianceUpdateHour;
-    const shouldUpdateOnMove = moveCount > 0 && moveCount % 500 === 0; // Only update every 500 moves to prevent any stutter
-
-    if (!shouldUpdateOnMove && !shouldUpdateByTime) return;
-
-    let contextTile: AmbianceContext['currentTile'] | null = null;
-    let interiorDataForAmbiance: AmbianceContext['interiorMapData'] | undefined = undefined;
-    let interiorPosForAmbiance: AmbianceContext['interiorPlayerPos'] | undefined = undefined;
-
-    if (viewMode === 'interior' && interiorViewState && interiorMapPlayerPos) {
-      contextTile = mapData?.tiles[0][0] ?? null;
-      interiorDataForAmbiance = interiorViewState.maps.get(interiorViewState.currentFloor);
-      interiorPosForAmbiance = interiorMapPlayerPos;
-    } else if (viewMode === 'standard' && mapData && controlledIconX !== null && controlledIconY !== null) {
-      contextTile = mapData.tiles[controlledIconY]?.[controlledIconX];
-    }
-
-    if (contextTile) {
-      const dateInfo = parseDateString(String(gameDate.year));
-      const ambianceContext: AmbianceContext = {
-        currentTile: contextTile,
-        neighboringTiles: [],
-        mapArchetype: currentMapArchetype,
-        climate: currentMapClimate,
-        timeOfDay: currentTimeOfDay,
-        historicalEra: dateInfo.era,
-        century: dateInfo.century,
-        decade: dateInfo.decade,
-        locationString: currentZone,
-        mapSeed: currentMapSeed,
-        gameHour: gameTimeHours,
-        visibleLandDirection: null,
-        interiorMapData: interiorDataForAmbiance,
-        interiorPlayerPos: interiorPosForAmbiance,
-      };
-      setAmbianceText(''); // Ambiance system deprecated - no longer generating text
-      if (shouldUpdateByTime) setLastAmbianceUpdateHour(gameTimeHours);
-    } else if (viewMode !== 'interior' && shouldUpdateByTime) {
-      setAmbianceText('');
-    }
-  }, [
-    viewMode,
-    mapData,
-    interiorViewState,
-    controlledIconX,
-    controlledIconY,
-    interiorMapPlayerPos,
-    gameTimeHours,
-    lastAmbianceUpdateHour,
-    currentMapArchetype,
-    currentMapClimate,
-    currentTimeOfDay,
-    gameDate,
-    currentZone,
-    currentMapSeed,
-    moveCount,
-    setAmbianceText,
-    setLastAmbianceUpdateHour,
-  ]);
 
   // Actionable Tiles - Must run on every position change for entry button to work
   useEffect(() => {

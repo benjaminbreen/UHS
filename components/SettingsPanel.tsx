@@ -8,7 +8,7 @@ import { exportService } from '../services/exportService';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
 import SpecialMapTestMenu from './SpecialMapTestMenu';
 import InteriorMapTestMenu from './InteriorMapTestMenu';

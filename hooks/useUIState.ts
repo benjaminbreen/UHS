@@ -27,8 +27,7 @@ import { isSafari } from '../utils/safariUtils';
 import { TamedAnimal } from '../services/animalTamingService';
 import { specialMapNpcBehaviorService, isGuardType } from '../services/specialMapNpcBehaviorService';
 import { eventBus } from '../services/eventBus';
-import { questService } from '../services/questService';
-import { questTriggerService } from '../services/questTriggerService';
+import { broadcastEventToWitnesses, determineEventSeverity } from '../services/npcWitnessService';
 import { FloatingTextMessage } from '../components/ui/FloatingText';
 import gameSoundsService from '../services/gameSoundsService';
 import { getDaysInMonth } from '../utils/dateUtils';
@@ -1518,15 +1517,25 @@ export const useUIState = () => {
     }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter, setGameTimeHours, setGameDate, formattedTime, recordPlayerInput, addGameLogEntry, localArea]);
 
     const handleEncounter = useCallback((target: EncounterableEntity) => {
-        // If it's an NPC, ensure we get the latest version from the npcs array
+        // If it's an NPC, check if it has hostile flags - if so, use it directly (don't look up from stale npcs array)
         if (isNpc(target) && npcs) {
-            const currentNpc = npcs.find(n => n.id === target.id);
-            if (currentNpc) {
-                console.log(`[ENCOUNTER] Using updated NPC ${currentNpc.name}, opinion: ${currentNpc.memory.opinionOfPlayer}`);
-                setEncounterTarget(currentNpc);
-            } else {
-                console.log(`[ENCOUNTER] NPC ${target.name} not found in array, using original`);
+            const hasHostileFlags = 'isHostile' in target && target.isHostile ||
+                                    'wasThreatenedByWeapon' in target && target.wasThreatenedByWeapon ||
+                                    'aiState' in target && target.aiState === 'attacking_chasing';
+
+            if (hasHostileFlags) {
+                console.log(`[ENCOUNTER] Using hostile NPC ${target.name} directly (has hostile flags)`);
                 setEncounterTarget(target);
+            } else {
+                // No hostile flags - look up latest version from npcs array
+                const currentNpc = npcs.find(n => n.id === target.id);
+                if (currentNpc) {
+                    console.log(`[ENCOUNTER] Using updated NPC ${currentNpc.name}, opinion: ${currentNpc.memory.opinionOfPlayer}`);
+                    setEncounterTarget(currentNpc);
+                } else {
+                    console.log(`[ENCOUNTER] NPC ${target.name} not found in array, using original`);
+                    setEncounterTarget(target);
+                }
             }
         } else {
             setEncounterTarget(target);
@@ -1574,28 +1583,7 @@ export const useUIState = () => {
                 }
             }
 
-            // Check quest progress for NPC interactions
-            if (playerCharacter && playerCharacter.x !== undefined && playerCharacter.y !== undefined) {
-                questService.checkQuestProgress(playerCharacter.x, playerCharacter.y, 'npc_interaction');
-
-                // Trigger contextual quest generation based on NPC interaction
-                if (mapData && mapData.tiles && controlledIconY !== null && controlledIconX !== null) {
-                    const tile = mapData.tiles[controlledIconY]?.[controlledIconX];
-                    if (tile) {
-                        const context = {
-                            player: playerCharacter,
-                            tile: tile,
-                            mapData: mapData,
-                            culturalZone: currentZone as any,
-                            era: parseDateString(String(gameDate.year)).era,
-                            gameMode: undefined // Will be filled from event service if needed
-                        };
-
-                        // Check for NPC interaction quest triggers
-                        questTriggerService.onNPCInteraction(context, encounterTarget);
-                    }
-                }
-            }
+            // Quest system removed - no quest progress checking
 
             // Check if this was a guard encounter and clear the alert state
             if (isGuardType(encounterTarget)) {
@@ -1698,6 +1686,24 @@ export const useUIState = () => {
                 // Use the current NPC from the array (which has updated memory)
                 setCombatant(currentNpc);
                 console.log(`[COMBAT] Starting combat with ${currentNpc.name}, opinion: ${currentNpc.memory.opinionOfPlayer}`);
+
+                // Broadcast attack event to nearby witnesses
+                if (playerCharacter && controlledIconX !== null && controlledIconY !== null) {
+                    const updatedNpcs = broadcastEventToWitnesses(
+                        {
+                            type: 'attack',
+                            perpetrator: playerCharacter.name,
+                            victim: currentNpc.name,
+                            severity: determineEventSeverity('attack'),
+                            description: `attacked ${currentNpc.name}`,
+                            wasPlayerInvolved: true
+                        },
+                        { x: controlledIconX, y: controlledIconY },
+                        npcs,
+                        [currentNpc.id] // Exclude the victim from witnessing
+                    );
+                    setNpcs(updatedNpcs);
+                }
             } else {
                 setCombatant(target);
             }
@@ -1705,7 +1711,7 @@ export const useUIState = () => {
             setCombatant(target);
         }
         setEncounterTarget(null);
-    }, [npcs]);
+    }, [npcs, playerCharacter, controlledIconX, controlledIconY, setNpcs]);
 
     // Contextual narration handlers
     const handleCompanionClick = useCallback(async (animal: TamedAnimal) => {

@@ -1013,35 +1013,35 @@ const PERIMETER_EVENTS: PerimeterEvent[] = [
         ]
     },
     {
-        id: 'antiquity_fugitive_slave',
+        id: 'antiquity_runaway',
         era: HistoricalEra.ANTIQUITY,
         culturalZones: ['EUROPEAN', 'MENA'],
         yearMin: -300,
         yearMax: 476,
-        prompt: "A terrified young woman in torn slave clothing stumbles into view, wrists raw from shackles. She's carrying a wax tablet - accounting records. 'Please,' she begs in broken Latin, 'don't tell my master. These records... they prove he murdered his brother for inheritance. I was the witness. He'll kill me.' Behind her, you hear dogs baying.",
+        prompt: "A young woman in rough clothing rests near the ruins, eating bread. Her wrists show old scars from shackles. She notices you and tenses. 'I'm traveling to the port,' she says carefully. 'Looking for work on the ships. Free work.' The emphasis on 'free' is deliberate. You've heard the local estate is missing a weaver slave.",
         choices: [
             {
-                text: "Hide her and examine the records yourself",
+                text: "Offer food and let her go without comment",
                 outcomes: [
-                    { chance: 0.35, result: 'knowledge', message: 'The records are genuine - detailed poison purchases, forged wills, bribed officials. You help her reach sympathetic magistrates. The master is executed. She\'s freed and becomes a valuable informant.', value: 'Legal evidence of patrician crime' },
-                    { chance: 0.35, result: 'gold_loss', message: 'The records are real, but the master has powerful friends. They frame you as her accomplice in theft. You\'re forced to pay heavy compensation to avoid charges.', value: 400 },
-                    { chance: 0.3, result: 'death', message: 'She\'s not a slave - she\'s a con artist. Her "master\'s men" are her gang. They kill you and loot your possessions after you reveal your hiding spot.' }
+                    { chance: 0.40, result: 'nothing', message: 'She takes the food and leaves quickly. You don\'t ask questions. She doesn\'t volunteer information. Later, you hear a ship left for Alexandria with new crew.' },
+                    { chance: 0.30, result: 'knowledge', message: 'She tells you about conditions on the estate - the work, the punishments, why she left. Specific details about slave labor management. Educational and grim.', value: 'Slave labor conditions firsthand' },
+                    { chance: 0.30, result: 'gold_loss', message: 'Slave hunters question you later. You gave food to a fugitive. The estate demands compensation for aiding escape. You pay or face charges.', value: 180 }
                 ]
             },
             {
-                text: "Turn her in to the approaching slave-hunters for reward",
+                text: "Report her location to the estate for the reward",
                 outcomes: [
-                    { chance: 0.4, result: 'gold_gain', message: 'They pay the reward: 100 denarii for returning valuable property. She screams that you\'ve doomed her. You try not to think about it.', value: 100 },
-                    { chance: 0.3, result: 'knowledge', message: 'Before they take her, she spits at you: "He\'ll kill you too - you\'ve seen the records!" The master arrives personally. He can\'t let you live as a witness.', value: 'Dangerous evidence' },
-                    { chance: 0.3, result: 'injury', message: 'The "slave hunters" are actually rival criminals. They take her and beat you for "interfering in their business." Turns out the whole situation is a complex underworld dispute.', value: 18 }
+                    { chance: 0.45, result: 'gold_gain', message: 'The estate pays 80 denarii for return of property. She\'s taken back in chains. You have money. She has more years of forced labor.', value: 80 },
+                    { chance: 0.30, result: 'knowledge', message: 'The estate overseer thanks you. He explains their slave management system - costs, productivity, punishments. He treats it like accounting. Which it is, to him.', value: 'Estate slave economics' },
+                    { chance: 0.25, result: 'nothing', message: 'They take her back. She doesn\'t fight or plead. Just silent acceptance. You wonder if the reward was worth it. The question doesn\'t have a simple answer.' }
                 ]
             },
             {
-                text: "Give her supplies and directions but don't get involved",
+                text: "Ask what skills she has and if you could hire her",
                 outcomes: [
-                    { chance: 0.4, result: 'item', message: 'She gratefully gives you a piece of jewelry she stole from her master - a gold signet ring worth considerable money. Weeks later, you hear rumors the master was arrested.', value: 'GOLD_SIGNET' },
-                    { chance: 0.35, result: 'nothing', message: 'She disappears into the countryside. You never learn if she escaped or was recaptured. The dogs pass by your hiding spot.' },
-                    { chance: 0.25, result: 'gold_loss', message: 'The slave-hunters interrogate you. You gave her food and directions - that\'s aiding escape. They fine you heavily and threaten worse if you ever help runaways again.', value: 200 }
+                    { chance: 0.35, result: 'knowledge', message: 'She\'s an excellent weaver but has no papers proving freedom. You discuss the legal complications. Roman law on slavery and manumission is complex. Educational conversation about legal personhood.', value: 'Roman slavery law and manumission' },
+                    { chance: 0.35, result: 'gold_loss', message: 'You try to hire her legally. The estate sues you for harboring fugitive property. Legal fees and settlement cost you heavily. She\'s returned to the estate anyway.', value: 350 },
+                    { chance: 0.30, result: 'item', message: 'She quickly weaves you a small cloth as demonstration of skill, then leaves before you can decide. The weaving is exceptional. You keep it - proof of what enslaved talent produces.', value: 'WOVEN_CLOTH' }
                 ]
             }
         ]
@@ -1218,65 +1218,65 @@ const PERIMETER_EVENTS: PerimeterEvent[] = [
         ]
     },
     {
-        id: 'medieval_hermit',
+        id: 'medieval_anchorite',
         era: HistoricalEra.MEDIEVAL,
         culturalZones: ['EUROPEAN'],
-        prompt: "You encounter a wild-eyed hermit living in a makeshift shelter near the ruins. He clutches a wooden staff and mutters prayers in Latin.",
+        prompt: "A small stone cell is built against the ruin wall. Through the narrow window, you see an elderly person in religious habit, copying manuscripts. An anchorite - someone who chose permanent enclosure for religious contemplation. A basket by the window holds today's food delivery from the village. They look up from their work.",
         choices: [
             {
-                text: "Offer him food and ask about the ruins",
+                text: "Ask about their manuscripts and the ruins",
                 outcomes: [
-                    { chance: 0.5, result: 'knowledge', message: 'He calms and tells you of a hidden entrance he discovered years ago.', value: 'Secret passage location' },
-                    { chance: 0.3, result: 'item', message: 'Grateful, he gives you a relic he found - a silver crucifix.', value: 'SILVER_CRUCIFIX' },
-                    { chance: 0.2, result: 'gold_loss', message: 'He\'s mad! He grabs your food AND your coin purse, then flees cackling.', value: 40 }
+                    { chance: 0.45, result: 'knowledge', message: 'They\'ve lived here twelve years, copying texts. They describe how the ruins looked when they arrived, what\'s changed, what villagers have taken or added. Patient, detailed observations.', value: 'Anchorite documentation of site changes' },
+                    { chance: 0.35, result: 'knowledge', message: 'They\'re copying local histories - stories villagers tell them through the window. Oral traditions written down. You read some entries. Valuable information mixed with legend.', value: 'Local oral histories transcribed' },
+                    { chance: 0.20, result: 'item', message: 'They offer you a completed manuscript copy in exchange for materials - fresh ink, better parchment. They explain their copying helps support the village church.', value: 'MANUSCRIPT_COPY' }
                 ]
             },
             {
-                text: "Pray with him to gain his trust",
+                text: "Offer to help maintain their cell and bring supplies",
                 outcomes: [
-                    { chance: 0.6, result: 'knowledge', message: 'He blesses you and warns dangers at the ruins - unstable walls, hidden pits, thieves who work at night. Practical knowledge dressed in religious language.', value: 'Hermit warnings about ruin hazards' },
-                    { chance: 0.3, result: 'item', message: 'He presses a holy text into your hands - a prayer book with margin notes about the ruins\' history written by previous inhabitants.', value: 'PRAYER_BOOK' },
-                    { chance: 0.1, result: 'nothing', message: 'He suddenly accuses you of being a demon and attacks with his staff. You flee.' }
+                    { chance: 0.40, result: 'knowledge', message: 'Over weeks, you bring supplies and talk through the window. They explain the anchorite life - how enclosure provides time for scholarship. Their work preserving texts is deliberate, organized, important.', value: 'Anchoritic practice and manuscript preservation' },
+                    { chance: 0.35, result: 'gold_loss', message: 'You provide expensive materials - parchment, ink, candles. They pray for you and continue their work. Your charity helps but costs you significantly.', value: 180 },
+                    { chance: 0.25, result: 'knowledge', message: 'They teach you Latin phrases, explain the manuscript copying process. Professional instruction from someone who\'s dedicated their life to this work.', value: 'Manuscript production techniques' }
                 ]
             },
             {
-                text: "Ignore him and continue searching",
+                text: "Respect their solitude and continue your search",
                 outcomes: [
-                    { chance: 0.5, result: 'nothing', message: 'He shouts curses at your back but doesn\'t follow. You find nothing of value.' },
-                    { chance: 0.3, result: 'item', message: 'While he rants, you notice an old iron key half-buried nearby.', value: 'RUSTY_KEY' },
-                    { chance: 0.2, result: 'injury', message: 'Enraged by your disrespect, he strikes you with his staff.', value: 10 }
+                    { chance: 0.50, result: 'nothing', message: 'You nod respectfully and move on. They return to their copying. Some choose this life deliberately. Not your business to disturb it.' },
+                    { chance: 0.30, result: 'knowledge', message: 'As you work nearby over several days, you observe their routine. The discipline of religious enclosure, the practical reality of anchoritic life. Educational just to witness.', value: 'Observation of anchorite daily practice' },
+                    { chance: 0.20, result: 'item', message: 'Later, you find a note weighted with a stone near your camp. They\'ve left you a blessed medallion and a brief blessing. Quiet kindness.', value: 'BLESSED_MEDALLION' }
                 ]
             }
         ]
     },
     {
-        id: 'medieval_grave',
+        id: 'medieval_burial',
         era: HistoricalEra.MEDIEVAL,
         culturalZones: ['EUROPEAN'],
-        prompt: "You discover a forgotten grave marker near the ruins wall. The weathered stone bears a knight's sigil and an inscription: 'Here lies Ser Roland, defender of this holy place.'",
+        prompt: "A grave marker leans against the ruin wall. Weathered stone with a simple cross and name. Fresh wildflowers in a clay jar suggest someone still visits. The ground shows signs of recent maintenance - grass trimmed, weeds pulled. You hear footsteps approaching.",
         choices: [
             {
-                text: "Dig beneath the marker to search for grave goods",
+                text: "Wait to speak with whoever tends this grave",
                 outcomes: [
-                    { chance: 0.3, result: 'item', message: 'You find a corroded but still serviceable longsword!', value: 'LONGSWORD' },
-                    { chance: 0.3, result: 'injury', message: 'The grave collapses inward. You fall and are injured by old bones.', value: 12 },
-                    { chance: 0.4, result: 'death', message: 'As you disturb the grave, you trigger a medieval crossbow trap. The bolt strikes true.' }
+                    { chance: 0.45, result: 'knowledge', message: 'An elderly woman arrives. Her grandfather is buried here. She tells you about his life, how he worked these lands, stories passed down. Three generations of local history.', value: 'Family burial traditions and local history' },
+                    { chance: 0.30, result: 'knowledge', message: 'A priest approaches. He explains the grave is part of the ruin\'s history - families have buried here for centuries. Church records document everyone. Useful genealogical information.', value: 'Church burial records' },
+                    { chance: 0.25, result: 'nothing', message: 'A young child places new flowers and runs off. You respect the privacy. The grave is clearly important to someone living.' }
                 ]
             },
             {
-                text: "Say a prayer and leave an offering",
+                text: "Document the inscription and surrounding graves",
                 outcomes: [
-                    { chance: 0.6, result: 'knowledge', message: 'You feel at peace. The inscription hints at a chapel within the ruins.', value: 'Chapel location' },
-                    { chance: 0.3, result: 'gold_loss', message: 'You leave a gold coin as tribute.', value: 10 },
-                    { chance: 0.1, result: 'item', message: 'As you pray, you notice something glinting in the grass - a pilgrim\'s badge!', value: 'PILGRIM_BADGE' }
+                    { chance: 0.40, result: 'knowledge', message: 'You map fifteen graves around the ruins, recording names and dates. Pattern emerges - families buried together, occupations noted. Social history in stone.', value: 'Cemetery mapping and genealogy' },
+                    { chance: 0.35, result: 'knowledge', message: 'The inscriptions show plague years, famine years, good years. Mortality patterns teach you about local historical events. Death records are historical data.', value: 'Mortality patterns and historical events' },
+                    { chance: 0.25, result: 'item', message: 'While documenting graves, you find fragments of memorial pottery - deliberate placement by mourners. You collect shards respectfully for study.', value: 'MEMORIAL_POTTERY' }
                 ]
             },
             {
-                text: "Read the full inscription carefully",
+                text: "Leave the grave undisturbed and search elsewhere",
                 outcomes: [
-                    { chance: 0.7, result: 'knowledge', message: 'The text reveals the knight died defending against raiders. The date is worn away, but the commitment was clear.', value: 'Historical record' },
-                    { chance: 0.2, result: 'item', message: 'Hidden in the carved letters, you find a small sealed vial.', value: 'SEALED_VIAL' },
-                    { chance: 0.1, result: 'nothing', message: 'The inscription is too weathered to read completely.' }
+                    { chance: 0.50, result: 'nothing', message: 'You work in other areas, giving the graves space. Respectful, but you learn nothing from them.' },
+                    { chance: 0.30, result: 'knowledge', message: 'Locals notice your respect for the graves. An elder approaches later and shares information about the ruins - trust earned through consideration.', value: 'Local cooperation through respect' },
+                    { chance: 0.20, result: 'knowledge', message: 'Avoiding the burial area, you notice the graves mark the original settlement boundary. They define the community\'s spatial organization. Useful archaeological data.', value: 'Burial patterns define settlement limits' }
                 ]
             }
         ]
@@ -1348,34 +1348,34 @@ const PERIMETER_EVENTS: PerimeterEvent[] = [
         ]
     },
     {
-        id: 'medieval_templar_survivor',
+        id: 'medieval_veteran',
         era: HistoricalEra.MEDIEVAL,
         culturalZones: ['EUROPEAN', 'MENA'],
-        prompt: "An old man in tattered crusader surcoat camps near the ruins. His tabard bears the cross of the Knights Templar - officially dissolved and persecuted decades ago. 'I guard what my brothers hid here,' he rasps. 'Before the King's men came... before the arrests... before the burnings. Our records. Our shame they couldn't destroy.' His hands shake. 'They tortured my brothers for this location. All died silent. Even under the flames.' He could be mad with grief. Or one of the last survivors.",
+        prompt: "An old man camps near the ruins. His tent contains military gear - old, well-maintained, from foreign wars. He's organized his camp with military precision. 'Twenty years I was gone,' he tells you. 'Came back and my family's land was taken. My wife remarried, thought I was dead. Can't blame her.' He pokes the fire. 'I keep my things here. Can't sell them. Can't throw them away. They're all I have from those years.'",
         choices: [
             {
-                text: "Help him search for what was hidden",
+                text: "Offer to help him find work using his military skills",
                 outcomes: [
-                    { chance: 0.25, result: 'item', message: 'Beneath a marked stone: documents sealed in wax. Templar banking records, architectural plans, letters. No gold - just paper. But historically valuable. He dies peacefully, duty fulfilled.', value: 'TEMPLAR_DOCUMENTS' },
-                    { chance: 0.40, result: 'death', message: 'He was watched. Papal agents hoped someone would help him search and reveal the cache location. You find the documents and immediate arrest follows. Torture and execution for heresy.' },
-                    { chance: 0.20, result: 'gold_gain', message: 'The cache contains some coin - operational funds the Templars hid from seizure. Modest silver, not legendary gold. You split it with him.', value: 220 },
-                    { chance: 0.15, result: 'nothing', message: 'He\'s confused by trauma. There\'s no cache here, or it was found long ago. You waste weeks digging. He dies still searching, broken by persecution.' }
+                    { chance: 0.35, result: 'knowledge', message: 'A local lord needs guards. The veteran is hired. He teaches you siege engineering and military logistics he learned in the east.', value: 'Crusader military knowledge' },
+                    { chance: 0.30, result: 'nothing', message: 'He tries, but nobles prefer younger men they can train themselves. "They don\'t trust us," he says. "We saw too much." He returns to the ruins.' },
+                    { chance: 0.20, result: 'gold_gain', message: 'A merchant caravan hires him as protection. Before leaving, he gives you some of his gear he won\'t need anymore. Quality stuff.', value: 180 },
+                    { chance: 0.15, result: 'gold_loss', message: 'You vouch for him with a local garrison. He gets drunk on duty, starts a fight. They hold you responsible for recommending him.', value: 150 }
                 ]
             },
             {
-                text: "Report him to church authorities - Templars were condemned",
+                text: "Listen to his experiences from the crusades",
                 outcomes: [
-                    { chance: 0.40, result: 'gold_gain', message: 'The Church pays informants. He\'s arrested and tortured, but dies silent - there are no confessions to extract. The reward money feels heavy.', value: 180 },
-                    { chance: 0.35, result: 'death', message: 'He wasn\'t alone. Other surviving Templars protected the site. They can\'t let you reveal their presence. A blade between your ribs, quietly done.' },
-                    { chance: 0.25, result: 'knowledge', message: 'The church official is quietly sympathetic. "There was no old man here," he says carefully. "You saw nothing." He shares confiscated Templar texts with you.', value: 'Templar organizational history' }
+                    { chance: 0.45, result: 'knowledge', message: 'He describes the eastern cities, trade routes, fortifications, daily life. Not heroic stories - practical observations about how people actually lived and fought.', value: 'Crusader state realities' },
+                    { chance: 0.30, result: 'knowledge', message: 'He talks about diseases, supply problems, internal conflicts between crusader groups. The logistics no one celebrates. Useful, unglamorous detail.', value: 'Military logistics and conflict' },
+                    { chance: 0.25, result: 'item', message: 'He shows you a Damascus blade. "Keep it. I\'m too old to use it properly." You can tell parting with it costs him something.', value: 'DAMASCUS_BLADE' }
                 ]
             },
             {
-                text: "Listen to his account but stay neutral",
+                text: "Suggest he seek help from the Church",
                 outcomes: [
-                    { chance: 0.45, result: 'knowledge', message: 'His account rings true. He describes the arrests, trials, executions. The order\'s internal structure, their banking system, their final days. You document it carefully.', value: 'Templar persecution firsthand' },
-                    { chance: 0.30, result: 'item', message: 'He trusts your genuine interest. He gives you his signet ring and instructions to contact other survivors - a dangerous network.', value: 'TEMPLAR_RING' },
-                    { chance: 0.25, result: 'nothing', message: 'He talks for days, but trauma has fragmented his memories. Stories contradict. You learn little reliable. He dies accusing everyone of betrayal.' }
+                    { chance: 0.40, result: 'knowledge', message: 'The local monastery takes him in. They have several crusade veterans. The prior tells you they struggle with reintegration - the Church tries to help but resources are limited.', value: 'Institutional veteran support' },
+                    { chance: 0.35, result: 'nothing', message: 'He refuses. "The Church sent us. I did what they asked. Saw things, did things... now they tell me to pray it away." He stays in the ruins.' },
+                    { chance: 0.25, result: 'knowledge', message: 'The priest visits him at the ruins instead, brings food and blankets. "Many can\'t come back to normal life," he explains. "We do what we can out here."', value: 'Practical pastoral care' }
                 ]
             }
         ]

@@ -9,7 +9,7 @@ import { FishSpecies, FishingDataService } from '../services/fishingDataService'
 import { fishingGameState, GameFish } from '../services/fishingGameStateService';
 import { gameSounds } from '../services/gameSoundsService';
 import { CulturalZone } from '../types/characterData';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { ClimateType, Season, TimeOfDay, BiomeType, PlayerCharacter } from '../types';
 import type { TerrainStructure } from '../types/structures';
 import type { WeatherState } from '../services/weatherService';

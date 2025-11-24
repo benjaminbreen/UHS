@@ -4,7 +4,7 @@ import { NpcEntity } from '../types';
 import { ProceduralPortrait } from './portraits';
 import { generateCharacter } from '../services/characterGenerator';
 import { CulturalZone } from '../types/characterData';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CULTURAL_MARKINGS } from '../constants/characterData/culturalMarkings';
 
 interface NpcTestingPanelProps {

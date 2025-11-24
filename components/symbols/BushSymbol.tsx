@@ -8,7 +8,7 @@ interface BushSymbolProps {
   seed: number;
 }
 
-const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
+const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
   // Pre-calculate all random values once
   const bushData = React.useMemo(() => {
     const noise = new ValueNoise(seed);
@@ -259,6 +259,11 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
       </g>
     );
   }
-});
+};
 
-export default BushSymbol;
+// Custom comparison to prevent re-renders
+const arePropsEqual = (prevProps: BushSymbolProps, nextProps: BushSymbolProps): boolean => {
+  return prevProps.seed === nextProps.seed;
+};
+
+export default React.memo(BushSymbol, arePropsEqual);

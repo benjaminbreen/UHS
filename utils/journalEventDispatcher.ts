@@ -1,9 +1,9 @@
 /**
  * Journal Event Dispatcher
- * Centralized utility for dispatching journal-related events to quest system
+ * Centralized utility for dispatching journal-related events
  */
 
-import { questService } from '../services/questService';
+// Quest service removed
 
 export interface JournalEntryEvent {
   entry: {
@@ -18,10 +18,10 @@ export interface JournalEntryEvent {
 }
 
 /**
- * Dispatch journalEntryAdded event with active quest context
+ * Dispatch journalEntryAdded event
  */
 export function dispatchJournalEntryAdded(entry: any): void {
-  const activeQuests = questService.getActiveQuests().map(q => q.id);
+  const activeQuests: string[] = []; // Quest system removed
 
   window.dispatchEvent(new CustomEvent('journalEntryAdded', {
     detail: { entry, activeQuests }

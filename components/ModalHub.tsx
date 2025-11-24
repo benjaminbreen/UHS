@@ -44,7 +44,6 @@ const ContainerModal = lazy(() => import('./ContainerModal'));
 const POIToastModal = lazy(() => import('./POIToastModal'));
 import { formatDateWithSeason } from '../utils/dateUtils';
 import { SavedGame } from '../services/saveGameService';
-import { questService } from '../services/questService';
 import { eventService } from '../services/eventService';
 import { PrimarySourceMetadata } from '../services/primarySourceService';
 import { poiServiceHandler } from '../services/poiServiceHandler';
@@ -180,8 +179,6 @@ const ModalHub: React.FC = () => {
             region: currentRegion || 'Unknown',
             mapArea: mapData.mapArea || mapData.name || 'Unknown',
             npcs: npcs,
-            activeQuests: questService.getActiveQuests(),
-            completedQuests: questService.getCompletedQuests(),
             eventHistory: eventService.getEventHistory(),
             // Assessment & Educational Data
             gameLog: gameLog,

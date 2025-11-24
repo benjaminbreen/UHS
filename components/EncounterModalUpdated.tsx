@@ -4,16 +4,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
 import { Item } from '../types/itemTypes';
-import { generateEncounterDialogue, attemptTheft, handleTheftResponse, TheftAttempt } from '../services/encounterService';
+import { generateEncounterDialogue, attemptTheft, handleTheftResponse, TheftAttempt, shouldEscalateToCombat, updateNpcEscalationLevel } from '../services/encounterService';
 import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer, generateGiftReaction } from '../services/llmService';
 import { TypewriterText } from '../hooks/useTypewriter';
 import NpcTradeInterface from './NpcTradeInterface';
 import { ProceduralPortrait, AnimatedPortrait } from './portraits';
 import AnimalPortrait from './AnimalPortrait';
-import { questService } from '../services/questService';
-import { Quest } from '../types/questTypes';
-import { questCompletionService } from '../services/questCompletionService';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
 import { GameModeType } from '../types/eventTypes';
 import { spatialDescriptionService } from '../services/spatialDescriptionService';
@@ -290,8 +287,18 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const { worldData } = useMap();
     const { gameDate, currentZone, currentRegion, addGameLogEntry, formattedTime, currentTimeOfDay } = useGame();
 
-    // Get the most up-to-date NPC from allNpcs (in case memory was updated)
-    const currentTarget = isNpc(target)
+    // Get the most up-to-date NPC from allNpcs UNLESS target has hostile flags (which are time-sensitive)
+    const hasHostileFlags = isNpc(target) && (
+        ('isHostile' in target && target.isHostile) ||
+        ('wasThreatenedByWeapon' in target && target.wasThreatenedByWeapon) ||
+        ('aiState' in target && target.aiState === 'attacking_chasing')
+    );
+
+    if (hasHostileFlags && isNpc(target)) {
+        console.log(`[ENCOUNTER MODAL] ⚔️ Using hostile ${target.name} directly (has hostile flags: isHostile=${target.isHostile}, wasThreatenedByWeapon=${target.wasThreatenedByWeapon}, aiState=${target.aiState})`);
+    }
+
+    const currentTarget = isNpc(target) && !hasHostileFlags
         ? allNpcs.find(npc => npc.id === target.id) || target
         : target;
 
@@ -340,6 +347,13 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     // Internal monologue states
     const [showMonologue, setShowMonologue] = useState(false);
     const [monologueText, setMonologueText] = useState('');
+
+    // Exit notification state (for NPC walking away or attacking)
+    const [exitingNpc, setExitingNpc] = useState<{
+        npcName: string;
+        reason: 'disgust' | 'fear' | 'offense' | 'attack';
+        countdown: number;
+    } | null>(null);
     const [monologueClickCount, setMonologueClickCount] = useState(0);
     const [isLoadingMonologue, setIsLoadingMonologue] = useState(false);
     const monologueCache = useRef<Map<number, string>>(new Map());
@@ -485,16 +499,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     };
     
     // Get active quests
-    const activeQuests = questService.getActiveQuests();
-    const relevantQuests = activeQuests.filter(quest => {
-        if (isNpc(target)) {
-            const npcName = target.name.toLowerCase();
-            return quest.objectives.some(obj =>
-                obj.description.toLowerCase().includes(npcName)
-            );
-        }
-        return false;
-    });
+    // Quest system removed - no active quests
+    const relevantQuests: any[] = [];
 
     // Initialize helper mode hooks
     const { initiateFollowMe, initiateGiftGiving } = useNpcHelperMode();
@@ -541,12 +547,23 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             setIsLoading(true);
 
             if (isNpc(target)) {
+                // Check if NPC is hostile (was threatened/attacked)
+                const isHostileNpc = hasHostileFlags;
+
                 // Generate appropriate greeting based on whether NPC knows the player
                 const hasMetBefore = currentTarget.memory?.conversationSummaries && currentTarget.memory.conversationSummaries.length > 0;
-                const baseGreeting = hasMetBefore ? "I approach again." : "Hello.";
 
-                // Add context hint if NPC should proactively offer work
-                const greeting = workContext.shouldOffer
+                // If NPC is hostile, use a confrontational greeting
+                let baseGreeting: string;
+                if (isHostileNpc) {
+                    baseGreeting = "[The confrontation begins - you stand face to face after the altercation]";
+                    console.log('[Encounter] Using hostile confrontation greeting');
+                } else {
+                    baseGreeting = hasMetBefore ? "I approach again." : "Hello.";
+                }
+
+                // Add context hint if NPC should proactively offer work (but not if hostile)
+                const greeting = (workContext.shouldOffer && !isHostileNpc)
                     ? `${baseGreeting} ${workContext.contextHint}`
                     : baseGreeting;
 
@@ -726,24 +743,9 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             }
         }
     }, []); // Only run once when modal opens
-    
-    // Check if this NPC can complete any active quests
-    useEffect(() => {
-        if (isNpc(target) && playerCharacter) {
-            const activeQuests = questService.getActiveQuests();
-            const completion = questCompletionService.checkQuestCompletion(
-                target,
-                playerCharacter,
-                activeQuests
-            );
-            
-            if (completion.canComplete && completion.quest && completion.objective) {
-                setCanCompleteQuest({ quest: completion.quest, objective: completion.objective });
-                console.log(`[Quest] This NPC can complete quest: ${completion.quest.title}`);
-            }
-        }
-    }, [target, playerCharacter]);
-    
+
+    // Quest system removed - no quest completion checking
+
     // Check for animal ownership
     useEffect(() => {
         if (!isNpc(target) && allNpcs) {
@@ -1163,20 +1165,73 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 }
             }
             
-            // Handle NPC wanting to attack
-            if (response.shouldAttack) {
-                flashPortrait('scowl', 2000);
-                setTimeout(() => {
-                    onInitiateCombat(target);
+            // Handle NPC wanting to attack or leave with countdown
+            if (response.shouldAttack || response.shouldLeave) {
+                const currentReputation = isNpc(currentTarget) ? (currentTarget.memory?.opinionOfPlayer || 0) : 0;
+                const repChange = response.reputationChange || 0;
+
+                // Determine if this should escalate to combat
+                const shouldAttack = response.shouldAttack ||
+                    (isNpc(currentTarget) && shouldEscalateToCombat(currentTarget, repChange, currentReputation));
+
+                // Determine the reason for leaving/attacking
+                let reason: 'disgust' | 'fear' | 'offense' | 'attack';
+                if (shouldAttack) {
+                    reason = 'attack';
+                    flashPortrait('scowl', 2000);
+                } else if (repChange <= -30) {
+                    reason = 'disgust';
+                } else if (repChange <= -20) {
+                    reason = 'offense';
+                } else {
+                    reason = 'fear';
+                }
+
+                console.log(`[Exit Countdown] ${currentTarget.name} ${shouldAttack ? 'attacking' : 'leaving'} due to ${reason}`);
+
+                // Update NPC escalation level
+                if (isNpc(currentTarget)) {
+                    const updatedNpc = updateNpcEscalationLevel(currentTarget, repChange, currentReputation);
+
+                    // Mark that NPC has walked away (if not attacking)
+                    if (!shouldAttack) {
+                        updatedNpc.hasWalkedAway = true;
+                        updatedNpc.lastConfrontationTimestamp = Date.now();
+                        updatedNpc.isHostile = false;
+                        updatedNpc.wasThreatenedByWeapon = false;
+                        updatedNpc.aiState = 'hostile_fleeing';
+                    }
+
+                    // Update the NPC in game state
+                    if (onUpdateNpc) {
+                        onUpdateNpc(updatedNpc);
+                    }
+                }
+
+                // Show exit countdown
+                setExitingNpc({
+                    npcName: currentTarget.name,
+                    reason,
+                    countdown: 3
+                });
+
+                // Start countdown timer
+                let currentCount = 3;
+                const countdownInterval = setInterval(() => {
+                    currentCount--;
+                    if (currentCount <= 0) {
+                        clearInterval(countdownInterval);
+
+                        // After countdown, take action
+                        if (shouldAttack) {
+                            onInitiateCombat(target);
+                        }
+                        onClose(history);
+                        setExitingNpc(null);
+                    } else {
+                        setExitingNpc(prev => prev ? { ...prev, countdown: currentCount } : null);
+                    }
                 }, 1000);
-            }
-            
-            // Handle NPC wanting to leave
-            if (response.shouldLeave) {
-                setNpcWantsToLeave(true);
-                setTimeout(() => {
-                    onClose(history);
-                }, 2000);
             }
             
             // Handle trade availability from response
@@ -1503,7 +1558,41 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     }}
                     onClick={e => e.stopPropagation()}
                 >
-                    
+                    {/* Exit Countdown Overlay */}
+                    {exitingNpc && (
+                        <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center animate-fade-in">
+                            <div className="text-center space-y-6 p-8">
+                                {exitingNpc.reason === 'attack' ? (
+                                    <>
+                                        <div className="text-4xl sm:text-5xl md:text-6xl text-red-500 font-bold animate-pulse drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">
+                                            {exitingNpc.npcName} attacks you!
+                                        </div>
+                                        <div className="text-7xl sm:text-8xl md:text-9xl text-red-400 font-mono font-extrabold animate-pulse drop-shadow-[0_0_30px_rgba(248,113,113,0.6)]">
+                                            {exitingNpc.countdown}
+                                        </div>
+                                        <div className="text-xl sm:text-2xl text-red-300 font-semibold">
+                                            Prepare for combat!
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="text-3xl sm:text-4xl md:text-5xl text-yellow-400 font-bold drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]">
+                                            {exitingNpc.npcName} walks away in {exitingNpc.reason}!
+                                        </div>
+                                        <div className="text-6xl sm:text-7xl md:text-8xl text-yellow-300 font-mono font-extrabold drop-shadow-[0_0_25px_rgba(253,224,71,0.5)]">
+                                            {exitingNpc.countdown}
+                                        </div>
+                                        <div className="text-lg sm:text-xl text-yellow-200 font-medium">
+                                            {exitingNpc.reason === 'disgust' && 'They refuse to talk to you further.'}
+                                            {exitingNpc.reason === 'offense' && 'You have offended them deeply.'}
+                                            {exitingNpc.reason === 'fear' && 'They are too frightened to continue.'}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header with reputation and language */}
                     <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-subtle)' }}>
                         <div className="flex items-center gap-2 sm:gap-3 text-sm">

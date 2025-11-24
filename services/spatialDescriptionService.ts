@@ -6,7 +6,7 @@
 
 import { MapData, TerrainStructure, BiomeType } from '../types';
 import { CulturalZone } from '../types/characterData';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 
 interface Landmark {
   type: 'structure' | 'terrain' | 'water';

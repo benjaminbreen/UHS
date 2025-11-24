@@ -74,8 +74,6 @@ export const useGameState = () => {
     const [isNarratorLoading, setIsNarratorLoading] = useState<boolean>(false);
     const [narrationHistory, setNarrationHistory] = useState<NarrationMessage[]>([ { sender: 'narrator-special', text: '' } ]);
     const [playerInput, setPlayerInput] = useState<string>('');
-    const [ambianceText, setAmbianceText] = useState<string>("");  // Ambiance system deprecated
-    const [lastAmbianceUpdateHour, setLastAmbianceUpdateHour] = useState<number>(-1);
 
     // Restore game log and player journal from saved game
     useEffect(() => {
@@ -219,8 +217,6 @@ export const useGameState = () => {
         isNarratorLoading,
         narrationHistory,
         playerInput,
-        ambianceText,
-        lastAmbianceUpdateHour,
         actionableTile,
         contextualMessage,
         season,
@@ -245,8 +241,6 @@ export const useGameState = () => {
         setIsNarratorLoading,
         setNarrationHistory,
         setPlayerInput,
-        setAmbianceText,
-        setLastAmbianceUpdateHour,
         setActionableTile,
         setContextualMessage,
         setCurrentZone,

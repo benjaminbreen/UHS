@@ -374,7 +374,8 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
       }
 
       // Escape key to toggle pause (spacebar now used for weapon swing)
-      if (e.key === 'Escape' && !activeFishingHutModal && !isRoguelikeActive) {
+      // Don't toggle pause if any modal is open (ESC closes modals instead)
+      if (e.key === 'Escape' && !activeFishingHutModal && !isRoguelikeActive && !isAnyModalOpen) {
         e.preventDefault();
         setIsPauseModalOpen(prev => !prev);
       }
@@ -382,7 +383,7 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setIsPauseModalOpen, activeFishingHutModal, isRoguelikeActive]);
+  }, [setIsPauseModalOpen, activeFishingHutModal, isRoguelikeActive, isAnyModalOpen]);
   
   // Show modal when map finishes loading with pending scenario data
   useEffect(() => {

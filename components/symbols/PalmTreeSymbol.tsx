@@ -8,7 +8,7 @@ interface PalmTreeSymbolProps {
   seed: number;
 }
 
-const PalmTreeSymbol: React.FC<PalmTreeSymbolProps> = React.memo(({ seed }) => {
+const PalmTreeSymbol: React.FC<PalmTreeSymbolProps> = ({ seed }) => {
   const localRand = React.useMemo(() => new ValueNoise(seed).random, [seed]);
   
   const trunkLean = (localRand() - 0.5) * 15;
@@ -57,6 +57,11 @@ const PalmTreeSymbol: React.FC<PalmTreeSymbolProps> = React.memo(({ seed }) => {
       )}
     </g>
   );
-});
+};
 
-export default PalmTreeSymbol;
+// Custom comparison to prevent re-renders
+const arePropsEqual = (prevProps: PalmTreeSymbolProps, nextProps: PalmTreeSymbolProps): boolean => {
+  return prevProps.seed === nextProps.seed;
+};
+
+export default React.memo(PalmTreeSymbol, arePropsEqual);

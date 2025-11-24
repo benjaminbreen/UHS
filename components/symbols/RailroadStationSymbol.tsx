@@ -410,4 +410,4 @@ const RailroadStationSymbol: React.FC<RailroadStationSymbolProps> = ({
   );
 };
 
-export default RailroadStationSymbol;
+export default React.memo(RailroadStationSymbol);

@@ -1578,7 +1578,7 @@ function generateBaseProperties(
   // Return cached base properties with the cloned item
   return {
     baseItem: baseItemClone,
-    eraAppropriateMaterial: eraAppropriateMaterial || baseItemClone.material,
+    eraAppropriateMaterial: eraAppropriateMaterial || baseItemClone.material || undefined,
     culturalStyle,
     shouldHaveMaterial
   };
@@ -1635,7 +1635,10 @@ export function generateProceduralItem(
   const condition = generateCondition(quality, age);
 
   // FAILSAFE: Clean duplicate materials from material string
-  const cleanMaterialString = (material: string): string => {
+  const cleanMaterialString = (material: string | undefined): string => {
+    // Handle undefined/null materials
+    if (!material) return '';
+
     const materialTypes = ['silk', 'leather', 'wool', 'linen', 'cotton', 'velvet', 'satin',
                            'felt', 'fur', 'hide', 'iron', 'steel', 'bronze', 'copper', 'gold',
                            'silver', 'brass', 'wood', 'stone', 'clay', 'glass'];

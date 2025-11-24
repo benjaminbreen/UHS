@@ -69,7 +69,7 @@ const UrbanSymbolSimplified: React.FC<UrbanSymbolProps> = React.memo(({
     const width = size * widthFactor * scaleDown;
     const height = size * heightFactor * scaleDown;
     const xOffset = (size - width) / 2;
-    const yOffset = size - height - size * 0.15;
+    const yOffset = (size - height) / 2; // Center vertically instead of bottom-aligned
 
     return { width, height, xOffset, yOffset, rand, seed: uniqueTileSeed };
   }, [seed, tile.x, tile.y, tile.biome, size, era]);

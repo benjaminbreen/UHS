@@ -5,7 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Train, MapPin } from 'lucide-react';
 import { generateRoadAndPathNetwork } from '../generation/standardMap/features/RoadAndPathGenerator';
 import { ValueNoise } from '../utils/noise';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { MapData, PathType } from '../types';
 import TrainSymbol from './symbols/TrainSymbol';
 

@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import FishingHutModal from './FishingHutModal';
 import { TerrainStructure } from '../types/structures';
 import { CulturalZone } from '../types/characterData';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { ClimateType, BiomeType, Season, PlayerCharacter, TimeOfDay } from '../types';
 import { Fish } from 'lucide-react';
 

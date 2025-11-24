@@ -60,35 +60,37 @@ const MountainSymbol: React.FC<MountainSymbolProps> = React.memo(({ x, y, size, 
       let x = Math.sin(s) * 10000;
       return x - Math.floor(x);
     };
-    
-    // Determine if there should be snow based on climate and season
-    let shouldHaveSnow = false;
-    
-    if (climate === ClimateType.TROPICAL) {
-      // Tropical climates never have snow on mountains
-      shouldHaveSnow = false;
+
+    // ALTITUDE-BASED SNOW LINE (primary factor)
+    // Different climates have different snow line altitudes
+    let snowLineAltitude = 0.70; // Default temperate
+
+    if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
+      snowLineAltitude = 0.85; // Very high only (like Kilimanjaro, high Andes)
     } else if (climate === ClimateType.COLD || climate === ClimateType.ARCTIC || climate === ClimateType.CONTINENTAL) {
-      // Cold climates have snow year-round
-      shouldHaveSnow = true;
+      snowLineAltitude = 0.55; // Snow on moderate peaks
     } else if (climate === ClimateType.TEMPERATE) {
-      // Temperate climates have snow in winter, spring, and fall, but not summer
-      shouldHaveSnow = season === 'Winter' || season === 'Spring' || season === 'Fall';
+      snowLineAltitude = 0.70; // High peaks only
     } else if (climate === ClimateType.ARID || climate === ClimateType.MEDITERRANEAN) {
-      // Arid and Mediterranean climates only have snow in winter
-      shouldHaveSnow = season === 'Winter';
-    } else {
-      // Default: only winter snow
-      shouldHaveSnow = season === 'Winter';
+      snowLineAltitude = 0.75; // Only very high peaks
     }
-    
-    // If no snow should be shown, return empty array
-    if (!shouldHaveSnow) return [];
-    
-    // Only show snow on mountains above altitude 0.6
-    if (altitude < 0.6) return [];
-    
-    // More altitude = more snow coverage
-    const snowAmount = (altitude - 0.6) / 0.4; // 0 at altitude 0.6, 1 at altitude 1.0
+
+    // Seasonal adjustment (lower snow line in winter)
+    let seasonalAdjustment = 0;
+    if (season === 'winter') {
+      seasonalAdjustment = -0.10; // Snow line drops 10% in winter
+    } else if (season === 'spring' || season === 'autumn') {
+      seasonalAdjustment = -0.05; // Snow line drops 5% in spring/autumn
+    }
+    // Summer has no adjustment (highest snow line)
+
+    const effectiveSnowLine = snowLineAltitude + seasonalAdjustment;
+
+    // If altitude is below snow line, no snow
+    if (altitude < effectiveSnowLine) return [];
+
+    // More altitude = more snow coverage (normalized from snow line to max altitude)
+    const snowAmount = Math.min(1.0, (altitude - effectiveSnowLine) / (1.0 - effectiveSnowLine));
     
     return mountains.map((mountain, i) => {
       const snowSeed = seed + i * 241;

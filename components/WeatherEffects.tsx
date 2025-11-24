@@ -94,7 +94,7 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
   // Initialize pools once (reduced rain particles for performance)
   useEffect(() => {
     if (!containerRef.current) return;
-    rainPoolRef.current = new ParticlePool(120, 'rain-particle'); // Reduced from 260
+    rainPoolRef.current = new ParticlePool(80, 'rain-particle'); // Further reduced for performance
     snowPoolRef.current = new ParticlePool(180, 'snow-particle');
     leafPoolRef.current = new ParticlePool(140, 'leaf-particle');
     blossomPoolRef.current = new ParticlePool(160, 'petal-particle');
@@ -139,8 +139,8 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
     /* --------------------------- RAIN / DRIZZLE --------------------------- */
     if (weather.precipitation === 'rain' || weather.precipitation === 'drizzle') {
       const sizeFactor = fx?.dropletSize ?? (weather.precipitation === 'drizzle' ? 0.25 : 0.7);
-      // Reduced base counts for better performance (was 220/80)
-      const base = weather.precipitation === 'rain' ? 100 : 60;
+      // Reduced base counts for better performance
+      const base = weather.precipitation === 'rain' ? 70 : 50;
       const count = Math.floor(intensity * base);
 
       rainPoolRef.current?.activate(count, (particle) => {
@@ -165,8 +165,7 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
         particle.style.animation = `rain-fall ${duration}s linear ${delay}s infinite`;
         const visualTilt = Math.max(-16, Math.min(16, windX * 0.6));
         particle.style.transform = `rotate(${visualTilt}deg) translateZ(0)`;
-        // Add subtle glow to compensate for removed animation
-        particle.style.boxShadow = '0 0 1px rgba(185,205,240,0.3)';
+        // Removed box shadow for better performance
       });
     } else {
       rainPoolRef.current?.activate(0, () => {});
@@ -405,17 +404,16 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
         style={{ zIndex: 3 }}
       />
 
-      {/* Lens sheen for heavier rain */}
-      {(weather.precipitation === 'rain' || weather.precipitation === 'drizzle') && (weather.intensity ?? 0) > 0.6 && (
+      {/* Lens sheen for heavier rain - simplified for performance */}
+      {(weather.precipitation === 'rain' || weather.precipitation === 'drizzle') && (weather.intensity ?? 0) > 0.7 && (
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
             zIndex: 3,
-            opacity: Math.min(0.35, (weather.intensity ?? 0) * 0.45),
+            opacity: Math.min(0.25, (weather.intensity ?? 0) * 0.35),
             background:
-              'repeating-linear-gradient( -14deg, rgba(220,230,255,0.05), rgba(220,230,255,0.05) 2px, rgba(220,230,255,0.0) 4px )',
-            filter: 'blur(0.2px)'
+              'repeating-linear-gradient( -14deg, rgba(220,230,255,0.04), rgba(220,230,255,0.04) 2px, rgba(220,230,255,0.0) 4px )'
           }}
         />
       )}
@@ -423,7 +421,7 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
       {/* Wind gust lines behind rain */}
       {showGusts && (
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 3 }}>
-          {Array.from({ length: 6 }, (_, i) => (
+          {Array.from({ length: 4 }, (_, i) => (
             <div
               key={`gust-${i}`}
               className="absolute"
@@ -573,7 +571,7 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
       {/* Puddle ripples (subtle, near bottom) */}
       {showPuddles && (
         <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: '18%', zIndex: 2, opacity: Math.min(0.7, 0.25 + wetness * 0.45) }}>
-          {Array.from({ length: 12 }, (_, i) => {
+          {Array.from({ length: 8 }, (_, i) => {
             const w = 80 + (i % 4) * 30;
             const l = (i * 11.3) % width;
             const d = 3 + (i % 3);

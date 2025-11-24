@@ -3,7 +3,7 @@
  */
 import { Point } from './core/geometry';
 import { CharacterStats, CharacterPersonality, CharacterSocialContext, StatusEffect, Item, EquipmentSlot } from './index';
-import { HistoricalEra } from './ambiance';
+import { HistoricalEra } from './enums';
 import { CulturalZone, Gender, WealthLevel, Appearance } from './characterData'; // Use centralized types
 import { Allegiance } from './structures';
 import { GoalArchetype, GoalTargetType } from './goals';
@@ -47,6 +47,20 @@ export interface FamilyMember {
 }
 
 /**
+ * Events witnessed by NPCs (for reputation system)
+ */
+export interface WitnessedEvent {
+    type: 'weapon_swing' | 'attack' | 'theft' | 'murder' | 'confrontation' | 'gift' | 'trade';
+    perpetrator: string; // Player name or NPC name
+    victim?: string; // NPC name if applicable
+    timestamp: number;
+    location: { x: number; y: number };
+    severity: 'minor' | 'moderate' | 'severe' | 'extreme';
+    description: string; // e.g., "swung a weapon near Amaru"
+    wasPlayerInvolved: boolean; // Quick check if player was involved
+}
+
+/**
  * New interface for NPC memory to track reputation and relationships.
  */
 export interface NpcMemory {
@@ -59,6 +73,9 @@ export interface NpcMemory {
   conversationCount?: number; // Total number of conversations with player
   topicsDiscussed?: Set<string>; // Topics/subjects discussed (for quest tracking)
   lastConversationTime?: number; // Timestamp of last conversation
+
+  // Witnessed Events (for social reputation system)
+  witnessedEvents?: WitnessedEvent[]; // Events this NPC has witnessed
 }
 
 
@@ -151,6 +168,11 @@ export interface NpcEntity {
     memory: NpcMemory;
     threatenedByPlayerTimestamp?: number; // Timestamp when player threatened this NPC with weapon
     wasThreatenedByWeapon?: boolean; // Flag to indicate NPC was threatened
+
+    // Confrontation & Combat Escalation Tracking
+    lastConfrontationTimestamp?: number; // When they last confronted the player
+    hasWalkedAway?: boolean; // Prevents immediate re-confrontation after walking away
+    escalationLevel?: 'calm' | 'angry' | 'furious' | 'attacking'; // Current anger level
 
     // Interior-specific behavior
     isHostile?: boolean;

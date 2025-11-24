@@ -14,6 +14,7 @@ import { TILE_SIZE_PX as TILE_SIZE_PX_CONST } from '../constants';
 import { ValueNoise } from '../utils/noise';
 import { getTileRenderColor } from '../utils/colorUtils';
 import { useTilePatterns } from './TilePatterns';
+import { isTransitionablePair } from '../utils/biomeTransitionUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 
@@ -25,6 +26,14 @@ const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
  * Set to FALSE to disable if it looks bad
  */
 const ENABLE_ALTITUDE_SHADING = true;
+
+/**
+ * EDGE BLENDING: Smooths biome transitions by blending colors at boundaries
+ * Only processes visible tiles (~150 tiles, 600 neighbor checks per frame)
+ * Set to FALSE to disable if it impacts performance or looks bad
+ */
+const ENABLE_EDGE_BLENDING = true;
+const EDGE_BLEND_STRENGTH = 0.20; // 20% blend with neighbors (subtle)
 
 /** Edge perturbation controls (shoreline organics) */
 const NOISE_SCALE_COASTLINE_PERTURB = 0.2;
@@ -142,6 +151,86 @@ function applyAltitudeShading(baseColor: string, altitude: number): string {
     newR.toString(16).padStart(2, '0') +
     newG.toString(16).padStart(2, '0') +
     newB.toString(16).padStart(2, '0');
+}
+
+/**
+ * Blends tile color with neighboring biomes for smooth transitions
+ * Only checks 4 cardinal neighbors (N, S, E, W) for performance
+ * Returns blended color or original if no valid transitions
+ */
+function applyEdgeBlending(
+  baseColor: string,
+  tile: Tile,
+  x: number,
+  y: number,
+  tiles: Tile[][],
+  mapData: MapData,
+  season?: 'spring' | 'summer' | 'fall' | 'winter'
+): string {
+  if (!ENABLE_EDGE_BLENDING) return baseColor;
+
+  const currentBiome = tile.biome;
+  const neighborColors: string[] = [];
+
+  // Check 4 cardinal neighbors only (not diagonals for performance)
+  const neighbors = [
+    { dx: 0, dy: -1 }, // North
+    { dx: 1, dy: 0 },  // East
+    { dx: 0, dy: 1 },  // South
+    { dx: -1, dy: 0 }  // West
+  ];
+
+  for (const { dx, dy } of neighbors) {
+    const nx = x + dx;
+    const ny = y + dy;
+
+    // Check bounds
+    if (ny >= 0 && ny < tiles.length && nx >= 0 && nx < tiles[0].length) {
+      const neighborTile = tiles[ny][nx];
+
+      // Only blend if biomes can transition together
+      if (isTransitionablePair(currentBiome, neighborTile.biome)) {
+        const neighborColor = getTileRenderColor(
+          neighborTile,
+          mapData.climate,
+          mapData.seed,
+          season,
+          mapData.mapAreaName
+        );
+        neighborColors.push(neighborColor);
+      }
+    }
+  }
+
+  // No valid neighbors to blend with
+  if (neighborColors.length === 0) return baseColor;
+
+  // Parse base color
+  const baseHex = baseColor.replace('#', '');
+  let r = parseInt(baseHex.substr(0, 2), 16);
+  let g = parseInt(baseHex.substr(2, 2), 16);
+  let b = parseInt(baseHex.substr(4, 2), 16);
+
+  // Blend with neighbor colors
+  const blendAmount = EDGE_BLEND_STRENGTH / neighborColors.length;
+
+  for (const neighborColor of neighborColors) {
+    const neighborHex = neighborColor.replace('#', '');
+    const nr = parseInt(neighborHex.substr(0, 2), 16);
+    const ng = parseInt(neighborHex.substr(2, 2), 16);
+    const nb = parseInt(neighborHex.substr(4, 2), 16);
+
+    // Linear blend
+    r = r * (1 - blendAmount) + nr * blendAmount;
+    g = g * (1 - blendAmount) + ng * blendAmount;
+    b = b * (1 - blendAmount) + nb * blendAmount;
+  }
+
+  // Convert back to hex
+  return '#' +
+    Math.round(r).toString(16).padStart(2, '0') +
+    Math.round(g).toString(16).padStart(2, '0') +
+    Math.round(b).toString(16).padStart(2, '0');
 }
 
 class MapCanvasRenderer {
@@ -461,8 +550,10 @@ class MapCanvasRenderer {
         const tile = mapData.tiles[y][x];
         if (!tile.isLand) continue;
         const baseColor = getTileRenderColor(tile, mapData.climate, mapData.seed, season, mapData.mapAreaName);
+        // Apply edge blending for smooth biome transitions (can be disabled via ENABLE_EDGE_BLENDING flag)
+        const blendedColor = applyEdgeBlending(baseColor, tile, x, y, mapData.tiles, mapData, season);
         // Apply altitude shading for subtle 3D effect (can be disabled via ENABLE_ALTITUDE_SHADING flag)
-        const color = applyAltitudeShading(baseColor, tile.altitude);
+        const color = applyAltitudeShading(blendedColor, tile.altitude);
         const key = `${tile.biome}-${color}`;
         if (!tileBatches.has(key)) tileBatches.set(key, { tiles: [], color });
         tileBatches.get(key)!.tiles.push(tile);

@@ -331,4 +331,9 @@ const CactusSymbol: React.FC<CactusSymbolProps> = ({ seed }) => {
   }
 };
 
-export default React.memo(CactusSymbol);
+// Custom comparison to prevent re-renders
+const arePropsEqual = (prevProps: CactusSymbolProps, nextProps: CactusSymbolProps): boolean => {
+  return prevProps.seed === nextProps.seed;
+};
+
+export default React.memo(CactusSymbol, arePropsEqual);

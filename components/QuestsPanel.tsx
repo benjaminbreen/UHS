@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, CheckCircle, Circle, ChevronRight, Target, Award, Clock, Shield, Zap, BookOpen, Navigation, Users, Sparkles, Scroll, Briefcase, AlertTriangle, Package, Send, ShoppingCart, Sword, Wheat } from 'lucide-react';
-import { questService } from '../services/questService';
-import { worldWeaverQuestService } from '../services/worldWeaverQuestService';
-import { Quest, QuestObjective } from '../types/questTypes';
 import { WorkOffer } from '../types/workOffer';
 import { getActiveWorkOffers, loadWorkOffers, removeWorkOffer, wasAnimalKilled } from '../services/workOfferStorage';
 import { PlayerCharacter } from '../types';
@@ -28,17 +25,13 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({
   playerCharacter,
   onUpdatePlayer
 }) => {
-  const [activeQuests, setActiveQuests] = useState<Quest[]>([]);
-  const [completedQuests, setCompletedQuests] = useState<Quest[]>([]);
   const [workOffers, setWorkOffers] = useState<WorkOffer[]>([]);
   const [selectedTab, setSelectedTab] = useState<'active' | 'completed'>('active');
-  const [expandedQuest, setExpandedQuest] = useState<string | null>(null);
-  const [completionAnimation, setCompletionAnimation] = useState<{ questId: string; show: boolean } | null>(null);
+  const [expandedOffer, setExpandedOffer] = useState<string | null>(null);
+  const [completionAnimation, setCompletionAnimation] = useState<{ offerId: string; show: boolean } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setActiveQuests(questService.getActiveQuests());
-      setCompletedQuests(questService.getCompletedQuests());
       setWorkOffers(getActiveWorkOffers());
     }
   }, [isOpen]);

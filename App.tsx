@@ -38,8 +38,6 @@ import { SeedManager } from './services/seedService';
 import { shareableStateService } from './services/shareableStateService';
 import { LogService } from './services/logService';
 import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetectionService';
-import { worldWeaverObjectiveHandler } from './services/worldWeaverObjectiveHandler';
-import { worldWeaverNotificationService } from './services/worldWeaverNotificationService';
 import { journalQuoteService } from './services/journalQuoteService';
 import { useURLGameConfig } from './hooks/useURLGameConfig';
 import FactionTooltip from './components/FactionTooltip';
@@ -83,9 +81,6 @@ const AppContent: React.FC = () => {
     // Initialize theme on app startup
     React.useEffect(() => {
         themeService.initializeTheme();
-        // Initialize WorldWeaver systems
-        worldWeaverObjectiveHandler.initialize();
-        worldWeaverNotificationService.initialize();
 
         // Wait for stylesheets to fully load before hiding loading skeleton
         // This prevents the flash of unstyled content (FOUC)

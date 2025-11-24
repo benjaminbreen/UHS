@@ -19,8 +19,6 @@ import {
 } from '../types/eventTypes';
 import { PlayerCharacter } from '../types/playerCharacter';
 import { MapTile } from '../types';
-import { questService } from './questService';
-import { Quest } from '../types/questTypes';
 
 /**
  * Main event service class
@@ -780,29 +778,9 @@ export class EventService {
         event = this.generateEventInstance(initialArchetype, context);
       }
     }
-    
-    // Create a quest from this initial event if we have map data
-    if (event && mapStructures && currentLocation) {
-      const quest = questService.createQuestFromEvent(
-        {
-          title: event.title,
-          description: event.description,
-          choices: event.outcomes.map(o => ({
-            text: o.buttonText,
-            effects: o.effects?.map(e => `${e.type}:${e.value}`).join(',') || ''
-          })),
-          historicalBasis: event.historicalContext
-        },
-        mapStructures,
-        currentLocation,
-        mapData // Pass mapData as 4th parameter for wilderness fallback
-      );
-      
-      if (quest) {
-        console.log('[EventService] Created quest from initial event:', quest.title);
-      }
-    }
-    
+
+    // Quest system removed - no quest creation from events
+
     return event;
   }
 

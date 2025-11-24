@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { X, MapPin, Calendar, User, Sparkles, Target, Scroll, Users, ChevronRight, Award } from 'lucide-react';
 import { GameMode, SpecialNPC } from '../types/eventTypes';
 import { CharacterSpecification, WorldWeaverQuest } from '../services/worldWeaverService';
-import { worldWeaverQuestService } from '../services/worldWeaverQuestService';
-import { worldWeaverNpcService } from '../services/worldWeaverNpcService';
-import { worldWeaverNotificationService } from '../services/worldWeaverNotificationService';
 import { useGame } from '../contexts/GameContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -154,55 +151,10 @@ const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
         return;
       }
 
-      // 1. Add quest to quest system with map context for enhanced integration
-      const questId = await worldWeaverQuestService.addWorldWeaverQuest(
-        generatedQuest,
-        mapData,
-        playerLocation,
-        playerCharacter?.culturalZone || 'EUROPEAN',
-        playerCharacter?.historicalEra || 'RENAISSANCE_EARLY_MODERN'
-      );
-      console.log('[WorldWeaverModal] Added quest to system:', questId);
+      // Quest system integration removed - WorldWeaver scenarios no longer create quests
+      console.log('[WorldWeaverModal] WorldWeaver scenario generated (quest integration disabled)');
 
-      // 2. Spawn quest NPCs if we have valid context
-      if (mapData && playerLocation && playerCharacter) {
-        console.log('[WorldWeaverModal] Quest data:', {
-          hasSpecialNPCs: !!generatedQuest.specialNPCs,
-          specialNPCsLength: generatedQuest.specialNPCs?.length || 0,
-          specialNPCsData: generatedQuest.specialNPCs
-        });
-
-        const spawnContext = {
-          mapData,
-          playerLocation: playerLocation,
-          culturalZone: playerCharacter.culturalZone || 'EUROPEAN',
-          era: playerCharacter.historicalEra || 'RENAISSANCE_EARLY_MODERN'
-        };
-
-        const spawnedNPCIds = await worldWeaverNpcService.spawnQuestNPCs(generatedQuest.specialNPCs || [], spawnContext);
-        console.log('[WorldWeaverModal] Spawned NPCs with AI portraits:', spawnedNPCIds);
-
-        // Track spawned NPCs in quest service
-        spawnedNPCIds.forEach(npcId => {
-          worldWeaverQuestService.addSpawnedNPC(questId, npcId);
-        });
-      } else {
-        console.warn('[WorldWeaverModal] Missing context for NPC spawning:', {
-          hasMapData: !!mapData,
-          hasPlayerLocation: !!playerLocation,
-          hasPlayerChar: !!playerCharacter
-        });
-      }
-
-      // 3. Show success notification
-      worldWeaverNotificationService.showQuestIntegrationSuccess(generatedQuest.title);
-
-      // Emit quest added event
-      window.dispatchEvent(new CustomEvent('worldWeaverQuestAdded', {
-        detail: { quest: generatedQuest }
-      }));
-
-      // 4. Close modal
+      // Close modal
       onClose();
 
     } catch (error) {

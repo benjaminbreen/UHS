@@ -13,7 +13,7 @@ interface DroppedItemMarkerProps {
  * DroppedItemMarker - Renders a dropped item icon on the map
  * Uses the same GenerativeItemIcon system as the inventory
  */
-export default function DroppedItemMarker({ item, x, y, cellSize }: DroppedItemMarkerProps) {
+const DroppedItemMarker: React.FC<DroppedItemMarkerProps> = React.memo(({ item, x, y, cellSize }) => {
   // Calculate centered position within the tile - larger icon now (90% of tile)
   const iconSize = Math.floor(cellSize * 0.9);
   const offset = (cellSize - iconSize) / 2;
@@ -61,4 +61,6 @@ export default function DroppedItemMarker({ item, x, y, cellSize }: DroppedItemM
       </foreignObject>
     </g>
   );
-}
+});
+
+export default DroppedItemMarker;

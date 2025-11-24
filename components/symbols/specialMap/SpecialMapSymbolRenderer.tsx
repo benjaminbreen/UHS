@@ -6,7 +6,7 @@
 import React from 'react';
 import { BiomeType } from '../../../types/biomes/base';
 import { CulturalZone } from '../../../types/characterData';
-import { HistoricalEra } from '../../../types/ambiance';
+import { HistoricalEra } from '../../../types';
 import { SpecialMapArchetype } from '../../../types/specialMapTypes';
 import { getFurnitureMaterial, getMaterialStyle } from '../../../services/materialMappingService';
 import { isFurnitureBiome } from '../../../utils/tileConversion';

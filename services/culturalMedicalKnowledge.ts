@@ -4,7 +4,7 @@
  * Written with anthropological precision for authentic historical simulation
  */
 
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
 import { Disease, DiseaseSeverity } from '../types/diseaseTypes';
 

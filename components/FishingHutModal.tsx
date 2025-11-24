@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { TerrainStructure } from '../types/structures';
 import { CulturalZone } from '../types/characterData';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { ClimateType, BiomeType, Season, Item, PlayerCharacter, TimeOfDay } from '../types';
 import FishingHutInteractive from './FishingHutInteractive';
 import FishingHutBanner from './FishingHutBanner';

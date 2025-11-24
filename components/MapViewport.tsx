@@ -18,7 +18,6 @@ import { HelperModeNotification } from './HelperModeNotification';
 import { useHelperNpcMovement } from '../hooks/useHelperNpcMovement';
 import gameSoundsService from '../services/gameSoundsService';
 import { LogService } from '../services/logService';
-import AmbianceDisplay from './AmbianceDisplay';
 import BottomPanel from './BottomPanel';
 import NewItemModal from './NewItemModal';
 import RareItemFoundToast from './ui/RareItemFoundToast';
@@ -58,6 +57,7 @@ import { eventBus } from '../services/eventBus';
 import { isGuardType } from '../services/specialMapNpcBehaviorService';
 import { guardPermissionService } from '../services/guardPermissionService';
 import { weatherService } from '../services/weatherService';
+import { broadcastEventToWitnesses, determineEventSeverity } from '../services/npcWitnessService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
 import { useWeatherEffects } from '../hooks/useWeatherEffects';
@@ -198,7 +198,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
     } = usePlayer();
 
     const {
-        sunPosition, currentTimeOfDay, formattedDate, formattedTime, season, ambianceText,
+        sunPosition, currentTimeOfDay, formattedDate, formattedTime, season,
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
         isLoading, isLoadingFromCache, setGameDate, gameDate, currentRegion,
         currentZone, gameLog, addGameLogEntry, setGameTimeHours
@@ -606,25 +606,43 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                 }
             });
 
-            setNpcs(updatedNpcs);
+            // Broadcast weapon swing event to nearby witnesses
+            // OPTIMIZATION: Single broadcast with all victims listed, rather than one per victim
+            if (impactedNpcs.length > 0) {
+                const victimNames = impactedNpcs.map(npc => npc.name).join(', ');
+                const victimIds = impactedNpcs.map(npc => npc.id);
+
+                const npcsWithWitnesses = broadcastEventToWitnesses(
+                    {
+                        type: 'weapon_swing',
+                        perpetrator: playerCharacter.name,
+                        victim: impactedNpcs.length === 1 ? impactedNpcs[0].name : victimNames,
+                        severity: determineEventSeverity('weapon_swing'),
+                        description: impactedNpcs.length === 1
+                            ? `swung a weapon near ${impactedNpcs[0].name}`
+                            : `swung a weapon wildly, threatening ${victimNames}`,
+                        wasPlayerInvolved: true
+                    },
+                    { x: controlledIconX, y: controlledIconY },
+                    updatedNpcs,
+                    victimIds // Exclude all victims
+                );
+
+                setNpcs(npcsWithWitnesses);
+            } else {
+                setNpcs(updatedNpcs);
+            }
 
             // Automatically open encounter modal for first hostile NPC
             if (firstHostileNpc) {
                 console.log(`[Swing Impact] Auto-opening encounter modal for hostile ${firstHostileNpc.name}`);
                 console.log(`[Swing Impact] Hostile NPC flags: wasThreatenedByWeapon=${firstHostileNpc.wasThreatenedByWeapon}, aiState=${firstHostileNpc.aiState}, isHostile=${firstHostileNpc.isHostile}`);
 
-                // Wait longer to ensure state has fully updated
+                // Use the hostile NPC directly - it already has all the correct flags
+                // (Don't look it up from visibleNpcs, which is stale from the closure)
                 setTimeout(() => {
-                    // Get the freshly updated NPC from the state
-                    const freshNpc = visibleNpcs.find(n => n.id === firstHostileNpc.id);
-                    if (freshNpc) {
-                        console.log(`[Swing Impact] Opening encounter with fresh NPC: wasThreatenedByWeapon=${freshNpc.wasThreatenedByWeapon}, aiState=${freshNpc.aiState}`);
-                        handleEncounter(freshNpc);
-                    } else {
-                        console.log(`[Swing Impact] Fresh NPC not found, using original`);
-                        handleEncounter(firstHostileNpc);
-                    }
-                }, 800); // Longer delay to ensure React state has updated
+                    handleEncounter(firstHostileNpc);
+                }, 100); // Short delay for UI responsiveness
             }
 
             // Create toast notifications for impacted NPCs
@@ -738,11 +756,42 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         // Trigger encounter with first hostile entity found
         if (hostileNpcsNearby.length > 0) {
             const npc = hostileNpcsNearby[0];
-            console.log(`[Auto Combat] Hostile NPC ${npc.name} has reached the player! Initiating combat...`);
+
+            // Check if NPC recently walked away (cooldown period)
+            const timeSinceLastConfront = npc.lastConfrontationTimestamp
+                ? Date.now() - npc.lastConfrontationTimestamp
+                : Infinity;
+
+            if (npc.hasWalkedAway && timeSinceLastConfront < 10000) {
+                // 10 second cooldown after walking away
+                console.log(`[Auto Combat] ${npc.name} walked away recently (${Math.floor(timeSinceLastConfront / 1000)}s ago), skipping re-confront`);
+                return;
+            }
+
+            console.log(`[Auto Combat] Hostile NPC ${npc.name} has reached the player!`);
             combatInitiatedEntities.current.add(npc.id);
 
-            // Use handleEncounter to open encounter modal (not NPC modal)
-            handleEncounter(npc);
+            // Check current reputation to determine if we should skip dialogue
+            const currentReputation = npc.memory?.opinionOfPlayer || 0;
+            const escalationLevel = npc.escalationLevel || 'calm';
+
+            if (currentReputation < -50 || escalationLevel === 'attacking') {
+                // Skip dialogue, go straight to combat
+                console.log(`[Auto Combat] ${npc.name} reputation too low (${currentReputation}) or already attacking (${escalationLevel}), attacking directly!`);
+                handleEncounter(npc); // This will trigger combat via EncounterModal
+            } else {
+                // Open encounter for confrontation dialogue
+                console.log(`[Auto Combat] ${npc.name} confronting player for dialogue (rep: ${currentReputation}, level: ${escalationLevel})`);
+
+                // Mark confrontation timestamp
+                const updatedNpc = {
+                    ...npc,
+                    lastConfrontationTimestamp: Date.now(),
+                    hasWalkedAway: false
+                };
+
+                handleEncounter(updatedNpc);
+            }
 
             // Clear from initiated list after 10 seconds (in case combat is cancelled)
             setTimeout(() => {
@@ -1207,23 +1256,6 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
             setPermissionStatus(null);
         }
     }, [isSpecialMap, mapData?.area, mapData?.seed]);
-
-    // Add ambient text to narration panel every 4 hours of game time (4 minutes real time)
-    // Ambiance system deprecated - no longer emit ambient text to narration
-    // useEffect(() => {
-    //     if (!showPOVViewport && ambianceText) {
-    //         // Show ambient text immediately when POV is hidden
-    //         eventBus.emit('narration:ambient', { text: ambianceText });
-
-    //         // Then add ambient text to narration panel every 4 minutes (4 game hours)
-    //         const interval = setInterval(() => {
-    //             console.log('[MapViewport] Adding periodic ambient text to narration:', ambianceText);
-    //             eventBus.emit('narration:ambient', { text: ambianceText });
-    //         }, 240000); // 240 seconds = 4 minutes real time = 4 hours game time
-
-    //         return () => clearInterval(interval);
-    //     }
-    // }, [showPOVViewport, ambianceText]);
 
     // Handle map transitions with instant crossfade (PERFORMANCE FIX)
     // Removed delay and complex state management for faster, cleaner transitions
@@ -2066,8 +2098,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     selectedAnimalId={infoModalTarget?.id} 
                     selectedNpcId={infoModalTarget?.id} 
                     sunPosition={sunPosition} 
-                    formattedDate={formattedDate} 
-                    season={season} 
+                    formattedDate={formattedDate}
+                    season={season}
+                    weather={currentWeather}
                     currentLocation={mapData?.continent || ''} 
                     iconRotation={iconRotation} 
                     velocity={velocity} 
@@ -2588,9 +2621,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                   )}
                 </div>
               </div>
-              
-              {/* DEPRECATED: Ambiance text feature removed - was generating repetitive text that didn't match other game systems */}
-              {/* {showAmbientText && <AmbianceDisplay ambianceText={ambianceText} />} */}
+
               {/* Toggle button for mobile - bigger and better positioned */}
               {isMobile && actionableTile && (
                 <button

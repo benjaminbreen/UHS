@@ -20,12 +20,7 @@ import { WeatherState, weatherService } from '../services/weatherService';
 import { ProceduralPortrait } from './portraits';
 import { AttributeBadgeList } from './AttributeBadge';
 import { generateNpcGreeting, generateNpcResponse, generateNpcMonologue, createDialogueContext } from '../services/npcDialogueService';
-import { questService } from '../services/questService';
-import { llmQuestService } from '../services/llmQuestService';
-import { Quest } from '../types/questTypes';
-import { unifiedQuestPipeline, QuestGenerationContext } from '../services/unifiedQuestPipeline';
 import { worldEntityRegistry } from '../services/worldEntityRegistry';
-import { emergentQuestService } from '../services/emergentQuestService';
 import { Sparkles, ScrollText, Package, TrendingUp, AlertTriangle, Calendar, Award, Search, X, Grid3x3, List, Coins, TrendingDown, ShoppingCart, DollarSign } from 'lucide-react';
 import { marketEventSystem } from '../services/marketEventSystem';
 import { npcMarketParticipationService } from '../services/npcMarketParticipationService';
@@ -39,6 +34,13 @@ import { getCaravanDestinations, TravelDestination, TravelMode } from '../servic
 import { useUI } from '../contexts/UIContext';
 import { isSafari } from '../utils/safariUtils';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
+import { WorkOffer } from '../types/workOffer';
+import { generateWorkOffer, WorkGenerationContext } from '../services/workOfferGenerationService';
+import { getMarketplaceTemplates } from '../constants/workOfferTemplates';
+import { addWorkOffer, loadWorkOffers } from '../services/workOfferStorage';
+
+// Quest system removed - minimal type stub for compilation
+type Quest = any;
 
 interface MarketplaceModalProps {
   tile: Tile;
@@ -104,6 +106,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [marketplaceDataLoading, setMarketplaceDataLoading] = useState(false); // Start false for instant modal
   const [inventoryReady, setInventoryReady] = useState(false); // Track when full inventory is ready
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list'); // View mode toggle for buy/sell tabs - default to list
+  const [marketplaceWorkOffers, setMarketplaceWorkOffers] = useState<WorkOffer[]>([]);
 
   // Detect mobile
   const isMobile = useMemo(() => window.innerWidth <= 768, []);
@@ -137,63 +140,24 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     }
   }, []);
   
-  // Check for expired crisis quests periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      questService.checkExpiredQuests();
-      // Force re-render to update timers
-      setEconomicQuests(prev => [...prev]);
-    }, 5000); // Check every 5 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
+  // Quest system removed - no expired quest checking
   
-  // Check if an item is related to any active quest
+  // Quest system removed - stub always returns false
   const isQuestItem = useCallback((itemId: string): { isQuest: boolean; questName?: string; action?: 'buy' | 'sell' } => {
-    const normalizedItemId = itemId.toLowerCase();
-    const activeQuests = questService.getActiveQuests();
-    
-    for (const quest of activeQuests) {
-      for (const objective of quest.objectives) {
-        if (objective.completed) continue;
-        
-        const targetItem = ((objective as any).targetItem || (objective as any).itemId || '').toLowerCase();
-        
-        // Check for buy objectives
-        if ((objective.type === 'deliver_item' || objective.type === 'collect_item') && targetItem === normalizedItemId) {
-          return { isQuest: true, questName: quest.title, action: 'buy' };
-        }
-        
-        // Check for sell objectives
-        if ((objective.type === 'trade' || objective.type === 'sell_item') && targetItem === normalizedItemId) {
-          return { isQuest: true, questName: quest.title, action: 'sell' };
-        }
-        
-        // Check economic quest context
-        if ((quest as any).isEconomicQuest) {
-          const context = (quest as any).economicContext;
-          if (context) {
-            if (context.itemScarcity && context.itemScarcity.map((id: string) => id.toLowerCase()).includes(normalizedItemId)) {
-              return { isQuest: true, questName: quest.title, action: 'buy' };
-            }
-            if (context.itemSurplus && context.itemSurplus.map((id: string) => id.toLowerCase()).includes(normalizedItemId)) {
-              return { isQuest: true, questName: quest.title, action: 'sell' };
-            }
-          }
-        }
-      }
-    }
-    
     return { isQuest: false };
   }, []);
   
   // Filter representative inhabitants (non-merchant NPCs in the area)
   const inhabitantsNpcs = useMemo(() => {
-    return npcs.filter(npc => 
+    console.log('[MarketplaceModal] Total NPCs:', npcs.length);
+    const inhabitants = npcs.filter(npc =>
       !npc.role?.toLowerCase().includes('merchant') &&
       !npc.role?.toLowerCase().includes('trader') &&
       !npc.role?.toLowerCase().includes('vendor')
     ).slice(0, 8); // Show up to 8 inhabitants
+    console.log('[MarketplaceModal] Inhabitants (non-merchants):', inhabitants.length);
+    console.log('[MarketplaceModal] Inhabitants:', inhabitants.map(i => ({ name: i.name, role: i.role, profession: i.profession })));
+    return inhabitants;
   }, [npcs]);
   
   // Parse era and culture
@@ -235,218 +199,16 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     );
   }, [weather, tile, mapData.climate, season, timeOfDay]);
   
-  // Check which NPCs have quests available
-  useEffect(() => {
-    const generateQuests = async () => {
-      try {
-        const activeQuests = questService.getActiveQuests();
-        const questsByNpc = new Map<string, Quest[]>();
-      
-      // Check for already active quests from these NPCs
-      const activeQuestGivers = new Set(activeQuests.map(q => q.giver).filter(Boolean));
-      
-      // First, assign economic quests to merchants using merchantId
-      for (const quest of economicQuests) {
-        const merchantId = (quest as any).merchantId;
-        const merchantName = (quest as any).merchantName || quest.giver;
-        
-        // Try to match by ID first, then by name
-        const merchant = merchantId 
-          ? merchantNpcs.find(m => m.id === merchantId)
-          : merchantNpcs.find(m => m.name === merchantName);
-          
-        if (merchant && !activeQuestGivers.has(merchant.name)) {
-          const existing = questsByNpc.get(merchant.id) || [];
-          existing.push(quest);
-          questsByNpc.set(merchant.id, existing);
-          console.log(`[Marketplace] Assigned quest "${quest.title}" to merchant ${merchant.name}`);
-        }
-      }
-      
-      // Generate additional potential quests for merchants without economic quests
-      for (const merchant of merchantNpcs) {
-        // Skip if merchant already has an active quest or economic quest
-        if (activeQuestGivers.has(merchant.name) || questsByNpc.has(merchant.id)) {
-          continue;
-        }
-        
-        // Check if merchant could offer a trade quest
-        if (Math.random() < 0.2) { // 20% chance (reduced since we have economic quests)
-          setQuestGenerating(prev => new Set(prev).add(merchant.id));
-          const potentialQuest = await generateMerchantQuest(merchant, tile, mapData);
-          setQuestGenerating(prev => {
-            const next = new Set(prev);
-            next.delete(merchant.id);
-            return next;
-          });
-          
-          if (potentialQuest) {
-            const existing = questsByNpc.get(merchant.id) || [];
-            existing.push(potentialQuest);
-            questsByNpc.set(merchant.id, existing);
-          }
-        }
-      }
-      
-      // Check if any inhabitants have quest opportunities
-      for (const npc of inhabitantsNpcs) {
-        if (activeQuestGivers.has(npc.name)) {
-          continue;
-        }
-        
-        if (Math.random() < 0.2) { // 20% chance for regular NPCs
-          const potentialQuest = await generateNpcQuest(npc, tile, mapData);
-          if (potentialQuest) {
-            const existing = questsByNpc.get(npc.id) || [];
-            existing.push(potentialQuest);
-            questsByNpc.set(npc.id, existing);
-          }
-        }
-      }
-      
-        setNpcQuests(questsByNpc);
-      } catch (error) {
-        console.error('[Marketplace] Error generating NPC quests:', error);
-        setNpcQuests(new Map()); // Fallback to empty map
-      }
-    };
-    
-    generateQuests();
-  }, [merchantNpcs, inhabitantsNpcs, tile, mapData, economicQuests]);
-  
-  // Generate merchant-specific quest
+  // Quest system removed - no NPC quest generation
+
+  // Quest system removed - stub function
   const generateMerchantQuest = async (merchant: NpcEntity, location: Tile, map: MapData): Promise<Quest | null> => {
-    try {
-      // Check if merchant remembers the player
-      const memory = llmQuestService.getMerchantMemory(merchant.id, playerCharacter.id);
-      
-      // Add memory context to merchant
-      if (memory) {
-        merchant = {
-          ...merchant,
-          dialogueMemory: memory.notes || [],
-          relationship: memory.relationship
-        };
-      }
-      
-      // Try LLM generation first
-      const llmQuest = await llmQuestService.generateContextualQuest(
-        merchant,
-        playerCharacter,
-        map,
-        mapData.terrainStructures || [],
-        { x: location.x, y: location.y }
-      );
-      
-      if (llmQuest) {
-        // Track API usage
-        eventService.trackAPICall('quest_generation', JSON.stringify(llmQuest));
-        return llmQuest;
-      }
-    } catch (error) {
-      console.warn('[MarketplaceModal] LLM quest generation failed, falling back to procedural:', error);
-    }
-    
-    // Fallback to procedural quest generation
-    const questTypes = [
-      {
-        title: `${merchant.name}'s Special Order`,
-        description: `${merchant.name} needs help acquiring rare goods for an important client.`,
-        type: 'trade' as const,
-        objectives: [{
-          id: 'obj_1',
-          type: 'collect_item' as const,
-          description: 'Find and bring back 3 units of silk',
-          targetItem: 'silk',
-          targetAmount: 3,
-          completed: false
-        }],
-        rewards: [{
-          type: 'currency' as const,
-          amount: 100,
-          description: '100 coins'
-        }]
-      },
-      {
-        title: 'Delivery Request',
-        description: `${merchant.name} needs someone trustworthy to deliver goods to a nearby settlement.`,
-        type: 'trade' as const,
-        objectives: [{
-          id: 'obj_1',
-          type: 'deliver_item' as const,
-          description: 'Deliver the package to the eastern hamlet',
-          targetLocation: { x: location.x + 10, y: location.y },
-          completed: false
-        }],
-        rewards: [{
-          type: 'reputation' as const,
-          amount: 15,
-          description: 'Merchant reputation +15'
-        }]
-      }
-    ];
-    
-    const questTemplate = questTypes[Math.floor(Math.random() * questTypes.length)];
-    
-    return {
-      id: `quest_merchant_${merchant.id}_${Date.now()}`,
-      title: questTemplate.title,
-      description: questTemplate.description,
-      category: questTemplate.type,
-      objectives: questTemplate.objectives,
-      currentObjectiveIndex: 0,
-      rewards: questTemplate.rewards,
-      giver: merchant.name,
-      giverLocation: { x: location.x, y: location.y },
-      startLocation: { x: location.x, y: location.y },
-      startTime: Date.now(),
-      status: 'available' as const,
-      isLLMGenerated: false
-    };
+    return null;
   };
-  
-  // Generate NPC quest using emergentQuestService for contextual marketplace quests
+
+  // Quest system removed - stub function
   const generateNpcQuest = async (npc: NpcEntity, location: Tile, map: MapData): Promise<Quest | null> => {
-    try {
-      // Determine era and cultural zone
-      const year = mapData.year || 1500;
-      const dateInfo = parseDateString(String(year));
-      const currentZone = mapData.zone || 'Europe';
-      const culturalZone = mapLocationToCulture(currentZone, year);
-
-      // Build context for emergent quest service
-      const context = {
-        mapData: map,
-        playerLocation: { x: location.x, y: location.y },
-        nearbyStructures: mapData.terrainStructures || [],
-        nearbyNpcs: [...merchantNpcs, ...inhabitantsNpcs], // All marketplace NPCs available
-        currentYear: year,
-        culturalZone: culturalZone as CulturalZone,
-        era: dateInfo.era as HistoricalEra,
-        season: season,
-        playerReputation: playerCharacter.reputation || 10,
-        playerProfession: playerCharacter.profession
-      };
-
-      // Generate NPC-specific quest based on their profession and situation
-      const quest = emergentQuestService.generateNpcQuest(npc, context);
-
-      if (quest) {
-        // Ensure quest is marked as available (not active yet)
-        quest.status = 'available' as const;
-        quest.giver = npc.name;
-        quest.giverLocation = { x: npc.x, y: npc.y };
-
-        console.log(`[MarketplaceModal] Generated ${quest.category} quest "${quest.title}" from ${npc.name} (${npc.role || npc.profession})`);
-        return quest;
-      }
-
-      // emergentQuestService returns null if NPC doesn't have a suitable quest
-      return null;
-    } catch (error) {
-      console.warn('[MarketplaceModal] Failed to generate emergent quest:', error);
-      return null;
-    }
+    return null;
   };
 
   // Initialize market conditions and faction data
@@ -476,7 +238,53 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     console.log('[MarketplaceModal] Filtered merchants:', merchants.length);
     console.log('[MarketplaceModal] Merchants found:', merchants.map(m => ({ name: m.name, role: m.role })));
     setMerchantNpcs(merchants);
-    
+
+    // Generate work offers from merchants
+    const generatedWorkOffers: WorkOffer[] = [];
+    const marketplaceTemplates = getMarketplaceTemplates();
+
+    // Check for existing work offers to avoid duplicates
+    const existingOffers = loadWorkOffers();
+    const existingNpcIds = new Set(existingOffers.filter(o => !o.completed && !o.failed).map(o => o.npcId));
+
+    merchants.forEach(merchant => {
+      // Skip if merchant already has an active offer
+      if (existingNpcIds.has(merchant.id)) {
+        const existingOffer = existingOffers.find(o => o.npcId === merchant.id && !o.completed && !o.failed);
+        if (existingOffer) {
+          generatedWorkOffers.push(existingOffer);
+        }
+        return;
+      }
+
+      // 100% chance each merchant offers work (FOR TESTING - was 50%)
+      if (Math.random() > -1) { // Always true
+        const context: WorkGenerationContext = {
+          npc: merchant,
+          culturalZone,
+          era,
+          location: { x: tile.x, y: tile.y },
+          mapSeed: mapData.seed,
+          locationType: 'marketplace',
+          gameTimeHours
+        };
+
+        console.log(`[WorkGen Merchant] Generating for ${merchant.name} (${merchant.role})`);
+        const offer = generateWorkOffer(context, marketplaceTemplates);
+        if (offer) {
+          console.log(`[WorkGen Merchant] ✅ Generated: ${offer.taskType}`);
+          // Save to localStorage
+          addWorkOffer(offer);
+          generatedWorkOffers.push(offer);
+        } else {
+          console.log(`[WorkGen Merchant] ❌ Failed to generate (null returned)`);
+        }
+      }
+    });
+
+    setMarketplaceWorkOffers(generatedWorkOffers);
+    console.log('[MarketplaceModal] Generated work offers:', generatedWorkOffers.length);
+
     // Load tamed animals
     const animals = loadTamedAnimals();
     setTamedAnimals(animals);
@@ -581,12 +389,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     
     // Mark market visit for price comparison
     priceHistoryService.markMarketVisit(marketId);
-    
-    // Generate economic quests if appropriate
-    if (questService.shouldGenerateEconomicQuests(marketLocation) && marketConditions) {
-      // We need marketInventory data, but it's in a useMemo - we'll generate after inventory is ready
-      console.log(`[Marketplace] Should generate economic quests for crises`);
-    }
+
+    // Quest system removed - no economic quest generation
   }, [tile, marketConditions]);
 
   // Generate culturally-aware market inventory with biome integration
@@ -783,42 +587,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   }, [marketInventory]); // Only depend on marketInventory changes
   
   // Generate economic quests based on market conditions and crises
-  useEffect(() => {
-    if (!marketConditions || !marketInventory || merchantNpcs.length === 0) return;
-    
-    const marketLocation = { x: tile.x, y: tile.y };
-    
-    // First check if there are already active economic quests for this market
-    const existingEconomicQuests = questService.getActiveEconomicQuests(marketLocation);
-    if (existingEconomicQuests.length > 0) {
-      setEconomicQuests(existingEconomicQuests);
-      console.log(`[Marketplace] Found ${existingEconomicQuests.length} existing economic quests`);
-      return;
-    }
-    
-    // Check if we should generate new economic quests
-    if (questService.shouldGenerateEconomicQuests(marketLocation)) {
-      const quests = questService.generateEconomicQuests(
-        marketConditions,
-        marketInventory,
-        merchantNpcs,
-        mapData,
-        marketLocation
-      );
-      
-      // Add economic quests to the active quest system
-      quests.forEach(quest => {
-        questService.addQuest(quest);
-      });
-      
-      setEconomicQuests(quests);
-      questService.markEconomicQuestsGenerated(marketLocation);
-      
-      if (quests.length > 0) {
-        console.log(`[Marketplace] Generated ${quests.length} economic quests and added to active quests`);
-      }
-    }
-  }, [marketInventory, marketConditions, merchantNpcs, mapData, tile, activeCrises]);
+  // Quest system removed - no economic quest generation
   
   // Load merchant behaviors and apply relationship modifiers
   useEffect(() => {
@@ -888,39 +657,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   // Skip economic victory tracking - feature not implemented
   useEffect(() => {
     // Economic victory system is not implemented yet
-    // const progress = economicVictoryService.getVictoryProgress();
-    // setVictoryProgress(progress);
-    
-    // Listen for quest completions to show rewards
-    const handleQuestCompleted = (e: CustomEvent) => {
-      const { quest, rewards } = e.detail;
-      
-      // Check if it's an economic quest completed in this marketplace
-      if ((quest as any).isEconomicQuest) {
-        // Show reward notification
-        let rewardMessage = `✅ Quest "${quest.title}" completed!`;
-        if (rewards && rewards.totalValue > 0) {
-          rewardMessage += ` Earned ${rewards.totalValue} coins`;
-        }
-        if (rewards && rewards.items && rewards.items.length > 0) {
-          rewardMessage += ` and ${rewards.items.length} item(s)`;
-        }
-        
-        showToast(rewardMessage);
-        
-        // Refresh economic quests to remove completed one
-        const marketLocation = { x: tile.x, y: tile.y };
-        const updatedQuests = questService.getActiveEconomicQuests(marketLocation);
-        setEconomicQuests(updatedQuests);
-      }
-    };
-    
-    // Only listen for quest completions (economic victory events removed)
-    window.addEventListener('questCompleted', handleQuestCompleted as any);
-
-    return () => {
-      window.removeEventListener('questCompleted', handleQuestCompleted as any);
-    };
+    // Quest system removed - no quest completion handling
   }, [playerCharacter.currency, tile, showToast]);
   
   // Player sellable items with dynamic pricing (including tamed animals)
@@ -1026,25 +763,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
           economicVictoryService.updateMerchantRelationship(merchantId, playerCharacter.id);
         }
       }
-      
-      // Check if this completes any quest objectives (normalize item ID)
-      const normalizedItemId = good.itemId.toLowerCase().replace(/\s+/g, '_');
-      questService.checkTradeObjective(
-        'buy',
-        normalizedItemId,
-        1,
-        merchantId,
-        { x: tile.x, y: tile.y }
-      );
-      // Also check with original ID in case quest uses that
-      questService.checkTradeObjective(
-        'buy',
-        good.itemId,
-        1,
-        merchantId,
-        { x: tile.x, y: tile.y }
-      );
-      
+
+      // Quest system removed - no trade objective checking
+
       // Update market conditions
       if (marketConditions) {
         const currentSupply = marketConditions.supply.get(good.itemId) || 0;
@@ -1111,23 +832,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     
     // Check if this completes any quest objectives (normalize item ID)
     const itemId = item.baseId || item.id;
-    const normalizedItemId = itemId.toLowerCase().replace(/\s+/g, '_');
-    questService.checkTradeObjective(
-      'sell',
-      normalizedItemId,
-      1,
-      merchantId,
-      { x: tile.x, y: tile.y }
-    );
-    // Also check with original ID in case quest uses that
-    questService.checkTradeObjective(
-      'sell',
-      itemId,
-      1,
-      merchantId,
-      { x: tile.x, y: tile.y }
-    );
-    
+    // Quest system removed - no trade objective checking
+
     // Update market conditions
     if (marketConditions) {
       const currentSupply = marketConditions.supply.get(item.baseId) || 0;
@@ -1135,66 +841,224 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     }
   }, [onSell, marketConditions, tile]);
 
+  // Handle work offer acceptance
+  const handleAcceptWorkOffer = useCallback((offer: WorkOffer) => {
+    // Update the offer to mark it as accepted
+    const updatedOffer = { ...offer, accepted: true };
+
+    // Update in localStorage
+    const allOffers = loadWorkOffers();
+    const updatedOffers = allOffers.map(o => o.id === offer.id ? updatedOffer : o);
+    localStorage.setItem('workOffers', JSON.stringify(updatedOffers));
+
+    // Update local state
+    setMarketplaceWorkOffers(prev => prev.map(o => o.id === offer.id ? updatedOffer : o));
+
+    // Dispatch event for other components
+    window.dispatchEvent(new CustomEvent('workOfferAccepted', { detail: updatedOffer }));
+
+    // Show toast notification
+    showToast(`Accepted work: ${offer.description.substring(0, 50)}...`, 'success');
+
+    console.log('[MarketplaceModal] Accepted work offer:', offer.id);
+  }, [showToast]);
+
   // Handle NPC greeting/interaction
   const handleNpcClick = useCallback(async (npc: NpcEntity) => {
     setSelectedNpc(npc);
     setNpcDialogueLoading(true);
     setNpcDialogue('');
-    
-    try {
-      const context = createDialogueContext(mapData, {
-        isMarketplace: true,
-        timeOfDay: timeOfDay.toLowerCase(),
-        season: season.toLowerCase(),
-        npc: npc,
-        terrainStructures: terrainStructures || []
-      });
-      
-      const response = await generateNpcGreeting(npc, context, playerCharacter);
-      setNpcDialogue(response.text);
-    } catch (error) {
-      console.error('Failed to generate NPC dialogue:', error);
-      setNpcDialogue("Good day to you, traveler.");
-    } finally {
+
+    // Track click count for this NPC
+    const clickCount = (portraitClickCounts[npc.id] || 0);
+    setPortraitClickCounts(prev => ({ ...prev, [npc.id]: clickCount + 1 }));
+
+    // Check if NPC has active work offer
+    const existingOffers = loadWorkOffers();
+    const hasActiveOffer = existingOffers.some(o =>
+      o.npcId === npc.id && !o.completed && !o.failed
+    );
+
+    // If they have work and you're clicking again, remind about it
+    if (hasActiveOffer && clickCount > 0) {
+      const workReminders = [
+        "I already told you - I need help with something. Check the work offers above.",
+        "Did you forget? I have work for you. Look at the offers.",
+        "The work I mentioned is still available. Check above.",
+        "Are you going to help me or not? The offer's right there.",
+        "I'm waiting for someone to take that job. Interested?"
+      ];
+      setNpcDialogue(workReminders[Math.floor(Math.random() * workReminders.length)]);
       setNpcDialogueLoading(false);
+      return;
     }
-  }, [mapData, timeOfDay, season, playerCharacter]);
 
-  // Handle quest offer
-  const handleQuestOffer = useCallback((npc: NpcEntity, quest: Quest) => {
-    setShowQuestOffer({ npc, quest });
-  }, []);
-  
-  // Accept quest from NPC
-  const acceptQuest = useCallback((quest: Quest) => {
-    // Add quest to the quest service
-    questService.addQuest({
-      ...quest,
-      status: 'active',
-      acceptedTime: Date.now()
-    });
-    
-    // If this is from a merchant, persist them to the current map
-    if (showQuestOffer?.npc && onAddPersistedNpc) {
-      // Persist the merchant now that quest is accepted - using current map seed
-      llmQuestService.persistMerchant(showQuestOffer.npc, { x: tile.x, y: tile.y }, currentMapSeed);
+    // Determine NPC mood/personality (based on personality or random)
+    const personalityStr = typeof npc.personality === 'string' ? npc.personality.toLowerCase() : '';
+    let moodType: 'friendly' | 'neutral' | 'busy' | 'truculent' | 'ignoring' = 'neutral';
 
-      // Get the persisted version for this map
-      const persistedMerchants = llmQuestService.getPersistedMerchants(currentMapSeed);
-      const persistedNpc = persistedMerchants.find(m => m.id === showQuestOffer.npc.id);
+    if (personalityStr.includes('cheerful') || personalityStr.includes('friendly') || personalityStr.includes('kind')) {
+      moodType = 'friendly';
+    } else if (personalityStr.includes('irritable') || personalityStr.includes('grumpy') || personalityStr.includes('suspicious')) {
+      moodType = 'truculent';
+    } else if (personalityStr.includes('busy') || personalityStr.includes('hurried')) {
+      moodType = 'busy';
+    } else {
+      // Random mood distribution: 30% friendly, 30% neutral, 20% busy, 15% truculent, 5% ignoring
+      const rand = Math.random();
+      if (rand < 0.3) moodType = 'friendly';
+      else if (rand < 0.6) moodType = 'neutral';
+      else if (rand < 0.8) moodType = 'busy';
+      else if (rand < 0.95) moodType = 'truculent';
+      else moodType = 'ignoring';
+    }
 
-      if (persistedNpc) {
-        onAddPersistedNpc(persistedNpc);
-        console.log(`[MarketplaceModal] Merchant ${persistedNpc.name} will now appear on map ${currentMapSeed}`);
+    let greeting = '';
+
+    // First click - initial greeting based on mood
+    if (clickCount === 0) {
+      const greetings = {
+        friendly: {
+          dawn: ["Early bird! Welcome, friend.", "Good morning! Lovely to see you.", "Dawn already? Time for a chat!"],
+          morning: ["A fine morning to you!", "Good morning, traveler! How can I help?", "Welcome! Pleasant day, isn't it?"],
+          midday: ["Good day! What brings you here?", "Hello there! Busy day at the market.", "Greetings, friend!"],
+          afternoon: ["Good afternoon! Still plenty of daylight left.", "Hello! The afternoon market is lively today.", "Welcome, traveler!"],
+          dusk: ["Evening! The day's winding down nicely.", "Twilight already. Time passes quickly!", "Good evening to you."],
+          night: ["You're out late! Everything alright?", "Night wanderer, eh? Welcome.", "Stars are beautiful tonight, aren't they?"]
+        },
+        neutral: {
+          dawn: ["You're up early.", "Dawn. What do you need?", "Morning."],
+          morning: ["Good morning.", "Yes? Can I help you?", "Morning, stranger."],
+          midday: ["Yes?", "What is it?", "Looking for something?"],
+          afternoon: ["Afternoon.", "What do you want?", "Yes, traveler?"],
+          dusk: ["Evening.", "The day's nearly done.", "What brings you here?"],
+          night: ["It's late.", "Yes?", "What do you need at this hour?"]
+        },
+        busy: {
+          dawn: [`${npc.name} rushes past, barely acknowledging you.`, `${npc.name} seems preoccupied.`, "Can't talk now, busy."],
+          morning: ["No time to chat, sorry.", `${npc.name} hastens away. They seem to be in a hurry.`, "I'm quite busy, actually."],
+          midday: ["Not now, I'm busy.", `${npc.name} waves you off dismissively.`, "Can't stop to talk."],
+          afternoon: [`${npc.name} barely glances your way.`, "I have things to do.", "Not a good time."],
+          dusk: ["Trying to finish up before dark.", `${npc.name} hurries along without stopping.`, "No time, sorry."],
+          night: [`${npc.name} rushes away into the darkness.`, "Too late to be chatting.", "I need to get home."]
+        },
+        truculent: {
+          dawn: ["What do you want? It's barely dawn.", "Too early for this.", "Can't you see I'm busy?"],
+          morning: ["What?", "I don't know you.", "What do you want, stranger?"],
+          midday: ["I'm not interested in talking.", "Leave me alone.", "What?"],
+          afternoon: ["I don't have time for idle chat.", "What is it now?", "What do you want?"],
+          dusk: ["I'm tired. What do you need?", "It's late. Make it quick.", "What?"],
+          night: ["You're bothering me.", "Go away.", "What do you want at this hour?"]
+        },
+        ignoring: {
+          dawn: [`${npc.name} doesn't seem to notice you.`, `${npc.name} blithely ignores you.`, `${npc.name} walks past without a glance.`],
+          morning: [`${npc.name} pretends not to see you.`, `${npc.name} avoids eye contact.`, `${npc.name} is lost in thought.`],
+          midday: [`${npc.name} looks right through you.`, `${npc.name} seems oblivious to your presence.`, `${npc.name} walks away.`],
+          afternoon: [`${npc.name} doesn't acknowledge you.`, `${npc.name} turns away.`, `${npc.name} ignores you completely.`],
+          dusk: [`${npc.name} has no interest in talking.`, `${npc.name} walks off.`, `${npc.name} doesn't respond.`],
+          night: [`${npc.name} disappears into the shadows.`, `${npc.name} hurries away.`, `${npc.name} ignores you.`]
+        }
+      };
+
+      const timeKey = timeOfDay.toLowerCase() as keyof typeof greetings.friendly;
+      const moodGreetings = greetings[moodType][timeKey] || greetings[moodType].midday;
+      greeting = moodGreetings[Math.floor(Math.random() * moodGreetings.length)];
+    }
+    // Second click - slightly annoyed
+    else if (clickCount === 1) {
+      const secondClick = {
+        friendly: ["Yes? Did you need something else?", "Still here? How can I help?", "Was there something else?"],
+        neutral: ["What now?", "Yes?", "Something else?"],
+        busy: ["I really don't have time...", `${npc.name} sighs impatiently.`, "I'm quite busy."],
+        truculent: ["What now?!", "I already talked to you.", "What do you want now?"],
+        ignoring: [`${npc.name} continues to ignore you.`, `${npc.name} shows no interest.`, `${npc.name} walks away.`]
+      };
+      greeting = secondClick[moodType][Math.floor(Math.random() * secondClick[moodType].length)];
+    }
+    // Third+ click - very annoyed or leaving
+    else {
+      const thirdClick = {
+        friendly: ["I really should be going...", "I've said all I can, friend.", `${npc.name} politely excuses themselves.`],
+        neutral: [`${npc.name} walks away without a word.`, "Enough.", `${npc.name} turns away.`],
+        busy: [`${npc.name} hurries away, clearly annoyed.`, "Leave me alone!", `${npc.name} rushes off.`],
+        truculent: ["Get lost!", `${npc.name} walks away quickly. You seem to have bothered them.`, "Go bother someone else!"],
+        ignoring: [`${npc.name} has completely tuned you out.`, `${npc.name} doesn't even glance your way.`, `${npc.name} is gone.`]
+      };
+      greeting = thirdClick[moodType][Math.floor(Math.random() * thirdClick[moodType].length)];
+    }
+
+    setNpcDialogue(greeting);
+    setNpcDialogueLoading(false);
+
+    // Only try to generate work on FIRST click and if mood allows
+    if (clickCount === 0 && moodType !== 'ignoring' && !hasActiveOffer) {
+      console.log(`[WorkGen] Checking work offer for ${npc.name} (${npc.role || npc.profession})`);
+      console.log(`[WorkGen] Mood: ${moodType}, Time: ${timeOfDay}`);
+
+      // Chance for work offer - INCREASED FOR TESTING
+      const baseChance = 0.5; // 50% (was 10%)
+      const reputationBonus = Math.min(0.2, (playerCharacter.reputation || 0) / 500); // up to +20%
+      const timeBonus = (timeOfDay === 'Morning' || timeOfDay === 'Midday') ? 0.1 : 0; // +10% during peak hours
+
+      // Mood affects work offer chance
+      const moodMultiplier = moodType === 'friendly' ? 1.5 : moodType === 'truculent' ? 0.7 : 1.0;
+      const workOfferChance = (baseChance + reputationBonus + timeBonus) * moodMultiplier;
+
+      console.log(`[WorkGen] Work chance: ${(workOfferChance * 100).toFixed(1)}% (base: ${baseChance}, rep: ${reputationBonus}, time: ${timeBonus}, mood: ${moodMultiplier}x)`);
+
+      const roll = Math.random();
+      console.log(`[WorkGen] Roll: ${(roll * 100).toFixed(1)}% vs ${(workOfferChance * 100).toFixed(1)}%`);
+
+      if (roll < workOfferChance) {
+        console.log(`[WorkGen] ✅ Rolled success! Generating work offer...`);
+
+        // Generate work offer from this NPC
+        const context: WorkGenerationContext = {
+          npc,
+          culturalZone,
+          era,
+          location: { x: tile.x, y: tile.y },
+          mapSeed: mapData.seed,
+          locationType: 'marketplace',
+          gameTimeHours
+        };
+
+        const templates = getMarketplaceTemplates();
+        console.log(`[WorkGen] Available templates: ${templates.length}`);
+
+        const offer = generateWorkOffer(context, templates);
+
+        if (offer) {
+          console.log(`[WorkGen] ✅ Generated offer: ${offer.taskType} - ${offer.description?.substring(0, 50)}...`);
+          addWorkOffer(offer);
+          setMarketplaceWorkOffers(prev => [...prev, offer]);
+
+          // Add a hint to the dialogue
+          setTimeout(() => {
+            setNpcDialogue(prev => `${prev}\n\nActually... I could use some help with something. Check the work offers above.`);
+          }, 1000);
+
+          showToast(`${npc.name} has work available!`, 'info');
+        } else {
+          console.log(`[WorkGen] ❌ Failed to generate offer (returned null)`);
+        }
+      } else {
+        console.log(`[WorkGen] ❌ Rolled failure, no work offer this time`);
       }
+    } else {
+      console.log(`[WorkGen] Skipping work generation: clickCount=${clickCount}, mood=${moodType}, hasOffer=${hasActiveOffer}`);
     }
-    
-    // Close the quest offer modal
-    setShowQuestOffer(null);
-    
-    // Show confirmation
-    console.log(`Quest accepted: ${quest.title}`);
-  }, [showQuestOffer, onAddPersistedNpc, tile]);
+  }, [portraitClickCounts, timeOfDay, playerCharacter, culturalZone, era, tile, gameTimeHours, showToast]);
+
+  // Quest system removed - stub function
+  const handleQuestOffer = useCallback((npc: NpcEntity, quest: Quest) => {
+    // No-op
+  }, []);
+
+  // Quest system removed - stub function
+  const acceptQuest = useCallback((quest: Quest) => {
+    // No-op
+  }, []);
 
   // Handle portrait click for monologue
   const handlePortraitClick = useCallback(async (npc: NpcEntity) => {
@@ -1260,6 +1124,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   
   // Tab content renderer
   const renderTabContent = () => {
+    console.log('[renderTabContent] Rendering tab:', activeTab);
     switch (activeTab) {
       case 'buy':
         return (
@@ -1807,11 +1672,13 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
           </div>
         );
-        
+
       case 'trade':
+        console.log('[Merchants Tab] ***** RENDERING MERCHANT TAB *****');
         console.log('[Merchants Tab] Rendering, merchant count:', merchantNpcs.length);
         console.log('[Merchants Tab] Total NPCs:', npcs.length);
         console.log('[Merchants Tab] Merchant NPCs:', merchantNpcs.map(m => ({ name: m.name, role: m.role })));
+        console.log('[Merchants Tab] activeTab value:', activeTab);
         return (
           <div className="flex flex-col h-full relative">
             {/* Radial gradient glow */}
@@ -1880,17 +1747,6 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                               <p className="font-semibold text-[var(--text-primary)] flex items-center gap-2">
                                 {merchant.name}
                                 {hasQuest && <span className="text-xs text-yellow-600 dark:text-yellow-400">(Has Quest!)</span>}
-                                {(() => {
-                                  const memory = llmQuestService.getMerchantMemory(merchant.id, playerCharacter.id);
-                                  if (memory && memory.relationship !== 'stranger') {
-                                    const relationshipEmoji = 
-                                      memory.relationship === 'trusted' ? '⭐' :
-                                      memory.relationship === 'friend' ? '🤝' :
-                                      memory.relationship === 'rival' ? '⚔️' : '👋';
-                                    return <span className="text-xs" title={`Relationship: ${memory.relationship}`}>{relationshipEmoji}</span>;
-                                  }
-                                  return null;
-                                })()}
                               </p>
                               <p className="text-sm text-[var(--text-secondary)]">
                                 {merchant.role}
@@ -2213,18 +2069,117 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             {/* Radial gradient glow */}
             <div className="absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(circle,rgba(59,130,246,0.25)_0%,rgba(37,99,235,0)_70%)] pointer-events-none" />
             <div className="p-4 bg-gradient-to-r from-slate-800/60 to-slate-900/40 border-b border-white/10 relative z-10">
-              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 mb-1">Representative Inhabitants</h3>
-              <p className="text-sm text-[var(--text-secondary)]">Local people you might encounter at the marketplace</p>
+              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 mb-1">People & Opportunities</h3>
+              <p className="text-sm text-[var(--text-secondary)]">Work offers and local inhabitants</p>
             </div>
             <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/50 to-slate-800/30 relative z-10">
-              {inhabitantsNpcs.length === 0 ? (
+              <div className="space-y-6">
+              {marketplaceWorkOffers.length > 0 && (
+                <div>
+                  <h4 className="text-md font-semibold text-amber-600 dark:text-amber-300 mb-3 flex items-center gap-2">
+                    <ScrollText className="w-5 h-5" />
+                    Available Work ({marketplaceWorkOffers.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {marketplaceWorkOffers.map(offer => {
+                      // Look for NPC in BOTH merchant and inhabitant arrays
+                      const offerNpc = merchantNpcs.find(n => n.id === offer.npcId) ||
+                                      inhabitantsNpcs.find(n => n.id === offer.npcId) ||
+                                      npcs.find(n => n.id === offer.npcId);
+                      if (!offerNpc) {
+                        console.warn('[WorkOffer] Could not find NPC for offer:', offer.npcId);
+                        return null;
+                      }
+
+                      return (
+                        <div
+                          key={offer.id}
+                          className={`p-4 bg-gradient-to-r from-[var(--surface-card)] to-[var(--surface-card)] border rounded-lg hover:shadow-lg transition-all ${isSafari() ? '' : 'backdrop-blur-sm'} ${
+                            offer.accepted
+                              ? 'border-green-700/50 hover:border-green-600/60 hover:shadow-green-900/20'
+                              : 'border-amber-700/50 hover:border-amber-600/60 hover:shadow-amber-900/20'
+                          }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            {/* NPC Portrait */}
+                            <div className="relative flex-shrink-0 w-14 h-14 rounded-full overflow-hidden bg-[var(--surface-muted-bg)] border-2 border-amber-600/30">
+                              <ProceduralPortrait
+                                character={offerNpc}
+                                size={56}
+                              />
+                            </div>
+
+                            {/* Offer Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div>
+                                  <h5 className="font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                    {offerNpc.name}
+                                    <span className="text-xs px-2 py-0.5 bg-amber-900/30 text-amber-300 rounded border border-amber-700/50">
+                                      {offerNpc.role}
+                                    </span>
+                                  </h5>
+                                  <p className="text-sm text-amber-600 dark:text-amber-300 mt-1 capitalize">
+                                    {offer.taskType.replace(/_/g, ' ')}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-amber-600 dark:text-amber-300 flex items-center gap-1">
+                                    <Coins className="w-4 h-4" />
+                                    {offer.payment}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <p className="text-sm text-[var(--text-secondary)] mb-3 line-clamp-2">
+                                {offer.description}
+                              </p>
+
+                              {/* Requirements */}
+                              {offer.requiredItem && (
+                                <div className="text-xs text-[var(--text-muted)] mb-2">
+                                  Required: {offer.requiredItem} × {offer.requiredQuantity || 1}
+                                </div>
+                              )}
+
+                              {/* Action Button */}
+                              {offer.accepted ? (
+                                <div className="flex items-center gap-2 text-sm text-green-400">
+                                  <Award className="w-4 h-4" />
+                                  <span>Active - Check your journal for details</span>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleAcceptWorkOffer(offer)}
+                                  className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-amber-900/30 text-sm"
+                                >
+                                  Accept Work
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Inhabitants Section */}
+              {inhabitantsNpcs.length === 0 && marketplaceWorkOffers.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                   <span className="text-4xl mb-3">👻</span>
-                  <p className="text-lg">No inhabitants nearby</p>
+                  <p className="text-lg">No people or work available</p>
                   <p className="text-sm mt-1">The marketplace seems quiet today</p>
                 </div>
-              ) : (
-                <div className="space-y-3">
+              )}
+
+              {inhabitantsNpcs.length > 0 && (
+                <div>
+                  <h4 className="text-md font-semibold text-blue-600 dark:text-blue-300 mb-3">
+                    Local Inhabitants ({inhabitantsNpcs.length})
+                  </h4>
+                  <div className="space-y-3">
                   {inhabitantsNpcs.map((npc, index) => {
                     const hasQuest = npcQuests.has(npc.id);
                     const quests = npcQuests.get(npc.id) || [];
@@ -2297,20 +2252,22 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         
                         {/* Interaction button */}
                         <div className="flex flex-col gap-2">
-                          <button
-                            onClick={() => handleNpcClick(npc)}
-                            disabled={npcDialogueLoading && selectedNpc?.id === npc.id}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-[var(--surface-muted)] disabled:to-[var(--surface-muted)] text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-blue-900/30 disabled:cursor-not-allowed"
-                          >
-                            {npcDialogueLoading && selectedNpc?.id === npc.id ? (
-                              <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                <span>...</span>
-                              </div>
-                            ) : (
-                              'Greet'
-                            )}
-                          </button>
+                          {(portraitClickCounts[npc.id] || 0) < 5 && (
+                            <button
+                              onClick={() => handleNpcClick(npc)}
+                              disabled={npcDialogueLoading && selectedNpc?.id === npc.id}
+                              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-[var(--surface-muted)] disabled:to-[var(--surface-muted)] text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-blue-900/30 disabled:cursor-not-allowed"
+                            >
+                              {npcDialogueLoading && selectedNpc?.id === npc.id ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                  <span>...</span>
+                                </div>
+                              ) : (
+                                'Greet'
+                              )}
+                            </button>
+                          )}
                           {hasQuest && (
                             <button
                               onClick={() => handleQuestOffer(npc, quests[0])}
@@ -2326,29 +2283,34 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                       {/* Dialogue display */}
                       {selectedNpc?.id === npc.id && npcDialogue && (
                         <div className="mt-4 p-3 bg-[var(--surface-muted-bg)] rounded-md border-l-4 border-blue-500">
-                          <p className="text-sm text-[var(--text-primary)] italic">"{npcDialogue}"</p>
+                          {npcDialogue.includes(npc.name) ? (
+                            <p className="text-sm text-[var(--text-primary)] italic">{npcDialogue}</p>
+                          ) : (
+                            <p className="text-sm text-[var(--text-primary)] italic">"{npcDialogue}"</p>
+                          )}
                         </div>
                       )}
                     </div>
                   )})}
                 </div>
+                </div>
+              )}
+              </div>
+
+              {monologueVisible && (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+                  <div className={`bg-black/90 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg px-6 py-4 border border-blue-500/50 shadow-2xl max-w-md`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-blue-400">💭</span>
+                      <span className="text-xs text-blue-600 dark:text-blue-300 uppercase tracking-wide">Inner Thoughts</span>
+                    </div>
+                    <p className="text-[var(--text-primary)] italic text-center font-serif leading-relaxed">
+                      {npcMonologue}
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
-            
-            {/* Monologue overlay */}
-            {monologueVisible && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-                <div className={`bg-black/90 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg px-6 py-4 border border-blue-500/50 shadow-2xl max-w-md`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-blue-400">💭</span>
-                    <span className="text-xs text-blue-600 dark:text-blue-300 uppercase tracking-wide">Inner Thoughts</span>
-                  </div>
-                  <p className="text-[var(--text-primary)] italic text-center font-serif leading-relaxed">
-                    {npcMonologue}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         );
         
@@ -2730,6 +2692,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
           </div>
         );
+
+      default:
+        console.warn('[MarketplaceModal] Unknown tab:', activeTab);
+        return (
+          <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
+            <p>Unknown tab: {activeTab}</p>
+          </div>
+        );
     }
   };
   
@@ -2930,18 +2900,39 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         </div>
         
         {/* Enhanced tab navigation with historical theming */}
-        <div className="flex border-b border-white/10 bg-gradient-to-b from-slate-900/50 to-slate-800/30">
+        <div
+          className="flex border-b border-white/10 bg-gradient-to-b from-slate-900/50 to-slate-800/30"
+          onClick={(e) => {
+            console.log('[Tab Bar Click] Clicked on tab bar container');
+            console.log('[Tab Bar Click] Target:', e.target);
+            console.log('[Tab Bar Click] CurrentTarget:', e.currentTarget);
+          }}
+          style={{ position: 'relative', zIndex: 50 }}
+        >
           {[
             { id: 'buy', label: 'Buy', icon: '🛒', count: marketInventory.length },
             { id: 'sell', label: 'Sell', icon: '💰', count: playerSellableItems.length },
             { id: 'trade', label: 'Merchants', icon: '🤝', count: merchantNpcs.length },
-            { id: 'people', label: 'People', icon: '👥', count: inhabitantsNpcs.length },
+            { id: 'people', label: 'People', icon: '👥', count: marketplaceWorkOffers.length + inhabitantsNpcs.length },
             { id: 'info', label: 'Info', icon: '📜', count: null },
             { id: 'analysis', label: 'Trends', icon: '📊', count: null }
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={(e) => {
+                console.log('[Tab Click]', tab.id, tab.label);
+                console.log('[Tab Click] Event:', e);
+                console.log('[Tab Click] Current activeTab:', activeTab);
+                e.stopPropagation();
+                setActiveTab(tab.id as TabType);
+              }}
+              onMouseEnter={() => console.log('[Tab Hover]', tab.id)}
+              style={{
+                pointerEvents: 'auto',
+                cursor: 'pointer',
+                position: 'relative',
+                zIndex: 100
+              }}
               className={`flex-1 py-2.5 px-2 font-semibold text-sm transition-all relative group ${
                 activeTab === tab.id
                   ? tab.id === 'buy' ? 'bg-gradient-to-t from-emerald-800/40 to-transparent text-emerald-300 border-b-3 border-emerald-400' :

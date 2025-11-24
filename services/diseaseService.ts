@@ -17,7 +17,7 @@ import {
 import { NpcEntity } from '../types/npcTypes';
 import { AnimalEntity } from '../types/animalTypes';
 import { GameDate, PlayerCharacter } from '../types/index';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
 // Lazy load disease data to improve startup performance
 let diseaseModule: any = null;

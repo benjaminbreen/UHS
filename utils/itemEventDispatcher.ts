@@ -1,9 +1,9 @@
 /**
  * Item Event Dispatcher
- * Centralized utility for dispatching item-related events to quest system
+ * Centralized utility for dispatching item-related events
  */
 
-import { questService } from '../services/questService';
+// Quest service removed
 
 export interface ItemAcquiredEvent {
   itemId: string;
@@ -12,10 +12,10 @@ export interface ItemAcquiredEvent {
 }
 
 /**
- * Dispatch itemAcquired event with active quest context
+ * Dispatch itemAcquired event
  */
 export function dispatchItemAcquired(itemId: string, quantity: number = 1): void {
-  const activeQuests = questService.getActiveQuests().map(q => q.id);
+  const activeQuests: string[] = []; // Quest system removed
 
   window.dispatchEvent(new CustomEvent('itemAcquired', {
     detail: { itemId, quantity, activeQuests }

@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FishSpecies, FishingDataService } from '../services/fishingDataService';
 import { CulturalZone } from '../types/characterData';
-import { HistoricalEra } from '../types/ambiance';
+import { HistoricalEra } from '../types';
 import { ClimateType, Season } from '../types';
 import { isSafari, getSafariOptimizedFilter } from '../utils/safariUtils';
 import { gameSounds } from '../services/gameSoundsService';

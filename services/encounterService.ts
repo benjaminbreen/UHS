@@ -470,6 +470,67 @@ export function attemptTheft(
 }
 
 /**
+ * Determine if an NPC should escalate to direct combat based on reputation
+ */
+export function shouldEscalateToCombat(
+    npc: NpcEntity,
+    reputationChange: number,
+    currentReputation: number
+): boolean {
+    console.log(`[Escalation Check] ${npc.name}: rep=${currentReputation}, change=${reputationChange}, level=${npc.escalationLevel}`);
+
+    // Immediate combat triggers:
+    // 1. Reputation drops below -50 (extreme hostility)
+    if (currentReputation < -50) {
+        console.log('[Escalation] → ATTACK (reputation < -50)');
+        return true;
+    }
+
+    // 2. Single interaction drops reputation by -40 or more (extreme insult/threat)
+    if (reputationChange <= -40) {
+        console.log('[Escalation] → ATTACK (single drop >= -40)');
+        return true;
+    }
+
+    // 3. NPC is already furious and reputation drops further
+    if (npc.escalationLevel === 'furious' && reputationChange < -10) {
+        console.log('[Escalation] → ATTACK (already furious, further provoked)');
+        return true;
+    }
+
+    console.log('[Escalation] → DIALOGUE (not escalating to combat)');
+    return false;
+}
+
+/**
+ * Update NPC's escalation level based on current reputation
+ */
+export function updateNpcEscalationLevel(
+    npc: NpcEntity,
+    reputationChange: number,
+    currentReputation: number
+): NpcEntity {
+    let escalationLevel: 'calm' | 'angry' | 'furious' | 'attacking';
+
+    if (currentReputation < -50 || npc.aiState === 'attacking_chasing') {
+        escalationLevel = 'attacking';
+    } else if (currentReputation < -30 || reputationChange <= -20) {
+        escalationLevel = 'furious';
+    } else if (currentReputation < -10 || reputationChange <= -10) {
+        escalationLevel = 'angry';
+    } else {
+        escalationLevel = 'calm';
+    }
+
+    console.log(`[Escalation Level] ${npc.name}: ${npc.escalationLevel || 'none'} → ${escalationLevel}`);
+
+    return {
+        ...npc,
+        escalationLevel
+    };
+}
+
+/**
  * Handle post-theft player actions (pursue, forgive, etc.)
  */
 export function handleTheftResponse(

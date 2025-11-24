@@ -4,7 +4,7 @@
  */
 
 import { CulturalZone } from './culturalZones';
-import { HistoricalEra } from '../../types/ambiance';
+import { HistoricalEra } from '../../types';
 
 export interface AccessoryDefinition {
   baseId: string;
