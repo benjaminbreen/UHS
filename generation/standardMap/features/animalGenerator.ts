@@ -12,6 +12,29 @@ import { HistoricalEra } from '../../../types';
 
 let animalIdCounter = 0;
 
+// Urban biomes where dangerous wild animals should not spawn
+const URBAN_BIOMES = new Set([
+  BiomeType.HAMLET,
+  BiomeType.LOW_DENSITY_CITY,
+  BiomeType.DENSE_CITY,
+  BiomeType.CITY_CENTER,
+  BiomeType.URBAN,
+  BiomeType.MARKETPLACE,
+  BiomeType.GOVERNMENT_DISTRICT,
+  BiomeType.PALACE,
+  BiomeType.PLAZA,
+  BiomeType.INDUSTRIAL_DISTRICT,
+  BiomeType.HARBOR_DISTRICT,
+  BiomeType.FARMLAND,
+  BiomeType.ROAD,
+  BiomeType.PARK,
+  BiomeType.HOLY_SITE,
+  BiomeType.RUINS
+]);
+
+// Dangerous predators that should never spawn near urban areas
+const DANGEROUS_PREDATORS = new Set(['LEOPARD', 'CHEETAH', 'TIGER', 'LION', 'BEAR', 'WOLF', 'CROCODILE', 'HIPPOPOTAMUS']);
+
 function isNearLand(x: number, y: number, tiles: Tile[][], distance: number): boolean {
     for (let dy = -distance; dy <= distance; dy++) {
         for (let dx = -distance; dx <= distance; dx++) {
@@ -20,6 +43,35 @@ function isNearLand(x: number, y: number, tiles: Tile[][], distance: number): bo
             const checkY = y + dy;
             if (checkX >= 0 && checkX < MAP_WIDTH_TILES && checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
                 if (tiles[checkY][checkX].isLand) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Checks if a location is near any urban/settlement biome
+ * @param x X coordinate to check
+ * @param y Y coordinate to check
+ * @param tiles The map tiles array
+ * @param minDistance Minimum distance in tiles from urban areas
+ * @returns true if within minDistance of any urban biome
+ */
+function isNearUrbanArea(
+    x: number,
+    y: number,
+    tiles: Tile[][],
+    minDistance: number
+): boolean {
+    for (let dy = -minDistance; dy <= minDistance; dy++) {
+        for (let dx = -minDistance; dx <= minDistance; dx++) {
+            const checkX = x + dx;
+            const checkY = y + dy;
+            if (checkX >= 0 && checkX < MAP_WIDTH_TILES &&
+                checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
+                if (URBAN_BIOMES.has(tiles[checkY][checkX].biome)) {
                     return true;
                 }
             }
@@ -66,7 +118,20 @@ export function spawnSingleAnimal(
             
             if (animalData.habitat === 'aquatic' ? (tile.isLand || isNearLand(x, y, mapData.tiles, 2)) : !tile.isLand) continue;
             if (!animalData.spawnBiomes.includes(tile.biome)) continue;
-            
+
+            // Dangerous predator exclusion - NEVER spawn in or near urban biomes
+            if (DANGEROUS_PREDATORS.has(animalKey)) {
+                // Check if spawn tile itself is urban
+                if (URBAN_BIOMES.has(tile.biome)) {
+                    continue; // Skip urban tiles entirely
+                }
+
+                // Check if within 6 tiles of urban area (stricter than remote=true)
+                if (isNearUrbanArea(x, y, mapData.tiles, 6)) {
+                    continue; // Skip locations near settlements
+                }
+            }
+
             // Geographic and Climate Checks
             if (animalData.spawnConditions.climate && !animalData.spawnConditions.climate.includes(mapData.climate)) continue;
             if (animalData.spawnConditions.zones && !animalData.spawnConditions.zones.includes(culturalZone)) continue;
@@ -76,6 +141,22 @@ export function spawnSingleAnimal(
             if (animalData.spawnConditions.minBiodiversity && tile.qualities.biodiversity < animalData.spawnConditions.minBiodiversity) continue;
             if (animalData.spawnConditions.maxSafety && tile.qualities.safety > animalData.spawnConditions.maxSafety) continue;
             if (animalData.spawnConditions.minSafety && tile.qualities.safety < animalData.spawnConditions.minSafety) continue;
+
+            // Remote condition - animals that avoid settlements
+            if (animalData.spawnConditions.remote) {
+                const minDistanceFromUrban = 5; // At least 5 tiles away from any urban area
+                if (isNearUrbanArea(x, y, mapData.tiles, minDistanceFromUrban)) {
+                    continue; // Skip this location - too close to settlement
+                }
+            }
+
+            // nearSettlement condition - animals that prefer being near humans
+            if (animalData.spawnConditions.nearSettlement) {
+                const maxDistanceFromUrban = 3; // Must be within 3 tiles of urban area
+                if (!isNearUrbanArea(x, y, mapData.tiles, maxDistanceFromUrban)) {
+                    continue; // Skip this location - too far from settlement
+                }
+            }
             
             let baseChance = 0.05;
             if (animalKey === 'WHALE') baseChance *= 0.05;

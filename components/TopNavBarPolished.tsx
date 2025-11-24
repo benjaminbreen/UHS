@@ -374,8 +374,9 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
       }
 
       // Escape key to toggle pause (spacebar now used for weapon swing)
-      // Don't toggle pause if any modal is open (ESC closes modals instead)
-      if (e.key === 'Escape' && !activeFishingHutModal && !isRoguelikeActive && !isAnyModalOpen) {
+      // Don't toggle pause if other modals are open (ESC closes those instead)
+      // But DO toggle pause if the pause modal itself is the only one open
+      if (e.key === 'Escape' && !activeFishingHutModal && !isRoguelikeActive && (!isAnyModalOpen || isPauseModalOpen)) {
         e.preventDefault();
         setIsPauseModalOpen(prev => !prev);
       }

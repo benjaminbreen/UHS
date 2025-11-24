@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Item } from '../types';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
@@ -11,6 +11,15 @@ interface NewItemModalProps {
 }
 
 const NewItemModal: React.FC<NewItemModalProps> = ({ item, onClose, mode = 'acquired', entityName }) => {
+    // Auto-dismiss after 10 seconds
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 10000);
+
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
     const isDropped = mode === 'dropped';
     const isNpcCollected = mode === 'npc_collected';
     const isAnimalCollected = mode === 'animal_collected';

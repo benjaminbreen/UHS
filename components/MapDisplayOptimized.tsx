@@ -378,6 +378,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [zoomLevel, setZoomLevel] = useState(INITIAL_ZOOM_LEVEL * 0.7);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
+
+  // Debounced pan values for viewport culling - prevents stuttering during smooth panning
+  const [debouncedPanX, setDebouncedPanX] = useState(0);
+  const [debouncedPanY, setDebouncedPanY] = useState(0);
+
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const lastMousePosRef = useRef({ x: 0, y: 0 }); // Ref version to avoid recreating event listeners
@@ -554,10 +559,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         canvasRef.current.style.willChange = 'transform';
       }
 
-      // CRITICAL FIX: Update React state during animation so visibleTiles recalculates
-      // This ensures symbols appear as player moves into new areas
-      setPanX(currentPanX.current);
-      setPanY(currentPanY.current);
+      // PERFORMANCE: Don't update React state during animation (causes 60 re-renders/second)
+      // Debounced state updates (150ms delay) will handle viewport culling when movement settles
+      // Direct DOM transform above provides smooth 60fps camera movement
     }
   }, [displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, mapData]);
 
@@ -736,18 +740,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   }, [mapData?.tiles]);
 
   // VIEWPORT CULLING - Tile-grid-based calculation for optimal performance
-  // Step 1: Calculate grid boundaries based on rounded pan values (only changes when tiles change)
+  // Step 1: Calculate grid boundaries based on debounced pan values (prevents stutter during panning)
   const visibleTileGrid = useMemo(() => {
     if (containerDimensions.width === 0 || containerDimensions.height === 0) {
       return null;
     }
 
-    const buffer = 3; // 3-tile buffer to prevent pop-in during fast panning
+    const buffer = 10; // 10-tile buffer prevents pop-in and reduces recalculation frequency
 
     // Round pan values to tile grid coordinates to prevent recalc on every pixel
-    // Only recalculates when we've moved at least one tile-width in screen space
-    const gridX = Math.floor(panX / (TILE_SIZE_PX * zoomLevel));
-    const gridY = Math.floor(panY / (TILE_SIZE_PX * zoomLevel));
+    // Uses debounced pan values so this only recalculates when panning settles
+    const gridX = Math.floor(debouncedPanX / (TILE_SIZE_PX * zoomLevel));
+    const gridY = Math.floor(debouncedPanY / (TILE_SIZE_PX * zoomLevel));
 
     // Calculate visible tile bounds in grid coordinates
     const viewLeft = Math.max(0, Math.floor(-gridX - buffer - (containerDimensions.width / (TILE_SIZE_PX * zoomLevel)) * 0.5));
@@ -757,9 +761,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
     return { viewLeft, viewRight, viewTop, viewBottom };
   }, [
-    // Only recalculate when grid position changes (rounded to tile boundaries)
-    Math.floor(panX / (TILE_SIZE_PX * zoomLevel)),
-    Math.floor(panY / (TILE_SIZE_PX * zoomLevel)),
+    // Only recalculate when debounced grid position changes (when panning settles)
+    Math.floor(debouncedPanX / (TILE_SIZE_PX * zoomLevel)),
+    Math.floor(debouncedPanY / (TILE_SIZE_PX * zoomLevel)),
     zoomLevel,
     containerDimensions.width,
     containerDimensions.height
@@ -802,6 +806,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     );
   }, [visibleTiles, mapData?.seed]);
 
+  // PERFORMANCE: Viewport cull vegetation to only render visible trees
+  const visibleVegetation = useMemo(() => {
+    if (!mapData?.vegetation || !visibleTileGrid) return [];
+
+    const { viewLeft, viewRight, viewTop, viewBottom } = visibleTileGrid;
+
+    // Only render vegetation within visible tile bounds
+    return mapData.vegetation.filter(veg =>
+      veg.x >= viewLeft && veg.x <= viewRight &&
+      veg.y >= viewTop && veg.y <= viewBottom
+    );
+  }, [mapData?.vegetation, visibleTileGrid]);
+
   // PERFORMANCE: Use visibleTiles for viewport-specific features (saves ~800 iterations)
   const mountainTiles = useMemo(() => {
     return visibleTiles.filter(tile =>
@@ -839,6 +856,16 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   useEffect(() => {
     currentPanX.current = panX;
     currentPanY.current = panY;
+  }, [panX, panY]);
+
+  // Update debounced pan values with 150ms delay - prevents viewport recalculation during smooth panning
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPanX(panX);
+      setDebouncedPanY(panY);
+    }, 150);
+
+    return () => clearTimeout(timer);
   }, [panX, panY]);
 
   // Container dimension tracking with debounce and mobile detection
@@ -3236,9 +3263,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
-            {/* Vegetation (trees, bushes, etc) */}
+            {/* Vegetation (trees, bushes, etc) - VIEWPORT CULLED for performance */}
             <g style={{ pointerEvents: 'none' }}>
-            {shouldRenderVegetation && vegetation?.map(veg => {
+            {shouldRenderVegetation && visibleVegetation.map(veg => {
               const renderX = veg.x * TILE_SIZE_PX;
               const renderY = veg.y * TILE_SIZE_PX;
 
@@ -3274,27 +3301,42 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 // Use fixed position-based seed - stable and performant
                 const vegSeed = veg.x * 73856093 + veg.y * 19349663;
                 return (
-                  <g key={veg.id}
-                     transform={`translate(${renderX + shakeOffsetX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
-                    <SymbolComponent seed={vegSeed} season={season} climate={climate} weather={weather} />
+                  <g key={veg.id}>
+                    {/* Ground-plane shadow (JRPG style) */}
+                    <ellipse
+                      cx={renderX + TILE_SIZE_PX / 2}
+                      cy={renderY + TILE_SIZE_PX * 0.85}
+                      rx={TILE_SIZE_PX * 0.28}
+                      ry={TILE_SIZE_PX * 0.09}
+                      fill="rgba(0, 0, 0, 0.25)"
+                    />
+                    <g transform={`translate(${renderX + shakeOffsetX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
+                      <SymbolComponent seed={vegSeed} season={season} climate={climate} weather={weather} />
+                    </g>
                   </g>
                 );
               }
               return (
-                <text
-                  key={veg.id}
-                  x={renderX + TILE_SIZE_PX / 2}
-                  y={renderY + TILE_SIZE_PX / 1.5}
-                  fontSize={TILE_SIZE_PX * 1.5}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  style={{ 
-                    filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.7))' : 'none', 
-                    pointerEvents: 'none'
-                  }}
-                >
-                  {veg.symbol}
-                </text>
+                <g key={veg.id}>
+                  {/* Ground-plane shadow (JRPG style) */}
+                  <ellipse
+                    cx={renderX + TILE_SIZE_PX / 2}
+                    cy={renderY + TILE_SIZE_PX * 0.9}
+                    rx={TILE_SIZE_PX * 0.28}
+                    ry={TILE_SIZE_PX * 0.09}
+                    fill="rgba(0, 0, 0, 0.25)"
+                  />
+                  <text
+                    x={renderX + TILE_SIZE_PX / 2}
+                    y={renderY + TILE_SIZE_PX / 1.5}
+                    fontSize={TILE_SIZE_PX * 1.5}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {veg.symbol}
+                  </text>
+                </g>
               );
             })}
             </g>
@@ -4367,15 +4409,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                    style={{cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto'}}
                    className="smooth-movement"
                    transform={`translate(${animal.x * TILE_SIZE_PX}, ${animal.y * TILE_SIZE_PX})`}>
-                  {/* Shadow beneath animal */}
+                  {/* Ground-plane shadow (JRPG style) */}
                   <ellipse
                     cx={TILE_SIZE_PX/2}
-                    cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
-                    rx={TILE_SIZE_PX * 0.3 * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
-                    ry={TILE_SIZE_PX * 0.1 * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
-                    fill="rgba(0,0,0,0.3)"
-                    style={{ opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.3 : 1.0 }}
-                    filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
+                    cy={TILE_SIZE_PX * 0.85}
+                    rx={TILE_SIZE_PX * 0.22 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
+                    ry={TILE_SIZE_PX * 0.08 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
+                    fill="rgba(0, 0, 0, 0.25)"
+                    style={{ opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0 }}
                   />
                   {animal.imagePath ? (
                     // Render PNG image if available
@@ -4387,7 +4428,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       height={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
                       className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
                       style={{
-                        filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
                         opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.6 : 1.0
                       }}
                     />
@@ -4401,7 +4441,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       fontSize={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0) * (ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.5 : 1.0)}
                       className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
                       style={{
-                        filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
                         stroke: selectedAnimalId === animal.id ? 'yellow' : 'none',
                         strokeWidth: selectedAnimalId === animal.id ? 2 : 0,
                         opacity: ANIMAL_DATA[animal.baseId]?.type === 'Ambient' ? 0.6 : 1.0
@@ -4477,14 +4516,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                      transform={`translate(${followX * TILE_SIZE_PX}, ${followY * TILE_SIZE_PX})`}
                      onClick={() => onCompanionClick?.(animal)}
                      style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'all' }}>
-                    {/* Shadow beneath tamed animal */}
+                    {/* Ground-plane shadow (JRPG style) */}
                     <ellipse
                       cx={TILE_SIZE_PX/2}
-                      cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
-                      rx={TILE_SIZE_PX * 0.3 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
-                      ry={TILE_SIZE_PX * 0.1 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
-                      fill="rgba(0,0,0,0.3)"
-                      filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
+                      cy={TILE_SIZE_PX * 0.85}
+                      rx={TILE_SIZE_PX * 0.22 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
+                      ry={TILE_SIZE_PX * 0.08 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
+                      fill="rgba(0, 0, 0, 0.25)"
                     />
                     {animal.imagePath ? (
                       // Render PNG image if available
@@ -4495,9 +4533,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         width={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
                         height={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
                         className="animate-ff6-idle-bob"
-                        style={{
-                          filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
-                        }}
                       />
                     ) : (
                       // Fall back to emoji if no image
@@ -4508,9 +4543,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         dominantBaseline="central"
                         fontSize={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
                         className="animate-ff6-idle-bob"
-                        style={{
-                          filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
-                        }}
                       >
                         {animal.emoji}
                       </text>
@@ -4668,7 +4700,16 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       </>
                     );
                   })()}
-                  
+
+                  {/* Ground-plane shadow (JRPG style) */}
+                  <ellipse
+                    cx={TILE_SIZE_PX / 2}
+                    cy={TILE_SIZE_PX * 0.85}
+                    rx={TILE_SIZE_PX * 0.25}
+                    ry={TILE_SIZE_PX * 0.08}
+                    fill="rgba(0, 0, 0, 0.25)"
+                  />
+
                   <NpcIcon npc={npc} size={TILE_SIZE_PX * 1.2} tileSize={TILE_SIZE_PX} />
 
                   {/* Exclamation mark for fleeing/hostile NPCs */}

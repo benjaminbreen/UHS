@@ -980,7 +980,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                         </div>
                     ) : (
                         <div className="text-text-secondary text-center">
-                            <p className="text-sm font-md opacity-30">Use arrow keys to explore</p>
+                            <p className="text-sm font-md opacity-30">Use arrow keys to explore • Press space near trees/bushes</p>
                         </div>
                     )}
                  </div>

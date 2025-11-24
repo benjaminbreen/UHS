@@ -1330,6 +1330,70 @@ export function generateInlandCliffs(tiles: Tile[][], featurePlacementNoise: Val
       }
     }
   }
+
+  // Third pass: Prevent cliffs from completely enclosing water tiles
+  // Strategy: Remove some cliffs to create openings, don't fill in the water
+  console.log('[CliffGen] Checking for enclosed water tiles...');
+  let removedCliffs = 0;
+
+  for (let y = 1; y < MAP_HEIGHT_TILES - 1; y++) {
+    for (let x = 1; x < MAP_WIDTH_TILES - 1; x++) {
+      const tile = tiles[y][x];
+
+      // Only check water tiles
+      if (tile.isLand) continue;
+
+      // Count adjacent cliffs and collect them
+      const adjacentCliffs: {x: number, y: number}[] = [];
+
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+            const neighbor = tiles[ny][nx];
+
+            if (neighbor.biome === BiomeType.CLIFF) {
+              adjacentCliffs.push({x: nx, y: ny});
+            }
+          }
+        }
+      }
+
+      // If water tile is surrounded by 6+ cliffs, remove 2-3 of them to create openings
+      if (adjacentCliffs.length >= 6) {
+        // Remove 2-3 random cliffs to break the ring
+        const numToRemove = Math.min(3, Math.floor(adjacentCliffs.length * 0.4));
+
+        for (let i = 0; i < numToRemove; i++) {
+          const randomIndex = Math.floor(featurePlacementNoise.random() * adjacentCliffs.length);
+          const cliffToRemove = adjacentCliffs.splice(randomIndex, 1)[0];
+
+          const cliffTile = tiles[cliffToRemove.y][cliffToRemove.x];
+
+          // Revert cliff to appropriate biome based on altitude
+          if (cliffTile.altitude >= ALTITUDE_LEVELS.MOUNTAIN_MAX * 0.85) {
+            cliffTile.biome = BiomeType.MOUNTAIN;
+          } else if (cliffTile.altitude >= ALTITUDE_LEVELS.HILLS_START) {
+            cliffTile.biome = BiomeType.HILLS;
+          } else if (cliffTile.isCoast) {
+            cliffTile.biome = BiomeType.BEACH;
+          } else {
+            cliffTile.biome = BiomeType.GRASSLAND;
+          }
+
+          removedCliffs++;
+        }
+
+        console.log(`[CliffGen] Removed ${numToRemove} cliffs around water at (${x}, ${y}) to prevent enclosure`);
+      }
+    }
+  }
+
+  console.log(`[CliffGen] Removed ${removedCliffs} cliffs to prevent water enclosures`);
 }
 
 export function generateVolcanicComplex(tiles: Tile[][], temperatureNoise: ValueNoise, featurePlacementNoise: ValueNoise, archetype: MapArchetype, forceVolcanic: boolean) {
