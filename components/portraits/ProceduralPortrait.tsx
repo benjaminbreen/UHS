@@ -3287,29 +3287,36 @@ if (defaultCapStyles.has(hairStyle)) {
         }
       }
     } else if (style === 'soul_patch') {
-      // Position soul patch below the mouth, not overlapping
-      const patchStartY = mouthY + 4;  // Start below the lower lip
-      for (let y = 0; y < 3; y++) {
-        for (let x = -1; x < 2; x++) {
-          const px = headX + Math.floor(headDim.width / 2) + x;
-          elements.push(<rect key={`sp-${x}-${y}`} x={px} y={patchStartY + y} width="1" height="1" fill={beardColor} className="pixel" />);
+      // Position soul patch below the mouth - more visible triangular shape
+      const patchStartY = mouthY + 3;  // Start closer to lower lip
+      const centerX = headX + Math.floor(headDim.width / 2);
+      const patchHeight = thickness === 'thick' ? 5 : thickness === 'medium' ? 4 : 3;
+
+      // Triangular soul patch shape - wider at top, narrower at bottom
+      for (let y = 0; y < patchHeight; y++) {
+        const rowWidth = Math.max(1, 3 - Math.floor(y * 0.6)); // Taper down
+        for (let x = -Math.floor(rowWidth / 2); x <= Math.floor(rowWidth / 2); x++) {
+          const px = centerX + x;
+          // Add shading - darker at edges
+          const col = Math.abs(x) === Math.floor(rowWidth / 2) ? beardShadow : beardColor;
+          elements.push(<rect key={`sp-${x}-${y}`} x={px} y={patchStartY + y} width="1" height="1" fill={col} className="pixel" />);
         }
       }
     } else if (style === 'mustache') {
-      const my = mouthY - 1;
-      // Enhanced thickness based on setting
-      const mustacheHeight = thickness === 'thick' ? 3 : thickness === 'medium' ? 2 : 1;
-      const baseWidth = 11; // Wider base for symmetrical look
+      const my = mouthY - 2; // Start higher above mouth
+      // More substantial mustache height
+      const mustacheHeight = thickness === 'thick' ? 4 : thickness === 'medium' ? 3 : 2;
+      const baseWidth = 12; // Wider base for symmetrical look
       const centerX = headX + Math.floor(headDim.width / 2);
 
       for (let t = 0; t < mustacheHeight; t++) {
         // Keep width consistent for better shape
-        const w = baseWidth - Math.floor(t * 0.5); // Subtle taper
+        const w = baseWidth - Math.floor(t * 0.8); // Taper as it goes down
 
         // Render left and right halves symmetrically
         for (let dx = -Math.floor(w / 2); dx <= Math.floor(w / 2); dx++) {
           const absX = Math.abs(dx);
-          const droop = absX > 4 ? 1 : 0; // Natural droop at edges
+          const droop = absX > 4 ? Math.min(2, Math.floor((absX - 4) * 0.5)) : 0; // Natural droop at edges
 
           // Enhanced shading
           let col = beardColor;
@@ -3326,13 +3333,10 @@ if (defaultCapStyles.has(hairStyle)) {
         }
       }
 
-      // Add subtle underlip shadow for depth
-      // centerX already declared above
-      for (let dx = -4; dx <= 4; dx++) {
-        if (rand(dx * 23) < densityBase * 0.7) {
-          const shadowY = my + mustacheHeight;
-          elements.push(<rect key={`mustache-shadow-${dx}`} x={centerX + dx} y={shadowY} width="1" height="1" fill={beardDeepShadow} className="pixel" />);
-        }
+      // Add underlip shadow/extension for depth - extends below mouth
+      for (let dx = -3; dx <= 3; dx++) {
+        const shadowY = my + mustacheHeight;
+        elements.push(<rect key={`mustache-shadow-${dx}`} x={centerX + dx} y={shadowY} width="1" height="1" fill={beardDeepShadow} className="pixel" />);
       }
     } else if (style === 'imperial') {
       // Imperial mustache (Napoleon III style) - wide with upward curls
@@ -5177,44 +5181,47 @@ if (defaultCapStyles.has(hairStyle)) {
         break;
       }
       case 'square': {
-        // Later period rectangular spectacles
-        const size = 3; // Reduced from 5 for more realistic sizing
+        // Rectangular spectacles - smaller, more proportional
+        const sizeX = 3; // Width
+        const sizeY = 2; // Height - shorter for rectangular look
         // Left frame - centered on left eye
-        const leftCenterX = leftX + 1; // Adjust to center on eye
-        for (let dx = -size; dx <= size; dx++) {
+        const leftCenterX = leftX + 2;
+        // Top and bottom edges
+        for (let dx = -sizeX; dx <= sizeX; dx++) {
           elements.push(
-            <rect key={`sq-l-t-${dx}`} x={leftCenterX + dx} y={eyeY - size} width="1" height="1" fill={frameColor} className="pixel" />,
-            <rect key={`sq-l-b-${dx}`} x={leftCenterX + dx} y={eyeY + size} width="1" height="1" fill={frameShadow} className="pixel" />
+            <rect key={`sq-l-t-${dx}`} x={leftCenterX + dx} y={eyeY - sizeY} width="1" height="1" fill={frameColor} className="pixel" />,
+            <rect key={`sq-l-b-${dx}`} x={leftCenterX + dx} y={eyeY + sizeY} width="1" height="1" fill={frameShadow} className="pixel" />
           );
         }
-        for (let dy = -size; dy <= size; dy++) {
+        // Left and right edges
+        for (let dy = -sizeY + 1; dy < sizeY; dy++) {
           elements.push(
-            <rect key={`sq-l-l-${dy}`} x={leftCenterX - size} y={eyeY + dy} width="1" height="1" fill={frameHighlight} className="pixel" />,
-            <rect key={`sq-l-r-${dy}`} x={leftCenterX + size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
+            <rect key={`sq-l-l-${dy}`} x={leftCenterX - sizeX} y={eyeY + dy} width="1" height="1" fill={frameHighlight} className="pixel" />,
+            <rect key={`sq-l-r-${dy}`} x={leftCenterX + sizeX} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
           );
         }
         // Right frame - centered on right eye
-        const rightCenterX = rightX + 1; // Adjust to center on eye
-        for (let dx = -size; dx <= size; dx++) {
+        const rightCenterX = rightX + 2;
+        for (let dx = -sizeX; dx <= sizeX; dx++) {
           elements.push(
-            <rect key={`sq-r-t-${dx}`} x={rightCenterX + dx} y={eyeY - size} width="1" height="1" fill={frameColor} className="pixel" />,
-            <rect key={`sq-r-b-${dx}`} x={rightCenterX + dx} y={eyeY + size} width="1" height="1" fill={frameShadow} className="pixel" />
+            <rect key={`sq-r-t-${dx}`} x={rightCenterX + dx} y={eyeY - sizeY} width="1" height="1" fill={frameColor} className="pixel" />,
+            <rect key={`sq-r-b-${dx}`} x={rightCenterX + dx} y={eyeY + sizeY} width="1" height="1" fill={frameShadow} className="pixel" />
           );
         }
-        for (let dy = -size; dy <= size; dy++) {
+        for (let dy = -sizeY + 1; dy < sizeY; dy++) {
           elements.push(
-            <rect key={`sq-r-l-${dy}`} x={rightCenterX - size} y={eyeY + dy} width="1" height="1" fill={frameHighlight} className="pixel" />,
-            <rect key={`sq-r-r-${dy}`} x={rightCenterX + size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
+            <rect key={`sq-r-l-${dy}`} x={rightCenterX - sizeX} y={eyeY + dy} width="1" height="1" fill={frameHighlight} className="pixel" />,
+            <rect key={`sq-r-r-${dy}`} x={rightCenterX + sizeX} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
           );
         }
-        // Bridge
-        for (let bx = leftCenterX + size + 1; bx < rightCenterX - size; bx++) {
+        // Bridge - thin nose piece
+        for (let bx = leftCenterX + sizeX + 1; bx < rightCenterX - sizeX; bx++) {
           elements.push(<rect key={`sq-bridge-${bx}`} x={bx} y={eyeY} width="1" height="1" fill={frameShadow} className="pixel" />);
         }
-        // Lens glare - adjusted for smaller lenses and proper centering
+        // Lens glare
         elements.push(
-          <rect key="sq-glare-l" x={leftCenterX - 1} y={eyeY - 2} width="1" height="1" fill="#FFFFFF" opacity="0.6" className="pixel" />,
-          <rect key="sq-glare-r" x={rightCenterX - 1} y={eyeY - 2} width="1" height="1" fill="#FFFFFF" opacity="0.6" className="pixel" />
+          <rect key="sq-glare-l" x={leftCenterX - 1} y={eyeY - 1} width="1" height="1" fill="#FFFFFF" opacity="0.5" className="pixel" />,
+          <rect key="sq-glare-r" x={rightCenterX - 1} y={eyeY - 1} width="1" height="1" fill="#FFFFFF" opacity="0.5" className="pixel" />
         );
         break;
       }

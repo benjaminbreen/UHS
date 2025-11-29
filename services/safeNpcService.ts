@@ -5,7 +5,7 @@
  * in React development mode due to hot module replacement and Immer proxies.
  */
 
-import { NpcEntity, MapData, Item } from '../types';
+import { NpcEntity, MapData, Item, AnimalEntity } from '../types';
 import { calculateNpcUpdate as unsafeCalculateNpcUpdate } from './npcAIService';
 
 /**
@@ -18,7 +18,8 @@ export function safeCalculateNpcUpdate(
     map: MapData,
     gameTimeHours: number,
     allNpcs?: NpcEntity[],
-    droppedItems?: Array<{ x: number; y: number; item: Item; timestamp: number }>
+    droppedItems?: Array<{ x: number; y: number; item: Item; timestamp: number }>,
+    animals?: AnimalEntity[]
 ): Partial<NpcEntity> {
     // Input validation
     if (!npc || typeof npc !== 'object') {
@@ -56,7 +57,7 @@ export function safeCalculateNpcUpdate(
 
     // Call the actual update function with error handling
     try {
-        const updates = unsafeCalculateNpcUpdate(cleanNpc, playerPos, map, gameTimeHours, allNpcs, droppedItems);
+        const updates = unsafeCalculateNpcUpdate(cleanNpc, playerPos, map, gameTimeHours, allNpcs, droppedItems, animals);
 
         // Validate the updates before returning
         if (!updates || typeof updates !== 'object') {

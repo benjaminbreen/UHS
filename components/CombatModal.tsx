@@ -190,7 +190,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [tamedAnimalHealth, setTamedAnimalHealth] = useState<Record<string, number>>({});
   const [tamedAnimalAnimation, setTamedAnimalAnimation] = useState<Record<string, string>>({});
   
-  const [activeMenu, setActiveMenu] = useState<'main' | 'skills' | 'items' | 'rangedAttack' | 'talk' | 'itemAction'>('main');
+  const [activeMenu, setActiveMenu] = useState<'main' | 'skills' | 'items' | 'rangedAttack' | 'talk' | 'itemAction' | 'stance'>('main');
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
@@ -233,6 +233,25 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [combatEnded, setCombatEnded] = useState(false);
   const [victoryState, setVictoryState] = useState<'none' | 'victory' | 'fled'>('none');
   const [hasShownLowHealthDialogue, setHasShownLowHealthDialogue] = useState(false);
+
+  // Combat stance system - affects damage/defense trade-offs
+  type CombatStance = 'balanced' | 'aggressive' | 'defensive' | 'cautious';
+  const [combatStance, setCombatStance] = useState<CombatStance>('balanced');
+
+  // Stance modifiers
+  const STANCE_MODIFIERS: Record<CombatStance, {
+    damageMultiplier: number;
+    defenseMultiplier: number;
+    fleeBonus: number;
+    hitBonus: number;
+    description: string;
+    icon: string;
+  }> = {
+    balanced: { damageMultiplier: 1.0, defenseMultiplier: 1.0, fleeBonus: 0, hitBonus: 0, description: 'Standard fighting stance', icon: '⚔️' },
+    aggressive: { damageMultiplier: 1.4, defenseMultiplier: 0.7, fleeBonus: -0.15, hitBonus: 0.1, description: 'Deal more damage but take more', icon: '🔥' },
+    defensive: { damageMultiplier: 0.7, defenseMultiplier: 1.5, fleeBonus: 0, hitBonus: -0.05, description: 'Protect yourself at cost of damage', icon: '🛡️' },
+    cautious: { damageMultiplier: 0.5, defenseMultiplier: 1.2, fleeBonus: 0.25, hitBonus: -0.1, description: 'Ready to flee at any moment', icon: '👁️' }
+  };
 
   const logRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -516,7 +535,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
     if (hasActualRangedWeapons) {
       mainMenuCommands.push('Ranged Attack');
     }
-    mainMenuCommands.push('Defend', 'Talk', 'Flee');
+    mainMenuCommands.push('Stance', 'Talk', 'Flee');
 
     return {
       main: mainMenuCommands,
@@ -706,6 +725,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
     const isDefDown = defender.statusEffects.some(e => e.type === 'defense_down');
     const defenseBonus = isDefending && defender === playerCharacter ? 2 : 0;
 
+    // Get stance modifiers for player attacks and defense
+    const stanceMods = STANCE_MODIFIERS[combatStance];
+    const isPlayerAttacking = attacker === playerCharacter;
+    const isPlayerDefending = defender === playerCharacter;
+
     // Check for combo attacks
     const now = Date.now();
     const isCombo = (now - lastAttackTime) < 2000 && attacker === playerCharacter;
@@ -717,39 +741,49 @@ const CombatModal: React.FC<CombatModalProps> = ({
     setLastAttackTime(now);
 
     // Much more realistic hit chances - combat is difficult!
-    let baseHitChance = isPowerAttack ? 0.45 : 0.6; // Reduced from 0.7 and 0.9
+    let baseHitChance = isPowerAttack ? 0.45 : 0.6;
+
+    // Apply stance hit bonus for player attacks
+    if (isPlayerAttacking) {
+      baseHitChance += stanceMods.hitBonus;
+    }
 
     // Combo bonus to hit chance
     if (isCombo && comboCount > 0) {
       baseHitChance += comboCount * 0.03;
     }
-    
+
     // Small, fast animals are even harder to hit
     if (isAnimal(defender)) {
       const baseId = defender.baseId;
       if (['RABBIT', 'HARE', 'MOUSE', 'RAT', 'SQUIRREL', 'FERRET'].includes(baseId)) {
-        baseHitChance -= 0.25; // Very hard to hit small creatures
+        baseHitChance -= 0.25;
       } else if (['DEER', 'FOX', 'CAT', 'SNAKE', 'LIZARD'].includes(baseId)) {
-        baseHitChance -= 0.15; // Fast/agile creatures
+        baseHitChance -= 0.15;
       } else if (['BEAR', 'ELEPHANT', 'RHINO', 'HIPPO'].includes(baseId)) {
-        baseHitChance += 0.1; // Large, easier targets
+        baseHitChance += 0.1;
       }
     }
-    
+
     // Apply skill bonuses
     const attackerSkill = attacker.stats.skill || 0;
     const hitChance = Math.min(0.85, Math.max(0.15, baseHitChance + (attackerSkill * 0.02)));
-    
+
     if (Math.random() > hitChance) return { hit: false, crit: false, damage: 0, text: "Miss!" };
 
     const isCrit = Math.random() < 0.05 + (attacker.stats.luck || 5) * 0.01 + (isObserved ? 0.25 : 0);
     const critMultiplier = isCrit ? 1.5 : 1.0;
     const comboMultiplier = isCombo ? 1 + (comboCount * 0.15) : 1.0;
 
+    // Apply stance damage multiplier for player attacks
+    const stanceDamageMultiplier = isPlayerAttacking ? stanceMods.damageMultiplier : 1.0;
+    // Apply stance defense multiplier when player is defending
+    const stanceDefenseMultiplier = isPlayerDefending ? stanceMods.defenseMultiplier : 1.0;
+
     let baseDamage = isPowerAttack ? attacker.stats.attack * 1.5 : (2 + Math.floor(Math.random() * 4) + attacker.stats.attack);
-    const effectiveDefense = Math.max(0, defender.stats.defense + defenseBonus - (isDefDown ? 5 : 0));
+    const effectiveDefense = Math.max(0, (defender.stats.defense + defenseBonus) * stanceDefenseMultiplier - (isDefDown ? 5 : 0));
     const damage = Math.max(1, baseDamage * (1 + (Math.random() - 0.2)) - effectiveDefense);
-    const finalDamage = Math.floor(damage * critMultiplier * damageMultiplier * comboMultiplier);
+    const finalDamage = Math.floor(damage * critMultiplier * damageMultiplier * comboMultiplier * stanceDamageMultiplier);
 
     const comboText = isCombo && comboCount > 0 ? ` x${comboCount + 1}!` : '';
     return { hit: true, crit: isCrit, damage: finalDamage, text: finalDamage.toString() + comboText };
@@ -758,13 +792,20 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const calculateDamage = (attacker: PlayerCharacter | EncounterableEntity, defender: PlayerCharacter | EncounterableEntity, baseDamage: number, ignoreArmor: boolean = false) => {
     const isDefDown = defender.statusEffects.some(e => e.type === 'defense_down');
     const defenseBonus = isDefending && defender === playerCharacter ? 2 : 0;
-    
+
+    // Get stance modifiers
+    const stanceMods = STANCE_MODIFIERS[combatStance];
+    const isPlayerAttacking = attacker === playerCharacter;
+    const isPlayerDefending = defender === playerCharacter;
+    const stanceDefenseMultiplier = isPlayerDefending ? stanceMods.defenseMultiplier : 1.0;
+    const stanceDamageMultiplier = isPlayerAttacking ? stanceMods.damageMultiplier : 1.0;
+
     const isCrit = Math.random() < 0.05 + (attacker.stats.luck || 5) * 0.01;
     const critMultiplier = isCrit ? 1.5 : 1.0;
-    
-    const effectiveDefense = ignoreArmor ? 0 : Math.max(0, defender.stats.defense + defenseBonus - (isDefDown ? 5 : 0));
+
+    const effectiveDefense = ignoreArmor ? 0 : Math.max(0, (defender.stats.defense + defenseBonus) * stanceDefenseMultiplier - (isDefDown ? 5 : 0));
     const damage = Math.max(1, baseDamage * (1 + (Math.random() - 0.2)) - effectiveDefense);
-    const finalDamage = Math.floor(damage * critMultiplier);
+    const finalDamage = Math.floor(damage * critMultiplier * stanceDamageMultiplier);
 
     return { hit: true, crit: isCrit, damage: finalDamage, text: finalDamage.toString() };
   };
@@ -1604,7 +1645,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
           // Play flee sound
           gameSoundsService.playCombatFleeSound();
           setTimeout(() => {
-            const fleeChance = Math.min(0.8, 0.4 + (playerCharacter.stats.dexterity || 5) * 0.05);
+            const fleeChance = Math.min(0.9, 0.4 + (playerCharacter.stats.dexterity || 5) * 0.05 + STANCE_MODIFIERS[combatStance].fleeBonus);
             if(Math.random() < fleeChance) {
                 addLog("Successfully fled!", 'system');
 
@@ -2707,8 +2748,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     handlers.push(() => setActiveMenu('rangedAttack'));
                     availability.push(true); // If it's in the menu, it's available
                     break;
-                case 'Defend':
-                    handlers.push(() => handleAction('defend'));
+                case 'Stance':
+                    handlers.push(() => setActiveMenu('stance'));
                     availability.push(true);
                     break;
                 case 'Talk':
@@ -2767,6 +2808,24 @@ const CombatModal: React.FC<CombatModalProps> = ({
           setActiveMenu('main');
         }), () => setActiveMenu('main')];
         commandAvailability = [...allRangedWeapons.map(() => true), true];
+    } else if (activeMenu === 'stance') {
+        // Stance selection menu
+        const stances: CombatStance[] = ['balanced', 'aggressive', 'defensive', 'cautious'];
+        commands = [
+          ...stances.map(s => `${STANCE_MODIFIERS[s].icon} ${s.charAt(0).toUpperCase() + s.slice(1)}`),
+          'Back'
+        ];
+        commandHandlers = [
+          ...stances.map(stance => () => {
+            setCombatStance(stance);
+            const mod = STANCE_MODIFIERS[stance];
+            addLog(`Switched to ${stance} stance: ${mod.description}`, 'player');
+            gameSoundsService.playCombatBlockSound();
+            setActiveMenu('main');
+          }),
+          () => setActiveMenu('main')
+        ];
+        commandAvailability = [...stances.map(() => true), true];
     } else if (activeMenu === 'itemAction' && selectedItem) {
         commands = ['Use', 'Throw', 'Back'];
         commandHandlers = [
@@ -3502,6 +3561,22 @@ const CombatModal: React.FC<CombatModalProps> = ({
                         <div className="equipment-line"><strong>Weapon:</strong> {playerCharacter.equippedItems.main_hand?.name || 'Bare Handed'}</div>
                         <div className="equipment-line"><strong>Armor:</strong> {playerCharacter.equippedItems.torso?.name || playerCharacter.appearance.garment.name.replace(/_/g, ' ')}</div>
                         <div className="status-effects">
+                            {/* Current stance indicator */}
+                            <span
+                              title={`${combatStance.charAt(0).toUpperCase() + combatStance.slice(1)} Stance: ${STANCE_MODIFIERS[combatStance].description}`}
+                              className="status-icon"
+                              style={{
+                                backgroundColor: combatStance === 'aggressive' ? 'rgba(239, 68, 68, 0.3)' :
+                                                combatStance === 'defensive' ? 'rgba(59, 130, 246, 0.3)' :
+                                                combatStance === 'cautious' ? 'rgba(234, 179, 8, 0.3)' :
+                                                'rgba(107, 114, 128, 0.3)',
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                fontSize: '10px'
+                              }}
+                            >
+                              {STANCE_MODIFIERS[combatStance].icon}
+                            </span>
                             {playerCharacter.statusEffects.map(effect => (
                                 <span key={effect.type} title={`${effect.type.replace('_', ' ')} (${effect.duration} turns left)`} className="status-icon">
                                     {statusEffectIcons[effect.type]}

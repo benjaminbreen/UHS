@@ -109,6 +109,8 @@ interface MapCanvasProps {
   playerY?: number;
   disableSmoothing?: boolean;
   season?: 'spring' | 'summer' | 'fall' | 'winter';
+  /** Hour of day (0-24) for dynamic lighting direction */
+  timeOfDay?: number;
 }
 
 /** Small integer hash → [0,1) for stable per-tile jitter */
@@ -122,11 +124,13 @@ function hashToUnit(x: number, y: number, seed: number) {
 }
 
 /**
- * Adjusts color brightness based on altitude for subtle 3D effect
+ * Attempt to adjust color brightness based on altitude for subtle 3D effect
+ * Uses smooth easing + dithering to eliminate visible banding on flat biomes
  * altitude: 0-1 (from tile data)
+ * x, y: tile coordinates for stable dither pattern
  * returns: adjusted hex color
  */
-function applyAltitudeShading(baseColor: string, altitude: number): string {
+function applyAltitudeShading(baseColor: string, altitude: number, x: number = 0, y: number = 0): string {
   if (!ENABLE_ALTITUDE_SHADING) return baseColor;
 
   // Parse hex color to RGB
@@ -135,11 +139,20 @@ function applyAltitudeShading(baseColor: string, altitude: number): string {
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
 
-  // Altitude effect: ±10% brightness range
-  // 0.5 altitude = neutral (no change)
-  // 0.0 altitude = -10% brightness (darker valleys/lowlands)
-  // 1.0 altitude = +10% brightness (brighter peaks/highlands)
-  const altitudeFactor = 1 + ((altitude - 0.5) * 0.2); // 0.9 to 1.1 range
+  // Smooth easing instead of linear - reduces visible contour lines
+  // easeInOutCubic makes the transition gentler at extremes
+  const eased = altitude < 0.5
+    ? 4 * altitude * altitude * altitude
+    : 1 - Math.pow(-2 * altitude + 2, 3) / 2;
+
+  // Base altitude factor with smooth easing
+  const baseFactor = 1 + ((eased - 0.5) * 0.2); // 0.9 to 1.1 range
+
+  // Add subtle ordered dithering to break banding (Bayer-like pattern)
+  // This creates imperceptible per-tile variation that smooths gradients
+  const ditherMatrix = ((x & 1) + ((y & 1) << 1)) / 4; // 0, 0.25, 0.5, or 0.75
+  const dither = (ditherMatrix - 0.375) * 0.015; // ±0.75% subtle variation
+  const altitudeFactor = baseFactor + dither;
 
   // Apply factor with clamping to 0-255
   const newR = Math.min(255, Math.max(0, Math.round(r * altitudeFactor)));
@@ -151,6 +164,42 @@ function applyAltitudeShading(baseColor: string, altitude: number): string {
     newR.toString(16).padStart(2, '0') +
     newG.toString(16).padStart(2, '0') +
     newB.toString(16).padStart(2, '0');
+}
+
+/**
+ * Calculates shadow offset based on time of day
+ * Creates the illusion that the sun moves across the sky
+ * Returns { offsetX, offsetY, opacity } for shadow rendering
+ */
+function calculateLightDirection(timeOfDay: number = 12): { offsetX: number; offsetY: number; opacity: number } {
+  // Normalize to 0-24 range
+  const hour = ((timeOfDay % 24) + 24) % 24;
+
+  // Sun position: rises in east (6am), peaks at noon, sets in west (18pm)
+  // Map 6-18 to angle 0-PI (sunrise to sunset)
+  // Outside this range (night), use a fixed dim moonlight from above
+
+  if (hour < 6 || hour > 18) {
+    // Night: very subtle shadow from above (moonlight)
+    return { offsetX: 0, offsetY: 0.8, opacity: 0.08 };
+  }
+
+  // Day: sun arc from east to west
+  const dayProgress = (hour - 6) / 12; // 0 at 6am, 1 at 6pm
+  const angle = dayProgress * Math.PI; // 0 to PI
+
+  // Shadow falls opposite to sun direction
+  // At sunrise (angle=0): sun in east, shadow falls west (positive X)
+  // At noon (angle=PI/2): sun above, shadow falls south (positive Y)
+  // At sunset (angle=PI): sun in west, shadow falls east (negative X)
+  const distance = 1.5;
+  const offsetX = Math.cos(angle) * distance;
+  const offsetY = 0.8 + Math.sin(angle) * 0.6; // Always slightly down, more at noon
+
+  // Shadow is strongest at noon, weaker at dawn/dusk
+  const opacity = 0.1 + Math.sin(angle) * 0.08; // 0.1 to 0.18
+
+  return { offsetX, offsetY, opacity };
 }
 
 /**
@@ -301,14 +350,15 @@ class MapCanvasRenderer {
     playerX?: number,
     playerY?: number,
     disableSmoothing = false,
-    season?: 'spring' | 'summer' | 'fall' | 'winter'
+    season?: 'spring' | 'summer' | 'fall' | 'winter',
+    timeOfDay: number = 12
   ) {
     if (!this.canvas || !this.ctx || !this.shouldRender(mapData, canvasSize)) return;
 
     if (this.renderFrameId) cancelAnimationFrame(this.renderFrameId);
 
     this.renderFrameId = requestAnimationFrame(() => {
-      this.performRender(mapData, canvasSize, patterns, isNight, playerX, playerY, disableSmoothing, season);
+      this.performRender(mapData, canvasSize, patterns, isNight, playerX, playerY, disableSmoothing, season, timeOfDay);
       this.lastMapSeed = mapData.seed;
       this.lastCanvasWidth = canvasSize.width;
       this.lastCanvasHeight = canvasSize.height;
@@ -324,7 +374,8 @@ class MapCanvasRenderer {
     playerX?: number,
     playerY?: number,
     disableSmoothing = false,
-    season?: 'spring' | 'summer' | 'fall' | 'winter'
+    season?: 'spring' | 'summer' | 'fall' | 'winter',
+    timeOfDay: number = 12
   ) {
     if (!this.canvas || !this.ctx) return;
 
@@ -350,7 +401,7 @@ class MapCanvasRenderer {
     this.renderOceanBackground(mapData, canvasSize);
     this.renderShoals(mapData, canvasSize);
     this.renderCoastlineHalo(mapData, noise);     // batched + fast
-    this.renderLandTiles(mapData, patterns, noise, season, canvasSize);
+    this.renderLandTiles(mapData, patterns, noise, season, canvasSize, timeOfDay);
 
     if (isNight && playerX !== undefined && playerY !== undefined) {
       this.renderPlayerCenteredVignette(playerX, playerY, canvasSize);
@@ -539,9 +590,13 @@ class MapCanvasRenderer {
     patterns: any,
     noiseGenerators: any,
     season: 'spring' | 'summer' | 'fall' | 'winter' | undefined,
-    canvasSize: { width: number; height: number }
+    canvasSize: { width: number; height: number },
+    timeOfDay: number = 12
   ) {
     if (!this.ctx) return;
+
+    // Calculate light direction once per frame (not per tile)
+    const lightDir = calculateLightDirection(timeOfDay);
 
     const tileBatches = new Map<string, { tiles: Tile[]; color: string }>();
 
@@ -552,8 +607,8 @@ class MapCanvasRenderer {
         const baseColor = getTileRenderColor(tile, mapData.climate, mapData.seed, season, mapData.mapAreaName);
         // Apply edge blending for smooth biome transitions (can be disabled via ENABLE_EDGE_BLENDING flag)
         const blendedColor = applyEdgeBlending(baseColor, tile, x, y, mapData.tiles, mapData, season);
-        // Apply altitude shading for subtle 3D effect (can be disabled via ENABLE_ALTITUDE_SHADING flag)
-        const color = applyAltitudeShading(blendedColor, tile.altitude);
+        // Apply altitude shading with dithering for subtle 3D effect (can be disabled via ENABLE_ALTITUDE_SHADING flag)
+        const color = applyAltitudeShading(blendedColor, tile.altitude, x, y);
         const key = `${tile.biome}-${color}`;
         if (!tileBatches.has(key)) tileBatches.set(key, { tiles: [], color });
         tileBatches.get(key)!.tiles.push(tile);
@@ -607,14 +662,14 @@ class MapCanvasRenderer {
           this.ctx!.restore();
         }
 
-        // Base fill - NO shadows on Safari for performance
+        // Base fill with time-of-day aware shadows (NO shadows on Safari for performance)
         this.ctx!.save();
         if (!isSafari) {
-          // Only apply shadows on non-Safari browsers
-          this.ctx!.shadowColor = 'rgba(0,0,0,0.15)';
+          // Dynamic shadow direction based on sun position
+          this.ctx!.shadowColor = `rgba(0,0,0,${lightDir.opacity})`;
           this.ctx!.shadowBlur = 2.5;
-          this.ctx!.shadowOffsetX = 1.2;
-          this.ctx!.shadowOffsetY = 1.2;
+          this.ctx!.shadowOffsetX = lightDir.offsetX;
+          this.ctx!.shadowOffsetY = lightDir.offsetY;
         }
         this.ctx!.fillStyle = color;
         this.ctx!.fill(organicPath);
@@ -819,6 +874,7 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
       playerY,
       disableSmoothing = false,
       season,
+      timeOfDay = 12,
     },
     ref
   ) => {
@@ -830,13 +886,16 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
     // Recompute patterns when seed or season changes (stable otherwise)
     const memoizedPatterns = useMemo(() => patterns, [mapData.seed, season]);
 
+    // Quantize timeOfDay to 1-hour intervals to prevent excessive re-renders
+    const quantizedTimeOfDay = Math.floor(timeOfDay);
+
     useEffect(() => {
       const renderer = rendererRef.current;
       const canvasElement = typeof canvasRef === 'function' ? null : canvasRef.current;
       renderer.setCanvas(canvasElement);
 
       if (mapData) {
-        renderer.render(mapData, canvasSize, memoizedPatterns, isNight, playerX, playerY, disableSmoothing, season);
+        renderer.render(mapData, canvasSize, memoizedPatterns, isNight, playerX, playerY, disableSmoothing, season, quantizedTimeOfDay);
       }
 
       return () => renderer.cleanup();
@@ -850,6 +909,7 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
       playerY,
       disableSmoothing,
       season,
+      quantizedTimeOfDay,
     ]);
 
     return (

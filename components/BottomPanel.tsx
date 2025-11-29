@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Tile, PlayerCharacter, MapData, Season, Item, BiomeType, ActionableTile, TerrainStructure, TimeOfDay } from '../types';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { weatherService } from '../services/weatherService';
@@ -6,6 +6,7 @@ import { METALS } from '../constants/gameData/metals';
 import { gameSounds } from '../services/gameSoundsService';
 import { getBackgroundPaths, loadBackgroundImage } from '../services/backgroundSelectionService';
 import { getBiomeIcon } from '../utils/biomeUtils';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface BottomPanelProps {
     actionableTile: ActionableTile | null;
@@ -56,43 +57,100 @@ interface BottomPanelProps {
 }
 
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string, variant?: 'blue' | 'red' }> = React.memo(({ onClick, children, icon, variant = 'blue' }) => {
-    const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
+    const isMobile = useIsMobile();
     const isRed = variant === 'red';
+    const [isPressed, setIsPressed] = useState(false);
+
+    const handleMouseDown = useCallback(() => setIsPressed(true), []);
+    const handleMouseUp = useCallback(() => setIsPressed(false), []);
+    const handleMouseLeave = useCallback(() => setIsPressed(false), []);
 
     return (
-        <div
+        <button
+            type="button"
             onClick={onClick}
-            className={`group relative cursor-pointer ${isMobile ? 'px-8 py-3' : 'px-6 py-2'} rounded-xl ${isMobile ? 'text-lg' : 'text-base'} font-bold text-white flex items-center justify-center gap-2 overflow-hidden transition-all duration-200 active:scale-95 border ${isRed ? 'border-red-400/30' : 'border-blue-400/30'}`}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onTouchStart={handleMouseDown}
+            onTouchEnd={handleMouseUp}
+            className={`
+                group relative cursor-pointer
+                ${isMobile ? 'px-8 py-3' : 'px-6 py-2'}
+                rounded-xl
+                ${isMobile ? 'text-lg' : 'text-base'}
+                font-bold text-white
+                flex items-center justify-center gap-2
+                overflow-hidden
+                border ${isRed ? 'border-red-400/30' : 'border-blue-400/30'}
+                transition-all duration-150 ease-out
+                hover:scale-[1.02] hover:-translate-y-0.5
+                active:scale-[0.97] active:translate-y-0.5
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                ${isRed ? 'focus-visible:ring-red-400' : 'focus-visible:ring-blue-400'}
+            `}
             style={{
                 background: isRed
-                    ? 'linear-gradient(to right, rgb(220, 38, 38), rgb(185, 28, 28))'
-                    : 'linear-gradient(to right, rgb(37, 99, 235), rgb(29, 78, 216))',
-                textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                boxShadow: isRed
-                    ? '0 8px 32px rgba(239, 68, 68, 0.3), inset 0 1px 1px rgba(255,255,255,0.2)'
-                    : '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 1px rgba(255,255,255,0.2)',
+                    ? 'linear-gradient(to bottom, rgb(239, 68, 68), rgb(185, 28, 28))'
+                    : 'linear-gradient(to bottom, rgb(59, 130, 246), rgb(29, 78, 216))',
+                textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                boxShadow: isPressed
+                    ? isRed
+                        ? '0 2px 8px rgba(239, 68, 68, 0.3), inset 0 2px 4px rgba(0,0,0,0.2)'
+                        : '0 2px 8px rgba(59, 130, 246, 0.3), inset 0 2px 4px rgba(0,0,0,0.2)'
+                    : isRed
+                        ? '0 6px 20px rgba(239, 68, 68, 0.35), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)'
+                        : '0 6px 20px rgba(59, 130, 246, 0.35), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)',
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation',
-                minHeight: isMobile ? '60px' : 'auto'
+                minHeight: isMobile ? '60px' : 'auto',
+                transform: isPressed ? 'scale(0.97) translateY(2px)' : undefined
             }}
         >
+            {/* Shimmer highlight on top edge */}
+            <div
+                className="absolute inset-x-0 top-0 h-px opacity-60 pointer-events-none"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.5), transparent)' }}
+            />
+
             {/* Brightness overlay on hover */}
-            <div className={`absolute inset-0 rounded-xl ${isRed ? 'bg-red-400/20' : 'bg-blue-400/20'} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
+            <div className={`absolute inset-0 rounded-xl ${isRed ? 'bg-red-300/0' : 'bg-blue-300/0'} group-hover:${isRed ? 'bg-red-300/15' : 'bg-blue-300/15'} transition-colors duration-200 pointer-events-none`} />
 
             {/* Animated background sweep effect */}
-            <div className={`absolute inset-0 ${isRed ? 'bg-gradient-to-r from-red-400/0 via-red-300/20 to-red-400/0' : 'bg-gradient-to-r from-blue-400/0 via-blue-300/20 to-blue-400/0'} -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none`} />
+            <div className={`absolute inset-0 ${isRed ? 'bg-gradient-to-r from-red-400/0 via-red-200/25 to-red-400/0' : 'bg-gradient-to-r from-blue-400/0 via-blue-200/25 to-blue-400/0'} -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-500 ease-out pointer-events-none`} />
 
-            <span className="text-xl relative z-10 drop-shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">{icon}</span>
-            <span className="relative z-10 font-semibold">{children}</span>
+            {/* Icon with enhanced micro-interaction */}
+            <span
+                className={`
+                    text-xl relative z-10 drop-shadow-md
+                    transition-all duration-200 ease-out
+                    group-hover:scale-115 group-hover:rotate-6
+                    ${isPressed ? 'scale-90' : ''}
+                `}
+                style={{
+                    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))',
+                    transform: isPressed ? 'scale(0.9)' : undefined
+                }}
+            >
+                {icon}
+            </span>
 
-            {/* Glow effect */}
-            <div className={`absolute inset-0 rounded-xl ${isRed ? 'bg-red-400/20' : 'bg-blue-400/20'} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
-        </div>
+            {/* Text with subtle lift on hover */}
+            <span className="relative z-10 font-semibold tracking-wide group-hover:tracking-wider transition-all duration-200">
+                {children}
+            </span>
+
+            {/* Bottom edge shadow for depth */}
+            <div
+                className="absolute inset-x-0 bottom-0 h-px pointer-events-none"
+                style={{ background: 'rgba(0,0,0,0.2)' }}
+            />
+        </button>
     );
 });
 
 const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = React.memo(({ title, subtitle, icon }) => {
-    const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
+    const isMobile = useIsMobile();
     return (
         <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} surface-muted border backdrop-blur-sm ${isMobile ? 'px-3 py-2 min-w-[180px]' : 'px-4 py-1 min-w-[220px]'}`)}>
             {icon && (
@@ -114,7 +172,7 @@ const LocationDisplayWithPreview: React.FC<{
     backgroundUrl?: string;
     showPreview?: boolean;
 }> = ({ title, subtitle, icon, backgroundUrl, showPreview = false }) => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const isMobile = useIsMobile();
     const [isImageLoaded, setIsImageLoaded] = useState(false);
     const [isImageLoading, setIsImageLoading] = useState(false);
 
@@ -302,8 +360,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     const [localToast, setLocalToast] = useState<string | null>(null);
     const [showLocalToast, setShowLocalToast] = useState(false);
 
-    // Mobile detection for main component
-    const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth <= 768, []);
+    // Mobile detection for main component - uses proper resize-aware hook
+    const isMobile = useIsMobile();
 
     useEffect(() => {
         if (!toastMessage) return;

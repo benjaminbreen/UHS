@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Item, ItemQuality, PlayerCharacter } from '../types';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 import { FaTh, FaList, FaSortAmountDown } from 'react-icons/fa';
@@ -6,6 +6,7 @@ import { loadTamedAnimals, TamedAnimal, updateAnimalName } from '../services/ani
 import AnimalCompanionModal from './AnimalCompanionModal';
 import ButcherConfirmModal from './ButcherConfirmModal';
 import { vesselService } from '../services/vesselService';
+import { useIsDarkMode } from '../hooks/useIsMobile';
 
 /**
  * Get rarity colors and effects
@@ -125,7 +126,7 @@ export default function InventoryPanelEnhanced({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'quantity' | 'rarity'>('name');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  const isDark = useIsDarkMode(); // Efficient hook replaces MutationObserver
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
@@ -134,20 +135,6 @@ export default function InventoryPanelEnhanced({
 
   const inventory = playerCharacter.inventory || [];
   const tamedAnimals = useMemo(() => loadTamedAnimals(), [animalRefresh]);
-
-  // Watch for dark mode changes
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   // Filter inventory
   const filteredInventory = useMemo(() => {
@@ -333,7 +320,7 @@ export default function InventoryPanelEnhanced({
           </div>
         ) : viewMode === 'grid' ? (
           /* GRID VIEW */
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {sortedInventory.map((item, idx) => {
               const colors = getRarityColors(item.rarity);
               const qualityInfo = getQualityInfo(item.quality);

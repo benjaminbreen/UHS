@@ -11,6 +11,35 @@ import { getDayOfYear } from '../utils/dateUtils';
 import DevTooltip from './DevTooltip';
 import SettingsPanel from './SettingsPanel';
 
+// Polished Suspense fallback - subtle pulsing indicator
+const ModalFallback = (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    style={{ animation: 'fadeIn 0.15s ease-out' }}
+    role="status"
+    aria-label="Loading"
+  >
+    <div className="relative w-10 h-10">
+      <div
+        className="absolute inset-0 rounded-full border-2 border-white/20"
+        style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+      />
+      <div className="absolute inset-3 rounded-full bg-white/30" />
+    </div>
+  </div>
+);
+
+// Inline fallback for smaller embedded modals
+const InlineFallback = (
+  <div className="flex items-center justify-center p-8" role="status" aria-label="Loading">
+    <div className="flex gap-1.5">
+      <div className="w-2 h-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '0ms' }} />
+      <div className="w-2 h-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '150ms' }} />
+      <div className="w-2 h-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+    </div>
+  </div>
+);
+
 // Lazy load heavy components for better initial load performance
 const WorldMapModal = lazy(() => import('./WorldMapModal'));
 const CharacterProfileModal = lazy(() => import('./CharacterProfileModal'));
@@ -258,17 +287,17 @@ const ModalHub: React.FC = () => {
                 <NpcModal npc={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>
             )}
             {infoModalTarget && isAnimal(infoModalTarget) && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <AnimalInfoModal animal={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>
                 </Suspense>
             )}
             {isAboutModalOpen && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
                 </Suspense>
             )}
             {isDevBuildingModeOpen && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <DevBuildingModeModal isOpen={isDevBuildingModeOpen} onClose={() => setIsDevBuildingModeOpen(false)} />
                 </Suspense>
             )}
@@ -314,15 +343,15 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {interactionModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <InteractionModal {...interactionModalData} onClose={() => setInteractionModalData(null)} onTakeItem={(item) => handleTakeItem(item, interactionModalData.entityId)} />
                 </Suspense>
             )}
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={InlineFallback}>
                 <SkillsModal isOpen={isSkillsModalOpen} isLoading={isSkillLoading} result={skillResult} onClose={() => setIsSkillsModalOpen(false)} />
             </Suspense>
             {isMapDetailsModalOpen && mapData && (
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense fallback={InlineFallback}>
                     <MapDetailsModal isOpen={isMapDetailsModalOpen} onClose={() => setIsMapDetailsModalOpen(false)} mapData={mapData} />
                 </Suspense>
             )}
@@ -370,7 +399,7 @@ const ModalHub: React.FC = () => {
               />
             )}
             {combatant && playerCharacter && mapData && (
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense fallback={InlineFallback}>
                     <CombatModal
                         combatant={combatant}
                         playerCharacter={playerCharacter}
@@ -402,17 +431,17 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {victoryDetails && (
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense fallback={InlineFallback}>
                     <VictoryModal {...victoryDetails} onClose={handleVictoryClose} />
                 </Suspense>
             )}
             {lootModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <LootModal opponent={lootModalData.opponent} onTakeItem={handleLooting} onClose={handleCloseLootModal} onTakeCoins={onTakeCoins} />
                 </Suspense>
             )}
             {structureModalTarget && mapData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} onEnterSpecialMap={enterSpecialMap} onCharacterUpdate={onCharacterUpdate as any} />
                 </Suspense>
             )}
@@ -431,12 +460,12 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {activeMiningModal && playerCharacter && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />
                 </Suspense>
             )}
             {activePoi && mapData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} onEnterSpecialMap={enterSpecialMap} />
                 </Suspense>
             )}
@@ -468,12 +497,12 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {isLevelUpModalOpen && levelUpCharacter && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <LevelUpModal character={levelUpCharacter} onLevelUp={handleLevelUp} />
                 </Suspense>
             )}
             {isPortraitModalOpen && portraitModalCharacter && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <PortraitModal
                         character={portraitModalCharacter}
                         onClose={() => { setIsPortraitModalOpen(false); setPortraitModalCharacter(null); }}
@@ -481,7 +510,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {isCraftingModalOpen && craftingModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <CraftingModal
                         isOpen={isCraftingModalOpen}
                         onClose={() => closeAllModals()}
@@ -493,7 +522,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {isEatingModalOpen && eatingModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <EatingResultModal
                         isOpen={isEatingModalOpen}
                         onClose={() => setIsEatingModalOpen(false)}
@@ -503,7 +532,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {containerModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <ContainerModal
                     isOpen={!!containerModalData}
                     onClose={() => setContainerModalData(null)}
@@ -736,7 +765,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {/* POI Toast Modal - Uses UI State */}
-            <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+            <Suspense fallback={ModalFallback}>
                 <POIToastModal 
                 onEnterSpecialMap={enterSpecialMap}
                 mapData={mapData}
@@ -826,7 +855,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {confrontationData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <NpcConfrontationModal
                     npc={confrontationData.npc}
                     item={confrontationData.item}
@@ -902,7 +931,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {diseaseContractedModalData?.isOpen && playerCharacter && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <DiseaseContractedModal
                     isOpen={diseaseContractedModalData.isOpen}
                     onClose={() => setDiseaseContractedModalData(null)}
@@ -913,7 +942,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {cityHistoricalModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <CityHistoricalModal
                         isOpen={!!cityHistoricalModalData}
                         onClose={() => setCityHistoricalModalData(null)}
@@ -926,7 +955,7 @@ const ModalHub: React.FC = () => {
 
             {/* Railroad Station Modal */}
             {railroadStationModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <RailroadStationModal
                         isOpen={true}
                         onClose={() => setRailroadStationModalData(null)}
@@ -1009,7 +1038,7 @@ const ModalHub: React.FC = () => {
 
             {/* Harbor Station Modal */}
             {harborModalData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <HarborStationModal
                         isOpen={true}
                         onClose={() => setHarborModalData(null)}
@@ -1085,7 +1114,7 @@ const ModalHub: React.FC = () => {
 
             {/* Factory Contract Negotiation Modal */}
             {showFactoryContractModal && activeFactoryData && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <ContractNegotiationModal
                         factoryType={activeFactoryData.factoryType}
                         factoryName={activeFactoryData.factoryName}
@@ -1108,7 +1137,7 @@ const ModalHub: React.FC = () => {
 
             {/* Factory Labor Panel */}
             {showFactoryPanel && activeFactoryData && activeFactoryData.contract && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+                <Suspense fallback={ModalFallback}>
                     <FactoryLaborPanel
                         factoryType={activeFactoryData.factoryType}
                         factoryName={activeFactoryData.factoryName}

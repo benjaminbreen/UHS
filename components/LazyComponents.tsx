@@ -19,12 +19,22 @@ export const VictoryModal = React.lazy(() => import('./VictoryModal'));
 export const WorldMapModal = React.lazy(() => import('./WorldMapModal'));
 export const SettingsPanel = React.lazy(() => import('./SettingsPanel'));
 
-// Loading component for suspense fallback
+// Loading component for suspense fallback - polished, minimal flash
 const ModalLoading: React.FC = () => (
-  <div className="loading-modal-backdrop">
-    <div className="loading-modal">
-      <div className="loading-spinner"></div>
-      <p>Loading...</p>
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+    role="status"
+    aria-label="Loading"
+  >
+    <div className="flex flex-col items-center gap-3">
+      {/* Subtle pulsing indicator */}
+      <div className="relative w-8 h-8">
+        <div
+          className="absolute inset-0 rounded-full border-2 border-white/20"
+          style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+        />
+        <div className="absolute inset-2 rounded-full bg-white/30" />
+      </div>
     </div>
   </div>
 );

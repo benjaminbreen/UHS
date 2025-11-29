@@ -696,7 +696,7 @@ const useCoreLoops = (
                 const droppedItems = mapData.terrainModifications?.droppedItems || [];
 
                 // Use safe wrapper to handle proxy issues
-                const updates = safeCalculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, undefined, droppedItems);
+                const updates = safeCalculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, undefined, droppedItems, animals);
 
                 // Check if NPC picked up an item
                 if ((updates as any)._itemPickedUp) {

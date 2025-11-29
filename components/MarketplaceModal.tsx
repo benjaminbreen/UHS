@@ -59,7 +59,7 @@ interface MarketplaceModalProps {
   onRequestTravel?: (destination: TravelDestination) => void;
 }
 
-type TabType = 'buy' | 'sell' | 'trade' | 'people' | 'info' | 'analysis';
+type TabType = 'buy' | 'sell' | 'trade' | 'people' | 'info';
 type CategoryFilter = 'all' | 'food' | 'tool' | 'weapon' | 'luxury' | 'raw_material' | 'manufactured' | 'religious' | 'medicine';
 
 const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
@@ -2899,14 +2899,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
           </div>
         </div>
         
-        {/* Enhanced tab navigation with historical theming */}
+        {/* Simplified tab navigation - 5 tabs (removed analysis, kept cleaner) */}
         <div
           className="flex border-b border-white/10 bg-gradient-to-b from-slate-900/50 to-slate-800/30"
-          onClick={(e) => {
-            console.log('[Tab Bar Click] Clicked on tab bar container');
-            console.log('[Tab Bar Click] Target:', e.target);
-            console.log('[Tab Bar Click] CurrentTarget:', e.currentTarget);
-          }}
           style={{ position: 'relative', zIndex: 50 }}
         >
           {[
@@ -2914,19 +2909,14 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             { id: 'sell', label: 'Sell', icon: '💰', count: playerSellableItems.length },
             { id: 'trade', label: 'Merchants', icon: '🤝', count: merchantNpcs.length },
             { id: 'people', label: 'People', icon: '👥', count: marketplaceWorkOffers.length + inhabitantsNpcs.length },
-            { id: 'info', label: 'Info', icon: '📜', count: null },
-            { id: 'analysis', label: 'Trends', icon: '📊', count: null }
+            { id: 'info', label: 'Info', icon: '📊', count: null }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={(e) => {
-                console.log('[Tab Click]', tab.id, tab.label);
-                console.log('[Tab Click] Event:', e);
-                console.log('[Tab Click] Current activeTab:', activeTab);
                 e.stopPropagation();
                 setActiveTab(tab.id as TabType);
               }}
-              onMouseEnter={() => console.log('[Tab Hover]', tab.id)}
               style={{
                 pointerEvents: 'auto',
                 cursor: 'pointer',
@@ -2939,7 +2929,6 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     tab.id === 'sell' ? 'bg-gradient-to-t from-amber-800/40 to-transparent text-amber-300 border-b-3 border-amber-400' :
                     tab.id === 'trade' ? 'bg-gradient-to-t from-purple-800/40 to-transparent text-purple-300 border-b-3 border-purple-400' :
                     tab.id === 'people' ? 'bg-gradient-to-t from-blue-800/40 to-transparent text-blue-300 border-b-3 border-blue-400' :
-                    tab.id === 'analysis' ? 'bg-gradient-to-t from-red-800/40 to-transparent text-red-300 border-b-3 border-red-400' :
                     'bg-gradient-to-t from-cyan-800/40 to-transparent text-cyan-300 border-b-3 border-cyan-400'
                   : ''
               }`}
@@ -2950,7 +2939,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <span className="inline-block transform group-hover:scale-110 transition-transform text-base">
                 {tab.icon}
               </span>
-              <span className="ml-2">{tab.label}</span>
+              <span className="ml-1.5">{tab.label}</span>
               {tab.count !== null && tab.count !== undefined && (
                 <span className="ml-1 text-xs opacity-75">({tab.count})</span>
               )}

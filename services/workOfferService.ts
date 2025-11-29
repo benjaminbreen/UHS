@@ -121,6 +121,108 @@ const workOfferSchema = {
 export const MAX_OFFERS_PER_NPC = 2;
 
 /**
+ * Check if NPC is willing to offer work based on reputation and conversation context
+ * Returns { willing: boolean, reason?: string }
+ */
+export function checkWorkOfferWillingness(
+  npc: NpcEntity,
+  conversationHistory?: Array<{ speaker: string; text: string }>,
+  playerReputation?: number
+): { willing: boolean; reason?: string; paymentModifier?: number } {
+  // Get NPC's opinion of player (default to player reputation or neutral)
+  const opinion = npc.memory?.opinionOfPlayer ?? playerReputation ?? 50;
+
+  // Very low opinion = refuse work
+  if (opinion < 20) {
+    return {
+      willing: false,
+      reason: "I don't trust you enough to give you work. Perhaps you should reconsider how you treat people."
+    };
+  }
+
+  // Check for hostile flags in memory
+  const knownFacts = npc.memory?.knownFactsAboutPlayer
+    ? Array.from(npc.memory.knownFactsAboutPlayer)
+    : [];
+
+  const wasAttacked = knownFacts.some(f => f.includes('ATTACKED'));
+  const wasThreatened = knownFacts.some(f => f.includes('THREATENED'));
+  const wasRobbed = knownFacts.some(f => f.includes('STOLE') || f.includes('THEFT'));
+
+  if (wasAttacked) {
+    return {
+      willing: false,
+      reason: "After what you did to me? I would never give you work. Leave me alone."
+    };
+  }
+
+  if (wasRobbed) {
+    return {
+      willing: false,
+      reason: "You stole from me! Why would I ever trust you with a task?"
+    };
+  }
+
+  if (wasThreatened && opinion < 40) {
+    return {
+      willing: false,
+      reason: "You threatened me before. I have no interest in dealing with you."
+    };
+  }
+
+  // Check recent conversation for red flags
+  if (conversationHistory && conversationHistory.length > 0) {
+    const recentPlayerMessages = conversationHistory
+      .filter(h => h.speaker === 'player')
+      .slice(-5) // Last 5 player messages
+      .map(h => h.text.toLowerCase())
+      .join(' ');
+
+    // Check for bizarre/threatening/offensive content
+    const redFlagPatterns = [
+      /vampire/i, /demon/i, /kill you/i, /murder/i, /die/i,
+      /hate you/i, /stupid/i, /idiot/i, /fool/i, /ugly/i,
+      /threat/i, /curse/i, /damn you/i, /shut up/i,
+      /rob you/i, /steal/i, /attack/i
+    ];
+
+    const hasRedFlags = redFlagPatterns.some(pattern => pattern.test(recentPlayerMessages));
+
+    if (hasRedFlags) {
+      return {
+        willing: false,
+        reason: "Given what you've been saying, I don't think I want to do business with you."
+      };
+    }
+
+    // Check for generally unfriendly conversation tone
+    const unfriendlyPatterns = [
+      /don't care/i, /whatever/i, /leave me/i, /go away/i,
+      /not interested/i, /waste.*time/i, /boring/i
+    ];
+
+    const isUnfriendly = unfriendlyPatterns.some(pattern => pattern.test(recentPlayerMessages));
+
+    if (isUnfriendly && opinion < 50) {
+      return {
+        willing: false,
+        reason: "You don't seem very interested in talking, so I won't bother offering work."
+      };
+    }
+  }
+
+  // Willing to offer work, but adjust payment based on opinion
+  let paymentModifier = 1.0;
+  if (opinion >= 70) {
+    paymentModifier = 1.2; // Better pay for trusted workers
+  } else if (opinion < 35) {
+    paymentModifier = 0.8; // Lower pay for those they don't fully trust
+  }
+
+  return { willing: true, paymentModifier };
+}
+
+/**
  * Generate a work offer using LLM
  */
 export async function generateWorkOffer(
@@ -130,9 +232,17 @@ export async function generateWorkOffer(
   terrainStructures: TerrainStructure[],
   gameTimeHours: number,
   playerPosition?: { x: number; y: number },
-  nearbyAnimals?: AnimalEntity[]
+  nearbyAnimals?: AnimalEntity[],
+  conversationHistory?: Array<{ speaker: string; text: string }>
 ): Promise<WorkOffer | null> {
   if (!mapData) return null;
+
+  // Check if NPC is willing to offer work based on relationship/conversation
+  const willingness = checkWorkOfferWillingness(npc, conversationHistory, playerCharacter.mapReputation);
+  if (!willingness.willing) {
+    // Return null - the caller should handle the rejection reason separately
+    return null;
+  }
 
   // Check if NPC already has too many active offers
   const allActiveOffers = getActiveWorkOffers();

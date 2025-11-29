@@ -67,6 +67,33 @@ const NpcDeathModal = lazy(() => import('./components/NpcDeathModal'));
 const DiseaseProgressionModal = lazy(() => import('./components/DiseaseProgressionModal'));
 const CampModal = lazy(() => import('./components/CampModal'));
 
+// Polished Suspense fallback - subtle pulsing indicator instead of jarring "Loading..." text
+const ModalSuspenseFallback = (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    style={{ animation: 'fadeIn 0.15s ease-out' }}
+    role="status"
+    aria-label="Loading"
+  >
+    <div className="relative w-10 h-10">
+      <div
+        className="absolute inset-0 rounded-full border-2 border-white/20"
+        style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+      />
+      <div className="absolute inset-3 rounded-full bg-white/30" />
+    </div>
+  </div>
+);
+
+// Invisible fallback for initial load - prevents flash
+const InvisibleFallback = (
+  <div
+    className="fixed inset-0 z-[100] pointer-events-none"
+    style={{ background: 'linear-gradient(135deg, #070b14 0%, #0a1628 50%, #070b14 100%)' }}
+    aria-hidden="true"
+  />
+);
+
 const AppContent: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -1253,7 +1280,7 @@ const AppContent: React.FC = () => {
         
         {/* Event System Components */}
         {showEventModal && currentEvent && playerCharacter && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={ModalSuspenseFallback}>
             <EventModal
               event={currentEvent}
               player={playerCharacter}
@@ -1312,7 +1339,7 @@ const AppContent: React.FC = () => {
         
         {/* Faction Modal */}
         {showFactionsModal && factionData && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={ModalSuspenseFallback}>
             <FactionsModal
               onClose={() => setShowFactionsModal(false)}
               currentZone={localArea}
@@ -1484,7 +1511,7 @@ const AppContent: React.FC = () => {
 
         {/* Death Modal */}
         {playerCharacter && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={ModalSuspenseFallback}>
             <GameOverModal
               isOpen={showDeathModal}
               causeOfDeath={deathCause || { type: 'accident' }}
@@ -1518,7 +1545,7 @@ const AppContent: React.FC = () => {
 
         {/* NPC Death Modal */}
         {showNpcDeathModal && npcDeathData && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={ModalSuspenseFallback}>
             <NpcDeathModal
               isOpen={showNpcDeathModal}
               npc={npcDeathData.npc}
@@ -1533,7 +1560,7 @@ const AppContent: React.FC = () => {
 
         {/* Disease Progression Modal */}
         {showDiseaseProgressionModal && currentDiseaseProgression && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={ModalSuspenseFallback}>
             <DiseaseProgressionModal
               isOpen={showDiseaseProgressionModal}
               title={currentDiseaseProgression.title}
@@ -1554,7 +1581,7 @@ const AppContent: React.FC = () => {
 
         {/* Camp Modal */}
         {isCampModalOpen && playerCharacter && mapData && controlledIconX !== null && controlledIconY !== null && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={ModalSuspenseFallback}>
             <CampModal
               isOpen={isCampModalOpen}
               onClose={() => setIsCampModalOpen(false)}
@@ -1630,7 +1657,7 @@ const AppContent: React.FC = () => {
 
         {/* WorldWeaver Modal - Rendered at app level to escape TopNav stacking context */}
         {worldWeaverModalData.isOpen && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={ModalSuspenseFallback}>
             <WorldWeaverModal
               isOpen={worldWeaverModalData.isOpen}
               onClose={() => setWorldWeaverModalData(prev => ({ ...prev, isOpen: false }))}
@@ -1651,7 +1678,7 @@ const AppContent: React.FC = () => {
 
         {/* Initial Scenario Modal - Rendered last to ensure it appears on top */}
         {showInitialScenarioModal && playerCharacter && gameDate && currentZone && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading...</div></div>}>
+          <Suspense fallback={InvisibleFallback}>
             <InitialScenarioModal
               isOpen={showInitialScenarioModal}
               onClose={() => {

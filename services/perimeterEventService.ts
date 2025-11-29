@@ -1571,33 +1571,33 @@ const PERIMETER_EVENTS: PerimeterEvent[] = [
         ]
     },
     {
-        id: 'industrial_union_organizer',
+        id: 'industrial_workers_meeting',
         era: HistoricalEra.INDUSTRIAL_ERA,
         culturalZones: ['EUROPEAN', 'NORTH_AMERICAN_COLONIAL'],
-        prompt: "A woman in practical clothes, her hands ink-stained from printing presses, is posting socialist pamphlets on the ruins. 'Workers built these ancient structures,' she argues passionately. 'Workers' hands. Not kings, not gods. Labor has always been the engine of history!' She's organizing factory workers, demanding 8-hour days, safety regulations, fair wages. Company thugs are hunting her. 'Help me hide,' she pleads. 'They'll kill me. But someone needs to tell workers they have power...' Her pamphlets detail company atrocities - child deaths, unsafe conditions, wage theft.",
+        prompt: "Six factory workers sit in a circle near the ruins, speaking quietly. They look up when you approach. One explains: 'We meet here after shifts. Can't talk at the factory - foreman reports conversations to management. We're discussing a work stoppage. Twelve-hour days, six days a week. Three workers died last month - machinery accidents. No compensation for families.' Another adds: 'If we stop work together, they have to listen. But if we fail, they'll fire everyone and blacklist us. Our families will starve.'",
         choices: [
             {
-                text: "Hide her and help distribute her materials",
+                text: "Offer to help coordinate communication between shifts",
                 outcomes: [
-                    { chance: 0.35, result: 'knowledge', message: 'She shares labor movement networks across Europe and America. Her historical analysis linking ancient labor to modern struggles is brilliant. You help spark a successful general strike. Workers win their demands.', value: 'Labor movement history and strategy' },
-                    { chance: 0.4, result: 'death', message: 'Company agents raid your location. You\'re both arrested. "Anarchist agitators," they call you. The Pinkerton men who interrogate you aren\'t gentle. Neither of you survive to trial.' },
-                    { chance: 0.25, result: 'injury', message: 'You\'re caught distributing pamphlets. Company thugs beat you as an example. She escapes. Months later, recovering, you hear the strike she organized succeeded. Your broken bones bought workers their victory.', value: 28 }
+                    { chance: 0.35, result: 'knowledge', message: 'You help pass messages between day and night shifts. The coordination works. After two weeks, management agrees to ten-hour days and safety inspections. Small victory, but real.', value: 'Industrial labor negotiation tactics' },
+                    { chance: 0.40, result: 'gold_loss', message: 'Management discovers your role. They bribe local police to arrest you for "criminal conspiracy." Bail and legal fees cost you significantly. The workers\' action continues without you.', value: 320 },
+                    { chance: 0.25, result: 'injury', message: 'Company guards catch you carrying messages. They make an example - broken ribs, warning to stay out of labor business. The stoppage happens anyway, without coordination. Results are mixed.', value: 18 }
                 ]
             },
             {
-                text: "Turn her in to authorities - she's promoting dangerous revolution",
+                text: "Warn them about the risks and suggest alternatives",
                 outcomes: [
-                    { chance: 0.35, result: 'gold_gain', message: 'Factory owners reward you generously. She\'s imprisoned for "sedition." Workers lose their strike without her leadership. You\'re comfortable. Child laborers continue dying. History will judge.', value: 450 },
-                    { chance: 0.4, result: 'death', message: 'You underestimated worker solidarity. Her comrades discover your betrayal. Working-class justice is swift. Your body is found near the ruins. No one investigates the death of a company informant.' },
-                    { chance: 0.25, result: 'knowledge', message: 'Before turning her in, you read her materials. She\'s right about everything - the deaths, the exploitation, the need for change. You report her anyway, but you can\'t unlearn what you know about whose side you chose.', value: 'Socialist economic analysis' }
+                    { chance: 0.40, result: 'knowledge', message: 'You discuss petition strategies, appeals to factory inspection boards, legal approaches. They listen but ultimately proceed with the stoppage - legal channels have failed them for years. You document what happens: practical education in labor economics.', value: 'Legal versus direct action in labor disputes' },
+                    { chance: 0.35, result: 'nothing', message: 'They thank you for concerns but explain you don\'t understand their situation. You don\'t work twelve-hour shifts. Your children aren\'t hungry. They proceed with their plan. You learn nothing.' },
+                    { chance: 0.25, result: 'knowledge', message: 'One older worker explains previous attempts - petitions ignored, delegation fired, company promises broken. "We tried your way," he says. "Now we try ours." Historical lesson in why workers organize.', value: 'History of failed legal labor remedies' }
                 ]
             },
             {
-                text: "Don't get involved - suggest she leave the area entirely",
+                text: "Stay neutral and document what you observe",
                 outcomes: [
-                    { chance: 0.4, result: 'item', message: 'She gives you her printing plates before fleeing. "Someone else can use these," she says. Years later, you learn she survived and organized workers across three countries. The plates gather dust.', value: 'PRINTING_PLATES' },
-                    { chance: 0.35, result: 'nothing', message: 'She flees. The company thugs catch her three towns over. The strike collapses without leadership. Workers gain nothing. You could have helped. You didn\'t.' },
-                    { chance: 0.25, result: 'knowledge', message: 'She shares her analysis before leaving: how ancient civilizations rose and fell based on how they treated workers. Her Marxist reading of archaeological evidence is fascinating, even if you disagree.', value: 'Materialist interpretation of history' }
+                    { chance: 0.40, result: 'knowledge', message: 'You watch the process - how they debate, vote, coordinate, handle disagreements. Democratic organization developing in real time. Your notes become valuable historical documentation of grassroots labor organizing.', value: 'Labor organizing process documentation' },
+                    { chance: 0.35, result: 'knowledge', message: 'They allow you to observe because you\'re not factory management. You document wages, hours, conditions, injury rates. Your neutral record later proves useful when government investigates factory practices.', value: 'Factory conditions statistical evidence' },
+                    { chance: 0.25, result: 'nothing', message: 'Your presence makes them uncomfortable. Outside observer with notebook. They disperse. One tells you: "Easy to watch and write when your family isn\'t at risk." Fair criticism.' }
                 ]
             }
         ]
@@ -1667,32 +1667,32 @@ const PERIMETER_EVENTS: PerimeterEvent[] = [
         ]
     },
     {
-        id: 'modern_influencer',
+        id: 'modern_photographer',
         era: HistoricalEra.MODERN_ERA,
-        prompt: "A social media influencer in designer exploring gear is setting up ring lights around the ruins. 'This is going to get SO many likes!' she squeals, climbing onto a precarious wall for a selfie. Her phone shows 2.3 million followers.",
+        prompt: "A photographer with professional equipment is documenting the ruins. She's on assignment for a travel magazine. 'They want dramatic shots,' she explains, adjusting her camera. 'Sunset lighting, mysterious angles, maybe some fog filters. Makes good copy.' You notice she's repositioning loose stones to frame shots better. Her assistant holds a reflector to create dramatic shadows. 'The editor wants it to look more... intact than it actually is. Can we just... not mention the modern graffiti in the shots?'",
         choices: [
             {
-                text: "Offer to take professional photos in exchange for tagging the site",
+                text: "Explain the importance of accurate documentation",
                 outcomes: [
-                    { chance: 0.5, result: 'gold_gain', message: 'Her post goes viral! A preservation society contacts you with grant funding.', value: 400 },
-                    { chance: 0.3, result: 'knowledge', message: 'Her massive platform brings attention. A historian follower DMs with valuable information about the ruins.', value: 'Crowdsourced historical research' },
-                    { chance: 0.2, result: 'nothing', message: 'She posts the photos but crops you out completely. Doesn\'t even tag the location.' }
+                    { chance: 0.40, result: 'knowledge', message: 'She listens and shifts approach. Her published article shows the ruins as they are - damaged, graffitied, real. The magazine runs it with honest context about preservation challenges. More valuable than pretty lies.', value: 'Ethical visual documentation practices' },
+                    { chance: 0.35, result: 'nothing', message: 'She\'s polite but firm: "I shoot what the magazine pays for. If you want documentary realism, talk to National Geographic." She continues staging shots. You have no authority to stop commercial photography.' },
+                    { chance: 0.25, result: 'knowledge', message: 'She agrees to shoot both versions - staged and realistic. She explains the economics of magazine photography. Educational conversation about representation versus reality in popular media.', value: 'Commercial photography economics' }
                 ]
             },
             {
-                text: "Stop her - she's damaging the archaeological site",
+                text: "Offer to guide her to the most photogenic authentic angles",
                 outcomes: [
-                    { chance: 0.4, result: 'nothing', message: 'She livestreams your confrontation. Her followers call you a \'Karen\'. She leaves, offended.' },
-                    { chance: 0.3, result: 'gold_loss', message: 'She posts a tearful video about you \'attacking\' her. Internet mob doxxes you. You face harassment and legal threats.', value: 350 },
-                    { chance: 0.3, result: 'knowledge', message: 'Your warning goes viral for the right reasons. Archaeological ethics trend on social media.', value: 'Public awareness of preservation' }
+                    { chance: 0.45, result: 'knowledge', message: 'You show her perspectives that are both dramatic and honest. She\'s grateful - better shots without artifice. The magazine credits you as historical consultant. Your input shapes how thousands see the site.', value: 'Public history through visual media' },
+                    { chance: 0.30, result: 'gold_gain', message: 'The magazine pays you for location scouting and historical context. Your brief paragraphs accompany her photos. Small fee but your name in print.', value: 200 },
+                    { chance: 0.25, result: 'item', message: 'While guiding the shoot, you notice details you\'d missed before - foundation lines visible only in certain light. Her professional eye for composition teaches you to see the site differently.', value: 'PHOTOGRAPHIC_NOTES' }
                 ]
             },
             {
-                text: "Wait for the inevitable accident - that wall won't hold",
+                text: "Ask to see her photos before publication",
                 outcomes: [
-                    { chance: 0.4, result: 'injury', message: 'The wall collapses, taking you both down. She\'s fine, but you broke your arm trying to catch her.', value: 25 },
-                    { chance: 0.3, result: 'death', message: 'The wall collapses catastrophically. She survives with bruises. You\'re buried under ancient masonry.' },
-                    { chance: 0.3, result: 'item', message: 'She falls harmlessly. In the dust, you spot something she dislodged - a sealed container!', value: 'ANCIENT_CONTAINER' }
+                    { chance: 0.40, result: 'knowledge', message: 'She shares her whole portfolio - how she frames shots, chooses angles, uses light. You learn how visual media constructs historical narratives. Sometimes pretty pictures harm accurate understanding.', value: 'Visual media literacy and historical representation' },
+                    { chance: 0.35, result: 'nothing', message: '"The magazine owns the images. I can\'t share unpublished work." Professional boundaries. You respect that. The article runs three months later - heavily stylized, barely recognizable.' },
+                    { chance: 0.25, result: 'knowledge', message: 'She shows you before/after editing. The software "repairs" damaged walls, removes trash, enhances colors. "Everyone does it," she explains. You\'re troubled by the gap between reality and published history.', value: 'Digital manipulation of historical sites' }
                 ]
             }
         ]

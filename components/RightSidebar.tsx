@@ -32,6 +32,7 @@ import { JournalQuotesPanel } from './JournalQuotesPanel';
 import { loadDiscussionHistory } from '../services/sourceDiscussionPersistence';
 import { FaBook, FaBoxOpen, FaMicroscope, FaScroll } from 'react-icons/fa';
 import { removeItemFromInventory } from '../utils/inventoryUtils';
+import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
 
 const MIN_SIDEBAR_WIDTH = 400;
 const MAX_SIDEBAR_WIDTH = 700;
@@ -407,30 +408,52 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     };
   }, [playerCharacter?.health, playerCharacter?.maxHealth, playerCharacter?.fatigue, playerCharacter?.maxFatigue, playerCharacter?.experience, playerCharacter?.maxExperience, playerCharacter?.mapReputation]);
 
+  // Get disease restrictions and symptom info
+  const diseaseRestrictions = useMemo(() => {
+    return calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);
+  }, [playerCharacter?.diseaseHealth]);
+
   const statusInfo = useMemo(() => {
-    if (!playerCharacter) return { text: 'Feeling okay', hasDisease: false as boolean, severity: '' as string };
+    if (!playerCharacter) return { text: 'Feeling okay', hasDisease: false as boolean, severity: '' as string, symptoms: '', stage: '' };
     const healthPercent = playerCharacter.health / playerCharacter.maxHealth;
     const fatiguePercent = playerCharacter.fatigue / playerCharacter.maxFatigue;
     const xpPercent = playerCharacter.experience / playerCharacter.maxExperience;
 
-    // active disease (wins)
+    // active disease - use the disease restrictions for better symptom display
     const dis = playerCharacter.diseaseHealth?.currentDiseases || [];
     const symptomatic = dis.filter((d: any) => d.stage === 'symptomatic' || d.stage === 'active');
     if (symptomatic.length) {
       const worst = symptomatic.reduce((a: any, b: any) => (b.severity > a.severity ? b : a));
-      return { text: `Suffering from ${worst.disease.severity} ${worst.disease.name.toLowerCase()}`, hasDisease: true, severity: worst.disease.severity };
+      // Build descriptive symptom text based on progression stage
+      let symptomText = diseaseRestrictions.symptomDescription || '';
+      const stageLabel = diseaseRestrictions.progressionStage;
+      let stageIcon = '';
+      switch (stageLabel) {
+        case 'early': stageIcon = '🟢'; break;
+        case 'moderate': stageIcon = '🟡'; break;
+        case 'severe': stageIcon = '🟠'; break;
+        case 'critical': stageIcon = '🔴'; break;
+        case 'terminal': stageIcon = '💀'; break;
+      }
+      return {
+        text: `${stageIcon} ${worst.disease.name}`,
+        hasDisease: true,
+        severity: worst.disease.severity,
+        symptoms: symptomText,
+        stage: stageLabel
+      };
     }
 
-    if (fatiguePercent > 0.95) return { text: 'Feeling awful', hasDisease: false, severity: '' };
-    if (fatiguePercent > 0.85) return { text: 'Exhausted', hasDisease: false, severity: '' };
-    if (fatiguePercent > 0.75) return { text: 'Feeling run down', hasDisease: false, severity: '' };
-        if (fatiguePercent > 0.65) return { text: 'A bit tired', hasDisease: false, severity: '' };
-         if (fatiguePercent > 0.5) return { text: 'Feeling so-so', hasDisease: false, severity: '' };
-    if (healthPercent < 0.3) return { text: 'Gravely injured', hasDisease: false, severity: '' };
-        if (xpPercent >= 0.5) return { text: 'Learning new things', hasDisease: false, severity: '' };
-    if (xpPercent >= 0.9) return { text: 'On the verge of a breakthrough!', hasDisease: false, severity: '' };
-    return { text: 'Feeling fine', hasDisease: false, severity: '' };
-  }, [playerCharacter]);
+    if (fatiguePercent > 0.95) return { text: 'Feeling awful', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    if (fatiguePercent > 0.85) return { text: 'Exhausted', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    if (fatiguePercent > 0.75) return { text: 'Feeling run down', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    if (fatiguePercent > 0.65) return { text: 'A bit tired', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    if (fatiguePercent > 0.5) return { text: 'Feeling so-so', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    if (healthPercent < 0.3) return { text: 'Gravely injured', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    if (xpPercent >= 0.5) return { text: 'Learning new things', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    if (xpPercent >= 0.9) return { text: 'On the verge of a breakthrough!', hasDisease: false, severity: '', symptoms: '', stage: '' };
+    return { text: 'Feeling fine', hasDisease: false, severity: '', symptoms: '', stage: '' };
+  }, [playerCharacter, diseaseRestrictions]);
 
   return (
     <>
@@ -545,32 +568,46 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   {/* Disease status and badges */}
                   {playerCharacter.diseaseHealth?.currentDiseases?.length ? (
                     <div className="mb-1">
-                      {/* Disease badges */}
-                      <div className="flex flex-wrap gap-1 mb-0.5">
-                        {playerCharacter.diseaseHealth.currentDiseases.map((d: any, index: number) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-600/80 text-white text-xs font-bold rounded-full
-                                       border border-pink-400 shadow-md"
-                            title={`${d.disease.name} - ${d.disease.severity}`}
-                          >
-                            <span className="text-sm">{d.disease.badgeIcon}</span>
-                            <span>{d.disease.name}</span>
-                          </span>
-                        ))}
+                      {/* Disease badges with stage indicator inline */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex flex-wrap gap-1">
+                          {playerCharacter.diseaseHealth.currentDiseases.map((d: any, index: number) => (
+                            <span
+                              key={index}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-white text-xs font-bold rounded-full border shadow-md ${
+                                statusInfo.stage === 'terminal' ? 'bg-red-800 border-red-500' :
+                                statusInfo.stage === 'critical' ? 'bg-red-600 border-red-400' :
+                                statusInfo.stage === 'severe' ? 'bg-orange-600 border-orange-400' :
+                                statusInfo.stage === 'moderate' ? 'bg-yellow-600 border-yellow-400' :
+                                'bg-green-600 border-green-400'
+                              }`}
+                              title={`${d.disease.name} - Stage: ${statusInfo.stage || 'early'}`}
+                            >
+                              <span className="text-sm">{d.disease.badgeIcon}</span>
+                              <span>{d.disease.name}</span>
+                            </span>
+                          ))}
+                        </div>
+                        {/* Stage indicator bar - now inline to the right */}
+                        <div className="flex items-center gap-1">
+                          <div className="flex gap-0.5">
+                            {['early', 'moderate', 'severe', 'critical', 'terminal'].map((stage, i) => (
+                              <div
+                                key={stage}
+                                className={`w-3 h-1.5 rounded-sm transition-all ${
+                                  i <= ['early', 'moderate', 'severe', 'critical', 'terminal'].indexOf(statusInfo.stage || 'early')
+                                    ? (stage === 'terminal' ? 'bg-red-600' :
+                                       stage === 'critical' ? 'bg-red-500' :
+                                       stage === 'severe' ? 'bg-orange-500' :
+                                       stage === 'moderate' ? 'bg-yellow-500' : 'bg-green-500')
+                                    : 'bg-gray-300 dark:bg-gray-600'
+                                }`}
+                                title={stage.charAt(0).toUpperCase() + stage.slice(1)}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      {/* Status text below portrait area */}
-                      <p
-                        className={`text-xs flex-shrink-0 leading-relaxed ${
-                          statusInfo.severity === 'critical' || statusInfo.severity === 'severe'
-                            ? 'text-[var(--color-error)]'
-                            : statusInfo.severity === 'moderate'
-                            ? 'text-[var(--color-warning)]'
-                            : 'text-[var(--color-warning)]'
-                        }`}
-                      >
-                        {statusInfo.text}
-                      </p>
                     </div>
                   ) : (
                     /* Status when no disease */

@@ -36,6 +36,23 @@
 /* Enable modern color-scheme support */
 :root {
   color-scheme: light dark;
+
+  /* ==========================================
+     EASING FUNCTIONS LIBRARY
+     Use these for all animations - they feel alive
+     ========================================== */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);        /* Snappy stop, great for modals */
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);    /* Slight overshoot, playful */
+  --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);    /* Material Design standard */
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55); /* Bouncy, use sparingly */
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Natural spring feel */
+
+  /* Duration tokens - consistency across animations */
+  --duration-instant: 75ms;
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-glacial: 800ms;
 }
 
 /* FALLBACK: Explicit light mode rules (for browsers without light-dark() support) */
@@ -1036,18 +1053,20 @@ body {
 @keyframes inventory-item-reveal {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-/* Inventory card base styling with animation */
+/* Inventory card base styling with animation + stagger support */
 .inventory-item-card {
   opacity: 0;
-  animation: inventory-item-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: inventory-item-reveal 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  /* Stagger delay based on CSS custom property (set via style attr) */
+  animation-delay: calc(var(--item-index, 0) * 35ms);
   /* GPU acceleration */
   will-change: transform, opacity;
   transform: translateZ(0);
@@ -1057,13 +1076,15 @@ body {
 @supports (-webkit-backdrop-filter: blur(1px)) {
   .inventory-item-card {
     animation: inventory-item-reveal 0.35s ease-out forwards;
+    animation-delay: calc(var(--item-index, 0) * 25ms);
   }
 }
 
 /* Study panel uses same animation */
 .study-item-card {
   opacity: 0;
-  animation: inventory-item-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: inventory-item-reveal 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  animation-delay: calc(var(--item-index, 0) * 35ms);
   will-change: transform, opacity;
   transform: translateZ(0);
 }
@@ -1072,4 +1093,80 @@ body {
   .study-item-card {
     animation: inventory-item-reveal 0.35s ease-out forwards;
   }
+}
+
+/* ==========================================
+   SELECTION & INTERACTION FEEDBACK
+   Micro-animations that make UI feel alive
+   ========================================== */
+
+/* Pulse ring when element becomes selected */
+@keyframes selection-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.animate-selection {
+  animation: selection-ring 0.5s var(--ease-out-expo) 1;
+}
+
+/* Subtle bounce for newly added items */
+@keyframes item-added-bounce {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-item-added {
+  animation: item-added-bounce 0.4s var(--ease-spring) forwards;
+}
+
+/* Shake animation for errors/invalid actions */
+@keyframes shake-subtle {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+.animate-shake {
+  animation: shake-subtle 0.4s ease-out;
+}
+
+/* Success checkmark pop */
+@keyframes success-pop {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(0deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-success {
+  animation: success-pop 0.35s var(--ease-out-back) forwards;
 }

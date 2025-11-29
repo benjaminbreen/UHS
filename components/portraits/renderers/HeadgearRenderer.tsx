@@ -147,55 +147,183 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
 
     // ========= SHAPES =========
 
-    // CROWNS / CIRCLETS / DIadems / WREATHS
+    // CROWNS / CIRCLETS / DIadems / WREATHS - IMPROVED: 3D curved band, proper metalwork
     if (nameContains('crown', 'circlet', 'tiara', 'coronet', 'diadem', 'laurel')) {
       const isLaurel = name.includes('laurel');
-      const gold = '#FFD700';
-      const wreath = isLaurel ? '#3E8E41' : gold;
+      const isCirclet = nameContains('circlet', 'diadem');
+      const isTiara = name.includes('tiara');
 
-      // Band along the top of forehead
-      for (let x = headX; x < headX + headDim.width; x++) {
-        elements.push(
-          <rect key={`crown-band-${x}`} x={x} y={headY - 2} width="1" height="2" fill={wreath} className="pixel" />
-        );
-        if (!isLaurel && ((x - headX) % 4 === 2) && (isNoble || nameContains('jeweled', 'gem', 'ruby', 'emerald', 'sapphire', 'pearl', 'diamond'))) {
-          // small in-band jewels
-          let jewel = '#DC143C';
-          if (name.includes('emerald')) jewel = '#50C878';
-          else if (name.includes('sapphire')) jewel = '#0F52BA';
-          else if (name.includes('diamond')) jewel = '#E0FFFF';
-          else if (name.includes('pearl')) jewel = '#FFF8DC';
-          elements.push(<rect key={`crown-jewel-${x}`} x={x} y={headY - 1} width="1" height="1" fill={jewel} className="pixel" />);
-        }
-      }
+      // Metal colors with proper shading
+      const goldBase = '#FFD700';
+      const goldBright = '#FFEC8B';
+      const goldLight = '#FFE066';
+      const goldShade = '#DAA520';
+      const goldDeep = '#B8860B';
+      const goldDark = '#8B6914';
 
-      // Points (skip for circlet)
-      if (!nameContains('circlet', 'wreath')) {
-        const points = 5;
-        for (let i = 0; i < points; i++) {
-          const px = headX + 1 + Math.floor(i * ((headDim.width - 2) / (points - 1)));
-          const ph = i === Math.floor(points / 2) ? 7 : i === 0 || i === points - 1 ? 4 : 5 + (i % 2);
-          for (let h = 0; h < ph; h++) {
+      const wreathBase = isLaurel ? '#3E8E41' : goldBase;
+      const wreathLight = isLaurel ? '#4CAF50' : goldLight;
+      const wreathShade = isLaurel ? '#2E7D32' : goldShade;
+      const wreathDeep = isLaurel ? '#1B5E20' : goldDeep;
+
+      // Crown band follows curved head shape (arc) - 3 rows thick for depth
+      const bandHeight = isCirclet ? 2 : 3;
+      const bandWidth = headDim.width + 2; // Slightly wider than head
+
+      for (let row = 0; row < bandHeight; row++) {
+        for (let i = 0; i < bandWidth; i++) {
+          const xPos = headX - 1 + i;
+          const xNorm = i / bandWidth;
+
+          // Curved arc - rises in the center
+          const arcOffset = Math.round(Math.sin(xNorm * Math.PI) * 1.5);
+          const yPos = headY - 1 - row - arcOffset;
+
+          // Skip corners for rounded shape
+          if (row === 0 && (i === 0 || i === bandWidth - 1)) continue;
+
+          // Metal shading based on position
+          let bandColor = wreathBase;
+          if (xNorm < 0.12) bandColor = wreathDeep;
+          else if (xNorm < 0.22) bandColor = wreathShade;
+          else if (xNorm > 0.88) bandColor = wreathDeep;
+          else if (xNorm > 0.78) bandColor = wreathShade;
+          else if (xNorm > 0.4 && xNorm < 0.6) bandColor = wreathLight;
+
+          // Top row brighter, bottom row darker
+          if (row === 0) bandColor = createHighlight(bandColor, 1.08);
+          else if (row === bandHeight - 1) bandColor = createShadow(bandColor, 0.85);
+
+          // Metallic texture
+          if ((i * 3 + row * 7) % 5 === 0) bandColor = createHighlight(bandColor, 1.06);
+
+          elements.push(
+            <rect key={`crown-band-${i}-${row}`} x={xPos} y={yPos} width="1" height="1" fill={bandColor} className="pixel" />
+          );
+
+          // Jewels embedded in band for crowns
+          if (!isLaurel && row === 1 && ((i - 1) % 5 === 2) && (isNoble || nameContains('jeweled', 'gem', 'ruby', 'emerald', 'sapphire', 'pearl', 'diamond'))) {
+            let jewel = '#DC143C';
+            let jewelHL = '#FF6B6B';
+            if (name.includes('emerald')) { jewel = '#50C878'; jewelHL = '#7CFC00'; }
+            else if (name.includes('sapphire')) { jewel = '#0F52BA'; jewelHL = '#4169E1'; }
+            else if (name.includes('diamond')) { jewel = '#E0FFFF'; jewelHL = '#FFFFFF'; }
+            else if (name.includes('pearl')) { jewel = '#FFF8DC'; jewelHL = '#FFFAFA'; }
             elements.push(
-              <rect key={`crown-pt-${i}-${h}`} x={px} y={headY - 3 - h} width="1" height="1" fill={createHighlight(gold, 1 - h * 0.03)} className="pixel" />
+              <rect key={`crown-jewel-${i}`} x={xPos} y={yPos} width="1" height="1" fill={jewel} className="pixel" />,
+              <rect key={`crown-jewel-shine-${i}`} x={xPos} y={yPos - 1} width="1" height="1" fill={jewelHL} opacity={0.4} className="pixel" />
             );
           }
-          // top jewel on middle point if fancy
-          if (i === Math.floor(points / 2) && (isNoble || isWealthy)) {
-            elements.push(<rect key="crown-top-j" x={px} y={headY - 3 - ph} width="1" height="1" fill="#0F52BA" className="pixel" />);
+        }
+      }
+
+      // Crown points (skip for circlet/wreath)
+      if (!nameContains('circlet', 'wreath') && !isTiara) {
+        const points = 5;
+        for (let i = 0; i < points; i++) {
+          const px = headX + Math.floor((i + 0.5) * (headDim.width / points));
+          const isCenterPoint = i === Math.floor(points / 2);
+          const baseHeight = isCenterPoint ? 8 : (i === 0 || i === points - 1 ? 4 : 5 + (i % 2));
+
+          // Each point is 2-3 pixels wide with proper shading
+          const pointWidth = isCenterPoint ? 3 : 2;
+
+          for (let h = 0; h < baseHeight; h++) {
+            const taperWidth = Math.max(1, pointWidth - Math.floor(h / 3));
+            const startX = px - Math.floor(taperWidth / 2);
+
+            for (let pw = 0; pw < taperWidth; pw++) {
+              let pointColor = goldBase;
+              // Left edge darker, right edge lighter for 3D
+              if (pw === 0) pointColor = goldShade;
+              else if (pw === taperWidth - 1) pointColor = goldLight;
+              // Top lighter
+              if (h < 2) pointColor = createHighlight(pointColor, 1.1);
+              // Very top bright
+              if (h === baseHeight - 1) pointColor = goldBright;
+
+              elements.push(
+                <rect key={`crown-pt-${i}-${h}-${pw}`} x={startX + pw} y={headY - 4 - h} width="1" height="1" fill={pointColor} className="pixel" />
+              );
+            }
+          }
+
+          // Jewel at top of center point
+          if (isCenterPoint && (isNoble || isWealthy)) {
+            elements.push(
+              <rect key="crown-top-j-base" x={px - 1} y={headY - 4 - baseHeight} width="3" height="2" fill={goldDeep} className="pixel" />,
+              <rect key="crown-top-j" x={px} y={headY - 3 - baseHeight} width="1" height="1" fill="#0F52BA" className="pixel" />,
+              <rect key="crown-top-j-shine" x={px} y={headY - 4 - baseHeight} width="1" height="1" fill="#87CEEB" opacity={0.6} className="pixel" />
+            );
           }
         }
       }
 
-      // Laurel leaves detail
-      if (isLaurel) {
-        for (let i = 0; i < headDim.width; i += 3) {
-          const lx = headX + i;
-          elements.push(
-            <rect key={`leaf-${i}-a`} x={lx} y={headY - 3} width="2" height="1" fill={createHighlight('#2E7D32', 1.05)} className="pixel" />,
-            <rect key={`leaf-${i}-b`} x={lx + 1} y={headY - 4} width="1" height="1" fill={'#2E7D32'} className="pixel" />
-          );
+      // Tiara - delicate upswept arc with filigree
+      if (isTiara) {
+        const tiaraHeight = 6;
+        for (let i = 0; i < headDim.width; i++) {
+          const xPos = headX + i;
+          const xNorm = i / headDim.width;
+          // Arc shape - highest in center
+          const arcHeight = Math.round(Math.sin(xNorm * Math.PI) * tiaraHeight);
+
+          if (arcHeight > 0) {
+            // Thin elegant wire frame
+            for (let h = 0; h < arcHeight; h++) {
+              // Only draw at edges and peaks for filigree look
+              const isEdge = h === 0 || h === arcHeight - 1;
+              const isFrame = (i % 3 === 0) || isEdge;
+
+              if (isFrame) {
+                let color = goldBase;
+                if (h === arcHeight - 1) color = goldBright;
+                else if (xNorm < 0.2 || xNorm > 0.8) color = goldShade;
+                elements.push(
+                  <rect key={`tiara-${i}-${h}`} x={xPos} y={headY - 3 - h} width="1" height="1" fill={color} className="pixel" />
+                );
+              }
+            }
+
+            // Gems at peaks
+            if (arcHeight > 3 && i % 4 === 2 && (isNoble || isWealthy)) {
+              elements.push(
+                <rect key={`tiara-gem-${i}`} x={xPos} y={headY - 3 - arcHeight + 1} width="1" height="1" fill="#DC143C" className="pixel" />
+              );
+            }
+          }
         }
+      }
+
+      // Laurel wreath - realistic overlapping leaves
+      if (isLaurel) {
+        const leafPairs = 4;
+        for (let i = 0; i < leafPairs; i++) {
+          const baseX = headX + Math.floor((i + 0.5) * (headDim.width / leafPairs));
+
+          // Left-angled leaf
+          for (let ly = 0; ly < 4; ly++) {
+            const lx = baseX - ly;
+            let leafColor = ly === 0 ? wreathLight : (ly === 3 ? wreathDeep : wreathBase);
+            elements.push(
+              <rect key={`leaf-l-${i}-${ly}`} x={lx} y={headY - 3 - ly} width="1" height="1" fill={leafColor} className="pixel" />
+            );
+          }
+
+          // Right-angled leaf
+          for (let ly = 0; ly < 4; ly++) {
+            const lx = baseX + ly;
+            let leafColor = ly === 0 ? wreathLight : (ly === 3 ? wreathDeep : wreathBase);
+            elements.push(
+              <rect key={`leaf-r-${i}-${ly}`} x={lx} y={headY - 3 - ly} width="1" height="1" fill={leafColor} className="pixel" />
+            );
+          }
+        }
+
+        // Central tie/ribbon
+        elements.push(
+          <rect key="laurel-tie" x={headX + Math.floor(headDim.width / 2) - 1} y={headY - 2} width="2" height="1" fill="#8B0000" className="pixel" />
+        );
       }
     }
 
@@ -306,7 +434,7 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
           const w = 4 - i;
           const px = centerX - Math.floor(w / 2);
           for (let j = 0; j < w; j++) {
-            elements.push(<rect key={`peak-${i}-${j}`} x={px + j} y={peakY - i} width="1" height="1" fill={turbanHighlight} className="pixel" />);
+            elements.push(<rect key={`peak-${i}-${j}`} x={px + j} y={peakY - i} width="1" height="1" fill={turbanLight} className="pixel" />);
           }
         }
       }
@@ -337,100 +465,285 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
       }
     }
 
-    // COIF & MEDIEVAL FITTED CAPS (coif, biggins, topi, zukin)
-    else if (nameContains('coif', 'biggins', 'topi', 'zukin')) {
-      // Use two colors for depth and texture
-      const coifColor = material.includes('white') || material.includes('linen') ? '#F5F5DC' : base;
+    // COIF & MEDIEVAL FITTED CAPS (coif, biggins, topi/pith helmet, zukin)
+    else if (nameContains('coif', 'biggins', 'topi', 'pith', 'zukin')) {
+      const isCoif = nameContains('coif');
+      const isBiggins = nameContains('biggins');
+      const isTopi = nameContains('topi', 'pith'); // Topi = pith helmet
+      const isZukin = nameContains('zukin');
+
+      // Different base colors for different types
+      let coifColor = base;
+      if (isCoif && (material.includes('white') || material.includes('linen'))) {
+        coifColor = '#F5F5DC'; // Natural linen for medieval coif
+      } else if (isTopi) {
+        coifColor = '#F5DEB3'; // Tan/khaki for pith helmet
+      } else if (isZukin) {
+        coifColor = '#1A1A2E'; // Deep navy/black for ninja hood
+      }
+
       const coifShade = createShadow(coifColor, 0.75);
       const coifDeepShade = createShadow(coifColor, 0.6);
       const coifHighlight = createHighlight(coifColor, 1.15);
       const coifBrightHighlight = createHighlight(coifColor, 1.25);
 
-      // Create a properly rounded bonnet shape with depth
-      // Top dome of the coif - rounded like a real bonnet
-      for (let y = headY - 5; y <= headY + headDim.height - 3; y++) {
-        const yFromTop = y - (headY - 5);
-        const yFromBottom = (headY + headDim.height - 3) - y;
-        const yNorm = yFromTop / (headDim.height + 2);
+      if (isTopi) {
+        // === PITH HELMET / TOPI - Colonial sun helmet ===
+        // High domed crown with wide brim
+        const topiTop = headY - 8;
+        const domeHeight = 8;
+        const crownWidth = headDim.width + 4;
 
-        // Calculate width based on dome curvature
-        let width;
-        if (y < headY) {
-          // Top dome - narrows towards top
-          const domeProgress = (y - (headY - 5)) / 5;
-          width = Math.floor(headDim.width * (0.6 + domeProgress * 0.5));
-        } else if (y < headY + 8) {
-          // Main bonnet area - full width plus padding
-          width = headDim.width + 6;
-        } else {
-          // Lower area - tapers slightly
-          const taperProgress = (y - (headY + 8)) / (headDim.height - 11);
-          width = headDim.width + 6 - Math.floor(taperProgress * 3);
+        // Dome crown - high rounded shape
+        for (let y = topiTop; y < topiTop + domeHeight; y++) {
+          const yProgress = (y - topiTop) / domeHeight;
+          // Elliptical dome shape
+          const rowWidth = Math.floor(crownWidth * Math.sin(Math.acos(1 - yProgress)));
+          const startX = centerX - Math.floor(rowWidth / 2);
+
+          for (let x = 0; x < rowWidth; x++) {
+            const xNorm = x / rowWidth;
+            let col = coifColor;
+
+            // 3D shading on dome
+            const sphereX = (xNorm - 0.5) * 2;
+            const sphereY = (yProgress - 0.3);
+            const intensity = Math.sqrt(Math.max(0, 1 - sphereX * sphereX - sphereY * sphereY));
+
+            if (intensity > 0.85) col = coifBrightHighlight;
+            else if (intensity > 0.6) col = coifHighlight;
+            else if (xNorm < 0.15 || xNorm > 0.85) col = coifDeepShade;
+            else if (xNorm < 0.25 || xNorm > 0.75) col = coifShade;
+
+            elements.push(<rect key={`topi-dome-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
         }
 
-        const startX = centerX - Math.floor(width / 2);
+        // Wide brim - flat with slight curve
+        const brimY = topiTop + domeHeight;
+        const brimWidth = headDim.width + 10;
+        const brimDepth = 3;
 
-        for (let x = 0; x < width; x++) {
-          const xPos = startX + x;
-          const xNorm = x / width;
+        for (let by = 0; by < brimDepth; by++) {
+          const brimRowWidth = brimWidth - by; // Slight taper
+          const startX = centerX - Math.floor(brimRowWidth / 2);
 
-          // Skip center area for face opening
-          if (y >= headY + 4 && y < headY + headDim.height - 4) {
-            const faceOpeningLeft = 4;
-            const faceOpeningRight = width - 4;
-            if (x > faceOpeningLeft && x < faceOpeningRight) continue;
-          }
+          for (let bx = 0; bx < brimRowWidth; bx++) {
+            const xNorm = bx / brimRowWidth;
+            let col = coifShade;
 
-          // Calculate shading for rounded 3D effect
-          let color = coifColor;
+            if (by === 0 && xNorm > 0.3 && xNorm < 0.7) col = coifColor;
+            if (by === brimDepth - 1) col = coifDeepShade;
+            if (bx === 0 || bx === brimRowWidth - 1) col = coifDeepShade;
 
-          // Top highlight for dome
-          if (y < headY && xNorm > 0.3 && xNorm < 0.7) {
-            color = coifBrightHighlight;
+            elements.push(<rect key={`topi-brim-${bx}-${by}`} x={startX + bx} y={brimY + by} width="1" height="1" fill={col} className="pixel" />);
           }
-          // Edge shadows for depth
-          else if (x === 0 || x === width - 1) {
-            color = coifDeepShade;
-          }
-          // Side shadows
-          else if (x === 1 || x === width - 2) {
-            color = coifShade;
-          }
-          // Top edge shadow
-          else if (y === headY - 5) {
-            color = coifShade;
-          }
-          // Center-top highlight strip
-          else if (y < headY + 2 && Math.abs(xNorm - 0.5) < 0.15) {
-            color = coifHighlight;
-          }
-          // Side panel shading
-          else if (xNorm < 0.2) {
-            color = coifShade;
-          }
-          else if (xNorm > 0.8) {
-            color = coifDeepShade;
-          }
-
-          // Add texture variation
-          const textureNoise = (x * 7 + y * 13) % 17;
-          if (textureNoise === 0 && color === coifColor) {
-            color = coifHighlight;
-          } else if (textureNoise === 8 && color === coifColor) {
-            color = coifShade;
-          }
-
-          elements.push(<rect key={`coif-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={color} className="pixel" />);
         }
-      }
 
-      // Add subtle chin tie/string
-      if (!nameContains('biggins')) {  // Biggins don't have ties
-        const chinY = headY + headDim.height - 2;
-        elements.push(
-          <rect key={`coif-tie-l`} x={headX + 2} y={chinY} width="1" height="1" fill={coifDeepShade} className="pixel" />,
-          <rect key={`coif-tie-r`} x={headX + headDim.width - 3} y={chinY} width="1" height="1" fill={coifDeepShade} className="pixel" />
-        );
+        // Hat band
+        for (let bx = 0; bx < crownWidth - 2; bx++) {
+          elements.push(<rect key={`topi-band-${bx}`} x={centerX - Math.floor((crownWidth - 2) / 2) + bx} y={brimY - 1} width="1" height="1" fill="#654321" className="pixel" />);
+        }
+
+      } else if (isZukin) {
+        // === ZUKIN - Japanese hood/head covering ===
+        // Fitted to head, covers forehead, ties under chin
+        const zukinTop = headY - 4;
+        const zukinHeight = headDim.height + 6;
+
+        for (let y = zukinTop; y < zukinTop + zukinHeight; y++) {
+          const yProgress = (y - zukinTop) / zukinHeight;
+
+          // Calculate width - fitted to head shape
+          let width;
+          if (yProgress < 0.15) {
+            // Top - rounded
+            width = Math.floor(headDim.width * (0.5 + yProgress * 3));
+          } else if (yProgress < 0.7) {
+            // Main head area
+            width = headDim.width + 2;
+          } else {
+            // Bottom - tapers for chin area
+            width = Math.floor((headDim.width + 2) * (1 - (yProgress - 0.7) * 1.5));
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+
+            // Face opening - larger than coif
+            if (yProgress > 0.25 && yProgress < 0.85) {
+              const faceMargin = 3;
+              if (x > faceMargin && x < width - faceMargin) continue;
+            }
+
+            let col = coifColor;
+
+            // Subtle shading for dark fabric
+            if (x === 0 || x === width - 1) col = coifDeepShade;
+            else if (xNorm < 0.2) col = coifShade;
+            else if (xNorm > 0.8) col = createShadow(coifColor, 0.65);
+            else if (yProgress < 0.1 && xNorm > 0.35 && xNorm < 0.65) col = coifHighlight;
+
+            elements.push(<rect key={`zukin-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Ties hanging down
+        const tieY = zukinTop + zukinHeight - 2;
+        for (let ty = 0; ty < 4; ty++) {
+          elements.push(
+            <rect key={`zukin-tie-l-${ty}`} x={centerX - 6} y={tieY + ty} width="1" height="1" fill={coifShade} className="pixel" />,
+            <rect key={`zukin-tie-r-${ty}`} x={centerX + 5} y={tieY + ty} width="1" height="1" fill={coifShade} className="pixel" />
+          );
+        }
+
+      } else {
+        // === COIF / BIGGINS - Medieval fitted cap ===
+        // Soft linen cap that follows natural head shape with chin strap
+        const coifTop = headY - 6;
+        const coifHeight = headDim.height + (isBiggins ? 3 : 8);
+
+        // First pass: render the main coif body
+        for (let y = coifTop; y < coifTop + coifHeight; y++) {
+          const yProgress = (y - coifTop) / coifHeight;
+
+          // Natural skull-following curve using semicircle formula for dome
+          let width;
+          if (yProgress < 0.25) {
+            // Top dome - semicircular curve following skull
+            const domeT = yProgress / 0.25;
+            const domeWidth = Math.sqrt(1 - Math.pow(1 - domeT, 2)); // Semicircle
+            width = Math.floor((headDim.width + 2) * (0.3 + domeWidth * 0.75));
+          } else if (yProgress < 0.55) {
+            // Temple/ear area - widest part, slight bulge for gathering
+            const bulge = Math.sin((yProgress - 0.25) / 0.3 * Math.PI) * 2;
+            width = headDim.width + 4 + Math.floor(bulge);
+          } else if (yProgress < 0.75) {
+            // Cheek area - starts to narrow
+            const taperProgress = (yProgress - 0.55) / 0.2;
+            width = Math.floor((headDim.width + 4) * (1 - taperProgress * 0.15));
+          } else {
+            // Chin area - significant taper for chin strap
+            const chinProgress = (yProgress - 0.75) / 0.25;
+            width = Math.floor((headDim.width + 2) * (0.85 - chinProgress * 0.4));
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+
+            // Face opening - elliptical for natural framing
+            if (yProgress > 0.28 && yProgress < 0.78) {
+              const faceMargin = isBiggins ? 3 : 4;
+              // Curved face opening (not rectangular)
+              const faceCenterProgress = Math.abs(yProgress - 0.53) / 0.25;
+              const adjustedMargin = faceMargin + Math.floor((1 - faceCenterProgress) * 2);
+              if (x > adjustedMargin && x < width - adjustedMargin) continue;
+            }
+
+            let col = coifColor;
+
+            // Strong cylindrical 3D shading for fabric depth
+            if (xNorm < 0.08) col = coifDeepShade;
+            else if (xNorm < 0.18) col = coifShade;
+            else if (xNorm > 0.92) col = coifDeepShade;
+            else if (xNorm > 0.82) col = coifShade;
+            else if (xNorm > 0.4 && xNorm < 0.6 && yProgress < 0.2) col = coifBrightHighlight;
+            else if (xNorm > 0.35 && xNorm < 0.65 && yProgress < 0.28) col = coifHighlight;
+
+            // Horizontal stitch lines every 3 rows for linen texture
+            const isStitchRow = (y - coifTop) % 3 === 0;
+            if (isStitchRow && yProgress > 0.1 && yProgress < 0.9) {
+              if (col === coifColor) col = createShadow(coifColor, 0.88);
+            }
+
+            // Vertical gathered folds at temples (sides)
+            if (yProgress > 0.3 && yProgress < 0.7) {
+              const foldPattern = (y + x * 2) % 5;
+              if ((xNorm < 0.25 || xNorm > 0.75) && foldPattern === 0) {
+                col = createShadow(col, 0.85);
+              } else if ((xNorm < 0.25 || xNorm > 0.75) && foldPattern === 2) {
+                col = createHighlight(col, 1.08);
+              }
+            }
+
+            // Subtle linen weave texture
+            if (isCoif) {
+              const weaveX = x % 2;
+              const weaveY = y % 2;
+              if (weaveX === weaveY && col === coifColor) {
+                col = createShadow(coifColor, 0.95);
+              }
+            }
+
+            elements.push(<rect key={`coif-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Chin strap for coif (wraps under chin)
+        if (isCoif) {
+          const chinStrapY = headY + headDim.height - 2;
+          const strapWidth = headDim.width - 4;
+          const strapHeight = 3;
+
+          // Main chin strap band
+          for (let sy = 0; sy < strapHeight; sy++) {
+            const rowWidth = strapWidth - sy; // Slight taper
+            const startX = centerX - Math.floor(rowWidth / 2);
+
+            for (let sx = 0; sx < rowWidth; sx++) {
+              const sxNorm = sx / rowWidth;
+              let col = coifColor;
+
+              // Curved shading for strap depth
+              if (sy === 0) col = coifShade;
+              else if (sy === strapHeight - 1) col = coifDeepShade;
+              else if (sxNorm < 0.15 || sxNorm > 0.85) col = coifShade;
+              else col = coifColor;
+
+              // Stitch detail on strap
+              if (sx % 3 === 0 && sy === 1) col = createShadow(col, 0.9);
+
+              elements.push(<rect key={`coif-strap-${sx}-${sy}`} x={startX + sx} y={chinStrapY + sy} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Tie ends hanging down from sides
+          const tieStartY = chinStrapY + strapHeight;
+          const tieLength = 4;
+
+          // Left tie
+          for (let ty = 0; ty < tieLength; ty++) {
+            const sway = Math.sin(ty * 0.5) * 0.5;
+            const tieCol = ty === 0 ? coifShade : ty === tieLength - 1 ? coifDeepShade : coifColor;
+            elements.push(<rect key={`coif-tie-l-${ty}`} x={centerX - 5 + sway} y={tieStartY + ty} width="2" height="1" fill={tieCol} className="pixel" />);
+          }
+
+          // Right tie
+          for (let ty = 0; ty < tieLength; ty++) {
+            const sway = Math.sin(ty * 0.5 + 1) * 0.5;
+            const tieCol = ty === 0 ? coifShade : ty === tieLength - 1 ? coifDeepShade : coifColor;
+            elements.push(<rect key={`coif-tie-r-${ty}`} x={centerX + 3 + sway} y={tieStartY + ty} width="2" height="1" fill={tieCol} className="pixel" />);
+          }
+
+          // Small knot detail at center of strap
+          elements.push(
+            <rect key={`coif-knot-1`} x={centerX - 1} y={chinStrapY + 1} width="2" height="1" fill={coifDeepShade} className="pixel" />,
+            <rect key={`coif-knot-2`} x={centerX} y={chinStrapY + 2} width="1" height="1" fill={coifShade} className="pixel" />
+          );
+        }
+
+        // Biggins gets simpler treatment - just a fitted cap without ties
+        if (isBiggins) {
+          // Add a simple hem at the bottom edge
+          const hemY = coifTop + coifHeight - 1;
+          for (let hx = -3; hx <= 3; hx++) {
+            elements.push(<rect key={`biggins-hem-${hx}`} x={centerX + hx} y={hemY} width="1" height="1" fill={coifDeepShade} className="pixel" />);
+          }
+        }
       }
     }
     
@@ -451,186 +764,358 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
       const accentColor = appearanceWithDefaults.palette.accent || createHighlight(wrapBase, 1.3);
 
       if (isHeadWrap) {
-        // IMPROVED HEAD WRAP: Realistic wrapped fabric with layers, draping, and texture
+        // === HEAD WRAP / GELE - Towering wrapped fabric headdress ===
+        // African-style head wrap with height, volume, and elaborate folds
 
-        // Define wrap layers (horizontal bands wrapping around head)
-        const wrapLayers = [
-          { startY: headY - 5, height: 3, offset: 0 },     // Top layer
-          { startY: headY - 3, height: 3, offset: 1 },     // Middle layer (offset for overlap)
-          { startY: headY - 1, height: 4, offset: 0 },     // Bottom layer
-          { startY: headY + 2, height: 3, offset: -1 },    // Side draping layer
-        ];
+        const wrapTop = headY - 10; // Start high above head
+        const wrapHeight = 12;      // Tall wrap
+        const wrapBaseWidth = headDim.width + 4;
 
-        for (const layer of wrapLayers) {
-          for (let ly = 0; ly < layer.height; ly++) {
-            const y = layer.startY + ly;
-            const yInLayer = ly / layer.height;
+        // Main wrap body - horizontal wrapped layers
+        for (let y = wrapTop; y < wrapTop + wrapHeight; y++) {
+          const yProgress = (y - wrapTop) / wrapHeight;
+          const wrapLayer = Math.floor((y - wrapTop) / 2); // Which wrap band we're in
 
-            // Width varies by layer and height within layer for rounded wrapping effect
-            const baseWidth = headDim.width + 8;
-            const layerTaper = Math.sin(yInLayer * Math.PI) * 2; // Bulge in middle
-            const width = Math.floor(baseWidth + layerTaper + layer.offset);
-            const startX = centerX - Math.floor(width / 2);
+          // Width varies - creates sculptural dome shape
+          let width;
+          if (yProgress < 0.25) {
+            // Top - narrower, rounded
+            width = wrapBaseWidth + 2 + Math.floor(yProgress * 16);
+          } else if (yProgress < 0.6) {
+            // Middle - widest
+            width = wrapBaseWidth + 6;
+          } else {
+            // Lower - tapers to head
+            const taper = (yProgress - 0.6) / 0.4;
+            width = wrapBaseWidth + 6 - Math.floor(taper * 4);
+          }
 
-            for (let lx = 0; lx < width; lx++) {
-              const x = startX + lx;
-              const xNorm = lx / width;
-              const dx = x - centerX;
+          const startX = centerX - Math.floor(width / 2);
 
-              // Skip face area (oval cutout)
-              const faceOpenX = Math.abs(dx) < headDim.width / 2 - 2;
-              const faceOpenY = y > headY + 1 && y < headY + headDim.height - 3;
-              if (faceOpenX && faceOpenY) continue;
+          for (let x = 0; x < width; x++) {
+            const xPos = startX + x;
+            const xNorm = x / width;
 
-              // Start with base shading based on position
-              let wrapColor;
-              if (xNorm < 0.08) {
-                wrapColor = wrapDarkest;
-              } else if (xNorm < 0.15) {
-                wrapColor = wrapDeep;
-              } else if (xNorm < 0.25) {
-                wrapColor = wrapShade;
-              } else if (xNorm > 0.92) {
-                wrapColor = wrapDarkest;
-              } else if (xNorm > 0.85) {
-                wrapColor = wrapDeep;
-              } else if (xNorm > 0.75) {
-                wrapColor = wrapShade;
-              } else if (xNorm > 0.42 && xNorm < 0.58) {
-                wrapColor = wrapLight; // Center highlight
+            // Strong cylindrical 3D shading
+            let col;
+            if (xNorm < 0.08) {
+              col = wrapDarkest;
+            } else if (xNorm < 0.18) {
+              col = wrapDeep;
+            } else if (xNorm < 0.30) {
+              col = wrapShade;
+            } else if (xNorm > 0.92) {
+              col = wrapDarkest;
+            } else if (xNorm > 0.82) {
+              col = wrapDeep;
+            } else if (xNorm > 0.70) {
+              col = wrapShade;
+            } else if (xNorm > 0.42 && xNorm < 0.58) {
+              col = wrapVeryLight; // Center highlight stripe
+            } else if (xNorm > 0.35 && xNorm < 0.65) {
+              col = wrapLight;
+            } else {
+              col = wrapBase;
+            }
+
+            // Horizontal wrap seams - every 2 rows alternate light/dark
+            const isSeamRow = (y - wrapTop) % 2 === 1;
+            if (isSeamRow) {
+              col = createShadow(col, 0.7); // Strong shadow for seam
+            }
+
+            // Vertical gathered folds
+            const foldIndex = Math.abs(x - width / 2);
+            if (foldIndex % 4 === 0 && !isSeamRow) {
+              col = createShadow(col, 0.8);
+            } else if (foldIndex % 4 === 2 && !isSeamRow) {
+              col = createHighlight(col, 1.15);
+            }
+
+            // Decorative accent band in middle section
+            if (wrapLayer === 2 || wrapLayer === 3) {
+              if (x % 3 === 0) {
+                col = accentColor;
+              } else if (x % 3 === 1) {
+                col = createShadow(accentColor, 0.8);
+              }
+            }
+
+            elements.push(<rect key={`wrap-main-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Side wings/draping (fabric extending outward)
+        for (let side = 0; side < 2; side++) {
+          const sideSign = side === 0 ? -1 : 1;
+          const wingBaseX = centerX + sideSign * Math.floor(wrapBaseWidth / 2 + 2);
+          const wingTop = wrapTop + 3;
+          const wingHeight = 8;
+
+          for (let wy = 0; wy < wingHeight; wy++) {
+            const y = wingTop + wy;
+            // Wing gets narrower as it goes down
+            const wingWidth = Math.max(1, 5 - Math.floor(wy / 2));
+
+            for (let wx = 0; wx < wingWidth; wx++) {
+              const x = wingBaseX + sideSign * wx;
+
+              // Shading based on position
+              let col;
+              if (wx === 0) {
+                col = side === 0 ? wrapLight : wrapShade;
+              } else if (wx === wingWidth - 1) {
+                col = wrapDeep;
               } else {
-                wrapColor = wrapBase;
+                col = wrapBase;
               }
 
-              // Woven fabric texture
-              const weaveX = lx % 4;
-              const weaveY = ly % 4;
-              if ((weaveX + weaveY) % 4 === 0) {
-                wrapColor = createHighlight(wrapColor, 1.1);
-              } else if ((weaveX + weaveY) % 4 === 2) {
-                wrapColor = createShadow(wrapColor, 0.9);
+              // Fold lines
+              if ((wy + wx) % 2 === 0) {
+                col = createShadow(col, 0.85);
               }
 
-              // Decorative pattern (stripes or geometric)
-              if (ly === 1 || ly === layer.height - 2) {
-                // Accent stripe along layer edges
-                if (lx % 3 === 0) {
-                  wrapColor = createShadow(accentColor, 0.9);
-                }
-              }
-              // Scattered geometric pattern
-              if ((lx + ly * 3) % 7 === 0) {
-                wrapColor = createHighlight(accentColor, 1.15);
-              }
-
-              // Layer shadows (bottom edge of each wrap is darker)
-              if (ly === layer.height - 1) {
-                wrapColor = createShadow(wrapColor, 0.75);
-              } else if (ly === 0) {
-                // Top edge slightly lighter
-                wrapColor = createHighlight(wrapColor, 1.08);
-              }
-
-              // Draping folds (vertical shadows for fabric gathering)
-              const foldPattern = Math.abs(dx) % 6;
-              if (foldPattern === 0 || foldPattern === 5) {
-                wrapColor = createShadow(wrapColor, 0.88);
-              }
-
-              elements.push(<rect key={`wrap-${layer.startY}-${ly}-${lx}`} x={x} y={y} width="1" height="1" fill={wrapColor} className="pixel" />);
+              elements.push(<rect key={`wing-${side}-${wx}-${wy}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
             }
           }
         }
 
-        // Prominent side knot with draping tails
-        const knotX = centerX + Math.floor(headDim.width / 2) + 2;
-        const knotY = headY - 1;
+        // Top gathered knot/rosette
+        const knotCenterX = centerX;
+        const knotCenterY = wrapTop + 1;
+        const knotRadius = 3;
 
-        // Knot body (larger, more detailed)
-        for (let ky = 0; ky < 4; ky++) {
-          for (let kx = 0; kx < 4; kx++) {
-            const dist = Math.abs(kx - 2) + Math.abs(ky - 2);
-            if (dist < 4) {
-              let knotColor = wrapBase;
-              if (dist === 0) {
-                knotColor = wrapVeryLight; // Center highlight
-              } else if (dist === 1) {
-                knotColor = wrapLight;
-              } else if (dist === 3) {
-                knotColor = wrapShade;
+        for (let ky = -knotRadius; ky <= knotRadius; ky++) {
+          for (let kx = -knotRadius; kx <= knotRadius; kx++) {
+            const dist = Math.sqrt(kx * kx + ky * ky);
+            if (dist <= knotRadius) {
+              const normalizedDist = dist / knotRadius;
+              let knotCol;
+              if (normalizedDist < 0.3) {
+                knotCol = wrapVeryLight;
+              } else if (normalizedDist < 0.6) {
+                knotCol = wrapLight;
+              } else {
+                knotCol = wrapBase;
               }
-              elements.push(<rect key={`knot-${ky}-${kx}`} x={knotX + kx} y={knotY + ky} width="1" height="1" fill={knotColor} className="pixel" />);
+              // Spiral texture
+              const angle = Math.atan2(ky, kx);
+              if (Math.floor(angle * 3 + dist * 2) % 2 === 0) {
+                knotCol = createShadow(knotCol, 0.85);
+              }
+              elements.push(<rect key={`knot-${kx}-${ky}`} x={knotCenterX + kx} y={knotCenterY + ky} width="1" height="1" fill={knotCol} className="pixel" />);
             }
           }
         }
 
-        // Draping tails from knot
-        for (let t = 0; t < 3; t++) {
+        // Dark outline for definition
+        const outlineColor = createShadow(wrapBase, 0.4);
+        // Top edge
+        for (let x = -Math.floor(wrapBaseWidth / 2 + 1); x <= Math.floor(wrapBaseWidth / 2 + 1); x++) {
+          elements.push(<rect key={`outline-top-${x}`} x={centerX + x} y={wrapTop - 1} width="1" height="1" fill={outlineColor} className="pixel" />);
+        }
+        // Side edges
+        for (let y = wrapTop; y < wrapTop + wrapHeight; y++) {
           elements.push(
-            <rect key={`tail1-${t}`} x={knotX + 2} y={knotY + 4 + t} width="2" height="1" fill={createShadow(wrapBase, 0.85 - t * 0.05)} className="pixel" />,
-            <rect key={`tail2-${t}`} x={knotX + 1} y={knotY + 4 + t} width="1" height="1" fill={createShadow(wrapBase, 0.75 - t * 0.05)} className="pixel" />
+            <rect key={`outline-left-${y}`} x={centerX - Math.floor(wrapBaseWidth / 2) - 3} y={y} width="1" height="1" fill={outlineColor} className="pixel" />,
+            <rect key={`outline-right-${y}`} x={centerX + Math.floor(wrapBaseWidth / 2) + 3} y={y} width="1" height="1" fill={outlineColor} className="pixel" />
+          );
+        }
+
+      } else if (isKeffiyeh) {
+        // === KEFFIYEH - Traditional Middle Eastern headdress ===
+        // Square cloth folded diagonally, draped over head with agal (rope)
+        const keffiyehTop = headY - 5;
+        const keffiyehHeight = headDim.height + 8;
+
+        // Main head covering
+        for (let y = keffiyehTop; y < keffiyehTop + keffiyehHeight; y++) {
+          const yProgress = (y - keffiyehTop) / keffiyehHeight;
+
+          // Width expands as it drapes down shoulders
+          let width;
+          if (yProgress < 0.25) {
+            // Top - fitted to head
+            width = headDim.width + 4;
+          } else {
+            // Draping down - widens
+            width = headDim.width + 4 + Math.floor((yProgress - 0.25) * 16);
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xPos = startX + x;
+            const xNorm = x / width;
+            const dx = xPos - centerX;
+
+            // Face opening (front only)
+            if (yProgress > 0.15 && yProgress < 0.65) {
+              const faceWidth = headDim.width / 2 - 2;
+              if (Math.abs(dx) < faceWidth) continue;
+            }
+
+            let col = wrapBase;
+
+            // Keffiyeh checkered pattern
+            const checkX = Math.floor((x + y) / 3) % 2;
+            const checkY = Math.floor((y) / 3) % 2;
+            if ((checkX + checkY) % 2 === 1) {
+              col = createShadow(wrapBase, 0.6); // Dark squares
+            }
+
+            // Side shading
+            if (xNorm < 0.1) col = createShadow(col, 0.7);
+            else if (xNorm > 0.9) col = createShadow(col, 0.6);
+            else if (xNorm < 0.2) col = createShadow(col, 0.85);
+            else if (xNorm > 0.8) col = createShadow(col, 0.8);
+
+            // Draping fold shadows
+            if (yProgress > 0.5 && Math.abs(dx) % 5 === 0) {
+              col = createShadow(col, 0.9);
+            }
+
+            elements.push(<rect key={`keffiyeh-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Agal (black rope holding keffiyeh)
+        const agalY = headY - 2;
+        const agalWidth = headDim.width + 2;
+        for (let ax = 0; ax < agalWidth; ax++) {
+          const xPos = centerX - Math.floor(agalWidth / 2) + ax;
+          const xNorm = ax / agalWidth;
+
+          // Double rope effect
+          for (let row = 0; row < 2; row++) {
+            let col = '#1A1A1A';
+            if (xNorm > 0.4 && xNorm < 0.6) col = '#333333'; // Highlight on top
+            if (ax % 3 === 0) col = createHighlight(col, 1.2); // Rope texture
+
+            elements.push(<rect key={`agal-${ax}-${row}`} x={xPos} y={agalY + row} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+      } else if (nameContains('mantilla')) {
+        // === MANTILLA - Spanish lace veil ===
+        // Delicate lace draped over head, often over a comb
+        const mantillaTop = headY - 4;
+        const mantillaHeight = headDim.height + 10;
+
+        for (let y = mantillaTop; y < mantillaTop + mantillaHeight; y++) {
+          const yProgress = (y - mantillaTop) / mantillaHeight;
+
+          // Elegant draping shape
+          let width = headDim.width + 6 + Math.floor(yProgress * 8);
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xPos = startX + x;
+            const xNorm = x / width;
+            const dx = xPos - centerX;
+
+            // Face opening
+            if (yProgress > 0.15 && yProgress < 0.6) {
+              if (Math.abs(dx) < headDim.width / 2 - 1) continue;
+            }
+
+            // Lace pattern - semi-transparent with pattern
+            const lacePattern = ((x * 2 + y * 3) % 5 === 0) || ((x + y * 2) % 4 === 0);
+            if (!lacePattern && yProgress > 0.3) continue; // Holes in lace
+
+            let col = wrapBase;
+
+            // Delicate shading
+            if (xNorm < 0.15 || xNorm > 0.85) col = wrapShade;
+            else if (yProgress < 0.1 && xNorm > 0.35 && xNorm < 0.65) col = wrapVeryLight;
+
+            // Scalloped edge effect
+            if (yProgress > 0.9) {
+              const scallop = Math.sin((x / 3) * Math.PI);
+              if (scallop < 0.3) continue;
+            }
+
+            elements.push(<rect key={`mantilla-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Ornate hair comb
+        const combY = headY - 3;
+        for (let cx = -3; cx <= 3; cx++) {
+          elements.push(
+            <rect key={`comb-base-${cx}`} x={centerX + cx} y={combY} width="1" height="2" fill="#8B4513" className="pixel" />,
+            <rect key={`comb-teeth-${cx}`} x={centerX + cx} y={combY + 2} width="1" height="2" fill="#654321" className="pixel" />
           );
         }
 
       } else {
-        // Keep original code for other veil types (hijab, keffiyeh, etc.)
-        const veilColor = wrapBase;
-        const veilShade = wrapShade;
-        const veilDeep = wrapDeep;
-        const veilHighlight = wrapLight;
+        // === HIJAB / DUPATTA / GENERIC VEIL - Smooth draped covering ===
+        const hijabTop = headY - 5;
+        const hijabHeight = headDim.height + 10;
 
-        for (let y = headY - 6; y < headY + depth; y++) {
-          const yFromTop = y - (headY - 6);
+        for (let y = hijabTop; y < hijabTop + hijabHeight; y++) {
+          const yProgress = (y - hijabTop) / hijabHeight;
 
-          for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
-            const dx = x - centerX;
-            const dy = y - headY;
+          // Smooth draping shape
+          let width;
+          if (yProgress < 0.2) {
+            // Top - fitted
+            width = headDim.width + 2;
+          } else if (yProgress < 0.5) {
+            // Middle - slightly wider
+            width = headDim.width + 4;
+          } else {
+            // Bottom - drapes down shoulders
+            width = headDim.width + 4 + Math.floor((yProgress - 0.5) * 12);
+          }
 
-            const distFromCenter = Math.sqrt(dx * dx + dy * dy * 0.8);
+          const startX = centerX - Math.floor(width / 2);
 
-            const faceOpenX = Math.abs(dx) < headDim.width / 2 - 1;
-            const faceOpenY = y > headY + 1 && y < headY + headDim.height - 3;
-            const isFaceArea = faceOpenX && faceOpenY;
+          for (let x = 0; x < width; x++) {
+            const xPos = startX + x;
+            const xNorm = x / width;
+            const dx = xPos - centerX;
 
-            const maxRadius = headDim.width / 2 + 4;
-            if (distFromCenter <= maxRadius && !isFaceArea) {
-              const xNorm = (x - (headX - 6)) / (headDim.width + 12);
-
-              let pixelColor = veilColor;
-
-              if (xNorm < 0.2) {
-                pixelColor = veilShade;
-              } else if (xNorm > 0.8) {
-                pixelColor = veilDeep;
-              } else if (yFromTop < 3 && Math.abs(xNorm - 0.5) < 0.2) {
-                pixelColor = veilHighlight;
-              }
-
-              if (isKeffiyeh) {
-                const check = (Math.floor(x / 3) + Math.floor(y / 3)) % 2;
-                if (check === 1) {
-                  pixelColor = createShadow(pixelColor, 0.7);
-                }
-              } else if (fullCover) {
-                if ((x * 2 + y) % 7 === 0) {
-                  pixelColor = createShadow(pixelColor, 0.97);
-                }
-              }
-
-              if (Math.abs(dx) % 8 === 0 && y > headY) {
-                pixelColor = createShadow(pixelColor, 0.93);
-              }
-
-              elements.push(<rect key={`veil-${x}-${y}`} x={x} y={y} width="1" height="1" fill={pixelColor} className="pixel" />);
+            // Face opening (oval shape)
+            if (yProgress > 0.12 && yProgress < 0.6) {
+              const faceWidth = headDim.width / 2 - 1;
+              if (Math.abs(dx) < faceWidth) continue;
             }
+
+            let col = wrapBase;
+
+            // Smooth fabric shading
+            if (x === 0 || x === width - 1) col = wrapDarkest;
+            else if (xNorm < 0.1) col = wrapDeep;
+            else if (xNorm > 0.9) col = wrapDeep;
+            else if (xNorm < 0.2) col = wrapShade;
+            else if (xNorm > 0.8) col = wrapShade;
+            else if (yProgress < 0.15 && xNorm > 0.35 && xNorm < 0.65) col = wrapVeryLight;
+            else if (xNorm > 0.4 && xNorm < 0.6) col = wrapLight;
+
+            // Subtle fabric texture
+            const textureNoise = (x * 11 + y * 7) % 23;
+            if (textureNoise === 0) col = createHighlight(col, 1.05);
+            else if (textureNoise === 11) col = createShadow(col, 0.95);
+
+            // Gentle draping folds
+            if (yProgress > 0.4 && Math.abs(dx) % 7 === 0) {
+              col = createShadow(col, 0.92);
+            }
+
+            elements.push(<rect key={`hijab-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={col} className="pixel" />);
           }
         }
 
-        if (fullCover && isWealthy) {
+        // Decorative pin for wealthy
+        if (isWealthy) {
           const pinY = headY + 2;
+          const pinX = centerX - headDim.width / 2 + 2;
+          // Ornate pin
           elements.push(
-            <rect key="hijab-pin" x={centerX - 5} y={pinY} width="2" height="2" fill="#FFD700" className="pixel" />,
-            <rect key="hijab-pin-shine" x={centerX - 5} y={pinY} width="1" height="1" fill="#FFFFFF" opacity={0.6} className="pixel" />
+            <rect key="hijab-pin-1" x={pinX} y={pinY} width="2" height="2" fill="#FFD700" className="pixel" />,
+            <rect key="hijab-pin-2" x={pinX} y={pinY} width="1" height="1" fill="#FFFFFF" opacity={0.7} className="pixel" />,
+            <rect key="hijab-pin-gem" x={pinX + 1} y={pinY + 1} width="1" height="1" fill={accentColor} className="pixel" />
           );
         }
       }
@@ -638,139 +1123,599 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
 
     // HOODS / WIMPLE
     else if (nameContains('hood', 'wimple')) {
-      const hoodDepth = name.includes('wimple') ? 12 : 10;
-      for (let y = headY - 6; y < headY + hoodDepth; y++) {
-        for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
+      // Hood/wimple with proper fabric draping, 3D depth, and cloth texture
+      const hoodBase = base || '#4A4A4A';
+      const hoodVeryLight = createHighlight(hoodBase, 1.2);
+      const hoodLight = createHighlight(hoodBase, 1.1);
+      const hoodShade = createShadow(hoodBase, 0.82);
+      const hoodDeep = createShadow(hoodBase, 0.65);
+      const hoodDarkest = createShadow(hoodBase, 0.5);
+
+      const isWimple = name.includes('wimple');
+      const hoodDepth = isWimple ? 12 : 10;
+      const hoodWidth = headDim.width / 2 + 6;
+
+      for (let y = headY - 7; y < headY + hoodDepth; y++) {
+        const dTop = y - (headY - 7);
+        const yNorm = dTop / (hoodDepth + 7);
+
+        for (let x = headX - 7; x < headX + headDim.width + 7; x++) {
           const dx = Math.abs(x - centerX);
-          const dTop = y - (headY - 6);
-          const hoodW = headDim.width / 2 + 2 + Math.min(4, dTop * 0.3);
-          const faceOpen = y > headY && y < headY + headDim.height - 2 && dx < headDim.width / 2 - 1;
-          if (!faceOpen && dx < hoodW) {
-            const depthFromEdge = hoodW - dx;
-            const isDeep = depthFromEdge < 2 || y < headY - 2;
-            const isMid = depthFromEdge < 4 || dTop < 3;
-            let col = base;
-            if (isDeep) col = deep;
-            else if (isMid) col = shade;
-            // inner rim
-            if (dx > hoodW - 2 && y > headY - 2) col = createShadow(base, 0.6);
+          const xFromCenter = x - centerX;
+
+          // Hood shape expands as it goes down
+          const currentHoodW = hoodWidth + Math.min(5, dTop * 0.4);
+
+          // Face opening (elliptical shape)
+          const faceOpenYStart = headY + 1;
+          const faceOpenYEnd = headY + headDim.height - 3;
+          const faceOpenWidth = headDim.width / 2 - 2;
+          const inFaceArea = y > faceOpenYStart && y < faceOpenYEnd && dx < faceOpenWidth;
+
+          if (!inFaceArea && dx < currentHoodW) {
+            const depthFromEdge = currentHoodW - dx;
+            const xNorm = dx / currentHoodW;
+            let col = hoodBase;
+
+            // 3D shading based on position
+            // Outer edges are darkest (depth)
+            if (depthFromEdge < 2) {
+              col = hoodDarkest;
+            } else if (depthFromEdge < 4) {
+              col = hoodDeep;
+            }
+            // Top of hood catches light
+            else if (dTop < 4 && xNorm < 0.6) {
+              col = hoodLight;
+              if (dTop < 2 && xNorm < 0.4) col = hoodVeryLight;
+            }
+            // Side shading (light from left)
+            else if (xFromCenter > 0 && xNorm > 0.4) {
+              col = hoodShade; // Right side in shadow
+            }
+
+            // Inner rim around face opening - very dark
+            if (y > faceOpenYStart - 1 && y < faceOpenYEnd + 1) {
+              if (dx >= faceOpenWidth - 1 && dx < faceOpenWidth + 2) {
+                col = hoodDarkest; // Deep shadow at face opening edge
+              }
+            }
+            // Top rim of face opening
+            if (y >= faceOpenYStart - 2 && y <= faceOpenYStart && dx < faceOpenWidth + 3) {
+              col = hoodDeep;
+            }
+
+            // Cloth fold/drape texture
+            const foldPattern = ((x + y * 2) % 8);
+            if (foldPattern === 0 || foldPattern === 4) {
+              col = createHighlight(col, 1.06); // Fold ridge
+            } else if (foldPattern === 2 || foldPattern === 6) {
+              col = createShadow(col, 0.94); // Fold valley
+            }
+
+            // Fabric weave texture
+            if ((x * 3 + y * 5) % 11 === 0) {
+              col = createHighlight(col, 1.04);
+            } else if ((x * 7 + y * 3) % 13 === 0) {
+              col = createShadow(col, 0.97);
+            }
+
             elements.push(<rect key={`hood-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
           }
         }
       }
-      // subtle golden trim for wealthy
+
+      // Decorative trim for wealthy
       if (isWealthy) {
-        for (let y = headY + 2; y < headY + headDim.height - 2; y++) {
+        const trimColor = '#FFD700';
+        const trimHL = createHighlight(trimColor, 1.2);
+        for (let y = headY + 2; y < headY + headDim.height - 3; y++) {
+          const trimShade = y % 2 === 0 ? trimColor : trimHL;
           elements.push(
-            <rect key={`hood-trim-l-${y}`} x={headX - 3} y={y} width="1" height="1" fill="#FFD700" className="pixel" />,
-            <rect key={`hood-trim-r-${y}`} x={headX + headDim.width + 2} y={y} width="1" height="1" fill="#FFD700" className="pixel" />
+            <rect key={`hood-trim-l-${y}`} x={headX - 4} y={y} width="1" height="1" fill={trimShade} className="pixel" />,
+            <rect key={`hood-trim-r-${y}`} x={headX + headDim.width + 3} y={y} width="1" height="1" fill={trimShade} className="pixel" />
+          );
+        }
+      }
+
+      // Wimple chin drape
+      if (isWimple) {
+        const chinY = headY + headDim.height - 2;
+        for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
+          const xNorm = (x - headX) / headDim.width;
+          let col = hoodBase;
+          if (xNorm < 0.3 || xNorm > 0.7) col = hoodShade;
+          if (xNorm > 0.4 && xNorm < 0.6) col = hoodLight;
+          elements.push(<rect key={`wimple-chin-${x}`} x={x} y={chinY} width="1" height="2" fill={col} className="pixel" />);
+        }
+      }
+    }
+
+    // MODERN HELMETS (army helmet, combat helmet, motorcycle helmet)
+    else if (name.includes('army helmet') || name.includes('combat helmet') || name.includes('military helmet') || name.includes('motorcycle helmet') || name.includes('bike helmet')) {
+      const isMotorcycle = name.includes('motorcycle') || name.includes('bike');
+      const isCombat = name.includes('combat');
+
+      // Different colors for different helmet types
+      let helmetColor;
+      if (isMotorcycle) {
+        helmetColor = '#1A1A1A'; // Black for motorcycle
+      } else if (isCombat) {
+        helmetColor = '#4A5F3E'; // Olive drab
+      } else {
+        helmetColor = '#5C6B4A'; // Army green
+      }
+
+      const helmetBright = createHighlight(helmetColor, 1.35);
+      const helmetHighlight = createHighlight(helmetColor, 1.2);
+      const helmetShade = createShadow(helmetColor, 0.8);
+      const helmetDeep = createShadow(helmetColor, 0.6);
+
+      if (isMotorcycle) {
+        // === MOTORCYCLE HELMET - Full face coverage with visor ===
+        const helmTop = headY - 7;
+        const helmHeight = headDim.height + 5;
+
+        for (let y = helmTop; y < helmTop + helmHeight; y++) {
+          const yProgress = (y - helmTop) / helmHeight;
+
+          // Rounded aerodynamic shape
+          let width;
+          if (yProgress < 0.15) {
+            // Top dome
+            width = Math.floor(headDim.width * (0.6 + yProgress * 2.5));
+          } else if (yProgress < 0.8) {
+            // Main body
+            width = headDim.width + 6;
+          } else {
+            // Chin bar tapers
+            width = Math.floor((headDim.width + 6) * (1 - (yProgress - 0.8) * 2));
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+            const dx = startX + x - centerX;
+
+            // Visor opening (eye area only)
+            if (yProgress > 0.3 && yProgress < 0.55) {
+              if (Math.abs(dx) < headDim.width / 2 - 1) {
+                // Draw tinted visor
+                elements.push(<rect key={`visor-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill="#2A2A3A" opacity={0.85} className="pixel" />);
+                continue;
+              }
+            }
+
+            let col = helmetColor;
+
+            // Smooth 3D shading
+            const sphereX = (xNorm - 0.5) * 2;
+            const sphereY = (yProgress - 0.3);
+            const intensity = Math.sqrt(Math.max(0, 1 - sphereX * sphereX * 0.8 - sphereY * sphereY * 0.5));
+
+            if (intensity > 0.85) col = helmetBright;
+            else if (intensity > 0.65) col = helmetHighlight;
+            else if (xNorm < 0.1 || xNorm > 0.9) col = helmetDeep;
+            else if (xNorm < 0.2 || xNorm > 0.8) col = helmetShade;
+
+            // Glossy highlight streak
+            if (yProgress < 0.25 && xNorm > 0.3 && xNorm < 0.5) {
+              col = helmetBright;
+            }
+
+            elements.push(<rect key={`moto-helm-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+      } else {
+        // === ARMY/COMBAT HELMET - Classic dome shape ===
+        const helmTop = headY - 6;
+        const helmHeight = 10;
+
+        for (let y = helmTop; y < helmTop + helmHeight; y++) {
+          const yProgress = (y - helmTop) / helmHeight;
+
+          // Characteristic rounded dome with slight flare at bottom
+          let width;
+          if (yProgress < 0.3) {
+            // Rounded top
+            width = Math.floor((headDim.width + 4) * (0.5 + yProgress * 1.5));
+          } else if (yProgress < 0.8) {
+            // Full width
+            width = headDim.width + 6;
+          } else {
+            // Slight flare at rim
+            width = headDim.width + 6 + Math.floor((yProgress - 0.8) * 4);
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+            let col = helmetColor;
+
+            // 3D dome shading
+            if (x === 0 || x === width - 1) col = helmetDeep;
+            else if (xNorm < 0.15) col = helmetShade;
+            else if (xNorm > 0.85) col = helmetDeep;
+            else if (yProgress < 0.2 && xNorm > 0.3 && xNorm < 0.6) col = helmetBright;
+            else if (xNorm > 0.25 && xNorm < 0.45) col = helmetHighlight;
+
+            // Matte texture
+            const textureNoise = (x * 7 + y * 11) % 19;
+            if (textureNoise === 0) col = createShadow(col, 0.95);
+
+            elements.push(<rect key={`army-helm-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Helmet rim
+        const rimY = helmTop + helmHeight - 1;
+        const rimWidth = headDim.width + 8;
+        for (let rx = 0; rx < rimWidth; rx++) {
+          elements.push(<rect key={`helm-rim-${rx}`} x={centerX - Math.floor(rimWidth / 2) + rx} y={rimY} width="1" height="1" fill={helmetShade} className="pixel" />);
+        }
+
+        // Chin strap
+        for (let sy = 0; sy < 4; sy++) {
+          elements.push(
+            <rect key={`chin-l-${sy}`} x={headX + 1} y={headY + headDim.height - 6 + sy} width="1" height="1" fill="#3A3A2A" className="pixel" />,
+            <rect key={`chin-r-${sy}`} x={headX + headDim.width - 2} y={headY + headDim.height - 6 + sy} width="1" height="1" fill="#3A3A2A" className="pixel" />
+          );
+        }
+
+        // Combat helmet extras (NVG mount, camo cover)
+        if (isCombat) {
+          // NVG mount on front
+          elements.push(
+            <rect key="nvg-mount-1" x={centerX - 2} y={helmTop + 2} width="4" height="2" fill="#2A2A2A" className="pixel" />,
+            <rect key="nvg-mount-2" x={centerX - 1} y={helmTop + 1} width="2" height="1" fill="#1A1A1A" className="pixel" />
           );
         }
       }
     }
+    // MEDIEVAL HELMETS (metallic) - with proper metal sheen and 3D form
+    else if (nameContains('helmet', 'helm', 'spangenhelm', 'salet', 'sallet', 'great helm', 'norman', 'knight', 'kabuto', 'samurai')) {
+      const isGreatHelm = nameContains('great helm', 'great');
+      const isSpangenhelm = nameContains('spangenhelm', 'spangen');
+      const isSallet = nameContains('salet', 'sallet');
+      const isNorman = nameContains('norman');
+      const isKabuto = nameContains('kabuto', 'samurai');
 
-    // MODERN HELMETS (pith helmet, army helmet)
-    else if (name.includes('pith helmet') || name.includes('army helmet') || name.includes('combat helmet') || name.includes('military helmet')) {
-      const isPith = name.includes('pith');
-      const helmetColor = isPith ? '#F5DEB3' : '#4A5F3E'; // Tan/khaki for pith, olive drab for army
-      const helmetHighlight = createHighlight(helmetColor, 1.2);
-      const helmetShadow = createShadow(helmetColor, 0.8);
-
-      // Dome-shaped crown that sits on top of head, not covering face
-      const helmetTop = headY - 6;
-      const helmetBottom = headY + 4;  // Stop at forehead level, not covering face
-
-      for (let y = helmetTop; y < helmetBottom; y++) {
-        const yFromTop = y - helmetTop;
-        // Calculate dome width based on height
-        let width;
-        if (yFromTop < 3) {
-          // Rounded top - narrower
-          width = headDim.width - (3 - yFromTop) * 3;
-        } else if (yFromTop < 7) {
-          // Full width middle section
-          width = headDim.width + 4;
-        } else {
-          // Bottom edge - full width
-          width = headDim.width + 4;
-        }
-
-        // Don't render if width is too small or negative
-        if (width <= 0) continue;
-
-        const startX = centerX - Math.floor(width / 2);
-        for (let x = 0; x < width; x++) {
-          let col = helmetColor;
-          // Add highlight on top center
-          if (yFromTop < 3 && Math.abs(x - width/2) < 2) {
-            col = helmetHighlight;
-          }
-          // Shadow on sides
-          else if (x < 1 || x >= width - 1) {
-            col = helmetShadow;
-          }
-          elements.push(<rect key={`modern-helm-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
-        }
-      }
-
-      // Brim for pith helmet
-      if (isPith) {
-        // Pith helmets have a distinctive all-around brim
-        for (let brimY = 0; brimY < 2; brimY++) {
-          for (let x = headX - 5; x < headX + headDim.width + 5; x++) {
-            const dx = Math.abs(x - centerX);
-            // Skip center on second row for depth
-            if (brimY === 1 && dx < headDim.width / 2 - 1) continue;
-            elements.push(<rect key={`pith-brim-${x}-${brimY}`} x={x} y={headY + 1 + brimY} width="1" height="1" fill={helmetShadow} className="pixel" />);
-          }
-        }
-        // Ventilation holes (characteristic of pith helmets)
-        for (let v = 0; v < 3; v++) {
-          elements.push(<rect key={`vent-${v}`} x={centerX - 4 + v * 4} y={headY - 2} width="1" height="1" fill={helmetShadow} className="pixel" />);
-        }
-      } else {
-        // Army helmet - shorter brim, only front
-        for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
-          elements.push(<rect key={`army-brim-${x}`} x={x} y={headY + 1} width="1" height="1" fill={helmetShadow} className="pixel" />);
-        }
-        // Chin strap indication
-        elements.push(
-          <rect key="chin-strap-l" x={headX} y={headY + headDim.height - 5} width="1" height="3" fill={helmetShadow} className="pixel" />,
-          <rect key="chin-strap-r" x={headX + headDim.width - 1} y={headY + headDim.height - 5} width="1" height="3" fill={helmetShadow} className="pixel" />
-        );
-      }
-    }
-    // MEDIEVAL HELMETS (metallic)
-    else if (nameContains('helmet', 'helm', 'spangenhelm', 'salet', 'sallet', 'great helm', 'norman', 'knight')) {
-      const metal =
+      const metalBase =
         material.includes('bronze') ? '#CD7F32' :
         material.includes('brass') ? '#B5A642' :
-        '#AEB4B8';
+        isKabuto ? '#2A2A2A' : // Dark iron for kabuto
+        '#9A9EA4';
+      const metalBright = createHighlight(metalBase, 1.35);
+      const metalLight = createHighlight(metalBase, 1.18);
+      const metalShade = createShadow(metalBase, 0.78);
+      const metalDeep = createShadow(metalBase, 0.6);
+      const metalDark = createShadow(metalBase, 0.45);
 
-      // Shell
-      for (let y = headY - 3; y < headY + headDim.height - 3; y++) {
-        for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
-          const dx = Math.abs(x - centerX);
-          const faceOpen = y > headY + 2 && y < headY + headDim.height - 4 && dx < headDim.width / 2 - 3;
-          if (!faceOpen) {
-            const edge = dx < 2 || x === headX - 2 || x === headX + headDim.width + 1;
-            const col = edge ? createHighlight(metal, 1.22) : metal;
-            elements.push(<rect key={`helm-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+      if (isGreatHelm) {
+        // === GREAT HELM - Cylindrical barrel helm with flat top ===
+        const helmTop = headY - 6;
+        const helmHeight = headDim.height + 4;
+
+        for (let y = helmTop; y < helmTop + helmHeight; y++) {
+          const yProgress = (y - helmTop) / helmHeight;
+
+          // Cylindrical shape - consistent width
+          const width = headDim.width + 6;
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+            const dx = Math.abs(startX + x - centerX);
+
+            // Eye slit only (narrow horizontal opening)
+            if (yProgress > 0.35 && yProgress < 0.45) {
+              if (dx < headDim.width / 2 - 2) continue; // Narrow slit
+            }
+
+            // Breathing holes below eye slit
+            if (yProgress > 0.55 && yProgress < 0.7) {
+              if ((x % 4 === 1 || x % 4 === 2) && dx < headDim.width / 3) continue;
+            }
+
+            let col = metalBase;
+
+            // Cylindrical 3D shading
+            const cylX = Math.abs(xNorm - 0.5) * 2;
+            const cylShade = 1 - cylX * cylX * 0.6;
+
+            if (cylShade > 0.9) col = metalBright;
+            else if (cylShade > 0.7) col = metalLight;
+            else if (cylShade > 0.5) col = metalBase;
+            else if (cylShade > 0.3) col = metalShade;
+            else col = metalDeep;
+
+            // Flat top
+            if (yProgress < 0.08) col = metalShade;
+
+            // Reinforcing cross
+            if (Math.abs(x - width / 2) < 2 || (yProgress > 0.1 && yProgress < 0.15)) {
+              col = createShadow(col, 0.9);
+            }
+
+            elements.push(<rect key={`greathelm-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+      } else if (isSpangenhelm) {
+        // === SPANGENHELM - Conical with nose guard and cheek plates ===
+        const helmTop = headY - 8;
+        const helmHeight = headDim.height + 3;
+
+        for (let y = helmTop; y < helmTop + helmHeight; y++) {
+          const yProgress = (y - helmTop) / helmHeight;
+
+          // Conical shape - narrows toward top
+          const width = Math.floor((headDim.width + 4) * (0.3 + yProgress * 0.7));
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+            const dx = Math.abs(startX + x - centerX);
+
+            // Face opening with cheek plates
+            if (yProgress > 0.5 && yProgress < 0.9) {
+              if (dx < headDim.width / 2 - 4) continue;
+            }
+
+            let col = metalBase;
+
+            // Conical shading
+            if (x === 0 || x === width - 1) col = metalDeep;
+            else if (xNorm < 0.2) col = metalShade;
+            else if (xNorm > 0.8) col = metalDeep;
+            else if (yProgress < 0.15 && xNorm > 0.35 && xNorm < 0.65) col = metalBright;
+            else if (xNorm > 0.3 && xNorm < 0.5) col = metalLight;
+
+            // Spangenhelm segments (4-6 plates)
+            const segment = Math.floor(x / (width / 4));
+            if (x % Math.floor(width / 4) < 1 && yProgress > 0.1) {
+              col = metalDark; // Seam between plates
+            }
+
+            // Rivets
+            if (x % Math.floor(width / 4) < 1 && y % 3 === 0 && yProgress > 0.15) {
+              col = metalBright;
+            }
+
+            elements.push(<rect key={`spangen-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Nose guard
+        for (let ny = 0; ny < 10; ny++) {
+          const nasalY = headY + ny;
+          const nasalWidth = ny < 3 ? 3 : 2;
+          const nasalX = centerX - Math.floor(nasalWidth / 2);
+          for (let nx = 0; nx < nasalWidth; nx++) {
+            let col = metalBase;
+            if (nx === 0) col = metalLight;
+            else if (nx === nasalWidth - 1) col = metalShade;
+            elements.push(<rect key={`spangen-nasal-${ny}-${nx}`} x={nasalX + nx} y={nasalY} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+      } else if (isSallet) {
+        // === SALLET - Rounded with tail, visor ===
+        const helmTop = headY - 5;
+        const helmHeight = headDim.height;
+
+        for (let y = helmTop; y < helmTop + helmHeight; y++) {
+          const yProgress = (y - helmTop) / helmHeight;
+
+          // Rounded dome with flared tail
+          let width;
+          if (yProgress < 0.2) {
+            width = Math.floor((headDim.width + 4) * (0.6 + yProgress * 2));
+          } else if (yProgress < 0.7) {
+            width = headDim.width + 6;
+          } else {
+            // Tail extends back
+            width = headDim.width + 6 + Math.floor((yProgress - 0.7) * 8);
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+            const dx = Math.abs(startX + x - centerX);
+
+            // Visor opening
+            if (yProgress > 0.35 && yProgress < 0.55) {
+              if (dx < headDim.width / 2 - 2) continue;
+            }
+
+            let col = metalBase;
+
+            // Smooth rounded shading
+            const sphereX = (xNorm - 0.5) * 2;
+            const intensity = 1 - sphereX * sphereX * 0.7;
+
+            if (intensity > 0.9) col = metalBright;
+            else if (intensity > 0.7) col = metalLight;
+            else if (intensity > 0.4) col = metalBase;
+            else col = metalDeep;
+
+            // Visor ridge
+            if (yProgress > 0.3 && yProgress < 0.38 && dx < headDim.width / 2) {
+              col = metalDark;
+            }
+
+            elements.push(<rect key={`sallet-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+      } else if (isKabuto) {
+        // === KABUTO - Japanese samurai helmet with distinctive crest ===
+        const helmTop = headY - 6;
+        const helmHeight = headDim.height + 2;
+
+        for (let y = helmTop; y < helmTop + helmHeight; y++) {
+          const yProgress = (y - helmTop) / helmHeight;
+
+          // Bowl shape
+          let width;
+          if (yProgress < 0.25) {
+            width = Math.floor((headDim.width + 4) * (0.5 + yProgress * 2));
+          } else {
+            width = headDim.width + 6;
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xNorm = x / width;
+            const dx = Math.abs(startX + x - centerX);
+
+            // Face opening (larger)
+            if (yProgress > 0.4 && yProgress < 0.85) {
+              if (dx < headDim.width / 2 - 2) continue;
+            }
+
+            let col = metalBase;
+
+            // Kabuto plate segments
+            const plates = 8;
+            const plateWidth = width / plates;
+            const plateIndex = Math.floor(x / plateWidth);
+            const inPlate = (x % plateWidth) / plateWidth;
+
+            if (inPlate < 0.1 && yProgress > 0.1) col = metalDark;
+            else if (inPlate < 0.3) col = metalShade;
+            else if (inPlate > 0.7) col = metalDeep;
+            else col = metalLight;
+
+            // Rivets at plate edges
+            if (inPlate < 0.1 && y % 4 === 0 && yProgress > 0.15) {
+              col = '#FFD700'; // Gold rivets
+            }
+
+            elements.push(<rect key={`kabuto-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Maedate (front crest)
+        const crestBase = '#FFD700';
+        for (let cy = 0; cy < 8; cy++) {
+          const crestWidth = Math.max(1, 4 - cy);
+          for (let cx = 0; cx < crestWidth; cx++) {
+            elements.push(<rect key={`maedate-${cy}-${cx}`} x={centerX - Math.floor(crestWidth / 2) + cx} y={helmTop - 2 - cy} width="1" height="1" fill={createShadow(crestBase, 0.9 - cy * 0.05)} className="pixel" />);
+          }
+        }
+
+        // Shikoro (neck guard)
+        for (let sy = 0; sy < 4; sy++) {
+          const shikoroWidth = headDim.width + 4 + sy * 2;
+          for (let sx = 0; sx < shikoroWidth; sx++) {
+            const xNorm = sx / shikoroWidth;
+            let col = metalShade;
+            if (sy === 0) col = metalBase;
+            if (xNorm < 0.1 || xNorm > 0.9) col = metalDeep;
+            elements.push(<rect key={`shikoro-${sy}-${sx}`} x={centerX - Math.floor(shikoroWidth / 2) + sx} y={helmTop + helmHeight + sy} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+      } else {
+        // === DEFAULT / NORMAN HELM - Open face with nose guard ===
+        const helmTop = headY - 5;
+        const helmHeight = headDim.height + 2;
+
+        for (let y = helmTop; y < helmTop + helmHeight; y++) {
+          const yFromTop = y - helmTop;
+          const yNorm = yFromTop / helmHeight;
+
+          let rowWidth = headDim.width + 4;
+          if (yFromTop < 4) {
+            rowWidth = headDim.width + 4 - (4 - yFromTop);
+          }
+
+          const startX = centerX - Math.floor(rowWidth / 2);
+
+          for (let x = 0; x < rowWidth; x++) {
+            const xNorm = x / rowWidth;
+            const xPos = startX + x;
+            const dx = Math.abs(xPos - centerX);
+
+            // Face opening
+            const faceOpenYStart = headY + 3;
+            const faceOpenYEnd = headY + headDim.height - 5;
+            const faceOpenWidth = headDim.width / 2 - 4;
+            const inFaceArea = y > faceOpenYStart && y < faceOpenYEnd && dx < faceOpenWidth;
+
+            if (inFaceArea) continue;
+
+            let col = metalBase;
+
+            // Strong metallic 3D shading
+            if (xNorm < 0.08) col = metalDeep;
+            else if (xNorm < 0.15) col = metalShade;
+            else if (xNorm < 0.25) col = metalLight;
+            else if (xNorm < 0.35) col = metalBright;
+            else if (xNorm < 0.45) col = metalLight;
+            else if (xNorm > 0.92) col = metalDark;
+            else if (xNorm > 0.85) col = metalDeep;
+            else if (xNorm > 0.75) col = metalShade;
+
+            if (yFromTop < 3 && xNorm > 0.3 && xNorm < 0.55) {
+              col = metalBright;
+            }
+
+            // Metal panel seams
+            const panelSeam = (x % 6 === 0) && yFromTop > 2;
+            if (panelSeam) col = createShadow(col, 0.85);
+            if (panelSeam && yFromTop % 4 === 0 && yFromTop > 2) col = metalLight;
+
+            // Wear texture
+            if ((x * 7 + y * 5) % 17 === 0) col = createShadow(col, 0.95);
+            else if ((x * 5 + y * 3) % 13 === 0) col = createHighlight(col, 1.05);
+
+            if (y > faceOpenYStart - 1 && y < faceOpenYEnd + 1) {
+              if (dx >= faceOpenWidth - 1 && dx < faceOpenWidth + 2) {
+                col = metalDark;
+              }
+            }
+
+            elements.push(<rect key={`helm-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Nose guard for Norman helm
+        if (isNorman || nameContains('knight', 'nasal')) {
+          for (let ny = 0; ny < 8; ny++) {
+            const nasalY = headY + 2 + ny;
+            const nasalWidth = ny < 2 ? 3 : 2;
+            const nasalX = centerX - Math.floor(nasalWidth / 2);
+            for (let nx = 0; nx < nasalWidth; nx++) {
+              let col = metalBase;
+              if (nx === 0) col = metalLight;
+              else if (nx === nasalWidth - 1) col = metalShade;
+              elements.push(<rect key={`nasal-${ny}-${nx}`} x={nasalX + nx} y={nasalY} width="1" height="1" fill={col} className="pixel" />);
+            }
           }
         }
       }
 
-      // Nose guard for Norman/knight
-      if (nameContains('norman', 'knight', 'nasal')) {
-        for (let y = headY + 2; y < headY + 10; y++) {
-          elements.push(<rect key={`nasal-${y}`} x={centerX} y={y} width="2" height="1" fill={createShadow(metal, 0.9)} className="pixel" />);
-        }
-      }
-
-      // Crest/plume for nobles
-      if (isNoble) {
-        for (let p = 0; p < 10; p++) {
-          elements.push(<rect key={`plume-${p}`} x={centerX + Math.sin(p * 0.3) * 2} y={headY - 5 - p} width="2" height="1" fill={p % 2 === 0 ? '#DC143C' : '#8B0000'} className="pixel" />);
+      // Crest/plume for nobles (except kabuto which has its own)
+      if (isNoble && !isKabuto) {
+        const plumeBase = '#DC143C';
+        const plumeLight = createHighlight(plumeBase, 1.2);
+        const plumeShade = createShadow(plumeBase, 0.7);
+        const helmTop = headY - (isGreatHelm ? 6 : 5);
+        for (let p = 0; p < 12; p++) {
+          const plumeWidth = p < 2 ? 1 : (p < 6 ? 3 : 2);
+          const plumeX = centerX - Math.floor(plumeWidth / 2) + Math.floor(Math.sin(p * 0.4) * 1.5);
+          const plumeY = helmTop - 2 - p;
+          for (let px = 0; px < plumeWidth; px++) {
+            const col = px === 0 ? plumeLight : (px === plumeWidth - 1 ? plumeShade : plumeBase);
+            elements.push(<rect key={`plume-${p}-${px}`} x={plumeX + px} y={plumeY} width="1" height="1" fill={col} className="pixel" />);
+          }
         }
       }
     }
@@ -800,57 +1745,248 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
 
       switch (hatStyle) {
         case 'top': {
-          // Tall crown - much taller and wider to cover hair
-          for (let y = headY - 12; y < headY + 1; y++) {
-            for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-              elements.push(<rect key={`tophat-${x}-${y}`} x={x} y={y} width="1" height="1" fill="#000000" className="pixel" />);
+          // Top hat with proper 3D shading and silk sheen
+          const topBase = '#1C1C1C';
+          const topVeryLight = '#4A4A4A'; // Silk sheen highlight
+          const topLight = '#383838';
+          const topMid = '#282828';
+          const topShade = '#1A1A1A';
+          const topDeep = '#0C0C0C';
+
+          const crownHeight = 13;
+          const crownWidth = headDim.width + 2;
+
+          // Tall cylindrical crown
+          for (let y = 0; y < crownHeight; y++) {
+            const rowY = headY - crownHeight + y;
+            const startX = centerX - Math.floor(crownWidth / 2);
+            const yNorm = y / crownHeight;
+
+            for (let x = 0; x < crownWidth; x++) {
+              const xNorm = x / crownWidth;
+              let col = topBase;
+
+              // Strong 3D cylindrical shading
+              if (xNorm < 0.1) col = topDeep;
+              else if (xNorm < 0.2) col = topShade;
+              else if (xNorm > 0.9) col = topDeep;
+              else if (xNorm > 0.8) col = topShade;
+              // Center silk sheen (vertical highlight)
+              else if (xNorm > 0.4 && xNorm < 0.6) {
+                col = topLight;
+                if (xNorm > 0.45 && xNorm < 0.55 && yNorm > 0.2 && yNorm < 0.7) {
+                  col = topVeryLight; // Silk shine
+                }
+              }
+
+              // Top curve (darker at very top edges)
+              if (y < 3) {
+                if (xNorm < 0.15 || xNorm > 0.85) col = topDeep;
+                else if (xNorm > 0.4 && xNorm < 0.6) col = topLight;
+              }
+
+              // Bottom shadow where it meets brim
+              if (y >= crownHeight - 2) {
+                col = createShadow(col, 0.8);
+              }
+
+              elements.push(<rect key={`tophat-crown-${y}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
             }
           }
-          // Wide brim
-          for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
-            elements.push(<rect key={`tophat-brim-${x}`} x={x} y={headY} width="1" height="3" fill="#000000" className="pixel" />);
-          }
-          // Band around middle
-          if (isWealthy) {
-            for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-              elements.push(<rect key={`tophat-band-${x}`} x={x} y={headY - 4} width="1" height="2" fill={appearanceWithDefaults.palette.accent} className="pixel" />);
+
+          // Wide brim with depth
+          const brimWidth = headDim.width + 12;
+          for (let brimRow = 0; brimRow < 3; brimRow++) {
+            const brimY = headY + brimRow;
+            const brimX = centerX - Math.floor(brimWidth / 2);
+
+            for (let x = 0; x < brimWidth; x++) {
+              const xNorm = x / brimWidth;
+              let col = topMid;
+
+              // Top of brim catches light
+              if (brimRow === 0) {
+                col = topBase;
+                if (xNorm > 0.4 && xNorm < 0.6) col = topLight;
+              } else if (brimRow === 2) {
+                col = topDeep; // Bottom shadow
+              }
+
+              // Edge curl
+              if (xNorm < 0.08 || xNorm > 0.92) col = topDeep;
+
+              // Skip center on lower rows (hat sits on head)
+              if (brimRow >= 1 && Math.abs(x - brimWidth/2) < crownWidth/2 - 1) continue;
+
+              elements.push(<rect key={`tophat-brim-${brimRow}-${x}`} x={brimX + x} y={brimY} width="1" height="1" fill={col} className="pixel" />);
             }
           }
+
+          // Decorative band
+          const bandColor = isWealthy ? (appearanceWithDefaults.palette.accent || '#8B0000') : '#2A2A2A';
+          const bandHL = createHighlight(bandColor, 1.2);
+          const bandWidth = headDim.width + 2;
+          const bandX = centerX - Math.floor(bandWidth / 2);
+
+          for (let x = 0; x < bandWidth; x++) {
+            const xNorm = x / bandWidth;
+            let bc = bandColor;
+            if (xNorm > 0.4 && xNorm < 0.6) bc = bandHL;
+            elements.push(<rect key={`tophat-band-${x}`} x={bandX + x} y={headY - 4} width="1" height="2" fill={bc} className="pixel" />);
+          }
+
           break;
         }
         case 'beret': {
-          // Beret with proper slouchy shape that covers hair
-          const beretRadius = Math.floor(headDim.width * 0.75);
-          for (let y = headY - 6; y < headY + 3; y++) {
-            const yOffset = y - (headY - 2);
-            const width = Math.round(beretRadius * Math.sqrt(Math.max(0, 1 - Math.pow(yOffset / 6, 2))) * 2.2);
-            if (width > 0) {
-              const startX = centerX - Math.floor(width / 2) + (y > headY ? 2 : 0); // slight tilt
-              for (let x = 0; x < width; x++) {
-                elements.push(<rect key={`beret-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={base} className="pixel" />);
+          // Beret with proper slouchy shape, wool texture, and 3D shading
+          const beretBase = base || '#2C2C2C';
+          const beretVeryLight = createHighlight(beretBase, 1.25);
+          const beretLight = createHighlight(beretBase, 1.15);
+          const beretShade = createShadow(beretBase, 0.82);
+          const beretDeep = createShadow(beretBase, 0.65);
+
+          const beretRadius = Math.floor(headDim.width * 0.85);
+
+          for (let y = headY - 7; y < headY + 3; y++) {
+            const yFromCenter = y - (headY - 2);
+            // Asymmetric slouch - wider and lower on one side
+            const baseWidth = Math.round(beretRadius * Math.sqrt(Math.max(0, 1 - Math.pow(yFromCenter / 7, 2))) * 2.2);
+            if (baseWidth <= 0) continue;
+
+            // Slouch offset increases as we go down
+            const slouchOffset = y > headY - 2 ? Math.floor((y - (headY - 2)) * 0.8) : 0;
+            const startX = centerX - Math.floor(baseWidth / 2) + slouchOffset;
+
+            for (let x = 0; x < baseWidth; x++) {
+              const xNorm = x / baseWidth;
+              const yNorm = (y - (headY - 7)) / 10;
+              let col = beretBase;
+
+              // 3D spherical shading
+              if (xNorm < 0.1) col = beretDeep;
+              else if (xNorm < 0.2) col = beretShade;
+              else if (xNorm > 0.9) col = beretDeep;
+              else if (xNorm > 0.8) col = beretShade;
+              // Top-center highlight (light from above-left)
+              else if (yNorm < 0.4 && xNorm > 0.3 && xNorm < 0.6) {
+                col = beretLight;
+                if (yNorm < 0.25 && xNorm > 0.35 && xNorm < 0.55) col = beretVeryLight;
               }
+
+              // Wool texture (knit pattern)
+              const knitRow = Math.floor((y + x) / 2);
+              const knitStitch = (x + y) % 3;
+              if (knitStitch === 0) {
+                col = createHighlight(col, 1.06);
+              } else if (knitStitch === 2) {
+                col = createShadow(col, 0.94);
+              }
+
+              // Bottom edge shadow (sits on head)
+              if (y >= headY + 1) {
+                col = createShadow(col, 0.75);
+              }
+
+              // Slouch crease line
+              if (y > headY - 1 && y < headY + 2 && xNorm > 0.6 && xNorm < 0.8) {
+                col = createShadow(col, 0.85);
+              }
+
+              elements.push(<rect key={`beret-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
             }
           }
-          // Small stem on top
-          elements.push(<rect key="beret-stem" x={centerX + 2} y={headY - 7} width="2" height="2" fill={shade} className="pixel" />);
+
+          // Stem/nub on top (characteristic beret feature)
+          const stemX = centerX;
+          const stemY = headY - 8;
+          elements.push(
+            <rect key="beret-stem-base" x={stemX - 1} y={stemY + 1} width="3" height="1" fill={beretShade} className="pixel" />,
+            <rect key="beret-stem-top" x={stemX} y={stemY} width="1" height="1" fill={beretBase} className="pixel" />
+          );
+
           break;
         }
         case 'fez': {
-          // Cylindrical fez that fully covers head
-          const fezColor = name.includes('red') || name.includes('fez') ? '#8B0000' : base;
-          for (let y = headY - 8; y < headY + 2; y++) {
-            const taper = Math.max(0, (headY - 4 - y) / 4); // slight taper at top
-            const width = headDim.width + 2 - Math.floor(taper * 2);
+          // Fez with proper cylindrical 3D shading and felt texture
+          const fezBase = name.includes('red') || name.includes('fez') ? '#8B0000' : base;
+          const fezVeryLight = createHighlight(fezBase, 1.3);
+          const fezLight = createHighlight(fezBase, 1.15);
+          const fezShade = createShadow(fezBase, 0.78);
+          const fezDeep = createShadow(fezBase, 0.6);
+
+          const fezHeight = 10;
+          const fezTopY = headY - fezHeight + 2;
+
+          for (let y = 0; y < fezHeight; y++) {
+            const rowY = fezTopY + y;
+            const yNorm = y / fezHeight;
+
+            // Slight taper toward top (fez shape)
+            const taperAmount = yNorm < 0.3 ? (0.3 - yNorm) * 4 : 0;
+            const width = Math.floor(headDim.width + 3 - taperAmount);
             const startX = centerX - Math.floor(width / 2);
+
             for (let x = 0; x < width; x++) {
-              elements.push(<rect key={`fez-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={fezColor} className="pixel" />);
+              const xNorm = x / width;
+              let col = fezBase;
+
+              // Strong cylindrical 3D shading
+              if (xNorm < 0.1) col = fezDeep;
+              else if (xNorm < 0.2) col = fezShade;
+              else if (xNorm > 0.9) col = fezDeep;
+              else if (xNorm > 0.8) col = fezShade;
+              // Center highlight (cylinder catches light)
+              else if (xNorm > 0.4 && xNorm < 0.6) {
+                col = fezLight;
+                if (xNorm > 0.45 && xNorm < 0.55) col = fezVeryLight;
+              }
+
+              // Top flat surface is lighter
+              if (y < 2 && xNorm > 0.2 && xNorm < 0.8) {
+                col = createHighlight(col, 1.1);
+              }
+
+              // Felt texture
+              if ((x * 5 + y * 7) % 11 === 0) {
+                col = createHighlight(col, 1.05);
+              } else if ((x * 7 + y * 3) % 13 === 0) {
+                col = createShadow(col, 0.96);
+              }
+
+              // Bottom shadow where it sits on head
+              if (y >= fezHeight - 2) {
+                col = createShadow(col, 0.8);
+              }
+
+              elements.push(<rect key={`fez-${y}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
             }
           }
-          // Tassel hanging from top
-          for (let t = 0; t < 5; t++) {
-            const tasselX = centerX + Math.floor(Math.sin(t * 0.5));
-            elements.push(<rect key={`fez-tassel-${t}`} x={tasselX} y={headY - 8 - t} width="1" height="1" fill="#000000" className="pixel" />);
+
+          // Tassel - more detailed
+          const tasselBase = '#1A1A1A';
+          const tasselHL = '#3A3A3A';
+          const tasselTopY = fezTopY - 1;
+          const tasselTopX = centerX;
+
+          // Tassel button/knot at top
+          elements.push(
+            <rect key="fez-knot-1" x={tasselTopX - 1} y={tasselTopY} width="3" height="1" fill={tasselBase} className="pixel" />,
+            <rect key="fez-knot-2" x={tasselTopX} y={tasselTopY - 1} width="1" height="1" fill={tasselHL} className="pixel" />
+          );
+
+          // Tassel strands hanging
+          for (let t = 0; t < 6; t++) {
+            const swayX = Math.floor(Math.sin(t * 0.8) * 1.5);
+            const col = t % 2 === 0 ? tasselBase : tasselHL;
+            elements.push(
+              <rect key={`fez-tassel-${t}`} x={tasselTopX + 2 + swayX} y={tasselTopY + t} width="1" height="1" fill={col} className="pixel" />
+            );
           }
+          // Tassel end (thicker)
+          elements.push(
+            <rect key="fez-tassel-end" x={tasselTopX + 1} y={tasselTopY + 6} width="2" height="1" fill={tasselBase} className="pixel" />
+          );
+
           break;
         }
         case 'brimmed': {
@@ -926,9 +2062,10 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
             }
           }
 
-          // Wide brim (3 rows for better depth)
-          for (let y = 0; y < 3; y++) {
-            const brimWidth = headDim.width + 10 - y; // Tapers slightly
+          // Wide brim (extends clearly beyond head)
+          const brimRows = 2;
+          for (let y = 0; y < brimRows; y++) {
+            const brimWidth = headDim.width + 14; // Wider brim for visibility
             const brimX = centerX - Math.floor(brimWidth / 2);
             const brimY = headY + y;
 
@@ -945,18 +2082,20 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
                 if (xNorm > 0.4 && xNorm < 0.6) {
                   brimColor = fedoraLight; // Center highlight
                 }
-              } else if (y === 2) {
-                // Bottom of brim - dark shadow
-                brimColor = fedoraDarkest;
+              } else {
+                // Bottom of brim - shadow
+                brimColor = fedoraDeep;
               }
 
-              // Edge curl darkening
-              if (xNorm < 0.1 || xNorm > 0.9) {
-                brimColor = createShadow(brimColor, 0.82);
+              // Edge curl - slightly upturned edges
+              if (xNorm < 0.12 || xNorm > 0.88) {
+                brimColor = createShadow(brimColor, 0.75);
+                // Skip some bottom row pixels at edges for curl effect
+                if (y === 1 && (xNorm < 0.08 || xNorm > 0.92)) continue;
               }
 
-              // Skip center on bottom rows for depth effect
-              if (y >= 1 && Math.abs(xPos - centerX) < headDim.width / 2 - 2) continue;
+              // Only skip center area where face shows through
+              if (y >= 1 && Math.abs(xPos - centerX) < headDim.width / 2 - 3) continue;
 
               // Felt texture on brim
               if ((x * 3 + y * 5) % 9 === 0) {
@@ -1238,32 +2377,127 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
         }
 
         case 'fur': {
-          // Fur hat (Russian ushanka style)
-          const furColor = base || '#8B4513';
-          const furShade = createShadow(furColor, 0.7);
+          // Fur hat (Russian ushanka style) - IMPROVED: Proper 3D form, fluffy texture, ear flaps
+          const furBase = base || '#8B4513';
+          const furLight = createHighlight(furBase, 1.25);
+          const furMid = createHighlight(furBase, 1.1);
+          const furShade = createShadow(furBase, 0.8);
+          const furDeep = createShadow(furBase, 0.6);
+          const furDark = createShadow(furBase, 0.45);
 
-          // Main hat body with ear flaps
-          for (let y = headY - 6; y < headY + 3; y++) {
-            let width = headDim.width + 4;
-            if (y > headY) {
-              width += 2; // Wider at bottom for ear flaps
-            }
-            const startX = centerX - Math.floor(width / 2);
-            for (let x = 0; x < width; x++) {
-              // Fur texture
-              const furPattern = ((x + y * 2) % 3 === 0) ? furShade : furColor;
-              elements.push(<rect key={`fur-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={furPattern} className="pixel" />);
+          // Crown - rounded dome shape
+          const crownHeight = 10;
+          const crownWidth = headDim.width + 6;
+
+          for (let row = 0; row < crownHeight; row++) {
+            const rowY = headY - crownHeight + 3 + row;
+            const yNorm = row / crownHeight;
+
+            // Dome shape - narrows at top
+            let rowWidth = crownWidth;
+            if (row < 3) rowWidth = crownWidth - (3 - row) * 2;
+            else if (row < 5) rowWidth = crownWidth - 1;
+
+            const startX = centerX - Math.floor(rowWidth / 2);
+
+            for (let x = 0; x < rowWidth; x++) {
+              const xNorm = x / rowWidth;
+              let col = furBase;
+
+              // 3D shading for round form
+              if (xNorm < 0.1) col = furDark;
+              else if (xNorm < 0.2) col = furDeep;
+              else if (xNorm < 0.3) col = furShade;
+              else if (xNorm > 0.9) col = furDark;
+              else if (xNorm > 0.8) col = furDeep;
+              else if (xNorm > 0.7) col = furShade;
+              else if (xNorm > 0.35 && xNorm < 0.55 && yNorm < 0.5) col = furLight;
+              else if (xNorm > 0.3 && xNorm < 0.6) col = furMid;
+
+              // Top dome highlight
+              if (row < 3 && xNorm > 0.3 && xNorm < 0.7) col = furLight;
+
+              // Fluffy fur texture - random spiky pattern
+              const textureSeed = x * 7 + row * 13;
+              if (textureSeed % 5 === 0) col = createHighlight(col, 1.15);
+              else if (textureSeed % 7 === 0) col = createShadow(col, 0.85);
+              else if (textureSeed % 11 === 0) col = furLight;
+              else if (textureSeed % 13 === 0) col = furDeep;
+
+              // Bottom shadow
+              if (row >= crownHeight - 2) col = createShadow(col, 0.8);
+
+              elements.push(<rect key={`fur-crown-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
             }
           }
 
-          // Ear flaps
-          for (let f = 0; f < 4; f++) {
-            const flapY = headY + 1 + f;
-            // Left flap
-            elements.push(<rect key={`flap-l-${f}`} x={headX - 2} y={flapY} width="3" height="1" fill={furColor} className="pixel" />);
-            // Right flap
-            elements.push(<rect key={`flap-r-${f}`} x={headX + headDim.width - 1} y={flapY} width="3" height="1" fill={furColor} className="pixel" />);
+          // Fur trim band (fluffy edge around bottom of crown)
+          const trimY = headY - 1;
+          const trimWidth = crownWidth + 2;
+          for (let x = 0; x < trimWidth; x++) {
+            const trimX = centerX - Math.floor(trimWidth / 2) + x;
+            const xNorm = x / trimWidth;
+
+            let col = furMid;
+            if (xNorm < 0.15 || xNorm > 0.85) col = furShade;
+            if (xNorm > 0.4 && xNorm < 0.6) col = furLight;
+
+            // Fluffy edge texture
+            if ((x * 3) % 5 === 0) col = createHighlight(col, 1.1);
+
+            for (let ty = 0; ty < 2; ty++) {
+              elements.push(<rect key={`fur-trim-${x}-${ty}`} x={trimX} y={trimY + ty} width="1" height="1" fill={ty === 0 ? col : createShadow(col, 0.85)} className="pixel" />);
+            }
           }
+
+          // Ear flaps - thick and fluffy
+          const flapHeight = 6;
+          const flapWidth = 4;
+
+          // Left ear flap
+          for (let fy = 0; fy < flapHeight; fy++) {
+            const flapY = headY + 1 + fy;
+            const taperWidth = Math.max(2, flapWidth - Math.floor(fy / 2));
+            const flapX = headX - 3;
+
+            for (let fx = 0; fx < taperWidth; fx++) {
+              let col = furBase;
+              if (fx === 0) col = furShade;
+              else if (fx === taperWidth - 1) col = furLight;
+              if (fy >= flapHeight - 1) col = createShadow(col, 0.75);
+
+              // Fluffy texture
+              if ((fx + fy * 3) % 4 === 0) col = createHighlight(col, 1.1);
+
+              elements.push(<rect key={`fur-flap-l-${fy}-${fx}`} x={flapX + fx} y={flapY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Right ear flap
+          for (let fy = 0; fy < flapHeight; fy++) {
+            const flapY = headY + 1 + fy;
+            const taperWidth = Math.max(2, flapWidth - Math.floor(fy / 2));
+            const flapX = headX + headDim.width - 1;
+
+            for (let fx = 0; fx < taperWidth; fx++) {
+              let col = furBase;
+              if (fx === 0) col = furLight;
+              else if (fx === taperWidth - 1) col = furShade;
+              if (fy >= flapHeight - 1) col = createShadow(col, 0.75);
+
+              // Fluffy texture
+              if ((fx + fy * 3) % 4 === 0) col = createHighlight(col, 1.1);
+
+              elements.push(<rect key={`fur-flap-r-${fy}-${fx}`} x={flapX + fx} y={flapY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Front flap (tied up on top) - small bump on forehead
+          elements.push(
+            <rect key="fur-front-flap-1" x={centerX - 2} y={headY} width="4" height="1" fill={furMid} className="pixel" />,
+            <rect key="fur-front-flap-2" x={centerX - 1} y={headY + 1} width="2" height="1" fill={furShade} className="pixel" />
+          );
+
           break;
         }
 
@@ -1709,95 +2943,264 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
       }
     }
 
-    // TRICORN / PIRATE / COLONIAL HATS
+    // TRICORN / PIRATE / COLONIAL HATS - IMPROVED: Proper 3D shape with upturned brims
     else if (nameContains('tricorn', 'pirate', 'colonial hat', 'cocked hat')) {
-      const hatColor = name.includes('pirate') ? '#000000' : base;
-      const hatShade = createShadow(hatColor, 0.8);
-      
-      // Crown - larger and covers hair
-      for (let y = headY - 6; y < headY + 1; y++) {
-        for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-          elements.push(<rect key={`tricorn-crown-${x}-${y}`} x={x} y={y} width="1" height="1" fill={hatColor} className="pixel" />);
+      const hatBase = name.includes('pirate') ? '#1A1A1A' : (base || '#2A2A2A');
+      const hatLight = createHighlight(hatBase, 1.2);
+      const hatMid = hatBase;
+      const hatShade = createShadow(hatBase, 0.82);
+      const hatDeep = createShadow(hatBase, 0.65);
+      const hatDark = createShadow(hatBase, 0.5);
+
+      const crownHeight = 8;
+      const crownWidth = headDim.width + 4;
+
+      // Crown with proper rounded 3D shading
+      for (let row = 0; row < crownHeight; row++) {
+        const rowY = headY - crownHeight + row;
+        // Crown narrows slightly at top
+        const rowWidth = row < 2 ? crownWidth - (2 - row) : crownWidth;
+        const startX = centerX - Math.floor(rowWidth / 2);
+
+        for (let x = 0; x < rowWidth; x++) {
+          const xNorm = x / rowWidth;
+          let col = hatMid;
+
+          // 3D cylindrical shading
+          if (xNorm < 0.1) col = hatDark;
+          else if (xNorm < 0.2) col = hatDeep;
+          else if (xNorm < 0.3) col = hatShade;
+          else if (xNorm > 0.9) col = hatDark;
+          else if (xNorm > 0.8) col = hatDeep;
+          else if (xNorm > 0.7) col = hatShade;
+          else if (xNorm > 0.4 && xNorm < 0.6) col = hatLight;
+
+          // Top curve highlight
+          if (row < 2 && xNorm > 0.3 && xNorm < 0.7) col = hatLight;
+
+          // Bottom shadow
+          if (row >= crownHeight - 2) col = createShadow(col, 0.85);
+
+          // Felt texture
+          if ((x * 5 + row * 7) % 11 === 0) col = createHighlight(col, 1.04);
+
+          elements.push(<rect key={`tricorn-crown-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
-      // Wide brim base
-      for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
-        for (let y = 0; y < 2; y++) {
-          elements.push(<rect key={`tricorn-brim-${x}-${y}`} x={x} y={headY + y} width="1" height="1" fill={hatShade} className="pixel" />);
+
+      // Upturned brim - three distinct sections creating triangle shape
+      // The front brim turns UP, side brims curve up and back
+
+      // Left upturned brim section
+      for (let i = 0; i < 6; i++) {
+        const brimX = headX - 5 + i;
+        const brimY = headY - i; // Curves upward
+        const brimWidth = 4 - Math.floor(i / 2);
+        for (let w = 0; w < brimWidth; w++) {
+          let col = hatShade;
+          if (w === 0) col = hatDeep;
+          else if (w === brimWidth - 1) col = hatLight;
+          elements.push(<rect key={`tricorn-brim-l-${i}-${w}`} x={brimX + w} y={brimY} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
-      // Three upturned corners (cocked hat effect)
-      const corners = [
-        { x: centerX - headDim.width/2 - 5, y: headY - 2 }, // left corner up
-        { x: centerX, y: headY + 3 }, // front corner down
-        { x: centerX + headDim.width/2 + 5, y: headY - 2 } // right corner up
-      ];
-      
-      for (let i = 0; i < corners.length; i++) {
-        const corner = corners[i];
-        for (let dx = -4; dx <= 4; dx++) {
-          for (let dy = -2; dy <= 2; dy++) {
-            const dist = Math.abs(dx) + Math.abs(dy);
-            if (dist <= 4) {
-              elements.push(<rect key={`tricorn-corner-${i}-${dx}-${dy}`} x={corner.x + dx} y={corner.y + dy} width="1" height="1" fill={hatShade} className="pixel" />);
-            }
+
+      // Right upturned brim section
+      for (let i = 0; i < 6; i++) {
+        const brimX = headX + headDim.width + 1 - i;
+        const brimY = headY - i;
+        const brimWidth = 4 - Math.floor(i / 2);
+        for (let w = 0; w < brimWidth; w++) {
+          let col = hatShade;
+          if (w === 0) col = hatLight;
+          else if (w === brimWidth - 1) col = hatDeep;
+          elements.push(<rect key={`tricorn-brim-r-${i}-${w}`} x={brimX + w} y={brimY} width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
+
+      // Front brim (turns upward toward viewer - shows underside)
+      for (let row = 0; row < 3; row++) {
+        const brimY = headY + 1 + row;
+        const brimWidth = headDim.width + 6 - row * 2;
+        const startX = centerX - Math.floor(brimWidth / 2);
+
+        for (let x = 0; x < brimWidth; x++) {
+          const xNorm = x / brimWidth;
+          // Front brim shows lighter underside
+          let col = row === 0 ? hatMid : (row === 1 ? hatShade : hatDeep);
+
+          // Edge darkening
+          if (xNorm < 0.15 || xNorm > 0.85) col = createShadow(col, 0.8);
+
+          // Center lighter
+          if (row === 0 && xNorm > 0.4 && xNorm < 0.6) col = hatLight;
+
+          elements.push(<rect key={`tricorn-brim-f-${row}-${x}`} x={startX + x} y={brimY} width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
+
+      // Decorative elements
+      // Hat cockade (ribbon rosette) on left side
+      const cockadeX = headX - 3;
+      const cockadeY = headY - 3;
+      const cockadeColor = isWealthy ? '#DC143C' : '#2A2A2A';
+      elements.push(
+        <rect key="cockade-1" x={cockadeX} y={cockadeY} width="2" height="2" fill={cockadeColor} className="pixel" />,
+        <rect key="cockade-2" x={cockadeX - 1} y={cockadeY + 1} width="1" height="1" fill={createShadow(cockadeColor, 0.8)} className="pixel" />,
+        <rect key="cockade-3" x={cockadeX + 2} y={cockadeY + 1} width="1" height="1" fill={createHighlight(cockadeColor, 1.2)} className="pixel" />
+      );
+
+      // Gold trim for wealthy/officers
+      if (isWealthy || name.includes('officer')) {
+        // Gold braid along crown base
+        for (let x = 0; x < crownWidth; x += 2) {
+          const trimX = centerX - Math.floor(crownWidth / 2) + x;
+          elements.push(
+            <rect key={`tricorn-trim-${x}`} x={trimX} y={headY - 1} width="1" height="1" fill="#FFD700" className="pixel" />
+          );
+        }
+
+        // Feather plume
+        const featherBase = '#FFFFFF';
+        const featherShade = '#E0E0E0';
+        for (let f = 0; f < 10; f++) {
+          const fX = headX - 4 + Math.floor(Math.sin(f * 0.4) * 2);
+          const fY = headY - crownHeight - 2 + f;
+          const fColor = f % 2 === 0 ? featherBase : featherShade;
+          const fWidth = f < 2 ? 1 : (f < 6 ? 2 : 1);
+          for (let fw = 0; fw < fWidth; fw++) {
+            elements.push(<rect key={`tricorn-feather-${f}-${fw}`} x={fX + fw} y={fY} width="1" height="1" fill={fColor} className="pixel" />);
           }
-        }
-      }
-      
-      // Gold trim and feather for wealthy
-      if (isWealthy) {
-        // Trim around crown
-        for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-          if ((x - headX) % 2 === 0) {
-            elements.push(<rect key={`tricorn-trim-${x}`} x={x} y={headY - 1} width="1" height="1" fill="#FFD700" className="pixel" />);
-          }
-        }
-        // Feather
-        for (let f = 0; f < 6; f++) {
-          elements.push(<rect key={`tricorn-feather-${f}`} x={centerX - 4} y={headY - 7 + f} width="1" height="1" fill={f % 2 === 0 ? '#2E7D32' : createHighlight('#2E7D32', 1.1)} className="pixel" />);
         }
       }
     }
     
-    // MILITARY CAPS (officer, garrison, kepi)
+    // MILITARY CAPS (officer, garrison, kepi) - IMPROVED: Proper 3D form, authentic structure
     else if (nameContains('officer', 'garrison', 'kepi', 'military cap', 'forage cap')) {
-      const capColor = material.includes('blue') ? '#000080' : material.includes('gray') ? '#808080' : base;
-      const visorColor = '#000000';
-      
-      // Crown - taller and covers all hair
-      for (let y = 0; y < 9; y++) {
-        const width = headDim.width + 2 - Math.floor(y / 3); // gradual taper
-        const sx = centerX - Math.floor(width / 2) - (y > 4 ? 1 : 0); // slight forward tilt
-        for (let x = 0; x < width; x++) {
-          elements.push(<rect key={`mil-crown-${y}-${x}`} x={sx + x} y={headY - 6 + y} width="1" height="1" fill={capColor} className="pixel" />);
+      const capBase = material.includes('blue') ? '#000080' : material.includes('gray') ? '#606060' : (base || '#2A2A4A');
+      const capLight = createHighlight(capBase, 1.25);
+      const capMid = createHighlight(capBase, 1.1);
+      const capShade = createShadow(capBase, 0.82);
+      const capDeep = createShadow(capBase, 0.65);
+      const capDark = createShadow(capBase, 0.5);
+      const visorColor = '#1A1A1A';
+      const visorShade = '#0A0A0A';
+      const visorHighlight = '#2A2A2A';
+
+      const isKepi = name.includes('kepi');
+      const crownHeight = isKepi ? 10 : 8;
+      const crownWidth = headDim.width + 4;
+
+      // Crown with proper cylindrical 3D form
+      for (let row = 0; row < crownHeight; row++) {
+        const rowY = headY - crownHeight + 2 + row;
+        const yNorm = row / crownHeight;
+
+        // Kepi has flat top that slopes forward, regular caps are rounder
+        let rowWidth = crownWidth;
+        if (isKepi) {
+          // Kepi - flat top, slight forward slope
+          if (row < 2) rowWidth = crownWidth - 1;
+        } else {
+          // Round top
+          if (row < 3) rowWidth = crownWidth - (3 - row);
+        }
+
+        const forwardSlope = isKepi ? Math.floor(row * 0.15) : 0;
+        const startX = centerX - Math.floor(rowWidth / 2) + forwardSlope;
+
+        for (let x = 0; x < rowWidth; x++) {
+          const xNorm = x / rowWidth;
+          let col = capBase;
+
+          // 3D cylindrical shading
+          if (xNorm < 0.08) col = capDark;
+          else if (xNorm < 0.15) col = capDeep;
+          else if (xNorm < 0.25) col = capShade;
+          else if (xNorm > 0.92) col = capDark;
+          else if (xNorm > 0.85) col = capDeep;
+          else if (xNorm > 0.75) col = capShade;
+          else if (xNorm > 0.4 && xNorm < 0.55) col = capLight;
+          else if (xNorm > 0.35 && xNorm < 0.6) col = capMid;
+
+          // Top highlight for kepi flat top
+          if (isKepi && row < 3 && xNorm > 0.25 && xNorm < 0.75) {
+            col = capLight;
+          }
+
+          // Bottom where it meets visor - darker
+          if (row >= crownHeight - 2) col = createShadow(col, 0.85);
+
+          // Wool/felt texture
+          if ((x * 5 + row * 7) % 11 === 0) col = createHighlight(col, 1.05);
+          else if ((x * 7 + row * 5) % 13 === 0) col = createShadow(col, 0.97);
+
+          elements.push(<rect key={`mil-crown-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
-      // Wider, more prominent visor
-      for (let y = 0; y < 3; y++) {
-        const visorWidth = headDim.width + 6 - y;
+
+      // Hat band (leather or braid)
+      const bandY = headY;
+      const bandWidth = crownWidth;
+      const bandX = centerX - Math.floor(bandWidth / 2);
+      for (let x = 0; x < bandWidth; x++) {
+        const xNorm = x / bandWidth;
+        let bandCol = '#2A2A2A';
+        if (xNorm > 0.4 && xNorm < 0.6) bandCol = '#3A3A3A';
+        if (xNorm < 0.1 || xNorm > 0.9) bandCol = '#1A1A1A';
+        elements.push(<rect key={`mil-band-${x}`} x={bandX + x} y={bandY} width="1" height="1" fill={bandCol} className="pixel" />);
+      }
+
+      // Prominent visor with proper curve and shading
+      for (let row = 0; row < 4; row++) {
+        const visorY = headY + 1 + row;
+        const visorWidth = headDim.width + 8 - row;
         const visorStartX = centerX - Math.floor(visorWidth / 2);
+
         for (let x = 0; x < visorWidth; x++) {
-          elements.push(<rect key={`mil-visor-${y}-${x}`} x={visorStartX + x} y={headY + 3 + y} width="1" height="1" fill={visorColor} className="pixel" />);
+          const xNorm = x / visorWidth;
+          // Skip rounded corners
+          if (row >= 2 && (x < 2 || x >= visorWidth - 2)) continue;
+          if (row >= 3 && (x < 3 || x >= visorWidth - 3)) continue;
+
+          let col = visorColor;
+          // Top of visor catches light
+          if (row === 0) {
+            col = visorHighlight;
+            if (xNorm > 0.4 && xNorm < 0.6) col = '#3A3A3A';
+          }
+          // Bottom very dark
+          else if (row >= 2) col = visorShade;
+
+          // Edge curve
+          if (xNorm < 0.1 || xNorm > 0.9) col = visorShade;
+
+          elements.push(<rect key={`mil-visor-${row}-${x}`} x={visorStartX + x} y={visorY} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
-      // Chin strap
+
+      // Chin strap buttons
       elements.push(
-        <rect key="mil-strap-l" x={headX - 1} y={headY + headDim.height - 2} width="1" height="2" fill={visorColor} className="pixel" />,
-        <rect key="mil-strap-r" x={headX + headDim.width} y={headY + headDim.height - 2} width="1" height="2" fill={visorColor} className="pixel" />
+        <rect key="mil-strap-btn-l" x={headX} y={headY + 2} width="1" height="1" fill="#FFD700" className="pixel" />,
+        <rect key="mil-strap-btn-r" x={headX + headDim.width - 1} y={headY + 2} width="1" height="1" fill="#FFD700" className="pixel" />
       );
-      
-      // Badge/insignia for officers
+
+      // Badge/insignia for officers - more detailed
       if (isWealthy || name.includes('officer')) {
+        const badgeY = headY - Math.floor(crownHeight / 2);
+        // Gold eagle/star badge
         elements.push(
-          <rect key="mil-badge-1" x={centerX - 2} y={headY - 2} width="4" height="3" fill="#FFD700" className="pixel" />,
-          <rect key="mil-badge-2" x={centerX - 1} y={headY - 1} width="2" height="1" fill="#DC143C" className="pixel" />,
-          <rect key="mil-eagle" x={centerX} y={headY} width="1" height="1" fill="#000000" className="pixel" />
+          <rect key="mil-badge-bg" x={centerX - 2} y={badgeY - 1} width="5" height="4" fill="#B8860B" className="pixel" />,
+          <rect key="mil-badge-center" x={centerX - 1} y={badgeY} width="3" height="2" fill="#FFD700" className="pixel" />,
+          <rect key="mil-badge-star" x={centerX} y={badgeY - 1} width="1" height="1" fill="#FFFACD" className="pixel" />,
+          <rect key="mil-badge-detail" x={centerX} y={badgeY + 1} width="1" height="1" fill="#8B0000" className="pixel" />
         );
+
+        // Gold braid on cap band
+        for (let x = 0; x < bandWidth; x += 3) {
+          elements.push(
+            <rect key={`mil-braid-${x}`} x={bandX + x} y={bandY} width="2" height="1" fill="#DAA520" className="pixel" />
+          );
+        }
       }
     }
     
@@ -2282,6 +3685,8 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
         }
 
         // Iconic features
+        const eyeSpacing = Math.floor(headDim.width * 0.2);
+
         // Eyebrows (upward slant)
         const eyebrowY = headY + Math.floor(headDim.height * 0.25);
         for (let ex = -4; ex <= 4; ex++) {
@@ -2294,7 +3699,6 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
 
         // Eyes (narrow slits)
         const eyeY = headY + Math.floor(headDim.height * 0.35);
-        const eyeSpacing = Math.floor(headDim.width * 0.2);
         for (let ex = -2; ex <= 2; ex++) {
           elements.push(
             <rect key={`mask-eye-l-${ex}`} x={centerX - eyeSpacing + ex} y={eyeY} width="1" height="1" fill={lineColor} className="pixel" />,
@@ -2379,133 +3783,539 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
     }
 
     // BANDANAS, HEADBANDS & KERCHIEFS
-    else if (nameContains('bandana', 'headband', 'sweatband', 'kerchief')) {
+    else if (nameContains('bandana', 'headband', 'sweatband', 'kerchief', 'do-rag', 'dorag')) {
       const bandColor = base;
-      const pattern = name.includes('paisley') || name.includes('bandana');
-      const isKerchief = name.includes('kerchief');
-      
-      if (isKerchief) {
-        // Kerchief: Triangle shape covering hair, tied under chin
-        const bandShade = createShadow(bandColor, 0.9);
-        for (let y = headY - 2; y < headY + headDim.height - 3; y++) {
-          for (let x = headX - 3; x < headX + headDim.width + 3; x++) {
-            const dx = Math.abs(x - centerX);
-            const dy = y - (headY - 2);
-            // Triangle shape that widens as it goes down
-            const maxWidth = Math.min(headDim.width / 2 + 2, dy * 1.5 + 1);
-            if (dx < maxWidth && y < headY + 8) {
-              // Don't cover face area except edges
-              const faceArea = y > headY + 2 && y < headY + headDim.height - 4 && dx < headDim.width / 2 - 3;
-              if (!faceArea) {
-                const col = (x + y) % 4 === 0 ? bandShade : bandColor;
-                elements.push(<rect key={`kerchief-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
-              }
-            }
-          }
-        }
-        // Simple tie under chin
-        const chinY = headY + headDim.height - 3;
-        elements.push(
-          <rect key="kerchief-knot" x={centerX} y={chinY} width="2" height="1" fill={bandShade} className="pixel" />
-        );
-      } else {
-        // Regular bandana/headband
-        for (let y = headY - 1; y < headY + 3; y++) {
-          for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-            const dx = x - centerX;
-            const dy = y - headY;
+      const bandHighlight = createHighlight(bandColor, 1.2);
+      const bandShade = createShadow(bandColor, 0.85);
+      const bandDeep = createShadow(bandColor, 0.7);
 
-            // Only draw where it would be visible (not covered by hair in center)
-            if (Math.abs(dx) > headDim.width * 0.3 || dy < 1) {
-              // Add pattern
-              let color = bandColor;
-              if (pattern && ((x + y) % 3 === 0)) {
-                color = createHighlight(bandColor, 1.2);
-              }
-              elements.push(<rect key={`band-${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} className="pixel" />);
-            }
+      const isPaisley = name.includes('paisley');
+      const isKerchief = name.includes('kerchief');
+      const isBandana = name.includes('bandana');
+      const isDoRag = name.includes('do-rag') || name.includes('dorag');
+      const isSweatband = name.includes('sweatband');
+
+      if (isKerchief) {
+        // === KERCHIEF - Triangle head covering tied under chin ===
+        const kerchiefTop = headY - 4;
+        const kerchiefHeight = headDim.height + 4;
+
+        for (let y = kerchiefTop; y < kerchiefTop + kerchiefHeight; y++) {
+          const yProgress = (y - kerchiefTop) / kerchiefHeight;
+
+          // Triangle shape - narrow at top, wide at sides
+          let width;
+          if (yProgress < 0.3) {
+            // Top point - narrow
+            width = Math.floor(headDim.width * (0.3 + yProgress * 2));
+          } else if (yProgress < 0.7) {
+            // Middle - full coverage
+            width = headDim.width + 4;
+          } else {
+            // Bottom - tapers for chin
+            width = Math.floor((headDim.width + 4) * (1 - (yProgress - 0.7) * 1.5));
           }
-        }
-      }
-      
-      // Knot at back/side for bandana
-      if (name.includes('bandana')) {
-        const knotX = headX + headDim.width;
-        elements.push(
-          <rect key="bandana-knot-1" x={knotX} y={headY} width="2" height="2" fill={createShadow(bandColor, 0.8)} className="pixel" />,
-          <rect key="bandana-tail-1" x={knotX + 1} y={headY + 2} width="1" height="3" fill={bandColor} className="pixel" />,
-          <rect key="bandana-tail-2" x={knotX + 2} y={headY + 2} width="1" height="2" fill={bandColor} className="pixel" />
-        );
-      }
-    }
-    
-    // ACADEMIC CAPS (mortarboard, biretta, doctoral cap)
-    else if (nameContains('mortarboard', 'biretta', 'doctoral', 'academic', 'graduation')) {
-      const capColor = name.includes('doctoral') ? '#DC143C' : '#000000';
-      
-      if (name.includes('mortarboard')) {
-        // Square board on top
-        for (let y = headY - 5; y < headY - 3; y++) {
-          for (let x = headX - 3; x < headX + headDim.width + 3; x++) {
-            elements.push(<rect key={`board-${x}-${y}`} x={x} y={y} width="1" height="1" fill={capColor} className="pixel" />);
-          }
-        }
-        // Cap underneath
-        for (let y = headY - 3; y < headY + 2; y++) {
-          for (let x = headX; x < headX + headDim.width; x++) {
-            elements.push(<rect key={`cap-${x}-${y}`} x={x} y={y} width="1" height="1" fill={capColor} className="pixel" />);
-          }
-        }
-        // Tassel
-        const tasselX = centerX + Math.floor(headDim.width * 0.3);
-        for (let t = 0; t < 4; t++) {
-          elements.push(<rect key={`tassel-${t}`} x={tasselX} y={headY - 5 + t} width="1" height="1" fill="#FFD700" className="pixel" />);
-        }
-      } else if (name.includes('biretta')) {
-        // Three or four ridged square cap
-        for (let ridge = 0; ridge < 3; ridge++) {
-          const ridgeY = headY - 4 + ridge;
-          for (let x = headX + ridge; x < headX + headDim.width - ridge; x++) {
-            elements.push(<rect key={`biretta-${ridge}-${x}`} x={x} y={ridgeY} width="1" height="1" fill={capColor} className="pixel" />);
-          }
-        }
-        // Pom-pom on top
-        elements.push(<rect key="biretta-pom" x={centerX} y={headY - 5} width="1" height="1" fill="#DC143C" className="pixel" />);
-      }
-    }
-    
-    // RELIGIOUS HEADWEAR (mitre, zucchetto, kippah)
-    else if (nameContains('mitre', 'zucchetto', 'kippah', 'yarmulke', 'skullcap')) {
-      const relColor = material.includes('white') ? '#FFFFFF' : 
-                      material.includes('red') ? '#DC143C' : 
-                      material.includes('purple') ? '#800080' : '#000000';
-      
-      if (name.includes('mitre')) {
-        // Tall pointed bishop's hat
-        const mitreHeight = 8;
-        for (let h = 0; h < mitreHeight; h++) {
-          const width = Math.max(2, mitreHeight - h);
+
           const startX = centerX - Math.floor(width / 2);
-          for (let w = 0; w < width; w++) {
-            elements.push(<rect key={`mitre-${h}-${w}`} x={startX + w} y={headY - mitreHeight + h} width="1" height="1" fill={relColor} className="pixel" />);
+
+          for (let x = 0; x < width; x++) {
+            const xPos = startX + x;
+            const xNorm = x / width;
+            const dx = xPos - centerX;
+
+            // Face opening
+            if (yProgress > 0.25 && yProgress < 0.75) {
+              if (Math.abs(dx) < headDim.width / 2 - 2) continue;
+            }
+
+            let col = bandColor;
+
+            // Fabric shading
+            if (x === 0 || x === width - 1) col = bandDeep;
+            else if (xNorm < 0.15) col = bandShade;
+            else if (xNorm > 0.85) col = bandDeep;
+            else if (yProgress < 0.15 && xNorm > 0.4 && xNorm < 0.6) col = bandHighlight;
+
+            // Dotted/floral pattern
+            if ((x * 3 + y * 2) % 7 === 0) {
+              col = bandHighlight;
+            }
+
+            elements.push(<rect key={`kerchief-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={col} className="pixel" />);
           }
         }
-        // Cross decoration
-        if (isWealthy) {
+
+        // Chin tie and knot
+        const tieY = kerchiefTop + kerchiefHeight - 2;
+        elements.push(
+          <rect key="kerchief-tie-l" x={centerX - 3} y={tieY} width="2" height="1" fill={bandShade} className="pixel" />,
+          <rect key="kerchief-tie-r" x={centerX + 1} y={tieY} width="2" height="1" fill={bandShade} className="pixel" />,
+          <rect key="kerchief-knot" x={centerX - 1} y={tieY + 1} width="2" height="2" fill={bandDeep} className="pixel" />
+        );
+
+      } else if (isDoRag) {
+        // === DO-RAG - Fitted cap with ties at back ===
+        const doragTop = headY - 4;
+        const doragHeight = headDim.height - 2;
+
+        for (let y = doragTop; y < doragTop + doragHeight; y++) {
+          const yProgress = (y - doragTop) / doragHeight;
+
+          // Fitted to head shape
+          let width;
+          if (yProgress < 0.2) {
+            // Top - rounded
+            width = Math.floor(headDim.width * (0.6 + yProgress * 2));
+          } else {
+            // Full width
+            width = headDim.width + 2;
+          }
+
+          const startX = centerX - Math.floor(width / 2);
+
+          for (let x = 0; x < width; x++) {
+            const xPos = startX + x;
+            const xNorm = x / width;
+            const dx = xPos - centerX;
+
+            // Face opening - stop at forehead
+            if (yProgress > 0.5) {
+              if (Math.abs(dx) < headDim.width / 2 - 2) continue;
+            }
+
+            let col = bandColor;
+
+            // Silky sheen
+            if (xNorm < 0.1) col = bandDeep;
+            else if (xNorm > 0.9) col = bandDeep;
+            else if (xNorm > 0.3 && xNorm < 0.5) col = bandHighlight;
+            else if (xNorm < 0.25) col = bandShade;
+
+            elements.push(<rect key={`dorag-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Hanging ties at back
+        const tieX = centerX + Math.floor(headDim.width / 2) + 1;
+        for (let ty = 0; ty < 6; ty++) {
           elements.push(
-            <rect key="mitre-cross-v" x={centerX} y={headY - 5} width="1" height="3" fill="#FFD700" className="pixel" />,
-            <rect key="mitre-cross-h" x={centerX - 1} y={headY - 4} width="3" height="1" fill="#FFD700" className="pixel" />
+            <rect key={`dorag-tie-1-${ty}`} x={tieX} y={doragTop + 4 + ty} width="1" height="1" fill={bandShade} className="pixel" />,
+            <rect key={`dorag-tie-2-${ty}`} x={tieX + 1} y={doragTop + 5 + ty} width="1" height="1" fill={bandColor} className="pixel" />
           );
         }
-      } else {
-        // Simple skullcap (kippah/zucchetto)
-        const radius = Math.floor(headDim.width * 0.4);
-        for (let y = -radius; y <= 0; y++) {
-          const width = Math.round(Math.sqrt(radius * radius - y * y) * 2);
+
+      } else if (isBandana) {
+        // === BANDANA - Folded triangle tied at back of head ===
+        const bandanaY = headY - 2;
+        const bandanaHeight = 5;
+        const bandanaWidth = headDim.width + 4;
+
+        for (let y = 0; y < bandanaHeight; y++) {
+          const rowY = bandanaY + y;
+          const yProgress = y / bandanaHeight;
+
+          // Narrower band at top, wider at bottom
+          let width = Math.floor(bandanaWidth * (0.8 + yProgress * 0.2));
           const startX = centerX - Math.floor(width / 2);
+
           for (let x = 0; x < width; x++) {
-            elements.push(<rect key={`skull-${x}-${y}`} x={startX + x} y={headY + y} width="1" height="1" fill={relColor} className="pixel" />);
+            const xNorm = x / width;
+            let col = bandColor;
+
+            // 3D fold shading
+            if (y === 0) col = bandHighlight;
+            else if (y === bandanaHeight - 1) col = bandShade;
+            else if (xNorm < 0.1 || xNorm > 0.9) col = bandDeep;
+            else if (xNorm < 0.2 || xNorm > 0.8) col = bandShade;
+
+            // Paisley pattern
+            if (isPaisley) {
+              const paisley = ((x * 2 + y) % 5 === 0) || ((x + y * 3) % 7 === 0);
+              if (paisley) col = createHighlight(col, 1.15);
+            }
+
+            elements.push(<rect key={`bandana-band-${x}-${y}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
           }
+        }
+
+        // Knot and tails at back
+        const knotX = headX + headDim.width + 1;
+        const knotY = bandanaY + 1;
+
+        // Knot
+        for (let ky = 0; ky < 3; ky++) {
+          for (let kx = 0; kx < 3; kx++) {
+            const dist = Math.abs(kx - 1) + Math.abs(ky - 1);
+            if (dist <= 1) {
+              let col = bandShade;
+              if (kx === 1 && ky === 0) col = bandHighlight;
+              elements.push(<rect key={`bandana-knot-${kx}-${ky}`} x={knotX + kx} y={knotY + ky} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+
+        // Trailing tails
+        for (let t = 0; t < 5; t++) {
+          const tailSway = Math.floor(Math.sin(t * 0.8) * 1);
+          elements.push(
+            <rect key={`bandana-tail1-${t}`} x={knotX + 1 + tailSway} y={knotY + 3 + t} width="1" height="1" fill={bandColor} className="pixel" />,
+            <rect key={`bandana-tail2-${t}`} x={knotX + 2 + tailSway} y={knotY + 4 + t} width="1" height="1" fill={bandShade} className="pixel" />
+          );
+        }
+
+      } else {
+        // === HEADBAND / SWEATBAND - Simple elastic band ===
+        const bandY = headY - 1;
+        const bandHeight = isSweatband ? 4 : 3;
+        const bandWidth = headDim.width + 4;
+
+        for (let y = 0; y < bandHeight; y++) {
+          const rowY = bandY + y;
+          const startX = centerX - Math.floor(bandWidth / 2);
+
+          for (let x = 0; x < bandWidth; x++) {
+            const xNorm = x / bandWidth;
+            let col = bandColor;
+
+            // Elastic stretch shading
+            if (y === 0) col = bandHighlight;
+            else if (y === bandHeight - 1) col = bandShade;
+            else if (xNorm < 0.1 || xNorm > 0.9) col = bandDeep;
+            else if (xNorm < 0.2 || xNorm > 0.8) col = bandShade;
+            else if (xNorm > 0.4 && xNorm < 0.6) col = bandHighlight;
+
+            // Terry cloth texture for sweatband
+            if (isSweatband && (x + y) % 2 === 0) {
+              col = createShadow(col, 0.95);
+            }
+
+            elements.push(<rect key={`headband-${x}-${y}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+    }
+    
+    // ACADEMIC CAPS (mortarboard, biretta, doctoral cap) - IMPROVED: Proper 3D forms
+    else if (nameContains('mortarboard', 'biretta', 'doctoral', 'academic', 'graduation')) {
+      const isDoctoral = name.includes('doctoral');
+      const capBase = isDoctoral ? '#8B0000' : '#1A1A1A';
+      const capLight = createHighlight(capBase, 1.25);
+      const capMid = createHighlight(capBase, 1.1);
+      const capShade = createShadow(capBase, 0.8);
+      const capDeep = createShadow(capBase, 0.6);
+
+      if (name.includes('mortarboard') || name.includes('graduation') || name.includes('academic')) {
+        // Mortarboard - square board with 3D perspective and skullcap
+
+        // Skullcap base (rounded) - under the board
+        const skullHeight = 6;
+        const skullWidth = headDim.width + 2;
+
+        for (let row = 0; row < skullHeight; row++) {
+          const rowY = headY - skullHeight + 3 + row;
+          let rowWidth = skullWidth;
+          if (row < 2) rowWidth = skullWidth - (2 - row);
+
+          const startX = centerX - Math.floor(rowWidth / 2);
+
+          for (let x = 0; x < rowWidth; x++) {
+            const xNorm = x / rowWidth;
+            let col = capBase;
+
+            // 3D shading
+            if (xNorm < 0.12) col = capDeep;
+            else if (xNorm < 0.22) col = capShade;
+            else if (xNorm > 0.88) col = capDeep;
+            else if (xNorm > 0.78) col = capShade;
+            else if (xNorm > 0.4 && xNorm < 0.6) col = capMid;
+
+            elements.push(<rect key={`mort-skull-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Square board on top with 3D perspective (diamond shape from 3/4 view)
+        const boardSize = headDim.width + 8;
+        const boardY = headY - skullHeight;
+
+        // Board rendered as tilted square
+        for (let row = 0; row < 3; row++) {
+          const rowY = boardY - 2 + row;
+          const rowWidth = boardSize - Math.abs(row - 1);
+          const startX = centerX - Math.floor(rowWidth / 2);
+
+          for (let x = 0; x < rowWidth; x++) {
+            const xNorm = x / rowWidth;
+            let col = capBase;
+
+            // Top row bright, bottom row in shadow
+            if (row === 0) {
+              col = capMid;
+              if (xNorm > 0.3 && xNorm < 0.7) col = capLight;
+            } else if (row === 2) {
+              col = capDeep;
+            }
+
+            // Edge shading
+            if (xNorm < 0.1 || xNorm > 0.9) col = capDeep;
+
+            elements.push(<rect key={`mort-board-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Button at center of board
+        elements.push(
+          <rect key="mort-button" x={centerX - 1} y={boardY - 1} width="2" height="1" fill={capShade} className="pixel" />
+        );
+
+        // Tassel - more detailed with proper drape
+        const tasselColor = isDoctoral ? '#FFD700' : '#FFD700';
+        const tasselDark = createShadow(tasselColor, 0.75);
+        const tasselStartX = centerX + 3;
+        const tasselStartY = boardY - 1;
+
+        // Tassel cord to board
+        elements.push(
+          <rect key="tassel-cord-1" x={centerX} y={tasselStartY} width="3" height="1" fill={tasselDark} className="pixel" />
+        );
+
+        // Tassel button/knot
+        elements.push(
+          <rect key="tassel-knot" x={tasselStartX} y={tasselStartY + 1} width="2" height="2" fill={tasselColor} className="pixel" />
+        );
+
+        // Tassel strands hanging
+        for (let t = 0; t < 6; t++) {
+          const swing = Math.floor(Math.sin(t * 0.5) * 1.5);
+          const col = t % 2 === 0 ? tasselColor : tasselDark;
+          elements.push(<rect key={`tassel-strand-${t}`} x={tasselStartX + swing} y={tasselStartY + 3 + t} width="2" height="1" fill={col} className="pixel" />);
+        }
+
+      } else if (name.includes('biretta')) {
+        // Biretta - four-ridged square cap with 3D form
+        const birettaHeight = 8;
+        const birettaWidth = headDim.width + 4;
+
+        // Main body with ridges forming cross pattern on top
+        for (let row = 0; row < birettaHeight; row++) {
+          const rowY = headY - birettaHeight + 2 + row;
+          const yNorm = row / birettaHeight;
+
+          // Shape: square base, ridges at top
+          let rowWidth = birettaWidth;
+          if (row < 3) rowWidth = birettaWidth - (3 - row);
+
+          const startX = centerX - Math.floor(rowWidth / 2);
+
+          for (let x = 0; x < rowWidth; x++) {
+            const xNorm = x / rowWidth;
+            let col = capBase;
+
+            // 3D shading
+            if (xNorm < 0.1) col = capDeep;
+            else if (xNorm < 0.2) col = capShade;
+            else if (xNorm > 0.9) col = capDeep;
+            else if (xNorm > 0.8) col = capShade;
+            else if (xNorm > 0.4 && xNorm < 0.6) col = capMid;
+
+            // Ridge lines (cross pattern at top)
+            if (row < 4) {
+              const distFromCenter = Math.abs(xNorm - 0.5);
+              const onVertRidge = distFromCenter < 0.1;
+              const onHorizRidge = row === 1 || row === 2;
+
+              if (onVertRidge || onHorizRidge) {
+                col = capLight;
+                if (onVertRidge && onHorizRidge) col = createHighlight(col, 1.1);
+              }
+            }
+
+            // Bottom darker
+            if (row >= birettaHeight - 2) col = createShadow(col, 0.85);
+
+            // Skip corners at top
+            if (row < 2 && (x < 1 || x >= rowWidth - 1)) continue;
+
+            elements.push(<rect key={`biretta-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Pom-pom on top - fluffy
+        const pomColor = isDoctoral ? '#DC143C' : '#DC143C';
+        const pomLight = createHighlight(pomColor, 1.3);
+        const pomShade = createShadow(pomColor, 0.7);
+
+        for (let py = 0; py < 3; py++) {
+          for (let px = 0; px < 3; px++) {
+            const dist = Math.abs(px - 1) + Math.abs(py - 1);
+            if (dist <= 1) {
+              let col = pomColor;
+              if (px === 1 && py === 0) col = pomLight;
+              else if (py === 2) col = pomShade;
+              elements.push(<rect key={`biretta-pom-${py}-${px}`} x={centerX - 1 + px} y={headY - birettaHeight + py} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+    }
+    
+    // RELIGIOUS HEADWEAR (mitre, zucchetto, kippah) - IMPROVED: Proper 3D forms
+    else if (nameContains('mitre', 'zucchetto', 'kippah', 'yarmulke', 'skullcap')) {
+      const isWhite = material.includes('white') || name.includes('white');
+      const isRed = material.includes('red') || name.includes('red') || name.includes('cardinal');
+      const isPurple = material.includes('purple') || name.includes('purple') || name.includes('bishop');
+
+      const relBase = isWhite ? '#F5F5F5' : isRed ? '#DC143C' : isPurple ? '#800080' : '#1A1A1A';
+      const relLight = createHighlight(relBase, 1.2);
+      const relMid = createHighlight(relBase, 1.08);
+      const relShade = createShadow(relBase, 0.82);
+      const relDeep = createShadow(relBase, 0.65);
+
+      if (name.includes('mitre')) {
+        // Bishop's mitre - tall two-pointed ceremonial hat with proper 3D form
+        const mitreHeight = 14;
+        const mitreBaseWidth = headDim.width + 4;
+
+        for (let row = 0; row < mitreHeight; row++) {
+          const rowY = headY - mitreHeight + 3 + row;
+          const yNorm = row / mitreHeight;
+
+          // Mitre shape - two peaks with valley in center
+          let rowWidth;
+          if (row < 3) {
+            // Top peaks (two points)
+            rowWidth = 2; // Very narrow at peaks
+          } else if (row < 6) {
+            // Upper section - widening
+            rowWidth = Math.floor(mitreBaseWidth * 0.4 + (row - 3) * 1.5);
+          } else {
+            // Main body - full width
+            rowWidth = mitreBaseWidth;
+          }
+
+          const startX = centerX - Math.floor(rowWidth / 2);
+
+          // Draw two peaks at top
+          if (row < 4) {
+            // Left peak
+            for (let x = 0; x < 3 - row; x++) {
+              const px = centerX - 4 + x;
+              let col = relBase;
+              if (x === 0) col = relShade;
+              else col = relLight;
+              elements.push(<rect key={`mitre-lpeak-${row}-${x}`} x={px} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+            // Right peak
+            for (let x = 0; x < 3 - row; x++) {
+              const px = centerX + 2 + x;
+              let col = relBase;
+              if (x === 0) col = relLight;
+              else col = relShade;
+              elements.push(<rect key={`mitre-rpeak-${row}-${x}`} x={px} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          } else {
+            // Main body with 3D shading
+            for (let x = 0; x < rowWidth; x++) {
+              const xNorm = x / rowWidth;
+              let col = relBase;
+
+              // Cylindrical 3D shading
+              if (xNorm < 0.1) col = relDeep;
+              else if (xNorm < 0.2) col = relShade;
+              else if (xNorm > 0.9) col = relDeep;
+              else if (xNorm > 0.8) col = relShade;
+              else if (xNorm > 0.4 && xNorm < 0.6) col = relLight;
+
+              // Valley between peaks
+              if (row < 8 && xNorm > 0.4 && xNorm < 0.6) {
+                col = createShadow(col, 0.85);
+              }
+
+              // Bottom shadow
+              if (row >= mitreHeight - 2) col = createShadow(col, 0.8);
+
+              // Fabric texture
+              if ((x * 5 + row * 7) % 11 === 0) col = createHighlight(col, 1.04);
+
+              elements.push(<rect key={`mitre-body-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+
+        // Decorative cross and bands
+        const crossColor = '#FFD700';
+        const crossShade = '#DAA520';
+
+        // Vertical band (orphrey)
+        for (let row = 4; row < mitreHeight - 1; row++) {
+          const bandY = headY - mitreHeight + 3 + row;
+          elements.push(
+            <rect key={`mitre-band-${row}`} x={centerX - 1} y={bandY} width="2" height="1" fill={crossColor} className="pixel" />
+          );
+        }
+
+        // Cross at center
+        if (isWealthy || isNoble) {
+          const crossY = headY - 6;
+          elements.push(
+            <rect key="mitre-cross-v1" x={centerX} y={crossY - 2} width="1" height="5" fill={crossColor} className="pixel" />,
+            <rect key="mitre-cross-h1" x={centerX - 2} y={crossY} width="5" height="1" fill={crossColor} className="pixel" />,
+            <rect key="mitre-cross-gem" x={centerX} y={crossY} width="1" height="1" fill="#DC143C" className="pixel" />
+          );
+        }
+
+        // Lappets (hanging ribbons at back)
+        for (let lap = 0; lap < 4; lap++) {
+          elements.push(
+            <rect key={`mitre-lappet-l-${lap}`} x={centerX - 3} y={headY + 1 + lap} width="1" height="1" fill={lap % 2 === 0 ? relBase : relShade} className="pixel" />,
+            <rect key={`mitre-lappet-r-${lap}`} x={centerX + 2} y={headY + 1 + lap} width="1" height="1" fill={lap % 2 === 0 ? relBase : relShade} className="pixel" />
+          );
+        }
+
+      } else {
+        // Kippah/Zucchetto - small rounded skullcap with proper dome shading
+        const isZucchetto = name.includes('zucchetto');
+        const radius = Math.floor(headDim.width * (isZucchetto ? 0.5 : 0.4));
+        const capHeight = isZucchetto ? 5 : 4;
+
+        for (let row = 0; row < capHeight; row++) {
+          const rowY = headY - capHeight + 2 + row;
+          const yNorm = row / capHeight;
+
+          // Dome shape using circle equation
+          const arcWidth = Math.round(Math.sqrt(1 - Math.pow(1 - yNorm, 2)) * radius * 2);
+          const startX = centerX - Math.floor(arcWidth / 2);
+
+          for (let x = 0; x < arcWidth; x++) {
+            const xNorm = x / arcWidth;
+            let col = relBase;
+
+            // 3D dome shading
+            if (xNorm < 0.15) col = relDeep;
+            else if (xNorm < 0.25) col = relShade;
+            else if (xNorm > 0.85) col = relDeep;
+            else if (xNorm > 0.75) col = relShade;
+            else if (xNorm > 0.4 && xNorm < 0.6 && row < 2) col = relLight;
+            else if (xNorm > 0.35 && xNorm < 0.65) col = relMid;
+
+            // Fabric panel lines (typical kippah construction)
+            if (!isZucchetto && (x % 4 === 0) && row > 0) {
+              col = createShadow(col, 0.9);
+            }
+
+            // Satin sheen for zucchetto
+            if (isZucchetto && row < 2 && xNorm > 0.35 && xNorm < 0.55) {
+              col = relLight;
+            }
+
+            elements.push(<rect key={`cap-${row}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+
+        // Small stem/button on top for zucchetto
+        if (isZucchetto) {
+          elements.push(
+            <rect key="zuc-stem" x={centerX} y={headY - capHeight + 1} width="1" height="1" fill={relShade} className="pixel" />
+          );
         }
       }
     }

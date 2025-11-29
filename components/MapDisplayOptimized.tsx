@@ -2408,6 +2408,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             playerY={playerCharacter?.y}
             disableSmoothing={debugSettings?.disableCanvasSmoothing}
             season={season}
+            timeOfDay={gameTimeHours}
           />
 
           {/* Enhanced SVG overlay */}

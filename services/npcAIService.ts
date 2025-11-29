@@ -952,9 +952,353 @@ const moveTowards = (start: Point, target: Point, walkableNeighbors: Tile[]): Po
             bestNeighbor = neighbor;
         }
     }
-    
+
     return bestNeighbor ? { x: bestNeighbor.x, y: bestNeighbor.y } : start;
 };
+
+// =============================================================================
+// A* PATHFINDING SYSTEM - Smart NPC navigation with terrain preferences
+// =============================================================================
+
+// Terrain movement costs - lower = preferred
+const TERRAIN_COSTS: Partial<Record<BiomeType, number>> = {
+    // Roads and paths - highly preferred
+    [BiomeType.ROAD]: 0.3,
+    [BiomeType.DIRT_PATH]: 0.5,
+    [BiomeType.PLAZA]: 0.4,
+
+    // Urban areas - comfortable
+    [BiomeType.CITY_CENTER]: 0.6,
+    [BiomeType.LOW_DENSITY_CITY]: 0.7,
+    [BiomeType.DENSE_CITY]: 0.7,
+    [BiomeType.MARKETPLACE]: 0.6,
+    [BiomeType.HAMLET]: 0.7,
+
+    // Along water - scenic and navigational
+    [BiomeType.RIVERBANK]: 0.6,
+    [BiomeType.BEACH]: 0.8,
+
+    // Easy terrain
+    [BiomeType.GRASSLAND]: 1.0,
+    [BiomeType.FARMLAND]: 0.8,
+    [BiomeType.PARK]: 0.7,
+
+    // Moderate terrain
+    [BiomeType.FOREST]: 1.5,
+    [BiomeType.SCRUB]: 1.3,
+    [BiomeType.HILLS]: 1.8,
+    [BiomeType.STEPPE]: 1.1,
+
+    // Difficult terrain
+    [BiomeType.DENSE_FOREST]: 2.5,
+    [BiomeType.JUNGLE]: 3.0,
+    [BiomeType.WETLANDS]: 2.0,
+    [BiomeType.DESERT]: 2.0,
+    [BiomeType.SNOW]: 2.5,
+    [BiomeType.TUNDRA]: 2.0,
+
+    // Very difficult
+    [BiomeType.MANGROVE]: 3.0,
+    [BiomeType.SALT_FLATS]: 2.5,
+};
+
+// Get movement cost for a tile, factoring in animals
+function getTileMovementCost(
+    tile: Tile,
+    animals: AnimalEntity[] | undefined,
+    npcProfession?: string
+): number {
+    // Base cost from terrain
+    let cost = TERRAIN_COSTS[tile.biome] ?? 1.0;
+
+    // Roads on any tile make it cheap
+    if (tile.isRoad || tile.pathObjectRef) {
+        cost = Math.min(cost, 0.4);
+    }
+
+    // Check for dangerous animals nearby
+    if (animals && animals.length > 0) {
+        const dangerousAnimalsNearby = animals.filter(animal => {
+            if (animal.type !== 'Predator') return false;
+            const dist = Math.hypot(animal.x - tile.x, animal.y - tile.y);
+            return dist <= 3; // Animals within 3 tiles add cost
+        });
+
+        if (dangerousAnimalsNearby.length > 0) {
+            // Guards/soldiers are less afraid
+            const isWarrior = npcProfession?.toLowerCase().match(/guard|soldier|warrior|hunter/);
+            const animalPenalty = isWarrior ? 2.0 : 5.0;
+            cost += animalPenalty * dangerousAnimalsNearby.length;
+        }
+    }
+
+    // Bonus for following rivers (adjacent to river = slight preference)
+    // This creates natural "following the river" behavior
+
+    return cost;
+}
+
+// Check if a tile is adjacent to a river (for river-following behavior)
+function isAdjacentToRiver(x: number, y: number, map: MapData): boolean {
+    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    for (const [dx, dy] of directions) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < map.width && ny >= 0 && ny < map.height) {
+            const neighbor = map.tiles[ny][nx];
+            if (neighbor.biome === BiomeType.RIVER || neighbor.biome === BiomeType.MAJOR_RIVER) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// A* Node for priority queue
+interface PathNode {
+    x: number;
+    y: number;
+    g: number; // Cost from start
+    h: number; // Heuristic to goal
+    f: number; // Total cost (g + h)
+    parent: PathNode | null;
+}
+
+// Simple priority queue for A* (min-heap behavior via sorting)
+class PathPriorityQueue {
+    private items: PathNode[] = [];
+
+    push(node: PathNode): void {
+        this.items.push(node);
+        this.items.sort((a, b) => a.f - b.f);
+    }
+
+    pop(): PathNode | undefined {
+        return this.items.shift();
+    }
+
+    isEmpty(): boolean {
+        return this.items.length === 0;
+    }
+
+    has(x: number, y: number): boolean {
+        return this.items.some(n => n.x === x && n.y === y);
+    }
+
+    updateIfBetter(node: PathNode): boolean {
+        const existing = this.items.find(n => n.x === node.x && n.y === node.y);
+        if (existing && node.g < existing.g) {
+            existing.g = node.g;
+            existing.f = node.g + existing.h;
+            existing.parent = node.parent;
+            this.items.sort((a, b) => a.f - b.f);
+            return true;
+        }
+        return false;
+    }
+}
+
+// Path cache to avoid recalculating paths every frame
+const pathCache = new Map<string, { path: Point[], timestamp: number, targetKey: string }>();
+const PATH_CACHE_DURATION = 10000; // Cache paths for 10 seconds
+const MAX_PATH_LENGTH = 50; // Maximum path distance to calculate
+
+function getCacheKey(npcId: string, targetX: number, targetY: number): string {
+    return `${npcId}_${targetX}_${targetY}`;
+}
+
+/**
+ * A* Pathfinding with terrain costs and animal avoidance
+ * Returns the next step to take, or uses cached path if available
+ */
+function findPathAStar(
+    start: Point,
+    target: Point,
+    map: MapData,
+    npcId: string,
+    animals?: AnimalEntity[],
+    npcProfession?: string
+): Point[] | null {
+    // Check cache first
+    const cacheKey = getCacheKey(npcId, target.x, target.y);
+    const cached = pathCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && now - cached.timestamp < PATH_CACHE_DURATION) {
+        // Validate path still starts near our position
+        if (cached.path.length > 0) {
+            const firstStep = cached.path[0];
+            const distToPath = Math.hypot(start.x - firstStep.x, start.y - firstStep.y);
+            if (distToPath <= 2) {
+                return cached.path;
+            }
+        }
+    }
+
+    // Distance check - don't pathfind for very long distances (use simple movement)
+    const directDistance = Math.hypot(target.x - start.x, target.y - start.y);
+    if (directDistance > MAX_PATH_LENGTH) {
+        return null; // Fall back to simple movement for very long distances
+    }
+
+    // If very close, don't need complex pathfinding
+    if (directDistance <= 2) {
+        return null;
+    }
+
+    const openSet = new PathPriorityQueue();
+    const closedSet = new Set<string>();
+
+    const startNode: PathNode = {
+        x: start.x,
+        y: start.y,
+        g: 0,
+        h: Math.hypot(target.x - start.x, target.y - start.y),
+        f: 0,
+        parent: null
+    };
+    startNode.f = startNode.g + startNode.h;
+    openSet.push(startNode);
+
+    const directions = [
+        [-1, 0], [1, 0], [0, -1], [0, 1], // Cardinal
+        [-1, -1], [-1, 1], [1, -1], [1, 1] // Diagonal
+    ];
+
+    let iterations = 0;
+    const maxIterations = 500; // Prevent infinite loops
+
+    while (!openSet.isEmpty() && iterations < maxIterations) {
+        iterations++;
+        const current = openSet.pop()!;
+
+        // Goal reached?
+        if (current.x === target.x && current.y === target.y) {
+            // Reconstruct path
+            const path: Point[] = [];
+            let node: PathNode | null = current;
+            while (node && node.parent) {
+                path.unshift({ x: node.x, y: node.y });
+                node = node.parent;
+            }
+
+            // Cache the path
+            pathCache.set(cacheKey, { path, timestamp: now, targetKey: cacheKey });
+
+            return path;
+        }
+
+        closedSet.add(`${current.x},${current.y}`);
+
+        // Explore neighbors
+        for (const [dx, dy] of directions) {
+            const nx = current.x + dx;
+            const ny = current.y + dy;
+
+            // Bounds check
+            if (nx < 0 || nx >= map.width || ny < 0 || ny >= map.height) continue;
+
+            // Already visited?
+            if (closedSet.has(`${nx},${ny}`)) continue;
+
+            const tile = map.tiles[ny][nx];
+
+            // Walkable check
+            if (!isWalkableForNpc(tile)) continue;
+
+            // Calculate movement cost
+            let moveCost = getTileMovementCost(tile, animals, npcProfession);
+
+            // Diagonal movement costs more
+            if (dx !== 0 && dy !== 0) {
+                moveCost *= 1.4;
+            }
+
+            // Bonus for river-adjacent tiles (encourages following rivers)
+            if (isAdjacentToRiver(nx, ny, map) && tile.biome !== BiomeType.RIVERBANK) {
+                moveCost *= 0.9; // 10% bonus for staying near rivers
+            }
+
+            const tentativeG = current.g + moveCost;
+            const h = Math.hypot(target.x - nx, target.y - ny);
+
+            const neighborNode: PathNode = {
+                x: nx,
+                y: ny,
+                g: tentativeG,
+                h: h,
+                f: tentativeG + h,
+                parent: current
+            };
+
+            // Check if already in open set with better score
+            if (openSet.has(nx, ny)) {
+                openSet.updateIfBetter(neighborNode);
+            } else {
+                openSet.push(neighborNode);
+            }
+        }
+    }
+
+    // No path found
+    return null;
+}
+
+/**
+ * Get the next move for an NPC using A* pathfinding
+ * Falls back to simple movement if pathfinding fails or for short distances
+ */
+function getNextMoveAStar(
+    npc: NpcEntity,
+    target: Point,
+    map: MapData,
+    animals?: AnimalEntity[]
+): Point {
+    const start = { x: npc.x, y: npc.y };
+
+    // Try A* pathfinding
+    const path = findPathAStar(start, target, map, npc.id, animals, npc.profession);
+
+    if (path && path.length > 0) {
+        // Return the next step in the path
+        return path[0];
+    }
+
+    // Fall back to simple greedy movement
+    const allNeighbors = getNeighbors(npc.x, npc.y, map);
+    const walkableNeighbors = allNeighbors.filter(isWalkableForNpc);
+
+    if (walkableNeighbors.length === 0) {
+        return start;
+    }
+
+    // Simple greedy with animal avoidance
+    let bestNeighbor: Tile | null = null;
+    let bestScore = Infinity;
+
+    for (const neighbor of walkableNeighbors) {
+        const distanceToTarget = Math.hypot(neighbor.x - target.x, neighbor.y - target.y);
+        const moveCost = getTileMovementCost(neighbor, animals, npc.profession);
+        const score = distanceToTarget + moveCost * 2; // Weight terrain cost
+
+        if (score < bestScore) {
+            bestScore = score;
+            bestNeighbor = neighbor;
+        }
+    }
+
+    return bestNeighbor ? { x: bestNeighbor.x, y: bestNeighbor.y } : start;
+}
+
+// Clean up old cached paths periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of pathCache.entries()) {
+        if (now - value.timestamp > PATH_CACHE_DURATION * 2) {
+            pathCache.delete(key);
+        }
+    }
+}, 30000); // Clean every 30 seconds
 
 const getGoalTargetPosition = (npc: NpcEntity, map: MapData): Point | null => {
     const goal = npc.personalGoal;
@@ -1077,7 +1421,8 @@ export function calculateNpcUpdate(
     map: MapData,
     gameTimeHours: number,
     allNpcsInput?: NpcEntity[],
-    droppedItems?: Array<{ x: number; y: number; item: Item; timestamp: number }>
+    droppedItems?: Array<{ x: number; y: number; item: Item; timestamp: number }>,
+    animals?: AnimalEntity[]
 ): Partial<NpcEntity> {
     // SAFETY CHECK 1: Validate NPC exists
     if (!npcInput || typeof npcInput !== 'object') {
@@ -1091,7 +1436,7 @@ export function calculateNpcUpdate(
 
     // Wrap entire function in try-catch for proxy safety
     try {
-        return calculateNpcUpdateUnsafe(npcInput, playerPos, map, gameTimeHours, allNpcsInput, droppedItems);
+        return calculateNpcUpdateUnsafe(npcInput, playerPos, map, gameTimeHours, allNpcsInput, droppedItems, animals);
     } catch (error: any) {
         // SAFETY CHECK 3: Handle revoked proxy gracefully
         if (error.message?.includes('revoked') || error.message?.includes('perform')) {
@@ -1117,7 +1462,8 @@ function calculateNpcUpdateUnsafe(
     map: MapData,
     gameTimeHours: number,
     allNpcsInput?: NpcEntity[],
-    droppedItemsInput?: Array<{ x: number; y: number; item: Item; timestamp: number }>
+    droppedItemsInput?: Array<{ x: number; y: number; item: Item; timestamp: number }>,
+    animalsInput?: AnimalEntity[]
 ): Partial<NpcEntity> {
     let npc: NpcEntity;
     let allNpcs: NpcEntity[] | undefined;
@@ -1191,6 +1537,74 @@ function calculateNpcUpdateUnsafe(
                 aiState: 'wandering' as const,
                 activity: 'leading' // Special activity for leading player
             };
+        }
+    }
+
+    // PRIORITY: Handle frightened/fleeing NPCs - they run IMMEDIATELY
+    if (npc.aiState === 'hostile_fleeing' || npc.movement === 'fleeing') {
+        const targetX = (npc as any).targetX;
+        const targetY = (npc as any).targetY;
+
+        if (targetX !== undefined && targetY !== undefined) {
+            const distToTarget = Math.hypot(npc.x - targetX, npc.y - targetY);
+
+            // If reached flee destination or far enough from player, calm down
+            if (distToTarget <= 1.5 || Math.hypot(npc.x - playerPos.x, npc.y - playerPos.y) > 15) {
+                // Clear flee state but remain wary
+                return {
+                    aiState: 'idle' as any,
+                    movement: undefined,
+                    targetX: undefined,
+                    targetY: undefined,
+                    activity: 'wandering'
+                } as any;
+            }
+
+            // FLEE IMMEDIATELY - no movement timer check, they RUN
+            const allNeighbors = getNeighbors(npc.x, npc.y, map);
+            const walkableNeighbors = allNeighbors.filter(isWalkableForNpc);
+
+            if (walkableNeighbors.length > 0) {
+                // Use A* pathfinding to find best escape route
+                const fleeTarget = { x: targetX, y: targetY };
+                const nextPos = getNextMoveAStar(npc, fleeTarget, map, animalsInput);
+
+                // Update memory for fast movement
+                memory.nextMoveTime = now + 200 + Math.random() * 100; // Very fast - 0.2-0.3s between moves
+
+                return {
+                    x: nextPos.x,
+                    y: nextPos.y,
+                    aiState: 'hostile_fleeing' as any,
+                    activity: 'fleeing'
+                };
+            }
+        } else {
+            // No target set - flee away from player
+            const dx = npc.x - playerPos.x;
+            const dy = npc.y - playerPos.y;
+            const dist = Math.hypot(dx, dy) || 1;
+
+            // Calculate flee direction
+            const fleeX = Math.max(0, Math.min(map.width - 1, Math.round(npc.x + (dx / dist) * 8)));
+            const fleeY = Math.max(0, Math.min(map.height - 1, Math.round(npc.y + (dy / dist) * 8)));
+
+            const allNeighbors = getNeighbors(npc.x, npc.y, map);
+            const walkableNeighbors = allNeighbors.filter(isWalkableForNpc);
+
+            if (walkableNeighbors.length > 0) {
+                const nextPos = getNextMoveAStar(npc, { x: fleeX, y: fleeY }, map, animalsInput);
+                memory.nextMoveTime = now + 200 + Math.random() * 100;
+
+                return {
+                    x: nextPos.x,
+                    y: nextPos.y,
+                    targetX: fleeX,
+                    targetY: fleeY,
+                    aiState: 'hostile_fleeing' as any,
+                    activity: 'fleeing'
+                } as any;
+            }
         }
     }
 
@@ -1661,7 +2075,8 @@ function calculateNpcUpdateUnsafe(
     switch(newActivity) {
         case 'visiting_poi': {
             if (memory.currentDestination) {
-                nextPos = moveTowards({ x: npc.x, y: npc.y }, memory.currentDestination, walkableNeighbors);
+                // Use A* pathfinding for POI visits
+                nextPos = getNextMoveAStar(npc, memory.currentDestination, map, animalsInput);
             }
             break;
         }
@@ -1678,18 +2093,9 @@ function calculateNpcUpdateUnsafe(
                     return { activity: 'working' };
                 }
 
-                // Performance optimization: Continue on existing path if we have one
-                if (memory.currentDestination &&
-                    memory.currentDestination?.x === target.x &&
-                    memory.currentDestination?.y === target.y &&
-                    walkableNeighbors.length > 0) {
-                    // Still going to same destination - just move toward it
-                    nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
-                } else {
-                    // New destination or path blocked - recalculate
-                    memory.currentDestination = target;
-                    nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
-                }
+                // Use A* pathfinding for commuting - prefers roads, avoids animals
+                memory.currentDestination = target;
+                nextPos = getNextMoveAStar(npc, target, map, animalsInput);
             } else {
                 newActivity = 'wandering'; // No workplace, so just wander
             }
@@ -1708,19 +2114,10 @@ function calculateNpcUpdateUnsafe(
                     return { activity: 'idle' };
                 }
 
-                // Performance optimization: Continue on existing path if we have one
+                // Use A* pathfinding for commuting home - prefers roads, avoids animals
                 try {
-                    if (memory.currentDestination &&
-                        memory.currentDestination?.x === target.x &&
-                        memory.currentDestination?.y === target.y &&
-                        walkableNeighbors.length > 0) {
-                        // Still going to same destination - just move toward it
-                        nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
-                    } else {
-                        // New destination or path blocked - recalculate
-                        memory.currentDestination = target;
-                        nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
-                    }
+                    memory.currentDestination = target;
+                    nextPos = getNextMoveAStar(npc, target, map, animalsInput);
                 } catch (error) {
                     // Revoked proxy error - just move randomly
                     nextPos = walkableNeighbors[Math.floor(Math.random() * walkableNeighbors.length)];

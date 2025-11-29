@@ -54,7 +54,7 @@ import { useNpcHelperMode } from './NpcHelperModeHandler';
 import { initiateHelperMode } from '../services/npcHelperService';
 import { LanguageFamilyTree } from './LanguageFamilyTree';
 import { WorkOffer } from '../types/workOffer';
-import { detectWorkRequest, generateWorkOffer, MAX_OFFERS_PER_NPC, deliverItemsToWorkOffer, calculateProactiveWorkContext, checkWorkCompletion, completeWorkOffer } from '../services/workOfferService';
+import { detectWorkRequest, generateWorkOffer, MAX_OFFERS_PER_NPC, deliverItemsToWorkOffer, calculateProactiveWorkContext, checkWorkCompletion, completeWorkOffer, checkWorkOfferWillingness } from '../services/workOfferService';
 import { addWorkOffer, getWorkOffersForNpc, updateWorkOffer } from '../services/workOfferStorage';
 
 // Styles for animations
@@ -887,6 +887,30 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         if (isNpc(currentTarget) && detectWorkRequest(playerInput)) {
             setIsGeneratingWork(true);
             try {
+                // First check if NPC is willing to offer work based on relationship/conversation
+                const conversationForCheck = history.map(h => ({
+                    speaker: h.speaker,
+                    text: h.text
+                }));
+                const willingness = checkWorkOfferWillingness(
+                    currentTarget as NpcEntity,
+                    conversationForCheck,
+                    playerCharacter.mapReputation
+                );
+
+                if (!willingness.willing) {
+                    // NPC refuses to offer work - use their specific reason
+                    const rejectionEntry: DialogueEntry = {
+                        speaker: 'npc',
+                        text: willingness.reason || "I don't have any work for someone like you.",
+                        timestamp: new Date()
+                    };
+                    setHistory(prev => [...prev, rejectionEntry]);
+                    setPlayerInput('');
+                    setIsGeneratingWork(false);
+                    return;
+                }
+
                 // Get nearby animals for hunting quests (use NPC position as reference since player is near them)
                 const npcPos = { x: (currentTarget as NpcEntity).x, y: (currentTarget as NpcEntity).y };
                 const nearbyAnimals = mapData?.animals?.filter(animal => {
@@ -903,7 +927,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     mapData?.terrainStructures || [],
                     gameDate ? (gameDate.year * 365 * 24 + gameDate.month * 30 * 24 + gameDate.day * 24) : 0,
                     npcPos,
-                    nearbyAnimals
+                    nearbyAnimals,
+                    conversationForCheck // Pass conversation history to LLM generator
                 );
 
                 if (offer) {
@@ -2258,6 +2283,60 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             </div>
                                         ) : (
                                             <>
+                                                {/* NPC Memory Banner - shows at conversation start if NPC remembers player */}
+                                                {isNpc(currentTarget) && currentTarget.memory && (
+                                                  currentTarget.memory.conversationSummaries?.length > 0 ||
+                                                  currentTarget.memory.knownFactsAboutPlayer?.size > 0
+                                                ) && (
+                                                  <div className="mb-4 p-3 rounded-lg border bg-gradient-to-r from-indigo-950/40 to-slate-900/40 border-indigo-500/30">
+                                                    <div className="flex items-start gap-2">
+                                                      <span className="text-indigo-400 text-lg">🧠</span>
+                                                      <div className="flex-1">
+                                                        <p className="text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-1">
+                                                          {currentTarget.name} remembers you
+                                                        </p>
+                                                        <p className="text-sm text-indigo-200/80 italic">
+                                                          {(() => {
+                                                            // Generate contextual memory summary
+                                                            const opinion = currentTarget.memory.opinionOfPlayer ?? 50;
+                                                            const summaries = currentTarget.memory.conversationSummaries || [];
+                                                            const facts = currentTarget.memory.knownFactsAboutPlayer ? Array.from(currentTarget.memory.knownFactsAboutPlayer) : [];
+
+                                                            // Check for specific facts
+                                                            const wasThreated = facts.some(f => f.includes('THREATENED'));
+                                                            const wasAttacked = facts.some(f => f.includes('ATTACKED'));
+                                                            const fledCombat = facts.some(f => f.includes('FLED_COMBAT'));
+                                                            const wasHelped = facts.some(f => f.includes('HELPED'));
+                                                            const tradeHistory = facts.some(f => f.includes('TRADE'));
+
+                                                            // Build memory description
+                                                            if (wasAttacked) {
+                                                              return "Eyes you with fear and hostility - you attacked " + (currentTarget.gender === 'female' ? 'her' : 'him') + " before.";
+                                                            } else if (wasThreated) {
+                                                              return "Watches you warily - you threatened " + (currentTarget.gender === 'female' ? 'her' : 'him') + " in the past.";
+                                                            } else if (fledCombat) {
+                                                              return "Remembers when you fled from a confrontation.";
+                                                            } else if (opinion >= 70) {
+                                                              return "Greets you warmly - you have built a good relationship." + (tradeHistory ? " You have traded before." : "");
+                                                            } else if (opinion >= 50) {
+                                                              return "Recognizes you from previous conversations." + (tradeHistory ? " You have done business together." : "");
+                                                            } else if (opinion >= 30) {
+                                                              return "Regards you with some caution - your past interactions were not entirely positive.";
+                                                            } else {
+                                                              return "Clearly dislikes you based on previous encounters.";
+                                                            }
+                                                          })()}
+                                                        </p>
+                                                        {/* Last conversation summary if available */}
+                                                        {currentTarget.memory.conversationSummaries && currentTarget.memory.conversationSummaries.length > 0 && (
+                                                          <p className="text-xs text-indigo-300/60 mt-1.5">
+                                                            Last spoke: "{currentTarget.memory.conversationSummaries[currentTarget.memory.conversationSummaries.length - 1].slice(0, 80)}..."
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                )}
                                                 {history.map((entry, index) => (
                                                     <div key={index} className="dialogue-entry">
                                                         {entry.speaker === 'system' ? (
