@@ -8,79 +8,75 @@ import ButcherConfirmModal from './ButcherConfirmModal';
 import { vesselService } from '../services/vesselService';
 import { useIsDarkMode } from '../hooks/useIsMobile';
 
-/**
- * Get rarity colors and effects
- */
-const getRarityColors = (rarity: string) => {
-  switch (rarity) {
-    case 'Unique':
-      return {
-        primary: '#f59e0b', // amber-500
-        light: '#fbbf24', // amber-400
-        glow: 'rgba(245, 158, 11, 0.4)',
-        bg: 'rgba(245, 158, 11, 0.1)',
-        border: 'rgba(245, 158, 11, 0.3)'
-      };
-    case 'Ultra-rare':
-      return {
-        primary: '#a855f7', // purple-500
-        light: '#c084fc', // purple-400
-        glow: 'rgba(168, 85, 247, 0.4)',
-        bg: 'rgba(168, 85, 247, 0.1)',
-        border: 'rgba(168, 85, 247, 0.3)'
-      };
-    case 'Rare':
-      return {
-        primary: '#3b82f6', // blue-500
-        light: '#60a5fa', // blue-400
-        glow: 'rgba(59, 130, 246, 0.4)',
-        bg: 'rgba(59, 130, 246, 0.1)',
-        border: 'rgba(59, 130, 246, 0.3)'
-      };
-    case 'Uncommon':
-      return {
-        primary: '#10b981', // emerald-500
-        light: '#34d399', // emerald-400
-        glow: 'rgba(16, 185, 129, 0.4)',
-        bg: 'rgba(16, 185, 129, 0.1)',
-        border: 'rgba(16, 185, 129, 0.3)'
-      };
-    case 'Common':
-      return {
-        primary: '#64748b', // slate-500
-        light: '#94a3b8', // slate-400
-        glow: 'rgba(100, 116, 139, 0.2)',
-        bg: 'rgba(100, 116, 139, 0.08)',
-        border: 'rgba(100, 116, 139, 0.2)'
-      };
-    case 'Junk':
-    default:
-      return {
-        primary: '#78716c', // stone-500
-        light: '#a8a29e', // stone-400
-        glow: 'rgba(120, 113, 108, 0.15)',
-        bg: 'rgba(120, 113, 108, 0.05)',
-        border: 'rgba(120, 113, 108, 0.15)'
-      };
+// PERFORMANCE: Pre-computed color maps for O(1) lookup instead of switch statements
+const RARITY_COLORS_MAP: Record<string, { primary: string; light: string; glow: string; bg: string; border: string }> = {
+  'Unique': {
+    primary: '#f59e0b', // amber-500
+    light: '#fbbf24', // amber-400
+    glow: 'rgba(245, 158, 11, 0.4)',
+    bg: 'rgba(245, 158, 11, 0.1)',
+    border: 'rgba(245, 158, 11, 0.3)'
+  },
+  'Ultra-rare': {
+    primary: '#a855f7', // purple-500
+    light: '#c084fc', // purple-400
+    glow: 'rgba(168, 85, 247, 0.4)',
+    bg: 'rgba(168, 85, 247, 0.1)',
+    border: 'rgba(168, 85, 247, 0.3)'
+  },
+  'Rare': {
+    primary: '#3b82f6', // blue-500
+    light: '#60a5fa', // blue-400
+    glow: 'rgba(59, 130, 246, 0.4)',
+    bg: 'rgba(59, 130, 246, 0.1)',
+    border: 'rgba(59, 130, 246, 0.3)'
+  },
+  'Uncommon': {
+    primary: '#10b981', // emerald-500
+    light: '#34d399', // emerald-400
+    glow: 'rgba(16, 185, 129, 0.4)',
+    bg: 'rgba(16, 185, 129, 0.1)',
+    border: 'rgba(16, 185, 129, 0.3)'
+  },
+  'Common': {
+    primary: '#64748b', // slate-500
+    light: '#94a3b8', // slate-400
+    glow: 'rgba(100, 116, 139, 0.2)',
+    bg: 'rgba(100, 116, 139, 0.08)',
+    border: 'rgba(100, 116, 139, 0.2)'
+  },
+  'Junk': {
+    primary: '#78716c', // stone-500
+    light: '#a8a29e', // stone-400
+    glow: 'rgba(120, 113, 108, 0.15)',
+    bg: 'rgba(120, 113, 108, 0.05)',
+    border: 'rgba(120, 113, 108, 0.15)'
   }
 };
 
+const DEFAULT_RARITY_COLORS = RARITY_COLORS_MAP['Junk'];
+
 /**
- * Get quality label and color
+ * Get rarity colors and effects - O(1) lookup
+ */
+const getRarityColors = (rarity: string) => {
+  return RARITY_COLORS_MAP[rarity] || DEFAULT_RARITY_COLORS;
+};
+
+// PERFORMANCE: Pre-computed quality info map
+const QUALITY_INFO_MAP: Record<string, { label: string; color: string } | null> = {
+  'excellent': { label: 'Exceptional', color: '#a855f7' },
+  'good': { label: 'Quality', color: '#8b5cf6' },
+  'poor': { label: 'Poor', color: '#6b7280' },
+  'standard': null
+};
+
+/**
+ * Get quality label and color - O(1) lookup
  */
 const getQualityInfo = (quality?: ItemQuality) => {
-  if (!quality || quality === 'standard') return null;
-
-  switch (quality) {
-    case 'excellent':
-      return { label: 'Exceptional', color: '#a855f7' };
-    case 'good':
-      return { label: 'Quality', color: '#8b5cf6' };
-    case 'poor':
-      return { label: 'Poor', color: '#6b7280' };
-    default:
-      return null;
-  }
+  if (!quality) return null;
+  return QUALITY_INFO_MAP[quality] ?? null;
 };
 
 interface InventoryPanelEnhancedProps {
@@ -378,31 +374,30 @@ export default function InventoryPanelEnhanced({
                   )}
 
                   {/* Content */}
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full p-2 gap-2">
+                  <div className="relative z-10 flex flex-col items-center h-full pt-1 pb-1 px-1 gap-0">
                     {/* Icon */}
-                    <div className="flex items-center justify-center flex-1">
+                    <div className="flex items-center justify-center shrink-0" style={{ marginBottom: '2px' }}>
                       <div
                         className="group-hover:scale-110 transition-transform duration-300"
                         style={{
                           filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
                         }}
                       >
-                        <GenerativeItemIcon item={item} size={72} />
+                        <GenerativeItemIcon item={item} size={56} />
                       </div>
                     </div>
 
                     {/* Item Name */}
                     <div className="text-center w-full">
                       <p
-                        className="text-[0.75rem] font-semibold leading-tight"
+                        className="text-[0.65rem] font-semibold"
                         style={{
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          lineHeight: '1.1',
-                          minHeight: '1.65rem',
+                          lineHeight: '1.2',
                           color: isDark ? '#ffffff' : '#1e293b',
                           textTransform: 'capitalize'
                         }}

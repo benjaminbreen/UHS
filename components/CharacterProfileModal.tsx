@@ -215,45 +215,7 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
   );
 };
 
-const TabBtn: React.FC<{ label: string; active: boolean; onClick: () => void; Icon: any }> = ({
-  label,
-  active,
-  onClick,
-  Icon,
-}) => (
-  <button
-    onClick={onClick}
-    role="tab"
-    aria-selected={active}
-    aria-label={`${label} tab`}
-    tabIndex={active ? 0 : -1}
-    className={[
-      'relative flex items-center gap-2 px-5 py-3 text-xs md:text-sm font-semibold transition-all duration-200 shrink-0',
-      'focus:outline-none focus:ring-2 focus:ring-offset-1',
-      active
-        ? [
-            // Active tab - folder style with rounded top
-            'text-text-primary rounded-t-lg -mb-px z-10',
-            'surface-card border-t-2 border-x-2',
-            // Themed border
-            'border-[color:var(--accent-primary)]/40',
-            'shadow-[0_-2px_8px_rgba(0,0,0,0.08)]',
-            'dark:shadow-[0_-2px_12px_rgba(0,0,0,0.3)]',
-            'focus:ring-[color:var(--accent-primary)]',
-          ].join(' ')
-        : [
-            // Inactive tab - subtle, sits behind
-            'text-text-secondary bg-transparent',
-            'hover:text-text-primary hover:bg-[var(--surface-muted-bg)]',
-            'rounded-t-md border-b border-[var(--border-subtle)]',
-            'focus:ring-[var(--border-normal)]',
-          ].join(' '),
-    ].join(' ')}
-  >
-    <Icon className="w-4 h-4" aria-hidden="true" />
-    <span className="whitespace-nowrap">{label}</span>
-  </button>
-);
+/* TabBtn removed - now using folder-tab CSS classes directly */
 
 /* -------------------------------------------------------------------------- */
 /* Life Events Icon and Color Mapping                                         */
@@ -945,19 +907,34 @@ const CharacterProfileModal: React.FC<Props> = ({
 
           {/* Right: Tabs + Content */}
           <main className="flex flex-col min-h-0">
-            {/* Tabs */}
+            {/* Folder Tabs */}
             <div
               role="tablist"
               aria-label="Character profile sections"
-              className="shrink-0 flex border-b-2 border-[var(--border-normal)] bg-[var(--surface-muted-bg)] overflow-x-auto"
+              className="folder-tabs-container shrink-0"
             >
-              <TabBtn label="Overview" active={active === 'overview'} onClick={() => handleTabChange('overview')} Icon={Home} />
-              <TabBtn label="Stats" active={active === 'health'} onClick={() => handleTabChange('health')} Icon={Activity} />
-              <TabBtn label="Equipment" active={active === 'equipment'} onClick={() => handleTabChange('equipment')} Icon={Sword} />
-              <TabBtn label="Inventory" active={active === 'inventory'} onClick={() => handleTabChange('inventory')} Icon={Backpack} />
-              <TabBtn label="Beliefs" active={active === 'beliefs'} onClick={() => handleTabChange('beliefs')} Icon={Sparkles} />
-              <TabBtn label="History" active={active === 'history'} onClick={() => handleTabChange('history')} Icon={Scroll} />
-              <TabBtn label="Household" active={active === 'household'} onClick={() => handleTabChange('household')} Icon={House} />
+              {[
+                { id: 'overview', label: 'Overview', icon: Home },
+                { id: 'health', label: 'Stats', icon: Activity },
+                { id: 'equipment', label: 'Equipment', icon: Sword },
+                { id: 'inventory', label: 'Inventory', icon: Backpack },
+                { id: 'beliefs', label: 'Beliefs', icon: Sparkles },
+                { id: 'history', label: 'History', icon: Scroll },
+                { id: 'household', label: 'Household', icon: House },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={active === tab.id}
+                  aria-label={`${tab.label} tab`}
+                  tabIndex={active === tab.id ? 0 : -1}
+                  onClick={() => handleTabChange(tab.id as typeof active)}
+                  className={`folder-tab ${active === tab.id ? 'folder-tab-active' : 'folder-tab-inactive'}`}
+                >
+                  <tab.icon className="folder-tab-icon" aria-hidden="true" />
+                  <span className="folder-tab-label">{tab.label}</span>
+                </button>
+              ))}
             </div>
 
             {/* Content (scrolls) */}

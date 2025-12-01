@@ -12,35 +12,60 @@ const clamp = (val: number) => Math.max(0, Math.min(255, val));
 // Convert RGB object to CSS rgb string
 export const rgbStr = ({ r, g, b }: RGB) => `rgb(${clamp(Math.round(r))}, ${clamp(Math.round(g))}, ${clamp(Math.round(b))})`;
 
+// Parse color string to RGB - supports both hex (#RRGGBB) and rgb() formats
+export const toRGB = (color: string): RGB => {
+  if (!color) return { r: 0, g: 0, b: 0 };
+
+  // Handle hex colors (#RGB or #RRGGBB)
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    if (hex.length === 3) {
+      // Short form #RGB -> #RRGGBB
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      return { r, g, b };
+    }
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return { r: isNaN(r) ? 0 : r, g: isNaN(g) ? 0 : g, b: isNaN(b) ? 0 : b };
+  }
+
+  // Handle rgb() format
+  const m = color.match(/rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/i);
+  if (m) return { r: +m[1], g: +m[2], b: +m[3] };
+
+  return { r: 0, g: 0, b: 0 };
+};
+
 // Create shadow by darkening a color
 export const createShadow = (color: string, amount = 0.8): string => {
-  const rgb = color.match(/\d+/g);
-  if (!rgb || rgb.length < 3) return color;
-  return rgbStr({ r: parseInt(rgb[0]) * amount, g: parseInt(rgb[1]) * amount, b: parseInt(rgb[2]) * amount });
+  const { r, g, b } = toRGB(color);
+  return rgbStr({ r: r * amount, g: g * amount, b: b * amount });
 };
 
-// Create highlight by lightening a color
+// Create highlight by lightening a color (blend toward white to preserve hue)
 export const createHighlight = (color: string, amount = 1.2): string => {
-  const rgb = color.match(/\d+/g);
-  if (!rgb || rgb.length < 3) return color;
-  return rgbStr({ r: parseInt(rgb[0]) * amount, g: parseInt(rgb[1]) * amount, b: parseInt(rgb[2]) * amount });
+  const { r, g, b } = toRGB(color);
+  // Blend toward white instead of just multiplying (prevents hue shift on saturated colors)
+  const blendAmount = Math.min(1, (amount - 1) * 2);
+  return rgbStr({
+    r: r + (255 - r) * blendAmount * 0.5,
+    g: g + (255 - g) * blendAmount * 0.5,
+    b: b + (255 - b) * blendAmount * 0.5
+  });
 };
 
-// Create complementary shadow with slight hue shift
+// Create complementary shadow with slight warm shift
 export const createComplementaryShadow = (color: string, amount = 0.7): string => {
-  const rgb = color.match(/\d+/g);
-  if (!rgb || rgb.length < 3) return createShadow(color, amount);
-
-  const r = parseInt(rgb[0]);
-  const g = parseInt(rgb[1]);
-  const b = parseInt(rgb[2]);
-
-  // Slight hue shift for more natural shadows
-  const shadowR = r * amount + 5;
-  const shadowG = g * amount + 3;
-  const shadowB = b * amount + 2;
-
-  return rgbStr({ r: shadowR, g: shadowG, b: shadowB });
+  const { r, g, b } = toRGB(color);
+  // Darken with very subtle warm shift (reduce blue slightly more than red)
+  return rgbStr({
+    r: r * amount,
+    g: g * amount * 0.97,
+    b: b * amount * 0.94
+  });
 };
 
 // Base skin tone colors

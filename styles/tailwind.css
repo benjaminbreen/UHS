@@ -723,24 +723,25 @@
 
   .tab-strip {
     display: flex;
-    gap: 0.5rem;
-    padding: 0.35rem;
+    gap: 0.25rem;
+    padding: 0.25rem;
     background: var(--tab-strip-bg);
     border: 1px solid var(--tab-strip-border);
-    border-radius: 0.9rem;
+    border-radius: 0.6rem;
   }
 
   .tab-strip .tab-button {
     flex: 1 1 0;
     text-align: center;
-    border-radius: 0.7rem;
+    border-radius: 0.4rem;
     border: 1px solid transparent;
     background: transparent;
     color: var(--tab-button-text);
     font-weight: 600;
-    padding: 0.65rem 0.75rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8125rem;
     cursor: pointer;
-    transition: box-shadow 0.18s ease;
+    transition: box-shadow 0.15s ease;
   }
 
   .tab-strip .tab-button:hover {

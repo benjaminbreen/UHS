@@ -2,10 +2,18 @@
  * Safari-specific utilities for performance optimization
  */
 
-// Detect Safari browser
+// Cache Safari detection at module load time (runs once, not per render)
+const IS_SAFARI_BROWSER = typeof navigator !== 'undefined'
+  ? /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  : false;
+
+// Detect Safari browser - uses cached value
 export const isSafari = (): boolean => {
-  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  return IS_SAFARI_BROWSER;
 };
+
+// Direct access to cached value for hot paths (avoids function call overhead)
+export const IS_SAFARI = IS_SAFARI_BROWSER;
 
 // Get Safari-optimized class names (removes blur effects on Safari)
 export const getSafariOptimizedClassName = (className: string): string => {

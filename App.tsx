@@ -1576,8 +1576,8 @@ const AppContent: React.FC = () => {
           </Suspense>
         )}
 
-        {/* Tooltip Portal Container - Renders tooltips above all other UI elements */}
-        <div id="tooltip-portal" className="pointer-events-none fixed inset-0 z-[9999]" />
+        {/* Tooltip Portal Container - Renders tooltips below modals (z-5000) but above map elements */}
+        <div id="tooltip-portal" className="pointer-events-none fixed inset-0 z-[4000]" />
 
         {/* Camp Modal */}
         {isCampModalOpen && playerCharacter && mapData && controlledIconX !== null && controlledIconY !== null && (

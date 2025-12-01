@@ -789,22 +789,67 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     return visible;
   }, [visibleTileGrid, mapData?.tiles, flatTiles]);
 
-  // Memoized filter operations - PERFORMANCE: Use visibleTiles instead of flatTiles (1024 → ~200 tiles)
-  const desertParticleTiles = useMemo(() => {
-    if (!mapData?.seed) return [];
-    return visibleTiles
-      .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
-      .filter(tile => (tile.x + tile.y * 7 + mapData.seed) % 5 === 0);
+  // PERFORMANCE: Combined single-pass filter for all tile categories (reduces 6 iterations to 1)
+  const categorizedTiles = useMemo(() => {
+    const result = {
+      desertParticles: [] as Tile[],
+      snowEffects: [] as Tile[],
+      mountains: [] as Tile[],
+      water: [] as Tile[],
+      overlays: [] as Tile[],
+      lightSources: [] as Tile[]
+    };
+
+    if (!mapData?.seed) return result;
+
+    // Pre-create Sets for O(1) lookups
+    const LIGHT_BIOMES = new Set([
+      BiomeType.TORCH, BiomeType.BRAZIER, BiomeType.FIRE_PIT,
+      BiomeType.HEARTH, BiomeType.LANTERN
+    ]);
+    const LIGHT_OVERLAY_TYPES = new Set(['CANDELABRA', 'TORCH', 'BRAZIER']);
+
+    for (const tile of visibleTiles) {
+      // Desert particles (sparse)
+      if (tile.biome === BiomeType.DESERT && tile.isLand &&
+          (tile.x + tile.y * 7 + mapData.seed) % 5 === 0) {
+        result.desertParticles.push(tile);
+      }
+
+      // Snow effects (sparse)
+      if ((tile.biome === BiomeType.SNOW || tile.biome === BiomeType.TUNDRA) &&
+          tile.isLand && (tile.x + tile.y * 11 + mapData.seed) % 3 === 0) {
+        result.snowEffects.push(tile);
+      }
+
+      // Mountains
+      if (tile.biome === BiomeType.MOUNTAIN || tile.biome === BiomeType.HIGH_PEAK) {
+        result.mountains.push(tile);
+      }
+
+      // Water
+      if (!tile.isLand) {
+        result.water.push(tile);
+      }
+
+      // Overlays
+      if (tile.overlayObject) {
+        result.overlays.push(tile);
+      }
+
+      // Light sources
+      if (LIGHT_BIOMES.has(tile.biome) ||
+          (tile.overlayObject?.type && LIGHT_OVERLAY_TYPES.has(tile.overlayObject.type.toString()))) {
+        result.lightSources.push(tile);
+      }
+    }
+
+    return result;
   }, [visibleTiles, mapData?.seed]);
 
-  const snowEffectTiles = useMemo(() => {
-    if (!mapData?.seed) return [];
-    return visibleTiles.filter(tile =>
-      (tile.biome === BiomeType.SNOW || tile.biome === BiomeType.TUNDRA) &&
-      tile.isLand &&
-      (tile.x + tile.y * 11 + mapData.seed) % 3 === 0
-    );
-  }, [visibleTiles, mapData?.seed]);
+  // Expose individual arrays for backwards compatibility (no re-iteration needed)
+  const desertParticleTiles = categorizedTiles.desertParticles;
+  const snowEffectTiles = categorizedTiles.snowEffects;
 
   // PERFORMANCE: Viewport cull vegetation to only render visible trees
   const visibleVegetation = useMemo(() => {
@@ -819,36 +864,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     );
   }, [mapData?.vegetation, visibleTileGrid]);
 
-  // PERFORMANCE: Use visibleTiles for viewport-specific features (saves ~800 iterations)
-  const mountainTiles = useMemo(() => {
-    return visibleTiles.filter(tile =>
-      tile.biome === BiomeType.MOUNTAIN ||
-      tile.biome === BiomeType.HIGH_PEAK
-    );
-  }, [visibleTiles]);
-
-  const waterTiles = useMemo(() => {
-    return visibleTiles.filter(tile => !tile.isLand);
-  }, [visibleTiles]);
-
-  const overlayTiles = useMemo(() => {
-    return visibleTiles.filter(tile => tile.overlayObject);
-  }, [visibleTiles]);
-
-  // Pre-create Set for faster light source type lookups
-  const LIGHT_SOURCE_BIOMES = useMemo(() => new Set([
-    BiomeType.TORCH, BiomeType.BRAZIER, BiomeType.FIRE_PIT,
-    BiomeType.HEARTH, BiomeType.CHANDELIER, BiomeType.LANTERN
-  ]), []);
-
-  const LIGHT_SOURCE_OVERLAY_TYPES = useMemo(() => new Set(['CANDELABRA', 'TORCH', 'BRAZIER']), []);
-
-  const lightSourceTiles = useMemo(() => {
-    return visibleTiles.filter(tile =>
-      LIGHT_SOURCE_BIOMES.has(tile.biome) ||
-      (tile.overlayObject?.type && LIGHT_SOURCE_OVERLAY_TYPES.has(tile.overlayObject.type.toString()))
-    );
-  }, [visibleTiles, LIGHT_SOURCE_BIOMES, LIGHT_SOURCE_OVERLAY_TYPES]);
+  // PERFORMANCE: Use pre-categorized tiles from single-pass filter (no additional iterations)
+  const mountainTiles = categorizedTiles.mountains;
+  const waterTiles = categorizedTiles.water;
+  const overlayTiles = categorizedTiles.overlays;
+  const lightSourceTiles = categorizedTiles.lightSources;
 
 
 
@@ -1921,11 +1941,17 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const clickedAnimal = animals?.find(a => Math.floor(a.x) === tile.x && Math.floor(a.y) === tile.y);
 
     if (clickedNpc) {
+      // Clear tooltip state when opening modal
+      setHoveredNPC(null);
+      setHoveredEntityCoords(null);
       onNpcClick(clickedNpc);
       return;
     }
 
     if (clickedAnimal) {
+      // Clear tooltip state when opening modal
+      setHoveredAnimal(null);
+      setHoveredEntityCoords(null);
       onAnimalClick(clickedAnimal);
       return;
     }

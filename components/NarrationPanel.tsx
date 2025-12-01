@@ -193,15 +193,16 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
     });
   }, [isLoading, onPlayerInputChange, onSend]);
 
+  // Text sizes - balanced for readability and density
   const textSizeClass =
     settings.textSize === 'sm'
-      ? 'text-[1.05rem]'
+      ? 'text-[0.9375rem]'
       : settings.textSize === 'lg'
-      ? 'text-[1.2rem]'
-      : 'text-[1.1rem]';
+      ? 'text-[1.125rem]'
+      : 'text-[1rem]'; // 16px default
 
-  const bubblePad = settings.compact ? 'p-2.5' : 'p-4';
-  const stackSpace = settings.compact ? 'space-y-2.5' : 'space-y-4';
+  const bubblePad = settings.compact ? 'p-2' : 'p-3';
+  const stackSpace = settings.compact ? 'space-y-2' : 'space-y-3';
 
   // Extract location names from recent messages (memoized separately to reduce re-renders)
   const locationNames = useMemo(() => {
@@ -225,7 +226,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
   // Memoize ReactMarkdown components to prevent re-creation and hover flickering
   const markdownComponents = useMemo(() => {
     return {
-      p: ({node, ...props}: any) => <p className="mb-3 last:mb-0" {...props} />,
+      p: ({node, ...props}: any) => <p className="mb-2 last:mb-0" {...props} />,
       strong: ({node, children, ...props}: any) => {
         // Get the text content
         const textContent = typeof children === 'string' ? children : String(children);
@@ -385,7 +386,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         ref={logRef}
         role="log"
         aria-live="polite"
-        className="flex-1 min-h-0 px-4 pt-5 pb-5 overflow-y-auto text-xs leading-relaxed space-y-3
+        className="flex-1 min-h-0 px-3 pt-3 pb-3 overflow-y-auto text-xs leading-snug space-y-2
                    scrollbar-thin scrollbar-thumb-slate-400/60 scrollbar-track-transparent"
         style={{ background: 'var(--surface-card-bg)' }}
       >
@@ -448,25 +449,25 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
 
 
                   {msg.sender === 'narrator' && (
-                    <p className="text-xs font-bold mb-2 flex items-center gap-1.5 text-[var(--accent-primary)] tracking-wide">
-                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <p className="text-[10px] font-bold mb-1 flex items-center gap-1 text-[var(--accent-primary)] tracking-wide">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                       </svg>
-                      <span className="uppercase text-[10px] font-extrabold">Narrator</span>
+                      <span className="uppercase text-[9px] font-extrabold">Narrator</span>
                     </p>
                   )}
                   {msg.sender === 'narrator-ambient' && (
-                    <p className="text-xs text-[var(--accent-primary)] font-bold mb-2 flex items-center gap-1.5 tracking-wide">
-                      <span className="text-sm">✨</span>
-                      <span className="uppercase text-[10px] font-extrabold">Ambiance</span>
+                    <p className="text-[10px] text-[var(--accent-primary)] font-bold mb-1 flex items-center gap-1 tracking-wide">
+                      <span className="text-xs">✨</span>
+                      <span className="uppercase text-[9px] font-extrabold">Ambiance</span>
                     </p>
                   )}
                   {msg.sender === 'narrator' || msg.sender === 'narrator-ambient' ? (
                     <div
-                      className={`leading-relaxed ${textSizeClass}`}
+                      className={`${textSizeClass}`}
                       style={{
                         fontFamily: 'Georgia, "Palatino Linotype", "Book Antiqua", Palatino, serif',
-                        lineHeight: '1.8'
+                        lineHeight: '1.55'
                       }}
                     >
                       <ReactMarkdown components={markdownComponents}>
@@ -474,7 +475,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                       </ReactMarkdown>
                     </div>
                   ) : (
-                    <p className={`leading-relaxed tracking-normal ${textSizeClass}`} style={{ lineHeight: '1.65' }}>{msg.text}</p>
+                    <p className={`leading-relaxed tracking-normal ${textSizeClass}`} style={{ lineHeight: '1.7' }}>{msg.text}</p>
                   )}
                 </div>
               );
@@ -502,78 +503,55 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         )}
       </div>
 
-      {/* Quick Command Buttons - Only show when input is focused OR rest warning appears */}
+      {/* Quick Command Buttons - Compact inline with input */}
       {settings.showQuickReplies && (isInputFocused || showQuickCommandsDueToWarning) && (
-        <div className="flex-shrink-0 px-4 py-3 border-t border-[var(--border-normal)] surface-muted animate-in slide-in-from-bottom-3 fade-in duration-300">
-          <p className="text-xs text-[var(--text-secondary)] font-bold mb-2.5 flex items-center gap-2 tracking-wide uppercase">
-            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-            </svg>
-            <span className="text-[10px]">Quick Actions</span>
-            {showQuickCommandsDueToWarning && (
-              <span className="text-[10px] text-[color:var(--color-warning)] animate-pulse ml-1 normal-case">(suggested)</span>
-            )}
-          </p>
-          <div className="flex flex-wrap gap-2">
+        <div className="flex-shrink-0 px-3 py-1.5 border-t border-[var(--border-normal)] surface-muted animate-in slide-in-from-bottom-2 fade-in duration-200">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[9px] text-[var(--text-secondary)] font-semibold uppercase tracking-wide mr-1">
+              ⚡ Quick
+            </span>
             <button
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent input blur
-                sendQuick('look around');
-              }}
+              onMouseDown={(e) => { e.preventDefault(); sendQuick('look around'); }}
               disabled={isLoading}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
-                         transition-all duration-200 disabled:opacity-50
-                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
-                         active:scale-95"
+              className="px-2 py-1 text-[11px] font-medium rounded surface-elevated border border-[var(--border-normal)]
+                         transition-colors duration-150 disabled:opacity-50
+                         hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
             >
-              👁️ Look Around
+              👁️ Look
             </button>
             <button
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent input blur
-                sendQuick('rest for 1 hour');
-              }}
+              onMouseDown={(e) => { e.preventDefault(); sendQuick('rest for 1 hour'); }}
               disabled={isLoading}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
-                         transition-all duration-200 disabled:opacity-50
-                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
-                         active:scale-95"
+              className="px-2 py-1 text-[11px] font-medium rounded surface-elevated border border-[var(--border-normal)]
+                         transition-colors duration-150 disabled:opacity-50
+                         hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
             >
-              ⏱️ Rest 1 Hour
+              ⏱️ Rest
             </button>
             <button
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent input blur
-                sendQuick('rest until dawn');
-              }}
+              onMouseDown={(e) => { e.preventDefault(); sendQuick('rest until dawn'); }}
               disabled={isLoading}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
-                         transition-all duration-200 disabled:opacity-50
-                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
-                         active:scale-95"
+              className="px-2 py-1 text-[11px] font-medium rounded surface-elevated border border-[var(--border-normal)]
+                         transition-colors duration-150 disabled:opacity-50
+                         hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
             >
               🏕️ Camp
             </button>
-
             <button
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent input blur
-                sendQuick('skip 1 day');
-              }}
+              onMouseDown={(e) => { e.preventDefault(); sendQuick('skip 1 day'); }}
               disabled={isLoading}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg surface-elevated border border-[var(--border-normal)]
-                         transition-all duration-200 disabled:opacity-50
-                         hover:shadow-md hover:scale-105 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]
-                         active:scale-95"
+              className="px-2 py-1 text-[11px] font-medium rounded surface-elevated border border-[var(--border-normal)]
+                         transition-colors duration-150 disabled:opacity-50
+                         hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
             >
-              ⏩ Skip Day
+              ⏩ Skip
             </button>
           </div>
         </div>
       )}
 
-      {/* composer - beautiful design with animations and polish */}
-      <div className="flex-shrink-0 px-3 py-3 mx-2 mb-2 rounded-xl border transition-all duration-300 animate-in slide-in-from-bottom-4"
+      {/* composer - compact design */}
+      <div className="flex-shrink-0 px-2 py-2 mx-2 mb-2 rounded-lg border transition-all duration-200"
            style={{
              borderColor: isInputFocused ? 'var(--border-hover)' : 'var(--border-normal)',
              background: isLoading
@@ -606,17 +584,17 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
               autoCapitalize="off"
               inputMode="text"
               enterKeyHint="send"
-              className="narration-input relative w-full px-4 py-3 text-base font-medium text-[var(--text-primary)] rounded-lg
+              className="narration-input relative w-full px-3 py-2 text-sm font-medium text-[var(--text-primary)] rounded
                          focus:outline-none
-                         transition-all duration-300
+                         transition-all duration-200
                          disabled:opacity-50 disabled:cursor-not-allowed border-none"
               style={{
-                fontSize: '15px',
+                fontSize: '14px',
                 fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                 letterSpacing: '0.01em',
-                lineHeight: '1.5',
+                lineHeight: '1.4',
                 caretColor: 'var(--accent-primary)',
-                boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.1)'
+                boxShadow: 'inset 0 1px 4px rgba(0, 0, 0, 0.12)'
               }}
             />
             {/* Input and placeholder styling enhancement */}
@@ -645,36 +623,27 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
             onClick={onSend}
             aria-label="Send action"
             disabled={isLoading || !playerInput.trim()}
-            className="relative px-6 py-3 text-sm font-bold rounded-lg shadow-lg
-                       transition-all duration-300 overflow-hidden group
-                       disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100
-                       hover:shadow-xl hover:scale-105 active:scale-95"
+            className="relative px-4 py-2 text-xs font-bold rounded shadow-md
+                       transition-all duration-200 overflow-hidden
+                       disabled:opacity-40 disabled:cursor-not-allowed
+                       hover:shadow-lg active:scale-95"
             style={{
               background: isLoading || !playerInput.trim()
                 ? 'var(--surface-muted-bg)'
                 : '#10b981',
-              color: 'white',
-              boxShadow: playerInput.trim() && !isLoading
-                ? '0 4px 16px rgba(16, 185, 129, 0.4)'
-                : 'none'
+              color: 'white'
             }}
           >
-            {/* Shimmer effect on hover */}
-            {!isLoading && playerInput.trim() && (
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
-              </div>
-            )}
-            <span className="relative z-10 flex items-center gap-2">
+            <span className="flex items-center gap-1.5">
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span className="text-xs">Thinking</span>
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>...</span>
                 </>
               ) : (
                 <>
                   <span>Send</span>
-                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </>

@@ -382,6 +382,185 @@ body {
   box-shadow: var(--surface-modal-panel-shadow);
 }
 
+/* ============================================================================
+   Folder Tabs - Unified tab styling for modals
+
+   Design: Clean folder metaphor with stable heights and smooth animations
+   - Fixed heights prevent wiggle on hover/click
+   - Sliding underline indicator for active state
+   - Subtle icon animations on interaction
+   ============================================================================ */
+
+.folder-tabs-container {
+  display: flex;
+  align-items: stretch; /* Stretch all tabs to same height */
+  gap: 0;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid var(--border-normal);
+  background: transparent;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  min-height: 44px; /* Fixed container height prevents wiggle */
+  position: relative;
+}
+
+.folder-tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Base tab styling - FIXED HEIGHT to prevent wiggle */
+.folder-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  height: 44px; /* Fixed height - critical for stability */
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  /* Smooth transitions for color only - not layout properties */
+  transition: color 0.2s var(--ease-out-expo),
+              background-color 0.2s var(--ease-out-expo);
+}
+
+/* Sliding underline indicator */
+.folder-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: 2px 2px 0 0;
+  transform: translateX(-50%);
+  transition: width 0.25s var(--ease-out-expo);
+}
+
+.folder-tab-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  transition: transform 0.2s var(--ease-out-expo),
+              opacity 0.2s ease;
+}
+
+.folder-tab-label {
+  line-height: 1;
+  transition: transform 0.15s var(--ease-out-expo);
+}
+
+/* ===== ACTIVE TAB ===== */
+.folder-tab-active {
+  color: var(--text-primary);
+  background: transparent;
+  z-index: 1;
+}
+
+/* Active tab underline - expanded */
+.folder-tab-active::after {
+  width: calc(100% - 1rem);
+}
+
+/* Active tab icon - slightly emphasized */
+.folder-tab-active .folder-tab-icon {
+  transform: scale(1.05);
+}
+
+/* Light mode active */
+:root:not(.dark) .folder-tab-active {
+  color: var(--accent-primary);
+}
+
+:root:not(.dark) .folder-tab-active::after {
+  background: var(--accent-primary);
+}
+
+/* Dark mode active */
+.dark .folder-tab-active {
+  color: #60a5fa;
+}
+
+.dark .folder-tab-active::after {
+  background: #60a5fa;
+}
+
+/* ===== INACTIVE TAB ===== */
+.folder-tab-inactive {
+  color: var(--text-secondary);
+}
+
+/* Hover state - subtle background + partial underline preview */
+.folder-tab-inactive:hover {
+  color: var(--text-primary);
+}
+
+.folder-tab-inactive:hover::after {
+  width: 1.5rem; /* Small underline preview on hover */
+}
+
+.folder-tab-inactive:hover .folder-tab-icon {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+/* Light mode inactive hover */
+:root:not(.dark) .folder-tab-inactive:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+:root:not(.dark) .folder-tab-inactive:hover::after {
+  background: var(--text-tertiary);
+}
+
+/* Dark mode inactive hover */
+.dark .folder-tab-inactive:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .folder-tab-inactive:hover::after {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ===== INTERACTION STATES ===== */
+
+/* Active/pressed state - quick feedback */
+.folder-tab:active .folder-tab-icon {
+  transform: scale(0.95);
+}
+
+.folder-tab:active .folder-tab-label {
+  transform: translateY(0.5px);
+}
+
+/* Focus states */
+.folder-tab:focus {
+  outline: none;
+}
+
+.folder-tab:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+  border-radius: 0.25rem;
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  .folder-tab,
+  .folder-tab::after,
+  .folder-tab-icon,
+  .folder-tab-label {
+    transition: none;
+  }
+}
+
 /* Banner gradient overlay for structure modals */
 .banner-gradient-overlay {
   background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.4), transparent);

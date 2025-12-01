@@ -379,9 +379,11 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         };
     }, [toastMessage, toastDuration]);
 
-    // Create stable keys for dependencies
-    const weatherKey = weather ? `${weather.precipitation}-${weather.special}` : 'none';
-    const timeKey = gameTime ? `${gameTime.hours}-${Math.floor(gameTime.minutes / 15)}` : 'unknown';
+    // PERFORMANCE: Memoize stable keys to prevent unnecessary recalculations and dependency array changes
+    const { weatherKey, timeKey } = useMemo(() => ({
+        weatherKey: weather ? `${weather.precipitation}-${weather.special}` : 'none',
+        timeKey: gameTime ? `${gameTime.hours}-${Math.floor(gameTime.minutes / 15)}` : 'unknown'
+    }), [weather?.precipitation, weather?.special, gameTime?.hours, gameTime?.minutes]);
 
     // Handle Enter key to trigger the current action button
     useEffect(() => {

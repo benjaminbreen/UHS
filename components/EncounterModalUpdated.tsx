@@ -744,6 +744,14 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         }
     }, []); // Only run once when modal opens
 
+    // Set initial "curious" expression for NPCs when modal opens, then fade to neutral
+    useEffect(() => {
+        if (isNpc(target)) {
+            // NPC starts with curious expression (wondering who approached them)
+            flashPortrait('curious', 8000); // 8 seconds of curiosity, then neutral
+        }
+    }, []); // Only run once when modal opens
+
     // Quest system removed - no quest completion checking
 
     // Check for animal ownership
@@ -1749,6 +1757,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             size={300}
                                             temporaryExpression={portraitExpr}
                                             onExpressionComplete={clearPortrait}
+                                            isTalking={isLoading}
                                         />
                                     ) : (
                                         <AnimalPortrait

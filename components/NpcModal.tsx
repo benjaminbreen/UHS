@@ -634,88 +634,61 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="shrink-0 px-5 py-4 bg-[var(--surface-muted-bg)] border-b border-[var(--border-normal)] flex items-start justify-between">
-          {/* name + big badges */}
-          <div className="min-w-0 flex items-center gap-3 flex-wrap">
-            <h2 className="text-2xl md:text-3xl font-bold text-text-primary truncate">{name}</h2>
+        {/* Header - Clean and minimal */}
+        <div className="shrink-0 px-4 py-3 border-b border-[var(--border-normal)]/50 flex items-center justify-between">
+          {/* Name and key info */}
+          <div className="min-w-0 flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl font-semibold text-text-primary truncate">{name}</h2>
+            <span className="text-text-secondary text-sm hidden sm:inline">
+              {pretty(profession)} · {npc.age} years
+            </span>
 
-            {/* Bigger, top-bar chips to the right of the name */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <BigChip tone="amber">
-                <Shield className="w-4 h-4" />
-                {pretty(profession)}
-              </BigChip>
-              <BigChip tone="blue">
-                <Medal className="w-4 h-4" />
-                {pretty((socialClass || '').toString())}
-              </BigChip>
-              {npc.religion && (
-                <BigChip tone="violet">
-                  <Church className="w-4 h-4" />
-                  {npc.religion}
-                </BigChip>
-              )}
-              {typeof (npc as any).level === 'number' && (
-                <BigChip tone="green">
-                  <Star className="w-4 h-4" />
-                  Lv. {(npc as any).level}
-                </BigChip>
-              )}
-
-              {/* Attribute badges (larger) – opens attribute modal on click */}
-              {npc.attributes?.length ? (
-                <button
-                  onClick={() => setShowAttributeModal(true)}
-                  className="ml-1 rounded-full ring-1 ring-[var(--border-normal)] hover:ring-[var(--accent-primary)] px-2 py-1 bg-[var(--surface-muted-bg)]"
-                  title="View all attributes"
-                >
-                  <div className="scale-[1.1]">
-                    <AttributeBadgeList badges={npc.attributes} maxDisplay={4} size="medium" />
-                  </div>
-                </button>
-              ) : null}
-            </div>
+            {/* Compact attribute badges */}
+            {npc.attributes?.length ? (
+              <button
+                onClick={() => setShowAttributeModal(true)}
+                className="hidden md:flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity"
+                title="View attributes"
+              >
+                <AttributeBadgeList badges={npc.attributes} maxDisplay={3} size="small" />
+              </button>
+            ) : null}
           </div>
 
-          {/* health / diseases + close */}
-          <div className="flex items-start gap-3">
+          {/* Status and close */}
+          <div className="flex items-center gap-2">
             {npc.health?.currentDiseases?.length ? (
-              <div className="flex flex-wrap gap-2 max-w-xs">
-                {npc.health.currentDiseases.map((d, i) => (
-                  <button
-                    key={`${d.disease.name}-${i}`}
-                    onClick={e => {
-                      e.stopPropagation();
-                      setSelectedDisease(d);
-                      setIsDiseaseModalOpen(true);
-                    }}
-                    className="px-2 py-0.5 bg-pink-600/80 hover:bg-pink-500 text-white text-xs font-bold rounded-full border border-pink-400 shadow hover:shadow-pink-500/40 transition flex items-center gap-1"
-                    title={`Click for details about ${d.disease.name}`}
-                  >
-                    <Biohazard className="w-3.5 h-3.5" />
-                    {d.disease.name}
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  setSelectedDisease(npc.health!.currentDiseases[0]);
+                  setIsDiseaseModalOpen(true);
+                }}
+                className="px-2 py-1 bg-rose-500/20 text-rose-400 text-xs rounded-md border border-rose-500/30 hover:bg-rose-500/30 transition flex items-center gap-1"
+              >
+                <Biohazard className="w-3 h-3" />
+                {npc.health.currentDiseases.length > 1
+                  ? `${npc.health.currentDiseases.length} conditions`
+                  : npc.health.currentDiseases[0].disease.name}
+              </button>
             ) : (
-              <span className="px-3 py-1 bg-emerald-600/80 text-white text-xs font-bold rounded-full border border-emerald-400">
-                ✅ Healthy
-              </span>
+              <span className="px-2 py-1 text-emerald-400 text-xs">Healthy</span>
             )}
 
             <button
               onClick={onClose}
-              className="text-text-secondary hover:text-text-primary text-3xl leading-none font-light -mt-1"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-text-secondary hover:text-text-primary hover:bg-[var(--surface-muted-bg)] transition-colors"
               aria-label="Close"
             >
-              &times;
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         </div>
 
         {/* Body: two columns; left = portrait; right = tabs+content */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[400px_1fr]">
+        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[320px_1fr]">
           {/* MOBILE PORTRAIT */}
           <div className="xl:hidden p-4 border-b border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/40">
             <div className="relative mx-auto w-48">
@@ -741,76 +714,87 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
             </div>
           </div>
 
-          {/* LEFT SIDEBAR */}
-          <aside className="hidden xl:flex flex-col gap-5 p-5 border-r border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/40 min-h-0 overflow-y-auto">
-            <div className="relative mx-auto w-[360px]">
-              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-[var(--border-normal)] bg-[var(--surface-card-bg)] shadow-xl">
-                {/* AI Portrait for quest NPCs */}
+          {/* LEFT SIDEBAR - Clean and minimal */}
+          <aside className="hidden xl:flex flex-col gap-4 p-4 border-r border-[var(--border-normal)]/50 min-h-0 overflow-y-auto">
+            {/* Portrait */}
+            <div className="relative mx-auto w-[280px]">
+              <div className="aspect-square rounded-xl overflow-hidden border border-[var(--border-normal)]/50 bg-[var(--surface-card-bg)] shadow-lg">
                 {!isPlayer && (npc as NpcEntity).isQuestNPC && (npc as NpcEntity).aiPortrait && (npc as NpcEntity).portraitType === 'ai' ? (
-                  <div className="relative w-full h-full">
-                    <img
-                      src={(npc as NpcEntity).aiPortrait}
-                      alt={`AI-generated portrait of ${npc.name}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* AI Quest NPC Badge */}
-                    <div className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-green-600/90 to-emerald-600/90 text-white text-xs font-bold rounded-full border border-green-400/50 shadow-lg flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      AI QUEST
-                    </div>
-                  </div>
+                  <img
+                    src={(npc as NpcEntity).aiPortrait}
+                    alt={npc.name}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <ProceduralPortrait character={npc} size={340} />
+                  <ProceduralPortrait character={npc} size={280} />
                 )}
               </div>
-
-              {/* tiny corner attribute chips remain for flavor */}
-              {npc.attributes?.length ? (
-                <div className="absolute -top-2 -left-2 z-20">
-                  <AttributeBadgeList badges={npc.attributes} maxDisplay={2} size="small" />
-                </div>
-              ) : null}
             </div>
 
-            <div className="rounded-xl border border-[var(--border-normal)]/50 bg-[var(--surface-card-bg)]/40 p-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Quick Facts</h4>
-              <div className="space-y-2">
-                <DetailRow label="Age" value={`${npc.age} years`} />
-                <DetailRow label="Gender" value={pretty(npc.gender)} />
-                <DetailRow label="Height" value={cmToFeetAndInches(appearance?.height)} />
-                <DetailRow label="Weight" value={kgToLbs(appearance?.weight)} />
-                {!isPlayer && <DetailRow label="Livelihood" value={<span className="capitalize">{workLocation}</span>} />}
-                {!isPlayer && <DetailRow label="Home" value={<span className="capitalize">{homeLocation}</span>} />}
+            {/* Quick info - simple list */}
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between py-1">
+                <span className="text-text-secondary">Class</span>
+                <span className="text-text-primary font-medium capitalize">{pretty(socialClass)}</span>
               </div>
-            </div>
-
-            {(npc as any).birthplace && (
-              <div className="rounded-xl border border-[var(--border-normal)]/50 bg-[var(--surface-card-bg)]/40 p-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-2">Origins</h4>
-                <div className="flex items-center gap-2 text-sm text-text-primary">
-                  <MapPin className="w-4 h-4" /> {(npc as any).birthplace}
+              {npc.religion && (
+                <div className="flex justify-between py-1">
+                  <span className="text-text-secondary">Religion</span>
+                  <span className="text-text-primary">{npc.religion}</span>
                 </div>
-              </div>
-            )}
+              )}
+              {!isPlayer && (
+                <>
+                  <div className="flex justify-between py-1">
+                    <span className="text-text-secondary">Work</span>
+                    <span className="text-text-primary text-right max-w-[160px] truncate capitalize">{workLocation}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-text-secondary">Home</span>
+                    <span className="text-text-primary text-right max-w-[160px] truncate capitalize">{homeLocation}</span>
+                  </div>
+                </>
+              )}
+              {(npc as any).birthplace && (
+                <div className="flex justify-between py-1">
+                  <span className="text-text-secondary">Origin</span>
+                  <span className="text-text-primary">{(npc as any).birthplace}</span>
+                </div>
+              )}
+            </div>
           </aside>
 
           {/* RIGHT: tabs + content */}
           <main className="flex flex-col min-h-0">
-            <div className="shrink-0 flex border-b border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/60 overflow-x-auto">
-              <TabButton label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} Icon={Home} />
-              <TabButton label="Stats" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} Icon={Activity} />
-              <TabButton label="Beliefs" active={activeTab === 'beliefs'} onClick={() => setActiveTab('beliefs')} Icon={Sparkles} />
-              {!isPlayer && <TabButton label="Equipment" active={activeTab === 'equipment'} onClick={() => setActiveTab('equipment')} Icon={Shield} />}
-              {!isPlayer && <TabButton label="Life History" active={activeTab === 'life-history'} onClick={() => setActiveTab('life-history')} Icon={Calendar} />}
-              {!isPlayer && <TabButton label="Goal" active={activeTab === 'goal'} onClick={() => setActiveTab('goal')} Icon={Star} />}
-              {!isPlayer && <TabButton label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} Icon={User} />}
+            {/* Folder tabs */}
+            <div className="folder-tabs-container shrink-0">
+              {[
+                { id: 'overview', label: 'Overview', icon: Home },
+                { id: 'stats', label: 'Stats', icon: Activity },
+                { id: 'beliefs', label: 'Beliefs', icon: Sparkles },
+                ...(!isPlayer ? [
+                  { id: 'equipment', label: 'Equipment', icon: Shield },
+                  { id: 'life-history', label: 'Life History', icon: Calendar },
+                ] : [])
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  onClick={() => setActiveTab(tab.id as NpcModalTab)}
+                  className={`folder-tab ${activeTab === tab.id ? 'folder-tab-active' : 'folder-tab-inactive'}`}
+                >
+                  <tab.icon className="folder-tab-icon" />
+                  <span className="folder-tab-label">{tab.label}</span>
+                </button>
+              ))}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto bg-[var(--surface-muted-bg)]/30">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               {activeTab === 'overview' && <Overview />}
               {activeTab === 'stats' && <Stats />}
               {activeTab === 'beliefs' && (
-                <div className="p-6">
+                <div className="p-5">
                   <BeliefsPanel character={npc} />
                 </div>
               )}
@@ -820,16 +804,6 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
               {activeTab === 'history' && <History />}
             </div>
           </main>
-        </div>
-
-        {/* Footer */}
-        <div className="shrink-0 p-4 border-t border-[var(--border-normal)] bg-[var(--surface-muted-bg)]/60 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 rounded-md bg-[var(--button-secondary-bg)] hover:bg-[var(--button-secondary-hover)] text-text-primary font-semibold transition-colors border border-[var(--border-normal)]"
-          >
-            Close
-          </button>
         </div>
       </div>
 

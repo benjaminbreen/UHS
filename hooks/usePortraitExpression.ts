@@ -18,7 +18,8 @@ export type PortraitExpression =
   | 'confused'
   | 'thinking'
   | 'skeptical'
-  | 'determined';
+  | 'determined'
+  | 'curious';
 
 export function usePortraitExpression() {
   const [expr, setExpr] = useState<PortraitExpression | null>(null);

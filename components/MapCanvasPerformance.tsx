@@ -15,6 +15,7 @@ import { ValueNoise } from '../utils/noise';
 import { getTileRenderColor } from '../utils/colorUtils';
 import { useTilePatterns } from './TilePatterns';
 import { isTransitionablePair } from '../utils/biomeTransitionUtils';
+import { IS_SAFARI } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 
@@ -634,13 +635,12 @@ class MapCanvasRenderer {
 
         // FEATURE TOGGLE: Edge feathering to fix blue background bleed-through
         const ENABLE_EDGE_FEATHERING = true;
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
         // Edge feathering (glow effect to fill gaps between organic edges)
         if (ENABLE_EDGE_FEATHERING) {
           this.ctx!.save();
 
-          if (isSafari) {
+          if (IS_SAFARI) {
             // Safari: Skip glow effect entirely for performance
             // Just a simple thin stroke if needed
             this.ctx!.strokeStyle = color;
@@ -664,7 +664,7 @@ class MapCanvasRenderer {
 
         // Base fill with time-of-day aware shadows (NO shadows on Safari for performance)
         this.ctx!.save();
-        if (!isSafari) {
+        if (!IS_SAFARI) {
           // Dynamic shadow direction based on sun position
           this.ctx!.shadowColor = `rgba(0,0,0,${lightDir.opacity})`;
           this.ctx!.shadowBlur = 2.5;
