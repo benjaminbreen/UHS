@@ -229,12 +229,12 @@
   --surface-app-text: var(--text-primary);
   --surface-app-border: transparent;
 
-  --surface-top-nav-bg: linear-gradient(120deg, #0f172a 0%, #111c33 55%, #1f2937 100%);
+  --surface-top-nav-bg: linear-gradient(120deg, rgba(15, 23, 42, 0.72) 0%, rgba(17, 28, 51, 0.62) 55%, rgba(31, 41, 55, 0.55) 100%);
   --surface-top-nav-text: var(--text-primary);
   --surface-top-nav-border: var(--border-normal);
   --surface-top-nav-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
 
-  --surface-sidebar-bg: linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 55%, rgba(51, 65, 85, 0.85) 100%);
+  --surface-sidebar-bg: linear-gradient(145deg, rgba(15, 23, 42, 0.78) 0%, rgba(30, 41, 59, 0.7) 55%, rgba(51, 65, 85, 0.6) 100%);
   --surface-sidebar-text: var(--text-primary);
   --surface-sidebar-border: var(--border-normal);
   --surface-sidebar-shadow: 2px 0 28px rgba(0, 0, 0, 0.45);
@@ -247,8 +247,8 @@
   --modal-overlay-bg: var(--surface-modal-overlay-bg);
   --surface-overlay-strong: rgba(0, 0, 0, 0.75);
 
-  --surface-card-bg: rgba(30, 41, 59, 0.92);
-  --surface-card-border: rgba(148, 163, 184, 0.0);
+  --surface-card-bg: rgba(17, 24, 39, 0.86);
+  --surface-card-border: rgba(148, 163, 184, 0.05);
   --surface-card-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
 
   --surface-muted-bg: rgba(51, 65, 85, 0.6);
@@ -338,7 +338,7 @@ body {
 }
 
 [data-surface="app-shell"] {
-  background-color: var(--surface-app-bg);
+  background-color: transparent;
   color: var(--surface-app-text);
 }
 
@@ -368,6 +368,15 @@ body {
   background: var(--toast-surface-bg);
   border-color: var(--toast-surface-border);
   color: var(--toast-surface-text);
+}
+
+.history-lens-panel {
+  background-color: rgba(9, 13, 22, 0.86);
+  backdrop-filter: blur(10px);
+}
+
+.left-sidebar-overview .surface-card {
+  border-color: transparent;
 }
 
 @keyframes toastProgress {

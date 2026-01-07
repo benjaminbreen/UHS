@@ -32,13 +32,7 @@ import FishingHutModal from './FishingHutModal';
 import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay, HistoricalEra, VegetationEntity, Item, CulturalZone, Season } from '../types';
 import { getHistoricalPeriod } from '../constants/characterData/names';
-import TimeAwareBackground from './TimeAwareBackground';
-import HorizonLayer from './HorizonLayer';
-import CloudSystem from './CloudSystem';
-import WeatherEffects from './WeatherEffects';
-import CelestialBodies from './CelestialBodies';
-import SpecialMapBackground from './SpecialMapBackground';
-import InteriorHorizon from './InteriorHorizon';
+import type { AtmosphereState } from '../hooks/useAtmosphereState';
 import SpecialMapLocationDisplay from './SpecialMapLocationDisplay';
 import { useSpecialMapLocation } from '../hooks/useSpecialMapLocation';
 import { useSpecialMapNpcBehavior } from '../hooks/useSpecialMapNpcBehavior';
@@ -56,7 +50,6 @@ import NpcAlertIndicator from './NpcAlertIndicator';
 import { eventBus } from '../services/eventBus';
 import { isGuardType } from '../services/specialMapNpcBehaviorService';
 import { guardPermissionService } from '../services/guardPermissionService';
-import { weatherService } from '../services/weatherService';
 import { broadcastEventToWitnesses, determineEventSeverity } from '../services/npcWitnessService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
@@ -157,6 +150,7 @@ function generateTreeDrop(
 }
 
 interface MapViewportProps {
+  atmosphere: AtmosphereState;
   mapVisible?: boolean;
   isProcessingWorldWeaver?: boolean;
   onPlayerDeath?: (deathInfo: any) => void;
@@ -165,7 +159,7 @@ interface MapViewportProps {
   isStudyingStars?: boolean;
 }
 
-const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, onFarmPanelChange, className, isStudyingStars = false }) => {
+const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true, isProcessingWorldWeaver = false, onPlayerDeath, onFarmPanelChange, className, isStudyingStars = false }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, panelNotificationMode, panelNotificationEntityName, setPanelNotificationItem, rareItemFoundToast, setRareItemFoundToast, toastMessage, setToastMessage, toastDurationMs,
@@ -339,28 +333,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
         setNpcs
     );
     
-    // Get current weather for horizon and particles - stable per map area, updates hourly
-    const currentWeather = useMemo(() => {
-        if (!mapData) return null;
-        
-        // Use map center for consistent weather across the map area
-        const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
-        const mapCenterY = Math.floor(mapData.tiles.length / 2);
-        const centerTile = mapData.tiles[mapCenterY][mapCenterX];
-        
-        // Weather updates every hour, not on movement
-        const hourKey = Math.floor(gameTimeHours);
-        
-        return weatherService.getWeather(
-            mapData.climate,
-            centerTile.biome,
-            season,
-            currentTimeOfDay,
-            centerTile.altitude || 0.5,
-            gameDate ? getDayOfYear(gameDate) : 180,
-            { x: mapCenterX, y: mapCenterY }
-        );
-    }, [mapData, season, sunPosition, gameDate, Math.floor(gameTimeHours)]); // Only update on hour change
+    const { currentWeather } = atmosphere;
     
     // Apply weather effects on player
     useWeatherEffects(currentWeather);
@@ -2403,55 +2376,6 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
           {/* Helper Mode Notification - shows above everything */}
           <HelperModeNotification />
 
-          {/* Background layer with all atmospheric effects - behind everything */}
-          <div className="absolute inset-0" style={{ zIndex: 0 }}>
-            {isSpecialMap && specialMapData ? (
-              <SpecialMapBackground 
-                config={specialMapData.specialConfig}
-                timeOfDay={currentTimeOfDay}
-              />
-            ) : (
-              <TimeAwareBackground
-                gameTimeHours={gameTimeHours}
-                gameTimeMinutes={gameTimeMinutes}
-                viewMode={viewMode}
-                season={season}
-                climate={mapData?.climate}
-                weather={currentWeather}
-              />
-            )}
-            
-            {/* Cloud System - only render when there are clouds */}
-            {currentWeather && currentWeather.cloudCover > 0 && (
-              <CloudSystem 
-                weather={currentWeather}
-                timeOfDay={currentTimeOfDay}
-                windSpeed={currentWeather?.windSpeed || 0}
-              />
-            )}
-            
-            {/* Celestial Bodies - behind map but above background */}
-            <CelestialBodies
-              timeOfDay={currentTimeOfDay}
-              gameTimeHours={gameTimeHours}
-              gameTimeMinutes={gameTimeMinutes}
-              weather={currentWeather}
-              gameDay={gameDate?.day || 1}
-              gameMonth={gameDate?.month || 1}
-              gameYear={gameDate?.year || 1500}
-              climate={mapData?.climate}
-            />
-            
-            {/* Weather Effects - behind map but above background */}
-            <WeatherEffects
-              weather={currentWeather || { 
-                temperature: 20, feelsLike: 20, humidity: 0.5, 
-                precipitation: 'none', intensity: 0, windSpeed: 0, 
-                windDirection: 0, pressure: 1013, cloudCover: 0.3, 
-                special: null 
-              }}
-            />
-          </div>
           {isLoading ? (
             <div className="absolute inset-0 bg-gray-900/75 flex items-center justify-center z-50 rounded-2xl">
               <div className="text-center text-white">
@@ -2627,37 +2551,6 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                  </div>
                 </div>
                 
-                {/* Horizon Layer or Interior Horizon - between map and bottom panel, bounded by sidebars */}
-                <div className="relative w-full pointer-events-none" style={{ height: '80px', marginTop: '-20px', zIndex: 5 }}>
-                  {isSpecialMap && specialMapData ? (
-                    <InteriorHorizon 
-                      config={specialMapData.specialConfig}
-                      timeOfDay={currentTimeOfDay}
-                    />
-                  ) : (
-                    <HorizonLayer 
-                      climate={mapData.climate}
-                      mapType={mapData.archetype}
-                      timeOfDay={currentTimeOfDay}
-                      weather={currentWeather || undefined}
-                      width={typeof window !== 'undefined' ? window.innerWidth : 1920}
-                      height={80}
-                      hasWater={mapData.tiles.some(row => row.some(tile => 
-                        tile.biome === BiomeType.OCEAN || 
-                        tile.biome === BiomeType.RIVER ||
-                      tile.biome === BiomeType.LAKE
-                    ))}
-                    hasCities={mapData.tiles.some(row => row.some(tile => 
-                      tile.biome === BiomeType.URBAN || 
-                      tile.biome === BiomeType.DENSE_CITY
-                    ))}
-                    hasVolcano={mapData.tiles.some(row => row.some(tile => 
-                      tile.biome === BiomeType.VOLCANIC
-                    ))}
-                    biomes={Array.from(new Set(mapData.tiles.flat().map(tile => tile.biome)))}
-                  />
-                  )}
-                </div>
               </div>
 
               {/* Toggle button for mobile - bigger and better positioned */}

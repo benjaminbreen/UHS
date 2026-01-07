@@ -730,8 +730,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           </div>
         </div>
 
+        <div className="mx-4 my-4 h-px bg-white/10" />
+
         {/* Folder-style Tab Navigation - Centered and Responsive */}
-        <div className="flex shrink-0 gap-1 px-2 mb-0 justify-center mt-2.5">
+        <div className="flex shrink-0 gap-1 px-3 mb-0 justify-center mt-2">
           {!isHistoryLensActive && (
             <button
               onClick={() => handleTabClick('narrator')}
@@ -820,44 +822,46 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               {!mapData ? (
                 <div className="p-6 text-sm text-text-muted">Map data unavailable.</div>
               ) : (
-                <div className="h-full w-full">
-                  <MapDisplayOptimized
-                    mapData={mapData}
-                    currentMapSeed={currentMapSeed}
-                    animals={visibleAnimals}
-                    npcs={visibleNpcs}
-                    deployedVessels={deployedVessels || []}
-                    deployedStructures={deployedStructures || []}
-                    onDevHover={noop}
-                    onDevCommandClick={noop}
-                    onStructureClick={noop}
-                    onPoiClick={noop}
-                    onSettlementClick={noop}
-                    onVesselClick={noop}
-                    onPlayerMove={noop}
-                    activeLens="none"
-                    logicalControlledIconX={controlledIconX}
-                    logicalControlledIconY={controlledIconY}
-                    onIconAnimationComplete={onIconAnimationComplete}
-                    isSpecialMap={isSpecialMap}
-                    currentVessel={currentVessel}
-                    playerMode={playerMode}
-                    shipDockX={shipDockX}
-                    shipDockY={shipDockY}
-                    onAnimalClick={noop}
-                    onNpcClick={noop}
-                    selectedAnimalId={null}
-                    selectedNpcId={null}
-                    formattedDate={formattedDate}
-                    season={season}
-                    weather={mapData.currentWeather || null}
-                    currentLocation={mapData.continent || currentZone || ''}
-                    iconRotation={iconRotation}
-                    velocity={velocity}
-                    playerCharacter={playerCharacter}
-                    gameTimeHours={gameTimeHours}
-                    gameTimeMinutes={gameTimeMinutes}
-                  />
+                <div className="h-full w-full p-3">
+                  <div className="h-full w-full rounded-xl border border-white/10 bg-slate-900/40 shadow-[0_12px_30px_rgba(0,0,0,0.35)] overflow-hidden p-2">
+                    <MapDisplayOptimized
+                      mapData={mapData}
+                      currentMapSeed={currentMapSeed}
+                      animals={visibleAnimals}
+                      npcs={visibleNpcs}
+                      deployedVessels={deployedVessels || []}
+                      deployedStructures={deployedStructures || []}
+                      onDevHover={noop}
+                      onDevCommandClick={noop}
+                      onStructureClick={noop}
+                      onPoiClick={noop}
+                      onSettlementClick={noop}
+                      onVesselClick={noop}
+                      onPlayerMove={noop}
+                      activeLens="none"
+                      logicalControlledIconX={controlledIconX}
+                      logicalControlledIconY={controlledIconY}
+                      onIconAnimationComplete={onIconAnimationComplete}
+                      isSpecialMap={isSpecialMap}
+                      currentVessel={currentVessel}
+                      playerMode={playerMode}
+                      shipDockX={shipDockX}
+                      shipDockY={shipDockY}
+                      onAnimalClick={noop}
+                      onNpcClick={noop}
+                      selectedAnimalId={null}
+                      selectedNpcId={null}
+                      formattedDate={formattedDate}
+                      season={season}
+                      weather={mapData.currentWeather || null}
+                      currentLocation={mapData.continent || currentZone || ''}
+                      iconRotation={iconRotation}
+                      velocity={velocity}
+                      playerCharacter={playerCharacter}
+                      gameTimeHours={gameTimeHours}
+                      gameTimeMinutes={gameTimeMinutes}
+                    />
+                  </div>
                 </div>
               )}
             </div>

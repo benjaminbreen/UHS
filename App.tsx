@@ -34,6 +34,8 @@ import StudyStarsOverlay from './components/StudyStarsOverlay';
 import QuestNotificationToast from './components/QuestNotification';
 import StatusWarningToast from './components/ui/StatusWarningToast';
 import ContainerPrompt from './components/ContainerPrompt';
+import AppAtmosphere from './components/AppAtmosphere';
+import GlobalHorizonLayer from './components/GlobalHorizonLayer';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
 import { SeedManager } from './services/seedService';
 import { shareableStateService } from './services/shareableStateService';
@@ -57,6 +59,7 @@ import JournalViewport from './components/JournalViewport';
 import QuestsPanel from './components/QuestsPanel';
 import { GameModePanel } from './components/GameModePanel';
 import { LanguageFamilyTree } from './components/LanguageFamilyTree';
+import { useAtmosphereState } from './hooks/useAtmosphereState';
 
 // Lazy load heavy modals that are used infrequently
 const EventModal = lazy(() => import('./components/EventModal').then(m => ({ default: m.EventModal })));
@@ -566,6 +569,7 @@ const AppContent: React.FC = () => {
     }, [diseaseProgressionQueue, showDiseaseProgressionModal, currentDiseaseProgression]);
     const mapContext = useMap();
     const { localArea, mapData, currentMapSeed, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, isSpecialMap, isEnteringSpecialMap } = mapContext;
+    const atmosphere = useAtmosphereState();
     
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
@@ -1086,8 +1090,10 @@ const AppContent: React.FC = () => {
     return (
       <div
         data-surface="app-shell"
-        className="app-shell theme-surface flex flex-col h-screen overflow-hidden transition-colors duration-300"
+        className="app-shell theme-surface relative flex flex-col h-screen overflow-hidden transition-colors duration-300"
       >
+        <AppAtmosphere atmosphere={atmosphere} />
+        <GlobalHorizonLayer atmosphere={atmosphere} />
         {/* Quest Notifications */}
         <QuestNotificationToast />
 
@@ -1113,7 +1119,7 @@ const AppContent: React.FC = () => {
           onClose={hideContainerPrompt}
         />
         
-        <div className="relative flex flex-col h-full">
+        <div className="relative z-10 flex flex-col h-full">
             {/* Desktop Navigation - Slides down from top */}
             {!isMobile && <div className={`
                 ${isSafariBrowser
@@ -1225,6 +1231,7 @@ const AppContent: React.FC = () => {
                 ) : (
                     <MapViewport
                         key={currentMapSeed || 'default'}
+                        atmosphere={atmosphere}
                         mapVisible={mapVisible}
                         isProcessingWorldWeaver={isProcessingWorldWeaver}
                         onPlayerDeath={handleDeath}

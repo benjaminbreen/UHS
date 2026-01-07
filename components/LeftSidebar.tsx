@@ -798,7 +798,7 @@ const LeftSidebar: React.FC<{
       const { ruins: ruinCount, fortresses: fortressCount, mills: millCount, minerals: mineralCount, people: peopleCount } = poiCounts;
 
       return (
-        <div className="flex flex-col h-full">
+        <div className="left-sidebar-overview flex flex-col h-full">
           <div className="flex-1 space-y-4 text-sm text-[var(--text-primary)]">
             <div>
               <h4 className="text-xs uppercase tracking-wider font-semibold text-[var(--text-secondary)] mb-2 px-1">Dominant Power</h4>
@@ -828,25 +828,15 @@ const LeftSidebar: React.FC<{
 
               {/* Rising/Contested Powers */}
               {secondaryPowers.length > 0 && (
-                <div className="mt-3">
-                  <h5 className="text-[11px] text-[var(--text-secondary)] uppercase tracking-wider font-medium mb-1">Other Powers</h5>
-                  <div className="space-y-1">
-                    {secondaryPowers.map((power, idx) => {
-                      const powerIconData = FACTION_ICONS[power.name];
-                      const PowerIcon = powerIconData?.icon || Crown;
-                      return (
-                        <div key={idx} className="flex items-center justify-between rounded-lg px-2 py-1 text-xs">
-                          <span className="flex items-center gap-2">
-                            <PowerIcon className="w-5 h-5" style={{ color: powerIconData?.color || '#64748B' }} />
-                            <span className="font-medium text-[var(--text-primary)]">{power.name}</span>
-                          </span>
-                          <span className="capitalize text-[var(--text-secondary)]">{power.type}</span>
-                        </div>
-                      );
-                    })}
+                <div className="mt-3 px-1">
+                  <div className="text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">Other Powers</div>
+                  <div className="text-xs text-[var(--text-primary)] mt-1 leading-relaxed">
+                    {secondaryPowers.map(power => power.name).join(', ')}
                   </div>
                 </div>
               )}
+
+              <div className="mt-4 h-px bg-white/10" />
 
               {majorCity && (
                 <>
@@ -954,8 +944,8 @@ const LeftSidebar: React.FC<{
                 </div>
               )}
 
-              <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2 mt-5 px-1">Description</h4>
-              <p className="text-[0.85rem] text-[var(--text-primary)] leading-[1.55] px-1">
+              <h4 className="text-xs uppercase tracking-wide font-semibold text-[var(--text-secondary)] mb-2 mt-6 px-1">Description</h4>
+              <p className="text-[0.85rem] text-[var(--text-primary)] leading-[1.6] px-1 opacity-85">
                 {finalDesc}
               </p>
 
@@ -1159,7 +1149,7 @@ const LeftSidebar: React.FC<{
   ];
 
   const renderMapTabContent = () => (
-    <div className="flex flex-col flex-1 overflow-hidden min-h-0 gap-2">
+    <div className="flex flex-col flex-1 overflow-hidden min-h-0 gap-4">
       <div className="tab-strip rounded-xl shrink-0">
         {mapSubTabs.map(tab => (
           <button
@@ -1173,7 +1163,7 @@ const LeftSidebar: React.FC<{
           </button>
         ))}
       </div>
-      <div className="flex-1 surface-card rounded-2xl p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
+      <div className="flex-1 surface-card rounded-2xl p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
         {getSubTabContent(activeMapSubTab)}
       </div>
     </div>

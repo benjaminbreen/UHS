@@ -7,6 +7,7 @@ import Minimap from './Minimap';
 import type { MapData } from '../types';
 import { generateHistoryLensResponse } from '../services/historyLensService';
 import { applyHistoryLensActions } from '../services/historyLensActionRouter';
+import { isMobileDevice } from '../utils/deviceUtils';
 
 const HistoryLensPanel: React.FC = () => {
   const { gameDate, formattedTime, gameTimeHours, setGameTimeHours, setGameDate } = useGame();
@@ -19,6 +20,7 @@ const HistoryLensPanel: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMemo(() => isMobileDevice(), []);
 
   useEffect(() => {
     const el = logRef.current;
@@ -178,7 +180,7 @@ const HistoryLensPanel: React.FC = () => {
 
   return (
     <div
-      className="relative flex flex-col h-full w-full theme-surface overflow-hidden"
+      className="history-lens-panel relative flex flex-col h-full w-full theme-surface overflow-hidden"
       style={{
         fontFamily: "'Iowan Old Style', 'Palatino', 'Garamond', 'Times New Roman', serif",
         backgroundImage:
@@ -212,28 +214,30 @@ const HistoryLensPanel: React.FC = () => {
         </div>
       </div>
 
-      <div
-        className="px-6 py-3 bg-gradient-to-r from-slate-900/20 via-slate-900/10 to-transparent"
-        style={{ fontFamily: "'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif" }}
-      >
-        <div className="flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
-            Health {playerHealth}
-          </span>
-          <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
-            Fatigue {playerFatigue}
-          </span>
-          <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
-            Season {seasonLabel}
-          </span>
-          <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
-            Climate {climateLabel}
-          </span>
-          <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
-            Terrain {terrainLabel}
-          </span>
+      {isMobile && (
+        <div
+          className="px-6 py-3 bg-gradient-to-r from-slate-900/20 via-slate-900/10 to-transparent"
+          style={{ fontFamily: "'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif" }}
+        >
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
+              Health {playerHealth}
+            </span>
+            <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
+              Fatigue {playerFatigue}
+            </span>
+            <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
+              Season {seasonLabel}
+            </span>
+            <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
+              Climate {climateLabel}
+            </span>
+            <span className="px-3 py-1 rounded-full border border-white/10 bg-slate-900/30 text-text-secondary">
+              Terrain {terrainLabel}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="relative flex-1 min-h-0">
         <div
