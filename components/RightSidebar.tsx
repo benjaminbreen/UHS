@@ -17,22 +17,15 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName, isSafari } from '../utils/safariUtils';
 import NarrationPanel from './NarrationPanel';
 import InventoryPanelEnhanced from './InventoryPanelEnhanced';
-import StudyPanel, { StudyData, StudiedItem } from './StudyPanel';
-import { StudyAction } from '../types/studyTypes';
 import { AnimatedPortrait } from './portraits';
 import { SKILL_DATA, SKILL_BUTTON_ORDER } from '../constants/index';
 import { SkillID, Item } from '../types';
 import ActionConfigModal from './ActionConfigModal';
-import { useStudyActions } from '../hooks/useStudyActions';
-import { journalService } from '../services/journalService';
 import { Settings } from 'lucide-react';
 import { AttributeBadgeList } from './AttributeBadge';
-import SourceDiscussionHistoryPanel from './SourceDiscussionHistoryPanel';
-import { JournalQuotesPanel } from './JournalQuotesPanel';
-import { loadDiscussionHistory } from '../services/sourceDiscussionPersistence';
-import { FaBook, FaBoxOpen, FaMicroscope, FaScroll } from 'react-icons/fa';
 import { removeItemFromInventory } from '../utils/inventoryUtils';
 import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
+import { MapDisplayOptimized } from './MapDisplayOptimized';
 
 const MIN_SIDEBAR_WIDTH = 400;
 const MAX_SIDEBAR_WIDTH = 700;
@@ -41,25 +34,19 @@ const RHS_WIDTH_KEY = 'rhs.sidebarWidth';
 const RHS_TAB_KEY = 'rhs.activeTab';
 const ACTION_BUTTONS_KEY = 'rhs.actionButtons';
 
-type RightSidebarTab = 'narrator' | 'inventory' | 'study' | 'sources';
+type RightSidebarTab = 'narrator' | 'inventory' | 'map';
 
-// Study-specific action button definitions
-const STUDY_ACTIONS = [
-  { id: 'observe', icon: '🔍', name: 'Observe', description: 'Examine item in detail', minItems: 1, maxItems: 1 },
-  { id: 'compare', icon: '⚖️', name: 'Compare', description: 'Compare multiple items', minItems: 2, maxItems: 4 },
-  { id: 'muse', icon: '💭', name: 'Muse', description: 'Reflect on deeper meaning', minItems: 1, maxItems: 2 },
-  { id: 'anatomize', icon: '🔬', name: 'Anatomize', description: 'Break down into components', minItems: 1, maxItems: 1 }
-];
+const noop = () => {};
 
 interface RightSidebarProps {
   isProcessingWorldWeaver?: boolean;
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = false }) => {
-  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, onEat, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen, setPanelNotificationItem, setPanelNotificationMode } = useUI();
-  const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
-  const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel, setPlayerCharacter } = usePlayer();
-  const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone, addDroppedItem } = useMap();
+  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, onEat, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen, setPanelNotificationItem, setPanelNotificationMode, centralMode } = useUI();
+  const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage, formattedDate, season, gameTimeMinutes, currentZone } = useGame();
+  const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel, setPlayerCharacter, onIconAnimationComplete, playerMode, shipDockX, shipDockY, iconRotation, velocity, currentVessel } = usePlayer();
+  const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone, addDroppedItem, visibleAnimals, visibleNpcs, deployedVessels, deployedStructures, currentMapSeed, isSpecialMap } = useMap();
 
   // Detect dark mode for tab border colors
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -83,68 +70,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     };
   }, []);
 
-  // Study actions hook
-  const { executeStudyAction, isProcessing: isStudyProcessing } = useStudyActions();
-
-  // Handle study action execution - now uses SkillsModal
-  const handleStudyAction = async (actionId: string) => {
-    const selectedItems = studyData.specimens.filter(item => selectedStudyItems.includes(item.id));
-    if (selectedItems.length === 0) return;
-
-    const action = STUDY_ACTIONS.find(a => a.id === actionId);
-    if (!action) return;
-
-    // Check item count requirements
-    if (selectedItems.length < action.minItems || selectedItems.length > action.maxItems) {
-      alert(`${action.name} requires ${action.minItems === action.maxItems ? action.minItems : `${action.minItems}-${action.maxItems}`} item(s). You have ${selectedItems.length} selected.`);
-      return;
-    }
-
-    try {
-      // Create StudySkillResult and trigger SkillsModal
-      const result = await executeStudyAction(selectedItems[0], {
-        id: actionId,
-        name: action.name,
-        emoji: action.icon,
-        prompt: action.name === 'Observe'
-          ? 'Describe this item focusing on vivid sensory details - its weight, texture, temperature, smell, surface patterns, how light plays on it, any wear marks or patina. Write as if the reader is holding it in their hands right now. Be specific and visceral, not abstract or historical.'
-          : `Provide a scholarly analysis using the ${action.name.toLowerCase()} approach.`,
-        category: 'analytical',
-        minInputLength: 0
-      }, ''); // No user input required for now
-
-      if (result.success && result.entry) {
-        // Create StudySkillResult for SkillsModal
-        const studyResult = {
-          type: 'study' as const,
-          action: action.name,
-          actionEmoji: action.icon,
-          description: result.entry.content,
-          items: selectedItems.map(item => ({
-            name: item.name,
-            emoji: item.emoji
-          })),
-          xpGained: 5,
-          context: {
-            location: localArea || 'Study Collection',
-            date: result.entry.date,
-            culturalZone: culturalZone,
-            biome: mapData?.currentTile?.biomeType
-          }
-        };
-
-        // Use the SkillsModal directly
-        setSkillResult(studyResult);
-        setIsSkillsModalOpen(true);
-        setSelectedStudyItems([]); // Clear selection after successful study
-      } else {
-        alert(`Study action failed: ${result.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Study action failed:', error);
-      alert('Study action failed. Please try again.');
-    }
-  };
 
   // Handle dropping items on the map
   const handleDropItem = useCallback((item: Item) => {
@@ -173,10 +98,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
 
   /* ---------------------------- state & persistence --------------------------- */
   const [activeTab, setActiveTab] = useState<RightSidebarTab>('narrator');
-  const [studyData, setStudyData] = useState<StudyData>({
-    specimens: [],
-    encounters: []
-  });
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartX = useRef(0);
@@ -184,13 +105,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [actionButtons, setActionButtons] = useState<SkillID[]>(SKILL_BUTTON_ORDER);
   const [hoveredButton, setHoveredButton] = useState<number | null>(null);
-  const [selectedStudyItems, setSelectedStudyItems] = useState<string[]>([]);
-  const [discussionHistory, setDiscussionHistory] = useState(() => {
-    const history = loadDiscussionHistory();
-    return history || { discussions: [], sources: [], lastUpdated: Date.now() };
-  });
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
   const previousInventoryRef = useRef<string[]>([]);
+  const previousTabRef = useRef<RightSidebarTab | null>(null);
+  const isHistoryLensActive = centralMode === 'historylens';
 
   // Enhanced Safari performance optimization
   useEffect(() => {
@@ -243,7 +161,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
       const savedW = Number(localStorage.getItem(RHS_WIDTH_KEY));
       if (savedW) setSidebarWidth(Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, savedW)));
       const savedTab = (localStorage.getItem(RHS_TAB_KEY) || '') as RightSidebarTab;
-      if (savedTab) setActiveTab(savedTab);
+      if (savedTab === 'inventory' || savedTab === 'narrator' || savedTab === 'map') {
+        setActiveTab(savedTab);
+      }
       const savedButtons = localStorage.getItem(ACTION_BUTTONS_KEY);
       if (savedButtons) {
         try {
@@ -264,6 +184,18 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
       setActiveTab('inventory');
     }
   }, [inMiningRoguelike]);
+
+  useEffect(() => {
+    if (isHistoryLensActive) {
+      previousTabRef.current = activeTab;
+      if (activeTab !== 'map') {
+        setActiveTab('map');
+      }
+    } else if (activeTab === 'map') {
+      setActiveTab(previousTabRef.current || 'inventory');
+      previousTabRef.current = null;
+    }
+  }, [activeTab, isHistoryLensActive]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -337,9 +269,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
   }, []);
 
   // Memoize click handlers to avoid hook violations
-  const handleStudyActionClick = useCallback((actionId: string) => {
-    handleStudyAction(actionId);
-  }, [handleStudyAction]);
 
   const handleSkillClick = useCallback((skillId: SkillID) => {
     onUseSkill(skillId);
@@ -355,9 +284,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
 
   const handleTabClick = useCallback((tab: RightSidebarTab) => {
     setActiveTab(tab);
-    if (tab === 'study') {
-      window.dispatchEvent(new CustomEvent('studyTabActivated'));
-    }
   }, []);
 
   // Detect new items added to inventory
@@ -760,116 +686,78 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               </button>
             </div>
             <div className="grid grid-cols-4 gap-4">
-              {activeTab === 'study' ? (
-                // Study-specific action buttons - enhanced
-                STUDY_ACTIONS.map((action, index) => {
-                  const isDisabled = selectedStudyItems.length < action.minItems || selectedStudyItems.length > action.maxItems;
-                  return (
-                    <div key={action.id} className="relative">
-                      <div
-                        onClick={() => !isDisabled && !isStudyProcessing && handleStudyActionClick(action.id)}
-                        onMouseEnter={() => setHoveredButton(index)}
-                        onMouseLeave={() => setHoveredButton(null)}
-                        data-disabled={isDisabled || isStudyProcessing}
-                        className="action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold cursor-pointer"
-                        style={{ aspectRatio: '1 / 0.88' }}
-                      >
-                        {/* Hotkey indicator */}
-                        <div className="absolute top-2 right-2 w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold border border-[rgba(75,119,104,0.25)] bg-[rgba(75,119,104,0.12)] text-[var(--accent-primary)] shadow-sm backdrop-blur-sm">
-                          {index + 1}
-                        </div>
-                        <div className="icon-wrapper mb-0.5">
-                          <div className="text-2xl">
-                            {action.icon}
-                          </div>
-                        </div>
-                        <span className="text-xs font-semibold leading-tight text-center text-[var(--text-primary)] tracking-tight">{action.name}</span>
+              {actionButtons.map((skillId, index) => {
+                const skill = SKILL_DATA[skillId];
+                if (!skill) return null;
+                return (
+                  <div key={skillId} className="relative">
+                    <div
+                      onClick={() => handleSkillClick(skillId)}
+                      onMouseEnter={() => setHoveredButton(index)}
+                      onMouseLeave={() => setHoveredButton(null)}
+                      className="action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold cursor-pointer"
+                      style={{ aspectRatio: '1 / 0.88' }}
+                    >
+                      {/* Hotkey indicator */}
+                      <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold border border-[rgba(75,119,104,0.25)] bg-[rgba(75,119,104,0.12)] text-[var(--accent-primary)] shadow-sm backdrop-blur-sm">
+                        {index + 1}
                       </div>
-
-                      {/* Tooltip - smart positioning based on button position */}
-                      {hoveredButton === index && (
-                        <div className={`absolute z-50 bottom-full mb-2 w-40 p-2 tooltip-surface pointer-events-none animate-fadeIn ${
-                          index >= 2 ? 'right-0' : 'left-0'
-                        }`}>
-                          <p className="text-xs font-semibold text-text-primary mb-1">{action.name}</p>
-                          <p className="text-[10px] text-text-secondary mb-2">{action.description}</p>
-                          {!isDisabled ? (
-                            <div className="flex items-center gap-2 text-[10px] text-accent">
-                              <kbd className="px-1 py-0.5 badge-pill" data-variant="accent">{index + 1}</kbd>
-                              <span>Press to activate</span>
-                            </div>
-                          ) : (
-                            <div className="mt-2 p-1.5 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded">
-                              <p className="text-[10px] text-[var(--color-warning)] font-semibold">
-                                ⚠️ Select {action.minItems === action.maxItems ? action.minItems : `${action.minItems}-${action.maxItems}`} item(s) to use
-                              </p>
-                            </div>
-                          )}
+                      <div className="icon-wrapper mb-0.5">
+                        <div className="text-2xl">
+                          {skill.icon}
                         </div>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                // Regular action buttons for other tabs - enhanced
-                actionButtons.map((skillId, index) => {
-                  const skill = SKILL_DATA[skillId];
-                  if (!skill) return null;
-                  return (
-                    <div key={skillId} className="relative">
-                      <div
-                        onClick={() => handleSkillClick(skillId)}
-                        onMouseEnter={() => setHoveredButton(index)}
-                        onMouseLeave={() => setHoveredButton(null)}
-                        className="action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold cursor-pointer"
-                        style={{ aspectRatio: '1 / 0.88' }}
-                      >
-                        {/* Hotkey indicator */}
-                        <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold border border-[rgba(75,119,104,0.25)] bg-[rgba(75,119,104,0.12)] text-[var(--accent-primary)] shadow-sm backdrop-blur-sm">
-                          {index + 1}
-                        </div>
-                        <div className="icon-wrapper mb-0.5">
-                          <div className="text-2xl">
-                            {skill.icon}
-                          </div>
-                        </div>
-                        <span className="text-[10px] uppercase tracking-wider  leading-tight text-center text-[var(--text-primary)]">{skill.name}</span>
                       </div>
-
-                      {/* Tooltip - smart positioning based on button position */}
-                      {hoveredButton === index && (
-                        <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 tooltip-surface pointer-events-none animate-fadeIn ${
-                          index >= 2 ? 'right-0' : 'left-0'
-                        }`}>
-                          <p className="text-xs font-semibold text-text-primary mb-1">{skill.name}</p>
-                          <p className="text-[10px] text-text-secondary mb-2">{skill.description}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-accent">
-                            <kbd className="px-1 py-0.5 badge-pill" data-variant="accent">{index + 1}</kbd>
-                            <span>Press to activate</span>
-                          </div>
-                        </div>
-                      )}
+                      <span className="text-[10px] uppercase tracking-wider leading-tight text-center text-[var(--text-primary)]">{skill.name}</span>
                     </div>
-                  );
-                })
-              )}
+
+                    {/* Tooltip - smart positioning based on button position */}
+                    {hoveredButton === index && (
+                      <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 tooltip-surface pointer-events-none animate-fadeIn ${
+                        index >= 2 ? 'right-0' : 'left-0'
+                      }`}>
+                        <p className="text-xs font-semibold text-text-primary mb-1">{skill.name}</p>
+                        <p className="text-[10px] text-text-secondary mb-2">{skill.description}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-accent">
+                          <kbd className="px-1 py-0.5 badge-pill" data-variant="accent">{index + 1}</kbd>
+                          <span>Press to activate</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
         {/* Folder-style Tab Navigation - Centered and Responsive */}
         <div className="flex shrink-0 gap-1 px-2 mb-0 justify-center mt-2.5">
-          <button
-            onClick={() => handleTabClick('narrator')}
-            className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
-              activeTab === 'narrator'
-                ? 'text-text-primary z-10'
-                : 'text-gray-500 dark:text-gray-400'
-            }`}
-            data-active={activeTab === 'narrator'}
-          >
-            <span className="truncate">Narrator</span>
-          </button>
+          {!isHistoryLensActive && (
+            <button
+              onClick={() => handleTabClick('narrator')}
+              className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
+                activeTab === 'narrator'
+                  ? 'text-text-primary z-10'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+              data-active={activeTab === 'narrator'}
+            >
+              <span className="truncate">Narrator</span>
+            </button>
+          )}
+          {isHistoryLensActive ? (
+            <button
+              onClick={() => handleTabClick('map')}
+              className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
+                activeTab === 'map'
+                  ? 'text-text-primary z-10'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+              data-active={activeTab === 'map'}
+            >
+              <span className="truncate">Map</span>
+            </button>
+          ) : null}
           <button
             onClick={() => handleTabClick('inventory')}
             className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
@@ -881,34 +769,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           >
             <span className="truncate">Inventory</span>
           </button>
-          <button
-            onClick={() => handleTabClick('study')}
-            className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
-              activeTab === 'study'
-                ? 'text-text-primary z-10'
-                : 'text-gray-500 dark:text-gray-400'
-            }`}
-            data-active={activeTab === 'study'}
-          >
-            <span className="truncate">Study</span>
-          </button>
-          <button
-            onClick={() => handleTabClick('sources')}
-            className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
-              activeTab === 'sources'
-                ? 'text-text-primary z-10'
-                : 'text-gray-500 dark:text-gray-400'
-            }`}
-            data-active={activeTab === 'sources'}
-          >
-            <span className="truncate">Sources</span>
-          </button>
         </div>
 
 
         {/* Panels - Seamless connection with tabs */}
         <div className="flex-1 min-h-0 surface-card px-1 pb-0 pt-0 shadow-inner">
-          {activeTab === 'narrator' && (
+          {!isHistoryLensActive && activeTab === 'narrator' && (
             <div className="h-full animate-fadeIn">
               <NarrationPanel
                   narrationHistory={narrationHistory}
@@ -935,22 +801,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                     }
                   }}
                   onCraft={onCraft}
-                  onStudy={(items) => {
-                    // Add items to study data
-                    const studiedItems = items.map(item => ({
-                      ...item,
-                      studyProgress: 0,
-                      notes: [],
-                      discoveredProperties: [],
-                      dateStudied: Date.now()
-                    }));
-                    setStudyData(prev => ({
-                      ...prev,
-                      specimens: [...prev.specimens, ...studiedItems]
-                    }));
-                    // Switch to study tab
-                    setActiveTab('study');
-                  }}
                   onEat={onEat}
                   onDrop={handleDropItem}
                   deployVesselToMap={deployVesselToMap}
@@ -965,96 +815,51 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 />
             </div>
           )}
-
-          {activeTab === 'study' && (
+          {isHistoryLensActive && activeTab === 'map' && (
             <div className="h-full animate-fadeIn">
-                <StudyPanel
-                  studyData={studyData}
-                  selectedItems={selectedStudyItems}
-                  onSelectionChange={setSelectedStudyItems}
-                  onReturnToInventory={(item: StudiedItem) => {
-                    // Remove from study data and selection
-                    setStudyData(prev => ({
-                      ...prev,
-                      specimens: prev.specimens.filter(s => s.id !== item.id)
-                    }));
-                    setSelectedStudyItems(prev => prev.filter(id => id !== item.id));
-                    // Add back to inventory
-                    if (onInventoryUpdate) {
-                      onInventoryUpdate();
-                    }
-                  }}
-                  onObserve={(entity) => {
-                    // Trigger observation action
-                    onUseSkill('Observe');
-                  }}
-                  onStudyAction={async (item: any, action: StudyAction, input: string) => {
-                    // This is now handled by the action buttons above
-                    console.log('[StudyAction] Legacy handler - this should not be called');
-                  }}
-                />
-            </div>
-          )}
-
-          {activeTab === 'sources' && (
-            <div className="h-full overflow-y-auto animate-fadeIn">
-              {/* Source Discussions - compact placeholder if empty */}
-              {discussionHistory.discussions.length > 0 ? (
-                <div className="mb-4">
-                  <div className="p-3 border-b border-surface-muted sticky top-0 bg-[var(--surface-card)] z-10">
-                    <h3 className="text-sm font-semibold text-[var(--color-warning)] flex items-center gap-2">
-                      <span>📜</span>
-                      Source Discussions
-                    </h3>
-                    <p className="text-xs text-text-muted mt-1">
-                      {discussionHistory.discussions.length} discussion{discussionHistory.discussions.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <div className="p-2 space-y-2">
-                    {discussionHistory.discussions.map((discussion, index) => {
-                      const source = discussionHistory.sources.find(s => s.id === discussion.sourceId);
-                      if (!source) return null;
-
-                      return (
-                        <div
-                          key={`${discussion.sourceId}-${index}`}
-                          onClick={() => console.log('Selected discussion:', discussion)}
-                          className="surface-muted rounded-lg p-3 hover:surface-card hover:border-[var(--color-warning)]/30 transition-all cursor-pointer group"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-text-primary group-hover:text-[var(--color-warning)] transition-colors line-clamp-1">
-                                {source.title}
-                              </h4>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-text-muted">
-                                <span>👤 {discussion.npcName}</span>
-                                <span>📍 {discussion.location}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="bg-background-secondary rounded p-2 mb-2">
-                            <p className="text-xs text-text-secondary italic line-clamp-2">
-                              "{discussion.dialogue[0]}"
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-text-muted">
-                              {new Date(discussion.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+              {!mapData ? (
+                <div className="p-6 text-sm text-text-muted">Map data unavailable.</div>
               ) : (
-                <div className="p-3 text-center text-text-muted border-b border-surface-muted">
-                  <p className="text-xs opacity-75">No source discussions yet</p>
+                <div className="h-full w-full">
+                  <MapDisplayOptimized
+                    mapData={mapData}
+                    currentMapSeed={currentMapSeed}
+                    animals={visibleAnimals}
+                    npcs={visibleNpcs}
+                    deployedVessels={deployedVessels || []}
+                    deployedStructures={deployedStructures || []}
+                    onDevHover={noop}
+                    onDevCommandClick={noop}
+                    onStructureClick={noop}
+                    onPoiClick={noop}
+                    onSettlementClick={noop}
+                    onVesselClick={noop}
+                    onPlayerMove={noop}
+                    activeLens="none"
+                    logicalControlledIconX={controlledIconX}
+                    logicalControlledIconY={controlledIconY}
+                    onIconAnimationComplete={onIconAnimationComplete}
+                    isSpecialMap={isSpecialMap}
+                    currentVessel={currentVessel}
+                    playerMode={playerMode}
+                    shipDockX={shipDockX}
+                    shipDockY={shipDockY}
+                    onAnimalClick={noop}
+                    onNpcClick={noop}
+                    selectedAnimalId={null}
+                    selectedNpcId={null}
+                    formattedDate={formattedDate}
+                    season={season}
+                    weather={mapData.currentWeather || null}
+                    currentLocation={mapData.continent || currentZone || ''}
+                    iconRotation={iconRotation}
+                    velocity={velocity}
+                    playerCharacter={playerCharacter}
+                    gameTimeHours={gameTimeHours}
+                    gameTimeMinutes={gameTimeMinutes}
+                  />
                 </div>
               )}
-
-              {/* Quotes Section */}
-              <JournalQuotesPanel />
             </div>
           )}
         </div>

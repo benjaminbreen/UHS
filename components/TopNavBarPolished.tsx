@@ -192,7 +192,7 @@ interface TopNavBarPolishedProps {
 }
 
 const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived, onWorldWeaverModalDataChange }) => {
-  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, triggerAssessmentReview, setShowSessionSummaryModal, showEndGameConfirm, setShowEndGameConfirm } = useUI();
+  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, triggerAssessmentReview, setShowSessionSummaryModal, showEndGameConfirm, setShowEndGameConfirm, centralMode, setCentralMode } = useUI();
   const { currentMode } = useEventSystem();
   const modeTheme = currentMode ? GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] : undefined;
   const { setControlledIconX, setControlledIconY } = usePlayer();
@@ -219,6 +219,10 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
     setPendingScenarioData,
   } = useMap();
   const { gameDate, onMapConfigDateChange, currentZone, onLocationChange, isLoading } = useGame();
+
+  const handleHistoryLensToggle = () => {
+    setCentralMode(prev => (prev === 'historylens' ? 'map' : 'historylens'));
+  };
 
   // Map geographical zone to cultural zone
   const getCulturalZoneFromGeographical = (geoZone: string): CulturalZone | undefined => {
@@ -620,7 +624,8 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
             {/* WorldWeaver Input - Desktop (Centered with flex-1) */}
             {!isMobile && (
               <div className="flex-1 max-w-lg mx-2 -ml-2">
-                <div className="relative worldweaver-container">
+                <div className="flex items-center gap-2">
+                  <div className="relative worldweaver-container flex-1">
                   {/* Liquid-like loading animation overlay */}
                   {isProcessingWorldWeaver && (
                     <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-10">
@@ -680,6 +685,20 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       </div>
                     </button>
                   )}
+                  </div>
+                  <button
+                    onClick={handleHistoryLensToggle}
+                    className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                      centralMode === 'historylens'
+                        ? 'border-[var(--color-success)]/60 text-[var(--color-success)] bg-[var(--color-success)]/10'
+                        : 'border-[var(--border-normal)] text-text-secondary hover:text-text-primary hover:border-[var(--border-hover)]'
+                    }`}
+                    aria-pressed={centralMode === 'historylens'}
+                    aria-label="Toggle History Lens mode"
+                    title={centralMode === 'historylens' ? 'Switch to Map View' : 'Switch to History Lens'}
+                  >
+                    History Lens
+                  </button>
                 </div>
               </div>
             )}
@@ -791,6 +810,21 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                       : 'border-surface-muted focus:border-[var(--color-success)]/50'
                   }`}
                 />
+              </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={handleHistoryLensToggle}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                    centralMode === 'historylens'
+                      ? 'border-[var(--color-success)]/60 text-[var(--color-success)] bg-[var(--color-success)]/10'
+                      : 'border-[var(--border-normal)] text-text-secondary hover:text-text-primary hover:border-[var(--border-hover)]'
+                  }`}
+                  aria-pressed={centralMode === 'historylens'}
+                  aria-label="Toggle History Lens mode"
+                  title={centralMode === 'historylens' ? 'Switch to Map View' : 'Switch to History Lens'}
+                >
+                  History Lens
+                </button>
               </div>
             </div>
           )}

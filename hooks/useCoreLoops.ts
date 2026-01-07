@@ -41,6 +41,8 @@ import { getActiveWorkOffers, updateWorkOffer, cleanupOrphanedWorkOffers } from 
 import { cleanupOldWitnessedEvents } from '../services/npcWitnessService';
 import { checkWorkCompletion, completeWorkOffer } from '../services/workOfferService';
 import { checkForEvent, getGlobalEventsLLMContext, cleanupExpiredEvents } from '../services/globalEventService';
+import { eventBus } from '../services/eventBus';
+import { describeMovement, describeEmbark, describeDisembark } from '../services/historyLensNarrationService';
 
 interface DeathInfo {
   type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
@@ -1845,6 +1847,10 @@ useEffect(() => {
       return newMinutes;
     });
 
+    const movementDirection: 'north' | 'south' | 'east' | 'west' =
+      dx > 0 ? 'east' : dx < 0 ? 'west' : dy > 0 ? 'south' : 'north';
+    const shouldEmitHistoryLens = (moveCount + 1) % 3 === 0;
+
     if (playerMode === 'ship') {
       if ((targetTile.isLand || targetTile.hasBridge) && targetTile.biome !== BiomeType.ESTUARY) {
         setPlayerMode('onFoot');
@@ -1854,11 +1860,42 @@ useEffect(() => {
         setControlledIconY(newLogicalY);
         gameSounds.playEmbarkSound(); // Disembark sound (same as embark but improved)
         showToast('Disembarked!');
+        if (shouldEmitHistoryLens && mapData && playerCharacter) {
+          eventBus.emit('historylens:append', {
+            sender: 'system',
+            text: describeDisembark({
+              mapData,
+              playerCharacter,
+              playerMode: 'onFoot',
+              playerX: newLogicalX,
+              playerY: newLogicalY,
+              localArea,
+              currentZone,
+              currentRegion: localArea
+            })
+          });
+        }
       } else {
         // Ship movement on water - play splash sound
         gameSounds.playShipMovementSplash();
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
+        if (shouldEmitHistoryLens && mapData && playerCharacter) {
+          eventBus.emit('historylens:append', {
+            sender: 'narrator',
+            text: describeMovement({
+              mapData,
+              playerCharacter,
+              playerMode: 'ship',
+              playerX: newLogicalX,
+              playerY: newLogicalY,
+              localArea,
+              currentZone,
+              currentRegion: localArea,
+              direction: movementDirection
+            })
+          });
+        }
       }
     } else {
       if (newLogicalX === shipDockX && newLogicalY === shipDockY) {
@@ -1872,6 +1909,21 @@ useEffect(() => {
         setShipDockY(null);
         gameSounds.playEmbarkSound(); // Embark sound (improved with higher pitched footsteps)
         showToast('Embarked!');
+        if (shouldEmitHistoryLens && mapData && playerCharacter) {
+          eventBus.emit('historylens:append', {
+            sender: 'system',
+            text: describeEmbark({
+              mapData,
+              playerCharacter,
+              playerMode: 'ship',
+              playerX: newLogicalX,
+              playerY: newLogicalY,
+              localArea,
+              currentZone,
+              currentRegion: localArea
+            })
+          });
+        }
       } else if (targetTile.isLand || targetTile.hasBridge) {
         // Batch position updates to reduce re-renders
         setControlledIconX(newLogicalX);
@@ -1966,6 +2018,23 @@ useEffect(() => {
           // Standard map footstep sounds based on biome - THROTTLED
           const footstepMaterial = getFootstepMaterial(targetTile.biome);
           gameSounds.playFootstepSound(footstepMaterial);
+        }
+
+        if (shouldEmitHistoryLens && mapData && playerCharacter) {
+          eventBus.emit('historylens:append', {
+            sender: 'narrator',
+            text: describeMovement({
+              mapData,
+              playerCharacter,
+              playerMode: 'onFoot',
+              playerX: newLogicalX,
+              playerY: newLogicalY,
+              localArea,
+              currentZone,
+              currentRegion: localArea,
+              direction: movementDirection
+            })
+          });
         }
         
         // Check if player stepped on stairs - exit special map

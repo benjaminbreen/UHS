@@ -12,6 +12,7 @@ import { useEventSystem } from './hooks/useEventSystem';
 import TopNavBarPolished from './components/TopNavBarPolished';
 import LeftSidebar from './components/LeftSidebar';
 import MapViewport from './components/MapViewport';
+import HistoryLensPanel from './components/HistoryLensPanel';
 import RightSidebar from './components/RightSidebar';
 import { isMobileDevice } from './utils/deviceUtils';
 import { isSafari } from './utils/safariUtils';
@@ -365,6 +366,7 @@ const AppContent: React.FC = () => {
         isLeftSidebarExpanded,
         setIsLeftSidebarExpanded,
         isRightSidebarVisible,
+        centralMode,
         debugSettings,
         isTestModeEnabled,
         floatingTextMessages,
@@ -1218,19 +1220,23 @@ const AppContent: React.FC = () => {
                 </div>
                 )}
 
-                <MapViewport
-                    key={currentMapSeed || 'default'}
-                    mapVisible={mapVisible}
-                    isProcessingWorldWeaver={isProcessingWorldWeaver}
-                    onPlayerDeath={handleDeath}
-                    onFarmPanelChange={setIsPlayerOnFarm}
-                    className={`${
-                        isSafariBrowser
-                            ? `safari-entrance safari-entrance-scale ${uiVisible ? 'visible' : ''}`
-                            : 'animate-entrance-scale entrance-delay-200'
-                    }`}
-                    isStudyingStars={isStudyingStars}
-                />
+                {centralMode === 'historylens' ? (
+                    <HistoryLensPanel />
+                ) : (
+                    <MapViewport
+                        key={currentMapSeed || 'default'}
+                        mapVisible={mapVisible}
+                        isProcessingWorldWeaver={isProcessingWorldWeaver}
+                        onPlayerDeath={handleDeath}
+                        onFarmPanelChange={setIsPlayerOnFarm}
+                        className={`${
+                            isSafariBrowser
+                                ? `safari-entrance safari-entrance-scale ${uiVisible ? 'visible' : ''}`
+                                : 'animate-entrance-scale entrance-delay-200'
+                        }`}
+                        isStudyingStars={isStudyingStars}
+                    />
+                )}
                 
                 {/* Right Sidebar - Slides in from right with delay */}
                 {isRightSidebarVisible && (

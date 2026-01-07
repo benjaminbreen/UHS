@@ -43,6 +43,7 @@ import {
     AssessmentPlayerInputLog
 } from '../types/assessment';
 import { GlobalEvent } from '../services/globalEventService';
+import type { HistoryLensMessage } from '../types/historyLens';
 
 const ASSESSMENT_STORAGE_KEY = 'uhs-assessment-session';
 
@@ -133,13 +134,13 @@ export interface VictoryDetails {
 
 export const useUIState = () => {
     // Consume contexts for state and setters
-    const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory, currentVessel } = usePlayer();
+    const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory, currentVessel, playerMode } = usePlayer();
     const { localArea, mapData, currentMapArchetype, currentMapClimate, currentMapSeed, animals, npcs, terrainStructures, setNpcs, setAnimals, removeVegetation, updateMineralDeposit, addDugTile } = useMap();
     const {
         gameDate, setGameDate, formattedTime, addGameLogEntry, gameTimeHours, setGameTimeHours, gameTimeMinutes,
         narrationHistory, setNarrationHistory, playerInput, onPlayerInputChange: setPlayerInput,
         isNarratorLoading, setIsNarratorLoading, currentTimeOfDay,
-        currentZone, season
+        currentZone, currentRegion, season
     } = useGame();
 
     // UI State
@@ -271,6 +272,51 @@ export const useUIState = () => {
     const toggleContextualTooltips = useCallback((enabled: boolean) => {
         setContextualTooltipsEnabled(enabled);
     }, []);
+
+    // Central panel mode
+    const [centralMode, setCentralMode] = useState<'map' | 'historylens'>('map');
+    const [historyLensMessages, setHistoryLensMessages] = useState<HistoryLensMessage[]>([]);
+    const historyLensInitializedRef = useRef(false);
+
+    const appendHistoryLensMessage = useCallback((message: Omit<HistoryLensMessage, 'id'>) => {
+        setHistoryLensMessages(prev => [
+            ...prev,
+            {
+                id: `hl-${Date.now()}-${Math.random()}`,
+                ...message
+            }
+        ]);
+    }, []);
+
+    useEffect(() => {
+        const handleHistoryLensAppend = (payload: { sender: HistoryLensMessage['sender']; text: string }) => {
+            appendHistoryLensMessage({ sender: payload.sender, text: payload.text });
+        };
+        eventBus.on('historylens:append', handleHistoryLensAppend);
+        return () => {
+            eventBus.off('historylens:append', handleHistoryLensAppend);
+        };
+    }, [appendHistoryLensMessage]);
+
+    useEffect(() => {
+        if (centralMode !== 'historylens') return;
+        if (historyLensInitializedRef.current || historyLensMessages.length > 0) return;
+        historyLensInitializedRef.current = true;
+        import('../services/historyLensNarrationService').then(({ describeCurrentLocation }) => {
+            if (!playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
+            const text = describeCurrentLocation({
+                mapData,
+                playerCharacter,
+                playerMode,
+                playerX: controlledIconX,
+                playerY: controlledIconY,
+                localArea,
+                currentZone,
+                currentRegion
+            });
+            appendHistoryLensMessage({ sender: 'narrator', text });
+        });
+    }, [centralMode, historyLensMessages.length, playerCharacter, mapData, controlledIconX, controlledIconY, playerMode, localArea, currentZone, currentRegion, appendHistoryLensMessage]);
 
     // Left Sidebar
     const [isLeftSidebarExpanded, setIsLeftSidebarExpanded] = useState<boolean>(true);
@@ -1836,7 +1882,24 @@ export const useUIState = () => {
             sender: 'narrator', 
             text: narration 
         }]);
-    }, [playerCharacter, mapData, currentZone, localArea, currentTimeOfDay, setNarrationHistory]);
+
+        const { describeArrival } = await import('../services/historyLensNarrationService');
+        if (mapData && controlledIconX !== null && controlledIconY !== null) {
+            eventBus.emit('historylens:append', {
+                sender: 'narrator',
+                text: describeArrival({
+                    mapData,
+                    playerCharacter,
+                    playerMode,
+                    playerX: controlledIconX,
+                    playerY: controlledIconY,
+                    localArea,
+                    currentZone,
+                    currentRegion
+                })
+            });
+        }
+    }, [playerCharacter, mapData, currentZone, localArea, currentRegion, currentTimeOfDay, setNarrationHistory, controlledIconX, controlledIconY, playerMode]);
 
     const handleStationClick = useCallback((tile: Tile) => {
         const station = railroadNetworkService.findStationAt(tile.x, tile.y);
@@ -2132,6 +2195,7 @@ export const useUIState = () => {
         showLanguageTree, selectedLanguageId, showSessionSummaryModal, showEndGameConfirm,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem, panelNotificationMode, panelNotificationEntityName, rareItemFoundToast,
         isRightSidebarVisible, setIsRightSidebarVisible,
+        centralMode, setCentralMode, historyLensMessages, appendHistoryLensMessage,
         floatingTextMessages, containerPrompt,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,

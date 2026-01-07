@@ -2080,8 +2080,46 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, isProcessi
                     onDevHover={handleDevHover}
                     onDevCommandClick={handleDevCommandClick}
                     onStructureClick={setStructureModalTarget}
-                    onPoiClick={setActivePoi}
-                    onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })}
+                    onPoiClick={(structure: TerrainStructure) => {
+                        setActivePoi(structure);
+                        import('../services/historyLensNarrationService').then(({ describePoi }) => {
+                            if (!mapData || !playerCharacter || controlledIconX === null || controlledIconY === null) return;
+                            eventBus.emit('historylens:append', {
+                                sender: 'narrator',
+                                text: describePoi(structure, {
+                                    mapData,
+                                    playerCharacter,
+                                    playerMode,
+                                    playerX: controlledIconX,
+                                    playerY: controlledIconY,
+                                    localArea: mapData.localArea,
+                                    currentZone,
+                                    currentRegion
+                                })
+                            });
+                        });
+                    }}
+                    onSettlementClick={(tile: Tile) => {
+                        setActiveSettlementInfo({ tile });
+                        import('../services/historyLensNarrationService').then(({ describePoi }) => {
+                            if (!mapData || !playerCharacter || controlledIconX === null || controlledIconY === null) return;
+                            const structure = mapData.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y);
+                            if (!structure) return;
+                            eventBus.emit('historylens:append', {
+                                sender: 'narrator',
+                                text: describePoi(structure, {
+                                    mapData,
+                                    playerCharacter,
+                                    playerMode,
+                                    playerX: controlledIconX,
+                                    playerY: controlledIconY,
+                                    localArea: mapData.localArea,
+                                    currentZone,
+                                    currentRegion
+                                })
+                            });
+                        });
+                    }}
                     onVesselClick={handleVesselClick}
                     onPlayerMove={onPlayerMove}
                     activeLens={activeLens} 
