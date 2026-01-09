@@ -234,7 +234,7 @@
   --surface-top-nav-border: var(--border-normal);
   --surface-top-nav-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
 
-  --surface-sidebar-bg: linear-gradient(145deg, rgba(15, 23, 42, 0.78) 0%, rgba(30, 41, 59, 0.7) 55%, rgba(51, 65, 85, 0.6) 100%);
+  --surface-sidebar-bg: linear-gradient(160deg, rgba(15, 23, 42, 0.78) 0%, rgba(30, 41, 59, 0.88) 55%, rgba(51, 65, 85, 0.75) 100%);
   --surface-sidebar-text: var(--text-primary);
   --surface-sidebar-border: var(--border-normal);
   --surface-sidebar-shadow: 2px 0 28px rgba(0, 0, 0, 0.45);
@@ -247,14 +247,14 @@
   --modal-overlay-bg: var(--surface-modal-overlay-bg);
   --surface-overlay-strong: rgba(0, 0, 0, 0.75);
 
-  --surface-card-bg: rgba(17, 24, 39, 0.86);
-  --surface-card-border: rgba(148, 163, 184, 0.05);
-  --surface-card-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --surface-card-bg: rgba(17, 24, 39, 0.1);
+  --surface-card-border: rgba(148, 163, 184, 0.2);
+  --surface-card-shadow: 0 18px 42px rgba(0, 0, 0, 0.0);
 
-  --surface-muted-bg: rgba(51, 65, 85, 0.6);
-  --surface-muted-border: rgba(100, 116, 139, 0.4);
-  --surface-muted-hover-bg: rgba(64, 78, 100, 0.72);
-  --surface-muted-hover-border: rgba(148, 163, 184, 0.45);
+  --surface-muted-bg: rgba(51, 65, 85, 0.65);
+  --surface-muted-border: rgba(100, 116, 139, 0.35);
+  --surface-muted-hover-bg: rgba(64, 78, 100, 0.5);
+  --surface-muted-hover-border: rgba(148, 163, 184, 0.95);
 
   --surface-elevated-bg: rgba(30, 41, 59, 0.85);
   --surface-elevated-border: rgba(100, 116, 139, 0.45);
@@ -345,8 +345,10 @@ body {
 [data-surface="top-nav"] {
   background: var(--surface-top-nav-bg);
   color: var(--surface-top-nav-text);
-  border-color: var(--surface-top-nav-border);
+  border-color: rgba(255, 255, 255, 0.1);
+  border-bottom-width: 1px;
   box-shadow: var(--surface-top-nav-shadow);
+  backdrop-filter: blur(12px);
 }
 
 [data-surface="sidebar-left"],
@@ -355,6 +357,13 @@ body {
   color: var(--surface-sidebar-text);
   border-color: var(--surface-sidebar-border);
   box-shadow: var(--surface-sidebar-shadow);
+}
+
+.panel-frame {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
 [data-surface="modal-overlay"] {
@@ -371,12 +380,129 @@ body {
 }
 
 .history-lens-panel {
-  background-color: rgba(9, 13, 22, 0.86);
+  background-color: transparent;
+}
+
+.history-lens-panel > *:not(:last-child) {
+  background-color: rgba(9, 13, 30, 0.75);
   backdrop-filter: blur(10px);
 }
 
 .left-sidebar-overview .surface-card {
   border-color: transparent;
+}
+
+.history-lens-panel .hl-message--narrator {
+  font-size: 1.15rem;
+}
+
+.history-lens-panel .hl-dialogue {
+  color: rgba(226, 232, 240, 0.85);
+  font-style: italic;
+}
+
+.history-lens-panel .hl-name {
+  font-weight: 600;
+}
+
+.history-lens-panel .hl-name--player {
+  color: rgba(96, 165, 250, 0.95);
+}
+
+.history-lens-panel .hl-name--npc {
+  color: rgba(244, 203, 120, 0.95);
+}
+
+.history-lens-panel .hl-name--location {
+  color: rgba(74, 222, 128, 0.9);
+}
+
+.history-lens-panel .hl-message__text--scene::first-letter {
+  float: left;
+  font-size: 2.6rem;
+  line-height: 0.85;
+  padding-right: 0.35rem;
+  padding-top: 0.1rem;
+  color: rgba(244, 203, 120, 0.9);
+}
+
+.history-lens-panel .hl-message__text {
+  white-space: pre-line;
+  line-height: 1.66;
+}
+
+.history-lens-panel .hl-message__meta {
+  margin-top: 0.45rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.history-lens-panel .hl-season,
+.history-lens-panel .hl-zone {
+  font-weight: 600;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Season gradients - softer, more elegant */
+.history-lens-panel .hl-season--spring {
+  background-image: linear-gradient(135deg, #6ee7b7, #34d399);
+}
+
+.history-lens-panel .hl-season--summer {
+  background-image: linear-gradient(135deg, #fcd34d, #f59e0b);
+}
+
+.history-lens-panel .hl-season--fall {
+  background-image: linear-gradient(135deg, #fb923c, #dc8a56);
+}
+
+.history-lens-panel .hl-season--winter {
+  background-image: linear-gradient(135deg, #a5b4fc, #818cf8);
+}
+
+.history-lens-panel .hl-season--unknown {
+  color: var(--text-secondary);
+}
+
+/* Zone gradients - cohesive with game aesthetic */
+.history-lens-panel .hl-zone--europe {
+  background-image: linear-gradient(135deg, #a5b4fc, #8b8cf8);
+}
+
+.history-lens-panel .hl-zone--asia {
+  background-image: linear-gradient(135deg, #5eead4, #2dd4bf);
+}
+
+.history-lens-panel .hl-zone--africa {
+  background-image: linear-gradient(135deg, #fbbf24, #d97706);
+}
+
+.history-lens-panel .hl-zone--oceania {
+  background-image: linear-gradient(135deg, #34d399, #059669);
+}
+
+.history-lens-panel .hl-zone--north-america {
+  background-image: linear-gradient(135deg, #c4b5fd, #a78bfa);
+}
+
+.history-lens-panel .hl-zone--south-america {
+  background-image: linear-gradient(135deg, #fda4af, #f472b6);
+}
+
+.history-lens-panel .hl-zone--central-america {
+  background-image: linear-gradient(135deg, #fde68a, #fbbf24);
+}
+
+.history-lens-panel .hl-zone--mena {
+  background-image: linear-gradient(135deg, #fcd34d, #fbbf24);
+}
+
+.history-lens-panel .hl-zone--unknown {
+  color: var(--text-secondary);
 }
 
 @keyframes toastProgress {
@@ -1357,4 +1483,27 @@ body {
 
 .animate-success {
   animation: success-pop 0.35s var(--ease-out-back) forwards;
+}
+
+.inventory-slot-grid {
+  position: relative;
+  overflow: hidden;
+}
+.inventory-slot-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px;
+  opacity: 0.25;
+  pointer-events: none;
+}
+.inventory-slot-grid > :first-child {
+  position: relative;
+  z-index: 1;
+}
+.hl-message--system {
+  font-style: italic;
 }

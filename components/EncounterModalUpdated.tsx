@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
+import type { HistoryLensMessage } from '../types/historyLens';
 import { Item } from '../types/itemTypes';
 import { generateEncounterDialogue, attemptTheft, handleTheftResponse, TheftAttempt, shouldEscalateToCombat, updateNpcEscalationLevel } from '../services/encounterService';
 import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer, generateGiftReaction } from '../services/llmService';
@@ -34,6 +35,7 @@ import {
     calculateAnimalValue 
 } from '../services/animalTamingService';
 import { eventService } from '../services/eventService';
+import { eventBus } from '../services/eventBus';
 import { getLanguageForCharacter, getLanguageComprehension, LANGUAGES } from '../constants/gameData/languages';
 import { triggerArrest, ArrestScenario } from '../services/arrestService';
 import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr, mapPersonalityToExpr } from '../hooks/usePortraitExpression';
@@ -219,6 +221,7 @@ interface EncounterModalProps {
   onOpenInfo: (target: EncounterableEntity) => void;
   onUpdateNpc?: (updatedNpc: NpcEntity) => void;
   onUpdatePlayer?: (updatedPlayer: PlayerCharacter) => void;
+  historyLensContext?: HistoryLensMessage[];
 }
 
 /**
@@ -281,7 +284,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     onInitiateCombat,
     onOpenInfo,
     onUpdateNpc,
-    onUpdatePlayer
+    onUpdatePlayer,
+    historyLensContext
 }) => {
     const { showToast, setCurrentEvent, setSelectedPrimarySource, openQuestPanelWithWorkOffer, showFloatingText } = useUI();
     const { worldData } = useMap();
@@ -572,7 +576,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     console.log(`[Proactive Work] ${currentTarget.name} (${currentTarget.profession}) offering work at ${workContext.probability}% probability`);
                 }
 
-                generateEncounterDialogue(currentTarget, currentTarget.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage)
+                generateEncounterDialogue(currentTarget, currentTarget.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage, historyLensContext)
                     .then(response => {
                         const initialEntry: DialogueEntry = {
                             speaker: 'npc',
@@ -1014,7 +1018,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         }
         
         try {
-            const response = await generateEncounterDialogue(currentTarget, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+            const response = await generateEncounterDialogue(currentTarget, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage, historyLensContext);
             const newNpcEntry: DialogueEntry = {
                 speaker: 'npc',
                 text: response.text,
@@ -1504,9 +1508,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
     const handleClose = useCallback(() => {
         onClose(history);
-        
+
         // Generate summary asynchronously after modal closes
-        if (isNpc(target) && history.length > 1) {
+        // Changed from > 1 to >= 1 to include brief single-exchange encounters (Issue #3)
+        if (isNpc(target) && history.length >= 1) {
             setTimeout(async () => {
                 try {
                     const summary = await summarizeConversation(history);
@@ -1562,12 +1567,23 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                     if (onUpdateNpc) {
                         onUpdateNpc(updatedNpc);
                     }
+
+                    // Emit encounter_ended event for HistoryLens to pick up
+                    eventBus.emit('encounter_ended', {
+                        npcId: currentTarget.id,
+                        npcName: currentTarget.name,
+                        npcRole: currentTarget.role || currentTarget.profession,
+                        summary: summary.summary,
+                        sentiment: summary.sentiment,
+                        exchangeCount: history.length,
+                        topicsDiscussed: Array.from(detectedTopics)
+                    });
                 } catch (error) {
                     console.error('Failed to save conversation summary:', error);
                 }
             }, 0);
         }
-    }, [target, history, onClose, onUpdateNpc]);
+    }, [target, history, onClose, onUpdateNpc, currentTarget]);
     
     // Handle opening info modal without closing encounter modal
     const handleOpenInfo = useCallback((e: React.MouseEvent) => {

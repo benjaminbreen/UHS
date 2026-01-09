@@ -12,15 +12,15 @@ interface MinimapProps {
   containerHeight: number;
 }
 
-const MINIMAP_MIN_SIZE = 120;
-const MINIMAP_MAX_SIZE = 400;
+const MINIMAP_MIN_SIZE = 100;
+const MINIMAP_MAX_SIZE = 300;
 const TILE_SIZE_PX = 18;
 
 const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel, panX, panY, containerWidth, containerHeight }) => {
   // Check if mobile on mount
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const [isMinimized, setIsMinimized] = useState(isMobile);
-  const [size, setSize] = useState(120);
+  const [size, setSize] = useState(110);
   const [isResizing, setIsResizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 6, y: 6 });
@@ -251,9 +251,9 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   if (isMinimized) {
     return (
       <div className="absolute z-30" style={{ top: `${position.y}px`, right: `${position.x}px` }}>
-        <button 
+        <button
             onClick={() => setIsMinimized(false)}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl border border-gray-500/50 bg-gray-800/80 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-sm hover:border-blue-400/50 hover:bg-blue-700/80"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-slate-900/80 text-base text-white/80 shadow-md transition-all duration-150 backdrop-blur-sm hover:bg-slate-800/90 hover:text-white"
             title="Show Minimap"
             aria-label="Show Minimap"
         >
@@ -264,36 +264,36 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   }
 
   return (
-    <div 
+    <div
         ref={wrapperRef}
-        className="absolute z-30 bg-gray-900/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/50 shadow-2xl select-none overflow-hidden" 
+        className="absolute z-30 bg-slate-900/85 backdrop-blur-sm rounded-lg p-2 border border-white/10 shadow-lg select-none overflow-hidden"
         style={{
           top: `${position.y}px`,
           right: `${position.x}px`,
-          width: displayDimensions.width + 24,   // padding p-3 = 12px each side
+          width: displayDimensions.width + 16,   // padding p-2 = 8px each side
           cursor: isResizing ? 'nwse-resize' : isDragging ? 'grabbing' : 'grab',
-          transition: isDragging || isResizing ? 'none' : 'all 0.2s'
+          transition: isDragging || isResizing ? 'none' : 'all 0.15s'
         }}
         onMouseDown={handleDragStart}
     >
-      <div className="flex justify-between items-center mb-2">
-        <div className="text-xs text-gray-300 font-semibold tracking-wide pl-1" style={{ pointerEvents: 'none' }}>Overview</div>
-        <button 
-          onClick={() => setIsMinimized(true)} 
+      <div className="flex justify-between items-center mb-1.5">
+        <div className="text-[10px] text-white/70 font-semibold tracking-wide uppercase" style={{ pointerEvents: 'none' }}>Overview</div>
+        <button
+          onClick={() => setIsMinimized(true)}
           onMouseDown={(e) => e.stopPropagation()}
-          className="text-gray-400 hover:text-white text-xl leading-none px-1" 
-          title="Minimize Map" 
+          className="text-white/50 hover:text-white text-sm leading-none px-0.5 -mr-0.5"
+          title="Minimize Map"
           aria-label="Minimize Map"
         >
             −
         </button>
       </div>
       <div className="relative" style={{ width: displayDimensions.width, height: displayDimensions.height }}>
-        <svg 
-          width={displayDimensions.width} 
-          height={displayDimensions.height} 
-          viewBox={`0 0 ${mapData.width * TILE_SIZE_PX} ${mapData.height * TILE_SIZE_PX}`} 
-          className="rounded-lg border border-gray-700/50 shadow-inner"
+        <svg
+          width={displayDimensions.width}
+          height={displayDimensions.height}
+          viewBox={`0 0 ${mapData.width * TILE_SIZE_PX} ${mapData.height * TILE_SIZE_PX}`}
+          className="rounded-md"
           style={{ backgroundColor: '#1e293b' }}
         >
           {minimapContent}
@@ -331,12 +331,12 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
             </g>
           )}
         </svg>
-        <div 
-            onMouseDown={handleResizeMouseDown} 
-            className="resize-handle absolute bottom-1 right-1 w-6 h-6 cursor-nwse-resize text-gray-500 hover:text-white p-1"
+        <div
+            onMouseDown={handleResizeMouseDown}
+            className="resize-handle absolute bottom-0.5 right-0.5 w-4 h-4 cursor-nwse-resize text-white/30 hover:text-white/60 p-0.5"
             title="Resize Map"
         >
-          <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path></svg>
+          <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path></svg>
         </div>
       </div>
     </div>

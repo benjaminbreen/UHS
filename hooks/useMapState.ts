@@ -2,7 +2,7 @@
  * hooks/useMapState.ts - Manages map data, generation, and transitions.
  */
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { MapData, AnimalEntity, NpcEntity, MapAnalysisData, MapArchetype, ClimateType, AltitudeSetting, EdgeTileInfo, GameDate, AdjacencyDirection, Item, MapAreaDefinition, PlayerCharacter, BiomeType, MapGenerationParams, SocietalProfile, HistoricalEra, TerrainStructure, DeployedVessel } from '../types';
+import { MapData, AnimalEntity, NpcEntity, MapAnalysisData, MapArchetype, ClimateType, AltitudeSetting, EdgeTileInfo, GameDate, AdjacencyDirection, Item, MapAreaDefinition, PlayerCharacter, BiomeType, MapGenerationParams, SocietalProfile, HistoricalEra, TerrainStructure, DeployedVessel, HomeAnchor } from '../types';
 import { DeployedStructure } from '../types/structureTypes';
 import { SpecialMapConfig, SpecialMapData, InteractionZone, ExitZone } from '../types/specialMapTypes';
 import { proceduralGenerateMap } from '../generation/standardMap/standardMapGenerator';
@@ -115,6 +115,7 @@ interface useMapStateProps {
     gameState: {
         gameDate: GameDate;
         liminalTravelState: any | null;
+        homeAnchor: HomeAnchor | null;
     };
     setGameState: {
         setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -123,12 +124,136 @@ interface useMapStateProps {
         setCurrentZone: React.Dispatch<React.SetStateAction<string>>;
         setCurrentRegion: React.Dispatch<React.SetStateAction<string>>;
         onMapConfigDateChange: (newDate: Partial<GameDate>) => void;
+        setHomeAnchor: React.Dispatch<React.SetStateAction<HomeAnchor | null>>;
     };
     onLiminalEncounter?: (encounter: LiminalEncounter) => void;
 }
 
 export const useMapState = (props: useMapStateProps) => {
     const { playerState, setPlayerState, gameState, setGameState } = props;
+
+    const selectHomeAnchor = useCallback((
+        mapData: MapData,
+        mapSeed: number,
+        worldX: number,
+        worldY: number,
+        zone: string,
+        region: string,
+        mapAreaName: string,
+        startPos: { x: number; y: number }
+    ): { homeAnchor: HomeAnchor; updatedStructures?: TerrainStructure[] } => {
+        const urbanBiomes = new Set<BiomeType>([
+            BiomeType.HAMLET,
+            BiomeType.LOW_DENSITY_CITY,
+            BiomeType.DENSE_CITY,
+            BiomeType.URBAN,
+            BiomeType.CITY_CENTER
+        ]);
+
+        const urbanTiles: Array<{ x: number; y: number }> = [];
+        for (let y = 0; y < mapData.tiles.length; y += 1) {
+            for (let x = 0; x < mapData.tiles[y].length; x += 1) {
+                const tile = mapData.tiles[y][x];
+                if (tile && urbanBiomes.has(tile.biome)) {
+                    urbanTiles.push({ x, y });
+                }
+            }
+        }
+
+        if (urbanTiles.length) {
+            const selected = urbanTiles[mapSeed % urbanTiles.length];
+            return {
+                homeAnchor: {
+                    mapSeed,
+                    worldX,
+                    worldY,
+                    mapAreaName,
+                    zone,
+                    region,
+                    x: selected.x,
+                    y: selected.y,
+                    kind: 'urban',
+                    label: mapData.majorCity?.name || mapAreaName || 'nearby settlement'
+                }
+            };
+        }
+
+        const structures = mapData.terrainStructures || [];
+        const structureCandidates = structures.filter(structure =>
+            ['farm', 'fishing_hut', 'marketplace', 'government_district', 'city_center', 'fortress', 'mill', 'lumber_camp', 'mining_colony', 'quarry', 'ruin', 'palace', 'holy_site', 'encampment']
+                .includes(structure.structureType)
+        );
+
+        if (structureCandidates.length) {
+            const selected = structureCandidates[mapSeed % structureCandidates.length];
+            return {
+                homeAnchor: {
+                    mapSeed,
+                    worldX,
+                    worldY,
+                    mapAreaName,
+                    zone,
+                    region,
+                    x: selected.location[0],
+                    y: selected.location[1],
+                    kind: 'structure',
+                    label: selected.name || selected.structureType
+                }
+            };
+        }
+
+        let homeX = startPos.x;
+        let homeY = startPos.y;
+        let foundLand = mapData.tiles[homeY]?.[homeX]?.isLand;
+        if (!foundLand) {
+            for (let r = 1; r <= 6; r += 1) {
+                for (let dy = -r; dy <= r; dy += 1) {
+                    for (let dx = -r; dx <= r; dx += 1) {
+                        if (Math.abs(dx) < r && Math.abs(dy) < r) continue;
+                        const nx = homeX + dx;
+                        const ny = homeY + dy;
+                        const tile = mapData.tiles[ny]?.[nx];
+                        if (tile && tile.isLand && tile.biome !== BiomeType.ACTIVE_LAVA) {
+                            homeX = nx;
+                            homeY = ny;
+                            foundLand = true;
+                            break;
+                        }
+                    }
+                    if (foundLand) break;
+                }
+                if (foundLand) break;
+            }
+        }
+
+        const encampment: TerrainStructure = {
+            id: `home_encampment_${mapSeed}`,
+            structureType: 'encampment',
+            name: `${mapAreaName} Encampment`,
+            location: [homeX, homeY],
+            economicRole: 'subsistence',
+            npcAnchor: 'laborer',
+            state: 'active'
+        };
+
+        const updatedStructures = [...structures, encampment];
+
+        return {
+            homeAnchor: {
+                mapSeed,
+                worldX,
+                worldY,
+                mapAreaName,
+                zone,
+                region,
+                x: homeX,
+                y: homeY,
+                kind: 'encampment',
+                label: encampment.name
+            },
+            updatedStructures
+        };
+    }, []);
 
     // Map Configuration
     const seedManager = SeedManager.getInstance();
@@ -1151,11 +1276,6 @@ export const useMapState = (props: useMapStateProps) => {
         // Load and merge persisted NPC data
         newNpcs = npcPersistenceService.loadAndMergeNpcs(newNpcs, mapSeedToUse);
         
-        setMapData(newMapData);
-        setAnimals(newAnimals);
-        setNpcs(newNpcs);
-        setDeployedVessels([]);
-        
         // Generate the player character
         const charContext = { 
             date: String(gameState.gameDate.year), 
@@ -1176,16 +1296,46 @@ export const useMapState = (props: useMapStateProps) => {
             setPlayerState.setPlayerCharacter(fallbackChar);
         }
         
-        // Set initial player position
-        const initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, 'ship');
+        // Set initial player position (1/3 ship, 2/3 on foot)
+        let spawnMode: 'ship' | 'onFoot' = mapSeedToUse % 3 === 0 ? 'ship' : 'onFoot';
+        let initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, spawnMode);
+        if (initialPos && spawnMode === 'ship') {
+            const startTile = newMapData.tiles[initialPos.y]?.[initialPos.x];
+            if (!startTile || startTile.isLand) {
+                const fallback = setPlayerState.findInitialIconPosition(newMapData.tiles, 'onFoot');
+                if (fallback) {
+                    initialPos = fallback;
+                    spawnMode = 'onFoot';
+                }
+            }
+        }
+        const homeSelection = selectHomeAnchor(
+            newMapData,
+            mapSeedToUse,
+            0,
+            0,
+            zone,
+            region,
+            areaDef.name,
+            initialPos ? { x: initialPos.x, y: initialPos.y } : { x: 0, y: 0 }
+        );
+        if (homeSelection.updatedStructures) {
+            newMapData.terrainStructures = homeSelection.updatedStructures;
+        }
+
+        setMapData(newMapData);
+        setAnimals(newAnimals);
+        setNpcs(newNpcs);
+        setDeployedVessels([]);
+        setGameState.setHomeAnchor(homeSelection.homeAnchor);
         if (initialPos) {
             setPlayerState.setControlledIconX(initialPos.x);
             setPlayerState.setControlledIconY(initialPos.y);
-            setPlayerState.setPlayerMode(initialPos.mode);
+            setPlayerState.setPlayerMode(spawnMode);
         }
         
         setGameState.setIsLoading(false);
-    }, [setPlayerState, setGameState, _selectRandomMapArea, generateHarbor, generateLargeCity, 
+    }, [setPlayerState, setGameState, _selectRandomMapArea, selectHomeAnchor, generateHarbor, generateLargeCity, 
         userSelectedBaseAltitude, forceVolcanicActivity, gameState.gameDate.year, 
         isAgricultural, isPastoral, economicActivityLevel]);
 
@@ -1557,24 +1707,6 @@ export const useMapState = (props: useMapStateProps) => {
         delete newMapData.animals;
         delete newMapData.npcs;
         
-        setMapData(newMapData);
-        setAnimals(newAnimals);
-        setNpcs(newNpcs);
-        setDeployedVessels([]);
-        setMapDataCache(new Map([[`0,0`, { 
-            mapData: newMapData, 
-            animals: newAnimals,
-            npcs: newNpcs,
-            deployedVessels: [],
-            seed: mapSeedToUse,
-            archetype: foundAreaDef.archetype, 
-            climate: foundAreaDef.climate,
-            worldX: 0,
-            worldY: 0,
-            region: foundRegion,
-            localArea: foundAreaDef.name
-        }]]));
-        
         // Generate the player character immediately
         const charContext = { 
             date: String(yearToUse), 
@@ -1595,18 +1727,61 @@ export const useMapState = (props: useMapStateProps) => {
             setPlayerState.setPlayerCharacter(fallbackChar);
         }
         
-        // Set initial player position
-        const initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, 'ship');
+        // Set initial player position (1/3 ship, 2/3 on foot)
+        let spawnMode: 'ship' | 'onFoot' = mapSeedToUse % 3 === 0 ? 'ship' : 'onFoot';
+        let initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, spawnMode);
+        if (initialPos && spawnMode === 'ship') {
+            const startTile = newMapData.tiles[initialPos.y]?.[initialPos.x];
+            if (!startTile || startTile.isLand) {
+                const fallback = setPlayerState.findInitialIconPosition(newMapData.tiles, 'onFoot');
+                if (fallback) {
+                    initialPos = fallback;
+                    spawnMode = 'onFoot';
+                }
+            }
+        }
+        const homeSelection = selectHomeAnchor(
+            newMapData,
+            mapSeedToUse,
+            0,
+            0,
+            targetZone,
+            foundRegion,
+            foundAreaDef.name,
+            initialPos ? { x: initialPos.x, y: initialPos.y } : { x: 0, y: 0 }
+        );
+        if (homeSelection.updatedStructures) {
+            newMapData.terrainStructures = homeSelection.updatedStructures;
+        }
+
+        setMapData(newMapData);
+        setAnimals(newAnimals);
+        setNpcs(newNpcs);
+        setDeployedVessels([]);
+        setGameState.setHomeAnchor(homeSelection.homeAnchor);
+        setMapDataCache(new Map([[`0,0`, { 
+            mapData: newMapData, 
+            animals: newAnimals,
+            npcs: newNpcs,
+            deployedVessels: [],
+            seed: mapSeedToUse,
+            archetype: foundAreaDef.archetype, 
+            climate: foundAreaDef.climate,
+            worldX: 0,
+            worldY: 0,
+            region: foundRegion,
+            localArea: foundAreaDef.name
+        }]]));
         if (initialPos) {
             setPlayerState.setControlledIconX(initialPos.x);
             setPlayerState.setControlledIconY(initialPos.y);
-            setPlayerState.setPlayerMode(initialPos.mode);
+            setPlayerState.setPlayerMode(spawnMode);
         }
         
         // Date was already set before map generation
         
         setGameState.setIsLoading(false);
-    }, [setPlayerState, setGameState, generateHarbor, generateLargeCity, userSelectedBaseAltitude, 
+    }, [setPlayerState, setGameState, selectHomeAnchor, generateHarbor, generateLargeCity, userSelectedBaseAltitude, 
         forceVolcanicActivity, gameState.gameDate, isAgricultural, isPastoral, 
         economicActivityLevel, onStartNewWorldWithCurrentSettings]);
 
@@ -1700,26 +1875,6 @@ export const useMapState = (props: useMapStateProps) => {
             delete newMapData.animals;
             delete newMapData.npcs;
             
-            setMapData(newMapData);
-            setAnimals(newAnimals);
-            setNpcs(newNpcs);
-            setDeployedVessels([]);
-            
-            // Cache the generated map
-            setMapDataCache(new Map([[`0,0`, { 
-                mapData: newMapData, 
-                animals: newAnimals,
-                npcs: newNpcs,
-                deployedVessels: [],
-                seed: mapSeedToUse,
-                archetype: areaDef.archetype, 
-                climate: areaDef.climate,
-                worldX: 0,
-                worldY: 0,
-                region: region,
-                localArea: areaDef.name
-            }]]));
-            
             // Generate the player character
             const charContext = { 
                 date: String(gameState.gameDate.year), 
@@ -1740,12 +1895,57 @@ export const useMapState = (props: useMapStateProps) => {
                 setPlayerState.setPlayerCharacter(fallbackChar);
             }
             
-            // Set initial player position
-            const initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, 'ship');
+            // Set initial player position (1/3 ship, 2/3 on foot)
+            let spawnMode: 'ship' | 'onFoot' = mapSeedToUse % 3 === 0 ? 'ship' : 'onFoot';
+            let initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, spawnMode);
+            if (initialPos && spawnMode === 'ship') {
+                const startTile = newMapData.tiles[initialPos.y]?.[initialPos.x];
+                if (!startTile || startTile.isLand) {
+                    const fallback = setPlayerState.findInitialIconPosition(newMapData.tiles, 'onFoot');
+                    if (fallback) {
+                        initialPos = fallback;
+                        spawnMode = 'onFoot';
+                    }
+                }
+            }
+            const homeSelection = selectHomeAnchor(
+                newMapData,
+                mapSeedToUse,
+                0,
+                0,
+                zone,
+                region,
+                areaDef.name,
+                initialPos ? { x: initialPos.x, y: initialPos.y } : { x: 0, y: 0 }
+            );
+            if (homeSelection.updatedStructures) {
+                newMapData.terrainStructures = homeSelection.updatedStructures;
+            }
+
+            setMapData(newMapData);
+            setAnimals(newAnimals);
+            setNpcs(newNpcs);
+            setDeployedVessels([]);
+            setGameState.setHomeAnchor(homeSelection.homeAnchor);
+            
+            // Cache the generated map
+            setMapDataCache(new Map([[`0,0`, { 
+                mapData: newMapData, 
+                animals: newAnimals,
+                npcs: newNpcs,
+                deployedVessels: [],
+                seed: mapSeedToUse,
+                archetype: areaDef.archetype, 
+                climate: areaDef.climate,
+                worldX: 0,
+                worldY: 0,
+                region: region,
+                localArea: areaDef.name
+            }]]));
             if (initialPos) {
                 setPlayerState.setControlledIconX(initialPos.x);
                 setPlayerState.setControlledIconY(initialPos.y);
-                setPlayerState.setPlayerMode(initialPos.mode);
+                setPlayerState.setPlayerMode(spawnMode);
             }
             
             setGameState.setIsLoading(false);
@@ -1808,7 +2008,7 @@ export const useMapState = (props: useMapStateProps) => {
         // Use the existing onStartNewWorldAtLocation with the selected area
         return onStartNewWorldAtLocation(targetZone, randomArea.name, characterSpec);
     }, [onStartNewWorldWithCurrentSettings, onStartNewWorldAtLocation, _selectRandomMapArea, 
-        setPlayerState, setGameState, generateHarbor, generateLargeCity, userSelectedBaseAltitude,
+        setPlayerState, setGameState, selectHomeAnchor, generateHarbor, generateLargeCity, userSelectedBaseAltitude,
         forceVolcanicActivity, gameState.gameDate.year, isAgricultural, isPastoral, economicActivityLevel]);
 
     const updateStructureData = useCallback((structureId: string, updatedData: Partial<TerrainStructure>) => {

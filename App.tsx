@@ -420,7 +420,8 @@ const AppContent: React.FC = () => {
         assessmentLogs,
         assessmentSummary,
         getAssessmentRequest,
-        triggerAssessmentReview
+        triggerAssessmentReview,
+        isUIHidden
     } = useUI();
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, gameLog, narrationHistory, setNarrationHistory } = useGame();
@@ -1144,10 +1145,10 @@ const AppContent: React.FC = () => {
                     onMenuClick={() => setMobileSidebarOpen(true)}
                 />
             )}
-            <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-0 md:p-0 lg:p-0 xl:p-0 gap-0 sm:gap-0 md:gap-0 lg:gap-0 xl:gap-0 h-full max-h-full">
+            <div className="relative flex-1 flex items-stretch overflow-visible p-2 sm:p-3 lg:pt-6 lg:px-8 lg:pb-12 gap-2 sm:gap-3 lg:gap-5 h-full max-h-full">
                 {/* Desktop sidebar toggle */}
-                {!isLeftSidebarExpanded && (
-                    <button 
+                {!isLeftSidebarExpanded && !isUIHidden && (
+                    <button
                         onClick={() => setIsLeftSidebarExpanded(true)}
                         className="hidden sm:flex absolute top-1/2 -translate-y-1/2 left-2 z-30 w-8 h-16 items-center justify-center surface-muted text-text-secondary rounded-r-lg border border-surface-muted hover:shadow-md transition-all shadow-lg animate-pulseGlow"
                         aria-label="Expand Sidebar"
@@ -1159,55 +1160,59 @@ const AppContent: React.FC = () => {
                     </button>
                 )}
                 
-                {/* Mobile menu buttons - larger and better positioned */}
-                <button 
-                    onClick={() => setMobileMenuOpen(mobileMenuOpen === 'left' ? null : 'left')}
-                    className="sm:hidden fixed top-16 left-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-r-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
-                    aria-label="Toggle Left Menu"
-                >
-                    {mobileMenuOpen === 'left' ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    )}
-                </button>
-                
-                <button 
-                    onClick={() => setMobileMenuOpen(mobileMenuOpen === 'right' ? null : 'right')}
-                    className="sm:hidden fixed top-16 right-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-l-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
-                    aria-label="Toggle Right Menu"
-                >
-                    {mobileMenuOpen === 'right' ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6" />
-                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2} fill="none" />
-                        </svg>
-                    )}
-                </button>
+                {/* Mobile menu buttons - larger and better positioned - hidden when UI is hidden */}
+                {!isUIHidden && (
+                    <>
+                        <button
+                            onClick={() => setMobileMenuOpen(mobileMenuOpen === 'left' ? null : 'left')}
+                            className="sm:hidden fixed top-16 left-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-r-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
+                            aria-label="Toggle Left Menu"
+                        >
+                            {mobileMenuOpen === 'left' ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            )}
+                        </button>
+
+                        <button
+                            onClick={() => setMobileMenuOpen(mobileMenuOpen === 'right' ? null : 'right')}
+                            className="sm:hidden fixed top-16 right-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-l-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
+                            aria-label="Toggle Right Menu"
+                        >
+                            {mobileMenuOpen === 'right' ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6" />
+                                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2} fill="none" />
+                                </svg>
+                            )}
+                        </button>
+                    </>
+                )}
                 
                 {/* Left Sidebar with mobile overlay and slide animation - hidden when factory panel is open */}
                 {!showFactoryPanel && (
-                <div className={`${mobileMenuOpen === 'left' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-opacity duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                <div className={`${mobileMenuOpen === 'left' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-500 ${isStudyingStars || isUIHidden ? 'opacity-0 pointer-events-none -translate-x-8' : 'opacity-100 translate-x-0'}`}>
                     {mobileMenuOpen === 'left' && (
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={() => setMobileMenuOpen(null)} />
                     )}
                     <div className={`${
                         mobileMenuOpen === 'left'
                             ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content'
-                            : `h-full ${
+                            : `h-full lg:py-1 ${
                                 isSafariBrowser
                                     ? `safari-entrance safari-entrance-slide-left ${uiVisible ? 'visible' : ''}`
                                     : 'animate-entrance-slide-left entrance-delay-100'
                               }`
-                    } max-w-[85vw] sm:max-w-none overflow-y-auto`}>
+                    } max-w-[85vw] sm:max-w-none overflow-visible`}>
                         <LeftSidebar
                     onShowFactionsModal={(data) => {
                         setFactionData(data);
@@ -1227,7 +1232,9 @@ const AppContent: React.FC = () => {
                 )}
 
                 {centralMode === 'historylens' ? (
-                    <HistoryLensPanel />
+                    <div className={`transition-all duration-500 ${isUIHidden ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 scale-100'}`}>
+                        <HistoryLensPanel />
+                    </div>
                 ) : (
                     <MapViewport
                         key={currentMapSeed || 'default'}
@@ -1238,28 +1245,28 @@ const AppContent: React.FC = () => {
                         onFarmPanelChange={setIsPlayerOnFarm}
                         className={`${
                             isSafariBrowser
-                                ? `safari-entrance safari-entrance-scale ${uiVisible ? 'visible' : ''}`
-                                : 'animate-entrance-scale entrance-delay-200'
-                        }`}
+                                ? `safari-entrance safari-entrance-scale ${uiVisible ? 'visible' : ''} ${isUIHidden ? '' : 'panel-frame'}`
+                                : `animate-entrance-scale entrance-delay-200 ${isUIHidden ? '' : 'panel-frame'}`
+                        } ${isUIHidden ? 'opacity-30 pointer-events-none' : ''}`}
                         isStudyingStars={isStudyingStars}
                     />
                 )}
                 
                 {/* Right Sidebar - Slides in from right with delay */}
                 {isRightSidebarVisible && (
-                    <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-500 ${isStudyingStars ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-500 ${isStudyingStars || isUIHidden ? 'opacity-0 pointer-events-none translate-x-8' : 'opacity-100 translate-x-0'}`}>
                         {mobileMenuOpen === 'right' && (
                             <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={() => setMobileMenuOpen(null)} />
                         )}
                         <div className={`${
                             mobileMenuOpen === 'right'
                                 ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content'
-                                : `h-full ${
+                                : `h-full lg:py-1 ${
                                     isSafariBrowser
                                         ? `safari-entrance safari-entrance-slide-right ${uiVisible ? 'visible' : ''}`
                                         : 'animate-entrance-slide-right entrance-delay-300'
                                   }`
-                        } max-w-[85vw] sm:max-w-none overflow-y-auto`}>
+                        } max-w-[85vw] sm:max-w-none overflow-visible`}>
                             <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
                         </div>
                     </div>

@@ -317,6 +317,7 @@ interface MapDisplayOptimizedProps {
   shakenTrees?: Map<string, number>; // Map of "x,y" coordinates to shake timestamp
   playerDirection?: 'north' | 'south' | 'east' | 'west'; // Player facing direction
   onDirectionChange?: (direction: 'north' | 'south' | 'east' | 'west') => void; // Callback when direction changes
+  hideMinimap?: boolean; // Hide minimap (e.g., when in sidebar compact view)
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
@@ -371,7 +372,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   isPowerSwing = false,
   shakenTrees = new Map(),
   playerDirection = 'south',
-  onDirectionChange
+  onDirectionChange,
+  hideMinimap = false
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -2314,27 +2316,27 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     <div className="relative w-full h-full overflow-hidden rounded-3xl">
       {/* Enhanced zoom controls - hide on mobile */}
       {!isMobile && (
-      <div className="absolute top-6 left-6 z-30 flex flex-col space-y-2">
-        <button 
-          onClick={zoomIn} 
-          className={getSafariOptimizedClassName("group w-11 h-11 flex items-center justify-center rounded-lg border border-gray-600/40 bg-gray-900/70 text-white shadow-lg transition-all duration-200 backdrop-blur-sm hover:border-blue-400/60 hover:bg-blue-800/70")}
+      <div className="absolute top-3 left-3 z-30 flex flex-col space-y-1">
+        <button
+          onClick={zoomIn}
+          className={getSafariOptimizedClassName("group w-8 h-8 flex items-center justify-center rounded-md border border-white/10 bg-slate-900/80 text-white/90 shadow-md transition-all duration-150 backdrop-blur-sm hover:bg-slate-800/90 hover:text-white")}
           title="Zoom In (+)"
         >
-          <span className="text-2xl leading-none font-bold transition-transform group-hover:scale-110">+</span>
+          <span className="text-lg leading-none font-semibold">+</span>
         </button>
-        <button 
-          onClick={zoomOut} 
-          className={getSafariOptimizedClassName("group w-11 h-11 flex items-center justify-center rounded-lg border border-gray-600/40 bg-gray-900/70 text-white shadow-lg transition-all duration-200 backdrop-blur-sm hover:border-blue-400/60 hover:bg-blue-800/70")}
+        <button
+          onClick={zoomOut}
+          className={getSafariOptimizedClassName("group w-8 h-8 flex items-center justify-center rounded-md border border-white/10 bg-slate-900/80 text-white/90 shadow-md transition-all duration-150 backdrop-blur-sm hover:bg-slate-800/90 hover:text-white")}
           title="Zoom Out (-)"
         >
-          <span className="text-2xl leading-none font-bold transition-transform group-hover:scale-110">−</span>
+          <span className="text-lg leading-none font-semibold">−</span>
         </button>
-        <button 
-          onClick={resetZoomAndCenter} 
-          className={getSafariOptimizedClassName("group w-11 h-11 flex items-center justify-center rounded-lg border border-gray-600/40 bg-gray-900/70 text-white shadow-lg transition-all duration-200 backdrop-blur-sm hover:border-green-400/60 hover:bg-green-800/70")}
+        <button
+          onClick={resetZoomAndCenter}
+          className={getSafariOptimizedClassName("group w-8 h-8 flex items-center justify-center rounded-md border border-white/10 bg-slate-900/80 text-white/90 shadow-md transition-all duration-150 backdrop-blur-sm hover:bg-slate-800/90 hover:text-white")}
           title="Center on Player (0)"
         >
-          <span className="text-xl transition-transform group-hover:scale-110">⌂</span>
+          <span className="text-sm">⌂</span>
         </button>
       </div>
       )}
@@ -2369,8 +2371,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       
       
 
-      {/* Enhanced minimap - hide on very small mobile screens */}
-      {(!isMobile || window.innerWidth > 480) && (
+      {/* Enhanced minimap - hide on mobile, very small screens, or when explicitly hidden */}
+      {!hideMinimap && (!isMobile || window.innerWidth > 480) && (
         <Minimap
           mapData={mapData}
           playerX={logicalControlledIconX}

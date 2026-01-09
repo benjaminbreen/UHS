@@ -27,6 +27,7 @@ import { isSafari } from '../utils/safariUtils';
 import { TamedAnimal } from '../services/animalTamingService';
 import { specialMapNpcBehaviorService, isGuardType } from '../services/specialMapNpcBehaviorService';
 import { eventBus } from '../services/eventBus';
+import { createHistoryLensNpcs } from '../services/historyLensNpcFactory';
 import { broadcastEventToWitnesses, determineEventSeverity } from '../services/npcWitnessService';
 import { FloatingTextMessage } from '../components/ui/FloatingText';
 import gameSoundsService from '../services/gameSoundsService';
@@ -153,6 +154,15 @@ export const useUIState = () => {
     });
     const [isWorldMapModalOpen, setIsWorldMapModalOpen] = useState<boolean>(false);
     const [isCharacterProfileModalOpen, setIsCharacterProfileModalOpen] = useState<boolean>(false);
+    const [useNewCharacterModal, setUseNewCharacterModal] = useState<boolean>(() => {
+        // Check localStorage for preference, default to new modal
+        try {
+            const saved = localStorage.getItem('uhs.useNewCharacterModal');
+            return saved !== null ? saved === 'true' : true;
+        } catch {
+            return true;
+        }
+    });
     const [isMapDetailsModalOpen, setIsMapDetailsModalOpen] = useState<boolean>(false);
     const [isCampModalOpen, setIsCampModalOpen] = useState<boolean>(false);
     
@@ -211,6 +221,12 @@ export const useUIState = () => {
     const [showSessionSummaryModal, setShowSessionSummaryModal] = useState<boolean>(false);
     const [showEndGameConfirm, setShowEndGameConfirm] = useState<boolean>(false);
     const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
+
+    // UI visibility toggle (for viewing atmosphere/background)
+    const [isUIHidden, setIsUIHidden] = useState<boolean>(false);
+    const toggleUIVisibility = useCallback(() => {
+        setIsUIHidden(prev => !prev);
+    }, []);
 
     // Dev Tooltip
     const [hoveredDevData, setHoveredDevData] = useState<DevTooltipDisplayData | null>(null);
@@ -274,9 +290,10 @@ export const useUIState = () => {
     }, []);
 
     // Central panel mode
-    const [centralMode, setCentralMode] = useState<'map' | 'historylens'>('map');
+    const [centralMode, setCentralMode] = useState<'map' | 'historylens'>('historylens');
     const [historyLensMessages, setHistoryLensMessages] = useState<HistoryLensMessage[]>([]);
     const historyLensInitializedRef = useRef(false);
+    const historyLensNpcQueueRef = useRef<Array<{ count: number; role?: string; name?: string }>>([]);
 
     const appendHistoryLensMessage = useCallback((message: Omit<HistoryLensMessage, 'id'>) => {
         setHistoryLensMessages(prev => [
@@ -289,8 +306,8 @@ export const useUIState = () => {
     }, []);
 
     useEffect(() => {
-        const handleHistoryLensAppend = (payload: { sender: HistoryLensMessage['sender']; text: string }) => {
-            appendHistoryLensMessage({ sender: payload.sender, text: payload.text });
+        const handleHistoryLensAppend = (payload: { sender: HistoryLensMessage['sender']; text: string; meta?: string; style?: HistoryLensMessage['style'] }) => {
+            appendHistoryLensMessage({ sender: payload.sender, text: payload.text, meta: payload.meta, style: payload.style });
         };
         eventBus.on('historylens:append', handleHistoryLensAppend);
         return () => {
@@ -299,24 +316,67 @@ export const useUIState = () => {
     }, [appendHistoryLensMessage]);
 
     useEffect(() => {
+        const handleQueueNpcs = (payload: Array<{ count: number; role?: string; name?: string }>) => {
+            if (!payload?.length) return;
+            historyLensNpcQueueRef.current = [...historyLensNpcQueueRef.current, ...payload];
+        };
+        const handleHistoryLensMovementEnd = () => {
+            if (!historyLensNpcQueueRef.current.length) return;
+            if (!mapData || !playerCharacter || controlledIconX === null || controlledIconY === null) return;
+            const queued = historyLensNpcQueueRef.current;
+            historyLensNpcQueueRef.current = [];
+            let additions: NpcEntity[] = [];
+            for (const request of queued) {
+                const created = createHistoryLensNpcs({
+                    mapData,
+                    gameDate,
+                    playerX: controlledIconX,
+                    playerY: controlledIconY,
+                    playerMode,
+                    existingNpcs: npcs,
+                    preferredRole: request.role,
+                    preferredName: request.name,
+                    count: request.count
+                });
+                if (created.length) {
+                    additions = additions.concat(created);
+                }
+            }
+            if (additions.length) {
+                setNpcs(prev => [...prev, ...additions]);
+            }
+        };
+        eventBus.on('historylens:queue_npcs', handleQueueNpcs);
+        eventBus.on('historylens:movement_end', handleHistoryLensMovementEnd);
+        return () => {
+            eventBus.off('historylens:queue_npcs', handleQueueNpcs);
+            eventBus.off('historylens:movement_end', handleHistoryLensMovementEnd);
+        };
+    }, [mapData, playerCharacter, controlledIconX, controlledIconY, playerMode, npcs, gameDate, setNpcs]);
+
+    useEffect(() => {
         if (centralMode !== 'historylens') return;
-        if (historyLensInitializedRef.current || historyLensMessages.length > 0) return;
+        if (historyLensInitializedRef.current) return;
+        if (!playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
         historyLensInitializedRef.current = true;
-        import('../services/historyLensNarrationService').then(({ describeCurrentLocation }) => {
-            if (!playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
-            const text = describeCurrentLocation({
-                mapData,
+        import('../services/historyLensEntryService').then(({ generateEntryNarration, buildEntryMeta }) => {
+            generateEntryNarration({
+                kind: 'start',
+                label: mapData.localArea || currentRegion || currentZone || 'the region',
                 playerCharacter,
-                playerMode,
+                mapData,
                 playerX: controlledIconX,
                 playerY: controlledIconY,
-                localArea,
+                playerMode,
                 currentZone,
-                currentRegion
+                currentRegion,
+                timeOfDay: currentTimeOfDay
+            }).then((text) => {
+                const meta = buildEntryMeta('start', mapData, undefined, currentZone, currentRegion);
+                appendHistoryLensMessage({ sender: 'narrator', text, meta, style: 'scene' });
             });
-            appendHistoryLensMessage({ sender: 'narrator', text });
         });
-    }, [centralMode, historyLensMessages.length, playerCharacter, mapData, controlledIconX, controlledIconY, playerMode, localArea, currentZone, currentRegion, appendHistoryLensMessage]);
+    }, [centralMode, playerCharacter, mapData, controlledIconX, controlledIconY, playerMode, localArea, currentZone, currentRegion, currentTimeOfDay, appendHistoryLensMessage]);
 
     // Left Sidebar
     const [isLeftSidebarExpanded, setIsLeftSidebarExpanded] = useState<boolean>(true);
@@ -782,6 +842,17 @@ export const useUIState = () => {
 
     const removeFloatingText = useCallback((id: string) => {
         setFloatingTextMessages(prev => prev.filter(msg => msg.id !== id));
+    }, []);
+
+    // Toggle between new and old character profile modal
+    const toggleCharacterModalVersion = useCallback(() => {
+        setUseNewCharacterModal(prev => {
+            const newValue = !prev;
+            try {
+                localStorage.setItem('uhs.useNewCharacterModal', String(newValue));
+            } catch {}
+            return newValue;
+        });
     }, []);
 
     const closeAllModals = useCallback(() => {
@@ -1869,6 +1940,7 @@ export const useUIState = () => {
         if (!playerCharacter) return;
         
         const { generateNewAreaNarration } = await import('../services/contextualNarrationService');
+        const { generateEntryNarration, buildEntryMeta } = await import('../services/historyLensEntryService');
         
         const narration = await generateNewAreaNarration(fromDirection, {
             playerCharacter,
@@ -1883,20 +1955,24 @@ export const useUIState = () => {
             text: narration 
         }]);
 
-        const { describeArrival } = await import('../services/historyLensNarrationService');
         if (mapData && controlledIconX !== null && controlledIconY !== null) {
+            const entryText = await generateEntryNarration({
+                kind: 'map',
+                label: mapData.localArea || currentRegion || currentZone || 'the region',
+                playerCharacter,
+                mapData,
+                playerX: controlledIconX,
+                playerY: controlledIconY,
+                playerMode,
+                currentZone,
+                currentRegion,
+                timeOfDay: currentTimeOfDay
+            });
             eventBus.emit('historylens:append', {
                 sender: 'narrator',
-                text: describeArrival({
-                    mapData,
-                    playerCharacter,
-                    playerMode,
-                    playerX: controlledIconX,
-                    playerY: controlledIconY,
-                    localArea,
-                    currentZone,
-                    currentRegion
-                })
+                text: entryText,
+                meta: buildEntryMeta('map', mapData, undefined, currentZone, currentRegion),
+                style: 'scene'
             });
         }
     }, [playerCharacter, mapData, currentZone, localArea, currentRegion, currentTimeOfDay, setNarrationHistory, controlledIconX, controlledIconY, playerMode]);
@@ -2186,7 +2262,7 @@ export const useUIState = () => {
         isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, useLlmForDescriptions, useLlmForCharacter, showDevTooltip,
         isTestModeEnabled, debugSettings, isDevBuildingModeOpen,
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
-        isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
+        isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen, useNewCharacterModal,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
         isCampModalOpen,
         showJournal, showQuestsPanel, highlightedWorkOfferId, showGameModePanel,
@@ -2222,7 +2298,7 @@ export const useUIState = () => {
         setIsWorldMapModalOpen, setInteractionModalData, handleTakeItem,
         setIsSkillsModalOpen, setSkillResult, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
-        setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
+        setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen, toggleCharacterModalVersion,
         closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
         setIsCampModalOpen,
         setShowJournal, setShowQuestsPanel, openQuestPanelWithWorkOffer, setShowGameModePanel,
@@ -2258,6 +2334,10 @@ export const useUIState = () => {
         setShowFactoryContractModal,
         activeFactoryData,
         setActiveFactoryData,
+
+        // UI visibility toggle (for viewing atmosphere/background)
+        isUIHidden,
+        toggleUIVisibility,
 
         // Tooltip handlers
         markTooltipSeen,

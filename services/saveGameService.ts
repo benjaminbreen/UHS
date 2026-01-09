@@ -4,7 +4,7 @@
  * Phases 1-2: Core state + NPCs, Quests, Inventory
  */
 
-import { PlayerCharacter, MapData, NpcEntity } from '../types';
+import { PlayerCharacter, MapData, NpcEntity, HomeAnchor } from '../types';
 import { Quest } from '../types/questTypes';
 import { EventHistoryEntry } from '../types/eventTypes';
 import { GameLogEntry, PlayerJournalEntry, JournalQuote } from '../types/journal';
@@ -35,6 +35,7 @@ export interface SavedGame {
   zone: string;
   region: string;
   mapArea: string;
+  homeAnchor?: HomeAnchor | null;
 
   // Phase 2: Extended state
   npcs?: NpcEntity[];
@@ -103,6 +104,7 @@ class SaveGameService {
       zone: string;
       region: string;
       mapArea: string;
+      homeAnchor?: HomeAnchor | null;
       npcs?: NpcEntity[];
       activeQuests?: Quest[];
       completedQuests?: Quest[];
@@ -152,6 +154,7 @@ class SaveGameService {
         zone: gameState.zone,
         region: gameState.region,
         mapArea: gameState.mapArea,
+        homeAnchor: gameState.homeAnchor,
 
         // Extended state
         npcs: gameState.npcs ? this.cleanNpcs(gameState.npcs) : undefined,

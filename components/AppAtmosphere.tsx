@@ -83,6 +83,7 @@ const AppAtmosphere: React.FC<AppAtmosphereProps> = ({ atmosphere }) => {
                 special: null
               }
             }
+            gameTimeHours={gameTimeHours}
           />
         </>
       )}

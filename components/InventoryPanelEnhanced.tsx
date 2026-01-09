@@ -200,123 +200,72 @@ export default function InventoryPanelEnhanced({
     setSelectedItem(null);
   };
 
-  if (inventory.length === 0 && tamedAnimals.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center py-16">
-        <div className="text-6xl mb-3 opacity-20">🎒</div>
-        <p className="text-base font-semibold mb-2" style={{ color: isDark ? '#e2e8f0' : '#1e293b' }}>
-          Inventory is Empty
-        </p>
-        <p className="text-sm opacity-60 max-w-xs" style={{ color: isDark ? '#cbd5e1' : '#475569' }}>
-          Forage, trade, or explore to discover items
-        </p>
-      </div>
-    );
-  }
+  // Number of grid slots to show (always show at least this many for visual consistency)
+  const GRID_SLOTS = 16;
+  const emptySlots = Math.max(0, GRID_SLOTS - sortedInventory.length);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Enhanced Header with Controls */}
-      <div className="flex-shrink-0 px-3 py-3 border-b" style={{
-        borderColor: isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(203, 213, 225, 0.4)'
-      }}>
-        {/* Top row - Title and Count */}
-        <div className="flex items-center justify-between mb-2.5">
-          <h3
-            className="text-[11px] font-bold uppercase tracking-widest"
-            style={{ color: isDark ? '#94a3b8' : '#64748b' }}
-          >
-            Inventory
-          </h3>
+      {/* Clean Header */}
+      <div className="flex-shrink-0 px-3 py-2.5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* Sort dropdown (only in list view) */}
+            <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">Inventory</span>
+            <span className="text-[10px] text-white/30">{filteredInventory.length} items</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white/80' : 'text-white/30 hover:text-white/50'}`}
+              title="Grid view"
+            >
+              <FaTh className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-white/10 text-white/80' : 'text-white/30 hover:text-white/50'}`}
+              title="List view"
+            >
+              <FaList className="w-3 h-3" />
+            </button>
             {viewMode === 'list' && (
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-xs px-2 py-1 rounded-md transition-all duration-200 border-none outline-none"
-                style={{
-                  background: isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(229, 231, 235, 0.4)',
-                  color: isDark ? '#94a3b8' : '#64748b'
-                }}
+                className="ml-1 text-[10px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60 outline-none"
               >
                 <option value="name">Name</option>
-                <option value="quantity">Quantity</option>
+                <option value="quantity">Qty</option>
                 <option value="rarity">Rarity</option>
               </select>
             )}
-
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-0.5 p-0.5 rounded-md" style={{
-              background: isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(229, 231, 235, 0.4)'
-            }}>
-              <button
-                onClick={() => setViewMode('grid')}
-                className="p-1.5 rounded transition-all duration-200"
-                style={{
-                  background: viewMode === 'grid'
-                    ? (isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)')
-                    : 'transparent',
-                  color: viewMode === 'grid' ? '#10b981' : (isDark ? '#94a3b8' : '#64748b')
-                }}
-                title="Grid view"
-              >
-                <FaTh className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className="p-1.5 rounded transition-all duration-200"
-                style={{
-                  background: viewMode === 'list'
-                    ? (isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)')
-                    : 'transparent',
-                  color: viewMode === 'list' ? '#10b981' : (isDark ? '#94a3b8' : '#64748b')
-                }}
-                title="List view"
-              >
-                <FaList className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Item count */}
-            <span
-              className="text-xs font-mono font-semibold px-2 py-1 rounded-md"
-              style={{
-                background: isDark ? 'rgba(71, 85, 105, 0.4)' : 'rgba(229, 231, 235, 0.4)',
-                color: isDark ? '#94a3b8' : '#64748b'
-              }}
-            >
-              {filteredInventory.length + filteredAnimals.length}
-            </span>
           </div>
         </div>
 
-        {/* Search input */}
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search items..."
-          className="w-full px-3 py-1.5 text-xs rounded-lg transition-all duration-200 placeholder:opacity-60 border"
-          style={{
-            background: isDark ? 'rgba(30, 41, 59, 0.5)' : 'rgba(255, 255, 255, 0.8)',
-            borderColor: isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(203, 213, 225, 0.4)',
-            color: isDark ? '#e2e8f0' : '#1e293b'
-          }}
-        />
+        {/* Search - only show if we have items */}
+        {inventory.length > 0 && (
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search..."
+            className="w-full mt-2 px-3 py-1.5 text-xs rounded-lg bg-black/20 border border-white/5 text-white/80 placeholder:text-white/30 outline-none focus:border-white/20"
+          />
+        )}
       </div>
 
+      <div className="h-px w-full bg-white/5" />
+
       {/* Content Area */}
-      <div className="flex-1 min-h-0 p-3 overflow-y-auto">
-        {filteredInventory.length === 0 ? (
+      <div className="flex-1 min-h-0 p-2 overflow-y-auto">
+        {searchQuery && filteredInventory.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-              No items found matching "{searchQuery}"
-            </p>
+            <p className="text-xs text-white/40">No items matching "{searchQuery}"</p>
           </div>
         ) : viewMode === 'grid' ? (
-          /* GRID VIEW */
-          <div className="grid grid-cols-4 gap-2">
+          /* GRID VIEW with empty slots */
+          <div className="grid grid-cols-4 gap-1.5">
+            {/* Filled slots */}
             {sortedInventory.map((item, idx) => {
               const colors = getRarityColors(item.rarity);
               const qualityInfo = getQualityInfo(item.quality);
@@ -325,48 +274,35 @@ export default function InventoryPanelEnhanced({
               return (
                 <div
                   key={item.id}
-                  className="relative rounded-xl cursor-pointer group overflow-hidden transition-all duration-300 animate-cascade-in"
+                  className="relative rounded-lg cursor-pointer group overflow-hidden transition-all duration-200 hover:scale-[1.02]"
                   onClick={() => handleItemClick(item)}
                   draggable={isDraggable}
                   onDragStart={isDraggable && onDragStart ? (e) => onDragStart(e, item) : undefined}
                   title={`${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`}
                   style={{
                     aspectRatio: '1 / 1',
-                    background: isDark
-                      ? 'linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(15, 23, 42, 0.85) 100%)'
-                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(252, 250, 247, 0.99) 50%, rgba(249, 245, 235, 0.95) 100%)',
-                    backdropFilter: 'blur(12px) saturate(110%)',
-                    WebkitBackdropFilter: 'blur(12px) saturate(120%)',
+                    background: 'rgba(255, 255, 255, 0.03)',
                     border: isHighlighted
-                      ? `3px solid ${colors.light}`
-                      : `2px solid ${colors.border}`,
+                      ? `2px solid ${colors.light}`
+                      : `1px solid ${colors.border}`,
                     boxShadow: isHighlighted
-                      ? `0 0 32px ${colors.glow}, inset 0 0 24px rgba(255, 255, 255, 0.2)`
-                      : `0 0 16px ${colors.glow}, 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.1)`,
-                    animationDelay: `${idx * 50}ms`
+                      ? `0 0 20px ${colors.glow}`
+                      : 'none'
                   }}
                 >
-
-                  {/* Rarity-colored hover glow */}
+                  {/* Subtle rarity indicator line at top */}
                   <div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(circle at 50% 30%, ${colors.glow} 0%, ${colors.bg} 30%, transparent 70%)`,
-                      backdropFilter: 'blur(16px) saturate(150%)',
-                      WebkitBackdropFilter: 'blur(16px) saturate(150%)'
-                    }}
+                    className="absolute top-0 left-0 right-0 h-0.5"
+                    style={{ background: colors.primary, opacity: 0.6 }}
                   />
 
                   {/* Quantity Badge */}
                   {item.quantity > 1 && (
                     <div
-                      className="absolute top-1 right-1 z-20 min-w-[1.15rem] h-[1.1rem] px-1 flex items-center justify-center rounded-xl text-[0.7rem] font-mono font-semibold shadow-lg"
+                      className="absolute top-1 right-1 z-20 min-w-[16px] h-[16px] px-1 flex items-center justify-center rounded text-[9px] font-bold"
                       style={{
-                        background: `linear-gradient(135deg, ${colors.light} 0%, ${colors.primary} 100%)`,
-                        color: '#fff',
-                        border: `1px solid ${colors.light}`,
-                        boxShadow: `0 3px 8px ${colors.glow}, inset 0 1px 2px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(0, 0, 0, 0.2)`,
-                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.4)'
+                        background: colors.primary,
+                        color: '#fff'
                       }}
                     >
                       {item.quantity}
@@ -374,173 +310,91 @@ export default function InventoryPanelEnhanced({
                   )}
 
                   {/* Content */}
-                  <div className="relative z-10 flex flex-col items-center h-full pt-1 pb-1 px-1 gap-0">
-                    {/* Icon */}
-                    <div className="flex items-center justify-center shrink-0" style={{ marginBottom: '2px' }}>
-                      <div
-                        className="group-hover:scale-110 transition-transform duration-300"
-                        style={{
-                          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
-                        }}
-                      >
-                        <GenerativeItemIcon item={item} size={56} />
-                      </div>
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full p-1">
+                    <div className="group-hover:scale-105 transition-transform duration-200">
+                      <GenerativeItemIcon item={item} size={44} />
                     </div>
-
-                    {/* Item Name */}
-                    <div className="text-center w-full">
-                      <p
-                        className="text-[0.65rem] font-semibold"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: '1.2',
-                          color: isDark ? '#ffffff' : '#1e293b',
-                          textTransform: 'capitalize'
-                        }}
-                      >
-                        {qualityInfo && (
-                          <span style={{ color: qualityInfo.color, textTransform: 'capitalize' }}>{qualityInfo.label} </span>
-                        )}
-                        {item.name.toLowerCase()}
-                      </p>
-                    </div>
+                    <p
+                      className="text-[9px] text-center text-white/70 mt-1 leading-tight line-clamp-2"
+                      style={{ textTransform: 'capitalize' }}
+                    >
+                      {item.name.toLowerCase()}
+                    </p>
                   </div>
 
-                  {/* Hover border glow */}
-                  <div
-                    className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                    style={{
-                      boxShadow: `0 0 24px ${colors.glow}, inset 0 0 20px rgba(255, 255, 255, 0.4)`,
-                      border: `2px solid ${colors.light}`
-                    }}
-                  />
+                  {/* Hover highlight */}
+                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white/5" />
                 </div>
               );
             })}
+
+            {/* Empty slots to fill the grid */}
+            {Array.from({ length: emptySlots }).map((_, idx) => (
+              <div
+                key={`empty-${idx}`}
+                className="rounded-lg"
+                style={{
+                  aspectRatio: '1 / 1',
+                  background: 'rgba(255, 255, 255, 0.015)',
+                  border: '1px dashed rgba(255, 255, 255, 0.06)'
+                }}
+              />
+            ))}
           </div>
         ) : (
-          /* LIST VIEW */
-          <div className="space-y-1.5">
-            {sortedInventory.map((item, idx) => {
+          /* LIST VIEW - cleaner */
+          <div className="space-y-1">
+            {sortedInventory.map((item) => {
               const colors = getRarityColors(item.rarity);
-              const qualityInfo = getQualityInfo(item.quality);
               const isHighlighted = item.id === highlightedItemId;
-
-              // Convert hex to RGB for gradient
-              const hexToRgb = (hex: string) => {
-                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                return result ? {
-                  r: parseInt(result[1], 16),
-                  g: parseInt(result[2], 16),
-                  b: parseInt(result[3], 16)
-                } : { r: 100, g: 116, b: 139 };
-              };
-
-              const rgb = hexToRgb(colors.primary);
 
               return (
                 <div
                   key={item.id}
-                  className="rounded-lg p-2 cursor-pointer transition-all duration-200 hover:scale-[1.01] group relative overflow-hidden"
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-all hover:bg-white/5 group"
                   onClick={() => handleItemClick(item)}
                   style={{
-                    background: isDark
-                      ? `linear-gradient(90deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15) 0%, rgba(30, 41, 59, 0.95) 30%, rgba(51, 65, 85, 0.9) 100%)`
-                      : `linear-gradient(90deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.08) 0%, rgba(255, 253, 248, 1) 30%, rgba(252, 248, 242, 0.98) 100%)`,
-                    border: `2px solid ${colors.border}`,
-                    boxShadow: isHighlighted
-                      ? `0 0 20px ${colors.glow}, 0 2px 6px rgba(0, 0, 0, 0.2)`
-                      : `0 0 12px ${colors.glow}, 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`
+                    background: isHighlighted ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                    borderLeft: `2px solid ${colors.primary}`
                   }}
                 >
-                  {/* Hover glow */}
-                  <div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(circle at 0% 50%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2) 0%, transparent 60%)`
-                    }}
-                  />
+                  {/* Icon */}
+                  <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <GenerativeItemIcon item={item} size={36} />
+                  </div>
 
-                  <div className="relative z-10 flex items-center gap-2.5">
-                    {/* Icon with glow */}
-                    <div
-                      className="flex-shrink-0 group-hover:scale-110 transition-transform duration-200"
-                      style={{
-                        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
-                      }}
-                    >
-                      <GenerativeItemIcon item={item} size={56} />
-                    </div>
-
-                    {/* Item info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <h5
-                          className="text-sm font-bold truncate"
-                          style={{
-                            color: isDark ? '#f1f5f9' : '#1e293b',
-                            textTransform: 'capitalize'
-                          }}
-                        >
-                          {qualityInfo && (
-                            <span style={{ color: qualityInfo.color, textTransform: 'capitalize' }}>{qualityInfo.label} </span>
-                          )}
-                          {item.name.toLowerCase()}
-                        </h5>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {/* Quantity badge */}
-                          {item.quantity > 1 && (
-                            <span
-                              className="text-xs font-bold font-mono px-1.5 py-0.5 rounded"
-                              style={{
-                                background: `linear-gradient(135deg, ${colors.light} 0%, ${colors.primary} 100%)`,
-                                color: '#fff',
-                                border: `1px solid ${colors.light}`,
-                                boxShadow: `0 2px 6px ${colors.glow}`,
-                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.4)'
-                              }}
-                            >
-                              ×{item.quantity}
-                            </span>
-                          )}
-                          {/* Value badge */}
-                          {item.value && (
-                            <span
-                              className="text-xs font-bold font-mono px-1.5 py-0.5 rounded"
-                              style={{
-                                backgroundColor: isDark
-                                  ? 'rgba(251, 191, 36, 0.2)'
-                                  : 'rgba(251, 191, 36, 0.15)',
-                                color: isDark ? '#fbbf24' : '#b45309',
-                                border: '1px solid rgba(251, 191, 36, 0.3)'
-                              }}
-                            >
-                              ${item.value}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Description (truncated) */}
-                      {item.description && (
-                        <p
-                          className="text-[0.7rem] leading-snug line-clamp-1"
-                          style={{
-                            color: isDark ? '#cbd5e1' : '#475569'
-                          }}
-                        >
-                          {item.description}
-                        </p>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-white/80 truncate capitalize">
+                        {item.name.toLowerCase()}
+                      </span>
+                      {item.quantity > 1 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: colors.primary, color: '#fff' }}>
+                          ×{item.quantity}
+                        </span>
                       )}
                     </div>
+                    {item.description && (
+                      <p className="text-[10px] text-white/40 truncate">{item.description}</p>
+                    )}
                   </div>
+
+                  {/* Value */}
+                  {item.value !== undefined && (
+                    <span className="text-[10px] text-amber-400/70 font-medium">{item.value}c</span>
+                  )}
                 </div>
               );
             })}
+
+            {/* Empty state for list view */}
+            {sortedInventory.length === 0 && !searchQuery && (
+              <div className="text-center py-8">
+                <p className="text-xs text-white/30">Empty inventory</p>
+                <p className="text-[10px] text-white/20 mt-1">Explore to find items</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -614,22 +468,6 @@ export default function InventoryPanelEnhanced({
         />
       )}
 
-      <style>{`
-        @keyframes cascade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-cascade-in {
-          animation: cascade-in 0.3s ease-out backwards;
-        }
-      `}</style>
     </div>
   );
 }

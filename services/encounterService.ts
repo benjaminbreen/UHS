@@ -5,6 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import { AnimalEntity, NpcEntity, DialogueEntry, PlayerContext, PlayerCharacter, MapData } from '../types';
 import { SpecialMapData, SpecialMapArchetype } from '../types/specialMapTypes';
 import { generateEncounterDialogue as generateLlmDialogue } from './llmService';
+import type { HistoryLensMessage } from '../types/historyLens';
 import { REGION_SPECIFIC_DISTRICTS, CULTURAL_ZONE_DISTRICTS } from '../constants/gameData/governmentDistricts';
 import { calculateDiseaseGameplayRestrictions } from './diseaseProgressionService';
 import { getWorkOffersForNpc, removeWorkOffer } from './workOfferStorage';
@@ -87,7 +88,8 @@ export function generateEncounterDialogue(
     playerCharacter: PlayerCharacter,
     allNpcs: NpcEntity[],
     mapData: MapData | null,
-    useRealLanguage: boolean
+    useRealLanguage: boolean,
+    historyLensContext?: HistoryLensMessage[]
 ): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }> {
 
     // Check for completed work offers when conversation starts
@@ -349,7 +351,7 @@ export function generateEncounterDialogue(
             }
         } as any;
         
-        return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+        return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage, historyLensContext);
     }
 
     // Regular encounter for non-special maps - add disease awareness, hostile state, and work context
@@ -360,7 +362,7 @@ export function generateEncounterDialogue(
         workOfferContext // Add work offer context
     } as any;
 
-    return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+    return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage, historyLensContext);
 }
 
 /**

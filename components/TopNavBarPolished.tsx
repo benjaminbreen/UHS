@@ -8,6 +8,7 @@ import {
   Sun, Moon, FileText, Pause, Play, Flag
 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
+import { Eye, EyeOff } from 'lucide-react';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { MapArchetype, ClimateType, AltitudeSetting, GameDate } from '../types';
@@ -97,10 +98,7 @@ const ThemeToggle: React.FC = () => {
 
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
-  game: [
-    { id: 'quests', icon: ScrollText, label: 'Quests', color: 'slate' },
-    { id: 'world-map', icon: Globe, label: 'World Map', color: 'slate' },
-  ],
+  game: [] as { id: string; icon: any; label: string; color: string }[],
   info: [
     { id: 'end', icon: Flag, label: 'End', color: 'end' },
     { id: 'about', icon: Info, label: 'About', color: 'slate' },
@@ -192,7 +190,7 @@ interface TopNavBarPolishedProps {
 }
 
 const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoadingChange, onWorldWeaverDataReceived, onWorldWeaverModalDataChange }) => {
-  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, triggerAssessmentReview, setShowSessionSummaryModal, showEndGameConfirm, setShowEndGameConfirm, centralMode, setCentralMode } = useUI();
+  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen, isPauseModalOpen, setIsPauseModalOpen, isAnyModalOpen, activeFishingHutModal, showJournal, setShowJournal, showQuestsPanel, setShowQuestsPanel, showGameModePanel, setShowGameModePanel, triggerAssessmentReview, setShowSessionSummaryModal, showEndGameConfirm, setShowEndGameConfirm, centralMode, setCentralMode, isUIHidden, toggleUIVisibility } = useUI();
   const { currentMode } = useEventSystem();
   const modeTheme = currentMode ? GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] : undefined;
   const { setControlledIconX, setControlledIconY } = usePlayer();
@@ -571,13 +569,25 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
     return `relative nav-button nav-button--compact${isActive ? ' nav-button--active' : ''}`;
   };
 
+  // Handle click on empty nav space to toggle UI visibility
+  const handleNavClick = (e: React.MouseEvent<HTMLElement>) => {
+    // Only toggle if clicking directly on the nav or its padding areas, not on buttons/inputs
+    const target = e.target as HTMLElement;
+    const isClickableElement = target.closest('button, a, input, [role="button"], [role="switch"]');
+    if (!isClickableElement) {
+      toggleUIVisibility();
+    }
+  };
+
   return (
       <>
         <nav
           data-surface="top-nav"
-          className={getSafariOptimizedClassName("top-nav theme-surface relative w-full border-b z-50")}
+          className={getSafariOptimizedClassName("top-nav theme-surface relative w-full border-b z-50 cursor-pointer")}
+          onClick={handleNavClick}
+          title={isUIHidden ? "Click to show UI" : "Click empty space to hide UI"}
         >
-        <div className="px-2 sm:px-4 py-2">
+        <div className="px-3 sm:px-5 py-3">
           {/* Main Navigation Row */}
           <div className="flex items-center justify-between gap-2">
             {/* Logo and Title - aligned to left */}
@@ -591,34 +601,16 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   animation: subtleGlow 5s ease-in-out infinite;
                 }
               `}</style>
-              
-              <a
-                href="/"
-                className="brand-mark mr-4 text-xs sm:text-sm lg:text-base subtle-glow transition-all duration-300 cursor-pointer no-underline"
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAboutModalOpen(true);
+                }}
+                className="brand-mark text-xs sm:text-sm lg:text-base subtle-glow transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-100"
               >
                 HISTORY SIMULATOR
-              </a>
-              
-              {/* Journal Button */}
-              <div className="relative ml-1">
-                <button
-                  onClick={() => setShowJournal(prev => !prev)}
-                  className={getOptimizedButtonClassName(`nav-button nav-button--compact flex items-center gap-1.5 ${showJournal ? 'nav-button--active' : ''}`)}
-                  data-active={showJournal}
-                  title="Field Journal (⌘J)"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="hidden lg:inline">Journal</span>
-                </button>
-
-                {/* Helpful UI text when active */}
-                {showJournal && (
-                  <span className="absolute -right-2 top-full mt-1 text-[10px] text-[var(--text-muted)] whitespace-nowrap animate-pulse">
-                    click to close
-                  </span>
-                )}
-              </div>
-
+              </button>
             </div>
 
             {/* WorldWeaver Input - Desktop (Centered with flex-1) */}
@@ -688,16 +680,26 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
                   </div>
                   <button
                     onClick={handleHistoryLensToggle}
-                    className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all duration-200 flex items-center gap-2 ${
                       centralMode === 'historylens'
-                        ? 'border-[var(--color-success)]/60 text-[var(--color-success)] bg-[var(--color-success)]/10'
-                        : 'border-[var(--border-normal)] text-text-secondary hover:text-text-primary hover:border-[var(--border-hover)]'
+                        ? 'border-blue-500/50 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
+                        : 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
                     }`}
                     aria-pressed={centralMode === 'historylens'}
-                    aria-label="Toggle History Lens mode"
-                    title={centralMode === 'historylens' ? 'Switch to Map View' : 'Switch to History Lens'}
+                    aria-label={centralMode === 'historylens' ? 'Switch to Map Mode' : 'Switch to Text Mode'}
+                    title={centralMode === 'historylens' ? 'Switch to Map Mode' : 'Switch to Text Mode'}
                   >
-                    History Lens
+                    {centralMode === 'historylens' ? (
+                      <>
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>Map Mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <ScrollText className="w-3.5 h-3.5" />
+                        <span>Text Mode</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -710,26 +712,6 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
               {/* Primary Source Search */}
               <PrimarySourceSearch />
-
-              {/* Game Actions */}
-              <div className="flex items-center gap-1.5 px-2 py-0 ">
-                {NAV_BUTTON_GROUPS.game.map(button => {
-                  const Icon = button.icon;
-                  const displayLabel = button.id === 'world-map' ? 'Map' : button.label;
-                  return (
-                    <button
-                      key={button.id}
-                      onClick={() => handleNavAction(button.id)}
-                      className={getOptimizedButtonClassName(getButtonColorClasses(button.color))}
-                      title={button.label}
-                      aria-label={button.label}
-                    >
-                      <Icon className="w-4 h-4" aria-hidden="true" />
-                      <span className={`${button.id === 'quests' ? 'hidden md:inline' : 'hidden lg:inline'}`}>{displayLabel}</span>
-                    </button>
-                  );
-                })}
-              </div>
 
               {/* Info Actions */}
               <div className="flex items-center gap-1.5 px-2 py-1 surface-muted rounded-xl border border-surface-muted ">
@@ -814,16 +796,25 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               <div className="flex justify-end mt-2">
                 <button
                   onClick={handleHistoryLensToggle}
-                  className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all duration-200 flex items-center gap-2 ${
                     centralMode === 'historylens'
-                      ? 'border-[var(--color-success)]/60 text-[var(--color-success)] bg-[var(--color-success)]/10'
-                      : 'border-[var(--border-normal)] text-text-secondary hover:text-text-primary hover:border-[var(--border-hover)]'
+                      ? 'border-blue-500/50 text-blue-400 bg-blue-500/10'
+                      : 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10'
                   }`}
                   aria-pressed={centralMode === 'historylens'}
-                  aria-label="Toggle History Lens mode"
-                  title={centralMode === 'historylens' ? 'Switch to Map View' : 'Switch to History Lens'}
+                  aria-label={centralMode === 'historylens' ? 'Switch to Map Mode' : 'Switch to Text Mode'}
                 >
-                  History Lens
+                  {centralMode === 'historylens' ? (
+                    <>
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Map Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <ScrollText className="w-3.5 h-3.5" />
+                      <span>Text Mode</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -843,31 +834,8 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
             }
           `}>
             <div className="p-3 space-y-2">
-              {/* Game Actions */}
-              <div className="space-y-1">
-                <div className="text-xs text-text-muted font-medium px-2 pb-1">Game</div>
-                {NAV_BUTTON_GROUPS.game.map(button => {
-                  const Icon = button.icon;
-                  return (
-                    <button
-                      key={button.id}
-                      onClick={() => handleNavAction(button.id)}
-                      className={`
-                        w-full px-3 py-2.5 text-sm font-medium text-text-primary rounded-lg
-                        transition-all duration-200 flex items-center gap-2
-                        ${getButtonColorClasses(button.color)}
-                      `}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {button.label}
-                    </button>
-                  );
-                })}
-
-              </div>
-
               {/* Theme Toggle for Mobile */}
-              <div className="pt-2 border-t border-surface-muted">
+              <div className="pb-2">
                 <div className="px-2 pb-2 flex items-center justify-between">
                   <div className="text-xs text-text-muted font-medium">Appearance</div>
                   <ThemeToggle />

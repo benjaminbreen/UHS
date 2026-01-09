@@ -58,6 +58,7 @@ import { poiDescriptionService } from '../services/poiDescriptionService';
 import { poiDialogueService } from '../services/poiDialogueService';
 import { getDayOfYear } from '../utils/dateUtils';
 import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { generateEntryNarration, buildEntryMeta } from '../services/historyLensEntryService';
 
 type ActivePanel = 'farm' | null;
 
@@ -337,6 +338,66 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
     
     // Apply weather effects on player
     useWeatherEffects(currentWeather);
+
+    const findStructureAtTile = useCallback((tile: Tile) => {
+        return mapData?.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y) || null;
+    }, [mapData]);
+
+    const resolveEntryKind = useCallback((structureType?: string | null) => {
+        switch (structureType) {
+            case 'fortress':
+                return 'fortress';
+            case 'holy_site':
+                return 'holy_site';
+            case 'palace':
+                return 'palace';
+            case 'ruin':
+                return 'ruin';
+            case 'marketplace':
+                return 'market';
+            case 'government_district':
+                return 'government';
+            case 'fishing_hut':
+                return 'fishing';
+            case 'mining_colony':
+            case 'quarry':
+                return 'mine';
+            default:
+                return 'structure';
+        }
+    }, []);
+
+    const queueHistoryLensEntry = useCallback(async (options: {
+        kind: 'city' | 'structure' | 'market' | 'ruin' | 'government' | 'fishing' | 'mine' | 'palace' | 'holy_site' | 'fortress';
+        label: string;
+        tile?: Tile | null;
+        structure?: any | null;
+    }) => {
+        if (!mapData || !playerCharacter || controlledIconX === null || controlledIconY === null) return;
+        try {
+            const text = await generateEntryNarration({
+                kind: options.kind,
+                label: options.label,
+                playerCharacter,
+                mapData,
+                playerX: options.tile?.x ?? controlledIconX,
+                playerY: options.tile?.y ?? controlledIconY,
+                playerMode,
+                currentZone,
+                currentRegion,
+                timeOfDay: currentTimeOfDay,
+                structure: options.structure || undefined,
+                tile: options.tile || undefined
+            });
+            eventBus.emit('historylens:append', {
+                sender: 'narrator',
+                text,
+                meta: buildEntryMeta(options.kind as any, mapData, options.structure || undefined, currentZone, currentRegion)
+            });
+        } catch (error) {
+            console.warn('[HistoryLensEntry] Failed to emit entry narration:', error);
+        }
+    }, [mapData, playerCharacter, controlledIconX, controlledIconY, currentZone, currentRegion, currentTimeOfDay]);
     
     // Inventory toast for item collection
     const { toasts, showToast: showInventoryToast, hideToast } = useInventoryToast();
@@ -2580,10 +2641,47 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
                         mapData={mapData} 
                         playerX={controlledIconX} 
                         playerY={controlledIconY} 
-                        onEnterCity={(tile: Tile) => setActiveCityModal({tile})} 
-                        onEnterMarketplace={(tile: Tile) => setActiveMarketplaceModal({tile})}
-                        onEnterRuin={(tile: Tile) => setActiveRuinModal({tile})}
-                        onEnterBuilding={(tile) => onEnterBuilding(tile, mapData)} 
+                        onEnterCity={(tile: Tile) => {
+                            const structure = findStructureAtTile(tile);
+                            queueHistoryLensEntry({
+                                kind: 'city',
+                                label: tile.cityName || structure?.name || 'the settlement',
+                                tile,
+                                structure
+                            });
+                            setActiveCityModal({ tile });
+                        }} 
+                        onEnterMarketplace={(tile: Tile) => {
+                            const structure = findStructureAtTile(tile);
+                            queueHistoryLensEntry({
+                                kind: 'market',
+                                label: structure?.name || tile.cityName || 'the marketplace',
+                                tile,
+                                structure
+                            });
+                            setActiveMarketplaceModal({ tile });
+                        }}
+                        onEnterRuin={(tile: Tile) => {
+                            const structure = findStructureAtTile(tile);
+                            queueHistoryLensEntry({
+                                kind: 'ruin',
+                                label: structure?.name || tile.cityName || 'the ruins',
+                                tile,
+                                structure
+                            });
+                            setActiveRuinModal({ tile });
+                        }}
+                        onEnterBuilding={(tile) => {
+                            const structure = findStructureAtTile(tile);
+                            const kind = resolveEntryKind(structure?.structureType);
+                            queueHistoryLensEntry({
+                                kind,
+                                label: structure?.name || tile.cityName || 'the site',
+                                tile,
+                                structure
+                            });
+                            onEnterBuilding(tile, mapData);
+                        }} 
                         onEnterFarm={(tile) => setActivePanel('farm')}
                         onEnterFishingHut={(tile) => {
                             console.log('[MapViewport] onEnterFishingHut called with tile:', tile);
@@ -2593,13 +2691,26 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
                             );
                             console.log('[MapViewport] Found fishing hut structure:', fishingHutStructure);
                             if (fishingHutStructure) {
+                                queueHistoryLensEntry({
+                                    kind: 'fishing',
+                                    label: fishingHutStructure.name || 'the fishing hut',
+                                    tile,
+                                    structure: fishingHutStructure
+                                });
                                 console.log('[MapViewport] Setting fishing hut modal active');
                                 setActiveFishingHutModal({ structure: fishingHutStructure, tile });
                             } else {
                                 console.log('[MapViewport] No fishing hut structure found at tile coordinates');
                             }
                         }}
-                        onEnterMine={(structure) => setActiveMiningModal(structure)}
+                        onEnterMine={(structure) => {
+                            queueHistoryLensEntry({
+                                kind: 'mine',
+                                label: structure?.name || 'the mine',
+                                structure
+                            });
+                            setActiveMiningModal(structure);
+                        }}
                         onEnterGovernmentDistrict={(tile) => {
                             const pseudoStructure = {
                                 id: `gov_district_${tile.x}_${tile.y}`,
@@ -2610,13 +2721,33 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
                                 biome: BiomeType.GOVERNMENT_DISTRICT,
                                 name: 'Government District'
                             } as any;
+                            queueHistoryLensEntry({
+                                kind: 'government',
+                                label: pseudoStructure.name,
+                                tile,
+                                structure: pseudoStructure
+                            });
                             setActiveGovernmentModal({ structure: pseudoStructure, tile });
                         }}
                         onEnterHolySite={(tile) => {
+                            const structure = findStructureAtTile(tile);
+                            queueHistoryLensEntry({
+                                kind: 'holy_site',
+                                label: structure?.name || tile.cityName || 'the holy site',
+                                tile,
+                                structure
+                            });
                             // For now, trigger building entry - holy site modal needs implementation
                             onEnterBuilding(tile, mapData);
                         }}
                         onEnterPalace={(tile) => {
+                            const structure = findStructureAtTile(tile);
+                            queueHistoryLensEntry({
+                                kind: 'palace',
+                                label: structure?.name || tile.cityName || 'the palace',
+                                tile,
+                                structure
+                            });
                             // For now, trigger building entry - palace modal needs implementation
                             onEnterBuilding(tile, mapData);
                         }}

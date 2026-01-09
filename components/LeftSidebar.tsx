@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { BarChart, Crown, Building, Users, Heart, BookOpen, Globe, ScrollText, ChevronLeft, Sun, CloudSun, Cloud, Snowflake, Droplet, Mountain, Grape, Trees, Waves, Castle, Landmark, Flag, Sparkles, Globe2, CloudOff, Building2 } from 'lucide-react';
+import { BarChart, Crown, Building, Users, Heart, BookOpen, ChevronLeft, Sun, CloudSun, Cloud, Snowflake, Droplet, Mountain, Grape, Trees, Waves, Castle, Landmark, Flag, Sparkles, Globe2, CloudOff, Building2 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
@@ -20,7 +20,6 @@ import {
 import { generateAnimalDescriptions } from '../services/animalDescriptionGenerator';
 import { parseDateString } from '../utils/dateUtils';
 import HistoryPanel from './HistoryPanel';
-import GamelogPanel from './GamelogPanel';
 import { MAP_ARCHETYPE_DESCRIPTIONS, FACTION_DATA, STRUCTURE_BLUEPRINTS, METALS } from '../constants/index';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
@@ -39,8 +38,7 @@ import LifeEventsCalendarModal from './LifeEventsCalendarModal';
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export type LeftSidebarTab = 'analysis' | 'overview' | 'npcs' | 'animals';
-type MajorTab = 'map' | 'history' | 'gamelog';
+export type LeftSidebarTab = 'history' | 'overview' | 'analysis' | 'nearby';
 
 const MIN_SIDEBAR_WIDTH = 280;
 const MAX_SIDEBAR_WIDTH = 500;
@@ -53,8 +51,7 @@ const getDefaultSidebarWidth = () => {
 const DEFAULT_SIDEBAR_WIDTH = getDefaultSidebarWidth();
 
 const SIDEBAR_WIDTH_KEY = 'uhs.sidebarWidth';
-const MAP_TAB_KEY = 'uhs.mapSubTab';
-const MAJOR_TAB_KEY = 'uhs.majorTab';
+const LEFT_TAB_KEY = 'uhs.leftSidebarTab';
 
 /* -------------------------------------------------------------------------- */
 /* Small shared bits                                                          */
@@ -81,7 +78,7 @@ const CollapsibleSection: React.FC<{ title: string, count?: number, children: Re
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center text-left font-semibold text-accent mb-2 p-2 rounded-md surface-muted hover:shadow-md"
+        className="w-full flex justify-between items-center text-left font-semibold text-accent mb-1 p-2 rounded-md surface-muted hover:shadow-md"
       >
         <span className="flex items-center gap-2">
           {title}
@@ -203,7 +200,6 @@ const LeftSidebar: React.FC<{
   isProcessingWorldWeaver = false
 }) => {
   const {
-    activeMapSubTab, setActiveMapSubTab,
     isLeftSidebarExpanded, setIsLeftSidebarExpanded,
     activeLens, setActiveLens,
     setInfoModalTarget, infoModalTarget, useLlmForDescriptions,
@@ -211,19 +207,21 @@ const LeftSidebar: React.FC<{
     inMiningRoguelike,
     setCityHistoricalModalData,
     hasSeenTooltip, markTooltipSeen,
-    showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId
+    showLanguageTree, setShowLanguageTree, selectedLanguageId, setSelectedLanguageId,
+    centralMode
   } = useUI();
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
-  const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, currentZone, currentRegion, liminalTravelState } = useGame();
+  const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, currentZone, currentRegion, liminalTravelState } = useGame();
   const { playerCharacter } = usePlayer();
 
-  const [activeMajorTab, setActiveMajorTab] = useState<MajorTab>('map');
+  const [activeTab, setActiveTab] = useState<LeftSidebarTab>('overview');
   const [sourceCount, setSourceCount] = useState<number>(0);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [npcQuery, setNpcQuery] = useState<string>('');
   const [highlightedNpcId, setHighlightedNpcId] = useState<string | null>(null);
+  const [isContentCollapsed, setIsContentCollapsed] = useState<boolean>(false);
 
   // Life events calendar state
   const [showLifeEventsCalendar, setShowLifeEventsCalendar] = useState(false);
@@ -233,7 +231,7 @@ const LeftSidebar: React.FC<{
   // Memoize main container className for performance
   const sidebarClassName = useMemo(() =>
     getSafariOptimizedClassName(
-      `sidebar-left theme-surface relative flex-shrink-0 border-r h-full flex flex-col`
+      `sidebar-left panel-frame theme-surface relative flex-shrink-0 h-full lg:h-[calc(100%-20px)] flex flex-col`
     ), []);
 
   /* ----- formatters ----- */
@@ -362,15 +360,14 @@ const LeftSidebar: React.FC<{
     try {
       const savedW = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
       if (savedW) setSidebarWidth(Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, savedW)));
-      const savedMapTab = (localStorage.getItem(MAP_TAB_KEY) || '') as LeftSidebarTab;
-      if (savedMapTab) setActiveMapSubTab(savedMapTab);
-      const savedMajor = (localStorage.getItem(MAJOR_TAB_KEY) || '') as MajorTab;
-      if (savedMajor) setActiveMajorTab(savedMajor);
+      const savedTab = localStorage.getItem(LEFT_TAB_KEY) as LeftSidebarTab | null;
+      if (savedTab && ['history', 'overview', 'analysis', 'nearby'].includes(savedTab)) {
+        setActiveTab(savedTab);
+      }
     } catch {}
-  }, [setActiveMapSubTab]);
+  }, []);
 
-  useEffect(() => { try { localStorage.setItem(MAP_TAB_KEY, activeMapSubTab); } catch {} }, [activeMapSubTab]);
-  useEffect(() => { try { localStorage.setItem(MAJOR_TAB_KEY, activeMajorTab); } catch {} }, [activeMajorTab]);
+  useEffect(() => { try { localStorage.setItem(LEFT_TAB_KEY, activeTab); } catch {} }, [activeTab]);
 
   // Listen for NPC highlight events
   useEffect(() => {
@@ -799,7 +796,7 @@ const LeftSidebar: React.FC<{
 
       return (
         <div className="left-sidebar-overview flex flex-col h-full">
-          <div className="flex-1 space-y-4 text-sm text-[var(--text-primary)]">
+          <div className="flex-1  space-y-4 text-sm text-[var(--text-primary)]">
             <div>
               <h4 className="text-xs uppercase tracking-wider font-semibold text-[var(--text-secondary)] mb-2 px-1">Dominant Power</h4>
               <button
@@ -954,10 +951,7 @@ const LeftSidebar: React.FC<{
                 <div className="flex flex-wrap gap-2">
                   {ruinCount > 0 && (
                     <button
-                      onClick={() => {
-                        setActiveMajorTab('map');
-                        setActiveMapSubTab('analysis');
-                      }}
+                      onClick={() => setActiveTab('analysis')}
                       className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
                       <span className="font-bold text-[var(--accent-primary)]">{ruinCount}</span>
@@ -966,10 +960,7 @@ const LeftSidebar: React.FC<{
                   )}
                   {millCount > 0 && (
                     <button
-                      onClick={() => {
-                        setActiveMajorTab('map');
-                        setActiveMapSubTab('analysis');
-                      }}
+                      onClick={() => setActiveTab('analysis')}
                       className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
                       <span className="font-bold text-[var(--accent-primary)]">{millCount}</span>
@@ -978,10 +969,7 @@ const LeftSidebar: React.FC<{
                   )}
                   {fortressCount > 0 && (
                     <button
-                      onClick={() => {
-                        setActiveMajorTab('map');
-                        setActiveMapSubTab('analysis');
-                      }}
+                      onClick={() => setActiveTab('analysis')}
                       className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
                       <span className="font-bold text-[var(--accent-primary)]">{fortressCount}</span>
@@ -990,10 +978,7 @@ const LeftSidebar: React.FC<{
                   )}
                   {mineralCount > 0 && (
                     <button
-                      onClick={() => {
-                        setActiveMajorTab('map');
-                        setActiveMapSubTab('analysis');
-                      }}
+                      onClick={() => setActiveTab('analysis')}
                       className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
                       <span className="font-bold text-[var(--accent-primary)]">{mineralCount}</span>
@@ -1002,10 +987,7 @@ const LeftSidebar: React.FC<{
                   )}
                   {peopleCount > 0 && (
                     <button
-                      onClick={() => {
-                        setActiveMajorTab('map');
-                        setActiveMapSubTab('npcs');
-                      }}
+                      onClick={() => setActiveTab('nearby')}
                       className="badge-pill text-[10px] opacity-80" data-variant="accent"
                     >
                       <span className="font-bold text-[var(--accent-primary)]">{peopleCount}</span>
@@ -1021,7 +1003,7 @@ const LeftSidebar: React.FC<{
           {sourceCount > 0 && (
             <div className="relative mt-4 py-2">
               <button
-                onClick={() => setActiveMajorTab('history')}
+                onClick={() => setActiveTab('history')}
                 className="w-full surface-muted rounded-xl px-3 py-2 flex items-center justify-between group hover:shadow-md transition-colors"
               >
                 <div className="flex items-center gap-2">
@@ -1050,90 +1032,70 @@ const LeftSidebar: React.FC<{
       );
     }
 
-    if (tab === 'animals') {
-      return (
-        <div className="space-y-3 flex-1 flex flex-col min-h-0">
-          <h4 className="text-sm font-semibold text-accent flex justify-between items-center shrink-0">
-            <span>Observed Wildlife</span>
-            <span className="badge-pill" data-variant="accent">
-              {animals?.length || 0}
-            </span>
-          </h4>
-          {animals && animals.length > 0 ? (
-            <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 flex-1 pr-1">
-              {animals.map(animal => (
-                <AnimalListItem
-                  key={animal.id}
-                  animal={animal}
-                  isSelected={selectedAnimalId === animal.id}
-                  onClick={setInfoModalTarget}
-                  description={animalShortDescriptions.get(animal.id) || ''}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-text-muted italic text-center py-8">No animals observed.</p>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (tab === 'npcs') {
-      // Use memoized filtered NPCs
-      const list = (npcs || []);
+    if (tab === 'nearby') {
+      const npcList = (npcs || []).slice(0, 6);
+      const animalList = (animals || []).slice(0, 6);
 
       return (
-        <div className="space-y-3 flex-1 flex flex-col min-h-0">
-          <h4 className="text-sm font-semibold text-accent flex justify-between items-center shrink-0">
-            <span>Nearby People</span>
-            <span className="badge-pill" data-variant="accent">
-              {list.length}
-            </span>
-          </h4>
-
-          {/* Search */}
-          <div className="shrink-0">
-            <input
-              value={npcQuery}
-              onChange={(e) => setNpcQuery(e.target.value)}
-              placeholder="Search name, role, or class…"
-              className="w-full text-sm px-2.5 py-1.5 rounded-md surface-muted text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
-            />
+        <div className="space-y-4 flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 pr-1">
+          {/* NPCs Section */}
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-secondary flex justify-between items-center shrink-0">
+              <span>Nearby People</span>
+              <span className="text-[10px] text-text-muted">
+                {npcList.length}{(npcs?.length || 0) > 6 ? `/${npcs?.length}` : ''}
+              </span>
+            </h4>
+            {npcList.length > 0 ? (
+              <div className="space-y-1.5">
+                {npcList.map(npc => (
+                  <NpcListItem
+                    key={npc.id}
+                    npc={npc}
+                    isSelected={selectedNpcId === npc.id}
+                    isHighlighted={highlightedNpcId === npc.id}
+                    onClick={(clickedNpc) => {
+                      if (clickedNpc.x !== undefined && clickedNpc.y !== undefined) {
+                        window.dispatchEvent(new CustomEvent('centerMapOnLocation', {
+                          detail: { x: clickedNpc.x, y: clickedNpc.y }
+                        }));
+                        import('../services/eventBus').then(({ eventBus }) => {
+                          eventBus.emit('npc:highlight', { npcId: clickedNpc.id });
+                        });
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted italic py-2">No people nearby.</p>
+            )}
           </div>
 
-          {/* List */}
-          {filteredNpcs.length > 0 ? (
-            <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 flex-1 pr-1">
-              {filteredNpcs.map(npc => (
-                <NpcListItem
-                  key={npc.id}
-                  npc={npc}
-                  isSelected={selectedNpcId === npc.id}
-                  isHighlighted={highlightedNpcId === npc.id}
-                  onClick={(clickedNpc) => {
-                    // Center map on NPC and highlight them
-                    if (clickedNpc.x !== undefined && clickedNpc.y !== undefined) {
-                      // Center the camera on the NPC without moving the player
-                      window.dispatchEvent(new CustomEvent('centerMapOnLocation', {
-                        detail: { x: clickedNpc.x, y: clickedNpc.y }
-                      }));
-
-                      // Use eventBus to notify MapViewport to highlight this NPC
-                      import('../services/eventBus').then(({ eventBus }) => {
-                        eventBus.emit('npc:highlight', { npcId: clickedNpc.id });
-                      });
-                    }
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-text-muted italic text-center py-8">No matching people.</p>
-            </div>
-          )}
+          {/* Animals Section */}
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-secondary flex justify-between items-center shrink-0">
+              <span>Observed Wildlife</span>
+              <span className="text-[10px] text-text-muted">
+                {animalList.length}{(animals?.length || 0) > 6 ? `/${animals?.length}` : ''}
+              </span>
+            </h4>
+            {animalList.length > 0 ? (
+              <div className="space-y-1.5">
+                {animalList.map(animal => (
+                  <AnimalListItem
+                    key={animal.id}
+                    animal={animal}
+                    isSelected={selectedAnimalId === animal.id}
+                    onClick={setInfoModalTarget}
+                    description={animalShortDescriptions.get(animal.id) || ''}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted italic py-2">No animals observed.</p>
+            )}
+          </div>
         </div>
       );
     }
@@ -1141,39 +1103,19 @@ const LeftSidebar: React.FC<{
     return null;
   };
 
-  const mapSubTabs: { id: LeftSidebarTab, label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'analysis', label: 'Analysis' },
-    { id: 'npcs', label: 'NPCs' },
-    { id: 'animals', label: 'Animals' },
-  ];
-
-  const renderMapTabContent = () => (
-    <div className="flex flex-col flex-1 overflow-hidden min-h-0 gap-4">
-      <div className="tab-strip rounded-xl shrink-0">
-        {mapSubTabs.map(tab => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveMapSubTab(tab.id)}
-            className={`tab-button text-sm ${activeMapSubTab === tab.id ? 'is-active' : ''}`}
-            data-tab-type={tab.id}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1 surface-card rounded-2xl p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
-        {getSubTabContent(activeMapSubTab)}
-      </div>
-    </div>
-  );
-
-  const majorTabs: { id: MajorTab, label: string, color: string, Icon: React.ElementType }[] = [
-    { id: 'history', label: 'History', color: 'bg-amber-600', Icon: BookOpen },
-    { id: 'map', label: 'Map', color: 'bg-blue-600', Icon: Globe },
-    { id: 'gamelog', label: 'Gamelog', color: 'bg-purple-600', Icon: ScrollText },
-  ];
+  // Flattened tabs - hide Analysis in HistoryLens mode since it's map-specific
+  const visibleTabs = useMemo(() => {
+    const allTabs: { id: LeftSidebarTab; label: string }[] = [
+      { id: 'history', label: 'History' },
+      { id: 'overview', label: 'Overview' },
+      { id: 'analysis', label: 'Analysis' },
+      { id: 'nearby', label: 'Nearby' },
+    ];
+    if (centralMode === 'historylens') {
+      return allTabs.filter(tab => tab.id !== 'analysis');
+    }
+    return allTabs;
+  }, [centralMode]);
 
   return (
     <>
@@ -1198,15 +1140,27 @@ const LeftSidebar: React.FC<{
 
       <div className={`p-3 flex flex-col flex-1 overflow-hidden transition-opacity ${isLeftSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
         <div className="shrink-0">
-          {/* Header card */}
-          <div className="p-4 rounded-xl surface-card mb-4 relative">
+          {/* Collapse button - always visible */}
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setIsContentCollapsed(prev => !prev)}
+              className="text-[11px] uppercase tracking-[0.2em] text-text-secondary hover:text-text-primary transition-colors"
+              aria-label={isContentCollapsed ? 'Expand sidebar content' : 'Collapse sidebar content'}
+            >
+              {isContentCollapsed ? 'Expand' : 'Collapse'}
+            </button>
             <button
               onClick={() => setIsLeftSidebarExpanded(false)}
-              className="absolute top-2 right-2 text-text-secondary hover:text-text-primary transition-colors opacity-60 hover:opacity-100"
+              className="text-text-secondary hover:text-text-primary transition-colors opacity-60 hover:opacity-100 p-1"
               aria-label="Collapse sidebar"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Header card - hidden in HistoryLens mode */}
+          {centralMode !== 'historylens' && (
+          <div className="p-4 rounded-xl surface-card mb-4 relative">
             <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-baseline">
               <div
                 className="cursor-pointer sidebar-meta -m-1 pr-3"
@@ -1247,35 +1201,36 @@ const LeftSidebar: React.FC<{
               </div>
             </div>
           </div>
+          )}
 
           {/* Liminal Progress Bar - only shows during liminal travel */}
           <LiminalProgressBar liminalTravelState={liminalTravelState} />
 
-          {/* Major tabs */}
-          <div className="tab-strip rounded-2xl mb-2">
-            {majorTabs.map(tab => {
-              const isActive = activeMajorTab === tab.id;
-              const Icon = tab.Icon;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveMajorTab(tab.id)}
-                  className={`tab-button text-sm font-bold flex items-center justify-center gap-2 ${isActive ? 'is-active' : ''}`}
-                  data-tab-type={tab.id}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+          {/* Flattened tabs */}
+          <div className="tab-strip-flat rounded-xl mb-2">
+            {visibleTabs.map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`tab-flat ${activeTab === tab.id ? 'is-active' : ''}`}
+                data-tab-type={tab.id}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-          {activeMajorTab === 'map' && renderMapTabContent()}
-          {activeMajorTab === 'history' && (
+        <div
+          className={`flex-1 overflow-hidden flex flex-col min-h-0 gap-3 transition-all duration-300 ease-out ${
+            isContentCollapsed
+              ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
+              : 'max-h-[2000px] opacity-100 translate-y-0'
+          }`}
+        >
+          {activeTab === 'history' && (
             <div className="flex-1 overflow-hidden surface-card rounded-2xl">
               <HistoryPanel
                 gameDate={gameDate}
@@ -1288,9 +1243,9 @@ const LeftSidebar: React.FC<{
               />
             </div>
           )}
-          {activeMajorTab === 'gamelog' && (
-            <div className="flex-1 overflow-hidden surface-card rounded-2xl">
-              <GamelogPanel entries={gameLog} />
+          {(activeTab === 'overview' || activeTab === 'analysis' || activeTab === 'nearby') && (
+            <div className="flex-1 surface-card rounded-2xl p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
+              {getSubTabContent(activeTab)}
             </div>
           )}
         </div>

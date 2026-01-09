@@ -328,10 +328,10 @@ const CloudSystem: React.FC<CloudSystemProps> = ({
     }
   };
 
-  // Time-of-day opacity (kept to your original spec)
+  // Time-of-day opacity - clouds remain visible at night for moonlit realism
   const timeOpacity =
-    timeOfDay === 'Night' ? 0 :
-    timeOfDay === 'Dawn' || timeOfDay === 'Dusk' ? 0.3 :
+    timeOfDay === 'Night' ? 0.45 :  // Subtle moonlit clouds visible at night
+    timeOfDay === 'Dawn' || timeOfDay === 'Dusk' ? 0.7 :
     1;
 
   if (!weather || generateClouds.length === 0 || timeOpacity === 0) return null;

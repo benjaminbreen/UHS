@@ -24,6 +24,7 @@ interface WeatherEffectsProps {
   weather: WeatherState;
   width?: number;
   height?: number;
+  gameTimeHours?: number; // 0-23, for cloud coloring
 }
 
 /** Keep this in sync with services/weatherService.ts */
@@ -71,7 +72,8 @@ class ParticlePool {
 const WeatherEffects: React.FC<WeatherEffectsProps> = ({
   weather,
   width = typeof window !== 'undefined' ? window.innerWidth : 1920,
-  height = typeof window !== 'undefined' ? window.innerHeight : 1080
+  height = typeof window !== 'undefined' ? window.innerHeight : 1080,
+  gameTimeHours = 12
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 

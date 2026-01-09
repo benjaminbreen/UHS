@@ -1,7 +1,54 @@
 /**
  * components/ModalHub.tsx - Centralized component for rendering all application modals.
  */
-import React, { useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useEffect, useCallback, lazy, Suspense, Component, ReactNode } from 'react';
+
+// Error Boundary for lazy-loaded components
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class LazyLoadErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[ModalHub] Lazy load error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-red-600 max-w-md">
+            <div className="flex items-center gap-3 text-red-400 mb-3">
+              <span className="text-2xl">⚠</span>
+              <span className="text-lg font-semibold">Failed to load component</span>
+            </div>
+            <p className="text-gray-300 text-sm mb-4">
+              {this.state.error?.message || 'An unexpected error occurred while loading this modal.'}
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false, error: undefined })}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -43,6 +90,7 @@ const InlineFallback = (
 // Lazy load heavy components for better initial load performance
 const WorldMapModal = lazy(() => import('./WorldMapModal'));
 const CharacterProfileModal = lazy(() => import('./CharacterProfileModal'));
+const CharacterProfileModalV2 = lazy(() => import('./CharacterProfileModalV2'));
 const SettlementInfoModal = lazy(() => import('./SettlementInfoModal'));
 const CombatModal = lazy(() => import('./CombatModal'));
 const SkillsModal = lazy(() => import('./SkillsModal'));
@@ -122,7 +170,7 @@ const ModalHub: React.FC = () => {
         encounterTarget, handleCloseEncounter, handleInitiateCombat,
         combatant, setCombatant, handleCombatVictory,
         victoryDetails, setVictoryDetails,
-        isCharacterProfileModalOpen, setIsCharacterProfileModalOpen,
+        isCharacterProfileModalOpen, setIsCharacterProfileModalOpen, useNewCharacterModal, toggleCharacterModalVersion,
         lootModalData, handleLooting, handleCloseLootModal, onTakeCoins,
         handleVictoryClose,
         isLevelUpModalOpen, levelUpCharacter, handleLevelUp,
@@ -143,7 +191,8 @@ const ModalHub: React.FC = () => {
         showFactoryContractModal, setShowFactoryContractModal,
         activeFactoryData, setActiveFactoryData,
         recordPrimarySourceEvent,
-        assessmentSession, assessmentLogs
+        assessmentSession, assessmentLogs,
+        historyLensMessages
     } = useUI();
 
     const {
@@ -159,7 +208,7 @@ const ModalHub: React.FC = () => {
     } = usePlayer();
 
 
-    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay, setGameDate, setGameTimeHours, addGameLogEntry, formattedTime, gameLog, playerJournal } = useGame();
+    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay, setGameDate, setGameTimeHours, addGameLogEntry, formattedTime, gameLog, playerJournal, homeAnchor } = useGame();
 
     // Initialize entity health service when map changes
     useEffect(() => {
@@ -207,6 +256,7 @@ const ModalHub: React.FC = () => {
             zone: currentZone || 'Unknown',
             region: currentRegion || 'Unknown',
             mapArea: mapData.mapArea || mapData.name || 'Unknown',
+            homeAnchor,
             npcs: npcs,
             eventHistory: eventService.getEventHistory(),
             // Assessment & Educational Data
@@ -221,7 +271,7 @@ const ModalHub: React.FC = () => {
             specialMapData: isSpecialMap ? mapData : undefined,
             playTime: 0 // TODO: Track actual play time
         };
-    }, [playerCharacter, mapData, initialGameSeed, gameDate, gameTimeHours, currentZone, currentRegion, npcs, isSpecialMap, gameLog, playerJournal, assessmentSession, assessmentLogs]);
+    }, [playerCharacter, mapData, initialGameSeed, gameDate, gameTimeHours, currentZone, currentRegion, homeAnchor, npcs, isSpecialMap, gameLog, playerJournal, assessmentSession, assessmentLogs]);
     
     // Handle loading a saved game
     const handleLoadGame = useCallback((save: SavedGame) => {
@@ -326,6 +376,8 @@ const ModalHub: React.FC = () => {
                     contextualTooltipsEnabled={contextualTooltipsEnabled}
                     onToggleContextualTooltips={toggleContextualTooltips}
                     onResetTooltips={resetAllTooltips}
+                    useNewCharacterModal={useNewCharacterModal}
+                    onToggleCharacterModal={toggleCharacterModalVersion}
                 />
             )}
             {isWorldMapModalOpen && (
@@ -396,6 +448,7 @@ const ModalHub: React.FC = () => {
                 }}
                 onUpdateNpc={handleUpdateNpc}
                 onUpdatePlayer={onCharacterUpdate}
+                historyLensContext={historyLensMessages.slice(-6)}
               />
             )}
             {combatant && playerCharacter && mapData && (
@@ -470,31 +523,50 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {isCharacterProfileModalOpen && playerCharacter && (
-                <Suspense fallback={
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
-                            <div className="flex items-center gap-3">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                                <span className="text-gray-200">Loading Character Profile...</span>
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
+                                <div className="flex items-center gap-3">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                    <span className="text-gray-200">Loading Character Profile...</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                }>
-                    <CharacterProfileModal
-                        isOpen={isCharacterProfileModalOpen}
-                        onClose={() => setIsCharacterProfileModalOpen(false)}
-                        character={playerCharacter}
-                        onCharacterUpdate={onCharacterUpdate as any}
-                        onRegenerate={() => handleCharacterGeneration(useLlmForCharacter)}
-                        isEnhancing={isEnhancing}
-                        onEquipItem={handleEquipItem}
-                        onUnequipItem={handleUnequipItem}
-                        onDropItem={handleDropItem}
-                        onConsumeItem={handleConsumeItem}
-                        date={String(gameDate.year)}
-                        location={currentZone}
-                    />
-                </Suspense>
+                    }>
+                        {useNewCharacterModal ? (
+                            <CharacterProfileModalV2
+                                isOpen={isCharacterProfileModalOpen}
+                                onClose={() => setIsCharacterProfileModalOpen(false)}
+                                character={playerCharacter}
+                                onCharacterUpdate={onCharacterUpdate as any}
+                                onRegenerate={() => handleCharacterGeneration(useLlmForCharacter)}
+                                isEnhancing={isEnhancing}
+                                onEquipItem={handleEquipItem}
+                                onUnequipItem={handleUnequipItem}
+                                onDropItem={handleDropItem}
+                                onConsumeItem={handleConsumeItem}
+                                date={String(gameDate.year)}
+                                location={currentZone}
+                            />
+                        ) : (
+                            <CharacterProfileModal
+                                isOpen={isCharacterProfileModalOpen}
+                                onClose={() => setIsCharacterProfileModalOpen(false)}
+                                character={playerCharacter}
+                                onCharacterUpdate={onCharacterUpdate as any}
+                                onRegenerate={() => handleCharacterGeneration(useLlmForCharacter)}
+                                isEnhancing={isEnhancing}
+                                onEquipItem={handleEquipItem}
+                                onUnequipItem={handleUnequipItem}
+                                onDropItem={handleDropItem}
+                                onConsumeItem={handleConsumeItem}
+                                date={String(gameDate.year)}
+                                location={currentZone}
+                            />
+                        )}
+                    </Suspense>
+                </LazyLoadErrorBoundary>
             )}
             {isLevelUpModalOpen && levelUpCharacter && (
                 <Suspense fallback={ModalFallback}>

@@ -16,31 +16,35 @@ interface TimeAwareBackgroundProps {
  climate?: 'temperate' | 'tropical' | 'arid' | 'arctic' | 'mediterranean' | 'continental' | null;
 }
 
-// Base gradient colors
+// Base gradient colors - Enhanced for realistic sky transitions
 const BASE_GRADIENT_COLORS = {
-    DAWN: ['#2B3E5C', '#FFB6C1', '#FFE4B5'], // Darker blue at top through light pink to pale peach
+    DAWN: ['#1e3a5f', '#e8a4b0', '#ffd4a8'], // Deep steel blue through warm rose to golden peach
     DAY: ['#4A90E2', '#87CEEB', '#E6F3FF'],   // Clear blue sky gradient
-    DUSK: ['#1F2937', '#FF8C69', '#FFA07A'],   // Dark blue-gray at top through salmon to light salmon
-    TWILIGHT: ['#1a1f3a', '#252f4f', '#3a4468'], // Darker twilight blues
-    NIGHT: ['#000205', '#020410', '#050820'], // Very dark, rich midnight blue-black
-    MIDNIGHT: ['#000000', '#000308', '#00050f'], // Almost pure black at top, deep space blue
-    PRE_DAWN: ['#0a0a1e', '#1a1a3e', '#2a2a4e'], // Very gradual lightening from deep night
+    DUSK: ['#1a2744', '#d4785c', '#f7a87a'],   // Navy blue through coral to warm amber
+    TWILIGHT: ['#0f1f3d', '#1a3058', '#2d4a7a'], // Deep twilight blues with more saturation
+    NIGHT: ['#0a1628', '#0f2442', '#1a3a5c'], // Rich midnight blue gradient - NOT black
+    MIDNIGHT: ['#061020', '#0c1e38', '#142d4d'], // Deepest night but still distinctly blue
+    PRE_DAWN: ['#0d1a2d', '#152845', '#243a5a'], // Pre-dawn navy with hint of coming light
 };
 
 // Season and climate modifiers
 const getSeasonalColors = (baseColors: typeof BASE_GRADIENT_COLORS, season?: string | null, climate?: string | null) => {
     let colors = { ...baseColors };
     
-    // Winter modifications - cooler, more muted tones
+    // Winter modifications - cooler, more muted tones with proper midnight blues
     if (season === 'winter') {
         if (climate === 'temperate' || climate === 'continental') {
-            colors.DAWN = ['#2A3A4C', '#E6B8C1', '#F0D4C5']; // Cooler pink dawn
+            colors.DAWN = ['#1e3048', '#c8a8b8', '#dcc8c0']; // Cool steel blue through muted rose
             colors.DAY = ['#5A8AC2', '#9DBEDD', '#E0EBF5'];  // Grayer blue day
-            colors.DUSK = ['#1A2535', '#CC7A69', '#E09080']; // Muted sunset
+            colors.DUSK = ['#152035', '#b06858', '#d08878']; // Muted sunset
+            colors.NIGHT = ['#0c1825', '#122840', '#1c3855']; // Cold midnight blue
+            colors.MIDNIGHT = ['#081420', '#0e2035', '#162d48']; // Deep winter night blue
         } else if (climate === 'arctic') {
-            colors.DAWN = ['#1F2B3C', '#C8D0E0', '#E0E8F0']; // Very pale dawn
+            colors.DAWN = ['#182838', '#a8b8c8', '#c8d4e0']; // Very pale dawn with blue tint
             colors.DAY = ['#6A8AAA', '#A0C0E0', '#F0F5FA'];  // Bright but cold
-            colors.DUSK = ['#151925', '#9A6A7A', '#C08090']; // Brief, muted dusk
+            colors.DUSK = ['#101828', '#7a5a68', '#a07888']; // Brief, muted dusk
+            colors.NIGHT = ['#081018', '#0e1c2c', '#142838']; // Very cold deep blue
+            colors.MIDNIGHT = ['#060c14', '#0a1420', '#101c2c']; // Arctic night - still blue
         }
     }
     // Summer modifications - warmer, more vibrant
@@ -184,54 +188,56 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
         let finalStartColor = startColor;
         let finalMidColor = midColor;
         let finalEndColor = endColor;
-        
+
         if (weather && weather.cloudCover > 0.7) {
-            // Overcast - adjust based on time of day
+            // Overcast - adjust based on time of day while maintaining realistic colors
             const isNight = gameTimeHours >= 22 || gameTimeHours < 4;
+            const isLateNight = gameTimeHours >= 0 && gameTimeHours < 4;
             const isDusk = gameTimeHours >= 18 && gameTimeHours < 22;
             const isDawn = gameTimeHours >= 4 && gameTimeHours < 7;
 
-            if (isNight) {
-                // Cloudy night: very dark blue-gray instead of light gray
-                const grayLevel = Math.floor(25 - weather.cloudCover * 10); // Much darker (15-25 range)
-                finalStartColor = `rgb(${grayLevel}, ${grayLevel + 8}, ${grayLevel + 20})`; // Blue tint
-                finalEndColor = `rgb(${grayLevel + 10}, ${grayLevel + 18}, ${grayLevel + 30})`;
-                finalMidColor = `rgb(${grayLevel + 5}, ${grayLevel + 13}, ${grayLevel + 25})`;
+            if (isNight || isLateNight) {
+                // Cloudy night: deep midnight blue with slight desaturation, NOT gray
+                // Maintain the blue character but mute it slightly
+                const cloudDarkening = 0.7 + (1 - weather.cloudCover) * 0.3;
+                finalStartColor = `rgb(${Math.floor(8 * cloudDarkening)}, ${Math.floor(18 * cloudDarkening)}, ${Math.floor(32 * cloudDarkening)})`; // Deep navy
+                finalMidColor = `rgb(${Math.floor(14 * cloudDarkening)}, ${Math.floor(30 * cloudDarkening)}, ${Math.floor(50 * cloudDarkening)})`; // Rich midnight blue
+                finalEndColor = `rgb(${Math.floor(22 * cloudDarkening)}, ${Math.floor(42 * cloudDarkening)}, ${Math.floor(68 * cloudDarkening)})`; // Muted blue horizon
             } else if (isDusk || isDawn) {
-                // Twilight clouds: darker with purple/blue tint
-                const grayLevel = Math.floor(70 - weather.cloudCover * 20);
-                finalStartColor = `rgb(${grayLevel}, ${grayLevel + 5}, ${grayLevel + 15})`; // Slight blue
-                finalEndColor = `rgb(${grayLevel + 20}, ${grayLevel + 25}, ${grayLevel + 35})`;
-                finalMidColor = `rgb(${grayLevel + 10}, ${grayLevel + 15}, ${grayLevel + 25})`;
+                // Twilight clouds: muted purples and blues preserving atmosphere
+                const cloudDarkening = 0.75 + (1 - weather.cloudCover) * 0.25;
+                finalStartColor = `rgb(${Math.floor(35 * cloudDarkening)}, ${Math.floor(30 * cloudDarkening)}, ${Math.floor(50 * cloudDarkening)})`; // Deep purple-blue
+                finalEndColor = `rgb(${Math.floor(70 * cloudDarkening)}, ${Math.floor(55 * cloudDarkening)}, ${Math.floor(70 * cloudDarkening)})`; // Muted mauve
+                finalMidColor = `rgb(${Math.floor(52 * cloudDarkening)}, ${Math.floor(42 * cloudDarkening)}, ${Math.floor(60 * cloudDarkening)})`; // Purple-gray
             } else {
-                // Daytime clouds: normal gray behavior
+                // Daytime clouds: gray-blue instead of pure gray
                 const grayLevel = Math.floor(140 - weather.cloudCover * 40);
-                finalStartColor = `rgb(${grayLevel}, ${grayLevel}, ${grayLevel + 5})`;
-                finalEndColor = `rgb(${grayLevel + 20}, ${grayLevel + 20}, ${grayLevel + 25})`;
-                finalMidColor = `rgb(${grayLevel + 10}, ${grayLevel + 10}, ${grayLevel + 15})`;
+                finalStartColor = `rgb(${grayLevel - 10}, ${grayLevel}, ${grayLevel + 15})`; // Cool gray-blue
+                finalEndColor = `rgb(${grayLevel + 10}, ${grayLevel + 15}, ${grayLevel + 25})`; // Lighter with blue tint
+                finalMidColor = `rgb(${grayLevel}, ${grayLevel + 8}, ${grayLevel + 20})`; // Balanced gray-blue
             }
-            gradient = `linear-gradient(180deg, ${finalStartColor} 0%, ${finalEndColor} 100%)`;
+            gradient = `linear-gradient(180deg, ${finalStartColor} 0%, ${finalMidColor} 50%, ${finalEndColor} 100%)`;
         } else if (weather && weather.precipitation !== 'none') {
-            // Rainy/snowy - darker version of time gradient
+            // Rainy/snowy - darker version of time gradient while preserving color
             const isNight = gameTimeHours >= 22 || gameTimeHours < 4;
             const isDusk = gameTimeHours >= 18 && gameTimeHours < 22;
             const isDawn = gameTimeHours >= 4 && gameTimeHours < 7;
 
             if (isNight) {
-                // Rainy night: very dark blue-black
-                finalStartColor = blendColors(startColor, '#0a0a1a', 0.6); // Dark blue-black
-                finalMidColor = midColor ? blendColors(midColor, '#0d0d20', 0.6) : finalStartColor;
-                finalEndColor = blendColors(endColor, '#101030', 0.6);
+                // Rainy night: deep midnight blue, not black
+                finalStartColor = blendColors(startColor, '#0a1828', 0.55); // Rich navy
+                finalMidColor = midColor ? blendColors(midColor, '#102438', 0.55) : finalStartColor;
+                finalEndColor = blendColors(endColor, '#183048', 0.55); // Slightly lighter navy
             } else if (isDusk || isDawn) {
-                // Twilight rain: darker purple-gray
-                finalStartColor = blendColors(startColor, '#2a2a3a', 0.5);
-                finalMidColor = midColor ? blendColors(midColor, '#303040', 0.5) : finalStartColor;
-                finalEndColor = blendColors(endColor, '#353545', 0.5);
+                // Twilight rain: muted purple-blues
+                finalStartColor = blendColors(startColor, '#1a2038', 0.45);
+                finalMidColor = midColor ? blendColors(midColor, '#252a42', 0.45) : finalStartColor;
+                finalEndColor = blendColors(endColor, '#303550', 0.45);
             } else {
-                // Daytime rain: normal darkening
-                finalStartColor = blendColors(startColor, '#404040', 0.4);
-                finalMidColor = midColor ? blendColors(midColor, '#505050', 0.4) : finalStartColor;
-                finalEndColor = blendColors(endColor, '#606060', 0.4);
+                // Daytime rain: gray-blue tones
+                finalStartColor = blendColors(startColor, '#4a5060', 0.4);
+                finalMidColor = midColor ? blendColors(midColor, '#556070', 0.4) : finalStartColor;
+                finalEndColor = blendColors(endColor, '#607080', 0.4);
             }
             gradient = midColor
                 ? `linear-gradient(180deg, ${finalStartColor} 0%, ${finalMidColor} 60%, ${finalEndColor} 100%)`
@@ -410,39 +416,76 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
 
             {/* Enhanced atmospheric overlays for realism */}
             <div className="absolute inset-0 pointer-events-none">
-                {/* Night atmospheric glow */}
+                {/* Night sky ambient glow - subtle Milky Way-like band */}
                 {starOpacity > 0.5 && (
-                    <div 
-                        className="absolute inset-0 transition-opacity duration-[4000ms]"
-                        style={{ 
-                            opacity: starOpacity * 0.4,
-                            background: 'radial-gradient(ellipse at center top, rgba(25, 39, 62, 0.2) 0%, transparent 70%)'
-                        }}
-                    />
+                    <>
+                        <div
+                            className="absolute inset-0 transition-opacity duration-[4000ms]"
+                            style={{
+                                opacity: starOpacity * 0.3,
+                                background: 'radial-gradient(ellipse 120% 40% at 40% 30%, rgba(45, 65, 100, 0.25) 0%, transparent 60%)'
+                            }}
+                        />
+                        {/* Subtle horizon glow from scattered starlight */}
+                        <div
+                            className="absolute inset-0 transition-opacity duration-[5000ms]"
+                            style={{
+                                opacity: starOpacity * 0.2,
+                                background: 'linear-gradient(to top, rgba(35, 55, 85, 0.15) 0%, transparent 25%)'
+                            }}
+                        />
+                        {/* Very faint zenith lightening */}
+                        <div
+                            className="absolute inset-0 transition-opacity duration-[6000ms]"
+                            style={{
+                                opacity: starOpacity * 0.15,
+                                background: 'radial-gradient(circle at 50% 0%, rgba(40, 60, 90, 0.2) 0%, transparent 40%)'
+                            }}
+                        />
+                    </>
                 )}
-                
-                {/* Pre-dawn atmospheric lightening */}
+
+                {/* Pre-dawn atmospheric lightening - warm glow at horizon */}
                 {gameTimeHours >= 4 && gameTimeHours < 6 && (
-                    <div 
-                        className="absolute inset-0 transition-opacity duration-[3000ms]"
-                        style={{ 
-                            opacity: 0.3,
-                            background: 'radial-gradient(ellipse at center bottom, rgba(70, 90, 120, 0.15) 0%, transparent 60%)'
-                        }}
-                    />
+                    <>
+                        <div
+                            className="absolute inset-0 transition-opacity duration-[3000ms]"
+                            style={{
+                                opacity: 0.35,
+                                background: 'radial-gradient(ellipse 150% 30% at center bottom, rgba(90, 70, 100, 0.2) 0%, transparent 50%)'
+                            }}
+                        />
+                        <div
+                            className="absolute inset-0 transition-opacity duration-[4000ms]"
+                            style={{
+                                opacity: 0.25,
+                                background: 'linear-gradient(to top, rgba(70, 50, 80, 0.15) 0%, transparent 20%)'
+                            }}
+                        />
+                    </>
                 )}
-                
-                {/* Twilight horizon glow */}
+
+                {/* Twilight horizon glow - golden hour effect */}
                 {((gameTimeHours >= 19 && gameTimeHours < 22) || (gameTimeHours >= 5 && gameTimeHours < 8)) && (
-                    <div 
-                        className="absolute inset-0 transition-opacity duration-[2000ms]"
-                        style={{ 
-                            opacity: 0.5,
-                            background: gameTimeHours >= 19 && gameTimeHours < 22
-                                ? 'radial-gradient(ellipse at center bottom, rgba(255, 140, 80, 0.12) 0%, transparent 50%)'
-                                : 'radial-gradient(ellipse at center bottom, rgba(255, 220, 180, 0.15) 0%, transparent 60%)'
-                        }}
-                    />
+                    <>
+                        <div
+                            className="absolute inset-0 transition-opacity duration-[2000ms]"
+                            style={{
+                                opacity: 0.55,
+                                background: gameTimeHours >= 19 && gameTimeHours < 22
+                                    ? 'radial-gradient(ellipse 140% 35% at center bottom, rgba(255, 130, 70, 0.18) 0%, rgba(180, 80, 100, 0.08) 40%, transparent 60%)'
+                                    : 'radial-gradient(ellipse 140% 35% at center bottom, rgba(255, 200, 150, 0.2) 0%, rgba(200, 150, 180, 0.08) 40%, transparent 60%)'
+                            }}
+                        />
+                        {/* Upper sky deepening during twilight */}
+                        <div
+                            className="absolute inset-0 transition-opacity duration-[3000ms]"
+                            style={{
+                                opacity: 0.3,
+                                background: 'linear-gradient(to bottom, rgba(30, 40, 70, 0.2) 0%, transparent 40%)'
+                            }}
+                        />
+                    </>
                 )}
             </div>
 

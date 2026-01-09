@@ -22,6 +22,7 @@ import { getCropNutrientEffects, evaluateCropRotation } from './cropNutrientServ
 import { getWorkOffersForNpc } from './workOfferStorage';
 import { learningObjectivesService } from './learningObjectivesService';
 import { generateWitnessContextForLLM, generateWitnessReactionModifier } from './npcWitnessService';
+import type { HistoryLensMessage } from '../types/historyLens';
 
 // Cache for historical events to avoid regenerating them every dialogue
 interface HistoricalEventCache {
@@ -279,7 +280,8 @@ export async function generateEncounterDialogue(
     playerCharacter: PlayerCharacter | null,
     allNpcs: NpcEntity[],
     mapData: MapData | null,
-    useRealLanguage: boolean
+    useRealLanguage: boolean,
+    historyLensContext?: HistoryLensMessage[]
 ): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean, tradeAvailable?: boolean }> {
     if (!playerCharacter || !mapData) return { text: "You feel a strange sense of detachment." };
 
@@ -886,6 +888,17 @@ DO NOT give a calm greeting. DO NOT be friendly. BE ENRAGED.
             '- ' : ''}
         ${mapData.timeOfDay === 'Dusk' ?
             '- Sun is setting. People are finishing work, heading home.' : ''}
+
+        ${historyLensContext && historyLensContext.length > 0 ? `
+        **RECENT EVENTS (What just happened before this conversation):**
+        ${historyLensContext.map(msg => {
+            if (msg.sender === 'narrator') return `- ${msg.text.slice(0, 200)}${msg.text.length > 200 ? '...' : ''}`;
+            if (msg.sender === 'player') return `- Player action: ${msg.text.slice(0, 100)}`;
+            return '';
+        }).filter(Boolean).join('\n        ')}
+
+        Use this context to make the conversation feel continuous. The NPC might reference recent events if relevant.
+        ` : ''}
 
         **CRITICAL REALISM RULES:**
         1. You are a REAL PERSON in ${mapData.timeSlice}, not a fantasy character

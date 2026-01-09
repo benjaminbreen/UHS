@@ -28,6 +28,7 @@ export * from './goals'; // NEW: Export goal types
 export * from './diseaseTypes'; // NEW: Export disease types
 export * from './vesselTypes'; // NEW: Export vessel types
 export * from './regionalHistory'; // NEW: Export regional history types
+export * from './home';
 
 // Removed export of deleted SimplifiedArchetype - now using SpecialMapArchetype
 

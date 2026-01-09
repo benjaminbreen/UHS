@@ -112,4 +112,4 @@ export const SKILL_DATA: Record<SkillID, SkillDefinition> = {
   }
 };
 
-export const SKILL_BUTTON_ORDER: SkillID[] = ['FORAGE', 'OBSERVE', 'DIG', 'CHOP'];
+export const SKILL_BUTTON_ORDER: SkillID[] = ['FORAGE', 'OBSERVE', 'DIG', 'CHOP', 'SING'];

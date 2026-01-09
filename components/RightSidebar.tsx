@@ -17,6 +17,7 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName, isSafari } from '../utils/safariUtils';
 import NarrationPanel from './NarrationPanel';
 import InventoryPanelEnhanced from './InventoryPanelEnhanced';
+import GamelogPanel from './GamelogPanel';
 import { AnimatedPortrait } from './portraits';
 import { SKILL_DATA, SKILL_BUTTON_ORDER } from '../constants/index';
 import { SkillID, Item } from '../types';
@@ -26,15 +27,15 @@ import { AttributeBadgeList } from './AttributeBadge';
 import { removeItemFromInventory } from '../utils/inventoryUtils';
 import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
 import { MapDisplayOptimized } from './MapDisplayOptimized';
+import { eventBus } from '../services/eventBus';
 
-const MIN_SIDEBAR_WIDTH = 400;
-const MAX_SIDEBAR_WIDTH = 700;
-const DEFAULT_SIDEBAR_WIDTH = 520;
+const MIN_SIDEBAR_WIDTH = 280;
+const MAX_SIDEBAR_WIDTH = 580;
+const DEFAULT_SIDEBAR_WIDTH = 400;
 const RHS_WIDTH_KEY = 'rhs.sidebarWidth';
-const RHS_TAB_KEY = 'rhs.activeTab';
 const ACTION_BUTTONS_KEY = 'rhs.actionButtons';
 
-type RightSidebarTab = 'narrator' | 'inventory' | 'map';
+type RightSidebarTab = 'narrator' | 'inventory' | 'map' | 'journal';
 
 const noop = () => {};
 
@@ -44,9 +45,28 @@ interface RightSidebarProps {
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = false }) => {
   const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, onEat, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult, setIsCampModalOpen, setPanelNotificationItem, setPanelNotificationMode, centralMode } = useUI();
-  const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage, formattedDate, season, gameTimeMinutes, currentZone } = useGame();
+  const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage, formattedDate, season, gameTimeMinutes, currentZone, gameLog } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel, setPlayerCharacter, onIconAnimationComplete, playerMode, shipDockX, shipDockY, iconRotation, velocity, currentVessel } = usePlayer();
   const { deployVesselToMap, deployBridgeToMap, mapData, localArea, culturalZone, addDroppedItem, visibleAnimals, visibleNpcs, deployedVessels, deployedStructures, currentMapSeed, isSpecialMap } = useMap();
+
+  const portraitGradient = useMemo(() => {
+    const tile = controlledIconX !== null && controlledIconY !== null
+      ? mapData?.tiles?.[controlledIconY]?.[controlledIconX]
+      : undefined;
+    const biome = tile?.biome || 'GRASSLAND';
+    const palette: Record<string, string> = {
+      GRASSLAND: 'linear-gradient(135deg, rgba(34,139,34,0.35), rgba(16,185,129,0.15))',
+      COAST: 'linear-gradient(135deg, rgba(14,165,233,0.35), rgba(59,130,246,0.15))',
+      WATER: 'linear-gradient(135deg, rgba(14,165,233,0.55), rgba(6,78,59,0.25))',
+      WETLANDS: 'linear-gradient(135deg, rgba(15,118,110,0.35), rgba(5,150,105,0.2))',
+      HILLS: 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(245,158,11,0.2))',
+      MOUNTAIN: 'linear-gradient(135deg, rgba(15,23,42,0.5), rgba(82,82,91,0.25))',
+      DESERT: 'linear-gradient(135deg, rgba(249,115,22,0.4), rgba(252,211,77,0.25))',
+      TROPICAL: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(16,185,129,0.2))',
+      DEFAULT: 'linear-gradient(135deg, rgba(30,58,138,0.4), rgba(14,165,233,0.2))'
+    };
+    return palette[biome] || palette.DEFAULT;
+  }, [mapData, controlledIconX, controlledIconY]);
 
   // Detect dark mode for tab border colors
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -97,7 +117,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
   }, [playerCharacter, controlledIconX, controlledIconY, addDroppedItem, setPlayerCharacter, onInventoryUpdate, setPanelNotificationItem, setPanelNotificationMode]);
 
   /* ---------------------------- state & persistence --------------------------- */
-  const [activeTab, setActiveTab] = useState<RightSidebarTab>('narrator');
+  // Default to 'map' since we start in HistoryLens mode
+  const [activeTab, setActiveTab] = useState<RightSidebarTab>('map');
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartX = useRef(0);
@@ -105,10 +126,21 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [actionButtons, setActionButtons] = useState<SkillID[]>(SKILL_BUTTON_ORDER);
   const [hoveredButton, setHoveredButton] = useState<number | null>(null);
+  const [hoveredTab, setHoveredTab] = useState<RightSidebarTab | null>(null);
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
   const previousInventoryRef = useRef<string[]>([]);
+  const inventoryInitializedRef = useRef(false);
   const previousTabRef = useRef<RightSidebarTab | null>(null);
   const isHistoryLensActive = centralMode === 'historylens';
+
+  // Initialize previousInventoryRef with current inventory on mount
+  // This prevents initial items from triggering "new item" detection
+  useEffect(() => {
+    if (!inventoryInitializedRef.current && playerCharacter?.inventory) {
+      previousInventoryRef.current = playerCharacter.inventory.map(item => item.id);
+      inventoryInitializedRef.current = true;
+    }
+  }, [playerCharacter?.inventory]);
 
   // Enhanced Safari performance optimization
   useEffect(() => {
@@ -160,23 +192,23 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     try {
       const savedW = Number(localStorage.getItem(RHS_WIDTH_KEY));
       if (savedW) setSidebarWidth(Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, savedW)));
-      const savedTab = (localStorage.getItem(RHS_TAB_KEY) || '') as RightSidebarTab;
-      if (savedTab === 'inventory' || savedTab === 'narrator' || savedTab === 'map') {
-        setActiveTab(savedTab);
-      }
+      // Tab always defaults to 'map' - no localStorage persistence
       const savedButtons = localStorage.getItem(ACTION_BUTTONS_KEY);
       if (savedButtons) {
         try {
           const parsed = JSON.parse(savedButtons) as SkillID[];
-          if (Array.isArray(parsed) && parsed.length <= 4) {
-            setActionButtons(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const unique = Array.from(new Set(parsed));
+            const merged = [...unique];
+            SKILL_BUTTON_ORDER.forEach(id => {
+              if (!merged.includes(id)) merged.push(id);
+            });
+            setActionButtons(merged.slice(0, SKILL_BUTTON_ORDER.length));
           }
         } catch {}
       }
     } catch {}
   }, []);
-
-  useEffect(() => { try { localStorage.setItem(RHS_TAB_KEY, activeTab); } catch {} }, [activeTab]);
 
   // Auto-switch to inventory tab when mining is active
   useEffect(() => {
@@ -185,17 +217,23 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     }
   }, [inMiningRoguelike]);
 
+  // When entering HistoryLens mode, default to map tab (but allow switching to other tabs)
+  // When leaving HistoryLens mode, restore previous tab if we're still on map
+  const wasHistoryLensActive = useRef(false);
   useEffect(() => {
-    if (isHistoryLensActive) {
+    if (isHistoryLensActive && !wasHistoryLensActive.current) {
+      // Just entered HistoryLens mode - save current tab and switch to map
       previousTabRef.current = activeTab;
-      if (activeTab !== 'map') {
-        setActiveTab('map');
+      setActiveTab('map');
+    } else if (!isHistoryLensActive && wasHistoryLensActive.current) {
+      // Just left HistoryLens mode - restore previous tab if still on map
+      if (activeTab === 'map') {
+        setActiveTab(previousTabRef.current || 'narrator');
       }
-    } else if (activeTab === 'map') {
-      setActiveTab(previousTabRef.current || 'inventory');
       previousTabRef.current = null;
     }
-  }, [activeTab, isHistoryLensActive]);
+    wasHistoryLensActive.current = isHistoryLensActive;
+  }, [isHistoryLensActive]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -249,8 +287,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
       }
       
       const key = e.key;
-      if (key >= '1' && key <= '4') {
-        const index = parseInt(key) - 1;
+      const maxHotkey = Math.min(9, actionButtons.length);
+      if (/^[1-9]$/.test(key) && parseInt(key, 10) <= maxHotkey) {
+        const index = parseInt(key, 10) - 1;
         if (actionButtons[index]) {
           onUseSkill(actionButtons[index]);
         }
@@ -286,9 +325,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     setActiveTab(tab);
   }, []);
 
-  // Detect new items added to inventory
+  // Detect new items added to inventory (only after initial inventory is set)
   useEffect(() => {
     if (!playerCharacter?.inventory) return;
+    // Skip if inventory hasn't been initialized yet (prevents initial items triggering switch)
+    if (!inventoryInitializedRef.current) return;
 
     const currentInventoryIds = playerCharacter.inventory.map(item => item.id);
     const previousInventoryIds = previousInventoryRef.current;
@@ -386,8 +427,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
       <style>{progressBarStyles}</style>
       <div
         data-surface="sidebar-right"
-        className={`right-sidebar ${getSafariOptimizedClassName(
-          'theme-surface relative h-full flex flex-col flex-shrink-0 border-l'
+        className={`right-sidebar panel-frame ${getSafariOptimizedClassName(
+          'theme-surface relative h-full lg:h-[calc(100%-20px)] flex flex-col flex-shrink-0'
         )}`}
         style={{
           width: `${sidebarWidth}px`,
@@ -409,316 +450,206 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
       </div>
 
       <div className="flex flex-col h-full overflow-y-auto scrollbar-thin">
-        {/* Player Profile Card */}
-        <div className="flex-shrink-0 p-2 px-3">
+        {/* Player Profile Card - REFINED VERSION v2 (uses CSS variables for theme) */}
+        <div className="flex-shrink-0 p-2 mt-1 px-3">
           {playerCharacter && playerCharacter.appearance && (
             <div
-              className="surface-card rounded-xl p-3 px-4 mb-2 shadow-sm transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]"
+              className="surface-card rounded-2xl p-4 mb-2 cursor-pointer transition-all duration-300 ease-out hover:shadow-lg active:scale-[0.995]"
+              style={{ fontFamily: "'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif" }}
               onClick={handleProfileClick}
             >
-              <div className="flex items-start gap-4 mb-0">
-                <div className="flex flex-col items-center">
-                    <div className="relative">
-                      <div className="portrait-container relative flex-shrink-0 w-24 h-24 overflow-hidden rounded-full border-2 shadow-xl"
-                        style={{
-                          background: 'var(--bg-elevated)',
-                          borderColor: 'white',
-                          boxShadow: '0 12px 28px rgba(63, 50, 33, 0.16)'
-                        }}>
-                      {/* Skeleton loader background */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 animate-pulse"></div>
-                      <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
-                      <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
-                      <div className="flex items-center justify-center w-full h-full relative z-20">
-                        <AnimatedPortrait
-                          character={playerCharacter}
-                          size={96}
-                          trackChanges={true}
-                          currentTile={mapData && controlledIconX !== null && controlledIconY !== null
-                            ? mapData[controlledIconY]?.[controlledIconX]
-                            : undefined}
-                          gameTimeHours={gameTimeHours}
-                          isInCombat={!!combatant}
-                          contextualMessage={contextualMessage}
-                        />
-                      </div>
+              <div className="flex items-center gap-4">
+                {/* Portrait - clean circular, no border */}
+                <div className="relative flex-shrink-0 group">
+                  <div
+                    className="portrait-container w-[100px] h-[100px] overflow-hidden rounded-full shadow-md transition-transform duration-300 group-hover:scale-105"
+                    style={{ background: portraitGradient }}
+                  >
+                    <div className="absolute inset-0 animate-pulse" style={{  }} />
+                    <div className="flex items-center justify-center w-full h-full relative z-10">
+                      <AnimatedPortrait
+                        character={playerCharacter}
+                        size={100}
+                        trackChanges={true}
+                        currentTile={mapData && controlledIconX !== null && controlledIconY !== null
+                          ? mapData[controlledIconY]?.[controlledIconX]
+                          : undefined}
+                        gameTimeHours={gameTimeHours}
+                        isInCombat={!!combatant}
+                        contextualMessage={contextualMessage}
+                      />
                     </div>
-                    {/* XP ring: subtle progress arc behind avatar */}
-                    <div
-                      className="absolute inset-0 -z-10 rounded-full"
-                      style={{
-                        background: `conic-gradient(var(--accent-primary) ${xpPercent * 3.6}deg, transparent 0deg)`
-                      }}
-                    />
-                    {/* Attribute badges overlay - positioned in lower right of portrait */}
-                    {playerCharacter.attributes && playerCharacter.attributes.length > 0 && (
-                      <div
-                        className="absolute bottom-0 right-0 z-20"
-                        onClick={handleAttributeClick}
-                        title="Click to view all attributes"
-                      >
-                        <AttributeBadgeList
-                          badges={playerCharacter.attributes}
-                          maxDisplay={2}
-                          size="small"
-                        />
-                      </div>
-                    )}
                   </div>
+                 
+                  
                 </div>
 
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-0.5 gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-lg font-bold leading-tight text-[var(--text-primary)] break-words tracking-tight">{playerCharacter.name}</h4>
-                      <p className="text-md font-semibold text-[var(--accent-primary)] capitalize mt-0.5">{playerCharacter.profession}</p>
-                      <p className="mt-0.5 font-semibold text-xs text-text-secondary leading-relaxed">
-                        Age {playerCharacter.age} • {playerCharacter.gender || 'Unknown'}
-                      </p>
+                {/* Info Section */}
+                <div className="flex-1 min-w-0 ">
+                  <h4 className="text-lg font-bold leading-tight tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                    {playerCharacter.name}
+                  </h4>
+                  <p className="text-md font-semibold text-emerald-600 capitalize">
+                    {playerCharacter.profession}
+                  </p>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    {playerCharacter.age} years old • {playerCharacter.gender || 'Unknown'}
+                  </p>
+
+                  {/* Stats row */}
+                  <div className="flex items-center gap-2 mt-2.5">
+                    <div className="surface-muted px-2 py-0.5 rounded-md transition-colors">
+                      <span className="text-[10px] uppercase mr-1" style={{ color: 'var(--text-secondary)' }}>Level</span>
+                      <span className="text-sm font-bold text-emerald-600">{playerCharacter.level}</span>
                     </div>
-                    <div className="flex-shrink-0 text-right pl-3 min-w-0">
-                      <p className="text-md font-bold text-[var(--accent-primary)] whitespace-nowrap tracking-tight mb-1">Level {playerCharacter.level}</p>
-                      <div className="flex flex-col items-end gap-1.5 mt-1">
-                        <p className="text-sm font-semibold text-[var(--color-warning)] flex items-center gap-1.5" title="Currency">
-                          <span>💰</span>
-                          <span>{playerCharacter.currency}</span>
-                        </p>
-                        <p className="text-sm font-semibold text-[var(--accent-primary)] flex items-center gap-1.5" title={`Reputation: ${repPercent}/100`}>
-                          <span>🤝</span>
-                          <span>{repPercent}</span>
-                        </p>
-                      </div>
+                    <div className="surface-muted px-2 py-0.5 rounded-md transition-colors">
+                      <span className="text-[9px] uppercase mr-1" style={{ color: 'var(--text-secondary)' }}>Wealth</span>
+                      <span className="text-sm font-bold text-amber-600">{playerCharacter.currency}</span>
+                    </div>
+                    <div className="surface-muted px-2 py-0.5 rounded-md transition-colors">
+                      <span className="text-[9px] uppercase mr-1" style={{ color: 'var(--text-secondary)' }}>Rep</span>
+                      <span className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>{repPercent}</span>
                     </div>
                   </div>
-
-                  {/* Disease status and badges */}
-                  {playerCharacter.diseaseHealth?.currentDiseases?.length ? (
-                    <div className="mb-1">
-                      {/* Disease badges with stage indicator inline */}
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="flex flex-wrap gap-1">
-                          {playerCharacter.diseaseHealth.currentDiseases.map((d: any, index: number) => (
-                            <span
-                              key={index}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-white text-xs font-bold rounded-full border shadow-md ${
-                                statusInfo.stage === 'terminal' ? 'bg-red-800 border-red-500' :
-                                statusInfo.stage === 'critical' ? 'bg-red-600 border-red-400' :
-                                statusInfo.stage === 'severe' ? 'bg-orange-600 border-orange-400' :
-                                statusInfo.stage === 'moderate' ? 'bg-yellow-600 border-yellow-400' :
-                                'bg-green-600 border-green-400'
-                              }`}
-                              title={`${d.disease.name} - Stage: ${statusInfo.stage || 'early'}`}
-                            >
-                              <span className="text-sm">{d.disease.badgeIcon}</span>
-                              <span>{d.disease.name}</span>
-                            </span>
-                          ))}
-                        </div>
-                        {/* Stage indicator bar - now inline to the right */}
-                        <div className="flex items-center gap-1">
-                          <div className="flex gap-0.5">
-                            {['early', 'moderate', 'severe', 'critical', 'terminal'].map((stage, i) => (
-                              <div
-                                key={stage}
-                                className={`w-3 h-1.5 rounded-sm transition-all ${
-                                  i <= ['early', 'moderate', 'severe', 'critical', 'terminal'].indexOf(statusInfo.stage || 'early')
-                                    ? (stage === 'terminal' ? 'bg-red-600' :
-                                       stage === 'critical' ? 'bg-red-500' :
-                                       stage === 'severe' ? 'bg-orange-500' :
-                                       stage === 'moderate' ? 'bg-yellow-500' : 'bg-green-500')
-                                    : 'bg-gray-300 dark:bg-gray-600'
-                                }`}
-                                title={stage.charAt(0).toUpperCase() + stage.slice(1)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Status when no disease */
-                    <p className="mb-1.5 text-xs italic text-[var(--accent-primary)] leading-relaxed">
-                      {statusInfo.text}
-                    </p>
-                  )}
                 </div>
               </div>
 
-              {/* Compact Progress Bars */}
-              <div className="space-y-1 mt-0">
-                {/* Health Bar - Full Width */}
-                <div>
-                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-[0.1em] text-slate-600 dark:text-slate-500">
-                    <span>HEALTH</span>
-                    <span className={`transition-colors duration-200 text-[0.6rem] ${
-                      healthPercent < 10 ? 'text-[var(--color-error)] font-bold' :
-                      healthPercent < 20 ? 'text-[var(--color-warning)] font-semibold' : 'text-text-secondary'
-                    }`}>
-                      {Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}
+              
+
+              {/* Progress Bars */}
+              <div className="space-y-3 mt-4 pt-3.5" style={{ borderTop: '1px solid var(--surface-muted-border)' }}>
+                {/* Health */}
+                <div className="group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Health</span>
+                    <span className={`text-xs font-semibold tabular-nums ${healthPercent < 20 ? 'text-red-500' : ''}`} style={healthPercent >= 20 ? { color: 'var(--text-secondary)' } : {}}>
+                      {Math.ceil(playerCharacter.health)}/{Math.ceil(playerCharacter.maxHealth)}
                     </span>
                   </div>
-                  <div className="relative w-full h-2 progress-track overflow-hidden shadow-inner rounded-full">
-                    {/* Outer inset shadow */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_-1px_1px_rgba(255,255,255,0.1)]" />
-                    {/* Progress fill - Enhanced with gloss - REDUCED PADDING */}
-                    <div className="absolute inset-0 rounded-full overflow-hidden">
-                      <div
-                        className="h-full progress-bar-animated rounded-full relative shadow-lg transition-all duration-500"
-                        style={{
-                          '--final-width': `${healthPercent}%`,
-                          width: `${healthPercent}%`,
-                          background: `linear-gradient(to right, #ef4444 10%, #fb923c 60%, #eab308 100%)`,
-                          backgroundSize: `${healthPercent > 0 ? 100 / (healthPercent / 100) : 100}% 100%`,
-                          backgroundPosition: '0 0'
-                        }}
-                      >
-                        {/* Glass shine effect */}
-                        <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/30 via-transparent to-transparent" style={{ height: '40%' }} />
-                        {/* Bottom glow */}
-                        <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/20 via-transparent to-transparent" style={{ height: '30%', bottom: 0 }} />
-                      </div>
-                    </div>
+                  <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-track-bg)' }}>
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+                      style={{
+                        width: `${healthPercent}%`,
+                        background: healthPercent < 30
+                          ? 'linear-gradient(90deg, #ef4444, #f87171)'
+                          : 'linear-gradient(90deg, #10b981, #34d399)'
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent
+                                    translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                   </div>
                 </div>
 
-                {/* Fatigue and Experience - Side by Side */}
-                <div className="flex gap-2.5">
-                  {/* Fatigue - Half Width */}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-[0.1em] text-slate-600 dark:text-slate-500">
-                      <span>FATIGUE</span>
-                      <span className={`transition-colors duration-200 text-[0.6rem] ${
-                        fatiguePercent >= 90 ? 'text-[var(--color-error)] font-bold' :
-                        fatiguePercent >= 80 ? 'text-[var(--color-warning)] font-semibold' : 'text-text-secondary'
-                      }`}>
-                        {Math.ceil(playerCharacter.fatigue)}
+                {/* Fatigue & XP side by side */}
+                <div className="flex gap-4">
+                  <div className="flex-1 group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Fatigue</span>
+                      <span className={`text-xs font-semibold tabular-nums ${fatiguePercent >= 80 ? 'text-amber-500' : ''}`} style={fatiguePercent < 80 ? { color: 'var(--text-secondary)' } : {}}>
+                        {Math.ceil(playerCharacter.fatigue)}%
                       </span>
                     </div>
-                    <div className="relative w-full h-2 progress-track overflow-hidden shadow-inner rounded-full">
-                      {/* Outer inset shadow */}
-                      <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_-1px_1px_rgba(255,255,255,0.1)]" />
-                      {/* Progress fill - Enhanced with gloss - REDUCED PADDING */}
-                      <div className="absolute inset-0 rounded-full overflow-hidden">
-                        <div
-                          className="h-full progress-bar-animated rounded-full relative shadow-lg transition-all duration-500"
-                          style={{
-                            '--final-width': `${fatiguePercent}%`,
-                            width: `${fatiguePercent}%`,
-                            animationDelay: '0.2s',
-                            background: `linear-gradient(to right, #fbbf24 0%, #f59e0b 40%, #ea580c 100%)`,
-                            backgroundSize: `${fatiguePercent > 0 ? 100 / (fatiguePercent / 100) : 100}% 100%`,
-                            backgroundPosition: '0 0'
-                          }}
-                        >
-                          {/* Glass shine effect */}
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/30 via-transparent to-transparent" style={{ height: '40%' }} />
-                          {/* Bottom glow */}
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/20 via-transparent to-transparent" style={{ height: '30%', bottom: 0 }} />
-                        </div>
-                      </div>
+                    <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-track-bg)' }}>
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+                        style={{
+                          width: `${fatiguePercent}%`,
+                          background: fatiguePercent >= 80
+                            ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                            : 'linear-gradient(90deg, #94a3b8, #cbd5e1)'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent
+                                      translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                     </div>
                   </div>
 
-                  {/* Experience - Half Width */}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-[0.1em] text-slate-600 dark:text-slate-500">
-                      <span>XP</span>
-                      <span className="text-accent text-[0.6rem]">
+                  <div className="flex-1 group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Experience</span>
+                      <span className="text-xs font-semibold tabular-nums text-emerald-600">
                         {Math.ceil(playerCharacter.experience)}
                       </span>
                     </div>
-                    <div className="relative w-full h-2 progress-track overflow-hidden shadow-inner rounded-full">
-                      {/* Outer inset shadow */}
-                      <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_-1px_1px_rgba(255,255,255,0.1)]" />
-                      {/* Progress fill - Enhanced with gloss - REDUCED PADDING */}
-                      <div className="absolute inset-0 rounded-full overflow-hidden">
-                        <div
-                          className="h-full progress-bar-animated rounded-full relative shadow-lg transition-all duration-500"
-                          style={{
-                            '--final-width': `${xpPercent}%`,
-                            width: `${xpPercent}%`,
-                            animationDelay: '0.4s',
-                            background: `linear-gradient(to right, #3b82f6 0%, #06b6d4 40%, #8b5cf6 80%, #a855f7 100%)`,
-                            backgroundSize: `${xpPercent > 0 ? 100 / (xpPercent / 100) : 100}% 100%`,
-                            backgroundPosition: '0 0'
-                          }}
-                        >
-                          {/* Glass shine effect */}
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/30 via-transparent to-transparent" style={{ height: '40%' }} />
-                          {/* Bottom glow */}
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/20 via-transparent to-transparent" style={{ height: '30%', bottom: 0 }} />
-                        </div>
-                      </div>
+                    <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-track-bg)' }}>
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+                        style={{
+                          width: `${xpPercent}%`,
+                          background: 'linear-gradient(90deg, #10b981, #06b6d4)'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent
+                                      translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                     </div>
                   </div>
                 </div>
 
-                {/* Elevated State Indicator */}
+                {/* Elevated State */}
                 {playerCharacter.elevatedState && (
-                  <div className="mt-3 px-3 py-2 bg-accent/10 border border-accent/30 rounded-lg shadow-sm">
-                    <div className="flex items-center justify-between text-[0.625rem] font-bold tracking-widest">
-                      <span className="text-accent">🌲 ELEVATED</span>
-                      <span className="text-text-primary capitalize">{playerCharacter.elevatedState.replace('_', ' ')}</span>
+                  <div className="mt-1 px-3 py-2 surface-muted rounded-xl" style={{ borderColor: 'var(--accent-primary)', borderWidth: '2px' }}>
+                    <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide">
+                      <span className="text-emerald-600">Elevated</span>
+                      <span style={{ color: 'var(--text-primary)' }} className="capitalize">{playerCharacter.elevatedState.replace('_', ' ')}</span>
                     </div>
-                    <div className="text-[0.575rem] text-text-secondary mt-1.5 leading-relaxed">
-                      {playerCharacter.elevationDescription || 'In elevated position'}
-                    </div>
-                    <div className="text-[0.55rem] text-text-muted mt-1.5 leading-relaxed">
-                      Use "climb down" to return to ground
-                    </div>
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                      {playerCharacter.elevationDescription || 'Use "climb down" to descend'}
+                    </p>
                   </div>
                 )}
-
               </div>
             </div>
           )}
 
           {/* Actions */}
-          <div className="-mb-2 mt-1">
-            <div className="flex items-center justify-between mb-1 px-1">
-              <h4 className="text-[11px] tracking-[0.08em] text-slate-600 dark:text-slate-500 uppercase font-semibold">Actions</h4>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between mb-2 mt-1  px-1">
+              <h4 className="text-[11px] tracking-[0.08em] uppercase font-semibold" style={{ color: 'var(--text-secondary)' }}>Actions</h4>
               <button
                 onClick={handleConfigClick}
-                className="p-0 px-1 text-text-muted surface-muted rounded transition-all hover:text-text-primary hover:shadow-sm"
+                className="p-0 px-1 surface-muted rounded transition-all hover:shadow-sm"
+                style={{ color: 'var(--text-muted)' }}
                 title="Configure action buttons"
               >
                 <Settings className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="flex gap-2 justify-between px-1">
               {actionButtons.map((skillId, index) => {
                 const skill = SKILL_DATA[skillId];
                 if (!skill) return null;
+                const isSing = skillId === 'SING';
                 return (
                   <div key={skillId} className="relative">
-                    <div
-                      onClick={() => handleSkillClick(skillId)}
+                    <button
+                      type="button"
+                      onClick={() => isSing ? eventBus.emit('historylens:sing') : handleSkillClick(skillId)}
                       onMouseEnter={() => setHoveredButton(index)}
                       onMouseLeave={() => setHoveredButton(null)}
-                      className="action-tile group relative w-full flex flex-col items-center justify-center px-2 py-2 text-md font-semibold cursor-pointer"
-                      style={{ aspectRatio: '1 / 0.88' }}
+                      className="action-square surface-muted group relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:-translate-y-1 hover:shadow-lg active:translate-y-0"
+                      style={{ width: '64px', height: '60px' }}
                     >
-                      {/* Hotkey indicator */}
-                      <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold border border-[rgba(75,119,104,0.25)] bg-[rgba(75,119,104,0.12)] text-[var(--accent-primary)] shadow-sm backdrop-blur-sm">
+                      <div
+                        className="absolute -top-1.5 right-0 flex items-center justify-center w-[18px] h-[18px] rounded-full text-[9px] font-semibold"
+                        style={{
+                          background: 'var(--surface-muted-bg)',
+                          border: '1px solid var(--surface-muted-border)',
+                          color: 'var(--accent-primary)'
+                        }}
+                      >
                         {index + 1}
                       </div>
-                      <div className="icon-wrapper mb-0.5">
-                        <div className="text-2xl">
-                          {skill.icon}
-                        </div>
-                      </div>
-                      <span className="text-[10px] uppercase tracking-wider leading-tight text-center text-[var(--text-primary)]">{skill.name}</span>
-                    </div>
+                      <div className="text-[20px] drop-shadow-sm">{skill.icon}</div>
+                      <span className="text-[9px] uppercase tracking-[0.1em] mt-1 leading-tight opacity-80" style={{ color: 'var(--text-primary)' }}>{skill.name}</span>
+                    </button>
 
-                    {/* Tooltip - smart positioning based on button position */}
                     {hoveredButton === index && (
-                      <div className={`absolute z-50 bottom-full mb-2 w-48 p-2 tooltip-surface pointer-events-none animate-fadeIn ${
-                        index >= 2 ? 'right-0' : 'left-0'
-                      }`}>
-                        <p className="text-xs font-semibold text-text-primary mb-1">{skill.name}</p>
-                        <p className="text-[10px] text-text-secondary mb-2">{skill.description}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-accent">
-                          <kbd className="px-1 py-0.5 badge-pill" data-variant="accent">{index + 1}</kbd>
+                      <div className="absolute z-50 bottom-full mb-2 w-48 p-2 surface-elevated rounded-lg shadow-lg pointer-events-none animate-fadeIn" style={{ border: '2px solid var(--surface-muted-border)' }}>
+                        <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{skill.name}</p>
+                        <p className="text-[10px] mb-2" style={{ color: 'var(--text-secondary)' }}>{skill.description}</p>
+                        <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--accent-primary)' }}>
+                          <kbd className="px-1 py-0.5 rounded" style={{ background: 'var(--surface-muted-bg)', border: '1px solid var(--surface-muted-border)' }}>{index + 1}</kbd>
                           <span>Press to activate</span>
                         </div>
                       </div>
@@ -730,52 +661,128 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           </div>
         </div>
 
-        <div className="mx-4 my-4 h-px bg-white/10" />
-
-        {/* Folder-style Tab Navigation - Centered and Responsive */}
-        <div className="flex shrink-0 gap-1 px-3 mb-0 justify-center mt-2">
+          <div className="flex gap-1 px-2 pt-2">
           {!isHistoryLensActive && (
             <button
               onClick={() => handleTabClick('narrator')}
-              className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
-                activeTab === 'narrator'
-                  ? 'text-text-primary z-10'
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}
-              data-active={activeTab === 'narrator'}
+              onMouseEnter={() => setHoveredTab('narrator')}
+              onMouseLeave={() => setHoveredTab(null)}
+              className="flex-1 flex items-center justify-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all"
+              style={{
+                borderRadius: '10px 10px 0 0',
+                background: activeTab === 'narrator'
+                  ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                  : hoveredTab === 'narrator'
+                    ? 'rgba(55, 65, 85, 0.8)'
+                    : 'rgba(35, 45, 60, 0.6)',
+                borderTop: `1px solid ${activeTab === 'narrator' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                borderLeft: `1px solid ${activeTab === 'narrator' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                borderRight: `1px solid ${activeTab === 'narrator' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                borderBottom: 'none',
+                color: activeTab === 'narrator' ? 'var(--text-primary)' : hoveredTab === 'narrator' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+                marginBottom: '-1px',
+                zIndex: activeTab === 'narrator' ? 3 : 1,
+                position: 'relative',
+                boxShadow: activeTab === 'narrator' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
+              }}
             >
-              <span className="truncate">Narrator</span>
+              Narrator
             </button>
           )}
-          {isHistoryLensActive ? (
+          {isHistoryLensActive && (
             <button
               onClick={() => handleTabClick('map')}
-              className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
-                activeTab === 'map'
-                  ? 'text-text-primary z-10'
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}
-              data-active={activeTab === 'map'}
+              onMouseEnter={() => setHoveredTab('map')}
+              onMouseLeave={() => setHoveredTab(null)}
+              className="flex-1 flex items-center justify-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all"
+              style={{
+                borderRadius: '10px 10px 0 0',
+                background: activeTab === 'map'
+                  ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                  : hoveredTab === 'map'
+                    ? 'rgba(55, 65, 85, 0.8)'
+                    : 'rgba(35, 45, 60, 0.6)',
+                borderTop: `2px solid ${activeTab === 'map' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                borderLeft: `1px solid ${activeTab === 'map' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                borderRight: `1px solid ${activeTab === 'map' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                borderBottom: 'none',
+                color: activeTab === 'map' ? 'var(--text-primary)' : hoveredTab === 'map' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+                marginBottom: '-1px',
+                zIndex: activeTab === 'map' ? 3 : 1,
+                position: 'relative',
+                boxShadow: activeTab === 'map' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
+              }}
             >
-              <span className="truncate">Map</span>
+              Map
             </button>
-          ) : null}
+          )}
           <button
             onClick={() => handleTabClick('inventory')}
-            className={`folder-tab relative flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold flex-1 min-w-0 rounded-t-lg ${
-              activeTab === 'inventory'
-                ? 'text-text-primary z-10'
-                : 'text-gray-500 dark:text-gray-400'
-            }`}
-            data-active={activeTab === 'inventory'}
+            onMouseEnter={() => setHoveredTab('inventory')}
+            onMouseLeave={() => setHoveredTab(null)}
+            className="flex-1 flex items-center justify-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all"
+            style={{
+              borderRadius: '10px 10px 0 0',
+              background: activeTab === 'inventory'
+                ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                : hoveredTab === 'inventory'
+                  ? 'rgba(55, 65, 85, 0.8)'
+                  : 'rgba(35, 45, 60, 0.6)',
+              borderTop: `2px solid ${activeTab === 'inventory' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+              borderLeft: `1px solid ${activeTab === 'inventory' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+              borderRight: `1px solid ${activeTab === 'inventory' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+              borderBottom: 'none',
+              color: activeTab === 'inventory' ? 'var(--text-primary)' : hoveredTab === 'inventory' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+              marginBottom: '-1px',
+              zIndex: activeTab === 'inventory' ? 3 : 1,
+              position: 'relative',
+              boxShadow: activeTab === 'inventory' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
+            }}
           >
-            <span className="truncate">Inventory</span>
+            Inventory
+          </button>
+          <button
+            onClick={() => handleTabClick('journal')}
+            onMouseEnter={() => setHoveredTab('journal')}
+            onMouseLeave={() => setHoveredTab(null)}
+            className="flex-1 flex items-center justify-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-all"
+            style={{
+              borderRadius: '10px 10px 0 0',
+              background: activeTab === 'journal'
+                ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                : hoveredTab === 'journal'
+                  ? 'rgba(55, 65, 85, 0.8)'
+                  : 'rgba(35, 45, 60, 0.6)',
+              borderTop: `2px solid ${activeTab === 'journal' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+              borderLeft: `1px solid ${activeTab === 'journal' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+              borderRight: `1px solid ${activeTab === 'journal' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+              borderBottom: 'none',
+              color: activeTab === 'journal' ? 'var(--text-primary)' : hoveredTab === 'journal' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+              marginBottom: '-1px',
+              zIndex: activeTab === 'journal' ? 3 : 1,
+              position: 'relative',
+              boxShadow: activeTab === 'journal' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
+            }}
+          >
+            Journal
           </button>
         </div>
 
-
         {/* Panels - Seamless connection with tabs */}
-        <div className="flex-1 min-h-0 surface-card px-1 pb-0 pt-0 shadow-inner">
+        <div
+          className="flex-1 min-h-0 px-2 pb-2 pt-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(25, 35, 50, 0.98) 100%)',
+            borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.15)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+            borderTop: 'none',
+            borderRadius: '0 0 12px 12px',
+            marginLeft: '8px',
+            marginRight: '8px',
+            marginBottom: '6px',
+          }}
+        >
           {!isHistoryLensActive && activeTab === 'narrator' && (
             <div className="h-full animate-fadeIn">
               <NarrationPanel
@@ -791,6 +798,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
 
           {activeTab === 'inventory' && playerCharacter && (
             <div className="h-full animate-fadeIn">
+              <div className="inventory-slot-grid h-full rounded-2xl p-2 bg-slate-900/20 border border-white/5">
                 <InventoryPanelEnhanced
                   playerCharacter={playerCharacter}
                   highlightedItemId={highlightedItemId}
@@ -815,6 +823,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   }}
                   setCurrentVessel={setCurrentVessel}
                 />
+              </div>
             </div>
           )}
           {isHistoryLensActive && activeTab === 'map' && (
@@ -822,8 +831,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               {!mapData ? (
                 <div className="p-6 text-sm text-text-muted">Map data unavailable.</div>
               ) : (
-                <div className="h-full w-full p-3">
-                  <div className="h-full w-full rounded-xl border border-white/10 bg-slate-900/40 shadow-[0_12px_30px_rgba(0,0,0,0.35)] overflow-hidden p-2">
+                <div className="h-full w-full p-2">
+                  <div className="h-full w-full rounded-xl overflow-hidden bg-slate-900/30">
                     <MapDisplayOptimized
                       mapData={mapData}
                       currentMapSeed={currentMapSeed}
@@ -860,15 +869,21 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                       playerCharacter={playerCharacter}
                       gameTimeHours={gameTimeHours}
                       gameTimeMinutes={gameTimeMinutes}
+                      hideMinimap={true}
                     />
                   </div>
                 </div>
               )}
             </div>
           )}
+          {activeTab === 'journal' && (
+            <div className="h-full animate-fadeIn">
+              <GamelogPanel entries={gameLog} />
+            </div>
+          )}
         </div>
       </div>
-      
+
       {/* Action Configuration Modal */}
       <ActionConfigModal
         isOpen={configModalOpen}

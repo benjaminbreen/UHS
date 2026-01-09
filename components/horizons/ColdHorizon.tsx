@@ -3,7 +3,7 @@
  * Cold/Arctic climate horizon with snow-covered peaks, evergreen forests, and ice
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TimeOfDay } from '../../types';
 import { WeatherState } from '../../services/weatherService';
 
@@ -12,6 +12,7 @@ interface ColdHorizonProps {
   width: number;
   height: number;
   hasWater?: boolean;
+  isUrban?: boolean;
   weather?: WeatherState;
   sky?: {
     top: string;
@@ -32,11 +33,18 @@ const ColdHorizon: React.FC<ColdHorizonProps> = ({
   width,
   height,
   hasWater = false,
+  isUrban = false,
   weather,
   sky
 }) => {
   // Helper function for rounding SVG path coordinates
   const p = (n: number) => Math.round(n * 100) / 100;
+
+  // Seeded random for stable positioning
+  const seededRandom = (seed: number) => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
   
   // Helper to blend two hex colors
   const blendHex = (color1: string, color2: string, ratio: number): string => {
@@ -139,6 +147,49 @@ const ColdHorizon: React.FC<ColdHorizonProps> = ({
 
   const colors = getColors();
 
+  // Time flags
+  const isNight = timeOfDay === 'Night';
+  const isDawn = timeOfDay === 'Dawn';
+  const isDusk = timeOfDay === 'Dusk';
+  const isTwilight = isDawn || isDusk;
+
+  // Generate stable bird positions (arctic terns, ravens)
+  const birds = useMemo(() => {
+    if (isNight) return []; // Birds roost at night
+    const birdCount = isTwilight ? 4 : 2;
+    return Array.from({ length: birdCount }, (_, i) => ({
+      x: p(width * (0.15 + seededRandom(width + i * 137) * 0.7)),
+      y: p(height * (0.25 + seededRandom(height + i * 239) * 0.2)),
+      size: 2 + (i % 2),
+      type: seededRandom(i * 317) > 0.6 ? 'raven' : 'tern', // Ravens are larger, slower
+      speed: 18 + seededRandom(i * 419) * 12,
+      delay: seededRandom(i * 521) * 8,
+    }));
+  }, [width, height, isNight, isTwilight]);
+
+  // Generate ice glint positions for frozen water
+  const iceGlints = useMemo(() => {
+    if (!hasWater) return [];
+    const glintCount = isNight ? 3 : 6;
+    return Array.from({ length: glintCount }, (_, i) => ({
+      x: p(width * (0.1 + seededRandom(width + i * 623) * 0.8)),
+      y: p(height * (0.84 + seededRandom(height + i * 727) * 0.04)),
+      size: 1 + (seededRandom(i * 829) > 0.7 ? 1 : 0),
+      delay: seededRandom(i * 931) * 4,
+      duration: 2 + seededRandom(i * 1033) * 2,
+    }));
+  }, [width, height, hasWater, isNight]);
+
+  // Generate distant smoke positions for settlements
+  const settlementSmokes = useMemo(() => {
+    if (!isUrban) return [];
+    const smokeCount = 2 + (seededRandom(width * height) > 0.5 ? 1 : 0);
+    return Array.from({ length: smokeCount }, (_, i) => ({
+      x: p(width * (0.25 + seededRandom(width + i * 1137) * 0.5)),
+      y: p(height * (0.72 + seededRandom(height + i * 1239) * 0.04)),
+    }));
+  }, [width, height, isUrban]);
+
   const PEAK_HEIGHT_SCALE = 0.6;          // 60% of original height
 const PEAK_BASE_Y = height * 0.6;       // base of the mountain path ("M 0 height*0.6")
 
@@ -151,6 +202,58 @@ const PEAK_BASE_Y = height * 0.6;       // base of the mountain path ("M 0 heigh
       style={{ position: 'absolute', bottom: 0, left: 0 }}
     >
       <defs>
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes iceGlint {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.9; }
+          }
+          @keyframes birdFly {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(var(--fly-distance, 100px)); }
+          }
+          @keyframes smokeRise {
+            0% { transform: translateY(0px) translateX(0px); opacity: 0.5; }
+            100% { transform: translateY(-18px) translateX(3px); opacity: 0; }
+          }
+          .ice-glint {
+            animation: iceGlint var(--duration, 3s) ease-in-out var(--delay, 0s) infinite;
+          }
+          .bird-fly {
+            animation: birdFly var(--speed, 20s) linear var(--delay, 0s) infinite;
+          }
+          .arctic-smoke {
+            animation: smokeRise 3.5s linear infinite;
+          }
+          @keyframes auroraPulse {
+            0%, 100% { opacity: 0.4; transform: translateX(0) scaleY(1); }
+            25% { opacity: 0.6; transform: translateX(-8px) scaleY(1.05); }
+            50% { opacity: 0.5; transform: translateX(5px) scaleY(0.95); }
+            75% { opacity: 0.7; transform: translateX(-3px) scaleY(1.02); }
+          }
+          @keyframes auroraWave {
+            0%, 100% { transform: translateY(0) scaleX(1); opacity: 0.35; }
+            33% { transform: translateY(-4px) scaleX(1.02); opacity: 0.5; }
+            66% { transform: translateY(2px) scaleX(0.98); opacity: 0.4; }
+          }
+          @keyframes auroraShimmer {
+            0%, 100% { stroke-opacity: 0.3; stroke-dashoffset: 0; }
+            50% { stroke-opacity: 0.6; stroke-dashoffset: 20; }
+          }
+          .aurora-main {
+            animation: auroraPulse 12s ease-in-out infinite;
+            transform-origin: center;
+          }
+          .aurora-band {
+            animation: auroraWave 8s ease-in-out infinite;
+            transform-origin: center;
+          }
+          .aurora-streak {
+            stroke-dasharray: 30 15;
+            animation: auroraShimmer 6s ease-in-out infinite;
+          }
+        `}</style>
+
         <linearGradient id="arcticSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor={colors.sky1} stopOpacity="0" />
           <stop offset="35%" stopColor={colors.sky2} stopOpacity="0.3" />
@@ -187,10 +290,12 @@ const PEAK_BASE_Y = height * 0.6;       // base of the mountain path ("M 0 heigh
       {/* Sky background */}
       <rect x="0" y="0" width={width} height={height} fill="url(#arcticSky)" />
 
-      {/* Aurora Borealis for night */}
+      {/* Aurora Borealis for night - animated */}
       {timeOfDay === 'Night' && (
         <g opacity="0.5">
+          {/* Main aurora band */}
           <path
+            className="aurora-main"
             d={`
               M 0 ${height * 0.1}
               Q ${width * 0.25} ${height * 0.05}, ${width * 0.5} ${height * 0.08}
@@ -203,7 +308,9 @@ const PEAK_BASE_Y = height * 0.6;       // base of the mountain path ("M 0 heigh
             fill="url(#auroraGradient)"
             filter="url(#snowGlow)"
           />
+          {/* Secondary wave band */}
           <path
+            className="aurora-band"
             d={`
               M 0 ${height * 0.15}
               Q ${width * 0.3} ${height * 0.12}, ${width * 0.6} ${height * 0.15}
@@ -213,6 +320,30 @@ const PEAK_BASE_Y = height * 0.6;       // base of the mountain path ("M 0 heigh
             strokeWidth="2"
             fill="none"
             opacity="0.4"
+          />
+          {/* Additional shimmer streaks */}
+          <path
+            className="aurora-streak"
+            d={`
+              M ${width * 0.1} ${height * 0.12}
+              Q ${width * 0.35} ${height * 0.08}, ${width * 0.55} ${height * 0.11}
+            `}
+            stroke={colors.aurora[0]}
+            strokeWidth="1.5"
+            fill="none"
+            opacity="0.35"
+          />
+          <path
+            className="aurora-streak"
+            style={{ animationDelay: '2s' }}
+            d={`
+              M ${width * 0.4} ${height * 0.18}
+              Q ${width * 0.65} ${height * 0.14}, ${width * 0.85} ${height * 0.17}
+            `}
+            stroke={colors.aurora[2]}
+            strokeWidth="1.5"
+            fill="none"
+            opacity="0.3"
           />
         </g>
       )}
@@ -530,16 +661,108 @@ const PEAK_BASE_Y = height * 0.6;       // base of the mountain path ("M 0 heigh
           })}
           
           {/* Wet ice sheen */}
-          <rect 
-            x="0" 
-            y={p(height * 0.82)} 
-            width={width} 
-            height={p(height * 0.18)} 
-            fill="#94A3B8" 
+          <rect
+            x="0"
+            y={p(height * 0.82)}
+            width={width}
+            height={p(height * 0.18)}
+            fill="#94A3B8"
             opacity={0.1 + weather.intensity * 0.15}
           />
         </g>
       )}
+
+      {/* Birds in sky (arctic terns, ravens) */}
+      {birds.map((bird, i) => (
+        <g
+          key={`bird-${i}`}
+          className="bird-fly"
+          style={{
+            '--speed': `${bird.speed}s`,
+            '--delay': `${bird.delay}s`,
+            '--fly-distance': `${width + 40}px`,
+          } as React.CSSProperties}
+          opacity={0.5}
+        >
+          {bird.type === 'raven' ? (
+            // Raven - larger, more angular
+            <path
+              d={`M ${bird.x - bird.size * 1.5} ${bird.y}
+                  L ${bird.x} ${bird.y - bird.size * 1.2}
+                  L ${bird.x + bird.size * 1.5} ${bird.y}
+                  M ${bird.x - bird.size * 0.8} ${bird.y + 1}
+                  L ${bird.x + bird.size * 0.8} ${bird.y + 1}`}
+              stroke="#1F2937"
+              strokeWidth="1.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+          ) : (
+            // Arctic tern - sleek V shape
+            <path
+              d={`M ${bird.x - bird.size} ${bird.y}
+                  L ${bird.x} ${bird.y - bird.size}
+                  L ${bird.x + bird.size} ${bird.y}`}
+              stroke="#4B5563"
+              strokeWidth="1"
+              fill="none"
+              strokeLinecap="round"
+            />
+          )}
+        </g>
+      ))}
+
+      {/* Ice glints on frozen water */}
+      {iceGlints.map((glint, i) => (
+        <rect
+          key={`glint-${i}`}
+          x={glint.x}
+          y={glint.y}
+          width={glint.size}
+          height={glint.size}
+          fill={isNight ? '#A5B4FC' : '#FFFFFF'}
+          className="ice-glint"
+          style={{
+            '--delay': `${glint.delay}s`,
+            '--duration': `${glint.duration}s`,
+          } as React.CSSProperties}
+        />
+      ))}
+
+      {/* Settlement smoke plumes */}
+      {settlementSmokes.map((smoke, i) => (
+        <g key={`smoke-${i}`} opacity={0.4}>
+          {/* Chimney/building hint */}
+          <rect
+            x={smoke.x - 3}
+            y={smoke.y}
+            width="6"
+            height="8"
+            fill={colors.ground}
+            opacity="0.6"
+          />
+          <rect
+            x={smoke.x - 1}
+            y={smoke.y - 3}
+            width="2"
+            height="4"
+            fill={colors.near}
+            opacity="0.7"
+          />
+          {/* Smoke */}
+          <g className="arctic-smoke" style={{ animationDelay: `${i * 0.8}s` }}>
+            <path
+              d={`M ${smoke.x} ${smoke.y - 3}
+                  c 0 -3, 1 -5, 0 -8
+                  c -1 -3, 1 -5, 0 -8`}
+              stroke={isNight ? 'rgba(200,210,230,0.6)' : 'rgba(180,190,210,0.5)'}
+              strokeWidth="1.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </g>
+        </g>
+      ))}
     </svg>
   );
 };

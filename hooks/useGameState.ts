@@ -2,7 +2,7 @@
  * hooks/useGameState.ts - Manages the game's clock, logs, and overall state.
  */
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { GameDate, Season, TimeOfDay, SunPosition, GameLogEntry, PlayerJournalEntry, NarrationMessage, Tile, AdjacencyDirection, MapArchetype, ActionableTile, HistoricalEra } from '../types';
+import { GameDate, Season, TimeOfDay, SunPosition, GameLogEntry, PlayerJournalEntry, NarrationMessage, Tile, AdjacencyDirection, MapArchetype, ActionableTile, HistoricalEra, HomeAnchor } from '../types';
 import { getDaysInMonth, formatDateWithSeason } from '../utils/dateUtils';
 import { LogService } from '../services/logService';
 import { CULTURE_ZONES } from '../constants/index';
@@ -89,6 +89,10 @@ export const useGameState = () => {
                     setPlayerJournal(savedGame.playerJournal);
                     console.log('[useGameState] Restored player journal:', savedGame.playerJournal.length, 'entries');
                 }
+                if (savedGame.homeAnchor) {
+                    setHomeAnchor(savedGame.homeAnchor);
+                    console.log('[useGameState] Restored home anchor');
+                }
                 // Don't remove savedGameData yet - other hooks may need it
             } catch (error) {
                 console.error('[useGameState] Error restoring game log/journal:', error);
@@ -99,6 +103,9 @@ export const useGameState = () => {
     // UI Context State
     const [actionableTile, setActionableTile] = useState<ActionableTile | null>(null);
     const [contextualMessage, setContextualMessage] = useState<string | null>(null);
+
+    // Home Anchor State
+    const [homeAnchor, setHomeAnchor] = useState<HomeAnchor | null>(null);
 
     // Location State - LIFTED HERE
     const [currentZone, setCurrentZone] = useState<string>(() => {
@@ -226,6 +233,7 @@ export const useGameState = () => {
         currentEra,
         currentZone,
         currentRegion,
+        homeAnchor,
         
         // Setters
         setGameDate,
@@ -245,6 +253,7 @@ export const useGameState = () => {
         setContextualMessage,
         setCurrentZone,
         setCurrentRegion,
+        setHomeAnchor,
         
         // Handlers
         addGameLogEntry,

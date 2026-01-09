@@ -43,6 +43,7 @@ import { checkWorkCompletion, completeWorkOffer } from '../services/workOfferSer
 import { checkForEvent, getGlobalEventsLLMContext, cleanupExpiredEvents } from '../services/globalEventService';
 import { eventBus } from '../services/eventBus';
 import { describeMovement, describeEmbark, describeDisembark } from '../services/historyLensNarrationService';
+import { findHistoryLensPath } from '../services/historyLensPathfinding';
 
 interface DeathInfo {
   type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
@@ -147,6 +148,7 @@ const useCoreLoops = (
     setActiveGovernmentModal,
     inRuinRoguelike,
     inMiningRoguelike,
+    centralMode,
   } = useUI();
 
   const moveLoopId = useRef<number | null>(null);
@@ -165,6 +167,12 @@ const useCoreLoops = (
   const repeatRef = useRef({ holdStart: 0, nextStepAt: 0, isRepeating: false });
   const INITIAL_REPEAT_DELAY_MS = 200; // delay after the very first step of a hold
   const CONTINUOUS_REPEAT_MS = 400; // cadence while key is held
+  const queuedMovesRef = useRef<Array<{ dx: number; dy: number }>>([]);
+  const historyLensMoveActiveRef = useRef(false);
+  const historyLensMoveEndNotifiedRef = useRef(false);
+  const historyLensNavTargetRef = useRef<{ x: number; y: number; label: string; kind: string } | null>(null);
+  const historyLensNavDetourNotifiedRef = useRef(false);
+  const historyLensPathRef = useRef<Array<{ x: number; y: number }>>([]);
 
   // Game Clock - Reduced frequency for better performance
   useEffect(() => {
@@ -1470,6 +1478,75 @@ const useCoreLoops = (
     activeKeys,
   ]);
 
+  useEffect(() => {
+    const handleHistoryLensMove = (payload: { dx?: number; dy?: number; steps?: number }) => {
+      if (!payload) return;
+      let dx = Number(payload.dx || 0);
+      let dy = Number(payload.dy || 0);
+
+      if (dx !== 0 && dy !== 0) {
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          dy = 0;
+        } else {
+          dx = 0;
+        }
+      }
+
+      dx = Math.max(-1, Math.min(1, dx));
+      dy = Math.max(-1, Math.min(1, dy));
+
+      if (dx === 0 && dy === 0) return;
+
+      const steps = Math.max(1, Math.min(5, Number(payload.steps || 1)));
+      for (let i = 0; i < steps; i += 1) {
+        queuedMovesRef.current.push({ dx, dy });
+      }
+      activeKeys.current.clear();
+      historyLensMoveActiveRef.current = true;
+      historyLensMoveEndNotifiedRef.current = false;
+      historyLensNavTargetRef.current = null;
+      historyLensNavDetourNotifiedRef.current = false;
+      historyLensPathRef.current = [];
+    };
+
+    eventBus.on('historylens:move', handleHistoryLensMove);
+    const handleHistoryLensNavigate = (payload: { x: number; y: number; label: string; kind: string }) => {
+      if (!payload) return;
+      if (!mapData || controlledIconX == null || controlledIconY == null) return;
+      historyLensNavTargetRef.current = payload;
+      historyLensMoveActiveRef.current = true;
+      historyLensMoveEndNotifiedRef.current = false;
+      historyLensNavDetourNotifiedRef.current = false;
+      queuedMovesRef.current = [];
+      activeKeys.current.clear();
+      const path = findHistoryLensPath(
+        mapData,
+        { x: controlledIconX, y: controlledIconY },
+        { x: payload.x, y: payload.y },
+        playerMode,
+        5000  // Increased from 2000 to handle longer navigation distances
+      );
+      if (!path) {
+        eventBus.emit('historylens:append', {
+          sender: 'system',
+          text: 'That route is blocked from here.'
+        });
+        historyLensNavTargetRef.current = null;
+        historyLensMoveActiveRef.current = false;
+        historyLensMoveEndNotifiedRef.current = false;
+        historyLensNavDetourNotifiedRef.current = false;
+        historyLensPathRef.current = [];
+        return;
+      }
+      historyLensPathRef.current = path;
+    };
+    eventBus.on('historylens:navigate', handleHistoryLensNavigate);
+    return () => {
+      eventBus.off('historylens:move', handleHistoryLensMove);
+      eventBus.off('historylens:navigate', handleHistoryLensNavigate);
+    };
+  }, [activeKeys, mapData, controlledIconX, controlledIconY, playerMode]);
+
  // Movement loop — simplified and consistent
 useEffect(() => {
   const BASE_MOVE_ANIM_MS = 250; // Base movement interval (locked at 250ms for smooth feel)
@@ -1518,10 +1595,41 @@ useEffect(() => {
       ]);
     }
 
+    const hasQueuedMove = queuedMovesRef.current.length > 0;
+    const hasNavTarget = Boolean(historyLensNavTargetRef.current);
+    const clearQueuedMoves = () => {
+      if (queuedMovesRef.current.length) {
+        queuedMovesRef.current = [];
+      }
+    };
+    const clearHistoryLensNavigation = () => {
+      historyLensNavTargetRef.current = null;
+      historyLensNavDetourNotifiedRef.current = false;
+      historyLensPathRef.current = [];
+    };
+    const emitHistoryLensSystem = (text: string) => {
+      if (!text) return;
+      if (centralMode === 'historylens' || historyLensMoveActiveRef.current) {
+        eventBus.emit('historylens:append', { sender: 'system', text });
+      }
+    };
+
+    const shouldEndHistoryLensMove =
+      historyLensMoveActiveRef.current &&
+      !hasQueuedMove &&
+      !hasNavTarget &&
+      activeKeys.current.size === 0;
+
+    if (shouldEndHistoryLensMove && !historyLensMoveEndNotifiedRef.current) {
+      eventBus.emit('historylens:movement_end');
+      historyLensMoveEndNotifiedRef.current = true;
+      historyLensMoveActiveRef.current = false;
+    }
+
     // Basic guards - don't check isIconMoving here to avoid blocking
     if (
       viewMode !== 'standard' ||
-      activeKeys.current.size === 0 ||
+      (!hasQueuedMove && !hasNavTarget && activeKeys.current.size === 0) ||
       inRuinRoguelike ||
       inMiningRoguelike ||
       !mapData ||
@@ -1535,12 +1643,41 @@ useEffect(() => {
       return;
     }
 
-    // direction from keys
+    // Populate queue from navigation target if needed
+    if (!hasQueuedMove && activeKeys.current.size === 0 && historyLensNavTargetRef.current) {
+      const target = historyLensNavTargetRef.current;
+      if (controlledIconX === target.x && controlledIconY === target.y) {
+        clearHistoryLensNavigation();
+        emitHistoryLensSystem(`You reach ${target.label}.`);
+      } else {
+        if (historyLensPathRef.current.length) {
+          const nextStep = historyLensPathRef.current.shift();
+          if (nextStep) {
+            const stepDx = Math.sign(nextStep.x - controlledIconX);
+            const stepDy = Math.sign(nextStep.y - controlledIconY);
+            queuedMovesRef.current.push({ dx: stepDx, dy: stepDy });
+          }
+        } else {
+          emitHistoryLensSystem('The route seems blocked from here.');
+          clearHistoryLensNavigation();
+          clearQueuedMoves();
+        }
+      }
+    }
+
+    // direction from queued moves or keys
     let dx = 0, dy = 0;
-    if (activeKeys.current.has('ArrowUp')) dy -= 1;
-    if (activeKeys.current.has('ArrowDown')) dy += 1;
-    if (activeKeys.current.has('ArrowLeft')) dx -= 1;
-    if (activeKeys.current.has('ArrowRight')) dx += 1;
+    const hasQueuedMoveNow = queuedMovesRef.current.length > 0;
+    if (hasQueuedMoveNow) {
+      const queuedMove = queuedMovesRef.current.shift();
+      dx = queuedMove?.dx || 0;
+      dy = queuedMove?.dy || 0;
+    } else {
+      if (activeKeys.current.has('ArrowUp')) dy -= 1;
+      if (activeKeys.current.has('ArrowDown')) dy += 1;
+      if (activeKeys.current.has('ArrowLeft')) dx -= 1;
+      if (activeKeys.current.has('ArrowRight')) dx += 1;
+    }
     // Only update velocity if it actually changed to reduce React re-renders
     setVelocity(prev => (prev.x !== dx || prev.y !== dy) ? { x: dx, y: dy } : prev);
     if (dx === 0 && dy === 0) return;
@@ -1565,6 +1702,8 @@ useEffect(() => {
         if (newLogicalX < 0 || newLogicalX >= mapWidth || 
             newLogicalY < 0 || newLogicalY >= mapHeight) {
           console.log('[Edge Exit] Exiting special map via edge at:', newLogicalX, newLogicalY, 'map size:', mapWidth + 'x' + mapHeight);
+          clearQueuedMoves();
+          clearHistoryLensNavigation();
           exitSpecialMap();
           return;
         }
@@ -1589,6 +1728,8 @@ useEffect(() => {
           });
           // Advance time by 1 hour for map transition
           setGameTimeHours(prevHours => (prevHours + 1) % 24);
+          clearQueuedMoves();
+          clearHistoryLensNavigation();
           handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY);
           return;
         }
@@ -1611,6 +1752,8 @@ useEffect(() => {
           });
           // Advance time by 1 hour for map transition
           setGameTimeHours(prevHours => (prevHours + 1) % 24);
+          clearQueuedMoves();
+          clearHistoryLensNavigation();
           handleMapTransition('E', 0, controlledIconY);
           return;
         }
@@ -1633,6 +1776,8 @@ useEffect(() => {
           });
           // Advance time by 1 hour for map transition
           setGameTimeHours(prevHours => (prevHours + 1) % 24);
+          clearQueuedMoves();
+          clearHistoryLensNavigation();
           handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1);
           return;
         }
@@ -1655,6 +1800,8 @@ useEffect(() => {
           });
           // Advance time by 1 hour for map transition
           setGameTimeHours(prevHours => (prevHours + 1) % 24);
+          clearQueuedMoves();
+          clearHistoryLensNavigation();
           handleMapTransition('S', controlledIconX, 0);
           return;
         }
@@ -1664,6 +1811,8 @@ useEffect(() => {
     // animal interaction
     const animalOnTile = visibleAnimals?.find(a => a.x === newLogicalX && a.y === newLogicalY);
     if (animalOnTile) {
+      clearQueuedMoves();
+      clearHistoryLensNavigation();
       const animalData = ANIMAL_DATA[animalOnTile.baseId];
       const isAquaticCollectable = playerMode === 'ship' && animalData?.habitat === 'aquatic';
 
@@ -1723,7 +1872,12 @@ useEffect(() => {
 
     // NPC interaction
     const npcOnTile = npcs?.find(n => n.x === newLogicalX && n.y === newLogicalY);
-    if (npcOnTile) { handleEncounter(npcOnTile); return; }
+    if (npcOnTile) {
+      clearQueuedMoves();
+      clearHistoryLensNavigation();
+      handleEncounter(npcOnTile);
+      return;
+    }
 
     // impassable terrain check with damage and narration
     const targetTile = mapData.tiles[newLogicalY][newLogicalX];
@@ -1731,6 +1885,8 @@ useEffect(() => {
     if (!isTerrainPassable(targetTile.biome)) {
       // Stop movement
       setVelocity(prev => (prev.x !== 0 || prev.y !== 0) ? { x: 0, y: 0 } : prev);
+      clearQueuedMoves();
+      clearHistoryLensNavigation();
       
       // Get and display terrain block message
       const blockMessage = getTerrainBlockMessage(targetTile.biome);
@@ -1753,6 +1909,7 @@ useEffect(() => {
         
         // Play damage sound for impassable terrain (light damage for bumping into things)
         gameSounds.playDamageSound('light');
+        emitHistoryLensSystem(`Movement blocked: ${blockMessage}`);
       }
       
       // Apply damage if applicable
@@ -1849,7 +2006,9 @@ useEffect(() => {
 
     const movementDirection: 'north' | 'south' | 'east' | 'west' =
       dx > 0 ? 'east' : dx < 0 ? 'west' : dy > 0 ? 'south' : 'north';
-    const shouldEmitHistoryLens = (moveCount + 1) % 3 === 0;
+    const shouldEmitHistoryLens =
+      (moveCount + 1) % 3 === 0 &&
+      (centralMode === 'historylens' || historyLensMoveActiveRef.current);
 
     if (playerMode === 'ship') {
       if ((targetTile.isLand || targetTile.hasBridge) && targetTile.biome !== BiomeType.ESTUARY) {
@@ -2045,6 +2204,9 @@ useEffect(() => {
         }
       } else {
         // water while on foot: don't move
+        clearQueuedMoves();
+        clearHistoryLensNavigation();
+        emitHistoryLensSystem('You cannot move onto open water on foot.');
         return;
       }
     }

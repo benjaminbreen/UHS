@@ -3,7 +3,7 @@ import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
 import { gameSounds } from '../services/gameSoundsService';
 import { useModalKeyboard } from '../hooks/useModalKeyboard';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Database, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2, Hexagon, Volume2, VolumeX, Link, Copy, Check, Sparkles, Zap, Globe, Shuffle, Trophy, Shield, Compass, Coins, Crown, Home, Scale, Briefcase, FileText } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Database, ChevronDown, ChevronUp, Info, BookOpen, Gamepad2, Volume2, VolumeX, Link, Copy, Check, Sparkles, Globe, Shuffle, Shield, Compass, Coins, Crown, Home, Scale, Briefcase, FileText } from 'lucide-react';
 import { exportService } from '../services/exportService';
 import DiseaseService from '../services/diseaseService';
 import { dialectContinuumService } from '../services/dialectContinuumService';
@@ -34,9 +34,7 @@ import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 import TestSuitePanel from './TestSuitePanel';
 import FactoryBannerTest from './FactoryBannerTest';
 import CityTimeline from './CityTimeline';
-import TradeNetworkGlobe from './TradeNetworkGlobe';
 import CityMapGlobe from './CityMapGlobe';
-import HexWorldMap from './HexWorldMap';
 import HexWorldGlobe from './HexWorldGlobe';
 import RailroadTestPanel from './RailroadTestPanel';
 import WorkOfferTestPanel from './WorkOfferTestPanel';
@@ -67,6 +65,8 @@ interface SettingsPanelProps {
   contextualTooltipsEnabled: boolean;
   onToggleContextualTooltips: (enabled: boolean) => void;
   onResetTooltips: () => void;
+  useNewCharacterModal?: boolean;
+  onToggleCharacterModal?: () => void;
 }
 
 // Modern Settings Toggle Component
@@ -116,6 +116,31 @@ const SettingsToggle: React.FC<{
     </div>
 );
 
+// Elegant toggle with sublabel
+const SettingToggle: React.FC<{
+  label: string;
+  sublabel?: string;
+  checked: boolean;
+  onToggle: () => void;
+}> = ({ label, sublabel, checked, onToggle }) => (
+  <div className="flex items-center justify-between py-1">
+    <div>
+      <span className="text-sm text-white/80">{label}</span>
+      {sublabel && <p className="text-[11px] text-white/30">{sublabel}</p>}
+    </div>
+    <button
+      onClick={onToggle}
+      className={`relative w-10 h-5 rounded-full transition-all duration-200 ${
+        checked ? 'bg-emerald-500' : 'bg-white/10'
+      }`}
+      role="switch"
+      aria-checked={checked}
+    >
+      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${checked ? 'left-5' : 'left-0.5'}`} />
+    </button>
+  </div>
+);
+
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isOpen,
   onClose,
@@ -141,6 +166,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   contextualTooltipsEnabled,
   onToggleContextualTooltips,
   onResetTooltips,
+  useNewCharacterModal = true,
+  onToggleCharacterModal,
 }) => {
   // Audio settings state
   const [isMuted, setIsMuted] = useState(() => {
@@ -181,9 +208,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showSavedGamesModal, setShowSavedGamesModal] = useState(false);
   const [showPrimarySourcesModal, setShowPrimarySourcesModal] = useState(false);
   const [showCityTimeline, setShowCityTimeline] = useState(false);
-  const [showTradeNetworkGlobe, setShowTradeNetworkGlobe] = useState(false);
   const [showCityMap, setShowCityMap] = useState(false);
-  const [showHexWorldMap, setShowHexWorldMap] = useState(false);
   const [showHexWorldGlobe, setShowHexWorldGlobe] = useState(false);
 
   // Share URL state
@@ -530,328 +555,209 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
         aria-hidden={!isOpen}
-      ></div>
+      />
       <div
         data-surface="settings-panel"
-        className={`surface-drawer fixed top-0 right-0 h-full w-full max-w-sm z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-md z-50 transform transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-panel-title"
-        style={{ borderLeftWidth: '1px' }}
+        style={{
+          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 100%)',
+          borderLeft: '1px solid rgba(255, 255, 255, 0.06)'
+        }}
       >
-        {/* Modern Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-normal)]">
-          <div>
-            <h2 id="settings-panel-title" className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Settings</h2>
-            <p className="text-sm text-[var(--text-secondary)] mt-0.5">Configure your experience</p>
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4">
+          <div className="flex items-center justify-between">
+            <h2 id="settings-panel-title" className="text-xl font-light tracking-wide text-white/90">Settings</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white/80 hover:bg-white/5 transition-all"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-muted-bg)] rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50"
-            aria-label="Close settings panel"
-            title="Close settings (Esc)"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mt-4" />
         </div>
 
-        <div className="h-full px-6 py-5 overflow-y-auto pb-24 scrollbar-thin space-y-6">
-          {/* Audio Controls */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Volume2 className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Audio</h3>
-            </div>
+        <div className="h-full px-6 overflow-y-auto pb-32 space-y-6" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
 
-            {/* Mute Toggle */}
-            <div className="group relative flex items-center justify-between p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] hover:border-[var(--accent-primary)]/30 transition-all duration-200 cursor-pointer"
-                 onClick={handleMuteToggle}>
-              <div className="flex items-start gap-3 flex-1 pr-4">
-                <div className={`mt-0.5 transition-colors duration-200 ${!isMuted ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <label className="block text-sm font-semibold text-[var(--text-primary)] cursor-pointer mb-0.5">
-                    {isMuted ? 'Sound Muted' : 'Sound Enabled'}
-                  </label>
-                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Control all game audio</p>
-                </div>
+          {/* Audio */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Audio</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/70">Sound</span>
+                <button
+                  onClick={handleMuteToggle}
+                  className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
+                    !isMuted ? 'bg-emerald-500' : 'bg-white/10'
+                  }`}
+                  role="switch"
+                  aria-checked={!isMuted}
+                >
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${!isMuted ? 'left-6' : 'left-1'}`} />
+                </button>
               </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/40">Volume</span>
+                  <span className="text-xs text-white/60 tabular-nums">{Math.round(volume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                  disabled={isMuted}
+                  className={`w-full h-1 rounded-full appearance-none cursor-pointer ${isMuted ? 'opacity-30' : ''}`}
+                  style={{
+                    background: `linear-gradient(to right, rgba(16, 185, 129, ${isMuted ? 0.3 : 1}) 0%, rgba(16, 185, 129, ${isMuted ? 0.3 : 1}) ${volume * 100}%, rgba(255,255,255,0.1) ${volume * 100}%, rgba(255,255,255,0.1) 100%)`
+                  }}
+                />
+              </div>
+            </div>
+          </section>
+
+          <div className="h-px w-full bg-white/5" />
+
+          {/* Game Progress */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Game Progress</h3>
+            <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMuteToggle();
-                }}
-                className={`relative inline-flex items-center h-7 w-12 rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:ring-offset-2 focus:ring-offset-[var(--background-primary)] flex-shrink-0 ${
-                  !isMuted
-                    ? 'bg-[var(--color-success)] shadow-lg shadow-[var(--color-success)]/25'
-                    : 'bg-[var(--surface-track-bg)] border border-[var(--border-normal)]'
-                }`}
-                role="switch"
-                aria-checked={!isMuted}
+                onClick={() => setShowSavedGamesModal(true)}
+                className="px-4 py-3 text-sm text-white/80 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg transition-all flex items-center justify-center gap-2"
               >
-                <span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-all duration-300 ease-in-out shadow-md ${!isMuted ? 'translate-x-6' : 'translate-x-1'}`} />
+                <Save className="w-4 h-4 text-emerald-400/70" />
+                <span>Saves</span>
+              </button>
+              <button
+                onClick={handleExportProgress}
+                className="px-4 py-3 text-sm text-white/80 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg transition-all flex items-center justify-center gap-2"
+              >
+                <FileText className="w-4 h-4 text-blue-400/70" />
+                <span>Export</span>
               </button>
             </div>
-
-            {/* Volume Slider */}
-            <div className="p-5 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]">
-              <div className="flex items-center justify-between mb-3">
-                <label htmlFor="volumeSlider" className="text-sm font-semibold text-[var(--text-primary)]">
-                  Master Volume
-                </label>
-                <span className="text-sm font-bold text-[var(--accent-primary)] tabular-nums">
-                  {Math.round(volume * 100)}%
-                </span>
-              </div>
-              <input
-                id="volumeSlider"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                disabled={isMuted}
-                className={`w-full h-2.5 rounded-full appearance-none cursor-pointer slider-thumb ${isMuted ? 'opacity-40 cursor-not-allowed' : ''}`}
-                style={{
-                  background: isMuted
-                    ? 'var(--surface-track-bg)'
-                    : `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${volume * 100}%, var(--surface-track-bg) ${volume * 100}%, var(--surface-track-bg) 100%)`
-                }}
-              />
-            </div>
-          </section>
-          {/* Educational Mode */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Educational Mode</h3>
-            </div>
-
-            <SettingsToggle
-              id="educationalModeToggle"
-              label="Educational Mode"
-              description="Enhanced historical analysis, learning objectives, and educational features for students and educators."
-              isChecked={isEducationalMode}
-              onToggle={handleEducationalModeToggle}
-              icon={BookOpen}
-            />
-          </section>
-
-          {/* Save/Load Game */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Save className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Game Progress</h3>
-            </div>
-            <button
-              onClick={() => setShowSavedGamesModal(true)}
-              className="w-full px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl hover:from-emerald-700 hover:to-green-700 hover:shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center gap-2.5 active:scale-[0.98]"
-            >
-              <Save className="w-5 h-5" />
-              <span>Manage Saved Games</span>
-            </button>
-
-            {/* Export Progress Button */}
-            <button
-              onClick={handleExportProgress}
-              className="w-full px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2.5 active:scale-[0.98]"
-            >
-              <FileText className="w-5 h-5" />
-              <span>Export Session Data</span>
-            </button>
             {exportMessage && (
-              <div className={`mt-2 text-center text-sm font-medium rounded-lg p-2 ${
-                exportMessage.includes('✅') ? 'bg-green-500/10 text-green-400' :
+              <div className={`mt-2 text-center text-xs rounded py-2 ${
+                exportMessage.includes('✅') ? 'bg-emerald-500/10 text-emerald-400' :
                 exportMessage.includes('❌') ? 'bg-red-500/10 text-red-400' :
                 'bg-amber-500/10 text-amber-400'
               }`}>
                 {exportMessage}
               </div>
             )}
-
-            {/* Share URL Section */}
-            <div className="p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]">
-              <button
-                onClick={() => {
-                  if (!shareableURL && playerCharacter && currentYear && currentZone) {
-                    // Generate shareable URL
-                    const gameSeed = SeedManager.getInstance().getSeed();
-                    const gameMode = localStorage.getItem('currentGameMode') || 'survival';
-
-                    let finalZone = currentZone;
-                    let finalRegion = '';
-
-                    if (playerLocation) {
-                      const detected = findZoneForMapArea(playerLocation);
-                      if (detected) {
-                        finalZone = detected.zone;
-                        finalRegion = detected.region;
-                      }
-                    }
-
-                    const shareableState = {
-                      year: currentYear,
-                      month: 1,
-                      day: 1,
-                      mapArea: playerLocation || 'Unknown',
-                      zone: finalZone,
-                      region: finalRegion,
-                      gameMode: gameMode,
-                      character: {
-                        name: playerCharacter.name,
-                        profession: playerCharacter.occupation || playerCharacter.profession || 'traveler',
-                        gender: (playerCharacter.gender?.toLowerCase() as 'male' | 'female') || 'male',
-                        age: playerCharacter.age || 25,
-                        socialClass: playerCharacter.class || 'commoner',
-                        health: playerCharacter.diseaseHealth?.overallHealthStatus || 'healthy'
-                      },
-                      mapSeed: gameSeed,
-                      scenarioType: 'procedural' as const,
-                      version: '2.0'
-                    };
-
-                    const url = shareableStateService.generateShareableURL(shareableState);
-                    setShareableURL(url);
-                  } else {
-                    setShareableURL('');
+            <button
+              onClick={() => {
+                if (!shareableURL && playerCharacter && currentYear && currentZone) {
+                  const gameSeed = SeedManager.getInstance().getSeed();
+                  const gameMode = localStorage.getItem('currentGameMode') || 'survival';
+                  let finalZone = currentZone;
+                  let finalRegion = '';
+                  if (playerLocation) {
+                    const detected = findZoneForMapArea(playerLocation);
+                    if (detected) { finalZone = detected.zone; finalRegion = detected.region; }
                   }
-                }}
-                className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-card-bg)] hover:bg-[var(--surface-elevated-bg)] border border-[var(--border-normal)] text-[var(--text-primary)] font-medium text-sm transition-all flex items-center justify-center gap-2"
-              >
-                <Link className="w-4 h-4" />
-                <span>{shareableURL ? 'Hide Share Link' : 'Get Shareable Link'}</span>
-              </button>
-
-              {shareableURL && (
-                <div className="mt-4 space-y-3 animate-fade-in">
-                  <label className="text-xs font-semibold text-[var(--text-primary)] block">
-                    Share this URL:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={shareableURL}
-                      readOnly
-                      className="flex-1 px-3 py-2.5 bg-[var(--background-secondary)] text-[var(--text-primary)] text-xs rounded-lg border border-[var(--border-normal)] font-mono focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50"
-                      onClick={(e) => e.currentTarget.select()}
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(shareableURL);
-                        setCopiedShareURL(true);
-                        setTimeout(() => setCopiedShareURL(false), 2000);
-                      }}
-                      className={`px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 text-xs font-bold whitespace-nowrap ${
-                        copiedShareURL
-                          ? 'bg-[var(--color-success)] text-white shadow-lg'
-                          : 'bg-[var(--surface-card-bg)] hover:bg-[var(--surface-elevated-bg)] border border-[var(--border-normal)] text-[var(--text-primary)]'
-                      }`}
-                    >
-                      {copiedShareURL ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          Copy
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                    Preserves character, location, date, game mode, and map seed.
-                  </p>
-                </div>
-              )}
-            </div>
+                  const shareableState = {
+                    year: currentYear, month: 1, day: 1,
+                    mapArea: playerLocation || 'Unknown', zone: finalZone, region: finalRegion, gameMode,
+                    character: {
+                      name: playerCharacter.name,
+                      profession: playerCharacter.occupation || playerCharacter.profession || 'traveler',
+                      gender: (playerCharacter.gender?.toLowerCase() as 'male' | 'female') || 'male',
+                      age: playerCharacter.age || 25,
+                      socialClass: playerCharacter.class || 'commoner',
+                      health: playerCharacter.diseaseHealth?.overallHealthStatus || 'healthy'
+                    },
+                    mapSeed: gameSeed, scenarioType: 'procedural' as const, version: '2.0'
+                  };
+                  setShareableURL(shareableStateService.generateShareableURL(shareableState));
+                } else {
+                  setShareableURL('');
+                }
+              }}
+              className="w-full mt-2 px-4 py-2.5 text-xs text-white/50 hover:text-white/70 bg-transparent hover:bg-white/5 border border-white/5 hover:border-white/10 rounded-lg transition-all flex items-center justify-center gap-2"
+            >
+              <Link className="w-3 h-3" />
+              <span>{shareableURL ? 'Hide Link' : 'Share This Game'}</span>
+            </button>
+            {shareableURL && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={shareableURL}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-black/30 text-white/70 text-xs rounded-lg border border-white/5 font-mono"
+                  onClick={(e) => e.currentTarget.select()}
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareableURL);
+                    setCopiedShareURL(true);
+                    setTimeout(() => setCopiedShareURL(false), 2000);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                    copiedShareURL ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/15'
+                  }`}
+                >
+                  {copiedShareURL ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            )}
           </section>
 
-          {/* Primary Sources Library */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Educational Resources</h3>
-            </div>
+          <div className="h-px w-full bg-white/5" />
 
+          {/* Resources */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Resources</h3>
             <button
               onClick={() => setShowPrimarySourcesModal(true)}
-              className="w-full px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl hover:from-purple-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-purple-500/25 flex items-center justify-center gap-2.5 active:scale-[0.98]"
+              className="w-full px-4 py-3 text-sm text-white/80 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 hover:from-purple-500/30 hover:to-indigo-500/30 border border-purple-500/20 hover:border-purple-500/30 rounded-lg transition-all flex items-center justify-center gap-2"
             >
-              <ScrollText className="w-5 h-5" />
+              <ScrollText className="w-4 h-4 text-purple-400" />
               <span>Primary Sources Library</span>
             </button>
-
-            {/* Secondary Resources - Grid */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 mt-2">
               <button
                 onClick={() => setShowHexWorldGlobe(true)}
-                className="px-4 py-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
+                className="px-4 py-2.5 text-xs text-white/60 hover:text-white/80 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg transition-all flex items-center justify-center gap-2"
               >
-                <Activity className="w-5 h-5" />
-                <span className="text-center leading-tight">3D Globe</span>
+                <Globe className="w-3.5 h-3.5" />
+                <span>3D Globe</span>
               </button>
-
               <button
                 onClick={() => setShowCityMap(true)}
-                className="px-4 py-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
+                className="px-4 py-2.5 text-xs text-white/60 hover:text-white/80 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg transition-all flex items-center justify-center gap-2"
               >
-                <MapIcon className="w-5 h-5" />
-                <span className="text-center leading-tight">City Map</span>
-              </button>
-
-              <button
-                onClick={() => setShowHexWorldMap(true)}
-                className="px-4 py-3 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
-              >
-                <Hexagon className="w-5 h-5" />
-                <span className="text-center leading-tight">Hex Map</span>
-              </button>
-
-              <button
-                onClick={() => setShowTradeNetworkGlobe(true)}
-                className="px-4 py-3 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all hover:shadow-md flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
-              >
-                <Activity className="w-5 h-5" />
-                <span className="text-center leading-tight">City Globe</span>
+                <MapIcon className="w-3.5 h-3.5" />
+                <span>City Map</span>
               </button>
             </div>
           </section>
 
-          {/* Features */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Zap className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Features</h3>
-            </div>
+          <div className="h-px w-full bg-white/5" />
+
+          {/* AI & Features */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">AI & Features</h3>
             <div className="space-y-3">
-              <SettingsToggle
-                id="llmDescToggle"
-                label="Enhanced Descriptions"
-                description="AI-powered location descriptions and item details."
-                isChecked={useLlmForDescriptions}
-                onToggle={onToggleLlmForDescriptions}
-                icon={Sparkles}
-              />
-              <SettingsToggle
-                id="llmCharToggle"
-                label="Dynamic Characters"
-                description="AI-generated NPC names, professions, and backstories."
-                isChecked={useLlmForCharacter}
-                onToggle={onToggleLlmForCharacter}
-                icon={Users}
-              />
-              <SettingsToggle
-                id="dialectContinuumToggle"
+              <SettingToggle label="Enhanced Descriptions" sublabel="AI-powered location details" checked={useLlmForDescriptions} onToggle={onToggleLlmForDescriptions} />
+              <SettingToggle label="Dynamic Characters" sublabel="AI-generated NPCs" checked={useLlmForCharacter} onToggle={onToggleLlmForCharacter} />
+              <SettingToggle label="Educational Mode" sublabel="Learning objectives & analysis" checked={isEducationalMode} onToggle={handleEducationalModeToggle} />
+              <SettingToggle
                 label="Dialect Continuum"
-                description="NPCs use more foreign language as you travel further from home."
-                isChecked={dialectContinuumEnabled}
+                sublabel="Language varies by distance"
+                checked={dialectContinuumEnabled}
                 onToggle={() => {
                   const newState = !dialectContinuumEnabled;
                   setDialectContinuumEnabled(newState);
@@ -861,76 +767,49 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   }
                   dialectContinuumService.saveState();
                 }}
-                icon={Globe}
               />
-              <SettingsToggle
-                id="contextualTooltipsToggle"
-                label="Contextual Tooltips"
-                description="Show helpful tooltips when you first encounter UI elements."
-                isChecked={contextualTooltipsEnabled}
-                onToggle={() => onToggleContextualTooltips(!contextualTooltipsEnabled)}
-                icon={Info}
-              />
-              {contextualTooltipsEnabled && (
-                <div className="ml-12">
-                  <button
-                    onClick={onResetTooltips}
-                    className="text-xs font-medium text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 underline transition-colors"
-                  >
-                    Reset all tooltips
-                  </button>
-                </div>
+              <SettingToggle label="Contextual Tooltips" sublabel="First-time UI hints" checked={contextualTooltipsEnabled} onToggle={() => onToggleContextualTooltips(!contextualTooltipsEnabled)} />
+              {onToggleCharacterModal && (
+                <SettingToggle label="New Character Modal" sublabel="Redesigned profile UI" checked={useNewCharacterModal} onToggle={onToggleCharacterModal} />
               )}
             </div>
           </section>
 
-          {/* World Settings */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Globe className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">World Settings</h3>
-            </div>
+          <div className="h-px w-full bg-white/5" />
 
-            <div className="p-5 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)] space-y-4">
-              <div>
-                <label htmlFor="seedInputPanelAdvanced" className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                  World Seed
-                </label>
-                <input
-                  type="number"
-                  id="seedInputPanelAdvanced"
-                  value={currentSeed}
-                  onChange={handleSeedInputChange}
-                  className="w-full px-4 py-2.5 bg-[var(--background-secondary)] border border-[var(--border-normal)] rounded-lg text-[var(--text-primary)] text-center font-mono focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:outline-none transition-all"
-                />
-                <p className="text-xs text-[var(--text-secondary)] mt-2">Unique identifier for this world's geography.</p>
-              </div>
-
+          {/* World Seed */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">World Seed</h3>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={currentSeed}
+                onChange={handleSeedInputChange}
+                className="flex-1 px-3 py-2 bg-black/30 border border-white/5 rounded-lg text-white/70 text-center font-mono text-sm focus:outline-none focus:border-white/20"
+              />
               <button
                 onClick={handleNewRandomInitialSeed}
-                className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-card-bg)] hover:bg-[var(--surface-elevated-bg)] border border-[var(--border-normal)] text-[var(--text-primary)] font-semibold text-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 text-white/60 hover:text-white/80 text-sm transition-all flex items-center gap-2"
               >
                 <Shuffle className="w-4 h-4" />
-                Generate New World
+                <span>Random</span>
               </button>
             </div>
           </section>
 
+          <div className="h-px w-full bg-white/5" />
+
           {/* Developer Mode */}
-          <section className="space-y-4">
+          <section>
             <button
               onClick={() => setShowDeveloperMode(!showDeveloperMode)}
-              className="w-full p-4 bg-gradient-to-br from-[var(--color-error)]/10 to-[var(--color-error)]/5 rounded-xl border-2 border-[var(--color-error)]/30 hover:border-[var(--color-error)]/50 transition-all duration-200 flex items-center justify-between group active:scale-[0.98]"
+              className="w-full px-4 py-3 rounded-lg bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all flex items-center justify-between"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[var(--color-error)]/10 text-[var(--color-error)] group-hover:bg-[var(--color-error)]/20 transition-colors">
-                  <FlaskConical className="w-5 h-5" />
-                </div>
-                <span className="text-base font-bold text-[var(--color-error)]">Developer Mode</span>
+              <div className="flex items-center gap-2">
+                <FlaskConical className="w-4 h-4 text-red-400/70" />
+                <span className="text-sm text-red-400/80">Developer Mode</span>
               </div>
-              <div className="text-[var(--color-error)]">
-                {showDeveloperMode ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </div>
+              {showDeveloperMode ? <ChevronUp className="w-4 h-4 text-red-400/50" /> : <ChevronDown className="w-4 h-4 text-red-400/50" />}
             </button>
 
             {showDeveloperMode && (
@@ -1247,46 +1126,33 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         )}
 
-          {/* Game Mode */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Trophy className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Game Mode</h3>
-            </div>
+          <div className="h-px w-full bg-white/5" />
 
-            <div className="p-4 rounded-xl bg-[var(--surface-muted-bg)] border border-[var(--border-normal)]">
-              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-3">
-                Select Your Play Style
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(GAME_MODE_CONFIG).map(([key, config]) => {
-                  const Icon = config.icon;
-                  const isSelected = currentGameMode === key;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => handleGameModeChange(key)}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 flex flex-col items-center gap-2 ${
-                        isSelected
-                          ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-lg'
-                          : 'border-[var(--border-normal)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--surface-elevated-bg)]'
-                      }`}
-                      style={isSelected ? { boxShadow: `0 4px 12px ${config.color}25` } : {}}
-                    >
-                      <Icon
-                        className="w-6 h-6"
-                        style={{ color: isSelected ? config.color : 'var(--text-muted)' }}
-                      />
-                      <span className={`text-xs font-bold ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                        {config.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-3 leading-relaxed">
-                {GAME_MODE_CONFIG[currentGameMode as keyof typeof GAME_MODE_CONFIG]?.description}
-              </p>
+          {/* Game Mode */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Game Mode</h3>
+            <div className="grid grid-cols-4 gap-1.5">
+              {Object.entries(GAME_MODE_CONFIG).map(([key, config]) => {
+                const Icon = config.icon;
+                const isSelected = currentGameMode === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleGameModeChange(key)}
+                    className={`p-2.5 rounded-lg transition-all flex flex-col items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-white/10 border border-white/20'
+                        : 'bg-white/[0.02] border border-transparent hover:bg-white/5 hover:border-white/5'
+                    }`}
+                    title={config.description}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: isSelected ? config.color : 'rgba(255,255,255,0.3)' }} />
+                    <span className={`text-[9px] font-medium ${isSelected ? 'text-white/80' : 'text-white/30'}`}>
+                      {config.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </section>
       </div>
@@ -1528,14 +1394,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         />
       )}
 
-      {/* Trade Network Globe Visualization Modal */}
-      {showTradeNetworkGlobe && (
-        <TradeNetworkGlobe
-          isOpen={showTradeNetworkGlobe}
-          onClose={() => setShowTradeNetworkGlobe(false)}
-          initialYear={currentYear}
-        />
-      )}
 
       {/* City Map Visualization Modal */}
       {showCityMap && (
@@ -1547,13 +1405,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         />
       )}
 
-      {/* Hex World Map Modal */}
-      {showHexWorldMap && (
-        <HexWorldMap
-          isOpen={showHexWorldMap}
-          onClose={() => setShowHexWorldMap(false)}
-        />
-      )}
 
       {/* Hex World Globe 3D Modal */}
       {showHexWorldGlobe && (

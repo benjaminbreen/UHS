@@ -628,48 +628,63 @@
     filter: saturate(0.3) grayscale(0.5);
   }
 
-  /* Folder Tab Styles */
+  /* Folder Tab Styles - Simple & Clean */
+  .folder-tab-strip {
+    display: flex;
+    gap: 4px;
+    padding: 4px 6px 0 6px;
+  }
+
   .folder-tab {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    font-family: 'Avenir Next', 'Avenir', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    transition: background 0.15s ease;
   }
 
+  /* Active tab - solid background, connected to panel */
   .folder-tab[data-active="true"] {
-    background: var(--surface-card-bg);
-    border-top: 2px solid var(--tab-active-border, #64748b);
-    border-left: 2px solid var(--tab-active-border, #64748b);
-    border-right: 2px solid var(--tab-active-border, #64748b);
-    box-shadow: 0 -4px 12px -2px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: none;
+    margin-bottom: -1px;
+    z-index: 2;
   }
 
-  :root:not(.dark) .folder-tab[data-active="true"] {
-    border-color: #b5a08e;
-  }
-
+  /* Inactive tabs - darker, recessed */
   .folder-tab[data-active="false"] {
-    transform: translateY(2px);
-    border: 1.5px solid rgba(100, 116, 139, 0.3);
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.3), rgba(30, 41, 59, 0.25));
-    box-shadow: 0 -2px 6px -1px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  }
-
-  :root:not(.dark) .folder-tab[data-active="false"] {
-    border-color: rgba(181, 160, 142, 0.3);
-    background: linear-gradient(135deg, rgba(229, 224, 210, 0.4), rgba(214, 203, 179, 0.35));
-    box-shadow: 0 -2px 6px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .folder-tab[data-active="false"]:hover {
-    transform: translateY(0px);
-    border-color: rgba(100, 116, 139, 0.5);
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.5), rgba(30, 41, 59, 0.4));
-    box-shadow: 0 -4px 10px -1px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background: rgba(30, 41, 59, 0.7);
+    color: var(--text-primary);
+  }
+
+  /* Light mode */
+  :root:not(.dark) .folder-tab[data-active="true"] {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-bottom: none;
+  }
+
+  :root:not(.dark) .folder-tab[data-active="false"] {
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: none;
+    color: rgba(0, 0, 0, 0.5);
   }
 
   :root:not(.dark) .folder-tab[data-active="false"]:hover {
-    border-color: rgba(181, 160, 142, 0.5);
-    background: linear-gradient(135deg, rgba(229, 224, 210, 0.6), rgba(214, 203, 179, 0.5));
-    box-shadow: 0 -4px 10px -1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.12);
+    color: var(--text-primary);
   }
 
   .language-tile {
@@ -853,6 +868,93 @@
     color: #ffffff;
     border-color: #dc2626;
     box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
+  }
+
+  /* ==========================================
+     FLATTENED TAB STYLES (for HistoryLens left sidebar)
+     Uses Avenir Next font to match HistoryLensPanel
+     ========================================== */
+  .tab-strip-flat {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    background: rgba(15, 23, 42, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  :root:not(.dark) .tab-strip-flat {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: var(--border-subtle);
+  }
+
+  .tab-flat {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: 'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tab-flat:hover {
+    background: var(--surface-card-bg);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .tab-flat.is-active {
+    background: var(--surface-card-bg);
+    color: var(--text-primary);
+    border-color: var(--surface-muted-border);
+  }
+
+  :root:not(.dark) .tab-flat {
+    color: var(--text-tertiary);
+  }
+
+  :root:not(.dark) .tab-flat:hover {
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--text-primary);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  :root:not(.dark) .tab-flat.is-active {
+    background: white;
+    color: var(--text-primary);
+    border-color: var(--surface-muted-border);
+  }
+
+  /* Semantic colors for flattened tabs */
+  .tab-flat.is-active[data-tab-type="history"] {
+    background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  }
+
+  .tab-flat.is-active[data-tab-type="overview"] {
+    background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+  }
+
+  .tab-flat.is-active[data-tab-type="analysis"] {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+  }
+
+  .tab-flat.is-active[data-tab-type="nearby"] {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
   }
 
   .btn-primary,
