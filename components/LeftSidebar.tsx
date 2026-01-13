@@ -21,6 +21,7 @@ import { generateAnimalDescriptions } from '../services/animalDescriptionGenerat
 import { parseDateString } from '../utils/dateUtils';
 import HistoryPanel from './HistoryPanel';
 import { MAP_ARCHETYPE_DESCRIPTIONS, FACTION_DATA, STRUCTURE_BLUEPRINTS, METALS } from '../constants/index';
+import { applyYearRangeOverrides } from '../constants/gameData/factions';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
@@ -288,7 +289,9 @@ const LeftSidebar: React.FC<{
     try {
       const dateInfo = parseDateString(gameDate.year.toString());
       const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
-      return FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
+      const baseFactionData = FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
+      // Apply year-specific overrides (e.g., different rulers during ANTIQUITY)
+      return applyYearRangeOverrides(baseFactionData, dateInfo.year);
     } catch (error) {
       console.error('Error getting faction data:', error);
       return null;

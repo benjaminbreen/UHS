@@ -5,7 +5,7 @@
  * This file now uses lazy loading to prevent loading 1MB+ of faction data on app startup.
  * Faction data is loaded on-demand when needed for a specific cultural zone.
  */
-import { FactionDatabase, ClimateType, MapArchetype, CulturalZone } from '../../types';
+import { FactionDatabase, ClimateType, MapArchetype, CulturalZone, FactionData, HistoricalEra } from '../../types';
 
 // Re-export types and utilities
 export * from './factions/types';
@@ -95,4 +95,60 @@ export async function hasSpecificFactionData(culturalZone: string | CulturalZone
   const { loadFactionData } = await import('./factions/index');
   const zoneData = await loadFactionData(culturalZone as CulturalZone);
   return Boolean(zoneData[culturalZone as CulturalZone]?.[mapAreaName]);
+}
+
+/**
+ * Apply year range overrides to faction data.
+ * Checks if there are year-specific overrides for the given year and merges them
+ * with the base era data.
+ *
+ * @param baseFactionData - The base faction data for the era
+ * @param year - The specific year to check for overrides (negative for BCE)
+ * @returns FactionData with year-specific overrides applied
+ */
+export function applyYearRangeOverrides(baseFactionData: FactionData | null | undefined, year: number): FactionData | null {
+  if (!baseFactionData) return null;
+
+  const overrides = baseFactionData.yearRangeOverrides;
+  if (!overrides || overrides.length === 0) {
+    return baseFactionData;
+  }
+
+  // Find matching year range override
+  // Year ranges use negative numbers for BCE (e.g., -1750 for 1750 BCE)
+  const matchingOverride = overrides.find(override => {
+    return year >= override.yearMin && year < override.yearMax;
+  });
+
+  if (!matchingOverride) {
+    return baseFactionData;
+  }
+
+  // Merge the override data with base data
+  return {
+    ...baseFactionData,
+    ...matchingOverride.data,
+    // Keep yearRangeOverrides from base to allow nested lookups if needed
+    yearRangeOverrides: baseFactionData.yearRangeOverrides
+  };
+}
+
+/**
+ * Get faction data for a specific region, era, and year.
+ * This is the recommended way to get faction data as it handles year-specific overrides.
+ *
+ * @param culturalZone - The cultural zone
+ * @param region - The region name within the zone
+ * @param era - The historical era
+ * @param year - The specific year (negative for BCE)
+ * @returns FactionData with year-specific overrides applied, or null if not found
+ */
+export function getFactionDataForYear(
+  culturalZone: CulturalZone | string,
+  region: string,
+  era: HistoricalEra | string,
+  year: number
+): FactionData | null {
+  const baseFactionData = FACTION_DATA[culturalZone as CulturalZone]?.[region]?.[era as HistoricalEra];
+  return applyYearRangeOverrides(baseFactionData, year);
 }

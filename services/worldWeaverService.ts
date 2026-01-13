@@ -157,17 +157,19 @@ CHARACTER EXTRACTION RULES:
   - NORTH_AMERICAN_PRE_COLUMBIAN: Native American names (Sequoya, Pocahontas, etc.)
   - OCEANIA: Pacific Islander, Aboriginal Australian names (Kailani, Wiremu, etc.)
 - Examples:
-  - "35 year old female spy" → age: 35, gender: "female", profession: "spy"
+  - "35 year old female spy" → age: 35, gender: "female", profession: "spy", name: "Elise Moreau" (GENERATE appropriate name)
   - "unhealthy peasant named Hans" → health: "unhealthy", socialClass: "peasant", name: "Hans", ethnicity: "EUROPEAN"
-  - "young merchant" → profession: "merchant", traits: ["young"]
-  - "sickly noble woman" → health: "sickly", socialClass: "noble", gender: "female"
-  - "peasant with the plague" → socialClass: "peasant", disease: "BUBONIC_PLAGUE"
-  - "soldier suffering from typhus" → profession: "soldier", disease: "TYPHUS"
+  - "young merchant" → profession: "merchant", traits: ["young"], name: "Thomas Blackwood" (GENERATE appropriate name)
+  - "sickly noble woman" → health: "sickly", socialClass: "noble", gender: "female", name: "Lady Catherine" (GENERATE appropriate name)
+  - "peasant with the plague" → socialClass: "peasant", disease: "BUBONIC_PLAGUE", name: "Willem" (GENERATE appropriate name)
+  - "soldier suffering from typhus" → profession: "soldier", disease: "TYPHUS", name: "James Sullivan" (GENERATE appropriate name)
+  - "a soldier in the civil war" → profession: "soldier", name: "Ezra Thompson" (GENERATE appropriate name)
   - "Napoleon Bonaparte" → name: "Napoleon Bonaparte", profession: "Emperor", socialClass: "noble", ethnicity: "EUROPEAN"
   - "Ibn Battuta" → name: "Ibn Battuta", profession: "Explorer", ethnicity: "MENA"
   - "Li Wei the merchant" → name: "Li Wei", profession: "Merchant", ethnicity: "EAST_ASIAN"
   - "Marie Curie" → name: "Marie Curie", profession: "Scientist", gender: "female"
-- If NO character is specified, leave characterSpec as null
+- CRITICAL: When ANY character is described (even without a specific name), you MUST generate a historically appropriate name for them based on the time period, location, and cultural context
+- If NO character is specified at all (pure location/time prompts like "ancient rome" or "medieval france"), leave characterSpec as null
 
 DISEASE EXTRACTION:
 If the prompt mentions a disease or illness, match it to one of these available diseases:

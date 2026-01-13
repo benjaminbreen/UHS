@@ -48,7 +48,161 @@ export const MENA_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Prefect of Egypt', 'Dux Ripae', 'Scribe', 'Tax Collector']
-                }
+                },
+                // Year-specific overrides for the different powers that ruled Egypt during ANTIQUITY
+                yearRangeOverrides: [
+                    {
+                        yearMin: -2686, yearMax: -2181,
+                        data: {
+                            dominantPower: 'Old Kingdom Egypt',
+                            dominantPowerDescription: 'The age of pyramid builders. Pharaohs command the resources of a unified Egypt to construct monuments that will endure for millennia. Memphis serves as the capital of a divine kingdom.',
+                            eraContextSentence: 'the age of pyramids, when god-kings raise monuments to eternity.',
+                            allegianceGroups: [
+                                { name: 'Pharaonic Court', type: 'primary', description: 'The divine king and his administration.' },
+                                { name: 'Temple Priesthoods', type: 'secondary', description: 'Powerful religious establishments.' },
+                                { name: 'Nomarchs', type: 'secondary', description: 'Provincial governors of increasing independence.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Pharaoh', 'Vizier', 'High Priest of Ptah', 'Royal Architect', 'Overseer of Works']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -2181, yearMax: -2055,
+                        data: {
+                            dominantPower: 'First Intermediate Period',
+                            dominantPowerDescription: 'Central authority has collapsed. Rival dynasties at Heracleopolis and Thebes contend for supremacy while nomarchs rule their provinces as petty kings.',
+                            eraContextSentence: 'a time of chaos, when the Two Lands are again divided and famine stalks the land.',
+                            allegianceGroups: [
+                                { name: 'Heracleopolitan Dynasty', type: 'primary', description: 'Northern claimants to the throne.' },
+                                { name: 'Theban Dynasty', type: 'rebel', description: 'Southern rivals gathering strength.' },
+                                { name: 'Independent Nomarchs', type: 'secondary', description: 'Provincial lords ruling their own domains.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -2055, yearMax: -1650,
+                        data: {
+                            dominantPower: 'Middle Kingdom Egypt',
+                            dominantPowerDescription: 'Egypt reunified under Theban pharaohs who restore order and expand into Nubia. Literature and art flourish in a classical age of Egyptian civilization.',
+                            eraContextSentence: 'a classical age, when pharaohs restore the glory of the Two Lands.',
+                            allegianceGroups: [
+                                { name: 'Pharaonic Court', type: 'primary', description: 'The restored central monarchy.' },
+                                { name: 'Nubian Territories', type: 'secondary', description: 'Conquered lands to the south.' },
+                                { name: 'Asiatic Settlers', type: 'secondary', description: 'Immigrants from the Levant settling in the Delta.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Pharaoh', 'Vizier of Upper Egypt', 'Vizier of Lower Egypt', 'Chancellor', 'Chief Steward']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -1650, yearMax: -1550,
+                        data: {
+                            dominantPower: 'Hyksos Dynasty',
+                            dominantPowerDescription: 'Foreign rulers from the Levant control Lower Egypt from their capital at Avaris, introducing the horse and chariot. Native dynasties hold out in Upper Egypt.',
+                            eraContextSentence: 'a time of foreign rule, when Asiatic kings sit upon the throne of the Delta.',
+                            allegianceGroups: [
+                                { name: 'Hyksos Kings', type: 'primary', description: 'Foreign dynasty ruling from Avaris.' },
+                                { name: 'Theban Dynasty', type: 'rebel', description: 'Native Egyptian resistance in the south.' },
+                                { name: 'Nubian Kingdom of Kush', type: 'secondary', description: 'Independent kingdom to the south.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -1550, yearMax: -1077,
+                        data: {
+                            dominantPower: 'New Kingdom Egypt',
+                            dominantPowerDescription: 'The Egyptian Empire at its zenith. Warrior pharaohs like Thutmose III and Ramesses II create an empire stretching from Nubia to Syria. Thebes becomes the greatest city in the world.',
+                            eraContextSentence: 'the imperial age, when Egypt\'s armies march from Kush to the Euphrates.',
+                            allegianceGroups: [
+                                { name: 'Pharaonic Empire', type: 'primary', description: 'The Egyptian imperial state at its height.' },
+                                { name: 'Amun Priesthood', type: 'secondary', description: 'Wealthy and powerful temple establishment.' },
+                                { name: 'Nubian Viceroyalty', type: 'secondary', description: 'Egyptian-ruled territories in the south.' },
+                                { name: 'Levantine Vassals', type: 'secondary', description: 'Client states in Canaan and Syria.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Pharaoh', 'Great Royal Wife', 'Vizier', 'High Priest of Amun', 'General of the Army', 'Viceroy of Kush']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -1077, yearMax: -664,
+                        data: {
+                            dominantPower: 'Third Intermediate Period',
+                            dominantPowerDescription: 'Egypt fragments among rival dynasties. Libyan generals, Nubian conquerors, and native pharaohs compete for control while the great temples maintain their wealth and influence.',
+                            eraContextSentence: 'an age of division, when Libyan warriors and Nubian kings contest for the throne.',
+                            allegianceGroups: [
+                                { name: 'Libyan Dynasties', type: 'primary', description: 'Military rulers of Libyan descent.' },
+                                { name: 'Nubian Dynasty', type: 'rebel', description: 'Kushite pharaohs claiming Egyptian heritage.' },
+                                { name: 'Theban Priesthood', type: 'secondary', description: 'Temple state of Amun at Thebes.' },
+                                { name: 'Delta Principalities', type: 'secondary', description: 'Petty kingdoms in Lower Egypt.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -664, yearMax: -332,
+                        data: {
+                            dominantPower: 'Late Period Egypt',
+                            dominantPowerDescription: 'Native dynasties struggle to maintain independence against Assyrian and Persian invasions. Brief revivals alternate with foreign domination until Alexander\'s conquest.',
+                            eraContextSentence: 'an age of struggle, when ancient Egypt fights to preserve its independence.',
+                            allegianceGroups: [
+                                { name: 'Saite Dynasty', type: 'primary', description: 'Native rulers reviving Egyptian traditions.' },
+                                { name: 'Persian Empire', type: 'rebel', description: 'Foreign conquerors ruling Egypt as a satrapy.' },
+                                { name: 'Greek Mercenaries', type: 'secondary', description: 'Foreign soldiers serving Egyptian kings.' },
+                                { name: 'Temple Establishments', type: 'secondary', description: 'Ancient religious institutions.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Pharaoh', 'Vizier', 'Persian Satrap', 'High Priest', 'Greek Commander']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -332, yearMax: -30,
+                        data: {
+                            dominantPower: 'Ptolemaic Egypt',
+                            dominantPowerDescription: 'Greek pharaohs rule from Alexandria, the greatest city of the Hellenistic world. Greek and Egyptian cultures blend while the Library and Museum make Alexandria the intellectual center of the Mediterranean.',
+                            eraContextSentence: 'the Hellenistic age, when Greek kings rule as pharaohs and Alexandria lights the world.',
+                            allegianceGroups: [
+                                { name: 'Ptolemaic Dynasty', type: 'primary', description: 'Macedonian rulers of Egypt.' },
+                                { name: 'Greek Settlers', type: 'secondary', description: 'Colonists holding privileged positions.' },
+                                { name: 'Egyptian Priesthood', type: 'secondary', description: 'Native religious establishment maintaining traditions.' },
+                                { name: 'Seleucid Empire', type: 'rebel', description: 'Rival Hellenistic kingdom to the east.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Ptolemy', 'Royal Sister-Wife', 'Dioiketes', 'Strategos', 'High Priest of Alexandria']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -30, yearMax: 395,
+                        data: {
+                            dominantPower: 'Roman Egypt',
+                            dominantPowerDescription: 'Egypt serves as the granary of the Roman Empire, its ancient traditions continuing under imperial administration while Alexandria remains a center of learning.',
+                            eraContextSentence: 'an age of Roman order, where ancient Egypt provides grain for the eternal city.',
+                            allegianceGroups: [
+                                { name: 'Roman Empire', type: 'primary', description: 'The governing imperial power.' },
+                                { name: 'Alexandrian Greeks', type: 'secondary', description: 'The educated Greek-speaking elite.' },
+                                { name: 'Egyptian Priesthoods', type: 'secondary', description: 'Ancient temples maintaining traditions.' },
+                                { name: 'Early Christians', type: 'religious', description: 'A growing religious minority.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: 395, yearMax: 500,
+                        data: {
+                            dominantPower: 'Byzantine Egypt',
+                            dominantPowerDescription: 'Egypt becomes a crucial province of the Eastern Roman Empire, its grain feeding Constantinople while Alexandria remains a center of Christian theology and Coptic culture.',
+                            eraContextSentence: 'an age of Christian Egypt, where ancient and new faiths coexist along the Nile.',
+                            allegianceGroups: [
+                                { name: 'Byzantine Empire', type: 'primary', description: 'The Eastern Roman administration.' },
+                                { name: 'Coptic Church', type: 'secondary', description: 'The native Egyptian Christian church.' },
+                                { name: 'Alexandrian Patriarchate', type: 'secondary', description: 'Powerful church leadership.' },
+                                { name: 'Desert Monasteries', type: 'religious', description: 'Centers of ascetic Christianity.' }
+                            ]
+                        }
+                    }
+                ]
             },
             [HistoricalEra.MEDIEVAL]: {
                 dominantPower: 'Fatimid Caliphate',
@@ -193,7 +347,118 @@ export const MENA_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Procurator', 'Tetrarch', 'High Priest', 'Strategos']
-                }
+                },
+                // Year-specific overrides for the different powers that controlled the Levant during ANTIQUITY
+                yearRangeOverrides: [
+                    {
+                        yearMin: -3000, yearMax: -1200,
+                        data: {
+                            dominantPower: 'Canaanite City-States',
+                            dominantPowerDescription: 'Bronze Age city-states along the coast and valleys flourish under Egyptian influence. Phoenician ports trade purple dye and cedars while Ugarit develops the alphabet.',
+                            eraContextSentence: 'an age of merchant princes and chariot warriors, when Egypt and Hatti struggle for mastery of Canaan.',
+                            allegianceGroups: [
+                                { name: 'Canaanite Cities', type: 'primary', description: 'Independent city-states of the coastal plain.' },
+                                { name: 'Egyptian Empire', type: 'secondary', description: 'Southern overlords claiming tribute.' },
+                                { name: 'Hittite Empire', type: 'rebel', description: 'Northern power contesting Egyptian influence.' },
+                                { name: 'Habiru Bands', type: 'rebel', description: 'Outlaw groups in the hill country.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -1200, yearMax: -722,
+                        data: {
+                            dominantPower: 'Israelite and Phoenician Kingdoms',
+                            dominantPowerDescription: 'The Bronze Age collapse brings new peoples. Israel and Judah worship Yahweh in the hills while Phoenician cities dominate Mediterranean trade. Philistines hold the southern coast.',
+                            eraContextSentence: 'the Iron Age, when David and Solomon rule and Phoenician ships reach the ends of the earth.',
+                            allegianceGroups: [
+                                { name: 'Kingdom of Israel', type: 'primary', description: 'Northern Hebrew kingdom based at Samaria.' },
+                                { name: 'Kingdom of Judah', type: 'secondary', description: 'Southern Hebrew kingdom based at Jerusalem.' },
+                                { name: 'Phoenician Cities', type: 'secondary', description: 'Tyre, Sidon, and Byblos commanding the sea.' },
+                                { name: 'Philistine Cities', type: 'rebel', description: 'Sea Peoples settled on the southern coast.' },
+                                { name: 'Aramean Kingdoms', type: 'secondary', description: 'Damascus and other Syrian states.' }
+                            ],
+                            courtRoles: {
+                                palace: ['King', 'Prophet', 'High Priest', 'Royal Scribe', 'Commander of the Host']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -722, yearMax: -539,
+                        data: {
+                            dominantPower: 'Assyrian and Babylonian Empires',
+                            dominantPowerDescription: 'The great Mesopotamian empires swallow the small kingdoms. Assyria destroys Israel, then Babylon conquers Judah and destroys Jerusalem. Phoenicia pays tribute to survive.',
+                            eraContextSentence: 'an age of conquest, when great empires crush the small kingdoms and carry their peoples into exile.',
+                            allegianceGroups: [
+                                { name: 'Assyrian/Babylonian Empire', type: 'primary', description: 'Mesopotamian overlords ruling through terror.' },
+                                { name: 'Kingdom of Judah', type: 'declining', description: 'Last Hebrew kingdom struggling to survive.' },
+                                { name: 'Phoenician Cities', type: 'secondary', description: 'Tribute-paying merchant states.' },
+                                { name: 'Egyptian Kingdom', type: 'rebel', description: 'Southern power offering false hope to rebels.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -539, yearMax: -330,
+                        data: {
+                            dominantPower: 'Persian Levant',
+                            dominantPowerDescription: 'Cyrus permits the Jews to return from exile and rebuild the Temple. The Levant becomes a peaceful satrapy where Phoenician fleets serve Persian kings and Jerusalem rebuilds its walls.',
+                            eraContextSentence: 'the Persian peace, when exiles return and the Temple rises again in Jerusalem.',
+                            allegianceGroups: [
+                                { name: 'Persian Empire', type: 'primary', description: 'The Achaemenid administration.' },
+                                { name: 'Jewish Community', type: 'secondary', description: 'Returned exiles rebuilding Judah.' },
+                                { name: 'Phoenician Cities', type: 'secondary', description: 'Naval power serving Persian interests.' },
+                                { name: 'Samaritan Community', type: 'rebel', description: 'Northern rivals of the Jerusalem cult.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Persian Satrap', 'Jewish Governor', 'High Priest', 'Phoenician King']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -330, yearMax: -63,
+                        data: {
+                            dominantPower: 'Hellenistic Levant',
+                            dominantPowerDescription: 'Alexander conquers, then his successors fight for the prize. Ptolemies and Seleucids battle over the land while Greek culture spreads. The Maccabees revolt against forced Hellenization.',
+                            eraContextSentence: 'the Hellenistic age, when Greek kings rule and traditional ways face foreign challenge.',
+                            allegianceGroups: [
+                                { name: 'Seleucid Empire', type: 'primary', description: 'Syrian Greek dynasty based at Antioch.' },
+                                { name: 'Ptolemaic Egypt', type: 'rebel', description: 'Egyptian Greek dynasty contesting control.' },
+                                { name: 'Hasmonean Kingdom', type: 'rebel', description: 'Jewish state won through Maccabean revolt.' },
+                                { name: 'Greek Cities', type: 'secondary', description: 'Autonomous Hellenistic city-states.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -63, yearMax: 395,
+                        data: {
+                            dominantPower: 'Roman Syria',
+                            dominantPowerDescription: 'The crossroads of empires, Syria-Palestine thrives under Roman rule. Herod builds grand monuments, then Rome destroys Jerusalem. Christianity is born and spreads.',
+                            eraContextSentence: 'an age of Roman peace, then revolt and transformation, as new faiths reshape the ancient land.',
+                            allegianceGroups: [
+                                { name: 'Roman Empire', type: 'primary', description: 'The imperial authority from Rome.' },
+                                { name: 'Herodian Dynasty', type: 'secondary', description: 'Client kings ruling Judea.' },
+                                { name: 'Jewish Zealots', type: 'rebel', description: 'Resistance movements against Rome.' },
+                                { name: 'Nabataean Kingdom', type: 'secondary', description: 'Arab kingdom controlling trade routes.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Roman Governor', 'Tetrarch', 'High Priest', 'Centurion', 'Tax Collector']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: 395, yearMax: 500,
+                        data: {
+                            dominantPower: 'Byzantine Levant',
+                            dominantPowerDescription: 'The Eastern Roman Empire rules a Christian Holy Land. Pilgrims flock to Jerusalem while great churches rise over sacred sites. The Syrian desert breeds monks and heresies.',
+                            eraContextSentence: 'an age of Christian pilgrimage, when the Holy Land draws the faithful from across the empire.',
+                            allegianceGroups: [
+                                { name: 'Byzantine Empire', type: 'primary', description: 'The Eastern Roman administration.' },
+                                { name: 'Church of Jerusalem', type: 'secondary', description: 'Powerful ecclesiastical establishment.' },
+                                { name: 'Monastic Communities', type: 'religious', description: 'Desert monasteries and hermits.' },
+                                { name: 'Samaritan Communities', type: 'secondary', description: 'Ancient sect maintaining distinct identity.' }
+                            ]
+                        }
+                    }
+                ]
             },
             [HistoricalEra.MEDIEVAL]: {
                 dominantPower: 'Abbasid Caliphate',
@@ -319,7 +584,127 @@ export const MENA_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Proconsul', 'Asiarch', 'Strategos', 'Publicanus']
-                }
+                },
+                // Year-specific overrides for the different powers that ruled Anatolia during ANTIQUITY
+                yearRangeOverrides: [
+                    {
+                        yearMin: -3000, yearMax: -1650,
+                        data: {
+                            dominantPower: 'Hatti and Early Anatolian Kingdoms',
+                            dominantPowerDescription: 'Bronze Age city-states dot the Anatolian plateau. The Hatti people build the foundations upon which the Hittites will rise. Assyrian merchants establish trading colonies.',
+                            eraContextSentence: 'an early age, when Assyrian merchants trade tin for silver and the foundations of empire are laid.',
+                            allegianceGroups: [
+                                { name: 'Hatti City-States', type: 'primary', description: 'Indigenous kingdoms of central Anatolia.' },
+                                { name: 'Assyrian Merchants', type: 'secondary', description: 'Trading colonies from Mesopotamia.' },
+                                { name: 'Hurrian Peoples', type: 'secondary', description: 'Eastern peoples with distinct culture.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -1650, yearMax: -1180,
+                        data: {
+                            dominantPower: 'Hittite Empire',
+                            dominantPowerDescription: 'The Hittites forge the first great Anatolian empire, challenging Egypt for mastery of the Near East. From Hattusa they rule with iron weapons and diplomatic cunning.',
+                            eraContextSentence: 'the age of the Hittites, when the Land of Hatti contests Egypt for mastery of the world.',
+                            allegianceGroups: [
+                                { name: 'Hittite Empire', type: 'primary', description: 'The Great Kingdom ruling from Hattusa.' },
+                                { name: 'Egyptian Empire', type: 'rebel', description: 'Southern rival contesting Syria.' },
+                                { name: 'Mitanni Kingdom', type: 'declining', description: 'Hurrian kingdom absorbed by Hatti and Assyria.' },
+                                { name: 'Arzawa Lands', type: 'secondary', description: 'Western Anatolian vassals and rivals.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Great King', 'Tawananna (Queen)', 'Chief of Scribes', 'Chief of Wine', 'Commander of Chariots']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -1180, yearMax: -700,
+                        data: {
+                            dominantPower: 'Neo-Hittite and Phrygian Kingdoms',
+                            dominantPowerDescription: 'The Bronze Age collapse destroys the Hittite Empire. Neo-Hittite states survive in the southeast while Phrygians dominate central Anatolia under legendary King Midas.',
+                            eraContextSentence: 'an age of new kingdoms rising from old ruins, when Midas turns all to gold and Greeks settle the coasts.',
+                            allegianceGroups: [
+                                { name: 'Phrygian Kingdom', type: 'primary', description: 'Successor state in central Anatolia.' },
+                                { name: 'Neo-Hittite States', type: 'secondary', description: 'Surviving Hittite successor kingdoms.' },
+                                { name: 'Greek Colonies', type: 'secondary', description: 'Ionian and Aeolian settlements on the coast.' },
+                                { name: 'Urartian Kingdom', type: 'rebel', description: 'Eastern rival in the Armenian highlands.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -700, yearMax: -546,
+                        data: {
+                            dominantPower: 'Lydian Kingdom',
+                            dominantPowerDescription: 'Lydia dominates western Anatolia, inventing coinage and accumulating legendary wealth. King Croesus rules from Sardis until Cyrus the Persian changes the world.',
+                            eraContextSentence: 'the age of Croesus, when Lydia invents money and becomes a byword for wealth.',
+                            allegianceGroups: [
+                                { name: 'Lydian Kingdom', type: 'primary', description: 'Wealthy realm of Croesus based at Sardis.' },
+                                { name: 'Greek Ionian Cities', type: 'secondary', description: 'Wealthy trading cities under Lydian suzerainty.' },
+                                { name: 'Median Empire', type: 'secondary', description: 'Eastern neighbor and sometime ally.' },
+                                { name: 'Cimmerian Raiders', type: 'rebel', description: 'Nomadic invaders from the steppes.' }
+                            ],
+                            courtRoles: {
+                                palace: ['King of Lydia', 'Royal Treasurer', 'Commander of the Guard', 'Court Diviner']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -546, yearMax: -330,
+                        data: {
+                            dominantPower: 'Persian Anatolia',
+                            dominantPowerDescription: 'Cyrus conquers Croesus and Anatolia becomes the western frontier of the Persian Empire. The Ionian Revolt and Persian Wars fail to shake Persian control.',
+                            eraContextSentence: 'the Persian peace, when the Great King rules from the Aegean to the Indus.',
+                            allegianceGroups: [
+                                { name: 'Persian Empire', type: 'primary', description: 'The Achaemenid administration.' },
+                                { name: 'Greek City-States', type: 'rebel', description: 'Ionian cities chafing under Persian rule.' },
+                                { name: 'Persian Satraps', type: 'secondary', description: 'Provincial governors, sometimes rebellious.' },
+                                { name: 'Carian and Lycian Kingdoms', type: 'secondary', description: 'Semi-autonomous client states.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -330, yearMax: -133,
+                        data: {
+                            dominantPower: 'Hellenistic Anatolia',
+                            dominantPowerDescription: 'Alexander conquers, dies, and his generals divide the spoils. Seleucids, Antigonids, and local dynasties contest Anatolia while Greek culture spreads throughout the peninsula.',
+                            eraContextSentence: 'the Hellenistic age, when successor kings war and Greek cities flourish.',
+                            allegianceGroups: [
+                                { name: 'Seleucid Empire', type: 'primary', description: 'Syrian Greek dynasty claiming Anatolia.' },
+                                { name: 'Kingdom of Pergamon', type: 'secondary', description: 'Wealthy Attalid realm of western Anatolia.' },
+                                { name: 'Kingdom of Pontus', type: 'secondary', description: 'Persian-Greek dynasty on the Black Sea.' },
+                                { name: 'Galatian Celts', type: 'rebel', description: 'Celtic settlers in central Anatolia.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -133, yearMax: 395,
+                        data: {
+                            dominantPower: 'Roman Asia',
+                            dominantPowerDescription: 'Anatolia prospers as the wealthy eastern provinces of Rome, with Greek cities maintaining their ancient culture while new Roman infrastructure binds the region together.',
+                            eraContextSentence: 'an age of marble and prosperity, where Greek tradition meets Roman power.',
+                            allegianceGroups: [
+                                { name: 'Roman Empire', type: 'primary', description: 'The imperial administration from Rome.' },
+                                { name: 'Parthian Empire', type: 'rebel', description: 'Eastern rival threatening the frontier.' },
+                                { name: 'Greek City-States', type: 'secondary', description: 'Ancient poleis maintaining local autonomy.' },
+                                { name: 'Armenian Kingdom', type: 'secondary', description: 'Buffer state between Rome and Parthia.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: 395, yearMax: 500,
+                        data: {
+                            dominantPower: 'Byzantine Anatolia',
+                            dominantPowerDescription: 'The Eastern Roman Empire centers on Anatolia, with Constantinople commanding the straits. Christianity is now triumphant while ancient cities transform into medieval strongholds.',
+                            eraContextSentence: 'the age of Christian empire, when Constantinople becomes the New Rome.',
+                            allegianceGroups: [
+                                { name: 'Byzantine Empire', type: 'primary', description: 'The Eastern Roman state.' },
+                                { name: 'Orthodox Church', type: 'secondary', description: 'The established Christian church.' },
+                                { name: 'Sasanian Persia', type: 'rebel', description: 'Eastern rival on the frontier.' },
+                                { name: 'Isaurian Bandits', type: 'rebel', description: 'Mountain peoples resisting central control.' }
+                            ]
+                        }
+                    }
+                ]
             },
             [HistoricalEra.MEDIEVAL]: {
                 dominantPower: 'Byzantine Empire',
@@ -464,7 +849,148 @@ export const MENA_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['King of Kings', 'Wuzurg Framadar', 'Satrap', 'Chief Magus']
-                }
+                },
+                // Year-specific overrides for the different empires that ruled Mesopotamia during ANTIQUITY
+                yearRangeOverrides: [
+                    {
+                        yearMin: -2350, yearMax: -2150,
+                        data: {
+                            dominantPower: 'Akkadian Empire',
+                            dominantPowerDescription: 'The world\'s first empire, founded by Sargon of Akkad, unites Mesopotamia under Semitic rulers who claim dominion from the Upper to the Lower Sea.',
+                            eraContextSentence: 'the age of Sargon, when the first empire stretches from sea to sea.',
+                            allegianceGroups: [
+                                { name: 'Akkadian Empire', type: 'primary', description: 'The empire of Sargon and his successors.' },
+                                { name: 'Sumerian Cities', type: 'declining', description: 'Former city-states under Akkadian rule.' },
+                                { name: 'Gutian Tribes', type: 'rebel', description: 'Mountain peoples threatening from the east.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -2150, yearMax: -2000,
+                        data: {
+                            dominantPower: 'Third Dynasty of Ur',
+                            dominantPowerDescription: 'The Sumerian renaissance under the kings of Ur, who rebuild civilization after the Gutian chaos and establish a highly bureaucratic state.',
+                            eraContextSentence: 'the Sumerian renaissance, when Ur-Nammu\'s law code brings order to the land.',
+                            allegianceGroups: [
+                                { name: 'Kingdom of Ur', type: 'primary', description: 'The neo-Sumerian empire centered at Ur.' },
+                                { name: 'Amorite Tribes', type: 'rebel', description: 'Western nomads pressing against the borders.' },
+                                { name: 'Elamite Kingdom', type: 'secondary', description: 'Eastern neighbor and sometime rival.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -2000, yearMax: -1600,
+                        data: {
+                            dominantPower: 'Old Babylonian Empire',
+                            dominantPowerDescription: 'Babylon rises to dominance under Hammurabi, whose famous law code brings justice to the land. Merchants trade copper from Dilmun and textiles from the workshops.',
+                            eraContextSentence: 'the age of Hammurabi, when Babylon\'s laws govern from the Euphrates to the Tigris.',
+                            allegianceGroups: [
+                                { name: 'Babylon', type: 'primary', description: 'The kingdom of Hammurabi and his dynasty.' },
+                                { name: 'Larsa', type: 'declining', description: 'Former rival absorbed into the empire.' },
+                                { name: 'Assyria', type: 'secondary', description: 'Northern trading kingdom.' },
+                                { name: 'Mari', type: 'secondary', description: 'Upper Euphrates trade center.' }
+                            ],
+                            courtRoles: {
+                                palace: ['King of Babylon', 'Crown Prince', 'Chief Judge', 'Royal Scribe', 'Temple Administrator', 'Tax Collector']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -1600, yearMax: -1150,
+                        data: {
+                            dominantPower: 'Kassite Babylon',
+                            dominantPowerDescription: 'The Kassites, mountain warriors from the east, rule Babylon for four centuries, preserving Mesopotamian traditions while introducing horses and new gods.',
+                            eraContextSentence: 'the Kassite centuries, when foreign kings preserve ancient ways.',
+                            allegianceGroups: [
+                                { name: 'Kassite Babylon', type: 'primary', description: 'The long-ruling Kassite dynasty.' },
+                                { name: 'Middle Assyria', type: 'secondary', description: 'Northern power growing in strength.' },
+                                { name: 'Elam', type: 'rebel', description: 'Eastern rival threatening from the mountains.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -1150, yearMax: -612,
+                        data: {
+                            dominantPower: 'Neo-Assyrian Empire',
+                            dominantPowerDescription: 'The Assyrian war machine dominates the ancient world, its disciplined armies, iron weapons, and calculated terror subjecting all of Mesopotamia to the kings of Nineveh.',
+                            eraContextSentence: 'the Assyrian age, when the empire\'s armies march from Egypt to Elam.',
+                            allegianceGroups: [
+                                { name: 'Assyrian Empire', type: 'primary', description: 'The mighty empire ruling from Nineveh.' },
+                                { name: 'Babylonia', type: 'declining', description: 'Southern region under Assyrian control.' },
+                                { name: 'Chaldean Tribes', type: 'rebel', description: 'Aramean peoples resisting Assyrian rule.' },
+                                { name: 'Median Kingdom', type: 'secondary', description: 'Eastern Iranian power growing in strength.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -612, yearMax: -539,
+                        data: {
+                            dominantPower: 'Neo-Babylonian Empire',
+                            dominantPowerDescription: 'Babylon rises again under Nebuchadnezzar, who destroys Jerusalem, builds the Ishtar Gate, and makes his city the wonder of the ancient world.',
+                            eraContextSentence: 'the Chaldean restoration, when Babylon\'s hanging gardens amaze the world.',
+                            allegianceGroups: [
+                                { name: 'Babylon', type: 'primary', description: 'The restored Babylonian empire under Nebuchadnezzar.' },
+                                { name: 'Median Empire', type: 'secondary', description: 'Eastern ally against Assyria.' },
+                                { name: 'Egyptian Kingdom', type: 'rebel', description: 'Southern rival contesting the Levant.' },
+                                { name: 'Jewish Exiles', type: 'secondary', description: 'Captive community by the rivers of Babylon.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -539, yearMax: -330,
+                        data: {
+                            dominantPower: 'Persian Achaemenid Empire',
+                            dominantPowerDescription: 'Cyrus the Great conquers Babylon, beginning two centuries of Persian rule. Mesopotamia becomes a wealthy satrapy, its ancient traditions protected by the King of Kings.',
+                            eraContextSentence: 'the Persian peace, when the King of Kings rules from India to Egypt.',
+                            allegianceGroups: [
+                                { name: 'Achaemenid Empire', type: 'primary', description: 'The Persian empire of Cyrus and his heirs.' },
+                                { name: 'Babylonian Priesthood', type: 'secondary', description: 'Temple authorities maintaining tradition.' },
+                                { name: 'Greek City-States', type: 'rebel', description: 'Western rivals who burned Sardis and defied the Great King.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -330, yearMax: -140,
+                        data: {
+                            dominantPower: 'Seleucid Empire',
+                            dominantPowerDescription: 'Alexander\'s generals divide his conquests. Seleucus claims the east, founding Seleucia on the Tigris and ruling a vast realm where Greek and Babylonian cultures mingle.',
+                            eraContextSentence: 'the Hellenistic age, when Macedonian kings rule from new cities built in the eastern style.',
+                            allegianceGroups: [
+                                { name: 'Seleucid Kingdom', type: 'primary', description: 'The Greek dynasty ruling from Antioch and Seleucia.' },
+                                { name: 'Parthian Kingdom', type: 'rebel', description: 'Iranian nomads growing powerful on the eastern frontier.' },
+                                { name: 'Greek Cities', type: 'secondary', description: 'Colonies of settlers maintaining Hellenic culture.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -140, yearMax: 224,
+                        data: {
+                            dominantPower: 'Parthian Empire',
+                            dominantPowerDescription: 'The Parthians rule from Ctesiphon, maintaining the ancient traditions of Mesopotamia while serving as Rome\'s greatest eastern rival.',
+                            eraContextSentence: 'an age of cavalry and commerce, where Parthian arrows check Roman ambition.',
+                            allegianceGroups: [
+                                { name: 'Parthian Empire', type: 'primary', description: 'The Arsacid dynasty ruling from Ctesiphon.' },
+                                { name: 'Roman Empire', type: 'declining', description: 'Western rival seeking to control the region.' },
+                                { name: 'Arab Kingdoms', type: 'secondary', description: 'Buffer states like Hatra between the empires.' },
+                                { name: 'Jewish Exilarchs', type: 'secondary', description: 'Leaders of the ancient Jewish community.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: 224, yearMax: 500,
+                        data: {
+                            dominantPower: 'Sasanian Empire',
+                            dominantPowerDescription: 'The Sasanians overthrow the Parthians and revive the glory of ancient Persia. From Ctesiphon, they challenge Rome and Byzantium for mastery of the world.',
+                            eraContextSentence: 'the Sasanian restoration, when Zoroastrian fire temples rise beside ancient shrines.',
+                            allegianceGroups: [
+                                { name: 'Sasanian Empire', type: 'primary', description: 'The new Persian dynasty claiming the legacy of Cyrus.' },
+                                { name: 'Roman/Byzantine Empire', type: 'rebel', description: 'Western rival in perpetual conflict.' },
+                                { name: 'Nestorian Christians', type: 'secondary', description: 'Growing Christian community in the East.' },
+                                { name: 'Jewish Academies', type: 'secondary', description: 'Rabbinical scholars compiling the Babylonian Talmud.' }
+                            ]
+                        }
+                    }
+                ]
             },
             [HistoricalEra.MEDIEVAL]: {
                 dominantPower: 'Abbasid Caliphate',
@@ -606,7 +1132,102 @@ export const MENA_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Proconsul', 'Civitas Magistrate', 'Berber King', 'Bishop']
-                }
+                },
+                // Year-specific overrides for the different powers that controlled North Africa during ANTIQUITY
+                yearRangeOverrides: [
+                    {
+                        yearMin: -3000, yearMax: -814,
+                        data: {
+                            dominantPower: 'Libyan and Berber Tribes',
+                            dominantPowerDescription: 'Indigenous Berber and Libyan peoples control North Africa, organized into tribal confederations. Egyptian pharaohs fight endless wars against Libyan raiders from the west.',
+                            eraContextSentence: 'an age of tribal peoples, when Libyan warriors threaten Egypt and the coast awaits foreign settlers.',
+                            allegianceGroups: [
+                                { name: 'Libyan Tribes', type: 'primary', description: 'Indigenous peoples of the coast and mountains.' },
+                                { name: 'Egyptian Empire', type: 'rebel', description: 'Eastern power fighting Libyan incursions.' },
+                                { name: 'Phoenician Traders', type: 'trade_company', description: 'Early Levantine merchants establishing trading posts.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -814, yearMax: -264,
+                        data: {
+                            dominantPower: 'Carthaginian Empire',
+                            dominantPowerDescription: 'Phoenician Carthage rises to dominate the western Mediterranean. From their great city, Carthaginian merchants and admirals build a commercial empire spanning Africa, Spain, and the islands.',
+                            eraContextSentence: 'the age of Carthage, when Phoenician ships command the western seas and African silver flows to the great city.',
+                            allegianceGroups: [
+                                { name: 'Carthage', type: 'primary', description: 'The great Phoenician city-state.' },
+                                { name: 'Numidian Kingdoms', type: 'secondary', description: 'Berber cavalry allies and subjects.' },
+                                { name: 'Greek Colonies', type: 'rebel', description: 'Rival traders in Sicily and Cyrenaica.' },
+                                { name: 'Phoenician Colonies', type: 'secondary', description: 'Allied trading posts across the coast.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Suffetes', 'Council of Elders', 'Sacred Band Commander', 'Admiral', 'Chief Merchant']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -264, yearMax: -146,
+                        data: {
+                            dominantPower: 'Carthaginian Empire (Punic Wars)',
+                            dominantPowerDescription: 'Carthage fights for survival against Rome in the Punic Wars. Hannibal crosses the Alps and shakes Roman power, but Rome proves implacable. The final destruction approaches.',
+                            eraContextSentence: 'the age of the Punic Wars, when Hannibal threatens Rome and the fate of the Mediterranean hangs in the balance.',
+                            allegianceGroups: [
+                                { name: 'Carthage', type: 'primary', description: 'The embattled Phoenician power.' },
+                                { name: 'Roman Republic', type: 'rebel', description: 'Implacable enemy seeking Carthage\'s destruction.' },
+                                { name: 'Numidian Kings', type: 'secondary', description: 'Berber cavalry switching sides between powers.' },
+                                { name: 'Iberian Allies', type: 'secondary', description: 'Spanish subjects of Carthaginian Spain.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Suffetes', 'General', 'Admiral', 'Council Elder', 'Mercenary Captain']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -146, yearMax: -46,
+                        data: {
+                            dominantPower: 'Numidian Kingdoms',
+                            dominantPowerDescription: 'With Carthage destroyed, Berber Numidia briefly flourishes as Rome\'s ally. Kings like Masinissa and Jugurtha build a wealthy kingdom, until Jugurtha\'s war brings Roman conquest.',
+                            eraContextSentence: 'the Numidian age, when Berber kings rule the ruins of Carthage until Rome devours them too.',
+                            allegianceGroups: [
+                                { name: 'Kingdom of Numidia', type: 'primary', description: 'Berber kingdom allied with then opposing Rome.' },
+                                { name: 'Roman Republic', type: 'secondary', description: 'Patron turning into conqueror.' },
+                                { name: 'Mauretanian Kingdom', type: 'secondary', description: 'Western Berber realm.' },
+                                { name: 'Gaetulian Tribes', type: 'rebel', description: 'Southern nomadic peoples.' }
+                            ],
+                            courtRoles: {
+                                palace: ['King of Numidia', 'Royal Cavalry Commander', 'Chief Elder', 'Roman Advisor']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -46, yearMax: 429,
+                        data: {
+                            dominantPower: 'Roman Africa',
+                            dominantPowerDescription: 'North Africa flourishes as Rome\'s granary, with prosperous cities dotting the coast while Berber tribes maintain independence in the mountains and desert.',
+                            eraContextSentence: 'an age of Roman prosperity, where African grain feeds the empire.',
+                            allegianceGroups: [
+                                { name: 'Roman Empire', type: 'primary', description: 'Imperial authority from Rome.' },
+                                { name: 'Berber Kingdoms', type: 'secondary', description: 'Indigenous rulers in the interior.' },
+                                { name: 'Desert Nomads', type: 'rebel', description: 'Saharan tribes raiding the frontier.' },
+                                { name: 'African Christians', type: 'religious', description: 'Growing Christian communities.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: 429, yearMax: 500,
+                        data: {
+                            dominantPower: 'Vandal Kingdom',
+                            dominantPowerDescription: 'Germanic Vandals cross from Spain to conquer Roman Africa. From Carthage reborn they raid the Mediterranean, even sacking Rome itself, while Berber chiefs regain their independence.',
+                            eraContextSentence: 'the Vandal age, when Germanic warriors rule from Carthage and raid the dying Roman world.',
+                            allegianceGroups: [
+                                { name: 'Vandal Kingdom', type: 'primary', description: 'Germanic rulers based at Carthage.' },
+                                { name: 'Roman/Byzantine Empire', type: 'rebel', description: 'Former rulers plotting reconquest.' },
+                                { name: 'Berber Chiefs', type: 'secondary', description: 'Independent mountain and desert rulers.' },
+                                { name: 'Catholic Church', type: 'rebel', description: 'Persecuted by Arian Vandals.' }
+                            ]
+                        }
+                    }
+                ]
             },
             [HistoricalEra.MEDIEVAL]: {
                 dominantPower: 'Almoravid Dynasty',
@@ -890,7 +1511,102 @@ export const MENA_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Shahanshah', 'Wuzurg Framadar', 'Spahbed', 'Chief Magus']
-                }
+                },
+                // Year-specific overrides for the different powers that ruled Persia during ANTIQUITY
+                yearRangeOverrides: [
+                    {
+                        yearMin: -3000, yearMax: -678,
+                        data: {
+                            dominantPower: 'Elamite Kingdoms',
+                            dominantPowerDescription: 'Ancient Elam dominates the Iranian plateau, its sophisticated civilization rivaling Mesopotamia. Susa serves as the capital of a kingdom with its own unique script and culture.',
+                            eraContextSentence: 'an age before the Persians, when Elamite kings rule from Susa.',
+                            allegianceGroups: [
+                                { name: 'Kingdom of Elam', type: 'primary', description: 'Ancient civilization of the Iranian highlands.' },
+                                { name: 'Mesopotamian Powers', type: 'rebel', description: 'Rival kingdoms to the west.' },
+                                { name: 'Mountain Tribes', type: 'secondary', description: 'Iranian peoples of the Zagros.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -678, yearMax: -550,
+                        data: {
+                            dominantPower: 'Median Empire',
+                            dominantPowerDescription: 'The Medes, Iranian kinsmen of the Persians, forge the first great Iranian empire. From Ecbatana they overthrow Assyria and dominate the ancient Near East.',
+                            eraContextSentence: 'the age of the Medes, when Iranian horsemen first unite the plateau.',
+                            allegianceGroups: [
+                                { name: 'Median Kingdom', type: 'primary', description: 'The first great Iranian empire.' },
+                                { name: 'Persian Tribes', type: 'secondary', description: 'Subject peoples destined to overthrow their overlords.' },
+                                { name: 'Babylonian Empire', type: 'secondary', description: 'Ally against Assyria.' },
+                                { name: 'Scythian Tribes', type: 'rebel', description: 'Nomadic raiders from the steppes.' }
+                            ],
+                            courtRoles: {
+                                palace: ['King of the Medes', 'Satrap', 'Chief Magus', 'Commander of Cavalry']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -550, yearMax: -330,
+                        data: {
+                            dominantPower: 'Achaemenid Persian Empire',
+                            dominantPowerDescription: 'The greatest empire the world has yet seen. Cyrus the Great and his heirs rule from India to Egypt, building the Royal Road, respecting local customs, and calling themselves King of Kings.',
+                            eraContextSentence: 'the age of the Great Kings, when Persia rules from the Indus to the Nile.',
+                            allegianceGroups: [
+                                { name: 'Achaemenid Dynasty', type: 'primary', description: 'The Persian royal house descended from Cyrus.' },
+                                { name: 'Satrapies', type: 'secondary', description: 'Provincial governments across the empire.' },
+                                { name: 'Greek City-States', type: 'rebel', description: 'Western peoples who resist and then conquer the empire.' },
+                                { name: 'Zoroastrian Priesthood', type: 'religious', description: 'Guardians of the sacred fire.' }
+                            ],
+                            courtRoles: {
+                                palace: ['King of Kings', 'Hazarapatis', 'Royal Cupbearer', 'Chief Satrap', 'Commander of the Immortals']
+                            }
+                        }
+                    },
+                    {
+                        yearMin: -330, yearMax: -247,
+                        data: {
+                            dominantPower: 'Seleucid Empire',
+                            dominantPowerDescription: 'Alexander\'s generals divide his conquests. Seleucus and his heirs rule Persia, founding Greek cities and blending Hellenic and Iranian cultures across the plateau.',
+                            eraContextSentence: 'the Hellenistic age, when Macedonian kings rule from Seleucia.',
+                            allegianceGroups: [
+                                { name: 'Seleucid Kingdom', type: 'primary', description: 'Greek dynasty ruling the eastern realms.' },
+                                { name: 'Greek Settlers', type: 'secondary', description: 'Colonists maintaining Hellenic culture.' },
+                                { name: 'Iranian Nobility', type: 'secondary', description: 'Persian aristocrats serving new masters.' },
+                                { name: 'Parthian Tribes', type: 'rebel', description: 'Iranian nomads gaining strength on the frontier.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: -247, yearMax: 224,
+                        data: {
+                            dominantPower: 'Parthian Empire',
+                            dominantPowerDescription: 'The Parthians rule from Ctesiphon, reviving Persian traditions while serving as Rome\'s greatest eastern rival through cavalry and trade.',
+                            eraContextSentence: 'an age of mounted nobility, where Parthian shots humble Roman eagles.',
+                            allegianceGroups: [
+                                { name: 'Parthian Empire', type: 'primary', description: 'The Arsacid dynasty and their feudal nobles.' },
+                                { name: 'Roman Empire', type: 'rebel', description: 'Western rival seeking eastern expansion.' },
+                                { name: 'Kushan Empire', type: 'secondary', description: 'Eastern neighbor controlling the Silk Road.' },
+                                { name: 'Armenian Kingdom', type: 'secondary', description: 'Buffer state between the empires.' }
+                            ]
+                        }
+                    },
+                    {
+                        yearMin: 224, yearMax: 500,
+                        data: {
+                            dominantPower: 'Sasanian Empire',
+                            dominantPowerDescription: 'The Sasanians overthrow the Parthians and revive the glory of ancient Persia. Zoroastrianism becomes the state religion as the empire challenges Rome and Byzantium for mastery of the world.',
+                            eraContextSentence: 'the Sasanian restoration, when the King of Kings claims the legacy of Cyrus.',
+                            allegianceGroups: [
+                                { name: 'Sasanian Empire', type: 'primary', description: 'The new Persian dynasty claiming Achaemenid heritage.' },
+                                { name: 'Roman/Byzantine Empire', type: 'rebel', description: 'Western rival in perpetual conflict.' },
+                                { name: 'Zoroastrian Church', type: 'religious', description: 'State religion with enormous influence.' },
+                                { name: 'Nestorian Christians', type: 'secondary', description: 'Tolerated minority in the eastern provinces.' }
+                            ],
+                            courtRoles: {
+                                palace: ['Shahanshah', 'Wuzurg Framadar', 'Mobadan Mobad', 'Spahbed', 'Royal Chamberlain']
+                            }
+                        }
+                    }
+                ]
             },
             [HistoricalEra.MEDIEVAL]: {
                 dominantPower: 'Abbasid Caliphate (Persian Influence)',

@@ -373,7 +373,18 @@ class ShareableStateService {
       'Yangtze River': 'YZR',
       'Great Lakes': 'GL',
       'Mississippi Delta': 'MD',
-      'Amazon Basin': 'AB'
+      'Amazon Basin': 'AB',
+      // Historical figures map areas
+      'Tigris–Euphrates Confluence': 'TEC',
+      'Cappadocian Highlands': 'CH',
+      'Nile Delta': 'ND',
+      'Thebes Valley': 'TV',
+      'Athens Basin': 'ATB',
+      'Delos Archipelago': 'DA',
+      'Yellow River Valley': 'YRV',
+      'Patna Lowlands': 'PL',
+      'Tunisian Sahel': 'TS',
+      'Babylon Region': 'BR'
     };
     
     // If no abbreviation exists, use the full name (don't truncate)
@@ -404,7 +415,18 @@ class ShareableStateService {
       'YZR': 'Yangtze River',
       'GL': 'Great Lakes',
       'MD': 'Mississippi Delta',
-      'AB': 'Amazon Basin'
+      'AB': 'Amazon Basin',
+      // Historical figures map areas
+      'TEC': 'Tigris–Euphrates Confluence',
+      'CH': 'Cappadocian Highlands',
+      'ND': 'Nile Delta',
+      'TV': 'Thebes Valley',
+      'ATB': 'Athens Basin',
+      'DA': 'Delos Archipelago',
+      'YRV': 'Yellow River Valley',
+      'PL': 'Patna Lowlands',
+      'TS': 'Tunisian Sahel',
+      'BR': 'Babylon Region'
     };
     
     // If it's not an abbreviation, assume it's the full name

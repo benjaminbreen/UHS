@@ -26,6 +26,16 @@ export interface AllegianceGroup {
 /**
  * NEW: Defines faction data for a specific era and region
  */
+/**
+ * Year range override for faction data - allows different dominant powers
+ * for sub-periods within an era (e.g., different rulers during ANTIQUITY)
+ */
+export interface YearRangeOverride {
+    yearMin: number;  // Start year (inclusive) - negative for BCE
+    yearMax: number;  // End year (exclusive) - negative for BCE
+    data: Partial<FactionData>;  // Override fields for this year range
+}
+
 export interface FactionData {
     dominantPower: string;
     dominantPowerDescription: string;
@@ -34,6 +44,7 @@ export interface FactionData {
     courtRoles?: Partial<Record<TerrainStructureType, string[]>>; // NEW: For "Living Courts"
     eraContextSentence: string;
     mapAreaOverrides?: { [mapAreaName: string]: Partial<FactionData> };
+    yearRangeOverrides?: YearRangeOverride[];  // Year-specific overrides within an era
 }
 
 // NEW: Database structures for FactionData

@@ -162,9 +162,70 @@ export const FACTION_ICONS: Record<string, FactionData> = {
   'Cossacks': { name: 'Cossacks', color: '#B22222', icon: GiCavalry },
 
   // --- MIDDLE EAST & NORTH AFRICA ---
+  // Mesopotamian
   'Sumerian City-States': { name: 'Sumerian City-States', color: '#DAA520', icon: GiMayanPyramid },
+  'Akkadian Empire': { name: 'Akkadian Empire', color: '#8B4513', icon: GiCrown },
+  'Third Dynasty of Ur': { name: 'Third Dynasty of Ur', color: '#C4A05A', icon: GiStoneWall },
+  'Old Babylonian Empire': { name: 'Old Babylonian Empire', color: '#4169E1', icon: GiScrollUnfurled },
+  'Kassite Babylon': { name: 'Kassite Babylon', color: '#6B8E23', icon: FaHorse },
+  'Neo-Assyrian Empire': { name: 'Neo-Assyrian Empire', color: '#8B0000', icon: GiCavalry },
+  'Neo-Babylonian Empire': { name: 'Neo-Babylonian Empire', color: '#1E90FF', icon: GiGreekTemple },
+
+  // Egyptian
+  'Old Kingdom Egypt': { name: 'Old Kingdom Egypt', color: '#FFD700', icon: GiMayanPyramid },
+  'First Intermediate Period': { name: 'First Intermediate Period', color: '#B8860B', icon: GiCrackedShield },
+  'Middle Kingdom Egypt': { name: 'Middle Kingdom Egypt', color: '#DAA520', icon: GiEgyptianSphinx },
+  'Hyksos Dynasty': { name: 'Hyksos Dynasty', color: '#8B4513', icon: FaHorse },
+  'New Kingdom Egypt': { name: 'New Kingdom Egypt', color: '#FFD700', icon: GiGoldScarab },
+  'Third Intermediate Period': { name: 'Third Intermediate Period', color: '#CD853F', icon: GiCrackedShield },
+  'Late Period Egypt': { name: 'Late Period Egypt', color: '#B8860B', icon: GiAnkh },
+  'Ptolemaic Egypt': { name: 'Ptolemaic Egypt', color: '#4169E1', icon: GiGreekTemple },
+  'Roman Egypt': { name: 'Roman Egypt', color: '#8B0000', icon: GiRomanToga },
+  'Byzantine Egypt': { name: 'Byzantine Egypt', color: '#800080', icon: GiByzantinTemple },
+
+  // Persian/Iranian
+  'Elamite Kingdoms': { name: 'Elamite Kingdoms', color: '#8B4513', icon: GiStoneWall },
+  'Median Empire': { name: 'Median Empire', color: '#4B0082', icon: FaHorse },
+  'Achaemenid Persian Empire': { name: 'Achaemenid Persian Empire', color: '#FFD700', icon: GiLion },
+  'Persian Achaemenid Empire': { name: 'Persian Achaemenid Empire', color: '#FFD700', icon: GiLion },
+  'Seleucid Empire': { name: 'Seleucid Empire', color: '#DAA520', icon: GiElephant },
   'Parthian Empire': { name: 'Parthian Empire', color: '#FFD700', icon: FaHorse },
+  'Sasanian Empire': { name: 'Sasanian Empire', color: '#B87333', icon: GiFireShrine },
   'Sassanid Empire': { name: 'Sassanid Empire', color: '#B87333', icon: GiFireShrine },
+
+  // Levantine
+  'Canaanite City-States': { name: 'Canaanite City-States', color: '#8B4513', icon: GiStoneWall },
+  'Israelite and Phoenician Kingdoms': { name: 'Israelite and Phoenician Kingdoms', color: '#4169E1', icon: FaStarOfDavid },
+  'Assyrian and Babylonian Empires': { name: 'Assyrian and Babylonian Empires', color: '#8B0000', icon: GiCavalry },
+  'Persian Levant': { name: 'Persian Levant', color: '#FFD700', icon: GiLion },
+  'Hellenistic Levant': { name: 'Hellenistic Levant', color: '#DAA520', icon: GiGreekTemple },
+  'Hasmonean Kingdom': { name: 'Hasmonean Kingdom', color: '#4169E1', icon: FaStarOfDavid },
+  'Roman Syria': { name: 'Roman Syria', color: '#8B0000', icon: GiRomanToga },
+  'Byzantine Levant': { name: 'Byzantine Levant', color: '#800080', icon: GiByzantinTemple },
+
+  // Anatolian
+  'Hatti and Early Anatolian Kingdoms': { name: 'Hatti and Early Anatolian Kingdoms', color: '#8B4513', icon: GiStoneWall },
+  'Hittite Empire': { name: 'Hittite Empire', color: '#CD853F', icon: GiSun },
+  'Neo-Hittite and Phrygian Kingdoms': { name: 'Neo-Hittite and Phrygian Kingdoms', color: '#DAA520', icon: GiCrown },
+  'Phrygian Kingdom': { name: 'Phrygian Kingdom', color: '#DAA520', icon: GiCrown },
+  'Lydian Kingdom': { name: 'Lydian Kingdom', color: '#FFD700', icon: FaCoins },
+  'Persian Anatolia': { name: 'Persian Anatolia', color: '#FFD700', icon: GiLion },
+  'Hellenistic Anatolia': { name: 'Hellenistic Anatolia', color: '#DAA520', icon: GiGreekTemple },
+  'Kingdom of Pergamon': { name: 'Kingdom of Pergamon', color: '#B8860B', icon: GiScrollUnfurled },
+  'Kingdom of Pontus': { name: 'Kingdom of Pontus', color: '#2F4F4F', icon: GiCrown },
+  'Roman Asia': { name: 'Roman Asia', color: '#8B0000', icon: GiRomanToga },
+  'Byzantine Anatolia': { name: 'Byzantine Anatolia', color: '#800080', icon: GiByzantinTemple },
+
+  // North African
+  'Libyan and Berber Tribes': { name: 'Libyan and Berber Tribes', color: '#D2691E', icon: GiTribalMask },
+  'Carthaginian Empire': { name: 'Carthaginian Empire', color: '#800080', icon: GiElephant },
+  'Carthaginian Empire (Punic Wars)': { name: 'Carthaginian Empire (Punic Wars)', color: '#800080', icon: GiElephant },
+  'Carthage': { name: 'Carthage', color: '#800080', icon: GiElephant },
+  'Numidian Kingdoms': { name: 'Numidian Kingdoms', color: '#D2691E', icon: FaHorse },
+  'Kingdom of Numidia': { name: 'Kingdom of Numidia', color: '#D2691E', icon: FaHorse },
+  'Roman Africa': { name: 'Roman Africa', color: '#8B0000', icon: GiRomanToga },
+  'Vandal Kingdom': { name: 'Vandal Kingdom', color: '#4682B4', icon: GiVikingHelmet },
+
   'Abbasid Caliphate': { name: 'Abbasid Caliphate', color: '#D3D3D3', icon: FaMosque },
   'Fatimid Caliphate': { name: 'Fatimid Caliphate', color: '#D3D3D3', icon: FaMosque },
   'Ottoman Empire': { name: 'Ottoman Empire', color: '#C8102E', icon: FaMoon },

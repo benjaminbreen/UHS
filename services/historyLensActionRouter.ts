@@ -324,7 +324,8 @@ const resolveNearestStructure = (
         seenClusters.add(clusterKey);
 
         const dist = Math.hypot(x - state.playerX, y - state.playerY);
-        if (dist <= maxDistance && dist > 0.5) {
+        // Include tiles the player is standing on (dist >= 0) for enter actions
+        if (dist <= maxDistance) {
           const label = tile.cityName || BIOME_NAV_LABELS[biome] || biome.toLowerCase().replace(/_/g, ' ');
           filteredCandidates.push({ x, y, label });
         }
