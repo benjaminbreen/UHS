@@ -210,26 +210,29 @@ const formatBeliefs = (character: PlayerCharacter | NpcEntity): string => {
 
 
 /**
- * NEW: Summarizes a conversation history into a single sentence for an NPC's memory.
+ * Summarizes a conversation history into a single sentence.
+ * Uses player-centric perspective ("you") for display in HistoryLens.
  */
 export async function summarizeConversation(history: DialogueEntry[]): Promise<{ summary: string; sentiment: 'positive' | 'negative' | 'neutral' }> {
     if (history.length <= 1) {
-        return { summary: "We briefly exchanged pleasantries.", sentiment: 'neutral' };
+        return { summary: "You briefly exchanged pleasantries.", sentiment: 'neutral' };
     }
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const conversationText = history.map(entry => `${entry.speaker}: ${entry.text}`).join('\n');
 
     const prompt = `
-        You are an AI assistant. The following is a dialogue between an NPC and a player. 
-        Summarize the key outcome of this conversation into a single, concise sentence from the NPC's perspective.
-        Also, determine the overall sentiment of the player's interaction from the NPC's point of view.
+        You are an AI assistant. The following is a dialogue between an NPC and a player.
+        Summarize the key outcome of this conversation into a single, concise sentence.
+        Write the summary from the PLAYER'S perspective, using "you" to refer to the player and referring to the NPC by name or in third person.
+        Also, determine the overall sentiment of the interaction.
 
-        Focus on the most important takeaway for the NPC. Examples:
-        - "The player asked me for directions to the old mill." (neutral)
-        - "I warned the player about the dangers of the northern woods." (neutral)
-        - "The player was kind and offered me a piece of bread." (positive)
-        - "The player was rude and demanded I give them my goods." (negative)
+        Focus on the most important takeaway. Examples:
+        - "You asked them for directions to the old mill." (neutral)
+        - "They warned you about the dangers of the northern woods." (neutral)
+        - "You were kind and offered them a piece of bread." (positive)
+        - "You were rude and demanded they give you their goods." (negative)
+        - "You asked about work, but they said none was available." (neutral)
 
         Conversation to summarize:
         ${conversationText}
@@ -244,8 +247,8 @@ export async function summarizeConversation(history: DialogueEntry[]): Promise<{
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        summary: { type: Type.STRING, description: "A single, concise sentence summarizing the conversation from the NPC's perspective." },
-                        sentiment: { type: Type.STRING, enum: ['positive', 'negative', 'neutral'], description: "The player's sentiment from the NPC's perspective during the interaction." }
+                        summary: { type: Type.STRING, description: "A single, concise sentence summarizing the conversation from the player's perspective, using 'you' for the player." },
+                        sentiment: { type: Type.STRING, enum: ['positive', 'negative', 'neutral'], description: "The overall sentiment of the interaction." }
                     },
                     required: ["summary", "sentiment"]
                 }
@@ -264,7 +267,7 @@ export async function summarizeConversation(history: DialogueEntry[]): Promise<{
         throw new Error("Invalid JSON structure from LLM for summary.");
     } catch (error) {
         console.error("Error summarizing conversation:", error);
-        return { summary: "I had a conversation with the player.", sentiment: 'neutral' };
+        return { summary: "You had a brief conversation.", sentiment: 'neutral' };
     }
 }
 

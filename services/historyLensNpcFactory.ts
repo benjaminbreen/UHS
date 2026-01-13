@@ -73,6 +73,12 @@ export function createHistoryLensNpcs(context: SpawnContext): NpcEntity[] {
   const seed = context.mapData.seed + Math.floor(Math.random() * 100000);
   const noise = new ValueNoise(seed);
 
+  console.log(`[HistoryLens NPC] Creating ${count} NPC(s) near player at (${context.playerX}, ${context.playerY})`, {
+    preferredRole: context.preferredRole,
+    preferredName: context.preferredName,
+    playerMode: context.playerMode
+  });
+
   const locationLabel =
     context.mapData.localArea ||
     context.mapData.region ||

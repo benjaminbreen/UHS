@@ -2,7 +2,7 @@
  * generation/common/npcUtils.ts - Enhanced NPC utility functions with portrait generation.
  */
 import { NpcEntity, NpcStats, NpcPersonality, NpcSocialContext, HistoricalEra, CharacterStats, CharacterPersonality, CharacterSocialContext, WealthLevel, Gender, TerrainStructure, PlayerCharacter, Ideology, Appearance, ClothingPiece, ClothingPalette, MapAreaDefinition, FactionData, TerrainStructureType, PersonalGoal } from '../../types';
-import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, IDEOLOGIES, PERSONAL_BELIEFS } from '../../constants/index';
+import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, ProfessionFrequency, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, IDEOLOGIES, PERSONAL_BELIEFS } from '../../constants/index';
 // Heavy data files - import directly to avoid loading on app startup
 import { GEOGRAPHICAL_DATA } from '../../constants/gameData/geography';
 import { ADJACENCIES } from '../../constants/gameData/adjacencies';
@@ -702,31 +702,136 @@ export function generateCulturalAppearance(culturalZone: CulturalZone, noise: Va
 }
 
 
-function getFallbackRole(wealth: WealthLevel, gender: Gender): { socialClass: string, role: string, emoji: string, nameKey?: string } {
-    const commonerRoles = [
-        { role: 'Laborer', emoji: '🧑‍🔧', gender: 'any' },
-        { role: 'Wanderer', emoji: '🚶', gender: 'any' },
-        { role: 'Farmer', emoji: '🧑‍🌾', gender: 'any' },
-        { role: 'Shepherd', emoji: '🐑', gender: 'any' },
-        { role: 'Potter', emoji: '🏺', gender: 'Male' },
-        { role: 'Weaver', emoji: '🧶', gender: 'Female' },
-        { role: 'Caretaker', emoji: '🧑‍⚕️', gender: 'Female' },
-        { role: 'Child Watcher', emoji: '👶', gender: 'Female' },
-        { role: 'Mother', emoji: '🤱', gender: 'Female' },
-    ];
+/**
+ * Profession frequency weights for weighted random selection.
+ * Balanced to allow variety while making common roles more likely.
+ * Common roles are 6x more likely than very_rare ones.
+ */
+const FREQUENCY_WEIGHTS: Record<ProfessionFrequency, number> = {
+    'common': 6,
+    'uncommon': 3,
+    'rare': 1.5,
+    'very_rare': 1
+};
 
-    const suitableRoles = commonerRoles.filter(r => r.gender === 'any' || r.gender === gender);
+/**
+ * Weighted random selection from an array of professions.
+ */
+function weightedProfessionSelect<T extends { roleDef: ProfessionDefinition }>(roles: T[]): T {
+    if (roles.length === 0) throw new Error('Cannot select from empty array');
+    if (roles.length === 1) return roles[0];
+
+    // Calculate total weight
+    let totalWeight = 0;
+    const weights: number[] = [];
+    for (const role of roles) {
+        const freq = role.roleDef.frequency || 'common';
+        const weight = FREQUENCY_WEIGHTS[freq];
+        weights.push(weight);
+        totalWeight += weight;
+    }
+
+    // Random selection based on weight
+    let random = Math.random() * totalWeight;
+    for (let i = 0; i < roles.length; i++) {
+        random -= weights[i];
+        if (random <= 0) {
+            return roles[i];
+        }
+    }
+
+    // Fallback (shouldn't happen)
+    return roles[roles.length - 1];
+}
+
+/**
+ * Era-aware fallback roles - historically appropriate professions when no specific match found.
+ * Note: Shepherd removed from PREHISTORY - sheep weren't domesticated until ~8000 BCE Near East,
+ * and never independently in Australia/Americas before European contact.
+ */
+const ERA_FALLBACK_ROLES: Record<HistoricalEra, Array<{ role: string; emoji: string; gender: 'any' | 'Male' | 'Female' }>> = {
+    [HistoricalEra.PREHISTORY]: [
+        { role: 'Hunter', emoji: '🏹', gender: 'Male' },
+        { role: 'Gatherer', emoji: '🌿', gender: 'Female' },
+        { role: 'Toolmaker', emoji: '🪨', gender: 'any' },
+        { role: 'Fire Keeper', emoji: '🔥', gender: 'any' },
+        { role: 'Fisher', emoji: '🎣', gender: 'any' },
+    ],
+    [HistoricalEra.ANTIQUITY]: [
+        { role: 'Farmer', emoji: '🧑‍🌾', gender: 'any' },
+        { role: 'Laborer', emoji: '🧱', gender: 'any' },
+        { role: 'Potter', emoji: '🏺', gender: 'any' },
+        { role: 'Herder', emoji: '🐐', gender: 'any' },
+        { role: 'Weaver', emoji: '🧶', gender: 'Female' },
+        { role: 'Fisher', emoji: '🎣', gender: 'Male' },
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+        { role: 'Peasant', emoji: '🧑‍🌾', gender: 'any' },
+        { role: 'Laborer', emoji: '🧑‍🔧', gender: 'any' },
+        { role: 'Farmer', emoji: '🌾', gender: 'any' },
+        { role: 'Servant', emoji: '🧹', gender: 'any' },
+        { role: 'Shepherd', emoji: '🐑', gender: 'any' },
+        { role: 'Weaver', emoji: '🧶', gender: 'Female' },
+    ],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+        { role: 'Farmer', emoji: '🧑‍🌾', gender: 'any' },
+        { role: 'Laborer', emoji: '🧑‍🔧', gender: 'any' },
+        { role: 'Servant', emoji: '🧹', gender: 'any' },
+        { role: 'Porter', emoji: '📦', gender: 'Male' },
+        { role: 'Peddler', emoji: '🛒', gender: 'any' },
+        { role: 'Laundress', emoji: '🧺', gender: 'Female' },
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+        { role: 'Factory Worker', emoji: '🏭', gender: 'any' },
+        { role: 'Laborer', emoji: '🧑‍🔧', gender: 'any' },
+        { role: 'Domestic Servant', emoji: '🧹', gender: 'Female' },
+        { role: 'Farm Worker', emoji: '🌾', gender: 'any' },
+        { role: 'Porter', emoji: '📦', gender: 'Male' },
+        { role: 'Laundress', emoji: '🧺', gender: 'Female' },
+    ],
+    [HistoricalEra.MODERN_ERA]: [
+        { role: 'Worker', emoji: '🧑‍🔧', gender: 'any' },
+        { role: 'Clerk', emoji: '📋', gender: 'any' },
+        { role: 'Shop Assistant', emoji: '🛒', gender: 'any' },
+        { role: 'Driver', emoji: '🚗', gender: 'Male' },
+        { role: 'Factory Worker', emoji: '🏭', gender: 'any' },
+        { role: 'Domestic Worker', emoji: '🧹', gender: 'Female' },
+    ],
+    [HistoricalEra.FUTURE_ERA]: [
+        { role: 'Worker', emoji: '🧑‍🔧', gender: 'any' },
+        { role: 'Technician', emoji: '🔧', gender: 'any' },
+        { role: 'Service Worker', emoji: '🛒', gender: 'any' },
+        { role: 'Driver', emoji: '🚗', gender: 'any' },
+    ],
+};
+
+function getFallbackRole(
+    wealth: WealthLevel,
+    gender: Gender,
+    era: HistoricalEra = HistoricalEra.MEDIEVAL
+): { socialClass: string, role: string, emoji: string, nameKey?: string } {
+    const eraRoles = ERA_FALLBACK_ROLES[era] || ERA_FALLBACK_ROLES[HistoricalEra.MEDIEVAL];
+
+    // Filter by gender compatibility
+    const suitableRoles = eraRoles.filter(r =>
+        r.gender === 'any' ||
+        r.gender === gender ||
+        gender === 'Non-binary'
+    );
 
     if (suitableRoles.length > 0) {
         const chosen = suitableRoles[Math.floor(Math.random() * suitableRoles.length)];
         return { socialClass: 'COMMONER', role: chosen.role, emoji: chosen.emoji };
     }
-    
-    // Ultimate fallback if no suitable role found (e.g. for Non-binary gender)
-    if (wealth === 'poor' || wealth === 'modest') {
-        return { socialClass: 'COMMONER', role: 'Laborer', emoji: '🧑‍🔧' };
+
+    // Ultimate fallback - pick any role from era
+    if (eraRoles.length > 0) {
+        const chosen = eraRoles[Math.floor(Math.random() * eraRoles.length)];
+        return { socialClass: 'COMMONER', role: chosen.role, emoji: chosen.emoji };
     }
-    return { socialClass: 'COMMONER', role: 'Wanderer', emoji: '🚶' };
+
+    // Absolute last resort
+    return { socialClass: 'COMMONER', role: 'Laborer', emoji: '🧑‍🔧' };
 }
 
 export function determineSocialRole(
@@ -747,10 +852,12 @@ export function determineSocialRole(
 
         if (context.era.endsWith('s')) { // This is a decade string like "1940s"
             const year = parseInt(context.era.slice(0, 4), 10);
-            if (year >= 1900) {
+            if (year >= 1920) {
                 eraForProfessions = HistoricalEra.MODERN_ERA;
+            } else if (year >= 1760) {
+                eraForProfessions = HistoricalEra.INDUSTRIAL_ERA;
             } else {
-                eraForProfessions = HistoricalEra.INDUSTRIAL_ERA; // fallback
+                eraForProfessions = HistoricalEra.RENAISSANCE_EARLY_MODERN; // fallback for earlier decades
             }
         } else {
             eraForProfessions = context.era as HistoricalEra;
@@ -758,7 +865,7 @@ export function determineSocialRole(
 
         const eraRoles: SocialClassMap | undefined = PROFESSIONS[context.culturalZone]?.[eraForProfessions];
 
-        if (!eraRoles) return getFallbackRole(profile.wealthLevel, profile.gender);
+        if (!eraRoles) return getFallbackRole(profile.wealthLevel, profile.gender, eraForProfessions);
 
         // Get the appropriate profession context based on location
         let professionContext: ProfessionContext | null = null;
@@ -856,14 +963,17 @@ export function determineSocialRole(
         }
         
         if (possibleRoles.length > 0) {
-            const chosen = possibleRoles[Math.floor(Math.random() * possibleRoles.length)];
+            // Use weighted selection based on profession frequency
+            const chosen = weightedProfessionSelect(possibleRoles);
             return { socialClass: chosen.socialClass, role: chosen.role, emoji: chosen.roleDef.emoji || '🧑', nameKey: chosen.roleDef.nameKey };
         }
 
-        return getFallbackRole(profile.wealthLevel, profile.gender);
+        return getFallbackRole(profile.wealthLevel, profile.gender, eraForProfessions);
     } catch (error) {
         console.error("Error determining social role:", error);
-        return getFallbackRole(profile.wealthLevel, profile.gender);
+        // In catch block, we may not have eraForProfessions, so use context.era with fallback
+        const fallbackEra = (context.era as HistoricalEra) || HistoricalEra.MEDIEVAL;
+        return getFallbackRole(profile.wealthLevel, profile.gender, fallbackEra);
     }
 }
 

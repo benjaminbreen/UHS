@@ -14,6 +14,7 @@ import { getFactoryType, FactoryType } from '../../../constants/gameData/factory
 import { MINE_FREQUENCY_BY_ERA, QUARRY_FREQUENCY_BY_ERA, getRandomMaterial } from '../../../constants/gameData/mineQuarryMaterials';
 import { selectGovernmentType } from '../../../constants/gameData/governmentDistricts';
 import { worldEntityRegistry } from '../../../services/worldEntityRegistry';
+import { generateWaystationName, generateWellName } from '../../../services/structureNamingService';
 
 
 let structureIdCounter = 0;
@@ -162,7 +163,7 @@ function findPlacementCandidates(
                     }
                     break;
                 case 'lumber_camp':
-                     if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.GRASSLAND) {
+                     if (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.DENSE_FOREST) {
                         let forestTilesNearby = 0;
                         for (let dy = -2; dy <= 2; dy++) {
                             for (let dx = -2; dx <= 2; dx++) {
@@ -173,7 +174,8 @@ function findPlacementCandidates(
                                 }
                             }
                         }
-                        if (forestTilesNearby > 3) {
+                        // Relaxed requirement: only need 2 forest tiles nearby instead of 3
+                        if (forestTilesNearby >= 2) {
                              isValid = true;
                              score = forestTilesNearby;
                         }
@@ -229,7 +231,7 @@ function findPlacementCandidates(
                 case 'government_district':
                     // Government buildings must be very close to city centers
                     // BUT not on urban tiles themselves - only on appropriate terrain
-                    if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.FOREST || 
+                    if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.FOREST ||
                         tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.DIRT) {
                         let isNearCityCenter = false;
                         let cityDistance = 999;
@@ -249,6 +251,113 @@ function findPlacementCandidates(
                         if (isNearCityCenter && cityDistance <= 5) {
                             isValid = true;
                             score = 10 - cityDistance; // Prefer closer to city center
+                        }
+                    }
+                    break;
+                case 'waystation':
+                    // Waystations prefer roads, grasslands, and areas between settlements
+                    // They serve travelers on trade routes
+                    if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.ROAD ||
+                        tile.biome === BiomeType.STEPPE || tile.biome === BiomeType.DESERT ||
+                        tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.RIVERBANK) {
+
+                        let nearRoad = false;
+                        let nearSettlement = false;
+                        let settlementDistance = 999;
+                        let roadProximity = 0;
+
+                        for (let dy = -8; dy <= 8; dy++) {
+                            for (let dx = -8; dx <= 8; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                                    const dist = Math.hypot(dx, dy);
+                                    const checkTile = tiles[ny][nx];
+
+                                    // Check for nearby roads
+                                    if (checkTile.biome === BiomeType.ROAD && dist <= 3) {
+                                        nearRoad = true;
+                                        roadProximity = Math.max(roadProximity, 4 - dist);
+                                    }
+
+                                    // Check for settlements - waystations should be BETWEEN settlements, not in them
+                                    if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(checkTile.biome)) {
+                                        if (dist < settlementDistance) {
+                                            nearSettlement = true;
+                                            settlementDistance = dist;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Ideal: near roads, moderate distance from settlements (not too close, not too far)
+                        if (nearRoad || tile.biome === BiomeType.ROAD) {
+                            // Best placement: 5-15 tiles from settlement
+                            if (settlementDistance >= 5 && settlementDistance <= 15) {
+                                isValid = true;
+                                score = roadProximity + 3;
+                            } else if (!nearSettlement) {
+                                // Also valid in wilderness without nearby settlements
+                                isValid = true;
+                                score = roadProximity + 1;
+                            }
+                        } else if (!nearSettlement) {
+                            // Can also place in wilderness away from roads (frontier waystation)
+                            isValid = true;
+                            score = 0.5;
+                        }
+                    }
+                    break;
+                case 'well':
+                    // Wells are placed in/near settlements, or at strategic water-access points
+                    // They provide water to communities (not ON water sources like oases - those already have water)
+                    if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.DESERT ||
+                        tile.biome === BiomeType.STEPPE || tile.biome === BiomeType.SCRUB ||
+                        tile.biome === BiomeType.RIVERBANK ||
+                        tile.biome === BiomeType.DIRT || tile.biome === BiomeType.HILLS) {
+
+                        let nearSettlement = false;
+                        let nearWater = false;
+                        let settlementScore = 0;
+                        let waterScore = 0;
+
+                        for (let dy = -5; dy <= 5; dy++) {
+                            for (let dx = -5; dx <= 5; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                                    const dist = Math.hypot(dx, dy);
+                                    const checkTile = tiles[ny][nx];
+
+                                    // Prefer near settlements
+                                    if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.FARMLAND].includes(checkTile.biome)) {
+                                        nearSettlement = true;
+                                        settlementScore += (6 - dist) * 0.5;
+                                    }
+
+                                    // Bonus if NOT near existing water sources (wells fill the gap)
+                                    if ([BiomeType.RIVER, BiomeType.FRESHWATER_LAKE, BiomeType.WETLANDS].includes(checkTile.biome)) {
+                                        nearWater = true;
+                                        waterScore += 1;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Wells are most valuable away from natural water sources
+                        if (nearSettlement) {
+                            isValid = true;
+                            // Higher score if near settlement but away from water
+                            score = settlementScore + (nearWater ? 0 : 2);
+                        } else if (tile.biome === BiomeType.DESERT) {
+                            // Desert wells are valuable even without settlements
+                            isValid = true;
+                            score = nearWater ? 1 : 3;
+                        } else if (!nearWater) {
+                            // Wilderness wells in dry areas
+                            isValid = true;
+                            score = 0.5;
                         }
                     }
                     break;
@@ -312,23 +421,32 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
 
         candidates.sort((a, b) => b.score - a.score);
 
-        // For maps without cities, limit structure generation more strictly
+        // Structure limits - more permissive for non-city maps to add variety
         let maxToPlace: number;
         if (!hasCities) {
-            // Non-city maps should have very limited structures
-            maxToPlace = structureType === 'fishing_hut' ? 1 : 
-                        structureType === 'lumber_camp' ? 1 :
-                        structureType === 'mining_colony' ? 1 :
-                        structureType === 'mill' ? 0 : // No mills without cities/settlements
-                        structureType === 'marketplace' ? 0 : // No marketplaces without cities
-                        structureType === 'factory' ? 0 : // No factories without cities
+            // Non-city maps can still have rural/wilderness industry
+            maxToPlace = structureType === 'fishing_hut' ? 3 : // Coastal areas can have multiple fishing huts
+                        structureType === 'lumber_camp' ? 2 : // Allow more lumber camps in forested areas
+                        structureType === 'mining_colony' ? 2 : // Multiple mines possible
+                        structureType === 'quarry' ? 2 : // Multiple quarries possible
+                        structureType === 'mill' ? 1 : // Mills can exist in rural areas (water/windmills)
+                        structureType === 'marketplace' ? 1 : // Rural markets/trading posts exist
+                        structureType === 'factory' ? 1 : // Plantations, rural workshops in appropriate eras
                         structureType === 'government_district' ? 0 : // No government buildings without cities
+                        structureType === 'farm' ? 3 : // Multiple farms in agricultural areas
+                        structureType === 'waystation' ? 2 : // Rest stops along routes
+                        structureType === 'well' ? 3 : // Water sources scattered across landscape
                         1;
         } else {
             // City maps can have normal structure counts
-            maxToPlace = structureType === 'fishing_hut' ? 2 : 
+            maxToPlace = structureType === 'fishing_hut' ? 3 :
                         structureType === 'government_district' ? 1 : // Only one government building per city
                         structureType === 'factory' ? 3 : // Allow multiple factories per city
+                        structureType === 'farm' ? 4 : // Multiple farms around cities
+                        structureType === 'lumber_camp' ? 2 :
+                        structureType === 'mining_colony' ? 2 :
+                        structureType === 'waystation' ? 1 : // One waystation per city area
+                        structureType === 'well' ? 2 : // Wells in city areas
                         1;
         }
         let placedCount = 0;
@@ -489,6 +607,14 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
                             } else {
                                 name = 'City Hall';
                             }
+                        } else if (structureType === 'waystation') {
+                            // Generate culturally appropriate waystation name
+                            name = generateWaystationName(culturalZone, dateInfo.era, dateInfo.year, noise);
+                            console.log(`[StructureGen] Generated waystation name: ${name} for culture: ${culturalZone}, era: ${dateInfo.era}`);
+                        } else if (structureType === 'well') {
+                            // Generate culturally appropriate well name
+                            name = generateWellName(culturalZone, dateInfo.era, dateInfo.year, noise);
+                            console.log(`[StructureGen] Generated well name: ${name} for culture: ${culturalZone}, era: ${dateInfo.era}`);
                         } else {
                             // Generic fallback for other structure types
                             name = structureType.replace(/_/g, ' ');
@@ -508,8 +634,9 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
                     outputGoods: [...(blueprint.outputGoods || [])],
                 };
                 
-                // Store era and cultural zone for fortresses and government districts
-                if (structureType === 'fortress' || structureType === 'government_district') {
+                // Store era and cultural zone for fortresses, government districts, waystations, and wells
+                if (structureType === 'fortress' || structureType === 'government_district' ||
+                    structureType === 'waystation' || structureType === 'well') {
                     (finalStructure as any).era = dateInfo.era;
                     (finalStructure as any).culturalZone = culturalZone;
                     

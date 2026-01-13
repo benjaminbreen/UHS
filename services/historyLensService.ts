@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import type { AnimalEntity, GameDate, MapData, NpcEntity, PlayerCharacter, TerrainStructure, HomeAnchor, Tile } from '../types';
+import type { MarketplaceInfo } from '../types/core/map';
 import type { HistoryLensResponse } from '../types/historyLens';
 
 type HistoryLensMessage = {
@@ -17,6 +18,7 @@ type HistoryLensContext = {
   npcs: NpcEntity[];
   animals: AnimalEntity[];
   terrainStructures: TerrainStructure[];
+  marketplaces?: MarketplaceInfo[];
   playerMode?: string;
   homeAnchor?: HomeAnchor | null;
 };
@@ -82,7 +84,9 @@ function findNearbyPointsOfInterest(
   mapData: MapData,
   playerX: number,
   playerY: number,
-  radius: number
+  radius: number,
+  terrainStructures?: TerrainStructure[],
+  marketplaces?: MarketplaceInfo[]
 ): PointOfInterest[] {
   const pois: PointOfInterest[] = [];
   const seenLocations = new Set<string>();
@@ -91,6 +95,19 @@ function findNearbyPointsOfInterest(
   const maxX = Math.min((tiles[0]?.length || mapData.width) - 1, playerX + radius);
   const minY = Math.max(0, playerY - radius);
   const maxY = Math.min((tiles.length || mapData.height) - 1, playerY + radius);
+
+  // Build lookup maps for structures and marketplaces by location
+  const structuresByLocation = new Map<string, TerrainStructure>();
+  for (const structure of (terrainStructures || [])) {
+    const key = `${structure.location[0]},${structure.location[1]}`;
+    structuresByLocation.set(key, structure);
+  }
+
+  const marketplacesByLocation = new Map<string, MarketplaceInfo>();
+  for (const market of (marketplaces || [])) {
+    const key = `${market.x},${market.y}`;
+    marketplacesByLocation.set(key, market);
+  }
 
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
@@ -107,8 +124,57 @@ function findNearbyPointsOfInterest(
       if (seenLocations.has(clusterKey)) continue;
       seenLocations.add(clusterKey);
 
-      const cityName = tile.cityName;
-      const label = cityName || BIOME_LABELS[biome] || biome.toLowerCase().replace(/_/g, ' ');
+      // Try to get a proper name from structures or marketplaces
+      const locationKey = `${x},${y}`;
+      const structure = structuresByLocation.get(locationKey);
+      const marketplace = marketplacesByLocation.get(locationKey);
+
+      // Priority for label: structure name > marketplace name > tile cityName > biome label
+      let label: string;
+      if (structure?.name) {
+        label = structure.name;
+      } else if (marketplace?.name) {
+        label = marketplace.name;
+      } else if (tile.cityName) {
+        label = tile.cityName;
+      } else {
+        // For government districts and marketplaces, also check nearby structures (within 2 tiles)
+        // since the structure location might not be exactly on this tile
+        let nearbyStructureName: string | undefined;
+        if (biome === 'GOVERNMENT_DISTRICT' || biome === 'MARKETPLACE' || biome === 'PALACE' || biome === 'HOLY_SITE') {
+          for (const struct of (terrainStructures || [])) {
+            const structDist = Math.hypot(struct.location[0] - x, struct.location[1] - y);
+            if (structDist <= 2) {
+              // Match structure type to biome
+              if (biome === 'GOVERNMENT_DISTRICT' && struct.structureType === 'government_district') {
+                nearbyStructureName = struct.name;
+                break;
+              } else if (biome === 'MARKETPLACE' && struct.structureType === 'marketplace') {
+                nearbyStructureName = struct.name;
+                break;
+              } else if (biome === 'PALACE' && struct.structureType === 'palace') {
+                nearbyStructureName = struct.name;
+                break;
+              } else if (biome === 'HOLY_SITE' && struct.structureType === 'holy_site') {
+                nearbyStructureName = struct.name;
+                break;
+              }
+            }
+          }
+          // Also check marketplaces array for MARKETPLACE biome
+          if (!nearbyStructureName && biome === 'MARKETPLACE') {
+            for (const market of (marketplaces || [])) {
+              const marketDist = Math.hypot(market.x - x, market.y - y);
+              if (marketDist <= 2 && market.name) {
+                nearbyStructureName = market.name;
+                break;
+              }
+            }
+          }
+        }
+        label = nearbyStructureName || BIOME_LABELS[biome] || biome.toLowerCase().replace(/_/g, ' ');
+      }
+
       const priority = BIOME_PRIORITY[biome] || 10;
 
       pois.push({
@@ -175,6 +241,61 @@ const extractJson = (raw: string): string => {
   if (braceMatch?.[0]) return braceMatch[0].trim();
   return raw.trim();
 };
+
+// Biomes where people are expected to be present
+const POPULATED_BIOMES: Record<string, string> = {
+  'DENSE_CITY': 'crowded (many people expected)',
+  'CITY_CENTER': 'crowded (many people expected)',
+  'LOW_DENSITY_CITY': 'populated (people expected)',
+  'URBAN': 'populated (people expected)',
+  'HAMLET': 'small settlement (a few people expected)',
+  'MARKETPLACE': 'busy (merchants, shoppers expected)',
+  'HARBOR_DISTRICT': 'busy (sailors, workers, merchants expected)',
+  'GOVERNMENT_DISTRICT': 'official (guards, clerks, officials expected)',
+  'PALACE': 'guarded (servants, guards, nobles expected)',
+  'HOLY_SITE': 'sacred (priests, pilgrims expected)',
+  'FARMLAND': 'rural (farmers, laborers expected)',
+  'PLAZA': 'public space (townspeople expected)',
+  'INDUSTRIAL_DISTRICT': 'working area (laborers, craftsmen expected)',
+  'ROAD': 'travel route (travelers, merchants possible)',
+  'PARK': 'leisure area (visitors possible)'
+};
+
+function getExpectedPopulationContext(
+  currentTile: Tile | undefined,
+  npcs: NpcEntity[],
+  playerX: number,
+  playerY: number
+): string {
+  if (!currentTile) return 'unknown terrain';
+
+  const biome = String(currentTile.biome);
+  const nearbyCount = npcs.filter(npc =>
+    Math.hypot(npc.x - playerX, npc.y - playerY) <= 4
+  ).length;
+
+  const expectedDesc = POPULATED_BIOMES[biome];
+
+  if (expectedDesc) {
+    if (nearbyCount === 0) {
+      return `${expectedDesc} - UNUSUALLY EMPTY, consider using npc_create to add appropriate inhabitants`;
+    } else if (nearbyCount < 2 && biome.includes('CITY')) {
+      return `${expectedDesc} - fewer people than expected, npc_create could add more`;
+    }
+    return `${expectedDesc} - ${nearbyCount} people nearby`;
+  }
+
+  // Wilderness/remote areas
+  if (['FOREST', 'DENSE_FOREST', 'JUNGLE', 'MOUNTAIN', 'HILLS', 'DESERT', 'TUNDRA', 'STEPPE'].includes(biome)) {
+    return `remote wilderness - people rare but travelers/hunters possible`;
+  }
+
+  if (['DEEP_OCEAN', 'SHALLOW_OCEAN', 'RIVER', 'MAJOR_RIVER'].includes(biome)) {
+    return `waterway - sailors/fishermen possible if near shore`;
+  }
+
+  return `${biome.toLowerCase().replace(/_/g, ' ')} - ${nearbyCount} people nearby`;
+}
 
 export async function generateHistoryLensResponse(
   playerInput: string,
@@ -287,7 +408,15 @@ export async function generateHistoryLensResponse(
     .map(npc => `${npc.name} (${npc.role})`);
 
   // Get prioritized points of interest from tile biomes (cities, markets, farms, etc.)
-  const nearbyPOIs = findNearbyPointsOfInterest(context.mapData, context.playerX, context.playerY, 8);
+  // Pass terrainStructures and marketplaces to get proper names for government districts, marketplaces, etc.
+  const nearbyPOIs = findNearbyPointsOfInterest(
+    context.mapData,
+    context.playerX,
+    context.playerY,
+    8,
+    context.terrainStructures,
+    context.marketplaces || context.mapData.marketplaces
+  );
   const poiContext = nearbyPOIs.slice(0, 8).map(poi => {
     const dirX = poi.x - context.playerX;
     const dirY = poi.y - context.playerY;
@@ -360,21 +489,37 @@ Schema:
 {
   "narration": "string",
   "actions": [
-    { "type": "move|navigate_nearest|seek_npc|advance_time|inventory_add|inventory_remove|player_damage|game_over|npc_create", "params": { ... } }
+    { "type": "move|navigate_nearest|navigate_edge|navigate_animal|seek_npc|advance_time|inventory_add|inventory_remove|player_damage|game_over|npc_create|propose_enter", "params": { ... } }
   ],
   "suggestedActions": ["string", "string", "string"]
 }
 
+SuggestedActions guidelines (CRITICAL - follow these closely):
+- Each action must be SPECIFIC and NARRATIVELY INTERESTING - never generic
+- Use vivid, active verbs that paint a scene: "Approach the weathered fisherman mending nets" not "Talk to fisherman"
+- Actions should reflect the immediate situation: visible NPCs, ongoing activities, time of day, weather
+- Include the player's profession and social position - a shepherd approaches situations differently than a merchant
+- If NPCs are nearby, at least one action should involve meaningful interaction with a specific person
+- At least one action should create potential for story advancement, conflict, or discovery
+- Actions should feel like real choices with uncertain outcomes
+- FORBIDDEN: "Continue walking", "Look around", "Go home", "Rest", "Wait" - these are too passive
+- REQUIRED STYLE: "Inquire at the tea house about rumors from the capital", "Offer your services to the harried-looking merchant unloading goods", "Slip into the crowd near the well to overhear the animated conversation"
+- Make the player feel like an active participant in a living world, not a passive observer
+
 Actions:
 - move: { "direction": "north|south|east|west|northeast|northwest|southeast|southwest", "steps": 1-5 } - ONLY use for simple directional movement like "go north" or "walk east"
 - navigate_nearest: { "kind": "city|settlement|town|farm|market|ruin|fortress|holy_site|palace|government|fishing|mine|harbor|hamlet|plaza|structure" } - PREFER this for destination-based movement. Use when player says "go to the fortress", "travel to the city", "head for the farm", etc. The simulation will find and pathfind to the nearest matching location.
+- navigate_edge: { "direction": "north|south|east|west" } - Use when the player wants to leave the current map area entirely and travel to a new region. Use for phrases like "sail to a new area", "travel west until I find land", "leave this region", "go somewhere new", "continue sailing west". This will navigate to the edge of the current map and trigger a transition to the neighboring area.
+- navigate_home: {} - Use when the player wants to return home. Takes no parameters. Only use when the Home line shows a location on this map. If Home is on a different map, tell the player they need to travel there first.
+- navigate_animal: { "species": "optional species name", "hunt": true|false } - Use when the player wants to approach or hunt a visible animal. The species can be a specific animal ("deer", "wolf", "cow") or a general type ("prey", "predator", "game"). Set hunt=true when player intends to attack/hunt the animal (opens combat immediately). Set hunt=false (or omit) when player wants to approach peacefully (for taming, observing, or leading their own animal). Examples: "hunt the deer" → species:"deer", hunt:true. "Find my cow" → species:"cow", hunt:false. "Track the wolf pack" → species:"wolf", hunt:false.
 - seek_npc: { "role": "optional role" } - Use when player wants to find someone to talk to
 - advance_time: { "hours": 1-8, "activity": "traveling|resting|working|waiting" }
 - inventory_add: { "baseId": "ITEM_ID", "quantity": 1-3 } (only if clearly plausible in era/place)
 - inventory_remove: { "name": "Item Name", "quantity": 1-3 } (only if the player had it)
 - player_damage: { "amount": 1-50, "cause": "short reason" }
 - game_over: { "cause": "short reason" } (only when death is unavoidable)
-- npc_create: { "count": 1-3, "role": "optional role", "name": "optional name" } (only when new people plausibly enter the immediate scene; keep them within 2-3 tiles)
+- npc_create: { "count": 1-3, "role": "optional role", "name": "optional name" } - Creates NPCs who appear in the game world and can be interacted with. Use PROACTIVELY when the scene calls for people: arriving at a settlement, marketplace, farm, harbor, or any populated area. If the player is in or approaching urban/settlement terrain and there are few or no nearby NPCs, consider adding 1-2 appropriate inhabitants (farmer, merchant, guard, worker, traveler, etc.). Keep spawns within 2-3 tiles of the player.
+- propose_enter: { "kind": "city|fortress|mine|quarry|fishing_hut|palace|holy_site|ruins|government|farm|market|harbor|woodcutter" } - Use when narrating that the player approaches a significant location and might want to enter it. This creates an interactive prompt for the player to confirm entry. Use sparingly: only when the player is actively approaching or arriving at a notable structure.
 
 Important:
 - ALWAYS prefer navigate_nearest over move when the player wants to reach a destination (fortress, city, farm, market, etc.). The simulation handles pathfinding automatically.
@@ -385,7 +530,22 @@ Important:
 - If the player asks to reach a "settlement" or "town", use navigate_nearest with kind "city".
 - Only include movement actions (move/navigate_nearest/seek_npc) when the player explicitly commands movement or seeking someone.
 - When describing "home", treat its label as a prompt and render it in historically plausible terms rather than repeating a raw UI label, unless it is a proper name.
+- HOME AWARENESS: When player asks to "go home", "return home", "head home", or similar:
+  * If Home says "at your current position" → Player IS home. Say so clearly, do NOT navigate.
+  * If Home says "about X tiles [direction]" → Player is NOT home yet. Use the navigate_home action (NOT navigate_nearest). This ensures they go to their actual home, not just the nearest similar structure.
+  * If Home says "not on this map" → Tell the player they need to travel to that region first. Do NOT use navigate_home.
 - CRITICAL: When describing directions (north, south, east, west, etc.), use ONLY the exact directions from the "Adjacent terrain" list below. Do NOT swap, guess, or infer directions. If farmland is listed as Southwest, say southwest - never say southeast or any other direction.
+- CRITICAL LOCATION AWARENESS: The "Current state" section below is GROUND TRUTH for the player's location. If the player has moved since earlier conversation turns, DO NOT continue scenes or interactions from those previous locations. If the conversation history mentions a fishing hut but Current state shows the player is now on grassland 10 tiles away, the fishing hut scene is OVER - describe what the player sees at their CURRENT location. Movement invalidates earlier location-specific context. Check for "[You have moved to a new location...]" system messages which explicitly signal location changes.
+
+ARRIVAL SCENES (when player input starts with "[ARRIVAL"):
+- The player has just completed a journey to a destination. This is a SPECIAL MOMENT requiring a RICH, IMMERSIVE description.
+- Write a FULL PARAGRAPH (4-7 sentences) describing the arrival: what they see, hear, smell; who notices them; what activity is underway; what stands out.
+- Use sensory details: the crunch of gravel underfoot, the smell of woodsmoke, the murmur of voices, the play of light.
+- Consider time of day: morning markets bustle, midday heat slows activity, evening brings different characters.
+- If NPCs are nearby, describe at least one of them doing something specific - not just "standing there" but actively engaged.
+- If the location is empty of NPCs but should have people (settlement, market, etc.), use npc_create to add 1-2 appropriate inhabitants.
+- End with something that invites action: a person making eye contact, an intriguing sound, an opportunity presenting itself.
+- The suggestedActions for arrivals should be especially vivid and specific to what was just described.
 
 Guidance for historical fidelity:
 - Use concrete details consistent with the location’s climate, season, and material culture.
@@ -417,6 +577,7 @@ ${nearbyNpcs || 'None'}
 - Distant structures (4-8 tiles): ${distantStructures || 'none'}
 - Inventory: ${context.playerCharacter.inventory.slice(0, 10).map(item => item.name).join(', ') || 'empty'}
 - ${homeLine}
+- Expected population: ${getExpectedPopulationContext(currentTile, context.npcs, context.playerX, context.playerY)}
 ${songDirective}
 
 Recent history:

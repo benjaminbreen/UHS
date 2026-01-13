@@ -68,9 +68,9 @@ export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise
     ];
 
     let ruinsPlaced = 0;
-    // Historically accurate ruin count (0-8 based on density)
-    let maxRuins = Math.floor(ruinDensity * (1 + featurePlacementNoise.random() * 3));
-    maxRuins = Math.min(maxRuins, 8); // Cap at 8 ruins
+    // Historically accurate ruin count (0-5 based on density)
+    let maxRuins = Math.floor(ruinDensity * (1 + featurePlacementNoise.random() * 2));
+    maxRuins = Math.min(maxRuins, 5); // Cap at 5 ruins to leave room for other structures
     
     console.log(`[Ruins] Planning to generate up to ${maxRuins} ruins (density: ${ruinDensity.toFixed(1)})`)
 

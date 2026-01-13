@@ -49,6 +49,7 @@ import { DiseaseProgressionEvent } from './services/diseaseNotificationService';
 import { SavedGame } from './services/saveGameService';
 import FloatingText from './components/ui/FloatingText';
 import GameSetupScreen from './components/GameSetupScreen';
+import GameSplashPage from './components/GameSplashPage';
 import RailroadStationModal from './components/RailroadStationModal';
 import { railroadNetworkService } from './services/railroadNetworkService';
 import { LoadingSkeleton } from './components/LoadingSkeleton';
@@ -766,14 +767,23 @@ const AppContent: React.FC = () => {
                 
                 targetZone = finalZone;
                 targetRegion = finalRegion;
+                // Include actual character data from fullState.character
                 characterSpec = {
+                    // Character identity
+                    name: fullState.character?.name,
+                    profession: fullState.character?.profession,
+                    age: fullState.character?.age,
+                    gender: fullState.character?.gender,
+                    socialClass: fullState.character?.socialClass,
+                    health: fullState.character?.health,
+                    // Map context
                     year: fullState.year,
                     mapArea: mapArea,
                     zone: finalZone,
                     region: finalRegion
                 };
 
-                // Add profession and health status from URL if present
+                // Override with URL config if present (for legacy URL formats)
                 if (urlConfig.profession) {
                     characterSpec.profession = urlConfig.profession;
                 }
@@ -781,15 +791,12 @@ const AppContent: React.FC = () => {
                     characterSpec.health = urlConfig.healthStatus;
                 }
 
-                // If we have profession or health status, store character data
-                if (urlConfig.profession || urlConfig.healthStatus) {
-                    const characterData: any = {
-                        profession: urlConfig.profession,
-                        health: urlConfig.healthStatus
-                    };
-                    console.log('[URL] Storing character specs:', characterData);
-                    localStorage.setItem('urlCharacterData', JSON.stringify(characterData));
-                }
+                console.log('[URL_RESTORE] Character spec built:', {
+                    name: characterSpec.name,
+                    profession: characterSpec.profession,
+                    age: characterSpec.age,
+                    gender: characterSpec.gender
+                });
 
                 // PHASE 3: Store game mode using unified restoration
                 if (fullState.gameMode) {
@@ -1145,7 +1152,7 @@ const AppContent: React.FC = () => {
                     onMenuClick={() => setMobileSidebarOpen(true)}
                 />
             )}
-            <div className="relative flex-1 flex items-stretch overflow-visible p-2 sm:p-3 lg:pt-6 lg:px-8 lg:pb-12 gap-2 sm:gap-3 lg:gap-5 h-full max-h-full">
+            <div className="relative flex-1 flex items-stretch overflow-hidden p-2 sm:p-3 lg:pt-6 lg:px-8 lg:pb-12 gap-2 sm:gap-3 lg:gap-5 h-full max-h-full">
                 {/* Desktop sidebar toggle */}
                 {!isLeftSidebarExpanded && !isUIHidden && (
                     <button
@@ -1160,75 +1167,117 @@ const AppContent: React.FC = () => {
                     </button>
                 )}
                 
-                {/* Mobile menu buttons - larger and better positioned - hidden when UI is hidden */}
+                {/* Mobile menu buttons - bottom positioned for thumb reach */}
                 {!isUIHidden && (
                     <>
                         <button
                             onClick={() => setMobileMenuOpen(mobileMenuOpen === 'left' ? null : 'left')}
-                            className="sm:hidden fixed top-16 left-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-r-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
-                            aria-label="Toggle Left Menu"
+                            className="sm:hidden fixed z-40 w-14 h-14 flex items-center justify-center surface-elevated text-text-primary rounded-full border border-white/20 shadow-lg backdrop-blur-md"
+                            style={{
+                                bottom: 'calc(20px + var(--sab, 0px))',
+                                left: '16px',
+                            }}
+                            aria-label="Toggle World Info"
                         >
                             {mobileMenuOpen === 'left' ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             )}
                         </button>
 
                         <button
                             onClick={() => setMobileMenuOpen(mobileMenuOpen === 'right' ? null : 'right')}
-                            className="sm:hidden fixed top-16 right-0 z-40 w-12 h-12 flex items-center justify-center surface-muted text-text-primary rounded-l-lg border border-surface-muted hover:shadow-md shadow-xl backdrop-blur-sm"
-                            aria-label="Toggle Right Menu"
+                            className="sm:hidden fixed z-40 w-14 h-14 flex items-center justify-center surface-elevated text-text-primary rounded-full border border-white/20 shadow-lg backdrop-blur-md"
+                            style={{
+                                bottom: 'calc(20px + var(--sab, 0px))',
+                                right: '16px',
+                            }}
+                            aria-label="Toggle Player Menu"
                         >
                             {mobileMenuOpen === 'right' ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6" />
-                                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2} fill="none" />
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                             )}
                         </button>
                     </>
                 )}
                 
-                {/* Left Sidebar with mobile overlay and slide animation - hidden when factory panel is open */}
+                {/* Left Sidebar - Desktop: side panel, Mobile: bottom sheet */}
                 {!showFactoryPanel && (
-                <div className={`${mobileMenuOpen === 'left' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-500 ${isStudyingStars || isUIHidden ? 'opacity-0 pointer-events-none -translate-x-8' : 'opacity-100 translate-x-0'}`}>
-                    {mobileMenuOpen === 'left' && (
-                        <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={() => setMobileMenuOpen(null)} />
-                    )}
-                    <div className={`${
-                        mobileMenuOpen === 'left'
-                            ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content'
-                            : `h-full lg:py-1 ${
-                                isSafariBrowser
-                                    ? `safari-entrance safari-entrance-slide-left ${uiVisible ? 'visible' : ''}`
-                                    : 'animate-entrance-slide-left entrance-delay-100'
-                              }`
-                    } max-w-[85vw] sm:max-w-none overflow-visible`}>
-                        <LeftSidebar
-                    onShowFactionsModal={(data) => {
-                        setFactionData(data);
-                        setShowFactionsModal(true);
-                    }}
-                    onShowFactionTooltip={(data, x, y) => {
-                        setFactionData(data);
-                        setFactionTooltipPosition({ x, y });
-                        setShowFactionTooltip(true);
-                    }}
-                    onHideFactionTooltip={() => setShowFactionTooltip(false)}
-                    onToggleMapVisibility={() => setMapVisible(!mapVisible)}
-                    isProcessingWorldWeaver={isProcessingWorldWeaver}
-                />
+                <>
+                    {/* Desktop Left Sidebar */}
+                    <div className={`hidden sm:flex sm:h-full transition-all duration-500 ${isStudyingStars || isUIHidden ? 'opacity-0 pointer-events-none -translate-x-8' : 'opacity-100 translate-x-0'}`}>
+                        <div className={`h-full lg:py-1 ${
+                            isSafariBrowser
+                                ? `safari-entrance safari-entrance-slide-left ${uiVisible ? 'visible' : ''}`
+                                : 'animate-entrance-slide-left entrance-delay-100'
+                        } overflow-hidden`}>
+                            <LeftSidebar
+                                onShowFactionsModal={(data) => {
+                                    setFactionData(data);
+                                    setShowFactionsModal(true);
+                                }}
+                                onShowFactionTooltip={(data, x, y) => {
+                                    setFactionData(data);
+                                    setFactionTooltipPosition({ x, y });
+                                    setShowFactionTooltip(true);
+                                }}
+                                onHideFactionTooltip={() => setShowFactionTooltip(false)}
+                                onToggleMapVisibility={() => setMapVisible(!mapVisible)}
+                                isProcessingWorldWeaver={isProcessingWorldWeaver}
+                            />
+                        </div>
                     </div>
-                </div>
+
+                    {/* Mobile Left Sidebar - Bottom Sheet */}
+                    {mobileMenuOpen === 'left' && (
+                        <div className="sm:hidden fixed inset-0 z-50">
+                            <div
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                                onClick={() => setMobileMenuOpen(null)}
+                            />
+                            <div
+                                className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp"
+                                style={{
+                                    maxHeight: 'calc(70vh - var(--sat, 0px))',
+                                    paddingBottom: 'var(--sab, 0px)',
+                                }}
+                            >
+                                {/* Drag handle */}
+                                <div className="flex justify-center py-2">
+                                    <div className="w-10 h-1 bg-white/30 rounded-full" />
+                                </div>
+                                <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 48px - var(--sat, 0px) - var(--sab, 0px))' }}>
+                                    <LeftSidebar
+                                        onShowFactionsModal={(data) => {
+                                            setFactionData(data);
+                                            setShowFactionsModal(true);
+                                            setMobileMenuOpen(null);
+                                        }}
+                                        onShowFactionTooltip={(data, x, y) => {
+                                            setFactionData(data);
+                                            setFactionTooltipPosition({ x, y });
+                                            setShowFactionTooltip(true);
+                                        }}
+                                        onHideFactionTooltip={() => setShowFactionTooltip(false)}
+                                        onToggleMapVisibility={() => setMapVisible(!mapVisible)}
+                                        isProcessingWorldWeaver={isProcessingWorldWeaver}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
                 )}
 
                 {centralMode === 'historylens' ? (
@@ -1252,24 +1301,45 @@ const AppContent: React.FC = () => {
                     />
                 )}
                 
-                {/* Right Sidebar - Slides in from right with delay */}
+                {/* Right Sidebar - Desktop: side panel, Mobile: bottom sheet */}
                 {isRightSidebarVisible && (
-                    <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full transition-all duration-500 ${isStudyingStars || isUIHidden ? 'opacity-0 pointer-events-none translate-x-8' : 'opacity-100 translate-x-0'}`}>
-                        {mobileMenuOpen === 'right' && (
-                            <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={() => setMobileMenuOpen(null)} />
-                        )}
-                        <div className={`${
-                            mobileMenuOpen === 'right'
-                                ? 'absolute right-0 top-0 h-full animate-slideInRight sidebar-content'
-                                : `h-full lg:py-1 ${
-                                    isSafariBrowser
-                                        ? `safari-entrance safari-entrance-slide-right ${uiVisible ? 'visible' : ''}`
-                                        : 'animate-entrance-slide-right entrance-delay-300'
-                                  }`
-                        } max-w-[85vw] sm:max-w-none overflow-visible`}>
+                <>
+                    {/* Desktop Right Sidebar */}
+                    <div className={`hidden sm:flex sm:h-full transition-all duration-500 ${isStudyingStars || isUIHidden ? 'opacity-0 pointer-events-none translate-x-8' : 'opacity-100 translate-x-0'}`}>
+                        <div className={`h-full lg:py-1 ${
+                            isSafariBrowser
+                                ? `safari-entrance safari-entrance-slide-right ${uiVisible ? 'visible' : ''}`
+                                : 'animate-entrance-slide-right entrance-delay-300'
+                        } overflow-hidden`}>
                             <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
                         </div>
                     </div>
+
+                    {/* Mobile Right Sidebar - Bottom Sheet */}
+                    {mobileMenuOpen === 'right' && (
+                        <div className="sm:hidden fixed inset-0 z-50">
+                            <div
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                                onClick={() => setMobileMenuOpen(null)}
+                            />
+                            <div
+                                className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp"
+                                style={{
+                                    maxHeight: 'calc(70vh - var(--sat, 0px))',
+                                    paddingBottom: 'var(--sab, 0px)',
+                                }}
+                            >
+                                {/* Drag handle */}
+                                <div className="flex justify-center py-2">
+                                    <div className="w-10 h-1 bg-white/30 rounded-full" />
+                                </div>
+                                <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 48px - var(--sat, 0px) - var(--sab, 0px))' }}>
+                                    <RightSidebar isProcessingWorldWeaver={isProcessingWorldWeaver} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
                 )}
             </div>
         </div>
@@ -1728,11 +1798,17 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Routes>
-      {/* Educational Setup Screen */}
+      {/* Root URL - Game Splash Page */}
+      <Route path="/" element={<GameSplashPage />} />
+
+      {/* Alias for splash page */}
+      <Route path="/start" element={<GameSplashPage />} />
+
+      {/* Educational Setup Screen (legacy) */}
       <Route path="/home" element={<GameSetupScreen />} />
 
-      {/* Main Game - All other routes */}
-      <Route path="/*" element={
+      {/* Main Game - All other routes (year/location/mode patterns) */}
+      <Route path="/:year/*" element={
         <GameProvider>
           <PlayerProvider>
             <MapProvider>

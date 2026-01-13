@@ -99,5 +99,20 @@ export const STRUCTURE_BLUEPRINTS: Record<TerrainStructure['structureType'], Str
         economicRole: 'subsistence', // Place for foraging/scavenging
         npcAnchor: 'explorer',
         icon: '🏺',
+    },
+    bridge: {
+        economicRole: 'commerce', // Facilitates trade routes
+        npcAnchor: 'traveler',
+        icon: '🌉',
+    },
+    waystation: {
+        economicRole: 'commerce', // Rest stop for travelers and trade caravans
+        npcAnchor: 'innkeeper',
+        icon: '🏨',
+    },
+    well: {
+        economicRole: 'subsistence', // Essential water source for communities
+        npcAnchor: 'water_carrier',
+        icon: '⛲',
     }
 };

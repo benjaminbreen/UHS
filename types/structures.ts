@@ -3,11 +3,12 @@
  */
 
 // An enumeration of all possible structure types.
-export type TerrainStructureType = 
-    'fortress' | 'mill' | 'mining_colony' | 'lumber_camp' | 
-    'fishing_hut' | 'farm' | 'marketplace' | 'factory' | 
+export type TerrainStructureType =
+    'fortress' | 'mill' | 'mining_colony' | 'lumber_camp' |
+    'fishing_hut' | 'farm' | 'marketplace' | 'factory' |
     'government_district' | 'city_center' |
-    'encampment' | 'quarry' | 'holy_site' | 'palace' | 'ruin' | 'bridge';
+    'encampment' | 'quarry' | 'holy_site' | 'palace' | 'ruin' | 'bridge' |
+    'waystation' | 'well';
 
 // The economic role a structure plays in the simulation.
 export type EconomicRole = 'extraction' | 'processing' | 'defensive' | 'commerce' | 'subsistence';

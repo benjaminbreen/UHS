@@ -43,7 +43,7 @@ import { checkWorkCompletion, completeWorkOffer } from '../services/workOfferSer
 import { checkForEvent, getGlobalEventsLLMContext, cleanupExpiredEvents } from '../services/globalEventService';
 import { eventBus } from '../services/eventBus';
 import { describeMovement, describeEmbark, describeDisembark } from '../services/historyLensNarrationService';
-import { findHistoryLensPath } from '../services/historyLensPathfinding';
+import { findHistoryLensPath, findReachableCoastalTile, isDestinationOnLand } from '../services/historyLensPathfinding';
 
 interface DeathInfo {
   type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
@@ -173,6 +173,10 @@ const useCoreLoops = (
   const historyLensNavTargetRef = useRef<{ x: number; y: number; label: string; kind: string } | null>(null);
   const historyLensNavDetourNotifiedRef = useRef(false);
   const historyLensPathRef = useRef<Array<{ x: number; y: number }>>([]);
+  // Store post-disembark navigation target for ship-to-land navigation
+  const postDisembarkTargetRef = useRef<{ x: number; y: number; label: string; kind: string } | null>(null);
+  // Store interrupted journey target so we can offer to resume after encounters
+  const interruptedJourneyRef = useRef<{ destination: { x: number; y: number; label: string; kind: string }; interruptedBy: 'npc' | 'animal'; entityName?: string } | null>(null);
 
   // Game Clock - Reduced frequency for better performance
   useEffect(() => {
@@ -1517,15 +1521,44 @@ const useCoreLoops = (
       historyLensMoveActiveRef.current = true;
       historyLensMoveEndNotifiedRef.current = false;
       historyLensNavDetourNotifiedRef.current = false;
+      postDisembarkTargetRef.current = null; // Clear any previous post-disembark target
       queuedMovesRef.current = [];
       activeKeys.current.clear();
-      const path = findHistoryLensPath(
+
+      let path = findHistoryLensPath(
         mapData,
         { x: controlledIconX, y: controlledIconY },
         { x: payload.x, y: payload.y },
         playerMode,
-        5000  // Increased from 2000 to handle longer navigation distances
+        5000
       );
+
+      // If path is null and we're on a ship trying to reach land, find a reachable coastal route
+      if (!path && playerMode === 'ship' && isDestinationOnLand(mapData, { x: payload.x, y: payload.y })) {
+        const coastalResult = findReachableCoastalTile(
+          mapData,
+          { x: controlledIconX, y: controlledIconY },
+          { x: payload.x, y: payload.y }
+        );
+        if (coastalResult) {
+          // Use the pre-computed path to the coastal tile
+          path = coastalResult.path;
+          // Store the original destination for after we disembark
+          postDisembarkTargetRef.current = payload;
+          // Update the immediate nav target to the coastal tile
+          historyLensNavTargetRef.current = {
+            ...payload,
+            x: coastalResult.coastalTile.x,
+            y: coastalResult.coastalTile.y,
+            label: `coast near ${payload.label}`
+          };
+          eventBus.emit('historylens:append', {
+            sender: 'system',
+            text: `Sailing toward the coast near ${payload.label}...`
+          });
+        }
+      }
+
       if (!path) {
         eventBus.emit('historylens:append', {
           sender: 'system',
@@ -1536,6 +1569,7 @@ const useCoreLoops = (
         historyLensMoveEndNotifiedRef.current = false;
         historyLensNavDetourNotifiedRef.current = false;
         historyLensPathRef.current = [];
+        postDisembarkTargetRef.current = null;
         return;
       }
       historyLensPathRef.current = path;
@@ -1648,7 +1682,17 @@ useEffect(() => {
       const target = historyLensNavTargetRef.current;
       if (controlledIconX === target.x && controlledIconY === target.y) {
         clearHistoryLensNavigation();
-        emitHistoryLensSystem(`You reach ${target.label}.`);
+        // Emit a rich arrival event that HistoryLensPanel can use to trigger an LLM description
+        eventBus.emit('historylens:destination_reached', {
+          target: {
+            x: target.x,
+            y: target.y,
+            label: target.label,
+            kind: target.kind
+          },
+          playerX: controlledIconX,
+          playerY: controlledIconY
+        });
       } else {
         if (historyLensPathRef.current.length) {
           const nextStep = historyLensPathRef.current.shift();
@@ -1811,6 +1855,17 @@ useEffect(() => {
     // animal interaction
     const animalOnTile = visibleAnimals?.find(a => a.x === newLogicalX && a.y === newLogicalY);
     if (animalOnTile) {
+      // Save journey target before clearing so we can resume after encounter
+      if (historyLensNavTargetRef.current) {
+        const journeyData = {
+          destination: { ...historyLensNavTargetRef.current },
+          interruptedBy: 'animal' as const,
+          entityName: animalOnTile.speciesName || animalOnTile.baseId
+        };
+        interruptedJourneyRef.current = journeyData;
+        // Emit event so HistoryLensPanel can show continuation card after encounter
+        eventBus.emit('historylens:journey_interrupted', journeyData);
+      }
       clearQueuedMoves();
       clearHistoryLensNavigation();
       const animalData = ANIMAL_DATA[animalOnTile.baseId];
@@ -1873,6 +1928,17 @@ useEffect(() => {
     // NPC interaction
     const npcOnTile = npcs?.find(n => n.x === newLogicalX && n.y === newLogicalY);
     if (npcOnTile) {
+      // Save journey target before clearing so we can resume after encounter
+      if (historyLensNavTargetRef.current) {
+        const journeyData = {
+          destination: { ...historyLensNavTargetRef.current },
+          interruptedBy: 'npc' as const,
+          entityName: npcOnTile.name
+        };
+        interruptedJourneyRef.current = journeyData;
+        // Emit event so HistoryLensPanel can show continuation card after encounter
+        eventBus.emit('historylens:journey_interrupted', journeyData);
+      }
       clearQueuedMoves();
       clearHistoryLensNavigation();
       handleEncounter(npcOnTile);
@@ -2007,7 +2073,7 @@ useEffect(() => {
     const movementDirection: 'north' | 'south' | 'east' | 'west' =
       dx > 0 ? 'east' : dx < 0 ? 'west' : dy > 0 ? 'south' : 'north';
     const shouldEmitHistoryLens =
-      (moveCount + 1) % 3 === 0 &&
+      (moveCount + 1) % 5 === 0 &&
       (centralMode === 'historylens' || historyLensMoveActiveRef.current);
 
     if (playerMode === 'ship') {
@@ -2033,6 +2099,33 @@ useEffect(() => {
               currentRegion: localArea
             })
           });
+        }
+
+        // Check if we have a post-disembark navigation target (ship-to-land navigation)
+        if (postDisembarkTargetRef.current) {
+          const target = postDisembarkTargetRef.current;
+          postDisembarkTargetRef.current = null; // Clear it so we don't re-trigger
+
+          // Small delay to let the disembark complete, then navigate on foot
+          setTimeout(() => {
+            const landPath = findHistoryLensPath(
+              mapData,
+              { x: newLogicalX, y: newLogicalY },
+              { x: target.x, y: target.y },
+              'onFoot',
+              5000
+            );
+            if (landPath && landPath.length > 0) {
+              historyLensNavTargetRef.current = target;
+              historyLensPathRef.current = landPath;
+              historyLensMoveActiveRef.current = true;
+              historyLensMoveEndNotifiedRef.current = false;
+              eventBus.emit('historylens:append', {
+                sender: 'system',
+                text: `Continuing toward ${target.label} on foot...`
+              });
+            }
+          }, 100);
         }
       } else {
         // Ship movement on water - play splash sound

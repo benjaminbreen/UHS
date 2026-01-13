@@ -132,8 +132,9 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
       understory: '#153a2b',
     };
 
-    // Time-based sky influence
-    const skyInfluence = isNight ? 0.85 : isDusk ? 0.50 : isDawn ? 0.45 : 0.20;
+    // Time-based sky influence (atmospheric perspective)
+    // Night should darken, not wash out with sky color
+    const skyInfluence = isNight ? 0.30 : isDusk ? 0.50 : isDawn ? 0.45 : 0.20;
 
     const base = {
       // bands - blend from bottom panel to sky
@@ -169,6 +170,20 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
       volcano: blendHex(skyMountainNear, '#2b3134', 0.7),
       glow: isNight ? "rgba(100,120,180,0.18)" : "rgba(255,160,96,0.22)",
     };
+
+    // Apply night darkening to keep vegetation dark silhouettes
+    if (isNight) {
+      base.veryFar = blendHex(base.veryFar, '#1a2530', 0.50);
+      base.far = blendHex(base.far, '#0f1f18', 0.55);
+      base.far2 = blendHex(base.far2, '#0a1a12', 0.55);
+      base.mid = blendHex(base.mid, '#081510', 0.55);
+      base.mid2 = blendHex(base.mid2, '#06120c', 0.55);
+      base.near = blendHex(base.near, '#04100a', 0.50);
+      base.near2 = blendHex(base.near2, '#030c08', 0.50);
+      base.palmDark = blendHex(base.palmDark, '#020806', 0.60);
+      base.palmMid = blendHex(base.palmMid, '#040c08', 0.55);
+      base.understory = blendHex(base.understory, '#030a06', 0.55);
+    }
 
     return base;
   }, [bottomPanelColor, sky, isNight]);
@@ -366,6 +381,18 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
 
       ${cls} .firefly { animation: TH-${uid}-fly 2.6s ease-in-out infinite; }
       @keyframes TH-${uid}-fly { 0%{opacity:0; transform: translate(0,0)} 40%{opacity:.9} 100%{opacity:0; transform: translate(6px,-4px)} }
+
+      ${cls} .bird-soar { animation: TH-${uid}-soar 12s ease-in-out infinite; }
+      @keyframes TH-${uid}-soar { 0%{transform: translate(0,0)} 25%{transform: translate(8px,-3px)} 50%{transform: translate(16px,0)} 75%{transform: translate(8px,2px)} 100%{transform: translate(0,0)} }
+
+      ${cls} .wave-lap { animation: TH-${uid}-lap 2.8s ease-in-out infinite alternate; transform-origin: center; }
+      @keyframes TH-${uid}-lap { from { transform: translateX(0) scaleX(1); } to { transform: translateX(2px) scaleX(1.02); } }
+
+      ${cls} .wave-lap-slow { animation: TH-${uid}-lap-slow 4s ease-in-out infinite alternate; }
+      @keyframes TH-${uid}-lap-slow { from { transform: translateX(0); } to { transform: translateX(-3px); } }
+
+      ${cls} .shimmer { animation: TH-${uid}-shimmer 3s ease-in-out infinite; }
+      @keyframes TH-${uid}-shimmer { 0%{opacity:0.3} 50%{opacity:0.6} 100%{opacity:0.3} }
     `;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
@@ -652,97 +679,153 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
         )}
       </g>
 
-      {/* Water on sides for island/bay/peninsula maps - BEFORE panel feather */}
+      {/* Water on sides for island/bay/peninsula maps - organic curved shorelines */}
       {hasWater && (
         <>
-          {/* Left water */}
+          {/* Left water - organic cove/inlet shape */}
           <g>
+            {/* Deep water base with natural curve */}
             <path
               d={`
-                M 0 ${p(height * 0.65)}
-                C ${p(width * 0.12)} ${p(height * 0.62)}, ${p(width * 0.18)} ${p(height * 0.68)}, ${p(width * 0.22)} ${p(height * 0.70)}
-                L ${p(width * 0.22)} ${height}
-                L 0 ${height} Z
+                M 0 ${p(height * 0.52)}
+                C ${p(width * 0.04)} ${p(height * 0.54)}, ${p(width * 0.08)} ${p(height * 0.58)}, ${p(width * 0.11)} ${p(height * 0.63)}
+                C ${p(width * 0.14)} ${p(height * 0.68)}, ${p(width * 0.16)} ${p(height * 0.72)}, ${p(width * 0.18)} ${p(height * 0.76)}
+                C ${p(width * 0.19)} ${p(height * 0.80)}, ${p(width * 0.17)} ${p(height * 0.85)}, ${p(width * 0.14)} ${p(height * 0.90)}
+                C ${p(width * 0.10)} ${p(height * 0.94)}, ${p(width * 0.05)} ${p(height * 0.97)}, 0 ${height}
+                L 0 ${p(height * 0.52)} Z
               `}
-              fill={blendHex(P.water, '#1a4d6b', 0.3)}
-              opacity="0.95"
+              fill={blendHex(P.water, '#0d3a4d', 0.4)}
+              opacity="0.92"
             />
+            {/* Mid-depth water with shoreline curve */}
             <path
               d={`
-                M 0 ${p(height * 0.70)}
-                C ${p(width * 0.10)} ${p(height * 0.68)}, ${p(width * 0.16)} ${p(height * 0.72)}, ${p(width * 0.20)} ${p(height * 0.74)}
-                L ${p(width * 0.20)} ${height}
-                L 0 ${height} Z
+                M 0 ${p(height * 0.58)}
+                C ${p(width * 0.03)} ${p(height * 0.60)}, ${p(width * 0.06)} ${p(height * 0.65)}, ${p(width * 0.09)} ${p(height * 0.70)}
+                C ${p(width * 0.11)} ${p(height * 0.75)}, ${p(width * 0.12)} ${p(height * 0.80)}, ${p(width * 0.11)} ${p(height * 0.86)}
+                C ${p(width * 0.09)} ${p(height * 0.91)}, ${p(width * 0.05)} ${p(height * 0.96)}, 0 ${height}
+                L 0 ${p(height * 0.58)} Z
               `}
               fill={P.water}
-              opacity="0.85"
+              opacity="0.88"
             />
+            {/* Shallow water/foam edge */}
             <path
-              d={`M 0 ${p(height * 0.73)} Q ${p(width * 0.11)} ${p(height * 0.72)}, ${p(width * 0.19)} ${p(height * 0.73)}`}
+              className={reduceMotion ? '' : 'wave-lap'}
+              d={`
+                M 0 ${p(height * 0.64)}
+                C ${p(width * 0.02)} ${p(height * 0.67)}, ${p(width * 0.04)} ${p(height * 0.72)}, ${p(width * 0.06)} ${p(height * 0.77)}
+                C ${p(width * 0.07)} ${p(height * 0.82)}, ${p(width * 0.06)} ${p(height * 0.88)}, ${p(width * 0.04)} ${p(height * 0.93)}
+                C ${p(width * 0.02)} ${p(height * 0.97)}, 0 ${height}, 0 ${height}
+                L 0 ${p(height * 0.64)} Z
+              `}
+              fill={blendHex(P.water, P.waterHi, 0.25)}
+              opacity="0.75"
+            />
+            {/* Animated wave highlights */}
+            <path
+              className={reduceMotion ? '' : 'wave-lap'}
+              d={`M 0 ${p(height * 0.68)} Q ${p(width * 0.04)} ${p(height * 0.72)}, ${p(width * 0.07)} ${p(height * 0.78)}`}
               stroke={P.waterHi}
-              strokeWidth="2"
-              opacity="0.6"
+              strokeWidth="2.5"
+              opacity="0.55"
               fill="none"
+              style={{ animationDelay: '0s' }}
             />
             <path
-              d={`M ${p(width * 0.03)} ${p(height * 0.77)} Q ${p(width * 0.10)} ${p(height * 0.76)}, ${p(width * 0.17)} ${p(height * 0.77)}`}
+              className={reduceMotion ? '' : 'wave-lap-slow'}
+              d={`M 0 ${p(height * 0.74)} Q ${p(width * 0.03)} ${p(height * 0.79)}, ${p(width * 0.05)} ${p(height * 0.85)}`}
               stroke={P.waterHi}
-              strokeWidth="1.5"
+              strokeWidth="1.8"
               opacity="0.4"
               fill="none"
+              style={{ animationDelay: '0.6s' }}
             />
             <path
-              d={`M ${p(width * 0.05)} ${p(height * 0.81)} Q ${p(width * 0.12)} ${p(height * 0.80)}, ${p(width * 0.18)} ${p(height * 0.81)}`}
-              stroke={blendHex(P.waterHi, '#ffffff', 0.3)}
-              strokeWidth="1"
-              opacity="0.3"
+              className={reduceMotion ? '' : 'wave-lap'}
+              d={`M 0 ${p(height * 0.82)} Q ${p(width * 0.025)} ${p(height * 0.87)}, ${p(width * 0.04)} ${p(height * 0.92)}`}
+              stroke={blendHex(P.waterHi, '#ffffff', 0.4)}
+              strokeWidth="1.2"
+              opacity="0.35"
               fill="none"
+              style={{ animationDelay: '1.2s' }}
             />
+            {/* Shimmer spots */}
+            <circle className={reduceMotion ? '' : 'shimmer'} cx={p(width * 0.03)} cy={p(height * 0.70)} r="3" fill={P.waterHi} opacity="0.3" style={{ animationDelay: '0.5s' }} />
+            <circle className={reduceMotion ? '' : 'shimmer'} cx={p(width * 0.05)} cy={p(height * 0.82)} r="2" fill={P.waterHi} opacity="0.25" style={{ animationDelay: '1.8s' }} />
           </g>
-          
-          {/* Right water */}
+
+          {/* Right water - organic cove/inlet shape (mirrored) */}
           <g>
+            {/* Deep water base */}
             <path
               d={`
-                M ${width} ${p(height * 0.65)}
-                C ${p(width * 0.88)} ${p(height * 0.62)}, ${p(width * 0.82)} ${p(height * 0.68)}, ${p(width * 0.78)} ${p(height * 0.70)}
-                L ${p(width * 0.78)} ${height}
-                L ${width} ${height} Z
+                M ${width} ${p(height * 0.52)}
+                C ${p(width * 0.96)} ${p(height * 0.54)}, ${p(width * 0.92)} ${p(height * 0.58)}, ${p(width * 0.89)} ${p(height * 0.63)}
+                C ${p(width * 0.86)} ${p(height * 0.68)}, ${p(width * 0.84)} ${p(height * 0.72)}, ${p(width * 0.82)} ${p(height * 0.76)}
+                C ${p(width * 0.81)} ${p(height * 0.80)}, ${p(width * 0.83)} ${p(height * 0.85)}, ${p(width * 0.86)} ${p(height * 0.90)}
+                C ${p(width * 0.90)} ${p(height * 0.94)}, ${p(width * 0.95)} ${p(height * 0.97)}, ${width} ${height}
+                L ${width} ${p(height * 0.52)} Z
               `}
-              fill={blendHex(P.water, '#1a4d6b', 0.3)}
-              opacity="0.95"
+              fill={blendHex(P.water, '#0d3a4d', 0.4)}
+              opacity="0.92"
             />
+            {/* Mid-depth water */}
             <path
               d={`
-                M ${width} ${p(height * 0.70)}
-                C ${p(width * 0.90)} ${p(height * 0.68)}, ${p(width * 0.84)} ${p(height * 0.72)}, ${p(width * 0.80)} ${p(height * 0.74)}
-                L ${p(width * 0.80)} ${height}
-                L ${width} ${height} Z
+                M ${width} ${p(height * 0.58)}
+                C ${p(width * 0.97)} ${p(height * 0.60)}, ${p(width * 0.94)} ${p(height * 0.65)}, ${p(width * 0.91)} ${p(height * 0.70)}
+                C ${p(width * 0.89)} ${p(height * 0.75)}, ${p(width * 0.88)} ${p(height * 0.80)}, ${p(width * 0.89)} ${p(height * 0.86)}
+                C ${p(width * 0.91)} ${p(height * 0.91)}, ${p(width * 0.95)} ${p(height * 0.96)}, ${width} ${height}
+                L ${width} ${p(height * 0.58)} Z
               `}
               fill={P.water}
-              opacity="0.85"
+              opacity="0.88"
             />
+            {/* Shallow water/foam edge */}
             <path
-              d={`M ${width} ${p(height * 0.73)} Q ${p(width * 0.89)} ${p(height * 0.72)}, ${p(width * 0.81)} ${p(height * 0.73)}`}
+              className={reduceMotion ? '' : 'wave-lap'}
+              d={`
+                M ${width} ${p(height * 0.64)}
+                C ${p(width * 0.98)} ${p(height * 0.67)}, ${p(width * 0.96)} ${p(height * 0.72)}, ${p(width * 0.94)} ${p(height * 0.77)}
+                C ${p(width * 0.93)} ${p(height * 0.82)}, ${p(width * 0.94)} ${p(height * 0.88)}, ${p(width * 0.96)} ${p(height * 0.93)}
+                C ${p(width * 0.98)} ${p(height * 0.97)}, ${width} ${height}, ${width} ${height}
+                L ${width} ${p(height * 0.64)} Z
+              `}
+              fill={blendHex(P.water, P.waterHi, 0.25)}
+              opacity="0.75"
+            />
+            {/* Animated wave highlights */}
+            <path
+              className={reduceMotion ? '' : 'wave-lap'}
+              d={`M ${width} ${p(height * 0.68)} Q ${p(width * 0.96)} ${p(height * 0.72)}, ${p(width * 0.93)} ${p(height * 0.78)}`}
               stroke={P.waterHi}
-              strokeWidth="2"
-              opacity="0.6"
+              strokeWidth="2.5"
+              opacity="0.55"
               fill="none"
+              style={{ animationDelay: '0.3s' }}
             />
             <path
-              d={`M ${p(width * 0.97)} ${p(height * 0.77)} Q ${p(width * 0.90)} ${p(height * 0.76)}, ${p(width * 0.83)} ${p(height * 0.77)}`}
+              className={reduceMotion ? '' : 'wave-lap-slow'}
+              d={`M ${width} ${p(height * 0.74)} Q ${p(width * 0.97)} ${p(height * 0.79)}, ${p(width * 0.95)} ${p(height * 0.85)}`}
               stroke={P.waterHi}
-              strokeWidth="1.5"
+              strokeWidth="1.8"
               opacity="0.4"
               fill="none"
+              style={{ animationDelay: '0.9s' }}
             />
             <path
-              d={`M ${p(width * 0.95)} ${p(height * 0.81)} Q ${p(width * 0.88)} ${p(height * 0.80)}, ${p(width * 0.82)} ${p(height * 0.81)}`}
-              stroke={blendHex(P.waterHi, '#ffffff', 0.3)}
-              strokeWidth="1"
-              opacity="0.3"
+              className={reduceMotion ? '' : 'wave-lap'}
+              d={`M ${width} ${p(height * 0.82)} Q ${p(width * 0.975)} ${p(height * 0.87)}, ${p(width * 0.96)} ${p(height * 0.92)}`}
+              stroke={blendHex(P.waterHi, '#ffffff', 0.4)}
+              strokeWidth="1.2"
+              opacity="0.35"
               fill="none"
+              style={{ animationDelay: '1.5s' }}
             />
+            {/* Shimmer spots */}
+            <circle className={reduceMotion ? '' : 'shimmer'} cx={p(width * 0.97)} cy={p(height * 0.70)} r="3" fill={P.waterHi} opacity="0.3" style={{ animationDelay: '1.1s' }} />
+            <circle className={reduceMotion ? '' : 'shimmer'} cx={p(width * 0.95)} cy={p(height * 0.82)} r="2" fill={P.waterHi} opacity="0.25" style={{ animationDelay: '2.2s' }} />
           </g>
         </>
       )}
@@ -847,6 +930,33 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
           })}
         </g>
       )}
+
+      {/* Tropical birds - visible during day and twilight */}
+      {!isNight && birds.map((bird, i) => {
+        const birdColor = isTwilight ? blendHex(P.palmDark, '#1a1a2e', 0.3) : P.palmDark;
+        return (
+          <g
+            key={`bird-${i}`}
+            className={reduceMotion ? '' : 'bird-soar'}
+            style={{ animationDelay: `${i * 3 + rng(8000 + i) * 4}s` }}
+            opacity={0.65 + rng(8010 + i) * 0.2}
+          >
+            {/* Simple V-shape bird silhouette */}
+            <path
+              d={`
+                M ${bird.x} ${bird.y}
+                c ${-bird.size * 1.2} ${-bird.size * 0.6}, ${-bird.size * 2.2} ${-bird.size * 0.3}, ${-bird.size * 3} ${bird.size * 0.5}
+                M ${bird.x} ${bird.y}
+                c ${bird.size * 1.2} ${-bird.size * 0.6}, ${bird.size * 2.2} ${-bird.size * 0.3}, ${bird.size * 3} ${bird.size * 0.5}
+              `}
+              stroke={birdColor}
+              strokeWidth={Math.max(1.5, bird.size * 0.5)}
+              strokeLinecap="round"
+              fill="none"
+            />
+          </g>
+        );
+      })}
 
       {/* Soft global haze/fog veil if present */}
       {hazeOverlay > 0.05 && (

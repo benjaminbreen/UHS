@@ -140,9 +140,10 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
   };
   const { skyTop, skyMid, skyBottom, hazeDark, hazeLight, water: waterBase } = getSky();
 
-  // Distance tinting strength (more at night)
+  // Distance tinting strength (atmospheric perspective)
+  // Night should darken, not wash out with sky color
   const skyInfluence =
-    isNight ? 0.90 :
+    isNight ? 0.35 :
     isDusk  ? 0.45 :
     isDawn  ? 0.40 :
     isMid   ? 0.20 : 0.25;
@@ -159,6 +160,9 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
       nearAcc: '#9f866c',
       olive: '#586b2f',
       cypress: '#2f4f3a',
+      pine: '#2a4a3f',       // Stone pine - darker blue-green
+      maquis: '#6b7a5a',     // Maquis shrubs - silvery sage-green
+      maquisDark: '#4a5940', // Darker maquis variety
       villa: '#fff6e5',
       roof: '#c15b2d',
       cliff: '#d9b791',
@@ -183,19 +187,26 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
     if (season === 'spring') {
       base.olive = blendHex('#586b2f', '#6d8a3f', 0.35); // brighter green
       base.cypress = blendHex('#2f4f3a', '#3a5c45', 0.25); // fresher green
+      base.pine = blendHex('#2a4a3f', '#3a5a4a', 0.20); // fresher pine
+      base.maquis = blendHex('#6b7a5a', '#7a8a6a', 0.25); // brighter shrubs
       base.mid1 = blendHex('#a48e77', '#9eb580', 0.25); // greener hills
     } else if (season === 'summer') {
       base.olive = blendHex('#586b2f', '#7a8b4f', 0.20); // sun-bleached
+      base.maquis = blendHex('#6b7a5a', '#8a8a6a', 0.30); // dusty silvery
       base.mid1 = blendHex('#a48e77', '#c4a875', 0.30); // golden dry
       base.near = blendHex('#8b735a', '#a08566', 0.25); // dustier
     } else if (season === 'autumn') {
       base.olive = blendHex('#586b2f', '#8b7a3f', 0.35); // browning
       base.cypress = blendHex('#2f4f3a', '#4a5938', 0.20); // duller
+      base.pine = blendHex('#2a4a3f', '#3a4a38', 0.15); // slightly warmer
+      base.maquis = blendHex('#6b7a5a', '#7a7050', 0.25); // browning
       base.mid1 = blendHex('#a48e77', '#b89668', 0.30); // golden brown
       base.roof = blendHex('#c15b2d', '#d66432', 0.25); // warmer tiles
     } else if (season === 'winter') {
       base.olive = blendHex('#586b2f', '#4a5928', 0.30); // darker, dormant
       base.cypress = blendHex('#2f4f3a', '#264032', 0.25); // deeper green
+      base.pine = blendHex('#2a4a3f', '#1f3a30', 0.20); // darker
+      base.maquis = blendHex('#6b7a5a', '#5a6a50', 0.25); // muted
       base.mid1 = blendHex('#a48e77', '#918579', 0.30); // cooler, grayer
       base.villa = blendHex('#fff6e5', '#f5efdf', 0.40); // cooler white
     }
@@ -228,6 +239,9 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
       nearAcc: tintNear(base.nearAcc),
       olive: tintNear(base.olive),
       cypress: tintNear(base.cypress),
+      pine: tintNear(base.pine),
+      maquis: tintNear(base.maquis),
+      maquisDark: tintNear(base.maquisDark),
       villa: tintNear(base.villa),
       roof: tintNear(base.roof),
       cliff: tintNear(base.cliff),
@@ -251,6 +265,16 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
     if (isNight) {
       out.water = blendHex('#1f3861', skyBottom, 0.3);
       out.waterHi = blendHex('#6aa7ff', skyMid, 0.2);
+      // Darken vegetation and ground at night
+      out.olive = blendHex(out.olive, '#1a2a18', 0.55);
+      out.cypress = blendHex(out.cypress, '#0f1f15', 0.55);
+      out.pine = blendHex(out.pine, '#0f1f18', 0.55);
+      out.maquis = blendHex(out.maquis, '#2a3025', 0.50);
+      out.maquisDark = blendHex(out.maquisDark, '#1a2518', 0.55);
+      out.mid1 = blendHex(out.mid1, '#2a2520', 0.50);
+      out.mid2 = blendHex(out.mid2, '#2a2520', 0.45);
+      out.near = blendHex(out.near, '#1a1815', 0.50);
+      out.nearAcc = blendHex(out.nearAcc, '#1f1c18', 0.45);
     }
     if (isDawn) {
       out.vf = blendHex(out.vf, '#B79AD8', 0.25);
@@ -315,6 +339,29 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [width, height, timeOfDay]
   );
+
+  // Umbrella/stone pines - iconic Mediterranean flat-topped silhouettes
+  const pineXs = useMemo(
+    () => sampleXs(4 + ((rng() * 5) | 0), width * 0.12),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [width, height, timeOfDay]
+  );
+
+  // Maquis/garrigue shrubs - low Mediterranean scrubland
+  const shrubClusters = useMemo(() => {
+    const clusters: Array<{ x: number; y: number; count: number; spread: number }> = [];
+    const numClusters = 6 + ((rng() * 6) | 0);
+    for (let i = 0; i < numClusters; i++) {
+      clusters.push({
+        x: width * (0.05 + rng() * 0.90),
+        y: yMid + 4 + rng() * (yNear - yMid - 8),
+        count: 3 + ((rng() * 5) | 0),
+        spread: 8 + rng() * 12
+      });
+    }
+    return clusters;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, timeOfDay, yMid, yNear]);
 
   // Villas if urban
   type Villa = { x: number; w: number; h: number; y: number; glow: boolean };
@@ -657,15 +704,71 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
             );
           })}
 
-          {/* olive crowns (ovals) */}
+          {/* olive trees - gnarled organic shapes */}
           {oliveXs.map((x, i) => {
             const oy = yMid + p((rng() - 0.5) * 8);
-            const rx = p(6 + (i % 3));
-            const ry = p(8 + (i % 2));
+            const variant = i % 4;
+            const size = 8 + (i % 3) * 2;
+            const twist = (rng() - 0.5) * 3; // trunk twist
+
+            // Generate gnarled olive tree path
+            const getOlivePath = () => {
+              const cx = p(x);
+              const canopyY = p(oy) - size;
+
+              switch(variant) {
+                case 0: // Spreading canopy
+                  return `M ${cx} ${canopyY}
+                    C ${cx - size * 1.4} ${canopyY - 2}, ${cx - size * 1.6} ${canopyY + size * 0.5}, ${cx - size * 1.2} ${canopyY + size * 0.8}
+                    Q ${cx - size * 0.4} ${canopyY + size * 1.1}, ${cx} ${canopyY + size * 0.9}
+                    Q ${cx + size * 0.4} ${canopyY + size * 1.1}, ${cx + size * 1.2} ${canopyY + size * 0.8}
+                    C ${cx + size * 1.6} ${canopyY + size * 0.5}, ${cx + size * 1.4} ${canopyY - 2}, ${cx} ${canopyY}`;
+                case 1: // Windswept asymmetric
+                  return `M ${cx - size * 0.3} ${canopyY + 2}
+                    C ${cx - size * 1.5} ${canopyY}, ${cx - size * 1.8} ${canopyY + size * 0.6}, ${cx - size * 0.6} ${canopyY + size}
+                    Q ${cx + size * 0.2} ${canopyY + size * 1.2}, ${cx + size * 1.4} ${canopyY + size * 0.7}
+                    C ${cx + size * 1.2} ${canopyY + size * 0.3}, ${cx + size * 0.5} ${canopyY - 1}, ${cx - size * 0.3} ${canopyY + 2}`;
+                case 2: // Multi-crowned
+                  return `M ${cx - size * 0.8} ${canopyY + 3}
+                    C ${cx - size * 1.3} ${canopyY - 1}, ${cx - size * 0.6} ${canopyY - 3}, ${cx} ${canopyY}
+                    C ${cx + size * 0.6} ${canopyY - 3}, ${cx + size * 1.3} ${canopyY - 1}, ${cx + size * 0.8} ${canopyY + 3}
+                    Q ${cx + size * 1.4} ${canopyY + size * 0.6}, ${cx + size} ${canopyY + size * 0.9}
+                    Q ${cx} ${canopyY + size * 1.2}, ${cx - size} ${canopyY + size * 0.9}
+                    Q ${cx - size * 1.4} ${canopyY + size * 0.6}, ${cx - size * 0.8} ${canopyY + 3}`;
+                default: // Classic gnarled
+                  return `M ${cx} ${canopyY + 1}
+                    Q ${cx - size * 0.8} ${canopyY - 2}, ${cx - size * 1.1} ${canopyY + size * 0.3}
+                    C ${cx - size * 1.4} ${canopyY + size * 0.7}, ${cx - size * 0.8} ${canopyY + size * 1.1}, ${cx} ${canopyY + size * 0.95}
+                    C ${cx + size * 0.8} ${canopyY + size * 1.1}, ${cx + size * 1.4} ${canopyY + size * 0.7}, ${cx + size * 1.1} ${canopyY + size * 0.3}
+                    Q ${cx + size * 0.8} ${canopyY - 2}, ${cx} ${canopyY + 1}`;
+              }
+            };
+
+            // Gnarled trunk path
+            const getTrunkPath = () => {
+              const base = p(oy) + 2;
+              const trunkH = size * 0.6;
+              return `M ${p(x) - 1} ${base}
+                Q ${p(x) + twist} ${base - trunkH * 0.5}, ${p(x) - 1 + twist * 0.3} ${base - trunkH}
+                L ${p(x) + 2 + twist * 0.3} ${base - trunkH}
+                Q ${p(x) + 1 + twist} ${base - trunkH * 0.5}, ${p(x) + 2} ${base} Z`;
+            };
+
             return (
-              <g key={`olive-${i}`} opacity={0.9}>
-                <rect x={p(x) - 1} y={p(oy) - 4} width="2" height="6" fill={P.olive} />
-                <ellipse cx={p(x)} cy={p(oy) - 6} rx={rx} ry={ry} fill={P.olive} />
+              <g key={`olive-${i}`} opacity={0.92}>
+                {/* Gnarled trunk */}
+                <path d={getTrunkPath()} fill={blendHex(P.olive, '#5a4a35', 0.5)} />
+                {/* Main canopy */}
+                <path d={getOlivePath()} fill={P.olive} />
+                {/* Silver-green highlights (olive leaves are silvery underneath) */}
+                <ellipse
+                  cx={p(x) + size * 0.3}
+                  cy={p(oy) - size * 0.6}
+                  rx={size * 0.4}
+                  ry={size * 0.25}
+                  fill={blendHex(P.olive, '#8a9a6a', 0.35)}
+                  opacity="0.5"
+                />
               </g>
             );
           })}
@@ -690,30 +793,217 @@ const MediterraneanHorizon: React.FC<MediterraneanHorizonProps> = ({
             fill={P.near}
           />
 
-          {/* cypress trees */}
+          {/* cypress trees - varied organic shapes */}
           {cypressXs.map((x, i) => {
             const baseY = yNear + 6;
-            const h = 18 + ((i % 3) * 3) + Math.round(rng() * 6);
+            const h = 18 + ((i % 3) * 3) + Math.round(rng() * 8);
             const swayDur = 3 + (i % 3);
             const transformOrigin = `${p(x)}px ${baseY}px`;
+            const variant = i % 5; // 5 different cypress shapes
+            const lean = (rng() - 0.5) * 2; // slight random lean
+            const widthVar = 4 + (i % 2) * 2; // width variation
+
+            // Generate organic cypress path based on variant
+            const getCypressPath = () => {
+              const cx = p(x) + lean;
+              const top = baseY - h;
+              const mid1 = baseY - h * 0.7;
+              const mid2 = baseY - h * 0.4;
+              const mid3 = baseY - h * 0.15;
+
+              switch(variant) {
+                case 0: // Classic tall narrow
+                  return `M ${cx} ${top}
+                    C ${cx - widthVar * 0.6} ${mid1}, ${cx - widthVar} ${mid2}, ${cx - widthVar * 0.8} ${mid3}
+                    Q ${cx - widthVar * 0.5} ${baseY}, ${p(x) - 2} ${baseY}
+                    L ${p(x) + 2} ${baseY}
+                    Q ${cx + widthVar * 0.5} ${baseY}, ${cx + widthVar * 0.8} ${mid3}
+                    C ${cx + widthVar} ${mid2}, ${cx + widthVar * 0.6} ${mid1}, ${cx} ${top}`;
+                case 1: // Slightly bulbous middle
+                  return `M ${cx} ${top}
+                    C ${cx - widthVar * 0.4} ${top + 3}, ${cx - widthVar * 1.2} ${mid1}, ${cx - widthVar * 1.3} ${mid2}
+                    S ${cx - widthVar * 0.6} ${mid3}, ${p(x) - 2} ${baseY}
+                    L ${p(x) + 2} ${baseY}
+                    C ${cx + widthVar * 0.6} ${mid3}, ${cx + widthVar * 1.3} ${mid2}, ${cx + widthVar * 1.2} ${mid1}
+                    S ${cx + widthVar * 0.4} ${top + 3}, ${cx} ${top}`;
+                case 2: // Tapered spire
+                  return `M ${cx} ${top}
+                    Q ${cx - widthVar * 0.3} ${mid1}, ${cx - widthVar * 0.9} ${mid2}
+                    Q ${cx - widthVar * 1.1} ${mid3}, ${p(x) - 3} ${baseY}
+                    L ${p(x) + 3} ${baseY}
+                    Q ${cx + widthVar * 1.1} ${mid3}, ${cx + widthVar * 0.9} ${mid2}
+                    Q ${cx + widthVar * 0.3} ${mid1}, ${cx} ${top}`;
+                case 3: // Windswept lean
+                  const leanOffset = widthVar * 0.4;
+                  return `M ${cx + leanOffset} ${top}
+                    C ${cx - widthVar * 0.3 + leanOffset} ${mid1}, ${cx - widthVar * 0.8} ${mid2}, ${cx - widthVar * 0.7} ${mid3}
+                    L ${p(x) - 2} ${baseY}
+                    L ${p(x) + 3} ${baseY}
+                    C ${cx + widthVar * 0.8} ${mid3}, ${cx + widthVar * 0.5 + leanOffset} ${mid2}, ${cx + leanOffset} ${top}`;
+                default: // Rounded top variant
+                  return `M ${cx} ${top + 2}
+                    C ${cx - widthVar * 0.8} ${top}, ${cx - widthVar * 1.1} ${mid1}, ${cx - widthVar} ${mid2}
+                    Q ${cx - widthVar * 0.7} ${mid3}, ${p(x) - 2} ${baseY}
+                    L ${p(x) + 2} ${baseY}
+                    Q ${cx + widthVar * 0.7} ${mid3}, ${cx + widthVar} ${mid2}
+                    C ${cx + widthVar * 1.1} ${mid1}, ${cx + widthVar * 0.8} ${top}, ${cx} ${top + 2}`;
+              }
+            };
+
             return (
               <g
                 key={`cy-${i}`}
                 style={windy ? { transformOrigin, animation: `med-sway ${swayDur}s ease-in-out infinite` } : undefined}
-                shapeRendering="crispEdges"
               >
-                <rect x={p(x) - 2} y={baseY - h + 4} width="4" height={Math.max(10, h - 6)} fill={P.cypress} opacity="0.95" />
+                {/* Visible trunk */}
+                <rect x={p(x) - 1} y={baseY - 6} width="3" height="8" fill={blendHex(P.cypress, '#3a2a20', 0.4)} opacity="0.9" />
+                {/* Organic foliage */}
+                <path d={getCypressPath()} fill={P.cypress} opacity="0.95" />
+                {/* Highlight edge */}
                 <path
-                  d={`M ${p(x)} ${baseY - h}
-                     L ${p(x - 7)} ${p(baseY - h * 0.28)}
-                     L ${p(x - 4)} ${baseY}
-                     L ${p(x + 4)} ${baseY}
-                     L ${p(x + 7)} ${p(baseY - h * 0.28)} Z`}
-                  fill={P.cypress}
+                  d={`M ${p(x) + lean + widthVar * 0.3} ${baseY - h + 2}
+                     Q ${p(x) + lean + widthVar * 0.5} ${baseY - h * 0.5}, ${p(x) + widthVar * 0.4} ${baseY - 4}`}
+                  stroke={blendHex(P.cypress, '#7a9a6a', 0.35)}
+                  strokeWidth="1.5"
+                  fill="none"
+                  opacity="0.4"
                 />
               </g>
             );
           })}
+
+          {/* Umbrella / Stone pines - iconic Mediterranean flat-topped silhouettes */}
+          {pineXs.map((x, i) => {
+            const baseY = yNear + 4;
+            const trunkH = 22 + ((i % 3) * 4) + Math.round(rng() * 8);
+            const canopyW = 14 + (i % 2) * 6;
+            const canopyH = 6 + (i % 3) * 2;
+            const lean = (rng() - 0.5) * 4; // slight trunk lean
+            const swayDur = 4 + (i % 3);
+            const transformOrigin = `${p(x)}px ${baseY}px`;
+
+            return (
+              <g
+                key={`pine-${i}`}
+                style={windy ? { transformOrigin, animation: `med-sway ${swayDur}s ease-in-out infinite` } : undefined}
+              >
+                {/* Tall trunk with slight curve */}
+                <path
+                  d={`M ${p(x) - 1.5} ${baseY}
+                    Q ${p(x) + lean * 0.3} ${baseY - trunkH * 0.5}, ${p(x) - 1 + lean * 0.5} ${baseY - trunkH + canopyH}
+                    L ${p(x) + 2 + lean * 0.5} ${baseY - trunkH + canopyH}
+                    Q ${p(x) + 1 + lean * 0.3} ${baseY - trunkH * 0.5}, ${p(x) + 1.5} ${baseY} Z`}
+                  fill={blendHex(P.pine, '#4a3a2a', 0.45)}
+                />
+                {/* Flat umbrella canopy - distinctive Mediterranean silhouette */}
+                <path
+                  d={`M ${p(x) + lean * 0.5 - canopyW} ${baseY - trunkH + canopyH * 0.7}
+                    C ${p(x) + lean * 0.5 - canopyW * 0.8} ${baseY - trunkH - canopyH * 0.3},
+                      ${p(x) + lean * 0.5 - canopyW * 0.3} ${baseY - trunkH - canopyH * 0.6},
+                      ${p(x) + lean * 0.5} ${baseY - trunkH - canopyH * 0.5}
+                    C ${p(x) + lean * 0.5 + canopyW * 0.3} ${baseY - trunkH - canopyH * 0.6},
+                      ${p(x) + lean * 0.5 + canopyW * 0.8} ${baseY - trunkH - canopyH * 0.3},
+                      ${p(x) + lean * 0.5 + canopyW} ${baseY - trunkH + canopyH * 0.7}
+                    Q ${p(x) + lean * 0.5 + canopyW * 0.6} ${baseY - trunkH + canopyH * 1.2},
+                      ${p(x) + lean * 0.5} ${baseY - trunkH + canopyH}
+                    Q ${p(x) + lean * 0.5 - canopyW * 0.6} ${baseY - trunkH + canopyH * 1.2},
+                      ${p(x) + lean * 0.5 - canopyW} ${baseY - trunkH + canopyH * 0.7}`}
+                  fill={P.pine}
+                  opacity="0.95"
+                />
+                {/* Canopy texture - darker clusters */}
+                {[0.3, 0.6].map((offset, j) => (
+                  <ellipse
+                    key={`pine-tex-${i}-${j}`}
+                    cx={p(x) + lean * 0.5 + (j === 0 ? -canopyW * 0.4 : canopyW * 0.3)}
+                    cy={baseY - trunkH}
+                    rx={canopyW * 0.25}
+                    ry={canopyH * 0.4}
+                    fill={blendHex(P.pine, '#1a3a2a', 0.25)}
+                    opacity="0.5"
+                  />
+                ))}
+              </g>
+            );
+          })}
+
+          {/* Maquis / Garrigue shrubs - Mediterranean scrubland */}
+          {shrubClusters.map((cluster, ci) => (
+            <g key={`shrub-cluster-${ci}`} opacity={0.85}>
+              {Array.from({ length: cluster.count }).map((_, si) => {
+                const sx = cluster.x + (rng() - 0.5) * cluster.spread * 2;
+                const sy = cluster.y + (rng() - 0.5) * cluster.spread * 0.5;
+                const shrubType = (ci + si) % 4;
+                const size = 3 + rng() * 4;
+
+                // Different shrub shapes for variety
+                switch(shrubType) {
+                  case 0: // Rosemary - upright spiky
+                    return (
+                      <g key={`shrub-${ci}-${si}`}>
+                        <path
+                          d={`M ${p(sx)} ${p(sy)}
+                            Q ${p(sx) - size * 0.3} ${p(sy) - size * 0.8}, ${p(sx) - size * 0.1} ${p(sy) - size * 1.4}
+                            L ${p(sx) + size * 0.1} ${p(sy) - size * 1.4}
+                            Q ${p(sx) + size * 0.3} ${p(sy) - size * 0.8}, ${p(sx)} ${p(sy)}`}
+                          fill={P.maquisDark}
+                        />
+                        <path
+                          d={`M ${p(sx) + size * 0.3} ${p(sy)}
+                            Q ${p(sx) + size * 0.5} ${p(sy) - size * 0.6}, ${p(sx) + size * 0.4} ${p(sy) - size * 1.1}
+                            L ${p(sx) + size * 0.2} ${p(sy) - size * 1.1}
+                            Q ${p(sx) + size * 0.1} ${p(sy) - size * 0.5}, ${p(sx) + size * 0.3} ${p(sy)}`}
+                          fill={P.maquis}
+                          opacity="0.9"
+                        />
+                      </g>
+                    );
+                  case 1: // Lavender - rounded mound
+                    return (
+                      <ellipse
+                        key={`shrub-${ci}-${si}`}
+                        cx={p(sx)}
+                        cy={p(sy) - size * 0.4}
+                        rx={size * 1.2}
+                        ry={size * 0.6}
+                        fill={blendHex(P.maquis, '#7a6a8a', 0.2)}
+                      />
+                    );
+                  case 2: // Wild thyme - low spreading
+                    return (
+                      <path
+                        key={`shrub-${ci}-${si}`}
+                        d={`M ${p(sx) - size * 1.5} ${p(sy)}
+                          Q ${p(sx) - size * 0.8} ${p(sy) - size * 0.5}, ${p(sx)} ${p(sy) - size * 0.6}
+                          Q ${p(sx) + size * 0.8} ${p(sy) - size * 0.5}, ${p(sx) + size * 1.5} ${p(sy)}
+                          Q ${p(sx) + size * 0.5} ${p(sy) + size * 0.2}, ${p(sx) - size * 0.5} ${p(sy) + size * 0.2} Z`}
+                        fill={P.maquis}
+                        opacity="0.8"
+                      />
+                    );
+                  default: // Cistus - bushy irregular
+                    return (
+                      <g key={`shrub-${ci}-${si}`}>
+                        <ellipse
+                          cx={p(sx) - size * 0.3}
+                          cy={p(sy) - size * 0.5}
+                          rx={size * 0.8}
+                          ry={size * 0.6}
+                          fill={P.maquisDark}
+                        />
+                        <ellipse
+                          cx={p(sx) + size * 0.4}
+                          cy={p(sy) - size * 0.4}
+                          rx={size * 0.7}
+                          ry={size * 0.5}
+                          fill={P.maquis}
+                        />
+                      </g>
+                    );
+                }
+              })}
+            </g>
+          ))}
 
           {/* villas (if urban) */}
           {villas.map((v, k) => (

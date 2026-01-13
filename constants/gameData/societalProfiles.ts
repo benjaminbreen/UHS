@@ -7,7 +7,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
     DEFAULT: {
         isAgricultural: true,
         isPastoral: true,
-        allowedStructures: ['mill', 'lumber_camp', 'fishing_hut', 'farm', 'marketplace', 'fortress', 'mining_colony', 'factory', 'quarry', 'holy_site', 'encampment'],
+        allowedStructures: ['mill', 'lumber_camp', 'fishing_hut', 'farm', 'marketplace', 'fortress', 'mining_colony', 'factory', 'quarry', 'holy_site', 'encampment', 'waystation', 'well'],
         allowedMineTypes: ['IRON', 'COPPER', 'TIN', 'COAL', 'STONE', 'CLAY', 'LEAD', 'SILVER'],
         fortressNames: ['Fort', 'Keep', 'Garrison', 'Citadel'],
         holyPlaceNames: ['Shrine', 'Sacred Grove', 'Temple'],
@@ -26,7 +26,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.PREHISTORY]: {
             isAgricultural: false,
             isPastoral: true,
-            allowedStructures: ['encampment', 'fishing_hut', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry', 'well'], // NO mines, fortresses, or lumber_camps in prehistory; wells (springs) existed
             allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Hillfort', 'Enclosure'],
             holyPlaceNames: ['Stone Circle', 'Sacred Grove', 'Burial Mound'],
@@ -40,7 +40,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'quarry', 'mining_colony', 'fortress', 'marketplace'],
+            allowedStructures: ['farm', 'quarry', 'mining_colony', 'fortress', 'marketplace', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'LEAD', 'TIN', 'STONE', 'SILVER', 'GOLD', 'SALT'],
             fortressNames: ['Castrum', 'Roman Fort', 'Oppidum'],
             holyPlaceNames: ['Roman Temple', 'Celtic Shrine', 'Early Church'],
@@ -56,7 +56,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'TIN', 'SALT', 'COPPER'],
             fortressNames: ['Castle', 'Keep', 'Motte-and-bailey', 'Ringfort', 'Longphort', 'Hillfort'],
             holyPlaceNames: ['Monastery', 'Abbey', 'Cathedral', 'Shrine', 'Stave Church', 'Hörgr', 'Sacred Grove'],
@@ -72,7 +72,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'COPPER'],
             fortressNames: ['Star Fort', 'Bastion', 'Citadel'],
             holyPlaceNames: ['Baroque Cathedral', 'Chapel', 'Seminary'],
@@ -88,7 +88,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.INDUSTRIAL_ERA]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'TIN'],
             fortressNames: ['Barracks', 'Redoubt', 'Fortification'],
             holyPlaceNames: ['Church', 'Cathedral'],
@@ -104,7 +104,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: false,
-            allowedStructures: ["holy_site", "fishing_hut", "farm", "encampment", "quarry"],
+            allowedStructures: ["holy_site", "fishing_hut", "farm", "encampment", "quarry", "well"],
             allowedMineTypes: ['CLAY', 'STONE', 'OCHRE', 'FLINT', 'COPPER'],
             fortressNames: ['Palisaded Village', 'Hilltop Town'],
             holyPlaceNames: ['Great Mound', 'Kiva', 'Sacred Plaza', 'Mesoamerican Pyramid'],
@@ -118,7 +118,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: false,
-            allowedStructures: ['farm', 'fishing_hut', 'quarry', 'encampment', 'holy_site'],
+            allowedStructures: ['farm', 'fishing_hut', 'quarry', 'encampment', 'holy_site', 'well'],
             allowedMineTypes: ['CLAY', 'STONE', 'OCHRE', 'FLINT', 'COPPER'],
             fortressNames: ['Palisaded Village', 'Hilltop Town'],
             holyPlaceNames: ['Mound', 'Kiva', 'Sacred Plaza', 'Mesoamerican Pyramid'],
@@ -132,7 +132,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
          [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: false,
-            allowedStructures: ['farm', 'fishing_hut', 'quarry', 'encampment', 'holy_site'],
+            allowedStructures: ['farm', 'fishing_hut', 'quarry', 'encampment', 'holy_site', 'well'],
             allowedMineTypes: ['CLAY', 'STONE', 'OCHRE', 'FLINT', 'COPPER'],
             fortressNames: ['Palisaded Village', 'Hilltop Town'],
             holyPlaceNames: ['Mound', 'Kiva', 'Sacred Plaza'],
@@ -148,7 +148,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.PREHISTORY]: {
             isAgricultural: false, // Default false for East Asian prehistory
             isPastoral: true,
-            allowedStructures: ['encampment', 'fishing_hut', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry', 'well'], // NO mines, fortresses, or lumber_camps in prehistory
             allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Enclosure', 'Fortified Village'],
             holyPlaceNames: ['Sacred Grove', 'Shrine', 'Burial Mound'],
@@ -173,7 +173,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'TIN', 'COPPER', 'SILVER', 'LEAD'],
             fortressNames: ['Fortress', 'Garrison'],
             holyPlaceNames: ['Temple', 'Shrine', 'Pagoda'],
@@ -187,7 +187,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'TIN', 'COPPER', 'SILVER', 'LEAD'],
             fortressNames: ['Japanese Castle', 'Fortress', 'Garrison'],
             holyPlaceNames: ['Temple', 'Monastery', 'Shrine', 'Pagoda'],
@@ -201,7 +201,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'TIN', 'COPPER', 'SILVER', 'LEAD'],
             fortressNames: ['Castle', 'Fortress', 'Garrison'],
             holyPlaceNames: ['Temple', 'Monastery', 'Shrine'],
@@ -217,7 +217,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.PREHISTORY]: {
             isAgricultural: false, // Default false for MENA prehistory
             isPastoral: true,
-            allowedStructures: ['encampment', 'fishing_hut', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry', 'well'], // NO mines, fortresses, or lumber_camps in prehistory
             allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Mud Brick Wall', 'Settlement'],
             holyPlaceNames: ['Shrine', 'Ziggurat'],
@@ -244,7 +244,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['COPPER', 'STONE', 'SALT', 'OCHRE'],
             fortressNames: ['Citadel', 'Garrison'],
             holyPlaceNames: ['Ziggurat', 'Fire Temple', 'Synagogue', 'Pyramid'],
@@ -258,7 +258,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['COPPER', 'STONE', 'SALT', 'OCHRE'],
             fortressNames: ['Kasbah', 'Ribat', "Qal'a"],
             holyPlaceNames: ['Mosque', 'Madrasa', 'Shrine'],
@@ -272,7 +272,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['COPPER', 'STONE', 'SALT', 'OCHRE'],
             fortressNames: ['Kasbah', 'Ribat', "Qal'a"],
             holyPlaceNames: ['Ottoman Mosque', 'Madrasa', 'Shrine'],
@@ -288,7 +288,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.PREHISTORY]: {
             isAgricultural: false, // Default: NO agriculture - most of Africa was hunter-gatherer
             isPastoral: true,
-            allowedStructures: ['encampment', 'fishing_hut', 'quarry'],
+            allowedStructures: ['encampment', 'fishing_hut', 'quarry', 'well'],
             allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Enclosure', 'Fortified Camp'],
             holyPlaceNames: ['Sacred Grove', 'Spirit Site', 'Ancestor Shrine'],
@@ -309,7 +309,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
          [HistoricalEra.ANTIQUITY]: {
             isAgricultural: false, // Default: NO agriculture - most of Africa was hunter-gatherer or pastoral
             isPastoral: true,
-            allowedStructures: ['fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site', 'encampment'],
+            allowedStructures: ['fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site', 'encampment', 'well'],
             allowedMineTypes: ['IRON', 'GOLD', 'SALT', 'CLAY'],
             fortressNames: ['Great Enclosure', 'Fortified Village'],
             holyPlaceNames: ['Sacred Grove', 'Shrine', 'Spirit House'],
@@ -338,7 +338,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
          [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'GOLD', 'SALT', 'CLAY'],
             fortressNames: ['Great Enclosure', 'Fortified Village'],
             holyPlaceNames: ['Great Mosque', 'Sacred Grove', 'Shrine'],
@@ -352,7 +352,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'mining_colony', 'factory', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'GOLD', 'SALT', 'CLAY'],
             fortressNames: ['Great Enclosure', 'Fortified Village'],
             holyPlaceNames: ['Sacred Grove', 'Shrine', 'Spirit House'],
@@ -368,7 +368,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['GOLD', 'SILVER', 'COPPER', 'STONE', 'SALT'],
             fortressNames: ['Pukara', 'Citadel', 'Tambo'],
             holyPlaceNames: ['Huaca', 'Sun Temple', 'Coricancha', 'Mesoamerican Pyramid'],
@@ -382,7 +382,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['GOLD', 'SILVER', 'COPPER', 'STONE', 'SALT'],
             fortressNames: ['Pukara', 'Citadel', 'Tambo'],
             holyPlaceNames: ['Huaca', 'Sun Temple', 'Coricancha', 'Mesoamerican Pyramid'],
@@ -396,7 +396,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
          [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['GOLD', 'SILVER', 'COPPER', 'STONE', 'SALT'],
             fortressNames: ['Pukara', 'Citadel', 'Tambo'],
             holyPlaceNames: ['Huaca', 'Sun Temple', 'Coricancha'],
@@ -412,7 +412,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.PREHISTORY]: {
             isAgricultural: false,
             isPastoral: true,
-            allowedStructures: ['farm', 'fishing_hut', 'marketplace', 'holy_site'],
+            allowedStructures: ['farm', 'fishing_hut', 'marketplace', 'holy_site', 'well'],
             allowedMineTypes: ['STONE', 'CLAY', 'OCHRE'],
             fortressNames: ['Mud Fort', 'Hill Fort'],
             holyPlaceNames: ['Sacred Tree', 'River Shrine', 'Stone Circle'],
@@ -426,7 +426,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'CLAY'],
             fortressNames: ['Hill Fort', 'Citadel', 'Durga'],
             holyPlaceNames: ['Buddhist Stupa', 'Hindu Temple', 'Vihara', 'Chaitya', 'Brahmin Temple'],
@@ -440,7 +440,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT'],
             fortressNames: ['Fort', 'Citadel', 'Kila', 'Durg'],
             holyPlaceNames: ['Buddhist Stupa', 'Hindu Temple', 'Buddhist Monastery', 'Kovil', 'Devalaya', 'Dagoba'],
@@ -454,7 +454,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT', 'COAL'],
             fortressNames: ['Fort', 'Citadel', 'Star Fort', 'Mughal Fort'],
             holyPlaceNames: ['Hindu Temple', 'Buddhist Temple', 'Mosque', 'Church', 'Gurdwara'],
@@ -468,7 +468,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.INDUSTRIAL_ERA]: {
             isAgricultural: true,
             isPastoral: false,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT'],
             fortressNames: ['Fort', 'Cantonment', 'Military Base'],
             holyPlaceNames: ['Temple', 'Mosque', 'Church', 'Gurdwara', 'Monastery'],
@@ -482,7 +482,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MODERN_ERA]: {
             isAgricultural: true,
             isPastoral: false,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT', 'URANIUM'],
             fortressNames: ['Military Base', 'Army Cantonment', 'Border Post'],
             holyPlaceNames: ['Temple', 'Mosque', 'Church', 'Gurdwara', 'Buddhist Temple'],
@@ -498,7 +498,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'COPPER', 'SILVER'],
             fortressNames: ['Fort', 'Stockade', 'Presidio', 'Colonial Fort'],
             holyPlaceNames: ['Church', 'Meeting House', 'Mission', 'Chapel'],
@@ -512,7 +512,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.INDUSTRIAL_ERA]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'TIN', 'COPPER', 'GOLD', 'SILVER'],
             fortressNames: ['Fort', 'Arsenal', 'Military Post', 'Cavalry Fort'],
             holyPlaceNames: ['Church', 'Cathedral', 'Chapel', 'Temple'],
@@ -526,7 +526,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MODERN_ERA]: {
             isAgricultural: true,
             isPastoral: false,
-            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony'],
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony', 'waystation', 'well'],
             allowedMineTypes: ['IRON', 'COAL', 'COPPER', 'GOLD', 'SILVER', 'URANIUM', 'OIL'],
             fortressNames: ['Military Base', 'Air Force Base', 'Naval Base', 'Army Fort'],
             holyPlaceNames: ['Church', 'Cathedral', 'Synagogue', 'Mosque', 'Temple'],
@@ -542,7 +542,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.PREHISTORY]: {
             isAgricultural: false, // Default false - most of Oceania was hunter-gatherer
             isPastoral: false,
-            allowedStructures: ['fishing_hut', 'encampment', 'quarry'], // NO mines, fortresses, or lumber_camps in prehistory
+            allowedStructures: ['fishing_hut', 'encampment', 'quarry', 'well'], // NO mines, fortresses, or lumber_camps in prehistory
             allowedMineTypes: [], // No mining in prehistory, only quarrying
             fortressNames: ['Pa', 'Fortified Village'],
             holyPlaceNames: ['Sacred Site', 'Marae', 'Stone Platform', 'Dreaming Site'],
@@ -578,7 +578,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: false, // Default false - Australia remains hunter-gatherer
             isPastoral: false,
-            allowedStructures: ['fishing_hut', 'encampment', 'holy_site', 'quarry'],
+            allowedStructures: ['fishing_hut', 'encampment', 'holy_site', 'quarry', 'well'],
             allowedMineTypes: ['STONE', 'CLAY', 'OCHRE', 'JADE'],
             fortressNames: ['Pa', 'Hill Fort', 'Coastal Fort'],
             holyPlaceNames: ['Marae', 'Heiau', 'Sacred Grove', 'Stone Platform', 'Dreaming Site'],
@@ -613,7 +613,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: false, // Default false for Australia
             isPastoral: false,
-            allowedStructures: ['fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry'],
+            allowedStructures: ['fishing_hut', 'fortress', 'marketplace', 'holy_site', 'quarry', 'well'],
             allowedMineTypes: ['STONE', 'CLAY', 'JADE', 'OBSIDIAN'],
             fortressNames: ['Pa', 'Fortified Village', 'Coastal Stronghold'],
             holyPlaceNames: ['Marae', 'Heiau', 'Temple Platform', 'Sacred Grove', 'Bora Ground'],
@@ -648,7 +648,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'mill'],
+            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'mill', 'waystation', 'well'],
             allowedMineTypes: ['STONE', 'CLAY', 'JADE', 'GOLD'],
             fortressNames: ['Pa', 'Colonial Fort', 'Mission Fort'],
             holyPlaceNames: ['Marae', 'Mission Church', 'Cathedral', 'Chapel'],
@@ -662,7 +662,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.INDUSTRIAL_ERA]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'mill', 'factory', 'quarry'],
+            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'mill', 'factory', 'quarry', 'waystation', 'well'],
             allowedMineTypes: ['STONE', 'COAL', 'GOLD', 'COPPER', 'PHOSPHATE'],
             fortressNames: ['Colonial Fort', 'Naval Base', 'Garrison'],
             holyPlaceNames: ['Church', 'Cathedral', 'Temple', 'Traditional Marae'],
@@ -676,7 +676,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MODERN_ERA]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'factory', 'quarry'],
+            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'factory', 'quarry', 'waystation', 'well'],
             allowedMineTypes: ['GOLD', 'COPPER', 'URANIUM', 'COAL', 'PHOSPHATE', 'BAUXITE'],
             fortressNames: ['Military Base', 'Naval Base', 'Air Base'],
             holyPlaceNames: ['Church', 'Cathedral', 'Temple', 'Marae', 'Mosque'],

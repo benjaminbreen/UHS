@@ -12,6 +12,7 @@ if (!document.head.querySelector(`link[href="${fontLink.href}"]`)) {
 
 interface AtmosphericBackgroundProps {
   className?: string;
+  showTextOverlay?: boolean;
 }
 
 interface HistoricalEntry {
@@ -25,7 +26,7 @@ interface HistoricalEntry {
   text: string;
 }
 
-const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ className = '' }) => {
+const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ className = '', showTextOverlay = true }) => {
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [entries, setEntries] = useState<HistoricalEntry[]>([]);
   const [displayedEntries, setDisplayedEntries] = useState<HistoricalEntry[]>([]);
@@ -294,19 +295,21 @@ const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ className
         style={{ backgroundImage: `url(${backgroundImage})` }}
       />
 
-      {/* Terminal Container */}
-      <div className="terminal-container">
-        <div className="terminal-line">
-          {displayedEntries.filter(entry => entry && entry.id).map((entry, index) => (
-            <span key={entry.id} className="entry-wrapper" onClick={() => handleNameClick(entry.id)}>
-              {index > 0 && <span className="separator"> • </span>}
-              <span
-                dangerouslySetInnerHTML={{ __html: entry.text || '' }}
-              />
-            </span>
-          ))}
+      {/* Terminal Container - conditionally rendered based on showTextOverlay prop */}
+      {showTextOverlay && (
+        <div className="terminal-container">
+          <div className="terminal-line">
+            {displayedEntries.filter(entry => entry && entry.id).map((entry, index) => (
+              <span key={entry.id} className="entry-wrapper" onClick={() => handleNameClick(entry.id)}>
+                {index > 0 && <span className="separator"> • </span>}
+                <span
+                  dangerouslySetInnerHTML={{ __html: entry.text || '' }}
+                />
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Atmospheric Haze */}
       <div className="atmospheric-haze" ref={hazeRef} />

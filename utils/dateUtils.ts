@@ -38,15 +38,18 @@ export function parseDateString(dateStr: string): ParsedDateInfo {
   let era: HistoricalEra;
   if (year >= 2020) {
     era = HistoricalEra.FUTURE_ERA;
-  } else if (year >= 1900) {
+  } else if (year >= 1920) {
+    // Post-WWI: interwar period, Taisho democracy, early Republic China, post-Ottoman MENA
     era = HistoricalEra.MODERN_ERA;
-  } else if (year >= 1700) {
+  } else if (year >= 1760) {
+    // Industrial Revolution onward - includes late Qing, Meiji Japan, colonial periods
     era = HistoricalEra.INDUSTRIAL_ERA;
   } else if (year >= 1400) {
     era = HistoricalEra.RENAISSANCE_EARLY_MODERN;
   } else if (year >= 500) {
     era = HistoricalEra.MEDIEVAL;
-  } else if (year >= -2000) {
+  } else if (year >= -3000) {
+    // Expanded antiquity to cover early Bronze Age civilizations
     era = HistoricalEra.ANTIQUITY;
   } else {
     era = HistoricalEra.PREHISTORY;

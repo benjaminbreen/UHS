@@ -1,9 +1,11 @@
-import type { GameDate, MapData, NpcEntity, PlayerCharacter } from '../types';
-import type { HistoryLensAction } from '../types/historyLens';
+import type { GameDate, MapData, NpcEntity, PlayerCharacter, HomeAnchor, AnimalEntity } from '../types';
+import type { HistoryLensAction, StructureCard, StructureCardType } from '../types/historyLens';
 import { createItemInstance, addItemToInventory, removeItemFromInventory } from '../utils/inventoryUtils';
 import { timeAdvancementService } from './timeAdvancementService';
 import { getDaysInMonth } from '../utils/dateUtils';
 import { createHistoryLensNpcs } from './historyLensNpcFactory';
+import { findEdgeTarget } from './historyLensPathfinding';
+import { ANIMAL_DATA } from '../constants/gameData/animals';
 
 type ActionRouterState = {
   playerCharacter: PlayerCharacter;
@@ -15,17 +17,22 @@ type ActionRouterState = {
   hasVessel: boolean;
   playerMode: 'onFoot' | 'ship' | string;
   npcs: NpcEntity[];
+  animals: AnimalEntity[];
+  homeAnchor?: HomeAnchor | null;
 };
 
 export type HistoryLensActionResult = {
   moveRequest?: { dx: number; dy: number; steps: number };
   navigateTarget?: { x: number; y: number; label: string; kind: string };
+  animalTarget?: { animal: AnimalEntity; huntMode: boolean }; // For navigate_animal - includes the actual animal entity
+  npcTarget?: { npc: NpcEntity }; // For seek_npc - includes the actual NPC entity for encounter
   npcSpawnRequests?: Array<{ count: number; role?: string; name?: string }>;
   nextTime?: { hours: number; date: GameDate };
   nextInventory?: PlayerCharacter['inventory'];
   playerUpdates?: Partial<PlayerCharacter>;
   triggerGameOver?: boolean;
   npcAdditions?: NpcEntity[];
+  structureCard?: StructureCard;
   rejections: string[];
 };
 
@@ -43,7 +50,7 @@ const resolveNearestNpc = (
   state: ActionRouterState,
   maxDistance: number,
   role?: string
-): { x: number; y: number; label: string; kind: string } | null => {
+): { x: number; y: number; label: string; kind: string; npc: NpcEntity } | null => {
   const candidates = state.npcs.filter(npc => {
     const dist = Math.hypot(npc.x - state.playerX, npc.y - state.playerY);
     if (dist > maxDistance) return false;
@@ -59,8 +66,67 @@ const resolveNearestNpc = (
     x: nearest.npc.x,
     y: nearest.npc.y,
     label: nearest.npc.name || 'nearby traveler',
-    kind: 'npc'
+    kind: 'npc',
+    npc: nearest.npc
   };
+};
+
+/**
+ * Find nearest animal matching the given criteria.
+ * @param state - Current game state
+ * @param maxDistance - Maximum distance to search
+ * @param speciesQuery - Optional species name or type to filter by (e.g., "deer", "wolf", "prey", "predator")
+ * @returns The matching animal entity or null if none found
+ */
+const resolveNearestAnimal = (
+  state: ActionRouterState,
+  maxDistance: number,
+  speciesQuery?: string
+): AnimalEntity | null => {
+  if (!state.animals || !state.animals.length) return null;
+
+  const normalizedQuery = speciesQuery?.toLowerCase().trim();
+
+  const candidates = state.animals.filter(animal => {
+    const dist = Math.hypot(animal.x - state.playerX, animal.y - state.playerY);
+    if (dist > maxDistance) return false;
+    if (dist < 0.5) return false; // Don't target animals on same tile
+
+    // If no query, match any animal
+    if (!normalizedQuery) return true;
+
+    // Get animal data for type checking
+    const animalData = ANIMAL_DATA[animal.baseId];
+    const speciesName = animal.speciesName?.toLowerCase() || animal.baseId.toLowerCase();
+    const animalType = animalData?.type?.toLowerCase(); // 'prey', 'predator', etc.
+
+    // Match by exact species name
+    if (speciesName.includes(normalizedQuery)) return true;
+
+    // Match by base ID (e.g., "DEER", "WOLF")
+    if (animal.baseId.toLowerCase().includes(normalizedQuery)) return true;
+
+    // Match by animal type (prey/predator)
+    if (animalType && animalType.includes(normalizedQuery)) return true;
+
+    // Match common synonyms
+    if (normalizedQuery === 'game' && animalType === 'prey') return true;
+    if (normalizedQuery === 'beast' || normalizedQuery === 'dangerous') {
+      if (animalType === 'predator') return true;
+    }
+
+    return false;
+  });
+
+  if (!candidates.length) return null;
+
+  // Return the nearest matching animal
+  const nearest = candidates.reduce((best, animal) => {
+    const dist = Math.hypot(animal.x - state.playerX, animal.y - state.playerY);
+    return dist < best.distance ? { animal, distance: dist } : best;
+  }, { animal: candidates[0], distance: Math.hypot(candidates[0].x - state.playerX, candidates[0].y - state.playerY) });
+
+  return nearest.animal;
 };
 
 // Mapping from navigate_nearest kind to tile biomes to search
@@ -108,6 +174,70 @@ const BIOME_NAV_LABELS: Record<string, string> = {
   'PLAZA': 'public square',
   'PARK': 'park',
   'RUINS': 'ruins'
+};
+
+// Map navigate_nearest kinds to StructureCardType for propose_enter
+const KIND_TO_CARD_TYPE: Record<string, StructureCardType> = {
+  'city': 'city',
+  'settlement': 'city',
+  'town': 'city',
+  'fortress': 'fortress',
+  'fort': 'fortress',
+  'castle': 'fortress',
+  'mine': 'mine',
+  'mining': 'mine',
+  'quarry': 'quarry',
+  'fishing': 'fishing_hut',
+  'fishing_hut': 'fishing_hut',
+  'palace': 'palace',
+  'holy_site': 'holy_site',
+  'temple': 'holy_site',
+  'church': 'holy_site',
+  'shrine': 'holy_site',
+  'ruin': 'ruins',
+  'ruins': 'ruins',
+  'government': 'government',
+  'farm': 'farm',
+  'market': 'market',
+  'marketplace': 'market',
+  'harbor': 'harbor',
+  'port': 'harbor',
+  'woodcutter': 'woodcutter'
+};
+
+// Find structure data by location for propose_enter
+const findStructureAtLocation = (
+  state: ActionRouterState,
+  x: number,
+  y: number,
+  kind: string
+): { id: string; name: string; description?: string } | null => {
+  const structures = state.mapData.terrainStructures || [];
+
+  // Find structure at or very near the target location
+  const structure = structures.find(s =>
+    Math.hypot(s.location[0] - x, s.location[1] - y) <= 2
+  );
+
+  if (structure) {
+    return {
+      id: structure.id,
+      name: structure.name || structure.structureType.replace(/_/g, ' '),
+      description: structure.description
+    };
+  }
+
+  // For biome-based locations (cities), use tile info
+  const tile = state.mapData.tiles[y]?.[x];
+  if (tile) {
+    return {
+      id: `tile-${x}-${y}`,
+      name: tile.cityName || BIOME_NAV_LABELS[String(tile.biome)] || kind,
+      description: undefined
+    };
+  }
+
+  return null;
 };
 
 const resolveNearestStructure = (
@@ -361,6 +491,8 @@ export async function applyHistoryLensActions(
 ): Promise<HistoryLensActionResult> {
   let moveRequest: { dx: number; dy: number; steps: number } | undefined;
   let navigateTarget: { x: number; y: number; label: string; kind: string } | undefined;
+  let animalTarget: { animal: AnimalEntity; huntMode: boolean } | undefined;
+  let npcTarget: { npc: NpcEntity } | undefined;
   let nextTime: { hours: number; date: GameDate } | undefined;
   let workingInventory = state.playerCharacter.inventory;
   let nextInventory: PlayerCharacter['inventory'] | undefined;
@@ -368,6 +500,7 @@ export async function applyHistoryLensActions(
   let triggerGameOver = false;
   let npcAdditions: NpcEntity[] | undefined;
   let npcSpawnRequests: Array<{ count: number; role?: string; name?: string }> = [];
+  let structureCard: StructureCard | undefined;
   let hasMovementIntent = false;
   const rejections: string[] = [];
 
@@ -414,6 +547,54 @@ export async function applyHistoryLensActions(
         hasMovementIntent = true;
         break;
       }
+      case 'navigate_edge': {
+        const params = action.params || {};
+        const direction = typeof params.direction === 'string' ? params.direction as 'north' | 'south' | 'east' | 'west' : null;
+        if (!direction || !['north', 'south', 'east', 'west'].includes(direction)) {
+          rejections.push('Invalid direction specified for edge navigation.');
+          break;
+        }
+        const edgeTarget = findEdgeTarget(state.mapData, state.playerX, state.playerY, direction, state.playerMode);
+        if (!edgeTarget) {
+          rejections.push(`Cannot find a passable route to the ${direction}ern edge of this area.`);
+          break;
+        }
+        console.log(`[HistoryLens] Navigating to ${direction} edge at (${edgeTarget.x}, ${edgeTarget.y})`);
+        navigateTarget = {
+          x: edgeTarget.x,
+          y: edgeTarget.y,
+          label: `${direction}ern edge`,
+          kind: 'edge'
+        };
+        hasMovementIntent = true;
+        break;
+      }
+      case 'navigate_home': {
+        const home = state.homeAnchor;
+        if (!home) {
+          rejections.push('You have no home to return to.');
+          break;
+        }
+        // Check if home is on the current map
+        if (home.mapSeed !== state.mapData.seed) {
+          rejections.push(`Your home in ${home.mapAreaName} is not on this map. You would need to travel there.`);
+          break;
+        }
+        // Check if already at home
+        if (home.x === state.playerX && home.y === state.playerY) {
+          rejections.push('You are already home.');
+          break;
+        }
+        console.log(`[HistoryLens] Navigating home to ${home.label} at (${home.x}, ${home.y})`);
+        navigateTarget = {
+          x: home.x,
+          y: home.y,
+          label: home.label || 'home',
+          kind: 'home'
+        };
+        hasMovementIntent = true;
+        break;
+      }
       case 'seek_npc': {
         const params = action.params || {};
         const role = typeof params.role === 'string' ? params.role : undefined;
@@ -422,7 +603,59 @@ export async function applyHistoryLensActions(
           rejections.push('No one nearby appears willing or able to talk.');
           break;
         }
-        navigateTarget = target;
+        // Store the NPC entity for the encounter when we arrive
+        npcTarget = { npc: target.npc };
+        navigateTarget = {
+          x: target.x,
+          y: target.y,
+          label: target.label,
+          kind: 'npc'
+        };
+        hasMovementIntent = true;
+        break;
+      }
+      case 'navigate_animal': {
+        // Navigate to an animal - for approaching, hunting, or taming
+        const params = action.params || {};
+        const species = typeof params.species === 'string' ? params.species : undefined;
+        const huntMode = params.hunt === true || params.mode === 'hunt';
+
+        // Search a larger radius for animals (20 tiles - they should be visible at distance)
+        const animal = resolveNearestAnimal(state, 20, species);
+        if (!animal) {
+          const speciesText = species ? ` ${species}` : '';
+          // Check if any animals exist at all
+          if (state.animals.length === 0) {
+            rejections.push(`No wildlife visible in this area.`);
+          } else {
+            // List what animals ARE visible
+            const visibleAnimals = state.animals
+              .filter(a => Math.hypot(a.x - state.playerX, a.y - state.playerY) <= 20)
+              .slice(0, 3)
+              .map(a => a.speciesName || a.baseId.toLowerCase());
+            if (visibleAnimals.length > 0) {
+              rejections.push(`No${speciesText} nearby. You can see: ${visibleAnimals.join(', ')}.`);
+            } else {
+              rejections.push(`No${speciesText} visible from here.`);
+            }
+          }
+          break;
+        }
+
+        const animalName = animal.speciesName || animal.baseId.toLowerCase().replace(/_/g, ' ');
+        const modeLabel = huntMode ? 'hunting' : 'approaching';
+        console.log(`[HistoryLens] ${modeLabel} ${animalName} at (${animal.x}, ${animal.y})`);
+
+        // Set navigation target to the animal's location
+        navigateTarget = {
+          x: animal.x,
+          y: animal.y,
+          label: `the ${animalName}`,
+          kind: huntMode ? 'hunt_animal' : 'animal'
+        };
+
+        // Store the animal entity for the encounter when we arrive
+        animalTarget = { animal, huntMode };
         hasMovementIntent = true;
         break;
       }
@@ -506,6 +739,54 @@ export async function applyHistoryLensActions(
         npcSpawnRequests = [...npcSpawnRequests, { count, role: preferredRole, name: preferredName }];
         break;
       }
+      case 'propose_enter': {
+        const params = action.params || {};
+        const kind = typeof params.kind === 'string' ? params.kind.toLowerCase() : '';
+
+        if (!kind) {
+          rejections.push('No location type specified for entry.');
+          break;
+        }
+
+        // Map the kind to a StructureCardType
+        const cardType = KIND_TO_CARD_TYPE[kind];
+        if (!cardType) {
+          rejections.push(`Cannot enter ${kind} - not a recognized location type.`);
+          break;
+        }
+
+        // Find the nearest structure of this kind (use existing navigateTarget if set, otherwise search)
+        let targetLocation = navigateTarget;
+        if (!targetLocation) {
+          targetLocation = resolveNearestStructure(state, kind, 10); // Shorter range for propose_enter
+        }
+
+        if (!targetLocation) {
+          rejections.push(`No ${kind} nearby to enter.`);
+          break;
+        }
+
+        // Get structure details
+        const structureInfo = findStructureAtLocation(state, targetLocation.x, targetLocation.y, kind);
+        if (!structureInfo) {
+          rejections.push(`Could not identify the ${kind} at this location.`);
+          break;
+        }
+
+        // Create the structure card
+        structureCard = {
+          type: 'enter_structure',
+          structureId: structureInfo.id,
+          structureName: structureInfo.name,
+          structureType: cardType,
+          description: structureInfo.description,
+          location: { x: targetLocation.x, y: targetLocation.y },
+          resolved: false
+        };
+
+        console.log(`[HistoryLens] propose_enter: Created card for ${structureInfo.name} (${cardType}) at (${targetLocation.x}, ${targetLocation.y})`);
+        break;
+      }
       default:
         break;
     }
@@ -535,12 +816,15 @@ export async function applyHistoryLensActions(
   return {
     moveRequest,
     navigateTarget,
+    animalTarget,
+    npcTarget,
     npcSpawnRequests: hasMovementIntent ? npcSpawnRequests : undefined,
     nextTime,
     nextInventory,
     playerUpdates,
     triggerGameOver,
     npcAdditions,
+    structureCard,
     rejections
   };
 }

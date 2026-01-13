@@ -16,6 +16,63 @@ const HOLY_PLACE_BASE_CHANCE = 0.004;
 const HOLY_PLACE_ANTI_CLUSTERING_RADIUS = 20;
 let holyPlaceIdCounter = 0;
 
+// Map holy place name keywords to religions to prevent mismatches
+// e.g., "Buddhist Monastery" should not get assigned "Sunni Islam"
+const HOLY_PLACE_NAME_TO_RELIGION: Record<string, string> = {
+    // Buddhist
+    'buddhist': 'Buddhism',
+    'monastery': 'Buddhism',
+    'stupa': 'Buddhism',
+    'pagoda': 'Buddhism',
+    'vihara': 'Buddhism',
+    'wat': 'Buddhism',
+    // Hindu
+    'hindu': 'Hinduism',
+    'mandir': 'Hinduism',
+    'ashram': 'Hinduism',
+    // Christian
+    'church': 'Christianity',
+    'cathedral': 'Christianity',
+    'chapel': 'Christianity',
+    'abbey': 'Christianity',
+    'basilica': 'Christianity',
+    'priory': 'Christianity',
+    // Islamic
+    'mosque': 'Sunni Islam',
+    'masjid': 'Sunni Islam',
+    'jama': 'Sunni Islam',
+    // Jewish
+    'synagogue': 'Judaism',
+    'temple of solomon': 'Judaism',
+    // Shinto
+    'shrine': 'Shinto',
+    'jinja': 'Shinto',
+    // Zoroastrian
+    'fire temple': 'Zoroastrianism',
+    'atash behram': 'Zoroastrianism',
+    // Sikh
+    'gurdwara': 'Sikhism',
+    // Taoist
+    'taoist': 'Taoism',
+    'daoist': 'Taoism',
+    // Confucian
+    'confucian': 'Confucianism',
+};
+
+/**
+ * Infer religion from holy place name based on keywords
+ * Returns undefined if no clear match is found
+ */
+function inferReligionFromName(holyPlaceName: string): string | undefined {
+    const lowerName = holyPlaceName.toLowerCase();
+    for (const [keyword, religion] of Object.entries(HOLY_PLACE_NAME_TO_RELIGION)) {
+        if (lowerName.includes(keyword)) {
+            return religion;
+        }
+    }
+    return undefined;
+}
+
 const nonHolyPlaceBiomes = [
     BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN, BiomeType.RIVER, BiomeType.MAJOR_RIVER,
     BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER, BiomeType.URBAN,
@@ -124,26 +181,31 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
             tile.biome = BiomeType.HOLY_SITE;
             const holyPlaceName = holyPlaceTypes[Math.floor(featurePlacementNoise.random() * holyPlaceTypes.length)];
             tile.holyPlaceType = holyPlaceName;
-            
-            // Assign religion based on region and era
-            let selectedReligion: string | undefined;
-            const regionReligions = RELIGION_DATA[culturalZone]?.[mapData.region || '']?.[dateInfo.era as HistoricalEra];
-            if (regionReligions && regionReligions.length > 0) {
-                // Weight-based selection
-                const totalWeight = regionReligions.reduce((sum, r) => sum + r.weight, 0);
-                let random = featurePlacementNoise.random() * totalWeight;
-                selectedReligion = regionReligions[0].religion;
-                
-                for (const religionEntry of regionReligions) {
-                    random -= religionEntry.weight;
-                    if (random <= 0) {
-                        selectedReligion = religionEntry.religion;
-                        break;
+
+            // First, try to infer religion from the holy place name to prevent mismatches
+            // e.g., "Buddhist Monastery" should always be Buddhism, not randomly assigned
+            let selectedReligion: string | undefined = inferReligionFromName(holyPlaceName);
+
+            // If no clear religion from name, use weighted random selection based on region/era
+            if (!selectedReligion) {
+                const regionReligions = RELIGION_DATA[culturalZone]?.[mapData.region || '']?.[dateInfo.era as HistoricalEra];
+                if (regionReligions && regionReligions.length > 0) {
+                    // Weight-based selection
+                    const totalWeight = regionReligions.reduce((sum, r) => sum + r.weight, 0);
+                    let random = featurePlacementNoise.random() * totalWeight;
+                    selectedReligion = regionReligions[0].religion;
+
+                    for (const religionEntry of regionReligions) {
+                        random -= religionEntry.weight;
+                        if (random <= 0) {
+                            selectedReligion = religionEntry.religion;
+                            break;
+                        }
                     }
                 }
-                
-                tile.holyPlaceReligion = selectedReligion;
             }
+
+            tile.holyPlaceReligion = selectedReligion;
 
             const blueprint = STRUCTURE_BLUEPRINTS['holy_site'];
             const holySiteStructure: TerrainStructure = {

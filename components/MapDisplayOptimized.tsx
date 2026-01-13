@@ -46,6 +46,8 @@ import PlayerTooltip from './PlayerTooltip';
 import { StairsUpPixel } from './symbols/architecture/specialMap/StairsUpPixel';
 import TrainSymbol from './symbols/TrainSymbol';
 import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
+import WaystationSymbol from './symbols/structures/WaystationSymbol';
+import WellSymbol from './symbols/structures/WellSymbol';
 import NpcAlertIndicator from './NpcAlertIndicator';
 import UrbanSymbol from './symbols/UrbanSymbolSimplified';
 import { getPalaceSymbol } from './symbols/poi/PalaceSymbolsImproved';
@@ -810,6 +812,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       BiomeType.HEARTH, BiomeType.LANTERN
     ]);
     const LIGHT_OVERLAY_TYPES = new Set(['CANDELABRA', 'TORCH', 'BRAZIER']);
+    // Biomes already rendered by SpecialMapSymbolRenderer - skip these in overlay rendering
+    // to avoid double-rendering icons (e.g., FOUNTAIN biome + FOUNTAIN overlay)
+    const ALREADY_RENDERED_BIOMES = new Set([
+      BiomeType.FOUNTAIN, BiomeType.STATUE, BiomeType.COLUMN, BiomeType.PILLAR
+    ]);
 
     for (const tile of visibleTiles) {
       // Desert particles (sparse)
@@ -834,8 +841,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         result.water.push(tile);
       }
 
-      // Overlays
-      if (tile.overlayObject) {
+      // Overlays - skip tiles whose biome is already rendered by SpecialMapSymbolRenderer
+      if (tile.overlayObject && !ALREADY_RENDERED_BIOMES.has(tile.biome)) {
         result.overlays.push(tile);
       }
 
@@ -1582,9 +1589,16 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         case 'city_center':
           componentInfo = { fileName: 'CityCenterSymbol.tsx', symbolName: 'CityCenterSymbol' };
           break;
+        case 'waystation':
+          componentInfo = {
+            fileName: 'structures/WaystationSymbol.tsx',
+            symbolName: 'WaystationSymbol',
+            variant: structure.culturalStyle || 'default'
+          };
+          break;
       }
     }
-    
+
     // Check for tile-based symbols
     if (!componentInfo) {
       switch (tile.biome) {
@@ -1853,19 +1867,34 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         const animal = animals?.find(a => a.x === tile.x && a.y === tile.y);
         const deployedVessel = deployedVessels?.find(v => v.x === tile.x && v.y === tile.y);
         
-        // Only show tile tooltip for specific biomes (city centers, government districts, farms)
+        // Only show tile tooltip for biomes that DON'T have dedicated structure tooltips
+        // Excluded: MARKETPLACE, PALACE, HOLY_SITE, RUINS - these have their own POI tooltips
         const shouldShowTileTooltip = tile && (
           tile.biome === BiomeType.CITY_CENTER ||
           tile.biome === BiomeType.GOVERNMENT_DISTRICT ||
-          tile.biome === BiomeType.FARMLAND
+          tile.biome === BiomeType.FARMLAND ||
+          tile.biome === BiomeType.DENSE_CITY ||
+          tile.biome === BiomeType.LOW_DENSITY_CITY ||
+          tile.biome === BiomeType.HARBOR_DISTRICT ||
+          tile.biome === BiomeType.INDUSTRIAL_DISTRICT
         );
         
         // Store hover data for debounced update
+        // IMPORTANT: Only set poi if we actually found a valid POI structure
+        // This prevents handleMouseMove from overwriting direct handlers that set hoveredPOI for synthetic structures
+        const validPOITypes = [
+          'holy_site', 'palace', 'ruin', 'mill', 'fortress', 'lumber_camp', 'fishing_hut',
+          'waystation', 'well', 'government_district', 'factory', 'quarry', 'mining_colony',
+          'marketplace', 'farm', 'bridge', 'city_center', 'hamlet', 'dense_city', 'low_density_city'
+        ];
+        const foundPOI = structure && validPOITypes.includes(structure.structureType) ? structure : undefined;
+
         pendingHoverData.current = {
           npc: npc || null,
           animal: animal || null,
           tile: shouldShowTileTooltip ? tile : null,
-          poi: structure && ['holy_site', 'palace', 'ruin', 'mill', 'fortress', 'lumber_camp', 'fishing_hut'].includes(structure.structureType) ? structure : null,
+          // Only include poi if we found one - don't set to null as that would overwrite direct handlers
+          ...(foundPOI !== undefined && { poi: foundPOI }),
           coords: { x: e.clientX, y: e.clientY },
           structure: structure || null,
           vegetation: vegetation || null,
@@ -3964,6 +3993,120 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             y={structY} 
                             size={TILE_SIZE_PX} 
                             seed={tileSeed}
+                          />
+                          {hoveredPOI?.id === structure?.id && (
+                            <rect
+                              x={structX}
+                              y={structY}
+                              width={TILE_SIZE_PX}
+                              height={TILE_SIZE_PX}
+                              fill="none"
+                              stroke="#fbbf24"
+                              strokeWidth="2"
+                              opacity="0.8"
+                              rx="3"
+                            />
+                          )}
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for waystations with custom SVG symbols
+                  if (structure.structureType === 'waystation' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 59 + structure.location[1] * 61;
+                    // Parse year from formatted date
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+
+                    // Get cultural zone from structure or use map location
+                    const culturalZone = (structure as any).culturalZone || (structure as any).culture || currentLocation || 'EUROPEAN';
+
+                    return (
+                      <g
+                        key={structure.id}
+                        className={!isSafari ? "transition-transform duration-200" : ""}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(structure);
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                      >
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <WaystationSymbol
+                            x={structX}
+                            y={structY}
+                            size={TILE_SIZE_PX}
+                            seed={tileSeed}
+                            culturalZone={culturalZone}
+                            era={year}
+                            nightIntensity={timeOfDayData.nightIntensity}
+                          />
+                          {hoveredPOI?.id === structure?.id && (
+                            <rect
+                              x={structX}
+                              y={structY}
+                              width={TILE_SIZE_PX}
+                              height={TILE_SIZE_PX}
+                              fill="none"
+                              stroke="#fbbf24"
+                              strokeWidth="2"
+                              opacity="0.8"
+                              rx="3"
+                            />
+                          )}
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for wells with custom SVG symbols
+                  if (structure.structureType === 'well' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 67 + structure.location[1] * 71;
+                    // Parse year from formatted date
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+
+                    // Get cultural zone from structure or use map location
+                    const culturalZone = (structure as any).culturalZone || (structure as any).culture || currentLocation || 'EUROPEAN';
+
+                    return (
+                      <g
+                        key={structure.id}
+                        className={!isSafari ? "transition-transform duration-200" : ""}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(structure);
+                            setHoveredPOICoords({ x: e.clientX, y: e.clientY });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                      >
+                        <g style={{ cursor: isDragging ? 'inherit' : 'pointer', pointerEvents: isDragging ? 'none' : 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <WellSymbol
+                            x={structX}
+                            y={structY}
+                            size={TILE_SIZE_PX}
+                            seed={tileSeed}
+                            culturalZone={culturalZone}
+                            era={year}
+                            nightIntensity={timeOfDayData.nightIntensity}
                           />
                           {hoveredPOI?.id === structure?.id && (
                             <rect

@@ -54,6 +54,7 @@ import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useGame } from '../contexts/GameContext';
 import { weatherService } from '../services/weatherService';
+import { eventBus } from '../services/eventBus';
 import { getDayOfYear } from '../utils/dateUtils';
 import DevTooltip from './DevTooltip';
 import SettingsPanel from './SettingsPanel';
@@ -204,7 +205,7 @@ const ModalHub: React.FC = () => {
         playerCharacter, onCharacterUpdate, isEnhancing,
         handleCharacterGeneration, handleEquipItem, handleUnequipItem,
         handleDropItem, handleConsumeItem, onUseCombatItem,
-        setControlledIconX, setControlledIconY
+        setControlledIconX, setControlledIconY, onEnterBuilding
     } = usePlayer();
 
 
@@ -228,6 +229,55 @@ const ModalHub: React.FC = () => {
             // Will clear when component unmounts (changing maps)
         };
     }, [isSpecialMap]);
+
+    // Listen for historylens:enter_interior events to open interior views
+    useEffect(() => {
+        const handleEnterInterior = (data: {
+            structureType: string;
+            structureName: string;
+            tile: {
+                x: number;
+                y: number;
+                structure: {
+                    id: string;
+                    type: string;
+                    structureType: string;
+                    name: string;
+                    holyPlaceReligion?: string;
+                };
+            };
+        }) => {
+            if (!mapData || !onEnterBuilding) {
+                console.warn('[ModalHub] Cannot enter interior - missing mapData or onEnterBuilding');
+                return;
+            }
+
+            console.log(`[ModalHub] Entering interior for ${data.structureType}: ${data.structureName}`);
+
+            // Build a tile object for onEnterBuilding (similar to POIToastModal pattern)
+            const baseTile = mapData.tiles?.[data.tile.y]?.[data.tile.x];
+            const tile = {
+                x: data.tile.x,
+                y: data.tile.y,
+                biome: baseTile?.biome || 'GRASSLAND',
+                isLand: true,
+                structure: data.tile.structure,
+                holyPlaceReligion: data.tile.structure.holyPlaceReligion
+            } as any; // Cast to any since onEnterBuilding accepts partial tile data
+
+            try {
+                onEnterBuilding(tile, mapData);
+                console.log('[ModalHub] Successfully called onEnterBuilding for interior');
+            } catch (error) {
+                console.error('[ModalHub] Error entering interior:', error);
+            }
+        };
+
+        eventBus.on('historylens:enter_interior', handleEnterInterior);
+        return () => {
+            eventBus.off('historylens:enter_interior', handleEnterInterior);
+        };
+    }, [mapData, onEnterBuilding]);
 
     // Function to update a single NPC in the npcs array
     const handleUpdateNpc = useCallback((updatedNpc: NpcEntity) => {

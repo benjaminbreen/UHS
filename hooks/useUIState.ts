@@ -479,6 +479,84 @@ export const useUIState = () => {
         _setActiveCityModal(data);
     }, []);
 
+    // Listen for historylens:enter_structure events to open structure modals
+    useEffect(() => {
+        const handleEnterStructure = (data: {
+            structureType: string;
+            structureId: string;
+            structureName: string;
+            location: { x: number; y: number };
+        }) => {
+            if (!mapData) return;
+
+            // Find the structure or tile at this location
+            const tile = mapData.tiles?.[data.location.y]?.[data.location.x];
+            const structure = (mapData.terrainStructures || []).find(
+                s => s.id === data.structureId ||
+                    (Math.hypot(s.location[0] - data.location.x, s.location[1] - data.location.y) < 2)
+            );
+
+            console.log(`[HistoryLens] Opening ${data.structureType} modal for ${data.structureName}`);
+
+            // Route to the appropriate modal based on structure type
+            switch (data.structureType) {
+                case 'city':
+                    if (tile) setActiveCityModal({ tile });
+                    break;
+                case 'government':
+                    if (structure && tile) setActiveGovernmentModal({ structure, tile });
+                    break;
+                case 'ruins':
+                    if (tile) setActiveRuinModal({ tile });
+                    break;
+                case 'mine':
+                case 'quarry':
+                    if (structure) setActiveMiningModal(structure);
+                    break;
+                case 'fishing_hut':
+                    if (structure && tile) setActiveFishingHutModal({ structure, tile });
+                    break;
+                case 'market':
+                    if (tile) setActiveMarketplaceModal({ tile });
+                    break;
+                case 'fortress':
+                case 'palace':
+                case 'holy_site':
+                    // These structures need interior views - emit event for ModalHub to handle
+                    if (tile) {
+                        eventBus.emit('historylens:enter_interior', {
+                            structureType: data.structureType,
+                            structureName: data.structureName,
+                            tile: {
+                                x: data.location.x,
+                                y: data.location.y,
+                                structure: {
+                                    id: data.structureId,
+                                    type: data.structureType,
+                                    structureType: data.structureType,
+                                    name: data.structureName,
+                                    holyPlaceReligion: tile.holyPlaceReligion
+                                }
+                            }
+                        });
+                    }
+                    break;
+                case 'farm':
+                case 'harbor':
+                case 'woodcutter':
+                    // These can use the structure modal target or POI system
+                    if (structure) setStructureModalTarget(structure);
+                    break;
+                default:
+                    console.warn(`[HistoryLens] Unhandled structure type: ${data.structureType}`);
+            }
+        };
+
+        eventBus.on('historylens:enter_structure', handleEnterStructure);
+        return () => {
+            eventBus.off('historylens:enter_structure', handleEnterStructure);
+        };
+    }, [mapData, setActiveCityModal, setActiveGovernmentModal, setActiveRuinModal, setActiveMiningModal, setActiveFishingHutModal, setActiveMarketplaceModal, setStructureModalTarget]);
 
     // Auto-enable performance optimizations for Safari users
     useEffect(() => {
@@ -2271,7 +2349,7 @@ export const useUIState = () => {
         showLanguageTree, selectedLanguageId, showSessionSummaryModal, showEndGameConfirm,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, setToastMessage, toastDurationMs, panelNotificationItem, panelNotificationMode, panelNotificationEntityName, rareItemFoundToast,
         isRightSidebarVisible, setIsRightSidebarVisible,
-        centralMode, setCentralMode, historyLensMessages, appendHistoryLensMessage,
+        centralMode, setCentralMode, historyLensMessages, setHistoryLensMessages, appendHistoryLensMessage,
         floatingTextMessages, containerPrompt,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,

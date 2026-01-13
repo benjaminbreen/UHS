@@ -2,7 +2,10 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Map Voyager - Enhanced Engine</title>
 
   <!-- Critical CSS to prevent FOUC -->
@@ -37,6 +40,14 @@
         overflow-x: hidden;
     }
 
+    /* Safe area insets for iPhone notch/home indicator */
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+    }
+
     /* FF6-Style Combat Variables - Light mode defaults */
     :root {
       --ff-bg: radial-gradient(circle at top, rgba(248, 246, 243, 0.98) 0%, rgba(243, 241, 237, 0.95) 60%, rgba(239, 236, 234, 0.92) 100%);
@@ -51,6 +62,52 @@
       --toast-bg: linear-gradient(145deg, #5A9B8C, #4D8577);
       --modal-overlay-bg: rgba(248, 246, 243, 0.85);
       --sidebar-border-color: rgba(212, 209, 204, 0.3);
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      /* Hide scrollbars on mobile for cleaner look */
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+
+      /* Prevent pull-to-refresh and overscroll */
+      body {
+        overscroll-behavior: none;
+      }
+
+      /* Improve touch scrolling */
+      * {
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Disable text selection on UI elements */
+      button, .no-select {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Prevent tap highlight on iOS */
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+    }
+
+    /* Mobile bottom sheet animation */
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .animate-slideUp {
+      animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     /* Dark mode combat overrides */
