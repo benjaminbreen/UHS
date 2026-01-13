@@ -495,6 +495,8 @@ Schema:
 }
 
 SuggestedActions guidelines (CRITICAL - follow these closely):
+- ALWAYS include exactly 3 suggestedActions in EVERY response - this is MANDATORY, even on the very first turn
+- For INTRODUCTION/FIRST TURNS (when Recent history is empty or very short): These are especially important! The player has just arrived and needs compelling options to begin their story. Suggest actions based on visible NPCs, nearby structures, the player's profession, and the immediate environment.
 - Each action must be SPECIFIC and NARRATIVELY INTERESTING - never generic
 - Use vivid, active verbs that paint a scene: "Approach the weathered fisherman mending nets" not "Talk to fisherman"
 - Actions should reflect the immediate situation: visible NPCs, ongoing activities, time of day, weather

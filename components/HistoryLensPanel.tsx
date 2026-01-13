@@ -115,6 +115,7 @@ const HistoryLensPanel: React.FC = () => {
   const [showMapOverlay, setShowMapOverlay] = useState(false); // Mobile map overlay
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
+  const [conversationEndTrigger, setConversationEndTrigger] = useState(0); // Trigger for conversation end processing
   const [showTransparency, setShowTransparency] = useState(false);
   const [transparencyEntries, setTransparencyEntries] = useState<Array<{
     id: string;
@@ -164,6 +165,15 @@ const HistoryLensPanel: React.FC = () => {
   const pendingNpcEncounterRef = useRef<{
     npcId: string;
     npcName: string;
+  } | null>(null);
+
+  // Track pending conversation ending for LLM narrative continuation
+  const pendingConversationEndRef = useRef<{
+    npcName: string;
+    npcRole: string;
+    summary: string;
+    sentiment: string;
+    topicsDiscussed: string[];
   } | null>(null);
 
   const highlightTokens = useMemo(() => {
@@ -435,25 +445,94 @@ const HistoryLensPanel: React.FC = () => {
       exchangeCount: number;
       topicsDiscussed: string[];
     }) => {
-      // Build a narrative beat using the conversation summary
-      // The LLM now generates player-centric summaries directly (using "you")
+      // Add brief system message about conversation ending
       const sentimentAdverb = data.sentiment === 'positive' ? ' warmly' :
                               data.sentiment === 'negative' ? ' tensely' : '';
-
-      // Format the role for readability, handling empty strings
       const roleText = data.npcRole?.trim() ? `, a ${data.npcRole.toLowerCase()}` : '';
 
-      const narrativeBeat = `Your conversation with ${data.npcName}${roleText} comes to an end${sentimentAdverb}. ${data.summary}`;
-
       appendHistoryLensMessage({
-        sender: 'narrator',
-        text: narrativeBeat
+        sender: 'system',
+        text: `Your conversation with ${data.npcName}${roleText} comes to an end${sentimentAdverb}.`
       });
+
+      // Store conversation data for LLM narrative continuation
+      pendingConversationEndRef.current = {
+        npcName: data.npcName,
+        npcRole: data.npcRole,
+        summary: data.summary,
+        sentiment: data.sentiment,
+        topicsDiscussed: data.topicsDiscussed
+      };
+      // Trigger the processing effect
+      setConversationEndTrigger(prev => prev + 1);
     };
 
     eventBus.on('encounter_ended', handleEncounterEnded);
     return () => eventBus.off('encounter_ended', handleEncounterEnded);
   }, [appendHistoryLensMessage]);
+
+  // Process pending conversation end - trigger LLM for narrative continuation
+  useEffect(() => {
+    if (!pendingConversationEndRef.current) return;
+    if (!playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
+    if (isLoading) return; // Don't trigger if already loading
+
+    const conversationData = pendingConversationEndRef.current;
+    pendingConversationEndRef.current = null; // Clear immediately
+
+    // Build a prompt that asks for narrative continuation based on the conversation
+    const topicsText = conversationData.topicsDiscussed.length > 0
+      ? ` Topics discussed: ${conversationData.topicsDiscussed.slice(0, 5).join(', ')}.`
+      : '';
+
+    const continuationPrompt = `[CONVERSATION ENDED] I just finished talking to ${conversationData.npcName}${conversationData.npcRole ? `, a ${conversationData.npcRole}` : ''}. Here's what happened: ${conversationData.summary}${topicsText} The conversation ended on a ${conversationData.sentiment} note. What happens next? What do I notice or think about after this exchange? Keep it brief (2-3 sentences) and move the narrative forward.`;
+
+    // Trigger LLM with the continuation prompt
+    const triggerContinuationLLM = async () => {
+      setIsLoading(true);
+      try {
+        const response = await generateHistoryLensResponse(
+          continuationPrompt,
+          playerCharacter,
+          mapData,
+          gameDate,
+          gameTimeHours,
+          currentZone || '',
+          currentRegion || '',
+          historyLensMessages.slice(-6), // Recent context
+          { x: controlledIconX, y: controlledIconY },
+          npcs,
+          animals,
+          currentWeather || undefined,
+          localArea || undefined
+        );
+
+        if (response.narrative) {
+          appendHistoryLensMessage({
+            sender: 'narrator',
+            text: response.narrative
+          });
+        }
+
+        // Handle any suggested actions
+        if (response.suggestedActions?.length) {
+          setSuggestedActions(response.suggestedActions);
+        }
+      } catch (error) {
+        console.error('[HistoryLens] Failed to generate conversation continuation:', error);
+        // Fall back to just the summary
+        appendHistoryLensMessage({
+          sender: 'narrator',
+          text: conversationData.summary
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    triggerContinuationLLM();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationEndTrigger]);
 
   // Listen for journey interruption events (from NPC/animal encounters during navigation)
   useEffect(() => {

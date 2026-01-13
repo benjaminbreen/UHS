@@ -57,48 +57,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     startingInventory: ['STYLUS', 'CLAY_TABLET'],
     skills: { literacy: 80, rhetoric: 70, theology: 85 }
   },
-  {
-    id: 'puabi',
-    name: 'Puabi',
-    profession: 'Queen',
-    gender: 'female',
-    age: 38,
-    year: -2600,
-    era: HistoricalEra.ANTIQUITY,
-    culturalZone: 'MENA',
-    mapArea: 'Tigris–Euphrates Confluence',
-    tagline: 'Queen of Ur, buried with treasure and attendants',
-    biography: 'A powerful queen of the First Dynasty of Ur whose elaborate tomb revealed the wealth and ritual practices of early Sumerian royalty. Her cylinder seal names her as "nin" (queen or priestess), indicating high independent status.',
-    historicalNote: 'Her intact tomb, discovered by Leonard Woolley in 1928, contained gold jewelry, a lyre, and evidence of human sacrifice of her retainers.',
-    wikipediaTitle: 'Puabi',
-    portraitHints: {
-      socialClass: 'noble',
-      distinctiveFeatures: ['elaborate gold headdress', 'lapis lazuli jewelry']
-    },
-    startingInventory: ['GOLD_JEWELRY', 'CYLINDER_SEAL'],
-    skills: { leadership: 75, diplomacy: 70 }
-  },
-  {
-    id: 'kubaba',
-    name: 'Kubaba',
-    profession: 'Tavern Keeper',
-    gender: 'female',
-    age: 35,
-    year: -2500,
-    era: HistoricalEra.ANTIQUITY,
-    culturalZone: 'MENA',
-    mapArea: 'Tigris–Euphrates Confluence',
-    tagline: 'From tavern keeper to Queen of Kish',
-    biography: 'A remarkable woman who rose from running a tavern to become the only woman listed on the Sumerian King List as a reigning monarch. Later deified as a goddess. Her rise suggests the social mobility possible in early Mesopotamia.',
-    historicalNote: 'The Sumerian King List credits her with consolidating the kingship of Kish for 100 years, and she was later worshipped as a goddess in Anatolia.',
-    wikipediaTitle: 'Kubaba',
-    portraitHints: {
-      socialClass: 'comfortable',
-      distinctiveFeatures: ['practical clothing', 'strong presence']
-    },
-    startingInventory: ['BEER_JUG', 'BRONZE_KNIFE'],
-    skills: { commerce: 75, persuasion: 70, brewing: 80 }
-  },
+ 
   {
     id: 'ea_nasir',
     name: 'Ea-nasir',
@@ -140,6 +99,27 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     },
     startingInventory: ['ROPE', 'BRONZE_KNIFE', 'LEATHER_BRIDLE'],
     skills: { animalHandling: 95, horsemanship: 90, athletics: 70 }
+  },
+    {
+    id: 'kubaba',
+    name: 'Kubaba',
+    profession: 'Tavern Keeper',
+    gender: 'female',
+    age: 35,
+    year: -2500,
+    era: HistoricalEra.ANTIQUITY,
+    culturalZone: 'MENA',
+    mapArea: 'Tigris–Euphrates Confluence',
+    tagline: 'From tavern keeper to Queen of Kish',
+    biography: 'A remarkable woman who rose from running a tavern to become the only woman listed on the Sumerian King List as a reigning monarch. Later deified as a goddess. Her rise suggests the social mobility possible in early Mesopotamia.',
+    historicalNote: 'The Sumerian King List credits her with consolidating the kingship of Kish for 100 years, and she was later worshipped as a goddess in Anatolia.',
+    wikipediaTitle: 'Kubaba',
+    portraitHints: {
+      socialClass: 'comfortable',
+      distinctiveFeatures: ['practical clothing', 'strong presence']
+    },
+    startingInventory: ['BEER_JUG', 'BRONZE_KNIFE'],
+    skills: { commerce: 75, persuasion: 70, brewing: 80 }
   },
   {
     id: 'ennigaldi_nanna',
