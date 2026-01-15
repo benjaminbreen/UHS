@@ -5,7 +5,8 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { useUI } from '../contexts/UIContext';
 import { useAtmosphereState } from '../hooks/useAtmosphereState';
 import Minimap from './Minimap';
-import type { MapData } from '../types';
+import type { MapData, TerrainStructure } from '../types';
+import { BiomeType } from '../types/biomes/base';
 import type { StructureCard, JourneyCard, HistoryLensCard } from '../types/historyLens';
 import { generateHistoryLensResponse } from '../services/historyLensService';
 import { applyHistoryLensActions } from '../services/historyLensActionRouter';
@@ -105,7 +106,7 @@ const weatherAnimationStyles = `
 
 const HistoryLensPanel: React.FC = () => {
   const { gameDate, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, currentTimeOfDay, currentZone, currentRegion, season, homeAnchor } = useGame();
-  const { mapData, currentMapClimate, npcs, animals, setNpcs, localArea } = useMap();
+  const { mapData, currentMapClimate, npcs, animals, setNpcs, localArea, setMapData, mapDataCache, setMapDataCache, currentWorldCoords } = useMap();
   const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, currentVessel, playerMode } = usePlayer();
   const { historyLensMessages, setHistoryLensMessages, appendHistoryLensMessage, setShowDeathModal, handleEncounter } = useUI();
   const { currentWeather } = useAtmosphereState();
@@ -295,7 +296,9 @@ const HistoryLensPanel: React.FC = () => {
     const directionMatch = /\b(north|south|east|west|northeast|northwest|southeast|southwest|upstream|downstream)\b/.test(normalized);
     const verbMatch = /\b(go|move|walk|travel|head|sail|ride|approach|enter|leave|return|follow|run|climb|cross)\b/.test(normalized);
     const homeMatch = /\b(home|house|dwelling|quarters|residence)\b/.test(normalized);
-    return directionMatch || verbMatch || homeMatch;
+    const classMatch = /\b(class|lecture|seminar|campus|university|school)\b/.test(normalized);
+    const attendMatch = /\b(attend|go|walk|travel|head|make)\b/.test(normalized);
+    return directionMatch || verbMatch || homeMatch || (classMatch && attendMatch);
   }, []);
 
   const isSeekNpcIntent = useCallback((input: string) => {
@@ -305,6 +308,62 @@ const HistoryLensPanel: React.FC = () => {
     const personMatch = /\b(person|someone|npc|fisherman|guard|merchant|trader|woman|man|villager|soldier|priest|monk|elder|stranger)\b/.test(normalized);
     return talkMatch && personMatch;
   }, []);
+
+  const applyStructureAdditions = useCallback((additions: TerrainStructure[]) => {
+    if (!additions.length) return;
+    setMapData(prev => {
+      if (!prev) return prev;
+      const existing = new Set((prev.terrainStructures || []).map(structure => structure.id));
+      const filtered = additions.filter(structure => !existing.has(structure.id));
+      if (!filtered.length) return prev;
+      const newTiles = structuredClone(prev.tiles);
+      for (const structure of filtered) {
+        const [x, y] = structure.location;
+        const tile = newTiles[y]?.[x];
+        if (!tile) continue;
+        tile.structure = structure;
+        (tile as any).structureType = structure.structureType;
+        if (structure.structureType === 'government_district') {
+          tile.biome = BiomeType.GOVERNMENT_DISTRICT;
+        }
+      }
+      return {
+        ...prev,
+        terrainStructures: [...(prev.terrainStructures || []), ...filtered],
+        tiles: newTiles
+      };
+    });
+
+    const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+    setMapDataCache(prevCache => {
+      const cachedEntry = prevCache.get(cacheKey);
+      if (!cachedEntry) return prevCache;
+      const existing = new Set((cachedEntry.mapData.terrainStructures || []).map(structure => structure.id));
+      const filtered = additions.filter(structure => !existing.has(structure.id));
+      if (!filtered.length) return prevCache;
+      const newTiles = structuredClone(cachedEntry.mapData.tiles);
+      for (const structure of filtered) {
+        const [x, y] = structure.location;
+        const tile = newTiles[y]?.[x];
+        if (!tile) continue;
+        tile.structure = structure;
+        (tile as any).structureType = structure.structureType;
+        if (structure.structureType === 'government_district') {
+          tile.biome = BiomeType.GOVERNMENT_DISTRICT;
+        }
+      }
+      const nextCache = new Map(prevCache);
+      nextCache.set(cacheKey, {
+        ...cachedEntry,
+        mapData: {
+          ...cachedEntry.mapData,
+          terrainStructures: [...(cachedEntry.mapData.terrainStructures || []), ...filtered],
+          tiles: newTiles
+        }
+      });
+      return nextCache;
+    });
+  }, [currentWorldCoords, mapDataCache, setMapData, setMapDataCache]);
 
   useEffect(() => {
     const el = logRef.current;
@@ -664,6 +723,7 @@ const HistoryLensPanel: React.FC = () => {
         'fortress': 'fortress',
         'palace': 'palace',
         'holy_site': 'holy_site',
+        'university': 'government',
       };
 
       const modalType = ENTERABLE_KINDS[data.target.kind];
@@ -904,6 +964,9 @@ const HistoryLensPanel: React.FC = () => {
         homeAnchor
       });
 
+      if (result.structureAdditions?.length) {
+        applyStructureAdditions(result.structureAdditions);
+      }
       if (result.moveRequest) {
         eventBus.emit('historylens:move', result.moveRequest);
       }
@@ -989,6 +1052,7 @@ const HistoryLensPanel: React.FC = () => {
     appendHistoryLensMessage,
     isMovementIntent,
     isSeekNpcIntent,
+    applyStructureAdditions,
     animals,
     homeAnchor,
     localArea

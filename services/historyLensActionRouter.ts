@@ -1,4 +1,4 @@
-import type { GameDate, MapData, NpcEntity, PlayerCharacter, HomeAnchor, AnimalEntity } from '../types';
+import type { GameDate, MapData, NpcEntity, PlayerCharacter, HomeAnchor, AnimalEntity, TerrainStructure } from '../types';
 import type { HistoryLensAction, StructureCard, StructureCardType } from '../types/historyLens';
 import { createItemInstance, addItemToInventory, removeItemFromInventory } from '../utils/inventoryUtils';
 import { timeAdvancementService } from './timeAdvancementService';
@@ -33,6 +33,7 @@ export type HistoryLensActionResult = {
   triggerGameOver?: boolean;
   npcAdditions?: NpcEntity[];
   structureCard?: StructureCard;
+  structureAdditions?: TerrainStructure[];
   rejections: string[];
 };
 
@@ -153,7 +154,8 @@ const KIND_NAME_KEYWORDS: Record<string, string[]> = {
   'market': ['market', 'bazaar', 'souk', 'trading'],
   'farm': ['farm', 'plantation', 'orchard', 'vineyard'],
   'mine': ['mine', 'quarry', 'mining'],
-  'ruin': ['ruin', 'ancient', 'abandoned', 'lost', 'forgotten', 'deserted']
+  'ruin': ['ruin', 'ancient', 'abandoned', 'lost', 'forgotten', 'deserted'],
+  'university': ['university', 'college', 'campus', 'school', 'academy', 'institute']
 };
 
 // Human-readable labels for biome types
@@ -205,6 +207,100 @@ const KIND_TO_CARD_TYPE: Record<string, StructureCardType> = {
   'woodcutter': 'woodcutter'
 };
 
+const normalizeKind = (kind: string): string => {
+  const normalized = kind.toLowerCase().trim();
+  if (normalized === 'settlement' || normalized === 'town') return 'city';
+  if (['university', 'school', 'campus', 'college', 'class', 'classroom', 'lecture', 'seminar', 'academy', 'institute'].includes(normalized)) {
+    return 'university';
+  }
+  return normalized;
+};
+
+const URBAN_BIOMES = new Set(['DENSE_CITY', 'LOW_DENSITY_CITY', 'CITY_CENTER', 'URBAN', 'HAMLET']);
+
+const findNearestUrbanTile = (state: ActionRouterState, maxDistance: number): { x: number; y: number } | null => {
+  const mapWidth = state.mapData.tiles[0]?.length ?? state.mapData.width;
+  const mapHeight = state.mapData.tiles.length ?? state.mapData.height;
+  const minX = Math.max(0, state.playerX - maxDistance);
+  const maxX = Math.min(mapWidth - 1, state.playerX + maxDistance);
+  const minY = Math.max(0, state.playerY - maxDistance);
+  const maxY = Math.min(mapHeight - 1, state.playerY + maxDistance);
+
+  let best: { x: number; y: number; distance: number } | null = null;
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
+      const tile = state.mapData.tiles[y]?.[x];
+      if (!tile || tile.isBlocking || !tile.isLand) continue;
+      if (!URBAN_BIOMES.has(String(tile.biome))) continue;
+      if (hasNearbyStructure(state, x, y)) continue;
+      const distance = Math.hypot(x - state.playerX, y - state.playerY);
+      if (distance > maxDistance) continue;
+      if (!best || distance < best.distance) {
+        best = { x, y, distance };
+      }
+    }
+  }
+
+  return best ? { x: best.x, y: best.y } : null;
+};
+
+const findNearestLandTile = (state: ActionRouterState, maxDistance: number): { x: number; y: number } | null => {
+  const mapWidth = state.mapData.tiles[0]?.length ?? state.mapData.width;
+  const mapHeight = state.mapData.tiles.length ?? state.mapData.height;
+  const minX = Math.max(0, state.playerX - maxDistance);
+  const maxX = Math.min(mapWidth - 1, state.playerX + maxDistance);
+  const minY = Math.max(0, state.playerY - maxDistance);
+  const maxY = Math.min(mapHeight - 1, state.playerY + maxDistance);
+
+  let best: { x: number; y: number; distance: number } | null = null;
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
+      const tile = state.mapData.tiles[y]?.[x];
+      if (!tile || tile.isBlocking || !tile.isLand) continue;
+      if (hasNearbyStructure(state, x, y)) continue;
+      const distance = Math.hypot(x - state.playerX, y - state.playerY);
+      if (distance > maxDistance) continue;
+      if (!best || distance < best.distance) {
+        best = { x, y, distance };
+      }
+    }
+  }
+
+  return best ? { x: best.x, y: best.y } : null;
+};
+
+const hasNearbyStructure = (state: ActionRouterState, x: number, y: number): boolean => {
+  return (state.mapData.terrainStructures || []).some(structure =>
+    Math.hypot(structure.location[0] - x, structure.location[1] - y) <= 2
+  );
+};
+
+const createUniversityStructure = (state: ActionRouterState): TerrainStructure | null => {
+  const urbanTile = findNearestUrbanTile(state, 30);
+  const fallbackTile = findNearestLandTile(state, 8);
+  const target = urbanTile || fallbackTile;
+  if (!target) return null;
+  if (hasNearbyStructure(state, target.x, target.y)) return null;
+
+  const locationLabel = state.mapData.majorCity?.name || state.mapData.localArea || state.mapData.region || 'the area';
+  const name = `University of ${locationLabel}`;
+  const id = `hl-university-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  return {
+    id,
+    structureType: 'government_district',
+    name,
+    location: [target.x, target.y],
+    economicRole: 'commerce',
+    npcAnchor: 'scholar',
+    state: 'active',
+    customData: {
+      historyLensTag: 'university',
+      createdBy: 'historylens'
+    }
+  };
+};
+
 // Find structure data by location for propose_enter
 const findStructureAtLocation = (
   state: ActionRouterState,
@@ -247,8 +343,7 @@ const resolveNearestStructure = (
 ): { x: number; y: number; label: string; kind: string } | null => {
   const structures = state.mapData.terrainStructures || [];
   const marketplaces = state.mapData.marketplaces || [];
-  const normalizedKind = kind.toLowerCase();
-  const resolvedKind = normalizedKind === 'settlement' || normalizedKind === 'town' ? 'city' : normalizedKind;
+  const resolvedKind = normalizeKind(kind);
 
   // Get name keywords for flexible matching
   const nameKeywords = KIND_NAME_KEYWORDS[resolvedKind] || [];
@@ -502,6 +597,7 @@ export async function applyHistoryLensActions(
   let npcAdditions: NpcEntity[] | undefined;
   let npcSpawnRequests: Array<{ count: number; role?: string; name?: string }> = [];
   let structureCard: StructureCard | undefined;
+  let structureAdditions: TerrainStructure[] | undefined;
   let hasMovementIntent = false;
   const rejections: string[] = [];
 
@@ -524,7 +620,20 @@ export async function applyHistoryLensActions(
           rejections.push('No destination specified.');
           break;
         }
-        const target = resolveNearestStructure(state, kind, 40);
+        const resolvedKind = normalizeKind(kind);
+        let target = resolveNearestStructure(state, resolvedKind, 40);
+        if (!target && resolvedKind === 'university') {
+          const created = createUniversityStructure(state);
+          if (created) {
+            target = {
+              x: created.location[0],
+              y: created.location[1],
+              label: created.name,
+              kind: 'university'
+            };
+            structureAdditions = [...(structureAdditions || []), created];
+          }
+        }
         if (!target) {
           // Log for debugging
           console.log(`[HistoryLens] navigate_nearest failed for kind="${kind}". Structures available:`,
@@ -826,6 +935,7 @@ export async function applyHistoryLensActions(
     triggerGameOver,
     npcAdditions,
     structureCard,
+    structureAdditions,
     rejections
   };
 }
