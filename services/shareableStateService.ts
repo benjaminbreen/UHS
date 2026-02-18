@@ -32,6 +32,14 @@ export interface ShareableGameState {
     socialClass?: string;
     health?: string;
     disease?: string;
+    birthplace?: string;
+    family?: CharacterSpecification['family'];
+    clothing?: CharacterSpecification['clothing'];
+    classLabel?: string;
+    ethnicity?: CharacterSpecification['ethnicity'];
+    identitySource?: CharacterSpecification['identitySource'];
+    characterDescription?: string;
+    customItems?: CharacterSpecification['customItems'];
   };
 
   // Map generation
@@ -70,6 +78,17 @@ export interface EncodedGameState {
   cp: string; // character profession
   cg: string; // character gender (m/f)
   ca: number; // character age
+  cs?: string; // character social class
+  ch?: string; // character health
+  cd?: string; // character disease
+  cb?: string; // character birthplace
+  cf?: CharacterSpecification['family']; // character family
+  cl?: CharacterSpecification['clothing']; // character clothing
+  cc?: string; // character class label
+  ce?: CharacterSpecification['ethnicity']; // character ethnicity
+  ci?: CharacterSpecification['identitySource']; // identity source
+  cdsc?: string; // character description
+  ciu?: CharacterSpecification['customItems']; // character items
   ms: string; // map seed
   st?: string; // scenario type (p/w/c)
   sp?: string; // scenario prompt (truncated)
@@ -83,6 +102,21 @@ export interface EncodedGameState {
 class ShareableStateService {
   private static instance: ShareableStateService;
   private readonly VERSION = '1.0';
+
+  private encodeUtf8Base64(value: string): string {
+    const bytes = new TextEncoder().encode(value);
+    let binary = '';
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+  }
+
+  private decodeUtf8Base64(value: string): string {
+    const binary = atob(value);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
   
   // Abbreviation maps for common values
   private readonly gameModeAbbr: Record<string, string> = {
@@ -132,6 +166,18 @@ class ShareableStateService {
         st: state.scenarioType === 'worldweaver' ? 'w' : state.scenarioType === 'custom' ? 'c' : 'p'
       };
 
+      if (state.character.socialClass) encoded.cs = state.character.socialClass;
+      if (state.character.health) encoded.ch = state.character.health;
+      if (state.character.disease) encoded.cd = state.character.disease;
+      if (state.character.birthplace) encoded.cb = state.character.birthplace;
+      if (state.character.family) encoded.cf = state.character.family;
+      if (state.character.clothing) encoded.cl = state.character.clothing;
+      if (state.character.classLabel) encoded.cc = state.character.classLabel;
+      if (state.character.ethnicity) encoded.ce = state.character.ethnicity;
+      if (state.character.identitySource) encoded.ci = state.character.identitySource;
+      if (state.character.characterDescription) encoded.cdsc = state.character.characterDescription;
+      if (state.character.customItems) encoded.ciu = state.character.customItems;
+
       if (state.scenarioPrompt) {
         encoded.sp = state.scenarioPrompt.substring(0, 50);
       }
@@ -174,7 +220,7 @@ class ShareableStateService {
       // Convert to JSON and base64
       const json = JSON.stringify(encoded);
       // Make URL-safe base64
-      const base64 = btoa(json)
+      const base64 = this.encodeUtf8Base64(json)
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
@@ -208,7 +254,7 @@ class ShareableStateService {
         base64 += '=';
       }
       
-      const json = atob(base64);
+      const json = this.decodeUtf8Base64(base64);
       const decoded: EncodedGameState = JSON.parse(json);
       
       // Validate version
@@ -227,7 +273,18 @@ class ShareableStateService {
           name: decoded.cn,
           profession: decoded.cp,
           gender: decoded.cg === 'm' ? 'male' : 'female',
-          age: decoded.ca
+          age: decoded.ca,
+          socialClass: decoded.cs,
+          health: decoded.ch,
+          disease: decoded.cd,
+          birthplace: decoded.cb,
+          family: decoded.cf,
+          clothing: decoded.cl,
+          classLabel: decoded.cc,
+          ethnicity: decoded.ce,
+          identitySource: decoded.ci,
+          characterDescription: decoded.cdsc,
+          customItems: decoded.ciu
         },
         mapSeed: decoded.ms,
         scenarioType: decoded.st === 'w' ? 'worldweaver' : decoded.st === 'c' ? 'custom' : 'procedural',
@@ -596,7 +653,15 @@ class ShareableStateService {
       age: character.age || 25,
       socialClass: character.socialClass,
       health: character.health,
-      disease: character.disease
+      disease: character.disease,
+      birthplace: character.birthplace,
+      family: character.family,
+      clothing: character.clothing,
+      classLabel: character.classLabel,
+      ethnicity: character.ethnicity,
+      identitySource: character.identitySource,
+      characterDescription: character.characterDescription,
+      customItems: character.customItems
     };
     
     // Validate date

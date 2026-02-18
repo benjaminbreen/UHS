@@ -17,6 +17,19 @@ import { getMarkingsForCharacter, selectRandomMarking, getRandomPattern, convert
 
 let characterIdCounter = 0;
 
+const normalizeSocialClassInput = (value?: string): CharacterSpecification['socialClass'] | undefined => {
+    if (!value) return undefined;
+    const normalized = value.toLowerCase();
+    if (normalized === 'peasant' || normalized === 'commoner' || normalized === 'merchant' || normalized === 'noble') {
+        return normalized as CharacterSpecification['socialClass'];
+    }
+    if (normalized === 'poor') return 'peasant';
+    if (normalized === 'modest') return 'commoner';
+    if (normalized === 'comfortable' || normalized === 'wealthy') return 'merchant';
+    if (normalized === 'aristocrat' || normalized === 'royal' || normalized === 'upper') return 'noble';
+    return undefined;
+};
+
 /**
  * Detect likely ethnicity/cultural origin from a character's name
  * Uses the existing name lists from constants to determine cultural zone
@@ -493,6 +506,10 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     if (spec.name) {
         baseProfile.name = spec.name;
     }
+
+    if (spec.birthplace) {
+        baseProfile.birthplace = spec.birthplace;
+    }
     
     // Handle health specification
     if (spec.health) {
@@ -527,8 +544,9 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         }
     ).role;
     
-    if (spec.socialClass) {
-        switch (spec.socialClass) {
+    const normalizedSocialClass = normalizeSocialClassInput(spec.socialClass);
+    if (normalizedSocialClass) {
+        switch (normalizedSocialClass) {
             case 'peasant':
                 socialClass = 'Peasant';
                 baseProfile.wealthLevel = 0.1 + noise.random() * 0.2; // 0.1-0.3
@@ -578,7 +596,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     });
     
     // Generate appearance with palette
-    const palette = generateClothingPalette(baseProfile.wealthLevel, generationContext.era, culturalZone, baseProfile.gender, noise);
+    let palette = generateClothingPalette(baseProfile.wealthLevel, generationContext.era, culturalZone, baseProfile.gender, noise);
     
     // Helper function to get color name from hex
     const getColorName = (colorHex: string | undefined): string => {
@@ -750,6 +768,46 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         
         return item;
     };
+
+    const normalizeClothingPiece = (piece: any, fallbackMaterial: string): ClothingPiece | undefined => {
+        if (!piece) return undefined;
+        if (typeof piece === 'string') {
+            return { name: piece, material: fallbackMaterial };
+        }
+        if (!piece.name) return undefined;
+        return {
+            name: String(piece.name),
+            material: piece.material ? String(piece.material) : fallbackMaterial,
+            adjectives: Array.isArray(piece.adjectives) ? piece.adjectives.map(String) : undefined
+        };
+    };
+
+    if (spec.clothing) {
+        const garmentOverride = normalizeClothingPiece(spec.clothing.garment, 'cloth');
+        const headgearOverride = normalizeClothingPiece(spec.clothing.headgear, 'cloth');
+        const footwearOverride = normalizeClothingPiece(spec.clothing.footwear, 'leather');
+        const beltOverride = normalizeClothingPiece(spec.clothing.belt, 'leather');
+        const accessoryOverride = normalizeClothingPiece(spec.clothing.accessory, 'metal');
+
+        if (garmentOverride) {
+            baseProfile.appearance.garment = { ...baseProfile.appearance.garment, ...garmentOverride };
+        }
+        if (headgearOverride) {
+            baseProfile.appearance.headgear = { ...baseProfile.appearance.headgear, ...headgearOverride };
+        }
+        if (footwearOverride) {
+            baseProfile.appearance.footwear = { ...baseProfile.appearance.footwear, ...footwearOverride };
+        }
+        if (beltOverride) {
+            baseProfile.appearance.belt = { ...baseProfile.appearance.belt, ...beltOverride };
+        }
+        if (accessoryOverride) {
+            baseProfile.appearance.accessory = { ...baseProfile.appearance.accessory, ...accessoryOverride };
+        }
+        if (spec.clothing.palette) {
+            palette = { ...palette, ...spec.clothing.palette };
+        }
+    }
     
     // For professions without starting packages, generate appropriate headgear
     let professionHeadgear = baseProfile.appearance.headgear;
@@ -907,7 +965,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         }
     }
 
-    const finalAppearance: Appearance = {
+    let finalAppearance: Appearance = {
         ...baseProfile.appearance,
         palette: palette,
         garment: equippedItems.torso 
@@ -927,6 +985,23 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
             : baseProfile.appearance.accessory,
         markings: markings.length > 0 ? markings : undefined
     };
+
+    if (spec.clothing) {
+        const garmentOverride = normalizeClothingPiece(spec.clothing.garment, 'cloth');
+        const headgearOverride = normalizeClothingPiece(spec.clothing.headgear, 'cloth');
+        const footwearOverride = normalizeClothingPiece(spec.clothing.footwear, 'leather');
+        const beltOverride = normalizeClothingPiece(spec.clothing.belt, 'leather');
+        const accessoryOverride = normalizeClothingPiece(spec.clothing.accessory, 'metal');
+
+        finalAppearance = {
+            ...finalAppearance,
+            garment: garmentOverride || finalAppearance.garment,
+            headgear: headgearOverride || finalAppearance.headgear,
+            footwear: footwearOverride || finalAppearance.footwear,
+            belt: beltOverride || finalAppearance.belt,
+            accessory: accessoryOverride || finalAppearance.accessory
+        };
+    }
     
     // Calculate health based on potentially modified stats
     const maxHealth = 80 + baseProfile.stats.constitution * 2 + baseProfile.stats.strength;
@@ -944,10 +1019,12 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     
     const staticPortraitSeed = Math.floor(Math.random() * 1000000);
     
+    const classLabel = spec.classLabel || socialClass;
+
     const partialCharacter: Omit<PlayerCharacter, 'backstory' | 'id' | 'inventory' | 'party' | 'eventLog' | 'profileImage' | 'isLlmEnhanced'> = {
         ...baseProfile,
         name,
-        class: socialClass,
+        class: classLabel,
         profession: role,
         level: Math.floor(1 + Math.random() * 5), // Random level 1-5
         experience: 0,
@@ -963,7 +1040,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         historicalEra: generationContext.era,
         culturalZone: generationContext.culturalZone,
         portraitSeed: staticPortraitSeed,
-        family: [],
+        family: Array.isArray(spec.family) ? [...spec.family] : [],
         lifeEvents: [],
         mapReputation: Math.floor(20 + Math.random() * 60 + (socialClass === 'Noble' ? 20 : socialClass === 'Merchant' ? 10 : 0)), // 20-80 base, with bonus for nobles/merchants
         appearance: finalAppearance,
@@ -981,7 +1058,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     const characterWithAttributes = { ...partialCharacter, attributes };
 
     // Use custom backstory if provided, otherwise generate procedural one with attributes
-    const backstory = spec.customBackstory || _generateProceduralBackstory(characterWithAttributes as PlayerCharacter);
+    const backstory = spec.customBackstory || spec.characterDescription || _generateProceduralBackstory(characterWithAttributes as PlayerCharacter);
 
     // Add custom items to inventory if provided
     if (spec.customItems && spec.customItems.length > 0) {
@@ -1010,23 +1087,28 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         }
     }
     
-    // Add life events
+    // Add life events (skip for curated identities)
     const currentYear = dateInfo.year;
     const birthYear = currentYear - partialCharacter.age;
     (partialCharacter as any).birthYear = birthYear.toString();
-    partialCharacter.lifeEvents.push({ year: birthYear, event: `Born in the region of ${context.region}.`});
-    if (partialCharacter.age > 16) {
-        partialCharacter.lifeEvents.push({ year: birthYear + 16, event: `Came of age and began training as a ${role}.`});
-    }
-    if (partialCharacter.age > 25 && noise.random() > 0.5) {
-        partialCharacter.lifeEvents.push({ year: birthYear + 22, event: `Left home to seek fortune.`});
+    if (spec.identitySource !== 'curated') {
+        const birthplaceLabel = spec.birthplace || context.region;
+        partialCharacter.lifeEvents.push({ year: birthYear, event: `Born in the region of ${birthplaceLabel}.`});
+        if (partialCharacter.age > 16) {
+            partialCharacter.lifeEvents.push({ year: birthYear + 16, event: `Came of age and began training as a ${role}.`});
+        }
+        if (partialCharacter.age > 25 && noise.random() > 0.5) {
+            partialCharacter.lifeEvents.push({ year: birthYear + 22, event: `Left home to seek fortune.`});
+        }
     }
     
-    // Add family
-    const fatherName = generateNpcName('Male', culturalZone, context.region, currentYear - partialCharacter.age - 25, noise);
-    partialCharacter.family.push({ name: fatherName, relation: 'father', profession: 'Farmer' });
-    const motherName = generateNpcName('Female', culturalZone, context.region, currentYear - partialCharacter.age - 25, noise);
-    partialCharacter.family.push({ name: motherName, relation: 'mother', profession: 'Homemaker' });
+    // Add family if not provided by spec
+    if (!Array.isArray(spec.family)) {
+        const fatherName = generateNpcName('Male', culturalZone, context.region, currentYear - partialCharacter.age - 25, noise);
+        partialCharacter.family.push({ name: fatherName, relation: 'father', profession: 'Farmer' });
+        const motherName = generateNpcName('Female', culturalZone, context.region, currentYear - partialCharacter.age - 25, noise);
+        partialCharacter.family.push({ name: motherName, relation: 'mother', profession: 'Homemaker' });
+    }
     
     // Initialize disease health with potential disease based on stats and setting
     const diseaseService = DiseaseService.getInstance();
@@ -1235,8 +1317,16 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
                     age: charData.age,
                     gender: charData.gender,
                     profession: charData.profession,
-                    socialClass: charData.socialClass,
-                    health: charData.health as any
+                    socialClass: normalizeSocialClassInput(charData.socialClass),
+                    classLabel: charData.classLabel,
+                    health: charData.health as any,
+                    birthplace: charData.birthplace,
+                    family: Array.isArray(charData.family) ? charData.family : undefined,
+                    clothing: charData.clothing,
+                    characterDescription: charData.characterDescription,
+                    ethnicity: charData.ethnicity,
+                    identitySource: charData.identitySource,
+                    customItems: Array.isArray(charData.customItems) ? charData.customItems : undefined
                 };
                 
                 return generateCharacterWithSpec(finalContext, spec);

@@ -63,7 +63,7 @@ const GameSetupScreen: React.FC = () => {
     setScenarioPreview(null);
 
     try {
-      const result = await worldWeaverService.interpretPrompt(customPrompt);
+      const result = await worldWeaverService.generateScenario(customPrompt);
       if (result.success) {
         setScenarioPreview(result);
       } else {
@@ -116,7 +116,7 @@ const GameSetupScreen: React.FC = () => {
       // Use WorldWeaver generated scenario
       year = scenarioPreview.year;
       mapArea = scenarioPreview.mapArea;
-      gameMode = scenarioPreview.gameMode || 'exploration';
+      gameMode = scenarioPreview.gameMode?.id || scenarioPreview.gameMode || 'exploration';
       character = scenarioPreview.characterSpec || {};
       scenarioPrompt = customPrompt;
     } else {
@@ -171,7 +171,15 @@ const GameSetupScreen: React.FC = () => {
         age: character.age || Math.floor(Math.random() * 40) + 20,
         socialClass: character.socialClass,
         health: character.health,
-        disease: character.disease
+        disease: character.disease,
+        birthplace: character.birthplace,
+        family: character.family,
+        clothing: character.clothing,
+        classLabel: character.classLabel,
+        ethnicity: character.ethnicity,
+        identitySource: character.identitySource,
+        characterDescription: character.characterDescription,
+        customItems: character.customItems
       },
 
       // Map generation
@@ -475,7 +483,8 @@ const GameSetupScreen: React.FC = () => {
                                 <div className="flex gap-2">
                                   <span className="text-slate-400">Game Mode:</span>
                                   <span className="text-white font-medium">
-                                    {scenarioPreview.gameMode?.replace(/\b\w/g, c => c.toUpperCase())}
+                                    {(scenarioPreview.gameMode?.name || scenarioPreview.gameMode || 'exploration')
+                                      .replace(/\b\w/g, c => c.toUpperCase())}
                                   </span>
                                 </div>
                                 {scenarioPreview.characterSpec && (

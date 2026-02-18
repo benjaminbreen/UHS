@@ -442,10 +442,24 @@ Examples to deny:
  * Determine clothing quality from player appearance
  */
 function getClothingQuality(player: PlayerCharacter): string {
-  if (!player.appearance?.clothing?.length) return 'basic';
+  const clothing = (player.appearance as any)?.clothing;
+  if (!Array.isArray(clothing) || clothing.length === 0) {
+    const garmentName = player.appearance?.garment?.name?.toLowerCase() || '';
+    const garmentMaterial = player.appearance?.garment?.material?.toLowerCase() || '';
+    const accessoryName = player.appearance?.accessory?.name?.toLowerCase() || '';
+    const accessoryMaterial = player.appearance?.accessory?.material?.toLowerCase() || '';
+    const headgearName = player.appearance?.headgear?.name?.toLowerCase() || '';
+    const headgearMaterial = player.appearance?.headgear?.material?.toLowerCase() || '';
+    const combined = `${garmentName} ${garmentMaterial} ${accessoryName} ${accessoryMaterial} ${headgearName} ${headgearMaterial}`;
 
-  const clothing = player.appearance.clothing;
-  const hasExpensive = clothing.some(item =>
+    if (/(silk|gold|silver|velvet|brocade|jewel|gem|crimson|royal)/.test(combined)) return 'expensive/formal';
+    if (/(wool|linen|leather|fine|well-made|embroidered)/.test(combined)) return 'decent';
+    if (/(rough|patched|rag|frayed|torn)/.test(combined)) return 'poor';
+
+    return 'basic';
+  }
+
+  const hasExpensive = clothing.some((item: any) =>
     item.material?.includes('silk') ||
     item.material?.includes('gold') ||
     item.material?.includes('silver') ||
@@ -454,7 +468,7 @@ function getClothingQuality(player: PlayerCharacter): string {
 
   if (hasExpensive) return 'expensive/formal';
 
-  const hasDecent = clothing.some(item =>
+  const hasDecent = clothing.some((item: any) =>
     item.quality === 'good' ||
     item.material?.includes('wool')
   );

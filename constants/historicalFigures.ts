@@ -7,6 +7,7 @@
  */
 
 import { HistoricalEra } from '../types/enums';
+import { FamilyMember } from '../types/npcTypes';
 
 // CulturalZone type - matches the definition in types/characterData.ts
 type CulturalZone = 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
@@ -21,6 +22,8 @@ export interface HistoricalFigure {
   era: HistoricalEra;
   culturalZone: CulturalZone;
   mapArea: string;
+  birthplace?: string;
+  family?: FamilyMember[];
   biography: string; // Brief historical context for LLM
   tagline: string; // One-line description for UI
   historicalNote: string; // Why we know about them
@@ -46,6 +49,8 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'MENA',
     mapArea: 'Tigris–Euphrates Confluence',
+    birthplace: 'Ur',
+    family: [{ name: 'Sargon of Akkad', relation: 'father', profession: 'King' }],
     tagline: 'First named author in human history',
     biography: 'High priestess of the moon god Nanna at Ur, daughter of Sargon of Akkad. Composed hymns and poems that survived millennia. Navigated the dangerous politics between Akkadian rulers and Sumerian religious traditions.',
     historicalNote: 'Her temple hymns and personal poems survive on cuneiform tablets, including accounts of her temporary exile during a rebellion.',
@@ -68,6 +73,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'MENA',
     mapArea: 'Babylon Region',
+    birthplace: 'Ur',
     tagline: 'History\'s most complained-about merchant',
     biography: 'A copper trader of Ur whose house yielded numerous complaint tablets from dissatisfied customers about the quality of his copper ingots. Despite the complaints, he maintained his business and social standing in the merchant quarter.',
     historicalNote: 'Multiple cuneiform tablets found in his house record customer complaints, including the famous letter from Nanni demanding a refund for substandard copper.',
@@ -110,6 +116,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'MENA',
     mapArea: 'Tigris–Euphrates Confluence',
+    birthplace: 'Kish',
     tagline: 'From tavern keeper to Queen of Kish',
     biography: 'A remarkable woman who rose from running a tavern to become the only woman listed on the Sumerian King List as a reigning monarch. Later deified as a goddess. Her rise suggests the social mobility possible in early Mesopotamia.',
     historicalNote: 'The Sumerian King List credits her with consolidating the kingship of Kish for 100 years, and she was later worshipped as a goddess in Anatolia.',
@@ -131,6 +138,8 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'MENA',
     mapArea: 'Tigris–Euphrates Confluence',
+    birthplace: 'Ur',
+    family: [{ name: 'Nabonidus', relation: 'father', profession: 'King' }],
     tagline: 'Creator of the world\'s first museum',
     biography: 'Daughter of the Neo-Babylonian king Nabonidus, she served as high priestess of the moon god Sin at Ur. She collected and labeled ancient artifacts from centuries past, creating what archaeologists consider the first museum.',
     historicalNote: 'Excavations at Ur found her collection of artifacts spanning 1,500 years, complete with clay drum labels in three languages describing each object.',
@@ -154,6 +163,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'SUB_SAHARAN_AFRICAN',
     mapArea: 'Nile Delta',
+    birthplace: 'Memphis',
     tagline: 'Builder of the first pyramid, later deified',
     biography: 'Chancellor to Pharaoh Djoser and architect of the Step Pyramid at Saqqara, the first monumental stone building in history. Also renowned as a physician and sage, he was deified two thousand years after his death.',
     historicalNote: 'One of the few non-royals to be depicted with a pharaoh, his titles included "Chancellor of the King of Lower Egypt" and "First after the King."',
@@ -175,6 +185,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'SUB_SAHARAN_AFRICAN',
     mapArea: 'Nile Delta',
+    birthplace: 'Saqqara',
     tagline: 'Possibly the first named woman in medicine',
     biography: 'Her image appears in a tomb at Saqqara with the title "Chief Physician," suggesting she held a prominent medical position in the royal court during the early Old Kingdom.',
     historicalNote: 'Her son, a high priest, had her image and titles carved in his tomb, preserving her memory across millennia.',
@@ -196,6 +207,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'SUB_SAHARAN_AFRICAN',
     mapArea: 'Thebes Valley',
+    birthplace: 'Thebes',
     tagline: 'Egyptian farmer whose letters survived 4,000 years',
     biography: 'A ka-priest and farmer whose detailed letters to his family survived, revealing the economics, family tensions, and daily concerns of Middle Kingdom Egypt. His complaints about his second wife causing household strife inspired Agatha Christie\'s novel.',
     historicalNote: 'His letters discuss grain prices, land rental, family disputes, and give precise instructions about farm management while he was away on priestly duties.',
@@ -217,6 +229,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'SUB_SAHARAN_AFRICAN',
     mapArea: 'Thebes Valley',
+    birthplace: 'Deir el-Medina',
     tagline: 'The most documented criminal of ancient Egypt',
     biography: 'A foreman at the royal tomb workers\' village of Deir el-Medina whose crimes were meticulously recorded by his neighbors: tomb robbery, adultery, assault, and corruption. Yet he maintained his position for years through intimidation and connections.',
     historicalNote: 'Papyrus Salt 124 lists his crimes in detail, including stealing tools from the royal tomb, sleeping with multiple married women, and beating his elderly father.',
@@ -238,6 +251,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'SUB_SAHARAN_AFRICAN',
     mapArea: 'Thebes Valley',
+    birthplace: 'Thebes',
     tagline: 'His tomb models reveal Middle Kingdom daily life',
     biography: 'Chancellor and steward under Pharaohs Mentuhotep II and III. His tomb contained exquisite wooden models depicting his estates, workshops, boats, and servants—an unparalleled window into Middle Kingdom economic life.',
     historicalNote: 'The 24 wooden models from his tomb, now in the Cairo and Met museums, show everything from his cattle being counted to bread being baked.',
@@ -261,6 +275,8 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'EUROPEAN',
     mapArea: 'Athens Basin',
+    birthplace: 'Ascra',
+    family: [{ name: 'Perses', relation: 'sibling' }],
     tagline: 'Poet-farmer who wrote of gods and honest labor',
     biography: 'A farmer in Boeotia who composed the Theogony (birth of the gods) and Works and Days (a farmer\'s almanac with moral advice). Unlike Homer, he names himself and complains about his lazy brother Perses.',
     historicalNote: 'His Works and Days provides practical farming advice alongside mythological and ethical teachings, revealing the life of a small Greek farmer.',
@@ -282,6 +298,11 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'EUROPEAN',
     mapArea: 'Delos Archipelago',
+    birthplace: 'Lesbos',
+    family: [
+      { name: 'Charaxus', relation: 'sibling', profession: 'Merchant' },
+      { name: 'Larichus', relation: 'sibling' }
+    ],
     tagline: 'The Tenth Muse of Lesbos',
     biography: 'An aristocratic poet from Lesbos who led a circle of young women in worship of Aphrodite and the Muses. Her lyric poetry, celebrated throughout antiquity, survives only in fragments but reveals intense emotional and aesthetic sensibility.',
     historicalNote: 'Ancient sources numbered her works in nine books. Plato called her the "Tenth Muse." Only one complete poem and numerous fragments survive.',
@@ -303,6 +324,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'EUROPEAN',
     mapArea: 'Athens Basin',
+    birthplace: 'Thrace',
     tagline: 'Former slave who taught kings through fables',
     biography: 'Born a slave, possibly from Thrace or Phrygia, he gained his freedom through his wit and wisdom. His fables—the Tortoise and the Hare, the Fox and the Grapes—taught moral lessons through animal tales and earned him fame across Greece.',
     historicalNote: 'Ancient sources say he was freed by his master Iadmon of Samos and later served as diplomat for King Croesus of Lydia before his death at Delphi.',
@@ -324,6 +346,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'EUROPEAN',
     mapArea: 'Marseille Coast',
+    birthplace: 'Massalia',
     tagline: 'Greek explorer who reached the Arctic Circle',
     biography: 'A merchant and astronomer from Massalia (Marseille) who voyaged to Britain, possibly Iceland, and the Baltic. His account of frozen seas, midnight sun, and amber sources expanded Greek knowledge of the north.',
     historicalNote: 'His book "On the Ocean" is lost but was quoted by later geographers. He was the first Greek to describe the tides and correctly connect them to the moon.',
@@ -334,6 +357,32 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     },
     startingInventory: ['ASTROLABE', 'PAPYRUS_SCROLL', 'ROPE'],
     skills: { navigation: 90, astronomy: 85, commerce: 70 }
+  },
+  {
+    id: 'alexander_the_great',
+    name: 'Alexander the Great',
+    profession: 'King',
+    gender: 'male',
+    age: 32,
+    year: -323,
+    era: HistoricalEra.ANTIQUITY,
+    culturalZone: 'EUROPEAN',
+    mapArea: 'Thessalian Plain',
+    birthplace: 'Pella',
+    family: [
+      { name: 'Philip II of Macedon', relation: 'father', profession: 'King' },
+      { name: 'Olympias', relation: 'mother', profession: 'Queen' }
+    ],
+    tagline: 'Macedonian conqueror who forged a vast Hellenistic empire',
+    biography: 'King of Macedon who inherited a disciplined army from Philip II and launched a campaign that toppled the Achaemenid Empire. His marches took him from Greece through Egypt and Persia to the Indus, founding cities and spreading Hellenic culture.',
+    historicalNote: 'Sources like Arrian and Plutarch, along with inscriptions and coinage, document his campaigns and the immediate succession crises after his death in Babylon.',
+    wikipediaTitle: 'Alexander_the_Great',
+    portraitHints: {
+      socialClass: 'noble',
+      distinctiveFeatures: ['royal diadem', 'military cloak', 'confident bearing']
+    },
+    startingInventory: ['SWORD', 'BRONZE_CUIRASS', 'SEAL_RING'],
+    skills: { combat: 90, leadership: 95, strategy: 90 }
   },
 
   // ============ CHINA (2) ============
@@ -347,6 +396,8 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'EAST_ASIAN',
     mapArea: 'Yellow River Valley',
+    birthplace: 'Anyang',
+    family: [{ name: 'Wu Ding', relation: 'spouse', profession: 'King' }],
     tagline: 'Shang dynasty warrior queen and high priestess',
     biography: 'One of the many wives of King Wu Ding, she commanded armies of up to 13,000 soldiers and led military campaigns against neighboring peoples. She also performed important ritual sacrifices as a priestess.',
     historicalNote: 'Her intact tomb, discovered in 1976, contained bronze weapons, jade artifacts, and oracle bones recording her military victories and ritual activities.',
@@ -368,6 +419,11 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'EAST_ASIAN',
     mapArea: 'Yellow River Valley',
+    birthplace: 'Qufu',
+    family: [
+      { name: 'Shuliang He', relation: 'father', profession: 'Military Officer' },
+      { name: 'Yan Zhengzai', relation: 'mother' }
+    ],
     tagline: 'Wandering teacher who shaped Chinese civilization',
     biography: 'Born to a declining noble family in Lu, he spent years as a traveling teacher and minor official, developing ethical teachings emphasizing ritual propriety, filial piety, and good governance. His students compiled his sayings after his death.',
     historicalNote: 'The Analects preserve his conversations with students. He served briefly as Minister of Crime in Lu before spending 14 years wandering from state to state.',
@@ -391,6 +447,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'SOUTH_ASIAN',
     mapArea: 'Patna Lowlands',
+    birthplace: 'Taxila',
     tagline: 'The kingmaker who wrote India\'s Machiavelli',
     biography: 'A Brahmin scholar who helped Chandragupta Maurya overthrow the Nanda dynasty and establish the Maurya Empire. His Arthashastra is a treatise on statecraft, economics, and military strategy of unprecedented scope.',
     historicalNote: 'The Arthashastra, rediscovered in 1905, covers everything from spy networks to tax policy to elephant management, revealing sophisticated political thinking.',
@@ -414,6 +471,7 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'MENA',
     mapArea: 'Tunisian Sahel',
+    birthplace: 'Carthage',
     tagline: 'Carthaginian who sailed past the Sahara',
     biography: 'A Carthaginian explorer who led a fleet of 60 ships down the West African coast, possibly reaching modern Cameroon. He established colonies, encountered "gorillas" (likely great apes), and saw volcanic eruptions.',
     historicalNote: 'His account, the Periplus, was inscribed in the temple of Ba\'al in Carthage. A Greek translation survives, describing three days\' voyage past a volcanic "Chariot of the Gods."',
@@ -437,6 +495,11 @@ export const HISTORICAL_FIGURES: HistoricalFigure[] = [
     era: HistoricalEra.ANTIQUITY,
     culturalZone: 'SUB_SAHARAN_AFRICAN',
     mapArea: 'Thebes Valley',
+    birthplace: 'Napata',
+    family: [
+      { name: 'Kashta', relation: 'father', profession: 'King' },
+      { name: 'Pabatma', relation: 'mother' }
+    ],
     tagline: 'Nubian pharaoh who conquered all of Egypt',
     biography: 'King of Kush who marched north to reunite Egypt under his rule, founding the 25th Dynasty. A devout worshipper of Amun, he was known for his mercy to defeated enemies and his love of horses.',
     historicalNote: 'His Victory Stela at Gebel Barkal describes his campaign in detail, including his anger at finding his enemies had mistreated their horses.',
@@ -472,7 +535,7 @@ export function getHistoricalFiguresByRegion(): Record<string, HistoricalFigure[
       regions['Mesopotamia & Near East'].push(figure);
     } else if (figure.mapArea.includes('Nile') || figure.mapArea.includes('Thebes')) {
       regions['Egypt & Nubia'].push(figure);
-    } else if (figure.mapArea.includes('Athens') || figure.mapArea.includes('Delos') || figure.mapArea.includes('Marseille')) {
+    } else if (figure.mapArea.includes('Athens') || figure.mapArea.includes('Delos') || figure.mapArea.includes('Marseille') || figure.mapArea.includes('Thessalian')) {
       regions['Greece & Mediterranean'].push(figure);
     } else if (figure.mapArea.includes('Yellow River') || figure.culturalZone === 'EAST_ASIAN') {
       regions['East Asia'].push(figure);
@@ -492,4 +555,103 @@ export function formatHistoricalYear(year: number): string {
     return `${Math.abs(year)} BCE`;
   }
   return `${year} CE`;
+}
+
+export type SocialClassSpec = 'peasant' | 'commoner' | 'merchant' | 'noble';
+
+export interface FigureClothingSpec {
+  garment?: { name: string; material?: string; adjectives?: string[] };
+  headgear?: { name: string; material?: string; adjectives?: string[] };
+  footwear?: { name: string; material?: string; adjectives?: string[] };
+  belt?: { name: string; material?: string; adjectives?: string[] };
+  accessory?: { name: string; material?: string; adjectives?: string[] };
+  palette?: { primary?: string; secondary?: string; accent?: string };
+}
+
+const normalizeFigureText = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+export function findHistoricalFigureByName(input: string): HistoricalFigure | undefined {
+  const normalizedInput = normalizeFigureText(input);
+  if (!normalizedInput) return undefined;
+
+  return HISTORICAL_FIGURES.find((figure) => {
+    const normalizedName = normalizeFigureText(figure.name);
+    const normalizedId = normalizeFigureText(figure.id.replace(/_/g, ' '));
+    return normalizedInput.includes(normalizedName) || normalizedInput.includes(normalizedId);
+  });
+}
+
+export function mapPortraitSocialClassToSpec(socialClass?: string): SocialClassSpec | undefined {
+  if (!socialClass) return undefined;
+  const normalized = String(socialClass).toLowerCase();
+  if (normalized === 'noble') return 'noble';
+  if (normalized === 'wealthy') return 'noble';
+  if (normalized === 'comfortable') return 'merchant';
+  if (normalized === 'modest') return 'commoner';
+  if (normalized === 'poor') return 'peasant';
+  return undefined;
+}
+
+export function deriveHistoricalFigureClothing(figure: HistoricalFigure): FigureClothingSpec | undefined {
+  const features = figure.portraitHints?.distinctiveFeatures || [];
+  const socialClass = figure.portraitHints?.socialClass;
+  const lowerFeatures = features.map((feature) => feature.toLowerCase());
+
+  const featureMatch = (keyword: string): string | undefined => {
+    const index = lowerFeatures.findIndex((feature) => feature.includes(keyword));
+    return index >= 0 ? features[index] : undefined;
+  };
+
+  const garmentFeature = featureMatch('robe') ||
+    featureMatch('garment') ||
+    featureMatch('attire') ||
+    featureMatch('linen') ||
+    featureMatch('tunic') ||
+    featureMatch('armor');
+
+  const headgearFeature = featureMatch('headdress') ||
+    featureMatch('crown') ||
+    featureMatch('helmet') ||
+    featureMatch('cap') ||
+    featureMatch('diadem') ||
+    featureMatch('tiara');
+
+  const accessoryFeature = featureMatch('jewelry') ||
+    featureMatch('ring') ||
+    featureMatch('amulet') ||
+    featureMatch('torc') ||
+    featureMatch('seal');
+
+  const garmentName = garmentFeature ||
+    (socialClass === 'noble'
+      ? 'royal robes'
+      : socialClass === 'wealthy' || socialClass === 'comfortable'
+      ? 'fine garments'
+      : socialClass === 'modest'
+      ? 'simple tunic'
+      : socialClass === 'poor'
+      ? 'rough-spun clothes'
+      : 'period-appropriate clothing');
+
+  const garmentMaterial = lowerFeatures.some((feature) => feature.includes('linen'))
+    ? 'linen'
+    : lowerFeatures.some((feature) => feature.includes('wool'))
+    ? 'wool'
+    : lowerFeatures.some((feature) => feature.includes('leather'))
+    ? 'leather'
+    : 'cloth';
+
+  const headgearName = headgearFeature || (socialClass === 'noble' ? 'ornate headpiece' : undefined);
+  const headgearMaterial = headgearName?.toLowerCase().includes('gold') ? 'gold' : 'cloth';
+
+  const accessoryName = accessoryFeature ||
+    (socialClass === 'noble' || socialClass === 'wealthy' ? 'gold jewelry' : undefined);
+
+  return {
+    garment: garmentName ? { name: garmentName, material: garmentMaterial } : undefined,
+    headgear: headgearName ? { name: headgearName, material: headgearMaterial } : undefined,
+    footwear: { name: 'leather sandals', material: 'leather' },
+    accessory: accessoryName ? { name: accessoryName, material: 'metal' } : undefined
+  };
 }

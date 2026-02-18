@@ -14,7 +14,18 @@ import { mapQuestAnalyzer, QuestLocation } from './mapQuestAnalyzer';
 import { MapData } from '../types';
 import DiseaseService from './diseaseService';
 import { HistoricalEra } from '../types/ambiance';
-import { CulturalZone } from '../types/characterData';
+import { CulturalZone, ClothingPalette, ClothingPiece } from '../types/characterData';
+import { FamilyMember } from '../types/npcTypes';
+import { deriveHistoricalFigureClothing, findHistoricalFigureByName, mapPortraitSocialClassToSpec } from '../constants/historicalFigures';
+
+export interface CharacterClothingSpec {
+  garment?: ClothingPiece;
+  headgear?: ClothingPiece;
+  footwear?: ClothingPiece;
+  belt?: ClothingPiece;
+  accessory?: ClothingPiece;
+  palette?: ClothingPalette;
+}
 
 export interface CharacterSpecification {
   name?: string;
@@ -23,11 +34,16 @@ export interface CharacterSpecification {
   profession?: string;
   health?: 'healthy' | 'average' | 'unhealthy' | 'sickly' | 'sick';
   socialClass?: 'peasant' | 'commoner' | 'merchant' | 'noble';
+  classLabel?: string;
   traits?: string[];
   disease?: string; // Disease ID like BUBONIC_PLAGUE
   ethnicity?: 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN'; // Character's ethnic/cultural background
   customBackstory?: string; // LLM-generated backstory specific to the scenario (deprecated)
   characterDescription?: string; // Brief 1-2 sentence character description for InitialScenarioModal
+  birthplace?: string;
+  family?: FamilyMember[];
+  clothing?: CharacterClothingSpec;
+  identitySource?: 'curated' | 'llm' | 'procedural';
   customItems?: Array<{ // LLM-generated items specific to the profession/scenario
     name: string;
     description: string;
@@ -116,6 +132,57 @@ export interface WorldWeaverResult {
   quest?: WorldWeaverQuest; // The quest (generated AFTER map creation)
   userPrompt?: string; // Store the original user prompt for deferred quest generation
 }
+
+const buildHistoricalFigureSpec = (figure: {
+  name: string;
+  age: number;
+  gender: 'male' | 'female';
+  profession: string;
+  culturalZone: CulturalZone;
+  mapArea: string;
+  tagline: string;
+  portraitHints?: { socialClass?: string };
+}): CharacterSpecification => {
+  const socialClass = mapPortraitSocialClassToSpec(figure.portraitHints?.socialClass) || 'commoner';
+  const clothingHints = deriveHistoricalFigureClothing(figure as any);
+  const normalizeClothingPiece = (piece: any, fallbackMaterial: string): ClothingPiece | undefined => {
+    if (!piece) return undefined;
+    if (typeof piece === 'string') {
+      return { name: piece, material: fallbackMaterial };
+    }
+    if (!piece.name) return undefined;
+    return {
+      name: String(piece.name),
+      material: piece.material ? String(piece.material) : fallbackMaterial,
+      adjectives: Array.isArray(piece.adjectives) ? piece.adjectives.map(String) : undefined
+    };
+  };
+
+  const clothing = clothingHints
+    ? {
+        garment: normalizeClothingPiece(clothingHints.garment, 'cloth'),
+        headgear: normalizeClothingPiece(clothingHints.headgear, 'cloth'),
+        footwear: normalizeClothingPiece(clothingHints.footwear, 'leather'),
+        belt: normalizeClothingPiece(clothingHints.belt, 'leather'),
+        accessory: normalizeClothingPiece(clothingHints.accessory, 'metal'),
+        palette: clothingHints.palette || undefined
+      }
+    : undefined;
+
+  return {
+    name: figure.name,
+    age: figure.age,
+    gender: figure.gender,
+    profession: figure.profession,
+    socialClass,
+    ethnicity: figure.culturalZone,
+    birthplace: figure.birthplace || figure.mapArea,
+    family: figure.family ? [...figure.family] : [],
+    clothing: clothing || undefined,
+    characterDescription: figure.tagline,
+    identitySource: 'curated'
+  };
+};
 
 // Generate the exact list of valid map areas from the game data
 const MAP_AREAS_LIST = generateMapAreaListForPrompt();
@@ -258,6 +325,17 @@ Return JSON only:
     "profession": "string or null",
     "health": "healthy" or "average" or "unhealthy" or "sickly" or null,
     "socialClass": "peasant" or "commoner" or "merchant" or "noble" or null,
+    "birthplace": "string or null",
+    "family": [
+      { "name": "Name", "relation": "father|mother|spouse|son|daughter|sibling", "age": number or null, "profession": "string or null" }
+    ] or null,
+    "clothing": {
+      "garment": { "name": "string", "material": "string" },
+      "headgear": { "name": "string", "material": "string" },
+      "footwear": { "name": "string", "material": "string" },
+      "belt": { "name": "string", "material": "string" },
+      "accessory": { "name": "string", "material": "string" }
+    } or null,
     "traits": ["array", "of", "traits"] or null,
     "disease": "DISEASE_ID from list above or null"
   } or null
@@ -333,6 +411,24 @@ class WorldWeaverService {
       return {
         success: false,
         errorMessage: "Please enter a historical scenario"
+      };
+    }
+
+    const figureMatch = findHistoricalFigureByName(userPrompt);
+    if (figureMatch) {
+      const locationInfo = findZoneForMapArea(figureMatch.mapArea);
+      const characterSpec = buildHistoricalFigureSpec(figureMatch);
+
+      return {
+        success: true,
+        year: figureMatch.year,
+        mapArea: figureMatch.mapArea,
+        zone: locationInfo?.zone || figureMatch.culturalZone,
+        region: locationInfo?.region,
+        explanation: `You step into the documented life of ${figureMatch.name}.`,
+        reasoning: `${figureMatch.name} belongs to ${figureMatch.mapArea} in this era.`,
+        suggestion: `Lean into ${figureMatch.name}'s responsibilities and reputation to guide your first move.`,
+        characterSpec
       };
     }
 
@@ -441,11 +537,11 @@ class WorldWeaverService {
 
       // console.log('[WorldWeaverService] Sending to LLM...');
       const result = await ai.models.generateContent({ 
-        model: 'gemini-2.5-flash-preview-09-2025', 
+        model: 'gemini-2.5-flash-lite', 
         contents: fullPrompt,
         generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 200
+          temperature: 0.4,
+          maxOutputTokens: 1000
         }
       });
       
@@ -553,7 +649,7 @@ class WorldWeaverService {
 
     try {
       // Enhance character details if we have a character spec with profession
-      if (baseResult.characterSpec?.profession) {
+      if (baseResult.characterSpec?.profession && baseResult.characterSpec.identitySource !== 'curated') {
         console.log('[WorldWeaverService] Enhancing character details...');
         baseResult.characterSpec = await this.enhanceCharacterDetails(
           baseResult.characterSpec,
@@ -790,11 +886,11 @@ EXAMPLES OF WELL-DESIGNED SCENARIOS (different contexts than yours):
 CREATE YOUR SCENARIO NOW (1-2 stages maximum):`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-09-2025',
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
         generationConfig: {
-          temperature: 0.6,  // Reduced for more consistent coordinate usage
-          maxOutputTokens: 600  // Much reduced from 1500
+          temperature: 0.3,  // Reduced for more consistent coordinate usage
+          maxOutputTokens: 2000  
         }
       });
 
@@ -1001,6 +1097,19 @@ CREATE YOUR SCENARIO NOW (1-2 stages maximum):`;
       return characterSpec; // Can't enhance without a profession
     }
 
+    const normalizeClothingPiece = (piece: any, fallbackMaterial: string): ClothingPiece | undefined => {
+      if (!piece) return undefined;
+      if (typeof piece === 'string') {
+        return { name: piece, material: fallbackMaterial };
+      }
+      if (!piece.name) return undefined;
+      return {
+        name: String(piece.name),
+        material: piece.material ? String(piece.material) : fallbackMaterial,
+        adjectives: Array.isArray(piece.adjectives) ? piece.adjectives.map(String) : undefined
+      };
+    };
+
     // Check if this is a specific historical figure
     const isHistoricalFigure = characterSpec.name && (
       userPrompt.toLowerCase().includes(characterSpec.name.toLowerCase()) ||
@@ -1042,7 +1151,19 @@ Write a concise 1-2 sentence character description that:
 - Should feel like a character introduction, not a full backstory
 - Example: "A weary but determined merchant who fled the wars in the north, now seeking to rebuild their fortune through risky ventures in untamed territories."
 
-TASK 2 - STARTING ITEMS:
+TASK 2 - IDENTITY ANCHORS:
+Provide historically accurate, specific identity details:
+- birthplace: short place name (city or region) grounded in the era
+- family: 1-4 immediate family members, using real names if this is a known historical figure
+- For historical figures, do NOT invent family members that contradict established history
+- If a detail is unknown or not well-attested, omit it rather than inventing
+
+TASK 3 - CLOTHING:
+Describe what they are wearing in a way that signals status and era.
+Provide garment, headgear, footwear, belt, and accessory where applicable.
+Use simple names and materials (e.g., "linen robe", "wool cloak", "gold signet ring").
+
+TASK 4 - STARTING ITEMS:
 Generate 2-3 items this person would realistically have based on their profession and the scenario.
 Items should be:
 - Historically accurate to ${year}
@@ -1059,6 +1180,17 @@ EXAMPLES:
 Return JSON only:
 {
   "characterDescription": "Your 1-2 sentence character description here",
+  "birthplace": "Short place name or null",
+  "family": [
+    { "name": "Name", "relation": "father|mother|spouse|son|daughter|sibling", "age": 45, "profession": "Profession" }
+  ],
+  "clothing": {
+    "garment": { "name": "Garment name", "material": "Material" },
+    "headgear": { "name": "Headgear name", "material": "Material" },
+    "footwear": { "name": "Footwear name", "material": "Material" },
+    "belt": { "name": "Belt name", "material": "Material" },
+    "accessory": { "name": "Accessory name", "material": "Material" }
+  },
   "items": [
     {
       "name": "Item name",
@@ -1073,11 +1205,11 @@ Return JSON only:
 }`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-09-2025',
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
         generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 500
+          temperature: 0.3,
+          maxOutputTokens: 1000
         }
       });
 
@@ -1099,9 +1231,39 @@ Return JSON only:
       if (enhanced.backstory) {
         characterSpec.characterDescription = enhanced.backstory;
       }
+
+      if (enhanced.birthplace && typeof enhanced.birthplace === 'string') {
+        characterSpec.birthplace = enhanced.birthplace;
+      }
+
+      if (Array.isArray(enhanced.family)) {
+        characterSpec.family = enhanced.family
+          .filter((member: any) => member && member.name && member.relation)
+          .map((member: any) => ({
+            name: String(member.name),
+            relation: member.relation,
+            age: typeof member.age === 'number' ? member.age : undefined,
+            profession: member.profession ? String(member.profession) : undefined
+          }));
+      }
+
+      if (enhanced.clothing && typeof enhanced.clothing === 'object') {
+        characterSpec.clothing = {
+          garment: normalizeClothingPiece(enhanced.clothing.garment, 'cloth'),
+          headgear: normalizeClothingPiece(enhanced.clothing.headgear, 'cloth'),
+          footwear: normalizeClothingPiece(enhanced.clothing.footwear, 'leather'),
+          belt: normalizeClothingPiece(enhanced.clothing.belt, 'leather'),
+          accessory: normalizeClothingPiece(enhanced.clothing.accessory, 'metal'),
+          palette: enhanced.clothing.palette || undefined
+        };
+      }
       
       if (enhanced.items && Array.isArray(enhanced.items)) {
         characterSpec.customItems = enhanced.items;
+      }
+
+      if (!characterSpec.identitySource) {
+        characterSpec.identitySource = 'llm';
       }
       
       console.log('[WorldWeaverService] Enhanced character with backstory and', enhanced.items?.length || 0, 'items');

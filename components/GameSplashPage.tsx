@@ -16,8 +16,10 @@ import {
 import {
   HISTORICAL_FIGURES,
   HistoricalFigure,
+  deriveHistoricalFigureClothing,
   formatHistoricalYear,
-  getHistoricalFiguresByRegion
+  getHistoricalFiguresByRegion,
+  mapPortraitSocialClassToSpec
 } from '../constants/historicalFigures';
 import { shareableStateService, ShareableGameState } from '../services/shareableStateService';
 import { worldWeaverService } from '../services/worldWeaverService';
@@ -115,7 +117,7 @@ const GameSplashPage: React.FC = () => {
     setWorldWeaverError(null);
 
     try {
-      const result = await worldWeaverService.interpretPrompt(worldWeaverPrompt);
+      const result = await worldWeaverService.generateScenario(worldWeaverPrompt);
 
       if (result.success && result.year && result.mapArea) {
         const gameMode = result.gameMode?.id ||
@@ -136,7 +138,15 @@ const GameSplashPage: React.FC = () => {
             gender: result.characterSpec?.gender || (Math.random() > 0.5 ? 'male' : 'female'),
             age: result.characterSpec?.age || Math.floor(Math.random() * 40) + 20,
             socialClass: result.characterSpec?.socialClass,
-            health: result.characterSpec?.health
+            health: result.characterSpec?.health,
+            birthplace: result.characterSpec?.birthplace,
+            family: result.characterSpec?.family,
+            clothing: result.characterSpec?.clothing,
+            classLabel: result.characterSpec?.classLabel,
+            ethnicity: result.characterSpec?.ethnicity,
+            identitySource: result.characterSpec?.identitySource,
+            characterDescription: result.characterSpec?.characterDescription,
+            customItems: result.characterSpec?.customItems
           },
           mapSeed: generateMapSeed(),
           scenarioType: 'worldweaver',
@@ -161,6 +171,8 @@ const GameSplashPage: React.FC = () => {
   // Start game as historical figure
   const handleHistoricalFigure = useCallback((figure: HistoricalFigure) => {
     const gameMode = selectGameModeForProfession(figure.profession);
+    const socialClass = mapPortraitSocialClassToSpec(figure.portraitHints?.socialClass) || 'commoner';
+    const clothing = deriveHistoricalFigureClothing(figure);
 
     const gameState: ShareableGameState = {
       year: figure.year,
@@ -174,7 +186,13 @@ const GameSplashPage: React.FC = () => {
         profession: figure.profession,
         gender: figure.gender,
         age: figure.age,
-        socialClass: figure.portraitHints?.socialClass
+        socialClass: socialClass,
+        birthplace: figure.birthplace || figure.mapArea,
+        family: figure.family ? [...figure.family] : [],
+        clothing,
+        ethnicity: figure.culturalZone,
+        identitySource: 'curated',
+        characterDescription: figure.tagline
       },
       mapSeed: generateMapSeed(),
       scenarioType: 'custom',
