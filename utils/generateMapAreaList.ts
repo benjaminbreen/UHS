@@ -7,22 +7,23 @@ import { GEOGRAPHICAL_DATA } from '../constants/gameData/geography';
 
 export function generateMapAreaListForPrompt(): string {
   const zones: string[] = [];
-  
+
   for (const [zoneName, zoneData] of Object.entries(GEOGRAPHICAL_DATA)) {
     const regionGroups: string[] = [];
-    
+
     for (const [regionName, regionData] of Object.entries(zoneData)) {
       const areaNames = Object.values(regionData).map(area => area.name);
       if (areaNames.length > 0) {
-        regionGroups.push(`- ${regionName}: ${areaNames.join(', ')}`);
+        // Format: region label is clearly NOT a valid name; valid names are indented below it
+        regionGroups.push(`  [${regionName}] — valid areas:\n    ${areaNames.join(' | ')}`);
       }
     }
-    
+
     if (regionGroups.length > 0) {
       zones.push(`${zoneName}:\n${regionGroups.join('\n')}`);
     }
   }
-  
+
   return zones.join('\n\n');
 }
 
@@ -43,4 +44,22 @@ export function getAllValidMapAreaNames(): string[] {
 export function isValidMapAreaName(name: string): boolean {
   const validNames = getAllValidMapAreaNames();
   return validNames.includes(name);
+}
+
+/**
+ * If the LLM returns a region name instead of an area name, find the first area in that region.
+ * This handles cases like "Central California Coast" → "Monterey Bay".
+ */
+export function findAreaByRegionName(regionName: string): string | null {
+  for (const zoneData of Object.values(GEOGRAPHICAL_DATA)) {
+    for (const [rName, regionData] of Object.entries(zoneData)) {
+      if (rName === regionName) {
+        const areas = Object.values(regionData);
+        if (areas.length > 0) {
+          return areas[0].name;
+        }
+      }
+    }
+  }
+  return null;
 }

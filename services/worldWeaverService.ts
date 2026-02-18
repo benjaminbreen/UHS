@@ -4,7 +4,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
-import { generateMapAreaListForPrompt, isValidMapAreaName } from '../utils/generateMapAreaList';
+import { generateMapAreaListForPrompt, isValidMapAreaName, findAreaByRegionName } from '../utils/generateMapAreaList';
 import { findZoneForMapArea } from '../utils/mapAreaLookup';
 import { eventService } from './eventService';
 import { llmEventService } from './llmEventService';
@@ -303,12 +303,12 @@ CRITICAL REQUIREMENT: You MUST select a map area name that appears EXACTLY in th
 ${MAP_AREAS_LIST}
 
 ABSOLUTE RULES:
-1. The mapArea field MUST contain an EXACT name from the list above
-2. Do NOT make up area names
-3. Do NOT use city/state/country names unless they appear in the list
-4. If you want New York area, use "Hudson Valley" (if it's in the list)
-5. If you want Boston area, use "Boston Harbor" (if it's in the list)
-6. Copy the name EXACTLY as it appears, including capitalization
+1. The mapArea field MUST be one of the AREA NAMES listed after "valid areas:" above
+2. DO NOT use the bracketed region labels like [Central California Coast] — those are grouping labels, NOT valid area names
+3. DO NOT make up area names or use city/state/country names unless they appear in the list
+4. CORRECT: "Monterey Bay" or "Salinas Valley" (area names after "valid areas:")
+5. WRONG: "Central California Coast" (that is a region label in brackets, not an area)
+6. Copy the name EXACTLY as it appears after "valid areas:", including capitalization
 
 Return JSON only:
 {
@@ -565,29 +565,35 @@ class WorldWeaverService {
           // Validate that the map area is actually valid
           if (!isValidMapAreaName(result.mapArea)) {
             console.error('[WorldWeaverService] LLM returned invalid map area:', result.mapArea);
-            console.log('[WorldWeaverService] Attempting to find closest match...');
-            
-            // Try to find the zone/region from the response for fallback
-            const zoneRegion = findZoneForMapArea(result.mapArea);
-            if (zoneRegion) {
-              console.log('[WorldWeaverService] Found zone/region for fallback:', zoneRegion);
+
+            // The LLM often returns a region name (e.g. "Central California Coast") instead of
+            // an area name within that region (e.g. "Monterey Bay"). Try to recover from this.
+            const areaFromRegion = findAreaByRegionName(result.mapArea);
+            if (areaFromRegion) {
+              console.log('[WorldWeaverService] LLM returned region name - using first area:', areaFromRegion);
+              result.mapArea = areaFromRegion;
+            } else {
+              // Last-resort: check if it matches a zone/region for partial recovery
+              const zoneRegion = findZoneForMapArea(result.mapArea);
+              if (zoneRegion) {
+                console.log('[WorldWeaverService] Found zone/region for fallback:', zoneRegion);
+                return {
+                  success: true,
+                  year: result.year,
+                  mapArea: result.mapArea,
+                  zone: zoneRegion.zone,
+                  region: zoneRegion.region,
+                  explanation: result.explanation,
+                  reasoning: result.reasoning,
+                  suggestion: result.suggestion,
+                  characterSpec: result.characterSpec || null
+                };
+              }
               return {
-                success: true,
-                year: result.year,
-                mapArea: result.mapArea, // Keep the invalid one for logging
-                zone: zoneRegion.zone,
-                region: zoneRegion.region,
-                explanation: result.explanation,
-                reasoning: result.reasoning,
-                suggestion: result.suggestion,
-                characterSpec: result.characterSpec || null
+                success: false,
+                errorMessage: `Invalid map area: ${result.mapArea}`
               };
             }
-            
-            return {
-              success: false,
-              errorMessage: `Invalid map area: ${result.mapArea}`
-            };
           }
           
           console.log('[WorldWeaverService] Valid map area! Returning:', {
