@@ -1,61 +1,218 @@
+```text
+██    ██ ███    ██ ██ ██    ██ ███████ ██████  ███████  █████  ██
+██    ██ ████   ██ ██ ██    ██ ██      ██   ██ ██      ██   ██ ██
+██    ██ ██ ██  ██ ██ ██    ██ █████   ██████  ███████ ███████ ██
+██    ██ ██  ██ ██ ██  ██  ██  ██      ██   ██      ██ ██   ██ ██
+ ██████  ██   ████ ██   ████   ███████ ██   ██ ███████ ██   ██ ███████
+
+██   ██ ██ ███████ ████████  ██████  ██████  ██    ██
+██   ██ ██ ██         ██    ██    ██ ██   ██  ██  ██
+███████ ██ ███████    ██    ██    ██ ██████    ████
+██   ██ ██      ██    ██    ██    ██ ██   ██    ██                 v.02
+██   ██ ██ ███████    ██     ██████  ██   ██    ██             Feb 2026
+
+███████ ██ ███    ███ ██    ██ ██       █████  ████████  ██████  ██████
+██      ██ ████  ████ ██    ██ ██      ██   ██    ██    ██    ██ ██   ██
+███████ ██ ██ ████ ██ ██    ██ ██      ███████    ██    ██    ██ ██████
+     ██ ██ ██  ██  ██ ██    ██ ██      ██   ██    ██    ██    ██ ██   ██
+███████ ██ ██      ██  ██████  ███████ ██   ██    ██     ██████  ██   ██
 ```
- _   _ _   _ _____
-| | | | | | /  ___|
-| | | | |_| \ `--.
-| | | |  _  |`--. \
-| |_| | | | /\__/ /
- \___/\_| |_\____/
 
- +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- |U|N|I|V|E|R|S|A|L| |H|I|S|T|O|R|Y|
- |S|I|M|U|L|A|T|O|R|               |
- +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-```
+An educational history game and experiment in pushing the limits of LLM's historical fiction ability that was built by a history professor using AI coding tools (mostly Claude Code). You play as a historical person, either someone you choose or a procedurally generated figure (a merchant, a peasant, a scholar, or a range of other professions) navigating daily life in a specific time and place.
 
-An educational history game and experiment in pushing the limits of LLM's historical fiction ability that was built by a history professor using AI coding tools (mostly Claude Code). You play as a hstorical person, either someone you choose or a procedurally generated figure — a merchant, a peasant, a scholar, or a range of other professions — navigating the daily life of a specific time and place.
-
-This is an ongoing personal project, not a polished product. The code reflects that.
+This is an ongoing personal project, not a polished product. The code reflects that. It is really buggy in parts, and filled with technical debt - fair warning! 
 
 ---
 
-## What it does
+## What This Project Is
 
-- Procedurally generates world maps across 7 historical eras and 9 cultural zones, with historically-appropriate NPCs, items, diseases, and events for each
-- AI-powered scenario generator (WorldWeaver): type a prompt, get a playable historical setting
-- Disease system modeled on real epidemiological history, with transmission vectors and social consequences
-- Interior maps for government buildings, markets, workshops, holy sites, and other settlement types
-- Lots of other half-finished but potentially promising features - this codebase was a test bed for learning how to vibe code, so there is a lot of sprawl and a lot of unfinished business, but also, I think, some interesting ideas and experiments too.
+Universal History Simulator is a historically grounded educational simulation with some gamified systems and a a pixel art aesthetic built by a professional historian who loved SNES RPG games as a kid. That said, it is not really a game. I actively use this as an educational tool in my classrooms. 
 
-## Stack
+The core thing to stress about this at the outset is that these simulations will NEVER be fully accurate, and they often fail to reflect reality in myriad ways. That's partly the point. Those failure modes are precisely what is teachable and interestign about this, however. When I use this tool in class activities, I explain to students that they will encounter anachronisms and errors and ask them to track the ways the simulation breaks down. Students then research those issues and (ideally) gain a more targeted, specific, and customized understanding of the past by fact checking and researching what are often very esoteric mistakes (was sugar grown in 4th century East Africa? Would the profession of "porcelain maker" have existed in 11th century Mongolia?)  
 
-React 18 + TypeScript, Vite, Tailwind CSS, Framer Motion, Three.js, Google Gemini API, Supabase.
+Another thing I have found interesting about this app's failure modes is what it reveals about LLMs and how they "think" about history. LLMs generating historical scenarios often have a sort of melancholic, heightened, quasi-fantastical tone that I think reflects their training data's rootedness in hitorical fan fiction corpora (in fact, the very first transformer models were partially trained on historical fan fiction, so this goes deep). They struggle to maintain historical realism and authenticity. That said, these models are also capable of wielding considerable multilingual erudition about obscure and archaic terms or objects from the past, and will sometimes surprise you. 
 
-## Getting started
+Core focus:
+- Historically plausible world generation (time, place, culture, constraints)
+- Character-driven simulation (stats, inventory, disease, social dynamics)
+- LLM-assisted scenario setup and narration (constrained by geography/era data)
+- Educational instrumentation (logs, journal, assessment-oriented systems)
 
+Not the focus:
+- Fantasy/supernatural framing
+- Optional side branches as primary game loop
+
+---
+
+## ⚙️ Core Mechanics (Developer Summary)
+
+1. **World generation**
+- Procedural map generation in `generation/standardMap/standardMapGenerator.ts`
+- Geography source of truth in `constants/gameData/geography.ts`
+- Adjacency + liminal transitions in `constants/gameData/adjacencies.ts`
+
+2. **Simulation loops**
+- Main loop in `hooks/useCoreLoops.ts`
+- Handles time progression, movement consequences, weather/disease hooks, NPC/animal updates, and map-edge traversal checks
+
+3. **Game modes and events**
+- Event/mode engine in `hooks/useEventSystem.ts` + `services/eventService.ts`
+- Game mode influences event selection and progression logic
+
+4. **WorldWeaver (scenario generation)**
+- Natural-language prompt -> constrained historical scenario
+- Service: `services/worldWeaverService.ts`
+- Entry paths:
+  - Splash page path: `components/GameSplashPage.tsx`
+  - In-game (top nav bar text entry box) path: `components/TopNavBarPolished.tsx`
+
+5. **HistoryLens (narrative/action interface)**
+- Panel: `components/HistoryLensPanel.tsx`
+- LLM response + action routing:
+  - `services/historyLensService.ts`
+  - `services/historyLensActionRouter.ts`
+  - `services/historyLensEntryService.ts`
+
+---
+
+##  Runtime Architecture
+
+### Routes (`App.tsx`)
+- `/` -> `GameSplashPage`
+- `/start` -> `GameSplashPage`
+- `/home` -> `GameSetupScreen` (legacy)
+- `/:year/*` -> main runtime
+
+### Provider stack (`App.tsx`)
+`GameProvider -> PlayerProvider -> MapProvider -> UIProvider`
+
+### Context responsibilities
+- `GameContext` (`hooks/useGameState.ts`): clock/date, logs/journal, zone/region, loading flags
+- `PlayerContext` (`hooks/usePlayerState.ts`): character, stats, inventory/equipment, movement mode/position
+- `MapContext` (`hooks/useMapState.ts`): map generation/cache, transitions, special maps, world coordinates
+- `UIContext` (`hooks/useUIState.ts`): modals/panels, central view mode, UI interaction state
+
+---
+
+##  Startup + Session Boot Flow
+
+```text
+BrowserRouter (index.tsx)
+  -> App routes (App.tsx)
+    -> parse startup inputs:
+       1) pending saved game handoff (localStorage)
+       2) shareable URL ?state=...
+    -> validate/repair scenario state
+    -> apply generation guards (avoid duplicate world generation)
+    -> call one:
+       - onStartNewWorldAtLocation(...)
+       - onStartNewWorldAtZoneRegion(...)
+    -> App-level scenario modals:
+       - WorldWeaverModal
+       - InitialScenarioModal
+```
+
+---
+
+## 🗺️ Core File Map
+
+```text
+.
+├── App.tsx
+├── index.tsx
+├── contexts/
+│   ├── GameContext.tsx
+│   ├── PlayerContext.tsx
+│   ├── MapContext.tsx
+│   └── UIContext.tsx
+├── hooks/
+│   ├── useGameState.ts
+│   ├── usePlayerState.ts
+│   ├── useMapState.ts
+│   ├── useUIState.ts
+│   ├── useCoreLoops.ts
+│   └── useEventSystem.ts
+├── generation/
+│   ├── standardMap/
+│   └── specialMap/
+├── services/
+│   ├── worldWeaverService.ts
+│   ├── historyLensService.ts
+│   ├── historyLensActionRouter.ts
+│   ├── eventService.ts
+│   ├── assessmentService.ts
+│   └── saveGameService.ts
+├── constants/
+│   └── gameData/
+│       ├── geography.ts
+│       └── adjacencies.ts
+├── types/
+└── tests/
+```
+
+---
+
+## 🛠️ Local Development
+
+### Prereqs
+- Node.js 18+ (recommended)
+- npm
+
+### Install + run
 ```bash
 npm install
-# add API_KEY=your_gemini_key to .env
 npm run dev
 ```
 
-Supabase is optional. LLM features (WorldWeaver, NPC dialogue) require a Gemini API key.
+### Build + test
+```bash
+npm run build
+npm test
+```
 
-## What might be useful to others
+### Environment variables
+The project has mixed historical env conventions; these are the important ones:
 
-The **narrative event design** and the core **LLM narrative engine** has the most refined thinking behind it. The events went through a significant rewrite after the originals turned out preachy and morally resolved — [CLAUDE.md](./CLAUDE.md) documents the before/after. The core principle: present a specific human situation with real tradeoffs, no obvious right answer, and period-appropriate attitudes rather than modern ones ventriloquized through historical characters.
+- `GEMINI_API_KEY`
+  - Mapped by Vite (`vite.config.ts`) into:
+    - `process.env.API_KEY`
+    - `process.env.GEMINI_API_KEY`
+  - Used by WorldWeaver, HistoryLens, event/narrative services
+- `VITE_RUNWARE_API_KEY` (optional; image generation path)
+- Supabase/R2 keys are optional unless you are using those data/storage paths
 
-The **geography and era validation system** for the AI pipeline (`utils/generateMapAreaList.ts`, `services/worldWeaverService.ts`) shows one way to constrain LLM output against a real structured database rather than trusting it to generate valid values.
+See `.env.example` for template keys.
 
-## Known issues
+---
 
-Many systems were built and never properly integrated into gameplay. The educational features (learning objectives, primary sources, assessment) exist but aren't well-surfaced. Lots of technical debt and spaghetti code.
+## 📦 NPM Scripts
 
-## Contributing
+- `npm run dev` - start Vite dev server
+- `npm run build` - production build
+- `npm run preview` - preview built app
+- `npm test` - run Vitest
+- `npm run test:ui` - open Vitest UI
+- `npm run test:coverage` - run coverage
+- `npm run check:circular` - circular dependency check (best-effort)
 
-Open to ideas! Feel free to fork, also to contact me if you're interested in collaorating. 
+---
 
-## About
+## 🚧 Current Reality
 
-Built by [Benjamin Breen], historian at UC Santa Cruz. 
+- Some systems are mature (procedural map generation, core loops, scenario setup).
+- Some systems are partial or unevenly integrated (especially parts of quests/UI surfacing).
+- Educational features exist and are meaningful, but not always front-and-center in UX.
 
-MIT License.
+---
+
+## 🤝 Contributing
+
+Issues and PRs are welcome. Practical improvements to core historical simulation and clarity of architecture are the highest-value contributions. 
+
+---
+
+## 👤 About
+
+Built by Benjamin Breen, historian at UC Santa Cruz. I used Claude Code and GPT-5 to write this code pretty much in its entirety - I am, I freely admit, a vibe coder! 
+
+License: MIT
