@@ -359,6 +359,9 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
   ],
 
   // Northeast Woodlands
+  "New York Harbor": [
+    { name: "Lenape Village", description: "A Lenape settlement at the mouth of the great river.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN] }
+  ],
   "Hudson River Valley": [
     { name: "Mohican Village", description: "A village of the Mohican people by the great river.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL] }
   ],

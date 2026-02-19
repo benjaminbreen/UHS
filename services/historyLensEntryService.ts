@@ -46,6 +46,20 @@ const buildPlayerContext = (context: EntryContext): PlayerContext => {
 };
 
 export const generateEntryNarration = async (context: EntryContext): Promise<string> => {
+  // For opening scenes, prefer the WorldWeaver scenario description if available
+  // (it's tailored to the character/prompt and avoids generic tile-based descriptions)
+  if (context.kind === 'start') {
+    try {
+      const weaverDesc = sessionStorage.getItem('worldweaver_scenario_desc');
+      if (weaverDesc) {
+        sessionStorage.removeItem('worldweaver_scenario_desc');
+        return weaverDesc.trim();
+      }
+    } catch {
+      // sessionStorage may not be available in some contexts
+    }
+  }
+
   const currentTile = context.tile || context.mapData.tiles?.[context.playerY]?.[context.playerX];
   const isOnLand = Boolean(currentTile && (currentTile as any).isLand);
   const isEmbarked = context.playerMode === 'ship';
@@ -56,10 +70,12 @@ export const generateEntryNarration = async (context: EntryContext): Promise<str
   const prompt = [
     `Write 2–4 sentences in second-person present, historically grounded and vivid.`,
     `Keep it concise, literary, and specific to the setting.`,
-    `Do not ask a question. Avoid modern terms.`,
-    `Focus on sensory detail, social atmosphere, and immediate stakes.`,
-    `Include 1–2 sentences that plausibly explain why the character is here right now (duty, exile, trade, seasonal labor, kinship obligation, conflict), grounded in era and class.`,
+    `Do not ask a question. Avoid modern terms unless the era is modern/industrial.`,
+    `Focus on sensory detail, social atmosphere, and the character's immediate situation.`,
+    `Ground the scene in the character's profession and daily life — describe what they would actually see and do, not generic map features.`,
     `Do not invent a new profession; use the provided one.`,
+    `Do not describe the character as being on a vessel or ship unless they are actually embarked on open water.`,
+    `Do not reference nearby buildings by generic type names like "factory" or "church" — instead describe the scene from the character's lived perspective.`,
     modeLine,
     `Place: ${context.label}.`,
     context.structure ? `Structure: ${context.structure.name || context.structure.structureType}.` : '',

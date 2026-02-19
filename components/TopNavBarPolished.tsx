@@ -483,12 +483,17 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
         };
 
         // Pass WorldWeaver data to parent for InitialScenarioModal
+        const settingDesc = result.scenarioDescription || result.quest?.historicalContext || result.explanation;
         if (onWorldWeaverDataReceived) {
           onWorldWeaverDataReceived({
-            settingDescription: result.quest?.historicalContext || result.explanation,
+            settingDescription: settingDesc,
             characterDescription: result.characterSpec?.characterDescription,
             quest: result.quest
           });
+        }
+        // Stash for History Lens opening narration
+        if (settingDesc) {
+          sessionStorage.setItem('worldweaver_scenario_desc', settingDesc);
         }
 
         // Only set pendingScenarioData, let the useEffect handle opening the modal

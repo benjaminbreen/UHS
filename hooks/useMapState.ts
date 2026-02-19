@@ -52,6 +52,36 @@ function getArchetypeName(archetype: MapArchetype): string {
 }
 
 /**
+ * Determine whether the player should spawn on a ship or on foot.
+ * Considers map archetype and character profession rather than random seed.
+ */
+function determineSpawnMode(archetype: MapArchetype, seed: number, profession?: string): 'ship' | 'onFoot' {
+    // Water-only maps: must spawn on ship
+    if (archetype === MapArchetype.OPEN_OCEAN || archetype === MapArchetype.SHOALS) {
+        return 'ship';
+    }
+
+    // Primarily land maps: always on foot
+    if (archetype === MapArchetype.ALL_LAND || archetype === MapArchetype.DESERT ||
+        archetype === MapArchetype.SWAMP || archetype === MapArchetype.BARRIER_ISLAND) {
+        return 'onFoot';
+    }
+
+    // Mixed maps (BAY, DELTA, PENINSULA, RIVER_PORT, ISLAND, ATOLL, etc.):
+    // Only spawn on ship if the character has a maritime profession
+    if (profession) {
+        const profLower = profession.toLowerCase();
+        const maritimeProfessions = /sailor|fisherman|fisherwoman|fisher|captain|navigator|pirate|boatswain|mariner|whaler|ferryman|shipwright|naval|merchant.*(marine|shipping|sea)|dockworker|longshoreman/;
+        if (maritimeProfessions.test(profLower)) {
+            return 'ship';
+        }
+    }
+
+    // Default: on foot for everything else
+    return 'onFoot';
+}
+
+/**
  * Convert a liminal key like "LIMINAL_ARABIAN_DESERT" to a readable name like "Arabian Desert"
  */
 function getLiminalAreaName(liminalKey: string): string {
@@ -1296,8 +1326,8 @@ export const useMapState = (props: useMapStateProps) => {
             setPlayerState.setPlayerCharacter(fallbackChar);
         }
         
-        // Set initial player position (1/3 ship, 2/3 on foot)
-        let spawnMode: 'ship' | 'onFoot' = mapSeedToUse % 3 === 0 ? 'ship' : 'onFoot';
+        // Set initial player position based on archetype and character
+        let spawnMode: 'ship' | 'onFoot' = determineSpawnMode(areaDef.archetype, mapSeedToUse, characterSpec?.profession);
         let initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, spawnMode);
         if (initialPos && spawnMode === 'ship') {
             const startTile = newMapData.tiles[initialPos.y]?.[initialPos.x];
@@ -1727,8 +1757,8 @@ export const useMapState = (props: useMapStateProps) => {
             setPlayerState.setPlayerCharacter(fallbackChar);
         }
         
-        // Set initial player position (1/3 ship, 2/3 on foot)
-        let spawnMode: 'ship' | 'onFoot' = mapSeedToUse % 3 === 0 ? 'ship' : 'onFoot';
+        // Set initial player position based on archetype and character
+        let spawnMode: 'ship' | 'onFoot' = determineSpawnMode(foundAreaDef.archetype, mapSeedToUse, characterSpec?.profession);
         let initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, spawnMode);
         if (initialPos && spawnMode === 'ship') {
             const startTile = newMapData.tiles[initialPos.y]?.[initialPos.x];
@@ -1895,8 +1925,8 @@ export const useMapState = (props: useMapStateProps) => {
                 setPlayerState.setPlayerCharacter(fallbackChar);
             }
             
-            // Set initial player position (1/3 ship, 2/3 on foot)
-            let spawnMode: 'ship' | 'onFoot' = mapSeedToUse % 3 === 0 ? 'ship' : 'onFoot';
+            // Set initial player position based on archetype and character
+            let spawnMode: 'ship' | 'onFoot' = determineSpawnMode(areaDef.archetype, mapSeedToUse, characterSpec?.profession);
             let initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, spawnMode);
             if (initialPos && spawnMode === 'ship') {
                 const startTile = newMapData.tiles[initialPos.y]?.[initialPos.x];

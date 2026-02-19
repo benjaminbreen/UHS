@@ -53,6 +53,7 @@ export interface CharacterSpecification {
     stackable?: boolean;
     wearable?: boolean;
   }>;
+  scenarioDescription?: string; // Immersive opening scene that incorporates profession + location + year
 }
 
 export interface QuestStage {
@@ -131,6 +132,7 @@ export interface WorldWeaverResult {
   specialNPCs?: SpecialNPC[];
   quest?: WorldWeaverQuest; // The quest (generated AFTER map creation)
   userPrompt?: string; // Store the original user prompt for deferred quest generation
+  scenarioDescription?: string; // Immersive opening scene incorporating profession + location + year
 }
 
 const buildHistoricalFigureSpec = (figure: {
@@ -293,6 +295,23 @@ Examples of how to interpret prompts for settings:
 - "ancient rome" → 100 "Central Italy"
 - "turkey" or "anatolia" → "Cappadocian Highlands" (for inland Turkey)
 - "mesopotamia" or "babylon" → "Mesopotamia"
+
+IMPORTANT - CITY NAME MAPPING (cities are NOT valid area names — use the nearest region/area):
+- "new york", "nyc", "manhattan" → "New York Harbor"
+- "los angeles" → "Baja California"
+- "chicago" → "Great Lakes Shoreline"
+- "boston" → "Cape Cod"
+- "philadelphia", "washington dc" → "Chesapeake Bay"
+- "new orleans" → "Mississippi Delta"
+- "beijing" → "North China Plain"
+- "tokyo" → "Kanto Plain"
+- "delhi" → "Indo-Gangetic Plain"
+- "mumbai" → "Konkan Coast"
+- "istanbul", "constantinople" → "Bosphorus Strait"
+- "cairo" → "Lower Nile Valley"
+- "jerusalem" → "Levantine Coast"
+- "mexico city", "tenochtitlan" → "Valley of Mexico"
+- Always find the NEAREST valid area name from the list — never invent one
 - "space", "astronaut", "cosmonaut", "yuri gagarin", "space station", "orbit" → 1961-1990 "Outer Space"
 - "submarine", "u-boat", "underwater", "deep sea", "ocean floor", "atlantis" → 1915 (WWI) or 1942 (WWII) "Undersea " (with trailing space)
 - "heaven", "paradise", "afterlife", "angel", "divine realm", "pearly gates" → 1500 "Heaven"
@@ -566,33 +585,58 @@ class WorldWeaverService {
           if (!isValidMapAreaName(result.mapArea)) {
             console.error('[WorldWeaverService] LLM returned invalid map area:', result.mapArea);
 
-            // The LLM often returns a region name (e.g. "Central California Coast") instead of
-            // an area name within that region (e.g. "Monterey Bay"). Try to recover from this.
+            // Recovery 1: LLM returned a region name (e.g. "Central California Coast") → use first area in that region
             const areaFromRegion = findAreaByRegionName(result.mapArea);
             if (areaFromRegion) {
               console.log('[WorldWeaverService] LLM returned region name - using first area:', areaFromRegion);
               result.mapArea = areaFromRegion;
             } else {
-              // Last-resort: check if it matches a zone/region for partial recovery
-              const zoneRegion = findZoneForMapArea(result.mapArea);
-              if (zoneRegion) {
-                console.log('[WorldWeaverService] Found zone/region for fallback:', zoneRegion);
+              // Recovery 2: Common city/place name → nearest valid map area
+              const CITY_TO_AREA: Record<string, string> = {
+                'new york': 'New York Harbor', 'new york city': 'New York Harbor', 'nyc': 'New York Harbor', 'manhattan': 'New York Harbor', 'brooklyn': 'Long Island',
+                'los angeles': 'Baja California', 'la': 'Baja California',
+                'chicago': 'Great Lakes Shoreline',
+                'boston': 'Cape Cod', 'philadelphia': 'Chesapeake Bay',
+                'washington dc': 'Chesapeake Bay', 'washington d.c.': 'Chesapeake Bay',
+                'new orleans': 'Mississippi Delta', 'miami': 'Florida Keys',
+                'paris': 'Paris Basin', 'london': 'London', 'rome': 'Central Italy',
+                'athens': 'Attica', 'istanbul': 'Bosphorus Strait', 'constantinople': 'Bosphorus Strait',
+                'cairo': 'Lower Nile Valley', 'jerusalem': 'Levantine Coast',
+                'beijing': 'North China Plain', 'tokyo': 'Kanto Plain', 'kyoto': 'Kinai Region',
+                'delhi': 'Indo-Gangetic Plain', 'mumbai': 'Konkan Coast', 'bombay': 'Konkan Coast',
+                'baghdad': 'Mesopotamia', 'damascus': 'Levantine Coast',
+                'mexico city': 'Valley of Mexico', 'tenochtitlan': 'Valley of Mexico',
+                'cusco': 'Andean Highlands', 'lima': 'Andean Highlands',
+                'nairobi': 'East African Rift', 'timbuktu': 'Niger River Bend',
+                'sydney': 'Southeast Australia', 'melbourne': 'Southeast Australia',
+              };
+              const cityKey = result.mapArea.toLowerCase().trim();
+              const cityFallback = CITY_TO_AREA[cityKey];
+              if (cityFallback && isValidMapAreaName(cityFallback)) {
+                console.log('[WorldWeaverService] Mapped city name to area:', result.mapArea, '→', cityFallback);
+                result.mapArea = cityFallback;
+              } else {
+                // Recovery 3: zone/region partial match
+                const zoneRegion = findZoneForMapArea(result.mapArea);
+                if (zoneRegion) {
+                  console.log('[WorldWeaverService] Found zone/region for fallback:', zoneRegion);
+                  return {
+                    success: true,
+                    year: result.year,
+                    mapArea: result.mapArea,
+                    zone: zoneRegion.zone,
+                    region: zoneRegion.region,
+                    explanation: result.explanation,
+                    reasoning: result.reasoning,
+                    suggestion: result.suggestion,
+                    characterSpec: result.characterSpec || null
+                  };
+                }
                 return {
-                  success: true,
-                  year: result.year,
-                  mapArea: result.mapArea,
-                  zone: zoneRegion.zone,
-                  region: zoneRegion.region,
-                  explanation: result.explanation,
-                  reasoning: result.reasoning,
-                  suggestion: result.suggestion,
-                  characterSpec: result.characterSpec || null
+                  success: false,
+                  errorMessage: `Invalid map area: ${result.mapArea}`
                 };
               }
-              return {
-                success: false,
-                errorMessage: `Invalid map area: ${result.mapArea}`
-              };
             }
           }
           
@@ -683,7 +727,8 @@ class WorldWeaverService {
         customEvents: [], // Empty for now - quest replaces this
         specialNPCs: [], // Empty for now - quest NPCs replace this
         // Store the user prompt so we can generate the quest later
-        userPrompt
+        userPrompt,
+        scenarioDescription: baseResult.characterSpec?.scenarioDescription
       };
     } catch (error) {
       console.error('[WorldWeaverService] Error generating scenario:', error);
@@ -1183,9 +1228,26 @@ EXAMPLES:
 - Aztec Priest 1519: "Obsidian knife", "Codex fragment", "Jade amulet", "Copal incense"
 - Coal Miner 1880: "Safety lamp", "Union card", "Laudanum bottle", "Family photograph"
 
+TASK 5 - OPENING SCENE:
+Write 2-3 sentences that drop the player directly into their character's world. This is the first thing they read, so make it count.
+
+Rules:
+- Anchor the scene in the character's profession and daily working life — NOT generic wanderer/explorer framing
+- Use your knowledge of ${location} in ${year} to reference real details: actual landmarks, markets, districts, trade routes, institutions, technologies, or customs appropriate to the era
+- The scene should feel like it could ONLY happen in this specific place and time, not anywhere
+- Use concrete sensory detail: what they see, hear, smell, or are doing right now
+- Avoid: quest hooks, dying-relative obligations, generic coastal/wilderness scenery unrelated to the character's profession, purple prose, clichés like "whisper of opportunity" or "liminal space"
+- Second person ("You...") or present tense works well
+
+EXAMPLES (showing the right level of specificity):
+- Coal Miner, Pennsylvania, 1902: "The cage drops into the dark at six sharp, just like every morning. The man next to you has a United Mine Workers card tucked in his hatband — management's been watching the new men, and he's watching them back."
+- Aztec Merchant, Tenochtitlan, 1487: "The market at Tlatelolco opens before dawn. You've arranged your cacao pods in careful rows, the long-distance goods from the Yucatan route that took three months and two river crossings."
+- Sailor, Canton, 1820: "The Pearl River stinks of bilge and fish oil. Your captain is negotiating with the hong merchant on the quay while you inventory the hold — two hundred chests of Patna opium, each one worth more than your annual wages."
+
 Return JSON only:
 {
   "characterDescription": "Your 1-2 sentence character description here",
+  "scenarioDescription": "Your 2-3 sentence opening scene here",
   "birthplace": "Short place name or null",
   "family": [
     { "name": "Name", "relation": "father|mother|spouse|son|daughter|sibling", "age": 45, "profession": "Profession" }
@@ -1214,8 +1276,8 @@ Return JSON only:
         model: 'gemini-2.5-flash-lite',
         contents: prompt,
         generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1000
+          temperature: 0.4,
+          maxOutputTokens: 1400
         }
       });
 
@@ -1236,6 +1298,10 @@ Return JSON only:
       // Keep backward compatibility with old field name
       if (enhanced.backstory) {
         characterSpec.characterDescription = enhanced.backstory;
+      }
+
+      if (enhanced.scenarioDescription) {
+        characterSpec.scenarioDescription = enhanced.scenarioDescription;
       }
 
       if (enhanced.birthplace && typeof enhanced.birthplace === 'string') {

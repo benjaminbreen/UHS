@@ -325,7 +325,8 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 "Driftless Area": { N: "Great Lakes Shoreline", S: "Illinois River Valley", E: "Great Lakes Shoreline", W: "Tallgrass Prairie" },
 
 // Northeast Woodlands
-"Hudson River Valley": { N: "Adirondacks", S: "Chesapeake Bay", E: "Cape Cod", W: "Finger Lakes" },
+"Hudson River Valley": { N: "Adirondacks", S: "New York Harbor", E: "Cape Cod", W: "Finger Lakes" },
+"New York Harbor": { N: "Hudson River Valley", S: "Pine Barrens", E: "Long Island", W: "Delaware River Valley" },
 "Adirondacks": { N: "Labrador Coast", S: "Hudson River Valley", E: "Champlain Valley", W: "Great Lakes Shoreline" },
 "Finger Lakes": { N: "Great Lakes Shoreline", S: "Hudson River Valley", E: "Hudson River Valley", W: "Driftless Area" },
 "Champlain Valley": { N: "Labrador Coast", S: "Hudson River Valley", E: "Cape Cod", W: "Adirondacks" },
@@ -389,7 +390,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Cape Cod": { S: "Delaware River Valley", W: "Hudson River Valley", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Pine Barrens": { N: "Delaware River Valley", S: "Chesapeake Bay", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Outer Banks": { N: "Chesapeake Bay", S: "Everglades", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
-  "Delaware River Valley": { N: "Cape Cod", S: "Pine Barrens", W: "Hudson River Valley", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
+  "Delaware River Valley": { N: "Cape Cod", S: "Pine Barrens", W: "New York Harbor", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Tidewater Region": { N: "Chesapeake Bay", S: "Virginia", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Virginia" },
  "Virginia": { N: "Chesapeake Bay", S: "Piedmont Uplands", E: "Tidewater Region", W: "Smoky Mountains" },
 
@@ -401,7 +402,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Lake Superior Basin": { N: "Hudson Bay Lowlands", S: "Great Lakes Shoreline", E: "Great Lakes Shoreline", W: "Driftless Area" },
   "Newfoundland Grand Banks": { N: "Labrador Coast", S: "Cape Cod", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Champlain Valley" },
   "Boston Harbor": { S: "Cape Cod", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Connecticut River Valley" },
-  "Long Island": { N: "Hudson River Valley", S: "Pine Barrens", E: "Cape Cod", W: "Hudson River Valley" },
+  "Long Island": { N: "New York Harbor", S: "Pine Barrens", E: "Cape Cod", W: "New York Harbor" },
   "Connecticut River Valley": { N: "Champlain Valley", S: "Hudson River Valley", E: "Cape Cod", W: "Adirondacks" },
   "Florida Keys": { N: "Everglades", S: "Cuba", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Gulf of Mexico" },
 

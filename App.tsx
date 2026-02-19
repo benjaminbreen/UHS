@@ -803,6 +803,18 @@ const AppContent: React.FC = () => {
                     shareableStateService.setGameModeForRestoration(fullState.gameMode);
                     console.log('[URL_RESTORE] Stored game mode for restoration:', fullState.gameMode);
                 }
+
+                // PHASE 3b: Restore WorldWeaver scenario description (stashed in sessionStorage by GameSplashPage)
+                const storedScenarioDesc = sessionStorage.getItem('worldweaver_scenario_desc');
+                if (storedScenarioDesc) {
+                    console.log('[URL_RESTORE] Restoring WorldWeaver scenario description from sessionStorage');
+                    setWorldWeaverData({
+                        settingDescription: storedScenarioDesc,
+                        characterDescription: fullState.character?.characterDescription
+                    });
+                    // Note: don't remove yet — historyLensEntryService reads it for the opening narration
+                    // It will be consumed naturally when the session ends
+                }
                 
                 console.log('[URL_RESTORE] Final world generation params:');
                 console.log('[URL_RESTORE]   - Zone:', targetZone);

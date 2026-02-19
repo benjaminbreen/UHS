@@ -196,6 +196,12 @@ class DialectContinuumService {
             return 'Respond in modern English. You may use ONE greeting word in the native language if contextually appropriate.';
         }
 
+        // If the native language IS English (or a variant), there's no foreign language to mix in
+        const langLower = nativeLanguage.toLowerCase();
+        if (langLower.includes('english') || langLower === 'modern english' || langLower === 'early modern english') {
+            return 'Respond in modern English. Use natural, era-appropriate English vocabulary.';
+        }
+
         // Never allow 100% foreign language
         if (distance >= 95) {
             console.warn('[Dialect Continuum] Warning: Distance at or above 95%, capping at 90% for prompts');
@@ -258,15 +264,15 @@ class DialectContinuumService {
 
             ENFORCEMENT: If your response doesn't contain the EXACT amount of foreign words specified, you have FAILED.
 
-            Example for ${distance}% mixing:
-            - 0%: "Hello traveler, welcome to our village." → "Hello traveler, welcome to our village." (or "*Bonjour*, traveler, welcome to our village." if greeting appropriate)
-            - 15%: "Hello traveler, welcome to our village." → "*Bonjour* traveler, welcome to our *village*." (1-2 words max)
-            - 25%: "Hello traveler, welcome to our village." → "*Bonjour* *ami*, welcome to our village." (2-3 words total)
-            - 35%: "Hello traveler, welcome to our village." → "*Bonjour* traveler, welcome to *notre* *village*." (3-4 words)
-            - 50%: "Hello traveler, welcome to our village." → "*Bonjour voyageur*, welcome to *notre village*."
-            - 65%: "Hello traveler, welcome to our village." → "*Bonjour voyageur*, *bienvenue à notre village*."
-            - 80%: "Hello traveler, welcome to our village." → "*Bonjour voyageur, bienvenue à notre* village."
-            - 90%: "Hello friend, welcome to our village." → "*Bonjour ami, bienvenue à notre village.*"
+            Example for ${distance}% mixing (using ${nativeLanguage} words, NOT French):
+            - 0%: "Hello traveler, welcome to our village." → Pure English, maybe one ${nativeLanguage} greeting.
+            - 15%: Replace 1-2 words with ${nativeLanguage} equivalents. Mark each with *italics*.
+            - 25%: Replace 2-3 words with ${nativeLanguage} equivalents. Mark each with *italics*.
+            - 35%: Replace 3-4 words with ${nativeLanguage} equivalents. Mark each with *italics*.
+            - 50%: Alternate English and ${nativeLanguage} phrases.
+            - 65%: Mostly ${nativeLanguage} with some English for clarity.
+            - 80%: Predominantly ${nativeLanguage}, English only for key gameplay terms.
+            - 90%: Almost entirely ${nativeLanguage}, minimal English.
 
             The player expects EXACTLY the amount specified. DELIVER IT PRECISELY.
         `;

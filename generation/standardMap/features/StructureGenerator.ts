@@ -182,11 +182,13 @@ function findPlacementCandidates(
                     }
                     break;
                 case 'fishing_hut':
-                    // Temporarily more permissive for testing - any coastal or water-adjacent tile
-                    if(tile.isCoast || tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.RIVER) {
+                    // Prefer actual coast/beach tiles; wetlands/river are fallback only
+                    if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.RIVERBANK)) {
                         isValid = true;
-                        score = 1; // Simple placement for now
-                        console.log(`[StructureGen] Found valid fishing hut location at (${tile.x}, ${tile.y}) - biome: ${tile.biome}, isCoast: ${tile.isCoast}`);
+                        score = tile.biome === BiomeType.BEACH ? 2 : 1; // prefer beach over wetland
+                    } else if (!tile.isCoast && (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.RIVERBANK)) {
+                        isValid = true;
+                        score = 0.5; // inland river huts are low priority
                     }
                     break;
                 case 'fortress':
@@ -425,7 +427,7 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
         let maxToPlace: number;
         if (!hasCities) {
             // Non-city maps can still have rural/wilderness industry
-            maxToPlace = structureType === 'fishing_hut' ? 3 : // Coastal areas can have multiple fishing huts
+            maxToPlace = structureType === 'fishing_hut' ? 1 : // One fishing hut per rural map
                         structureType === 'lumber_camp' ? 2 : // Allow more lumber camps in forested areas
                         structureType === 'mining_colony' ? 2 : // Multiple mines possible
                         structureType === 'quarry' ? 2 : // Multiple quarries possible
@@ -439,7 +441,7 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
                         1;
         } else {
             // City maps can have normal structure counts
-            maxToPlace = structureType === 'fishing_hut' ? 3 :
+            maxToPlace = structureType === 'fishing_hut' ? 1 : // One fishing hut even in city maps
                         structureType === 'government_district' ? 1 : // Only one government building per city
                         structureType === 'factory' ? 3 : // Allow multiple factories per city
                         structureType === 'farm' ? 4 : // Multiple farms around cities

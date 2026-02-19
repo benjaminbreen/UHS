@@ -156,6 +156,13 @@ const GameSplashPage: React.FC = () => {
 
         const encodedState = shareableStateService.encodeGameState(gameState);
         const url = `/${result.year}/${encodeURIComponent(result.mapArea)}/${gameMode}?state=${encodedState}`;
+
+        // Stash the immersive scenario description so the URL restoration can pick it up
+        // (it can't be encoded in the URL without making it very long)
+        if (result.characterSpec?.scenarioDescription) {
+          sessionStorage.setItem('worldweaver_scenario_desc', result.characterSpec.scenarioDescription);
+        }
+
         navigate(url);
       } else {
         setWorldWeaverError(result.errorMessage || 'Could not interpret your prompt. Try being more specific about time and place.');

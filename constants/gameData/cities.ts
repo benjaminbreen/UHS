@@ -924,7 +924,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
-  "Hudson River Valley": [
+  "New York Harbor": [
     {
       name: "New Amsterdam",
       isHistorical: true,
@@ -953,6 +953,25 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       },
       populationPeak: 12336000,
       economicFocus: ['finance', 'trade', 'shipping', 'manufacturing', 'services']
+    }
+  ],
+  "Hudson River Valley": [
+    {
+      name: "Albany",
+      isHistorical: true,
+      foundingYear: 1614,
+      description: "A Dutch fur trading post that became the capital of New York State.",
+      allegianceHistory: {
+        1614: "Dutch Empire",
+        1664: "British Empire",
+        1776: "United States"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'INDUSTRIAL_ERA': 'moderate',
+        'MODERN_ERA': 'moderate'
+      },
+      economicFocus: ['trade', 'government', 'manufacturing']
     }
   ],
   "Chesapeake Bay": [
