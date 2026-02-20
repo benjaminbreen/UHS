@@ -38,13 +38,9 @@ Core focus:
 - LLM-assisted scenario setup and narration (constrained by geography/era data)
 - Educational instrumentation (logs, journal, assessment-oriented systems)
 
-Not the focus:
-- Fantasy/supernatural framing
-- Optional side branches as primary game loop
+--- 
 
----
-
-## ⚙️ Core Mechanics (Developer Summary)
+## ⚙️ Core Mechanics (The below is an AI-written summary - may, and probably does, contain errors and out-of-date info)
 
 1. **World generation**
 - Procedural map generation in `generation/standardMap/standardMapGenerator.ts`
@@ -207,7 +203,7 @@ See `.env.example` for template keys.
 
 ## 🤝 Contributing
 
-Issues and PRs are welcome. Practical improvements to core historical simulation and clarity of architecture are the highest-value contributions. 
+Open to all ideas.
 
 ---
 
