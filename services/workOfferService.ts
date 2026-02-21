@@ -1036,7 +1036,7 @@ export function completeWorkOffer(
     );
   }
 
-  // Payment is handled by caller (adding to character.money)
+  // Payment is handled by caller (adding to character.currency)
   // We just return the amount
 
   return {

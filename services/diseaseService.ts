@@ -568,6 +568,7 @@ class DiseaseService {
 
       // Progress disease stages
       activeDisease.daysRemaining--;
+      activeDisease.daysSinceContraction = (activeDisease.daysSinceContraction || 0) + 1;
 
       // Stage transitions
       if (activeDisease.stage === 'incubating' && 
@@ -904,7 +905,8 @@ class DiseaseService {
     region: CulturalZone,
     currentYear: number
   ): number {
-    const prevalenceData = DISEASE_PREVALENCE.find(p =>
+    ensureDiseaseModule();
+    const prevalenceData = (diseaseModule?.DISEASE_PREVALENCE || []).find(p =>
       p.diseaseId === diseaseId && p.era === era && p.region === region
     );
 
@@ -940,16 +942,12 @@ class DiseaseService {
       return { transmitted: false };
     }
 
-    // GUARANTEED TRANSMISSION for direct contact (talking to NPCs/animals)
-    if (contactType === 'direct_contact') {
-      const newDisease = this.createActiveDisease(disease, currentYear);
-      return { transmitted: true, newDisease };
-    }
-
-    // Calculate transmission chance for proximity only
+    // Calculate transmission chance based on contact type
     let transmissionChance = disease.baseTransmissionRate * exposureStrength;
 
-    if (contactType === 'proximity') {
+    if (contactType === 'direct_contact') {
+      transmissionChance *= disease.directContactMultiplier;
+    } else if (contactType === 'proximity') {
       transmissionChance *= disease.proximityMultiplier;
     }
 
@@ -972,6 +970,7 @@ class DiseaseService {
       contractedDate: this.createGameDate(currentYear),
       stage: 'incubating',
       daysRemaining: disease.durationDays,
+      daysSinceContraction: 0,
       severity: 0.5 // Base severity, modified by constitution
     };
   }

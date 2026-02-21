@@ -60,6 +60,9 @@ interface CombatStats {
     turnCount: number;
 }
 
+const ensureStatusEffects = (effects?: StatusEffect[] | null): StatusEffect[] =>
+  Array.isArray(effects) ? effects : [];
+
 const CombatModal: React.FC<CombatModalProps> = ({
     combatant, playerCharacter, inventory, onClose, onVictory, onUseCombatItem, onCharacterUpdate, onNpcUpdate, mapData,
     gameTime, weather, culturalZone
@@ -79,7 +82,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
       health = comb.health || comb.maxHealth || 100;
     }
 
-    return { ...comb, health };
+    return { ...comb, health, statusEffects: ensureStatusEffects(comb.statusEffects) };
   };
   
   const [opponent, setOpponent] = useState<EncounterableEntity>(initializeOpponent(combatant));
@@ -207,6 +210,10 @@ const CombatModal: React.FC<CombatModalProps> = ({
   // Helper to safely get health value from opponent
   const getOpponentHealth = (opp: typeof opponent): number => {
     return opp.health || 0;
+  };
+
+  const getStatusEffects = (entity: { statusEffects?: StatusEffect[] | null }): StatusEffect[] => {
+    return ensureStatusEffects(entity.statusEffects);
   };
 
   // Handle click anywhere to dismiss dialogue
@@ -580,7 +587,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
     let damageTaken = 0;
     const newStatusEffects: StatusEffect[] = [];
     
-    entity.statusEffects.forEach(effect => {
+    getStatusEffects(entity).forEach(effect => {
         let effectDamage = 0;
         if (effect.type === 'burn' || effect.type === 'bleeding' || effect.type === 'poison') {
             effectDamage = effect.potency || 0;
@@ -721,8 +728,9 @@ const CombatModal: React.FC<CombatModalProps> = ({
   };
   
   const calculateAttack = (attacker: PlayerCharacter | EncounterableEntity, defender: PlayerCharacter | EncounterableEntity, damageMultiplier: number = 1.0, isPowerAttack: boolean = false) => {
-    const isObserved = defender.statusEffects.some(e => e.type === 'observed');
-    const isDefDown = defender.statusEffects.some(e => e.type === 'defense_down');
+    const defenderStatusEffects = getStatusEffects(defender);
+    const isObserved = defenderStatusEffects.some(e => e.type === 'observed');
+    const isDefDown = defenderStatusEffects.some(e => e.type === 'defense_down');
     const defenseBonus = isDefending && defender === playerCharacter ? 2 : 0;
 
     // Get stance modifiers for player attacks and defense
@@ -790,7 +798,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
   };
 
   const calculateDamage = (attacker: PlayerCharacter | EncounterableEntity, defender: PlayerCharacter | EncounterableEntity, baseDamage: number, ignoreArmor: boolean = false) => {
-    const isDefDown = defender.statusEffects.some(e => e.type === 'defense_down');
+    const isDefDown = getStatusEffects(defender).some(e => e.type === 'defense_down');
     const defenseBonus = isDefending && defender === playerCharacter ? 2 : 0;
 
     // Get stance modifiers
@@ -1081,14 +1089,14 @@ const CombatModal: React.FC<CombatModalProps> = ({
           case 'poison':
             setOpponent(prev => ({
               ...prev,
-              statusEffects: [...prev.statusEffects, { type: 'poison', duration: 4, potency: 5 }]
+              statusEffects: [...getStatusEffects(prev), { type: 'poison', duration: 4, potency: 5 }]
             }));
             addLog(`${specialAttack.name} deals ${damage} damage and applies poison!`, 'player');
             break;
           case 'bleeding':
             setOpponent(prev => ({
               ...prev,
-              statusEffects: [...prev.statusEffects, { type: 'bleeding', duration: 3, potency: 3 }]
+              statusEffects: [...getStatusEffects(prev), { type: 'bleeding', duration: 3, potency: 3 }]
             }));
             addLog(`${specialAttack.name} deals ${damage} damage and causes bleeding!`, 'player');
             break;
@@ -1167,9 +1175,9 @@ const CombatModal: React.FC<CombatModalProps> = ({
     }
     
     // Status effects
-    if (opponent.statusEffects.some(e => e.type === 'intimidated')) fleeChance += 0.2;
-    if (opponent.statusEffects.some(e => e.type === 'bleeding')) fleeChance += 0.1;
-    if (opponent.statusEffects.some(e => e.type === 'burn')) fleeChance += 0.1;
+    if (getStatusEffects(opponent).some(e => e.type === 'intimidated')) fleeChance += 0.2;
+    if (getStatusEffects(opponent).some(e => e.type === 'bleeding')) fleeChance += 0.1;
+    if (getStatusEffects(opponent).some(e => e.type === 'burn')) fleeChance += 0.1;
     
     // Clamp between 0 and 0.8 (max 80% flee chance)
     fleeChance = Math.max(0, Math.min(0.8, fleeChance));
@@ -1183,12 +1191,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
   const startOpponentTurn = () => {
       // Check if opponent is stunned first
-      const isStunned = opponent.statusEffects.some(e => e.type === 'stunned');
+      const isStunned = getStatusEffects(opponent).some(e => e.type === 'stunned');
       if (isStunned) {
         addLog(`${opponentName} is stunned and cannot act!`, 'system');
         setOpponent(prev => ({
           ...prev,
-          statusEffects: prev.statusEffects.map(e => 
+          statusEffects: getStatusEffects(prev).map(e => 
             e.type === 'stunned' ? { ...e, duration: e.duration - 1 } : e
           ).filter(e => e.duration > 0)
         }));
@@ -1453,20 +1461,17 @@ const CombatModal: React.FC<CombatModalProps> = ({
                                           opponent.health?.currentDiseases?.[0]?.disease;
                    
                    if (opponentDisease) {
-                       // Always transmit disease when defeated by sick entity
-                       if (!playerCharacter.diseaseHealth) {
-                           playerCharacter.diseaseHealth = {
-                               currentDiseases: [],
-                               immunities: [],
-                               exposureHistory: [],
-                               overallHealthStatus: 'healthy',
-                               lastHealthUpdate: { year: mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1500, month: 1, day: 1 }
-                           };
-                       }
-                       
                        // Check if player already has this disease
-                       const hasDisease = playerCharacter.diseaseHealth.currentDiseases.some(d => d.disease.id === opponentDisease.id);
-                       
+                       const existingHealth = playerCharacter.diseaseHealth || {
+                           currentDiseases: [],
+                           immunities: [],
+                           exposureHistory: [],
+                           overallHealthStatus: 'healthy' as const,
+                           lastHealthUpdate: { year: mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1500, month: 1, day: 1 }
+                       };
+
+                       const hasDisease = existingHealth.currentDiseases.some(d => d.disease.id === opponentDisease.id);
+
                        if (!hasDisease) {
                            const activeDisease = {
                                disease: opponentDisease,
@@ -1475,14 +1480,17 @@ const CombatModal: React.FC<CombatModalProps> = ({
                                daysRemaining: opponentDisease.durationDays,
                                severity: 0.5
                            };
-                           
-                           playerCharacter.diseaseHealth.currentDiseases.push(activeDisease);
-                           playerCharacter.diseaseHealth.overallHealthStatus = 'sick';
-                           
-                           // Update player character
+
+                           const newDiseaseHealth = {
+                               ...existingHealth,
+                               currentDiseases: [...existingHealth.currentDiseases, activeDisease],
+                               overallHealthStatus: 'sick' as const,
+                           };
+
+                           // Update player character immutably
                            onCharacterUpdate(pc => ({
                                ...pc,
-                               diseaseHealth: playerCharacter.diseaseHealth
+                               diseaseHealth: newDiseaseHealth
                            }));
                            
                            addLog(`In your weakened state, you contracted ${opponentDisease.name}!`, 'system');
@@ -1672,20 +1680,16 @@ const CombatModal: React.FC<CombatModalProps> = ({
                                        opponent.health?.currentDiseases?.[0]?.disease;
                 
                 if (opponentDisease) {
-                    // Always transmit disease when fleeing from sick entity
-                    if (!playerCharacter.diseaseHealth) {
-                        playerCharacter.diseaseHealth = {
-                            currentDiseases: [],
-                            immunities: [],
-                            exposureHistory: [],
-                            overallHealthStatus: 'healthy',
-                            lastHealthUpdate: { year: mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1500, month: 1, day: 1 }
-                        };
-                    }
-                    
-                    // Check if player already has this disease
-                    const hasDisease = playerCharacter.diseaseHealth.currentDiseases.some(d => d.disease.id === opponentDisease.id);
-                    
+                    const existingHealth = playerCharacter.diseaseHealth || {
+                        currentDiseases: [],
+                        immunities: [],
+                        exposureHistory: [],
+                        overallHealthStatus: 'healthy' as const,
+                        lastHealthUpdate: { year: mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1500, month: 1, day: 1 }
+                    };
+
+                    const hasDisease = existingHealth.currentDiseases.some(d => d.disease.id === opponentDisease.id);
+
                     if (!hasDisease) {
                         const activeDisease = {
                             disease: opponentDisease,
@@ -1694,14 +1698,16 @@ const CombatModal: React.FC<CombatModalProps> = ({
                             daysRemaining: opponentDisease.durationDays,
                             severity: 0.5
                         };
-                        
-                        playerCharacter.diseaseHealth.currentDiseases.push(activeDisease);
-                        playerCharacter.diseaseHealth.overallHealthStatus = 'sick';
-                        
-                        // Update player character
+
+                        const newDiseaseHealth = {
+                            ...existingHealth,
+                            currentDiseases: [...existingHealth.currentDiseases, activeDisease],
+                            overallHealthStatus: 'sick' as const,
+                        };
+
                         onCharacterUpdate(pc => ({
                             ...pc,
-                            diseaseHealth: playerCharacter.diseaseHealth
+                            diseaseHealth: newDiseaseHealth
                         }));
                         
                         addLog(`While escaping, you contracted ${opponentDisease.name}!`, 'system');
@@ -1937,7 +1943,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
           const newHealth = Math.max(0, getOpponentHealth(opponent) - damage);
           setOpponent(prev => {
-            let newStatusEffects = [...prev.statusEffects];
+            let newStatusEffects = [...getStatusEffects(prev)];
             if (applyBleed) {
               newStatusEffects.push({ type: 'bleeding', duration: 3, potency: 2 });
             }
@@ -1992,7 +1998,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
           const newHealth = Math.max(0, getOpponentHealth(opponent) - damage);
           setOpponent(prev => {
-            let newStatusEffects = [...prev.statusEffects];
+            let newStatusEffects = [...getStatusEffects(prev)];
             if (applyBurn) {
               newStatusEffects.push({ type: 'burn', duration: 3, potency: 10 });
             }
@@ -2115,7 +2121,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
               ...prev.stats,
               defense: Math.max(0, prev.stats.defense - defenseReduction)
             },
-            statusEffects: [...prev.statusEffects, { type: 'intimidated', duration: 99, potency: defenseReduction }]
+            statusEffects: [...getStatusEffects(prev), { type: 'intimidated', duration: 99, potency: defenseReduction }]
           }));
           
           // Check for flee chance (based on opponent's level and player's charisma)
@@ -2248,7 +2254,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             // Apply grappled status to opponent
             setOpponent(prev => ({
               ...prev,
-              statusEffects: [...prev.statusEffects, { type: 'stunned', duration: 2, potency: 1 }]
+              statusEffects: [...getStatusEffects(prev), { type: 'stunned', duration: 2, potency: 1 }]
             }));
             setOpponentAnimation('damaged');
           } else {
@@ -2408,7 +2414,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
           applyDamage({damage: scalding, crit: false}, 'opponent');
           setOpponent(prev => ({
             ...prev,
-            statusEffects: [...prev.statusEffects, { type: 'burn', duration: 2, potency: 8 }]
+            statusEffects: [...getStatusEffects(prev), { type: 'burn', duration: 2, potency: 8 }]
           }));
           addLog(`Scalding water burns for ${scalding} damage and sets them ablaze!`, 'player');
           
@@ -2437,7 +2443,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
           if (applyBleed) {
             setOpponent(prev => ({
               ...prev,
-              statusEffects: [...prev.statusEffects, { type: 'bleeding', duration: 3, potency: 3 }]
+              statusEffects: [...getStatusEffects(prev), { type: 'bleeding', duration: 3, potency: 3 }]
             }));
             addLog(`Wide scythe sweep cuts for ${scytheResult.damage} damage and causes bleeding!`, 'player');
           } else {
@@ -2465,7 +2471,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         case 'DIVINE_PROTECTION':
           onCharacterUpdate(p => ({
             ...p,
-            statusEffects: [...p.statusEffects, { type: 'blessed', duration: 3, potency: 5 }]
+            statusEffects: [...getStatusEffects(p), { type: 'blessed', duration: 3, potency: 5 }]
           }));
           addLog('Divine blessing reduces incoming damage for 3 turns!', 'player');
           break;
@@ -2473,7 +2479,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         case 'NET_THROW':
           setOpponent(prev => ({
             ...prev,
-            statusEffects: [...prev.statusEffects, { type: 'entangled', duration: 2, potency: 0 }]
+            statusEffects: [...getStatusEffects(prev), { type: 'entangled', duration: 2, potency: 0 }]
           }));
           addLog('Your fishing net entangles the opponent, reducing their actions!', 'player');
           
@@ -2911,8 +2917,10 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
   // Calculate health percentages safely
   const playerHealthPercent = (playerCharacter.health / playerCharacter.maxHealth) * 100;
+  const playerStatusEffects = getStatusEffects(playerCharacter);
   const opponentHealthValue = typeof opponent.health === 'number' ? opponent.health : (opponent.health?.current || 0);
   const opponentHealthPercent = (opponentHealthValue / enhancedMaxHealth) * 100;
+  const opponentStatusEffects = getStatusEffects(opponent);
 
   // Fallback mapping for biomes that don't have their own specific background
   // This is only used AFTER checking for the specific biome file first!
@@ -3217,7 +3225,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             {/* Combat Scene with elevated sprites */}
             <div className="combat-scene-elevated">
                 <div className={`combatant-sprite-wrapper player-side ${isPlayerTurn ? 'active-turn' : ''}`} style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', animationDuration: `${0.8 / combatSpeed}s` }}>
-                    <div className={`sprite-with-effects ${playerCharacter.statusEffects.map(e => `has-${e.type}`).join(' ')}`} style={{ position: 'relative' }}>
+                    <div className={`sprite-with-effects ${playerStatusEffects.map(e => `has-${e.type}`).join(' ')}`} style={{ position: 'relative' }}>
                         {/* Player health bar */}
                         <div className="floating-health-bar player-health" style={{
                             position: 'absolute',
@@ -3271,7 +3279,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                           </>
                         )}
                         {/* Status effect overlays for player with proper stacking */}
-                        {playerCharacter.statusEffects.map((effect, index) => (
+                        {playerStatusEffects.map((effect, index) => (
                             <div
                                 key={effect.type}
                                 className={`status-overlay status-${effect.type}`}
@@ -3330,7 +3338,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     ))}
                 
                 <div className={`combatant-sprite-wrapper opponent-side ${!isPlayerTurn ? 'active-turn' : ''}`} style={{ animationDuration: `${0.8 / combatSpeed}s` }}>
-                    <div className={`sprite-with-effects ${opponent.statusEffects.map(e => `has-${e.type}`).join(' ')} ${enemyEnhancement.type ? `enhanced-${enemyEnhancement.type}` : ''}`} style={{ position: 'relative' }}>
+                    <div className={`sprite-with-effects ${opponentStatusEffects.map(e => `has-${e.type}`).join(' ')} ${enemyEnhancement.type ? `enhanced-${enemyEnhancement.type}` : ''}`} style={{ position: 'relative' }}>
                         {/* Opponent health bar */}
                         <div className="floating-health-bar opponent-health" style={{
                             position: 'absolute',
@@ -3397,7 +3405,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                             </>
                         )}
                         {/* Status effect overlays for opponent with proper stacking */}
-                        {opponent.statusEffects.map((effect, index) => (
+                        {opponentStatusEffects.map((effect, index) => (
                             <div
                                 key={effect.type}
                                 className={`status-overlay status-${effect.type}`}
@@ -3577,7 +3585,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                             >
                               {STANCE_MODIFIERS[combatStance].icon}
                             </span>
-                            {playerCharacter.statusEffects.map(effect => (
+                            {playerStatusEffects.map(effect => (
                                 <span key={effect.type} title={`${effect.type.replace('_', ' ')} (${effect.duration} turns left)`} className="status-icon">
                                     {statusEffectIcons[effect.type]}
                                 </span>
@@ -3681,7 +3689,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                             <div className="equipment-line"><strong>Armor:</strong> {opponent.equippedItems?.torso?.name || opponent.appearance.garment.name.replace(/_/g, ' ')}</div>
                         </>}
                         <div className="status-effects">
-                            {opponent.statusEffects.map(effect => (
+                            {opponentStatusEffects.map(effect => (
                                 <span key={effect.type} title={`${effect.type.replace('_', ' ')} (${effect.duration} turns left)`} className="status-icon">
                                     {statusEffectIcons[effect.type]}
                                 </span>

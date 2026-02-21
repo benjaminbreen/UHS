@@ -1725,8 +1725,14 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
                           'tuque', 'snapback', 'petasos', 'chaperon', 'flat cap',
                           'cheese-cutter', 'gandhi cap', 'kofia', 'mao cap', 'futou',
                           'hardhat', 'hard hat', 'construction helmet', 'surgical cap', 'surgical', 'visor', 'sun visor',
-                          'coonskin', 'fur cap', 'police cap', 'fur hat', 'merchant cap', 'wool cap')) {
+                          'coonskin', 'fur cap', 'police cap', 'fur hat', 'merchant cap', 'wool cap',
+                          'bowler', 'derby hat', 'newsboy', 'cloche', 'boater', 'flat cap')) {
       const hatStyle =
+        (nameContains('bowler', 'derby hat')) ? 'bowler' :
+        (nameContains('newsboy')) ? 'newsboy' :
+        (nameContains('flat cap', 'cheese-cutter')) ? 'flatcap' :
+        (nameContains('cloche')) ? 'cloche' :
+        (nameContains('boater')) ? 'boater' :
         (nameContains('coonskin')) ? 'coonskin' :
         (nameContains('police cap', 'police')) ? 'police' :
         (nameContains('fur cap', 'fur hat')) ? 'fur' :
@@ -2709,6 +2715,507 @@ export const HeadgearRenderer: React.FC<HeadgearRendererProps> = ({
                   />
                 );
               }
+            }
+          }
+
+          break;
+        }
+
+        case 'bowler': {
+          // Bowler / Derby hat - rounded dome crown with narrow flat brim
+          // THE iconic hat of the Victorian/Edwardian gentleman
+          const bowlerBase = base || '#1C1C1C'; // Classic black
+          const bowlerBright = createHighlight(bowlerBase, 1.4);
+          const bowlerLight = createHighlight(bowlerBase, 1.2);
+          const bowlerMid = createHighlight(bowlerBase, 1.08);
+          const bowlerShade = createShadow(bowlerBase, 0.82);
+          const bowlerDeep = createShadow(bowlerBase, 0.65);
+          const bowlerDarkest = createShadow(bowlerBase, 0.5);
+
+          const crownHeight = 10;
+          const crownWidth = headDim.width + 4;
+
+          // Rounded dome crown - key distinction from top hat (shorter, rounder)
+          for (let y = 0; y < crownHeight; y++) {
+            const rowY = headY - crownHeight + 1 + y;
+            const yNorm = y / crownHeight;
+
+            // Dome shape - widest in middle, rounded at top
+            let rowWidth;
+            if (yNorm < 0.2) {
+              // Top - semicircular curve
+              const domeT = yNorm / 0.2;
+              rowWidth = Math.floor(crownWidth * (0.4 + 0.6 * Math.sqrt(1 - Math.pow(1 - domeT, 2))));
+            } else if (yNorm < 0.8) {
+              // Middle - full width with slight barrel shape
+              const bulge = Math.sin((yNorm - 0.2) / 0.6 * Math.PI) * 1;
+              rowWidth = crownWidth + Math.floor(bulge);
+            } else {
+              // Bottom - straight sides
+              rowWidth = crownWidth;
+            }
+
+            const startX = centerX - Math.floor(rowWidth / 2);
+
+            for (let x = 0; x < rowWidth; x++) {
+              const xNorm = x / rowWidth;
+              let col = bowlerBase;
+
+              // Spherical 3D shading for the dome shape
+              const sphereX = (xNorm - 0.45) * 2; // Light slightly left of center
+              const sphereY = (yNorm - 0.35);
+              const intensity = Math.sqrt(Math.max(0, 1 - sphereX * sphereX * 0.9 - sphereY * sphereY * 0.6));
+
+              if (intensity > 0.88) col = bowlerBright;
+              else if (intensity > 0.72) col = bowlerLight;
+              else if (intensity > 0.55) col = bowlerMid;
+              else if (xNorm < 0.1 || xNorm > 0.9) col = bowlerDarkest;
+              else if (xNorm < 0.18 || xNorm > 0.82) col = bowlerDeep;
+              else if (xNorm < 0.25 || xNorm > 0.75) col = bowlerShade;
+
+              // Felt texture (subtle for smooth bowler)
+              if ((x * 7 + y * 11) % 19 === 0) col = createHighlight(col, 1.04);
+              else if ((x * 11 + y * 7) % 23 === 0) col = createShadow(col, 0.97);
+
+              // Bottom shadow where crown meets brim
+              if (y >= crownHeight - 2) col = createShadow(col, 0.85);
+
+              elements.push(<rect key={`bowler-crown-${y}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Flat narrow brim with curl at edges
+          const brimWidth = headDim.width + 10;
+          for (let brimRow = 0; brimRow < 3; brimRow++) {
+            const brimY = headY + 1 + brimRow;
+            const brimX = centerX - Math.floor(brimWidth / 2);
+
+            for (let x = 0; x < brimWidth; x++) {
+              const xNorm = x / brimWidth;
+              let col = bowlerShade;
+
+              // Top of brim catches light
+              if (brimRow === 0) {
+                col = bowlerBase;
+                if (xNorm > 0.35 && xNorm < 0.65) col = bowlerMid;
+              } else if (brimRow === 2) {
+                col = bowlerDarkest; // Underside shadow
+              }
+
+              // Upturned curl at edges (characteristic bowler feature)
+              if (xNorm < 0.1 || xNorm > 0.9) {
+                if (brimRow === 0) col = bowlerMid; // Curl catches light
+                else if (brimRow >= 1) continue; // Curl lifts up, skip lower rows at edges
+              }
+              if (xNorm < 0.06 || xNorm > 0.94) continue; // Extreme edges curl up
+
+              // Skip center on lower rows (crown sits here)
+              if (brimRow >= 1 && Math.abs(x - brimWidth / 2) < crownWidth / 2 - 1) continue;
+
+              elements.push(<rect key={`bowler-brim-${brimRow}-${x}`} x={brimX + x} y={brimY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Hat band (grosgrain ribbon)
+          const bandColor = isWealthy ? (appearanceWithDefaults.palette.accent || '#4A0000') : '#2A2A2A';
+          const bandHL = createHighlight(bandColor, 1.15);
+          const bandW = crownWidth;
+          const bandX = centerX - Math.floor(bandW / 2);
+          for (let x = 0; x < bandW; x++) {
+            const xNorm = x / bandW;
+            let bc = bandColor;
+            if (xNorm > 0.4 && xNorm < 0.6) bc = bandHL;
+            elements.push(<rect key={`bowler-band-${x}`} x={bandX + x} y={headY - 2} width="1" height="2" fill={bc} className="pixel" />);
+          }
+
+          break;
+        }
+
+        case 'newsboy': {
+          // Newsboy cap - puffy, paneled crown with button on top and short brim
+          // Think Peaky Blinders, early 20th century working class
+          const newsBase = base || '#6B5B4F'; // Warm tweed brown
+          const newsLight = createHighlight(newsBase, 1.25);
+          const newsMid = createHighlight(newsBase, 1.1);
+          const newsShade = createShadow(newsBase, 0.82);
+          const newsDeep = createShadow(newsBase, 0.65);
+          const newsDarkest = createShadow(newsBase, 0.5);
+
+          // Puffy paneled crown - much fuller than a flat cap
+          const crownHeight = 10;
+          for (let y = 0; y < crownHeight; y++) {
+            const rowY = headY - crownHeight + 2 + y;
+            const yNorm = y / crownHeight;
+
+            // Puffy shape - wide in middle, rounds at top
+            let width;
+            if (yNorm < 0.15) {
+              width = headDim.width - 2 + Math.floor(yNorm * 30);
+            } else if (yNorm < 0.6) {
+              width = headDim.width + 6; // Full puffy width
+            } else {
+              // Taper toward head
+              width = headDim.width + 6 - Math.floor((yNorm - 0.6) * 8);
+            }
+
+            const startX = centerX - Math.floor(width / 2);
+
+            for (let x = 0; x < width; x++) {
+              // Soft corners
+              if (y === 0 && (x < 2 || x >= width - 2)) continue;
+
+              const xNorm = x / width;
+              let col = newsBase;
+
+              // 3D dome shading
+              if (xNorm < 0.08) col = newsDarkest;
+              else if (xNorm < 0.16) col = newsDeep;
+              else if (xNorm < 0.25) col = newsShade;
+              else if (xNorm > 0.92) col = newsDarkest;
+              else if (xNorm > 0.84) col = newsDeep;
+              else if (xNorm > 0.75) col = newsShade;
+              else if (xNorm > 0.38 && xNorm < 0.55 && yNorm < 0.5) col = newsLight;
+              else if (xNorm > 0.35 && xNorm < 0.6) col = newsMid;
+
+              // Panel seams (6 panels, radiating from button)
+              const panelAngle = Math.atan2(y - 1, x - width / 2);
+              const panelIndex = Math.floor((panelAngle + Math.PI) / (Math.PI / 3));
+              const panelEdgeDist = Math.abs((panelAngle + Math.PI) - panelIndex * (Math.PI / 3));
+              if (panelEdgeDist < 0.15 && yNorm < 0.7) {
+                col = createShadow(col, 0.82); // Seam shadow
+              }
+
+              // Tweed texture pattern
+              const tweedX = x % 4;
+              const tweedY = y % 4;
+              if ((tweedX + tweedY) % 4 === 0) col = createHighlight(col, 1.08);
+              else if ((tweedX + tweedY) % 4 === 2) col = createShadow(col, 0.93);
+
+              // Bottom shadow
+              if (yNorm > 0.85) col = createShadow(col, 0.82);
+
+              elements.push(<rect key={`newsboy-${y}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Button on top (center of panel seams)
+          elements.push(
+            <rect key="newsboy-btn-bg" x={centerX - 1} y={headY - crownHeight + 1} width="3" height="3" fill={newsDeep} className="pixel" />,
+            <rect key="newsboy-btn" x={centerX} y={headY - crownHeight + 2} width="1" height="1" fill={newsLight} className="pixel" />
+          );
+
+          // Short stiff brim/visor
+          for (let brimRow = 0; brimRow < 3; brimRow++) {
+            const brimWidth = headDim.width + 6 - brimRow;
+            const brimX = centerX - Math.floor(brimWidth / 2);
+            const brimY = headY + 1 + brimRow;
+
+            for (let x = 0; x < brimWidth; x++) {
+              // Round the corners
+              if (brimRow >= 2 && (x < 2 || x >= brimWidth - 2)) continue;
+
+              const xNorm = x / brimWidth;
+              let col = newsShade;
+              if (brimRow === 0 && xNorm > 0.3 && xNorm < 0.7) col = newsBase;
+              if (brimRow >= 2) col = newsDeep;
+              if (xNorm < 0.08 || xNorm > 0.92) col = newsDeep;
+
+              elements.push(<rect key={`newsboy-brim-${brimRow}-${x}`} x={brimX + x} y={brimY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          break;
+        }
+
+        case 'flatcap': {
+          // Flat cap / cheese-cutter - low profile, forward-sloped crown with short brim
+          // Worn by working/middle class from 1800s onward
+          const flatBase = base || '#5A5A5A'; // Classic gray tweed
+          const flatLight = createHighlight(flatBase, 1.2);
+          const flatMid = createHighlight(flatBase, 1.08);
+          const flatShade = createShadow(flatBase, 0.82);
+          const flatDeep = createShadow(flatBase, 0.68);
+          const flatDarkest = createShadow(flatBase, 0.55);
+
+          // Very low, flat crown with forward slope
+          const crownHeight = 6;
+          for (let y = 0; y < crownHeight; y++) {
+            const rowY = headY - crownHeight + 2 + y;
+            const yNorm = y / crownHeight;
+
+            let width = headDim.width + 4;
+            if (y < 2) width = headDim.width + 2 + y; // Rounded top
+
+            // Forward slope - crown shifts slightly forward (left in portrait)
+            const forwardShift = Math.floor(y * 0.3);
+            const startX = centerX - Math.floor(width / 2) - forwardShift;
+
+            for (let x = 0; x < width; x++) {
+              if (y === 0 && (x < 1 || x >= width - 1)) continue;
+
+              const xNorm = x / width;
+              let col = flatBase;
+
+              // 3D cylindrical shading
+              if (xNorm < 0.1) col = flatDarkest;
+              else if (xNorm < 0.2) col = flatDeep;
+              else if (xNorm < 0.3) col = flatShade;
+              else if (xNorm > 0.9) col = flatDarkest;
+              else if (xNorm > 0.8) col = flatDeep;
+              else if (xNorm > 0.7) col = flatShade;
+              else if (xNorm > 0.4 && xNorm < 0.55) col = flatLight;
+              else if (xNorm > 0.35 && xNorm < 0.6) col = flatMid;
+
+              // Herringbone/tweed texture
+              const hbX = (x + y) % 3;
+              const hbY = (x - y + 20) % 3;
+              if (hbX === 0 && hbY !== 0) col = createHighlight(col, 1.06);
+              else if (hbX === 2) col = createShadow(col, 0.95);
+
+              // Top highlight
+              if (yNorm < 0.3 && xNorm > 0.3 && xNorm < 0.7) col = createHighlight(col, 1.08);
+
+              // Bottom shadow
+              if (yNorm > 0.8) col = createShadow(col, 0.85);
+
+              elements.push(<rect key={`flatcap-${y}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Short forward-pointing brim
+          for (let brimRow = 0; brimRow < 3; brimRow++) {
+            const brimWidth = headDim.width + 6 - brimRow;
+            const brimShift = Math.floor(brimRow * 0.5); // Brim curves down slightly
+            const brimX = centerX - Math.floor(brimWidth / 2) - 1;
+            const brimY = headY + 1 + brimRow;
+
+            for (let x = 0; x < brimWidth; x++) {
+              if (brimRow >= 2 && (x < 3 || x >= brimWidth - 3)) continue;
+
+              const xNorm = x / brimWidth;
+              let col = flatShade;
+              if (brimRow === 0 && xNorm > 0.25 && xNorm < 0.65) col = flatBase;
+              if (brimRow >= 2) col = flatDeep;
+              if (xNorm < 0.06 || xNorm > 0.94) col = flatDeep;
+
+              elements.push(<rect key={`flatcap-brim-${brimRow}-${x}`} x={brimX + x} y={brimY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Snap/button where brim meets crown
+          elements.push(
+            <rect key="flatcap-snap" x={centerX - 3} y={headY + 1} width="2" height="1" fill={flatDeep} className="pixel" />
+          );
+
+          break;
+        }
+
+        case 'cloche': {
+          // Cloche hat - close-fitting bell-shaped hat that sits low on forehead
+          // THE defining women's hat of the 1920s-1930s
+          const clocheBase = base || '#4A3A5A'; // Rich purple/plum
+          const clocheBright = createHighlight(clocheBase, 1.3);
+          const clocheLight = createHighlight(clocheBase, 1.15);
+          const clocheMid = createHighlight(clocheBase, 1.06);
+          const clocheShade = createShadow(clocheBase, 0.82);
+          const clocheDeep = createShadow(clocheBase, 0.65);
+          const clocheDarkest = createShadow(clocheBase, 0.5);
+
+          // Bell-shaped crown - sits low, hugs head closely
+          const clocheHeight = 12;
+          for (let y = 0; y < clocheHeight; y++) {
+            const rowY = headY - clocheHeight + 4 + y; // Sits lower on head
+            const yNorm = y / clocheHeight;
+
+            // Bell/dome shape - narrow at top, flares slightly at bottom
+            let width;
+            if (yNorm < 0.15) {
+              // Very rounded top
+              const domeT = yNorm / 0.15;
+              width = Math.floor((headDim.width + 2) * (0.3 + 0.7 * Math.sqrt(domeT)));
+            } else if (yNorm < 0.7) {
+              // Fitted to head - close-fitting characteristic
+              width = headDim.width + 2;
+            } else {
+              // Slight flare at bottom (bell shape)
+              const flare = (yNorm - 0.7) / 0.3;
+              width = headDim.width + 2 + Math.floor(flare * 4);
+            }
+
+            const startX = centerX - Math.floor(width / 2);
+
+            for (let x = 0; x < width; x++) {
+              if (y === 0 && (x < 1 || x >= width - 1)) continue;
+
+              const xNorm = x / width;
+              let col = clocheBase;
+
+              // Smooth felt shading - spherical for dome, cylindrical lower
+              if (yNorm < 0.4) {
+                // Dome portion - spherical shading
+                const sphereX = (xNorm - 0.45) * 2;
+                const sphereY = (yNorm - 0.15);
+                const intensity = Math.sqrt(Math.max(0, 1 - sphereX * sphereX - sphereY * sphereY * 2));
+
+                if (intensity > 0.85) col = clocheBright;
+                else if (intensity > 0.65) col = clocheLight;
+                else if (intensity > 0.45) col = clocheMid;
+                else if (xNorm < 0.12 || xNorm > 0.88) col = clocheDarkest;
+                else if (xNorm < 0.22 || xNorm > 0.78) col = clocheDeep;
+              } else {
+                // Lower bell - cylindrical shading
+                if (xNorm < 0.1) col = clocheDarkest;
+                else if (xNorm < 0.2) col = clocheDeep;
+                else if (xNorm < 0.3) col = clocheShade;
+                else if (xNorm > 0.9) col = clocheDarkest;
+                else if (xNorm > 0.8) col = clocheDeep;
+                else if (xNorm > 0.7) col = clocheShade;
+                else if (xNorm > 0.4 && xNorm < 0.55) col = clocheLight;
+              }
+
+              // Smooth felt texture (very subtle, not tweed)
+              if ((x * 11 + y * 7) % 23 === 0) col = createHighlight(col, 1.03);
+              else if ((x * 7 + y * 13) % 29 === 0) col = createShadow(col, 0.98);
+
+              // Bottom shadow at flared edge
+              if (yNorm > 0.9) col = createShadow(col, 0.85);
+
+              elements.push(<rect key={`cloche-${y}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Decorative ribbon/band with side bow (characteristic cloche detail)
+          const bandY = headY - 2;
+          const bandW = headDim.width + 2;
+          const bandX = centerX - Math.floor(bandW / 2);
+          const ribbonColor = isWealthy ? '#FFD700' : createShadow(clocheBase, 0.5);
+          const ribbonHL = createHighlight(ribbonColor, 1.2);
+
+          for (let x = 0; x < bandW; x++) {
+            const xNorm = x / bandW;
+            let rc = ribbonColor;
+            if (xNorm > 0.4 && xNorm < 0.6) rc = ribbonHL;
+            elements.push(<rect key={`cloche-ribbon-${x}`} x={bandX + x} y={bandY} width="1" height="1" fill={rc} className="pixel" />);
+          }
+
+          // Side bow/rosette (placed on the left side)
+          const bowX = bandX + 2;
+          const bowY = bandY - 1;
+          elements.push(
+            <rect key="cloche-bow-1" x={bowX} y={bowY} width="2" height="1" fill={ribbonHL} className="pixel" />,
+            <rect key="cloche-bow-2" x={bowX - 1} y={bowY + 1} width="1" height="1" fill={ribbonColor} className="pixel" />,
+            <rect key="cloche-bow-3" x={bowX + 2} y={bowY + 1} width="1" height="1" fill={ribbonColor} className="pixel" />
+          );
+
+          // Wealthy version gets a jeweled pin
+          if (isWealthy) {
+            elements.push(
+              <rect key="cloche-pin" x={bowX + 1} y={bowY} width="1" height="1" fill="#DC143C" className="pixel" />,
+              <rect key="cloche-pin-hl" x={bowX + 1} y={bowY - 1} width="1" height="1" fill="#FFFFFF" opacity={0.5} className="pixel" />
+            );
+          }
+
+          break;
+        }
+
+        case 'boater': {
+          // Straw boater - flat-topped, flat-brimmed straw hat with ribbon
+          // Popular 1880s-1920s for summer/casual wear
+          const strawBase = '#E8D5A8'; // Natural straw
+          const strawLight = createHighlight(strawBase, 1.18);
+          const strawBright = createHighlight(strawBase, 1.3);
+          const strawShade = createShadow(strawBase, 0.82);
+          const strawDeep = createShadow(strawBase, 0.68);
+          const strawDarkest = createShadow(strawBase, 0.55);
+
+          // Flat-topped crown (short, cylindrical - distinctive flat top)
+          const crownHeight = 7;
+          const crownWidth = headDim.width + 3;
+
+          for (let y = 0; y < crownHeight; y++) {
+            const rowY = headY - crownHeight + 1 + y;
+            const yNorm = y / crownHeight;
+
+            // Perfectly cylindrical (flat top, straight sides)
+            let rowWidth = crownWidth;
+            if (y === 0) rowWidth = crownWidth - 2; // Slight rounding at very top edge
+
+            const startX = centerX - Math.floor(rowWidth / 2);
+
+            for (let x = 0; x < rowWidth; x++) {
+              const xNorm = x / rowWidth;
+              let col = strawBase;
+
+              // Cylindrical shading
+              if (xNorm < 0.1) col = strawDarkest;
+              else if (xNorm < 0.18) col = strawDeep;
+              else if (xNorm < 0.28) col = strawShade;
+              else if (xNorm > 0.9) col = strawDarkest;
+              else if (xNorm > 0.82) col = strawDeep;
+              else if (xNorm > 0.72) col = strawShade;
+              else if (xNorm > 0.4 && xNorm < 0.55) col = strawLight;
+              else if (xNorm > 0.38 && xNorm < 0.5 && yNorm < 0.3) col = strawBright;
+
+              // Flat top highlight
+              if (y < 2 && xNorm > 0.2 && xNorm < 0.8) col = strawLight;
+              if (y === 0 && xNorm > 0.35 && xNorm < 0.65) col = strawBright;
+
+              // Straw weave texture
+              const weaveX = x % 3;
+              const weaveY = y % 2;
+              if (weaveX === 0 && weaveY === 0) col = createHighlight(col, 1.08);
+              else if (weaveX === 2 && weaveY === 1) col = createShadow(col, 0.93);
+
+              // Bottom shadow
+              if (y >= crownHeight - 1) col = createShadow(col, 0.85);
+
+              elements.push(<rect key={`boater-crown-${y}-${x}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Flat wide brim (perfectly flat, no curl - signature boater feature)
+          const brimWidth = headDim.width + 14; // Wide, prominent brim
+          for (let brimRow = 0; brimRow < 2; brimRow++) {
+            const brimY = headY + 1 + brimRow;
+            const brimX = centerX - Math.floor(brimWidth / 2);
+
+            for (let x = 0; x < brimWidth; x++) {
+              const xNorm = x / brimWidth;
+              let col = strawShade;
+
+              if (brimRow === 0) {
+                col = strawBase;
+                if (xNorm > 0.35 && xNorm < 0.65) col = strawLight;
+              } else {
+                col = strawDeep;
+              }
+
+              // Straw weave continues on brim
+              if (x % 3 === 1) col = createHighlight(col, 1.06);
+
+              // Edge darkening
+              if (xNorm < 0.06 || xNorm > 0.94) col = strawDeep;
+
+              // Skip center on lower row
+              if (brimRow >= 1 && Math.abs(x - brimWidth / 2) < crownWidth / 2 - 1) continue;
+
+              elements.push(<rect key={`boater-brim-${brimRow}-${x}`} x={brimX + x} y={brimY} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+
+          // Hat band (colored ribbon - wide, prominent)
+          const bandColor = isWealthy ? (appearanceWithDefaults.palette.accent || '#000080') : '#000080'; // Classic navy
+          const bandHL = createHighlight(bandColor, 1.2);
+          const bandW = crownWidth;
+          const bandX = centerX - Math.floor(bandW / 2);
+
+          for (let bandRow = 0; bandRow < 2; bandRow++) {
+            for (let x = 0; x < bandW; x++) {
+              const xNorm = x / bandW;
+              let bc = bandColor;
+              if (xNorm > 0.4 && xNorm < 0.6) bc = bandHL;
+              if (bandRow === 1) bc = createShadow(bc, 0.88);
+              elements.push(<rect key={`boater-band-${bandRow}-${x}`} x={bandX + x} y={headY - 2 + bandRow} width="1" height="1" fill={bc} className="pixel" />);
             }
           }
 

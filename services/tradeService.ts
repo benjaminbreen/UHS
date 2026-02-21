@@ -142,7 +142,7 @@ export class TradeService {
         
       case 'farmer':
       case 'peasant':
-        goods.push(...this.generateFarmGoods(npc, dateInfo));
+        goods.push(...this.generateFarmGoods(npc, dateInfo, mapData.season));
         break;
         
       case 'blacksmith':
@@ -272,9 +272,11 @@ export class TradeService {
   /**
    * Generate farm produce
    */
-  private generateFarmGoods(npc: NpcEntity, dateInfo: any): TradeGood[] {
+  private generateFarmGoods(npc: NpcEntity, dateInfo: any, gameSeason?: string): TradeGood[] {
     const goods: TradeGood[] = [];
-    const season = this.getCurrentSeason(dateInfo.year);
+    // Use game season if available, normalize 'fall' → 'autumn' to match produce keys
+    const rawSeason = gameSeason || 'summer';
+    const season = rawSeason === 'fall' ? 'autumn' : rawSeason;
     
     const farmProduce: Record<string, string[]> = {
       'spring': ['SEEDS', 'EGGS', 'MILK', 'SPRING_VEGETABLES'],
@@ -591,13 +593,13 @@ export class TradeService {
   }
   
   /**
-   * Get current season
+   * Get current season from game month
    */
-  private getCurrentSeason(year: number): string {
-    const month = new Date().getMonth();
-    if (month >= 2 && month <= 4) return 'spring';
-    if (month >= 5 && month <= 7) return 'summer';
-    if (month >= 8 && month <= 10) return 'autumn';
+  private getCurrentSeason(gameMonth: number): string {
+    // gameMonth is 1-indexed (1=Jan, 12=Dec)
+    if (gameMonth >= 3 && gameMonth <= 5) return 'spring';
+    if (gameMonth >= 6 && gameMonth <= 8) return 'summer';
+    if (gameMonth >= 9 && gameMonth <= 11) return 'autumn';
     return 'winter';
   }
   

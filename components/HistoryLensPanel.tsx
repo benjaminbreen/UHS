@@ -104,8 +104,17 @@ const weatherAnimationStyles = `
 }
 `;
 
+interface HistoryLensEnterAction {
+  buttonLabel: string;
+  locationLabel: string;
+  structureType: string;
+  structureId: string;
+  structureName: string;
+  location: { x: number; y: number };
+}
+
 const HistoryLensPanel: React.FC = () => {
-  const { gameDate, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, currentTimeOfDay, currentZone, currentRegion, season, homeAnchor } = useGame();
+  const { gameDate, formattedTime, gameTimeHours, setGameTimeHours, setGameDate, currentTimeOfDay, currentZone, currentRegion, season, homeAnchor, actionableTile } = useGame();
   const { mapData, currentMapClimate, npcs, animals, setNpcs, localArea, setMapData, mapDataCache, setMapDataCache, currentWorldCoords } = useMap();
   const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, currentVessel, playerMode } = usePlayer();
   const { historyLensMessages, setHistoryLensMessages, appendHistoryLensMessage, setShowDeathModal, handleEncounter } = useUI();
@@ -710,6 +719,8 @@ const HistoryLensPanel: React.FC = () => {
         'city': 'city',
         'settlement': 'city',
         'hamlet': 'city',
+        'farm': 'farm',
+        'farmland': 'farm',
         'government': 'government',
         'government_district': 'government',
         'ruins': 'ruins',
@@ -720,6 +731,11 @@ const HistoryLensPanel: React.FC = () => {
         'fishing_hut': 'fishing_hut',
         'market': 'market',
         'marketplace': 'market',
+        'railroad_station': 'railroad_station',
+        'station': 'railroad_station',
+        'harbor': 'harbor',
+        'harbor_district': 'harbor',
+        'port': 'harbor',
         'fortress': 'fortress',
         'palace': 'palace',
         'holy_site': 'holy_site',
@@ -1105,6 +1121,165 @@ const HistoryLensPanel: React.FC = () => {
     };
   }, [mapData, controlledIconX, controlledIconY]);
 
+  const currentTile = useMemo(() => {
+    if (!mapData || controlledIconX === null || controlledIconY === null) return null;
+    return mapData.tiles?.[controlledIconY]?.[controlledIconX] ?? null;
+  }, [mapData, controlledIconX, controlledIconY]);
+
+  const structureOnCurrentTile = useMemo(() => {
+    if (!mapData || controlledIconX === null || controlledIconY === null) return null;
+    return (mapData.terrainStructures || []).find(
+      (structure) => structure.location[0] === controlledIconX && structure.location[1] === controlledIconY
+    ) || null;
+  }, [mapData, controlledIconX, controlledIconY]);
+
+  const inlineEnterAction = useMemo<HistoryLensEnterAction | null>(() => {
+    if (!mapData || !currentTile || controlledIconX === null || controlledIconY === null) return null;
+
+    if (currentTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+      const governmentStructureId = structureOnCurrentTile?.id || `government-${controlledIconX}-${controlledIconY}`;
+      return {
+        buttonLabel: 'Enter Government District',
+        locationLabel: structureOnCurrentTile?.name || 'Government District',
+        structureType: 'government',
+        structureId: governmentStructureId,
+        structureName: structureOnCurrentTile?.name || 'Government District',
+        location: { x: controlledIconX, y: controlledIconY }
+      };
+    }
+
+    if (!actionableTile || actionableTile.tile.x !== controlledIconX || actionableTile.tile.y !== controlledIconY) {
+      return null;
+    }
+
+    const tile = actionableTile.tile;
+    const structure = actionableTile.structure || structureOnCurrentTile;
+    const cityOrStructure = tile.cityName || structure?.name;
+
+    switch (actionableTile.type) {
+      case 'farm': {
+        const farmLabel = cityOrStructure || (tile.cropType ? `${tile.cropType} Farm` : 'Farmstead');
+        return {
+          buttonLabel: 'Enter Farm',
+          locationLabel: farmLabel,
+          structureType: 'farm',
+          structureId: structure?.id || `farm-${controlledIconX}-${controlledIconY}`,
+          structureName: farmLabel,
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      }
+      case 'city':
+        return {
+          buttonLabel: 'Enter City',
+          locationLabel: cityOrStructure || 'City',
+          structureType: 'city',
+          structureId: structure?.id || `city-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || 'City',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      case 'marketplace':
+        return {
+          buttonLabel: 'Enter Marketplace',
+          locationLabel: cityOrStructure || 'Marketplace',
+          structureType: 'market',
+          structureId: structure?.id || `market-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || 'Marketplace',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      case 'ruin':
+        return {
+          buttonLabel: 'Enter Ruins',
+          locationLabel: cityOrStructure || 'Ancient Ruins',
+          structureType: 'ruins',
+          structureId: structure?.id || `ruins-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || 'Ancient Ruins',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      case 'mine':
+        return {
+          buttonLabel: 'Enter Mine',
+          locationLabel: cityOrStructure || 'Mine Shaft',
+          structureType: 'mine',
+          structureId: structure?.id || `mine-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || 'Mine Shaft',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      case 'fishing_hut':
+        return {
+          buttonLabel: 'Enter Fishing Hut',
+          locationLabel: cityOrStructure || 'Fishing Hut',
+          structureType: 'fishing_hut',
+          structureId: structure?.id || `fishing-hut-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || 'Fishing Hut',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      case 'railroad_station':
+        return {
+          buttonLabel: 'Buy Railroad Ticket',
+          locationLabel: cityOrStructure || tile.cityName || 'Railroad Station',
+          structureType: 'railroad_station',
+          structureId: structure?.id || `railroad-station-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || tile.cityName || 'Railroad Station',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      case 'harbor_district':
+        return {
+          buttonLabel: 'Book Passage',
+          locationLabel: cityOrStructure || tile.cityName || 'Harbor',
+          structureType: 'harbor',
+          structureId: structure?.id || `harbor-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || tile.cityName || 'Harbor',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      case 'building':
+        if (currentTile.biome === BiomeType.PALACE) {
+          return {
+            buttonLabel: 'Enter Palace',
+            locationLabel: cityOrStructure || 'Palace',
+            structureType: 'palace',
+            structureId: structure?.id || `palace-${controlledIconX}-${controlledIconY}`,
+            structureName: cityOrStructure || 'Palace',
+            location: { x: controlledIconX, y: controlledIconY }
+          };
+        }
+        if (currentTile.biome === BiomeType.HOLY_SITE) {
+          return {
+            buttonLabel: 'Enter Holy Site',
+            locationLabel: cityOrStructure || 'Holy Site',
+            structureType: 'holy_site',
+            structureId: structure?.id || `holy-site-${controlledIconX}-${controlledIconY}`,
+            structureName: cityOrStructure || 'Holy Site',
+            location: { x: controlledIconX, y: controlledIconY }
+          };
+        }
+        return {
+          buttonLabel: 'Enter Building',
+          locationLabel: cityOrStructure || 'Building',
+          structureType: 'fortress',
+          structureId: structure?.id || `building-${controlledIconX}-${controlledIconY}`,
+          structureName: cityOrStructure || 'Building',
+          location: { x: controlledIconX, y: controlledIconY }
+        };
+      default:
+        return null;
+    }
+  }, [mapData, currentTile, controlledIconX, controlledIconY, actionableTile, structureOnCurrentTile]);
+
+  const handleInlineEnter = useCallback(() => {
+    if (!inlineEnterAction) return;
+    eventBus.emit('historylens:enter_structure', {
+      structureType: inlineEnterAction.structureType,
+      structureId: inlineEnterAction.structureId,
+      structureName: inlineEnterAction.structureName,
+      location: inlineEnterAction.location
+    });
+  }, [inlineEnterAction]);
+
+  const handleInlineInspect = useCallback(() => {
+    if (!inlineEnterAction) return;
+    setInputValue(`Describe what I notice at ${inlineEnterAction.locationLabel}.`);
+  }, [inlineEnterAction]);
+
   // Helper to format zone names nicely
   const formatZoneName = (zone: string | undefined) => {
     if (!zone) return 'Unknown';
@@ -1192,11 +1367,10 @@ const HistoryLensPanel: React.FC = () => {
     >
       {/* Header - Responsive design using flexbox */}
       <div
-        className="px-2 sm:px-4 lg:px-6 py-1.5 sm:py-2 backdrop-blur-md border-b border-white/15"
+        className="px-2 sm:px-4 lg:px-6 py-1.5 sm:py-2 backdrop-blur-md border-b"
         style={{
           fontFamily: "'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif",
-          background: 'linear-gradient(135deg, rgba(9, 13, 22, 0.88) 0%, rgba(9, 13, 22, 0.82) 100%)',
-          backgroundImage: 'radial-gradient(circle at 15% 30%, rgba(16, 50, 129, 0.03), transparent 50%), radial-gradient(circle at 85% 40%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(135deg, rgba(9, 13, 22, 0.79) 0%, rgba(9, 13, 22, 0.8) 100%)',
+          borderColor: 'var(--border-subtle)',
           paddingTop: isMobile ? 'calc(8px + var(--sat, 0px))' : undefined,
         }}
       >
@@ -1207,11 +1381,11 @@ const HistoryLensPanel: React.FC = () => {
             <button
               type="button"
               onClick={() => isMobile ? setShowMapOverlay(true) : setShowTransparency(true)}
-              className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-slate-900/30 border border-white/10 shadow-sm flex items-center justify-center text-sm shadow-inner hover:border-white/30 transition-colors active:bg-slate-700/80"
+              className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg surface-muted border border-surface-muted shadow-sm flex items-center justify-center text-sm shadow-inner hover:border-[var(--border-strong)] transition-colors active:opacity-80"
               aria-label={isMobile ? "Show map" : "Open transparency log"}
             >
               {isMobile ? (
-                <svg className="w-3.5 h-3.5 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="w-3.5 h-3.5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
                 </svg>
               ) : '📜'}
@@ -1224,24 +1398,24 @@ const HistoryLensPanel: React.FC = () => {
           {/* Center: Time with time-of-day below */}
           <div className="flex-1 flex flex-col items-center justify-center min-w-0">
             <div className="flex items-baseline gap-1">
-              <span className="text-[16px] sm:text-[18px] lg:text-[20px] font-light tracking-tight text-white/90">
+              <span className="text-[16px] sm:text-[18px] lg:text-[20px] font-light tracking-tight text-text-primary">
                 {formattedTime}
               </span>
-              <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-medium text-white/40 uppercase">
+              <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-medium text-text-muted uppercase">
                 {gameTimeHours >= 12 ? 'pm' : 'am'}
               </span>
             </div>
-            <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-medium text-white/40 uppercase tracking-wider">
+            <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-medium text-text-muted uppercase tracking-wider">
               {currentTimeOfDay?.toLowerCase() || ''}
             </span>
           </div>
 
           {/* Right: Zone + Season pills */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            <span className="hidden sm:inline px-1.5 lg:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] lg:text-[11px] font-semibold bg-slate-800/50 border border-white/8">
+            <span className="hidden sm:inline px-1.5 lg:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] lg:text-[11px] font-semibold" style={{ backgroundColor: 'var(--surface-muted-bg)', border: '1px solid var(--surface-muted-border)' }}>
               <span className={getZoneClassName(currentZone)}>{formatZoneName(currentZone)}</span>
             </span>
-            <span className="px-1.5 lg:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] lg:text-[11px] font-semibold bg-slate-800/50 border border-white/8">
+            <span className="px-1.5 lg:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] lg:text-[11px] font-semibold" style={{ backgroundColor: 'var(--surface-muted-bg)', border: '1px solid var(--surface-muted-border)' }}>
               <span className={getSeasonClassName(seasonLabel)}>{seasonLabel.toLowerCase()}</span>
             </span>
           </div>
@@ -1274,10 +1448,10 @@ const HistoryLensPanel: React.FC = () => {
 
           {/* Right: Date */}
           <div className="flex items-baseline gap-1 flex-shrink-0">
-            <span className="text-[13px] sm:text-[14px] lg:text-[15px] font-semibold text-white/80 tracking-tight">
+            <span className="text-[13px] sm:text-[14px] lg:text-[15px] font-semibold text-text-primary tracking-tight">
               {formattedDate.dateText}
             </span>
-            <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-medium text-white/50 uppercase">
+            <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-medium text-text-muted uppercase">
               {formattedDate.era}
             </span>
           </div>
@@ -1298,12 +1472,12 @@ const HistoryLensPanel: React.FC = () => {
                 message.card ? 'px-0 py-0' : 'px-2.5 sm:px-4 lg:px-5 py-2 sm:py-3 lg:py-4'
               } shadow-sm ${
                 message.sender === 'player'
-                  ? 'hl-message--player ml-auto bg-[var(--surface-card-bg)] text-text-primary border border-white/10'
+                  ? 'hl-message--player ml-auto text-text-primary border border-surface-muted' + ' bg-[var(--surface-card-bg)]'
                   : message.sender === 'narrator'
                   ? message.card
                     ? 'hl-message--narrator bg-transparent border-none'
-                    : 'hl-message--narrator bg-slate-900/50 text-text-primary border border-white/10'
-                  : 'hl-message--system bg-slate-900/20 text-text-secondary border border-white/10'
+                    : 'hl-message--narrator text-text-primary border border-surface-muted bg-[var(--surface-muted-bg)]'
+                  : 'hl-message--system text-text-secondary border border-surface-muted bg-[var(--surface-muted-bg)]'
               }`}
             >
               {message.sender === 'system' && (
@@ -1348,7 +1522,7 @@ const HistoryLensPanel: React.FC = () => {
             </div>
           ))}
           {isLoading && (
-            <div className="max-w-[85%] sm:max-w-[70%] lg:max-w-[60%] rounded-xl sm:rounded-2xl px-3 sm:px-4 lg:px-5 py-2.5 sm:py-3 lg:py-4 bg-slate-900/30 text-text-secondary border border-white/10 animate-pulse text-[12px] sm:text-[14px] lg:text-base">
+            <div className="max-w-[85%] sm:max-w-[70%] lg:max-w-[60%] rounded-xl sm:rounded-2xl px-3 sm:px-4 lg:px-5 py-2.5 sm:py-3 lg:py-4 bg-[var(--surface-muted-bg)] text-text-secondary border border-surface-muted animate-pulse text-[12px] sm:text-[14px] lg:text-base">
               Listening to the past...
             </div>
           )}
@@ -1373,20 +1547,21 @@ const HistoryLensPanel: React.FC = () => {
             className="fixed inset-0 z-50 flex items-center justify-center"
             onClick={() => setShowMapOverlay(false)}
           >
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            <div className="absolute inset-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--surface-modal-overlay-bg)' }} />
             <div
-              className="relative z-10 bg-slate-900/95 rounded-2xl border border-white/20 p-3 shadow-2xl"
+              className="relative z-10 rounded-2xl border p-3 shadow-2xl"
+              style={{ backgroundColor: 'var(--surface-modal-panel-bg)', borderColor: 'var(--surface-modal-panel-border)' }}
               onClick={(e) => e.stopPropagation()}
               style={{ width: 'calc(100vw - 32px)', maxWidth: '320px' }}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">
+                <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
                   {primaryLocation}
                 </span>
                 <button
                   onClick={() => setShowMapOverlay(false)}
-                  className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20"
+                  className="w-7 h-7 rounded-full surface-muted flex items-center justify-center text-text-secondary hover:text-text-primary hover:opacity-80"
                   aria-label="Close map"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1408,11 +1583,11 @@ const HistoryLensPanel: React.FC = () => {
                 />
               </div>
               {/* Quick stats footer */}
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
-                <span className="text-[10px] text-white/50">
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-surface-muted">
+                <span className="text-[10px] text-text-muted">
                   {formattedDate.dateText} {formattedDate.era.toUpperCase()}
                 </span>
-                <span className="text-[10px] text-white/50">
+                <span className="text-[10px] text-text-muted">
                   {seasonLabel} · {climateLabel}
                 </span>
               </div>
@@ -1420,6 +1595,36 @@ const HistoryLensPanel: React.FC = () => {
           </div>
         )}
       </div>
+
+      {inlineEnterAction && (
+        <div
+          className="px-2 sm:px-4 lg:px-6 py-1.5 sm:py-2"
+          style={{ fontFamily: "'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif" }}
+        >
+          <div className="surface-muted border border-surface-muted rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.18em] text-text-muted">Enterable Location</p>
+              <p className="text-[12px] sm:text-[13px] text-text-primary font-semibold truncate">{inlineEnterAction.locationLabel}</p>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={handleInlineInspect}
+                className="px-2.5 py-1.5 rounded-lg border border-surface-muted text-[11px] sm:text-xs text-text-secondary hover:text-text-primary hover:border-[var(--border-hover)] transition-colors"
+              >
+                Describe
+              </button>
+              <button
+                type="button"
+                onClick={handleInlineEnter}
+                className="px-3 py-1.5 rounded-lg border border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/12 text-[11px] sm:text-xs font-semibold text-text-primary hover:bg-[var(--accent-primary)]/20 transition-colors"
+              >
+                {inlineEnterAction.buttonLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {suggestedActions.length > 0 && (
         <div
@@ -1434,9 +1639,9 @@ const HistoryLensPanel: React.FC = () => {
               <button
                 key={`${suggestion}-${index}`}
                 onClick={() => setInputValue(suggestion)}
-                className="rounded-full border border-white/10 bg-slate-900/30 text-text-secondary hover:text-text-primary hover:border-white/30 transition-colors flex items-center active:bg-slate-800/50 px-2 sm:px-2.5 lg:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] gap-1 sm:gap-1.5"
+                className="rounded-full border border-surface-muted bg-[var(--surface-muted-bg)] text-text-secondary hover:text-text-primary hover:border-[var(--border-strong)] transition-colors flex items-center active:opacity-80 px-2 sm:px-2.5 lg:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] gap-1 sm:gap-1.5"
               >
-                <kbd className="hidden sm:inline text-[8px] sm:text-[9px] opacity-50 bg-white/5 px-1 sm:px-1.5 py-0.5 rounded">{index + 1}</kbd>
+                <kbd className="hidden sm:inline text-[8px] sm:text-[9px] opacity-50 bg-[var(--surface-chip-bg)] px-1 sm:px-1.5 py-0.5 rounded">{index + 1}</kbd>
                 <span className="truncate max-w-[80px] sm:max-w-[120px] lg:max-w-none">{suggestion}</span>
               </button>
             ))}
@@ -1444,8 +1649,9 @@ const HistoryLensPanel: React.FC = () => {
         </div>
       )}
       <div
-        className="p-2 sm:p-3 lg:p-4 bg-slate-900/50 backdrop-blur-sm border-t border-white/5"
+        className="p-2 sm:p-3 lg:p-4 backdrop-blur-sm border-t"
         style={{
+          borderColor: 'var(--border-subtle)',
           fontFamily: "'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif",
           paddingBottom: isMobile ? 'calc(8px + var(--sab, 0px))' : undefined,
         }}
@@ -1457,11 +1663,11 @@ const HistoryLensPanel: React.FC = () => {
             onKeyDown={handleInputKeyDown}
             placeholder="What do you do?"
             rows={1}
-            className="flex-1 resize-none rounded-lg sm:rounded-xl border border-white/10 bg-slate-900/40 text-text-primary placeholder-text-muted focus:outline-none focus:border-white/40 px-2.5 sm:px-3 lg:px-4 py-2 sm:py-2.5 lg:py-3 text-[13px] sm:text-[14px] lg:text-base"
+            className="flex-1 resize-none rounded-lg sm:rounded-xl border border-surface-muted bg-[var(--surface-muted-bg)] text-text-primary placeholder-text-muted focus:outline-none focus:border-[var(--border-strong)] px-2.5 sm:px-3 lg:px-4 py-2 sm:py-2.5 lg:py-3 text-[13px] sm:text-[14px] lg:text-base"
           />
           <button
             onClick={handleSend}
-            className="rounded-lg sm:rounded-xl font-semibold border border-emerald-400/40 text-emerald-200 bg-emerald-400/10 hover:bg-emerald-400/20 active:bg-emerald-400/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 lg:py-3 text-[11px] sm:text-xs"
+            className="ff-action-button rounded-lg sm:rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 lg:py-3 text-[11px] sm:text-xs"
             aria-label="Send history lens command"
             disabled={isLoading}
           >

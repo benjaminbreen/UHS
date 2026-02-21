@@ -4,7 +4,7 @@ import { DISEASE_QUOTES } from '../constants/gameData/diseaseQuotes';
 import { culturalMedicalKnowledge } from '../services/culturalMedicalKnowledge';
 import { HistoricalEra } from '../types';
 import { CulturalZone } from '../types/characterData';
-import { Scroll } from 'lucide-react';
+import { Scroll, X } from 'lucide-react';
 
 interface DiseaseContractedModalProps {
   isOpen: boolean;
@@ -109,11 +109,12 @@ const DiseaseContractedModal: React.FC<DiseaseContractedModalProps> = ({
                 <p className="text-red-200 text-sm">Immediate Medical Attention Required</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
-              className="text-white/60 hover:text-white text-2xl transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close disease notification"
             >
-              ×
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

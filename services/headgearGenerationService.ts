@@ -7,7 +7,7 @@ interface HeadgearPool {
   [key: string]: number; // headgear baseId -> weight
 }
 
-// Era-specific headgear pools
+// Era-specific headgear pools (gender-neutral base)
 const ERA_HEADGEAR: Record<HistoricalEra, HeadgearPool> = {
   'PREHISTORY': {
     'LEATHER_CAP': 0.4,
@@ -37,24 +37,84 @@ const ERA_HEADGEAR: Record<HistoricalEra, HeadgearPool> = {
     'SCHOLAR_CAP': 0.15
   },
   'INDUSTRIAL_ERA': {
-    'BOWLER_HAT': 0.25,
-    'FLAT_CAP': 0.25,
-    'TOP_HAT': 0.15,
-    'CLOTH_CAP': 0.2,
-    'BOATER_HAT': 0.15
+    'BOWLER_HAT': 0.2,
+    'FLAT_CAP': 0.2,
+    'TOP_HAT': 0.12,
+    'NEWSBOY_CAP': 0.15,
+    'CLOTH_CAP': 0.13,
+    'BOATER_HAT': 0.1,
+    'FEDORA': 0.1
   },
   'MODERN_ERA': {
-    'BASEBALL_CAP': 0.3,
-    'KNIT_CAP': 0.25,
-    'FEDORA': 0.15,
-    'FLAT_CAP': 0.15,
-    'CLOTH_CAP': 0.15
+    'BASEBALL_CAP': 0.25,
+    'KNIT_CAP': 0.2,
+    'FEDORA': 0.12,
+    'FLAT_CAP': 0.12,
+    'NEWSBOY_CAP': 0.08,
+    'CLOTH_CAP': 0.08,
+    'SUN_HAT': 0.08,
+    'FELT_BERET': 0.07
   },
   'FUTURE_ERA': {
     'BASEBALL_CAP': 0.35,
     'DESIGNER_CAP': 0.3,
     'FLAT_CAP': 0.2,
     'CLOTH_CAP': 0.15
+  }
+};
+
+// Gender-specific headgear modifiers for eras where fashion was strongly differentiated
+type GenderHeadgearMap = Partial<Record<HistoricalEra, HeadgearPool>>;
+
+const FEMALE_ERA_HEADGEAR: GenderHeadgearMap = {
+  'INDUSTRIAL_ERA': {
+    'BONNET': 0.25,
+    'CLOCHE_HAT': 0.15,
+    'VEIL': 0.12,
+    'SUN_HAT': 0.12,
+    'FELT_BERET': 0.1,
+    'BOATER_HAT': 0.08,
+    'CLOTH_HOOD': 0.08,
+    'HEADSCARF': 0.1
+  },
+  'MODERN_ERA': {
+    'CLOCHE_HAT': 0.12,
+    'SUN_HAT': 0.15,
+    'FELT_BERET': 0.15,
+    'KNIT_CAP': 0.15,
+    'BASEBALL_CAP': 0.15,
+    'HEADSCARF': 0.08,
+    'CLOTH_CAP': 0.1,
+    'FEDORA': 0.1
+  },
+  'RENAISSANCE_EARLY_MODERN': {
+    'BONNET': 0.2,
+    'CLOTH_HOOD': 0.2,
+    'VEIL': 0.15,
+    'COIF': 0.15,
+    'HEADSCARF': 0.15,
+    'FELT_BERET': 0.15
+  }
+};
+
+const MALE_ERA_HEADGEAR: GenderHeadgearMap = {
+  'INDUSTRIAL_ERA': {
+    'BOWLER_HAT': 0.22,
+    'FLAT_CAP': 0.2,
+    'TOP_HAT': 0.15,
+    'NEWSBOY_CAP': 0.15,
+    'BOATER_HAT': 0.1,
+    'FEDORA': 0.1,
+    'CLOTH_CAP': 0.08
+  },
+  'MODERN_ERA': {
+    'BASEBALL_CAP': 0.28,
+    'FLAT_CAP': 0.15,
+    'FEDORA': 0.15,
+    'KNIT_CAP': 0.15,
+    'NEWSBOY_CAP': 0.1,
+    'FELT_BERET': 0.07,
+    'CLOTH_CAP': 0.1
   }
 };
 
@@ -287,6 +347,7 @@ export function generateContextualHeadgear(
     socialClass?: SocialClass;
     climate?: ClimateType;
     privilege?: number;
+    gender?: 'Male' | 'Female' | 'Non-binary';
   } = {}
 ): string | null {
   const era = options.era || 'MEDIEVAL';
@@ -294,56 +355,79 @@ export function generateContextualHeadgear(
   const climate = options.climate || getClimateFromCulture(culture);
   const socialClass = options.socialClass || getProfessionType(profession);
   const privilege = options.privilege || 0.5;
-  
+  const gender = options.gender || 'Male';
+
   // Check for profession-specific headgear first
   const professionLower = profession.toLowerCase();
-  const professionSpecific = Object.entries(PROFESSION_HEADGEAR).find(([key]) => 
+  const professionSpecific = Object.entries(PROFESSION_HEADGEAR).find(([key]) =>
     professionLower.includes(key)
   );
-  
+
   if (professionSpecific) {
     const choices = professionSpecific[1];
     const choice = choices[Math.floor(Math.random() * choices.length)];
     if (choice !== null) return choice;
   }
-  
+
   // Build weighted pool based on all factors
   let headgearPool: HeadgearPool = {};
-  
-  // Add era-appropriate headgear
-  const eraHeadgear = ERA_HEADGEAR[era] || ERA_HEADGEAR['MEDIEVAL'];
-  Object.entries(eraHeadgear).forEach(([item, weight]) => {
-    headgearPool[item] = (headgearPool[item] || 0) + weight * 0.25;
-  });
-  
+
+  // Add era-appropriate headgear (use gender-specific pools when available)
+  const isFemale = gender === 'Female';
+  const genderEraPool = isFemale ? FEMALE_ERA_HEADGEAR[era] : MALE_ERA_HEADGEAR[era];
+
+  if (genderEraPool) {
+    // Use gender-specific pool as primary era source
+    Object.entries(genderEraPool).forEach(([item, weight]) => {
+      headgearPool[item] = (headgearPool[item] || 0) + weight * 0.3;
+    });
+    // Still mix in some base era items at lower weight for variety
+    const eraHeadgear = ERA_HEADGEAR[era] || ERA_HEADGEAR['MEDIEVAL'];
+    Object.entries(eraHeadgear).forEach(([item, weight]) => {
+      headgearPool[item] = (headgearPool[item] || 0) + weight * 0.1;
+    });
+  } else {
+    // No gender-specific pool, use base era pool
+    const eraHeadgear = ERA_HEADGEAR[era] || ERA_HEADGEAR['MEDIEVAL'];
+    Object.entries(eraHeadgear).forEach(([item, weight]) => {
+      headgearPool[item] = (headgearPool[item] || 0) + weight * 0.25;
+    });
+  }
+
   // Add culturally appropriate headgear
   const culturalHeadgear = CULTURAL_HEADGEAR[culture] || CULTURAL_HEADGEAR['EUROPEAN'];
   Object.entries(culturalHeadgear).forEach(([item, weight]) => {
     headgearPool[item] = (headgearPool[item] || 0) + weight * 0.35;
   });
-  
+
   // Add climate-appropriate headgear
   const climateHeadgear = CLIMATE_MODIFIERS[climate];
   Object.entries(climateHeadgear).forEach(([item, weight]) => {
     headgearPool[item] = (headgearPool[item] || 0) + weight * 0.2;
   });
-  
+
   // Add social class appropriate headgear
   const socialHeadgear = SOCIAL_CLASS_HEADGEAR[socialClass];
   Object.entries(socialHeadgear).forEach(([item, weight]) => {
     headgearPool[item] = (headgearPool[item] || 0) + weight * 0.2;
   });
-  
+
   // Apply privilege modifier for noble/fancy headgear
   if (privilege > 0.7) {
     if (headgearPool['VELVET_CAP']) headgearPool['VELVET_CAP'] *= 2;
     if (headgearPool['FEATHER_HAT']) headgearPool['FEATHER_HAT'] *= 2;
     if (headgearPool['SILK_TURBAN']) headgearPool['SILK_TURBAN'] *= 2;
+    // Wealthy women get fancier hats
+    if (isFemale) {
+      if (headgearPool['CLOCHE_HAT']) headgearPool['CLOCHE_HAT'] *= 1.5;
+      if (headgearPool['BONNET']) headgearPool['BONNET'] *= 1.5;
+    }
   } else if (privilege < 0.3) {
     if (headgearPool['CLOTH_CAP']) headgearPool['CLOTH_CAP'] *= 2;
     if (headgearPool['STRAW_HAT']) headgearPool['STRAW_HAT'] *= 2;
+    if (headgearPool['HEADSCARF']) headgearPool['HEADSCARF'] *= 1.5;
   }
-  
+
   // Select from weighted pool
   return weightedRandom(headgearPool);
 }
@@ -364,7 +448,10 @@ export function isHeadgear(itemId: string): boolean {
     'OILSKIN_HAT', 'BASEBALL_CAP', 'BEANIE', 'FEDORA', 'TECH_VISOR',
     'SMART_CAP', 'FLAT_CAP', 'STRAW_BOATER', 'LAUREL_WREATH',
     'DEER_HIDE_CAP', 'WOVEN_GRASS_HAT', 'WOVEN_CAP', 'OFFICIAL_HAT',
-    'PITH_HELMET'
+    'PITH_HELMET', 'NEWSBOY_CAP', 'CLOCHE_HAT', 'BOATER_HAT',
+    'DESIGNER_CAP', 'SUN_HAT', 'COTTON_CAP', 'WORKER_CAP',
+    'SILK_CAP', 'NOBLE_CAP', 'DUCAL_HAT', 'SCHOLAR_CAP',
+    'MERCHANT_CAP', 'ZHONGSHAN_CAP', 'GANDHI_CAP', 'KUFI_CAP'
   ];
   
   return headgearItems.includes(itemId);

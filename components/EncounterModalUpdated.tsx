@@ -58,6 +58,7 @@ import { LanguageFamilyTree } from './LanguageFamilyTree';
 import { WorkOffer } from '../types/workOffer';
 import { detectWorkRequest, generateWorkOffer, MAX_OFFERS_PER_NPC, deliverItemsToWorkOffer, calculateProactiveWorkContext, checkWorkCompletion, completeWorkOffer, checkWorkOfferWillingness } from '../services/workOfferService';
 import { addWorkOffer, getWorkOffersForNpc, updateWorkOffer } from '../services/workOfferStorage';
+import { getPlayerCurrency } from '../utils/currencyUtils';
 
 // Styles for animations
 const styles = `
@@ -847,10 +848,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
             // If work is complete, pay the player
             if (result.isComplete) {
-                const newMoney = (playerCharacter.money || 0) + offer.payment;
+                const newCurrency = getPlayerCurrency(playerCharacter) + offer.payment;
                 onUpdatePlayer({
                     ...playerCharacter,
-                    money: newMoney
+                    currency: newCurrency
                 });
                 showToast(`+${offer.payment} coins earned!`, 'success');
 
@@ -3234,10 +3235,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
 
                                                         if (result.success) {
                                                             // Add coins
-                                                            const newMoney = (playerCharacter.money || 0) + result.coinsEarned;
+                                                            const newCurrency = getPlayerCurrency(playerCharacter) + result.coinsEarned;
                                                             onUpdatePlayer?.({
                                                                 ...playerCharacter,
-                                                                money: newMoney
+                                                                currency: newCurrency
                                                             });
 
                                                             // Mark as completed

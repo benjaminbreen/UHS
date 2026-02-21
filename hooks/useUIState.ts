@@ -45,6 +45,7 @@ import {
 } from '../types/assessment';
 import { GlobalEvent } from '../services/globalEventService';
 import type { HistoryLensMessage } from '../types/historyLens';
+import { getPlayerCurrency } from '../utils/currencyUtils';
 
 const ASSESSMENT_STORAGE_KEY = 'uhs-assessment-session';
 
@@ -393,6 +394,7 @@ export const useUIState = () => {
     const [activeSettlementInfo, setActiveSettlementInfo] = useState<{ tile: Tile } | null>(null);
     const [activeMarketplaceModal, _setActiveMarketplaceModal] = useState<{ tile: Tile } | null>(null);
     const [activeCityModal, _setActiveCityModal] = useState<{ tile: Tile } | null>(null);
+    const [activeFarmModal, setActiveFarmModal] = useState<{ tile: Tile } | null>(null);
     const [activeRuinModal, setActiveRuinModal] = useState<{ tile: Tile } | null>(null);
     const [inRuinRoguelike, setInRuinRoguelike] = useState(false);
     const [inMiningRoguelike, setInMiningRoguelike] = useState(false);
@@ -504,7 +506,18 @@ export const useUIState = () => {
                     if (tile) setActiveCityModal({ tile });
                     break;
                 case 'government':
-                    if (structure && tile) setActiveGovernmentModal({ structure, tile });
+                    if (tile) {
+                        const governmentStructure = structure || {
+                            id: data.structureId || `gov_district_${data.location.x}_${data.location.y}`,
+                            structureType: 'government_district',
+                            location: [data.location.x, data.location.y] as [number, number],
+                            materialType: 'stone',
+                            isRuined: false,
+                            biome: tile.biome,
+                            name: data.structureName || 'Government District'
+                        } as any;
+                        setActiveGovernmentModal({ structure: governmentStructure, tile });
+                    }
                     break;
                 case 'ruins':
                     if (tile) setActiveRuinModal({ tile });
@@ -518,6 +531,52 @@ export const useUIState = () => {
                     break;
                 case 'market':
                     if (tile) setActiveMarketplaceModal({ tile });
+                    break;
+                case 'railroad_station':
+                    if (tile) {
+                        const station = railroadNetworkService.findStationAt(tile.x, tile.y);
+                        if (station) {
+                            const connections = railroadNetworkService.getConnectionsWithDetails(station);
+                            setRailroadStationModalData({
+                                station,
+                                connectedStations: connections
+                            });
+                        }
+                    }
+                    break;
+                case 'harbor':
+                case 'harbor_district':
+                    if (tile && mapData && gameDate) {
+                        const { getHarborDestinations, TravelMode } = require('../services/crossMapTravelService');
+
+                        const harborName = tile.cityName || mapData.majorCity?.name || 'Harbor';
+                        const currentMapArea = mapData.mapAreaName || mapData.localArea || '';
+
+                        const year = gameDate.year;
+                        let era: any;
+                        if (year < 500) era = 'ANTIQUITY';
+                        else if (year < 1450) era = 'MEDIEVAL';
+                        else if (year < 1800) era = 'RENAISSANCE_EARLY_MODERN';
+                        else if (year < 1900) era = 'INDUSTRIAL_ERA';
+                        else if (year < 2000) era = 'MODERN_ERA';
+                        else era = 'FUTURE_ERA';
+
+                        try {
+                            const destinations = getHarborDestinations(currentMapArea, {
+                                mode: TravelMode.SHIP,
+                                currentYear: year,
+                                currentEra: era,
+                                playerWealth: getPlayerCurrency(playerCharacter)
+                            });
+
+                            setHarborModalData({
+                                harbor: { name: harborName, x: tile.x, y: tile.y },
+                                availableDestinations: destinations
+                            });
+                        } catch (error) {
+                            console.error('[historylens:enter_structure] Error opening harbor modal:', error);
+                        }
+                    }
                     break;
                 case 'fortress':
                 case 'palace':
@@ -542,7 +601,8 @@ export const useUIState = () => {
                     }
                     break;
                 case 'farm':
-                case 'harbor':
+                    if (tile) setActiveFarmModal({ tile });
+                    break;
                 case 'woodcutter':
                     // These can use the structure modal target or POI system
                     if (structure) setStructureModalTarget(structure);
@@ -556,7 +616,7 @@ export const useUIState = () => {
         return () => {
             eventBus.off('historylens:enter_structure', handleEnterStructure);
         };
-    }, [mapData, setActiveCityModal, setActiveGovernmentModal, setActiveRuinModal, setActiveMiningModal, setActiveFishingHutModal, setActiveMarketplaceModal, setStructureModalTarget]);
+    }, [gameDate, mapData, playerCharacter, setActiveCityModal, setActiveGovernmentModal, setActiveRuinModal, setActiveMiningModal, setActiveFishingHutModal, setActiveMarketplaceModal, setActiveFarmModal, setHarborModalData, setRailroadStationModalData, setStructureModalTarget]);
 
     // Auto-enable performance optimizations for Safari users
     useEffect(() => {
@@ -595,12 +655,12 @@ export const useUIState = () => {
     const isAnyModalOpen = useMemo(() =>
         isSettingsModalOpen || isAboutModalOpen || isPauseModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
-        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || isEatingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen || showJournal || showQuestsPanel || showGameModePanel ||
+        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || !!activeFarmModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || isEatingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData || isCampModalOpen || showJournal || showQuestsPanel || showGameModePanel ||
         showInitialScenarioModal || showDeathModal || showNpcDeathModal || showDiseaseProgressionModal || showEventModal || showFactionsModal ||
         (!!diseaseContractedModalData && diseaseContractedModalData.isOpen) || !!railroadStationModalData || !!harborModalData || showLanguageTree,
         [isSettingsModalOpen, isAboutModalOpen, isPauseModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, isEatingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen, showJournal, showQuestsPanel, showGameModePanel,
+         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, activeFarmModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, isEatingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData, isCampModalOpen, showJournal, showQuestsPanel, showGameModePanel,
          showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal, diseaseContractedModalData, railroadStationModalData, harborModalData, showLanguageTree]
     );
 
@@ -950,6 +1010,7 @@ export const useUIState = () => {
         setLootModalData(null);
         setActiveMarketplaceModal(null);
         setActiveCityModal(null);
+        setActiveFarmModal(null);
         setActiveGovernmentModal(null);
         setActiveFishingHutModal(null);
         setIsLevelUpModalOpen(false);
@@ -2090,7 +2151,7 @@ export const useUIState = () => {
                 mode: TravelMode.SHIP,
                 currentYear: year,
                 currentEra: era,
-                playerWealth: playerCharacter?.money
+                playerWealth: getPlayerCurrency(playerCharacter)
             });
 
             setHarborModalData({
@@ -2341,7 +2402,7 @@ export const useUIState = () => {
         isTestModeEnabled, debugSettings, isDevBuildingModeOpen,
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen, useNewCharacterModal,
-        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
+        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeFarmModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
         isCampModalOpen,
         showJournal, showQuestsPanel, highlightedWorkOfferId, showGameModePanel,
         showInitialScenarioModal, showDeathModal, showNpcDeathModal, showDiseaseProgressionModal, showEventModal, showFactionsModal,
@@ -2377,7 +2438,7 @@ export const useUIState = () => {
         setIsSkillsModalOpen, setSkillResult, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen, toggleCharacterModalVersion,
-        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
+        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveFarmModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
         setIsCampModalOpen,
         setShowJournal, setShowQuestsPanel, openQuestPanelWithWorkOffer, setShowGameModePanel,
         setShowInitialScenarioModal, setShowDeathModal, setShowNpcDeathModal, setShowDiseaseProgressionModal, setShowEventModal, setShowFactionsModal,

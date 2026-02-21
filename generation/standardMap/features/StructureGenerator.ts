@@ -181,7 +181,7 @@ function findPlacementCandidates(
                         }
                     }
                     break;
-                case 'fishing_hut':
+                case 'fishing_hut': {
                     // Prefer actual coast/beach tiles; wetlands/river are fallback only
                     if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.RIVERBANK)) {
                         isValid = true;
@@ -190,7 +190,22 @@ function findPlacementCandidates(
                         isValid = true;
                         score = 0.5; // inland river huts are low priority
                     }
+                    // Suppress fishing huts near urban areas — check 4-tile radius for city biomes
+                    if (isValid) {
+                        const urbanBiomes = new Set([BiomeType.DENSE_CITY, BiomeType.CITY_CENTER, BiomeType.LOW_DENSITY_CITY, BiomeType.HARBOR_DISTRICT, BiomeType.INDUSTRIAL_DISTRICT]);
+                        let nearUrban = false;
+                        for (let dy = -4; dy <= 4 && !nearUrban; dy++) {
+                            for (let dx = -4; dx <= 4 && !nearUrban; dx++) {
+                                const ny = y + dy, nx = x + dx;
+                                if (ny >= 0 && ny < MAP_HEIGHT_TILES && nx >= 0 && nx < MAP_WIDTH_TILES) {
+                                    if (urbanBiomes.has(tiles[ny][nx].biome)) nearUrban = true;
+                                }
+                            }
+                        }
+                        if (nearUrban) { isValid = false; score = 0; }
+                    }
                     break;
+                }
                 case 'fortress':
                     if(tile.biome === BiomeType.HILLS || tile.biome === BiomeType.MOUNTAIN || tile.isCoast) {
                          isValid = true;

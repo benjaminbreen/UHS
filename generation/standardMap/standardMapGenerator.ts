@@ -830,8 +830,8 @@ export function proceduralGenerateMap(
     // console.log("[Gen] Phase 1.5: Lake edge cleanup - END");
   }
 
-  // Check for special ethereal realms FIRST before normal terrain generation
-  const etherealRealms = ['Outer Space', 'Heaven', 'Undersea '];
+  // Check for special contextual realms FIRST before normal terrain generation
+  const etherealRealms = ['Outer Space', 'Air', 'Undersea'];
   const isEtherealRealm = etherealRealms.includes(localArea);
 
   if (!isEtherealRealm) {
@@ -882,10 +882,10 @@ export function proceduralGenerateMap(
   // console.log("[Gen] Phase 2.6: Inland Cliff Generation - END");
 
 
-  // Special handling for ethereal realms - use special biomes
-  if (localArea === 'Heaven') {
-    console.log("[Gen] Special Zone: Heaven - Creating ethereal cloudscape");
-    // Heaven is all AIR tiles (will render as fluffy white clouds in temperate climate)
+  // Special handling for contextual realms - use dedicated biome layouts
+  if (localArea === 'Air') {
+    console.log("[Gen] Special Zone: Air - Creating atmospheric cloudscape");
+    // Air is all AIR tiles (will render as clouds in temperate climate)
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
       for (let x = 0; x < MAP_WIDTH_TILES; x++) {
         tiles[y][x].biome = BiomeType.AIR;
@@ -901,7 +901,7 @@ export function proceduralGenerateMap(
         tiles[y][x].isLand = true; // Make walkable
       }
     }
-  } else if (localArea === 'Undersea ') {
+  } else if (localArea === 'Undersea') {
     console.log("[Gen] Special Zone: Undersea - Creating underwater realm");
     // Undersea is all UNDERSEA tiles
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
@@ -1465,12 +1465,12 @@ export function proceduralGenerateMap(
     mapDataObject.npcs = [];
     console.log("[Gen] POLAR climate: Skipping both animals and NPCs");
   } else if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
-    // Skip animals in Heaven but keep NPCs
-    if (localArea === 'Heaven') {
+    // Keep NPCs but skip animals in Air context
+    if (localArea === 'Air') {
       mapDataObject.animals = [];
       mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
-      console.log("[Gen] Heaven: Skipping animals, keeping NPCs");
-    } else if (localArea === 'Outer Space' || localArea === 'Undersea ') {
+      console.log("[Gen] Air context: Skipping animals, keeping NPCs");
+    } else if (localArea === 'Outer Space' || localArea === 'Undersea') {
       // Skip both in other special zones
       mapDataObject.animals = [];
       mapDataObject.npcs = [];

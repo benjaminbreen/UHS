@@ -38,7 +38,7 @@ Core focus:
 - LLM-assisted scenario setup and narration (constrained by geography/era data)
 - Educational instrumentation (logs, journal, assessment-oriented systems)
 
---- 
+---
 
 ## ⚙️ Core Mechanics (The below is an AI-written summary - may, and probably does, contain errors and out-of-date info)
 
@@ -203,7 +203,7 @@ See `.env.example` for template keys.
 
 ## 🤝 Contributing
 
-Open to all ideas.
+Open to ideas!
 
 ---
 

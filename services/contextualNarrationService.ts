@@ -46,8 +46,8 @@ export async function generateCompanionNarration(
         ambianceContext: {
             timeOfDay: timeOfDay || 'morning',
             climate: mapData?.climate || 'TEMPERATE',
-            historicalEra: 'MEDIEVAL',
-            season: 'SPRING',
+            historicalEra: mapData?.era || 'MEDIEVAL',
+            season: mapData?.season || 'SPRING',
             culturalZone: currentZone || 'EUROPEAN'
         }
     };
@@ -108,8 +108,8 @@ export async function generatePlayerThoughtNarration(
         ambianceContext: {
             timeOfDay: timeOfDay || 'morning',
             climate: mapData?.climate || 'TEMPERATE',
-            historicalEra: 'MEDIEVAL',
-            season: 'SPRING',
+            historicalEra: mapData?.era || 'MEDIEVAL',
+            season: mapData?.season || 'SPRING',
             culturalZone: currentZone || 'EUROPEAN'
         }
     };
@@ -179,8 +179,8 @@ export async function generateNewAreaNarration(
         ambianceContext: {
             timeOfDay: timeOfDay || 'morning',
             climate: mapData?.climate || 'TEMPERATE',
-            historicalEra: 'MEDIEVAL',
-            season: 'SPRING',
+            historicalEra: mapData?.era || 'MEDIEVAL',
+            season: mapData?.season || 'SPRING',
             culturalZone: currentZone || 'EUROPEAN'
         }
     };

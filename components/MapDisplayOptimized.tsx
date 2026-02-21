@@ -322,7 +322,9 @@ interface MapDisplayOptimizedProps {
   hideMinimap?: boolean; // Hide minimap (e.g., when in sidebar compact view)
 }
 
-export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
+const EMPTY_SHAKEN_TREES = new Map<string, number>();
+
+const MapDisplayOptimizedInner: React.FC<MapDisplayOptimizedProps> = ({
   mapData,
   currentMapSeed,
   animals,
@@ -372,7 +374,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   swingTimestamp = 0,
   isCharging = false,
   isPowerSwing = false,
-  shakenTrees = new Map(),
+  shakenTrees = EMPTY_SHAKEN_TREES,
   playerDirection = 'south',
   onDirectionChange,
   hideMinimap = false
@@ -1694,12 +1696,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           componentInfo = { fileName: 'StairsUpPixel.tsx', symbolName: 'StairsUpPixel' };
           break;
         case BiomeType.AIR:
-          // Check climate to determine which ethereal realm we're in
+          // Check climate to determine which contextual realm we're in
           if (mapData?.climate === ClimateType.ARID) {
             // Outer Space (dark with stars)
             componentInfo = { fileName: 'SpaceSymbol.tsx', symbolName: 'SpaceSymbol' };
           } else {
-            // Heaven/clouds/storm realms (fluffy white or storm clouds)
+            // Air context (cloud/atmospheric rendering)
             componentInfo = { fileName: 'CloudSymbol.tsx', symbolName: 'CloudSymbol' };
           }
           break;
@@ -3153,16 +3155,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       return null;
                     }
 
-                    console.log(`[BridgeRender] Rendering bridge ${bridge.id}:`, {
-                      startX: bridgeData.start.x,
-                      startY: bridgeData.start.y,
-                      endX: bridgeData.end.x,
-                      endY: bridgeData.end.y,
-                      type: bridgeData.type,
-                      style: bridgeData.style,
-                      width: bridgeData.width,
-                      lengthPx: Math.hypot(bridgeData.end.x - bridgeData.start.x, bridgeData.end.y - bridgeData.start.y)
-                    });
 
                     return (
                       <BridgeSymbol
@@ -3224,7 +3216,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     return <SpaceSymbol key={`space-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />;
                   }
 
-                  // Cloud/Heaven tiles (AIR biome in other climates)
+                  // Air-context cloud tiles (AIR biome in non-space climates)
                   if (tile.biome === BiomeType.AIR && climate !== ClimateType.ARID) {
                     const tileSeed = tile.x * 163 + tile.y * 173 + 54321;
                     return <CloudSymbol key={`cloud-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} climate={climate} />;
@@ -5618,49 +5610,6 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   );
 };
 
-// Custom comparison function for memo to prevent unnecessary re-renders
-const arePropsEqual = (prevProps: MapDisplayOptimizedProps, nextProps: MapDisplayOptimizedProps) => {
-  // Calculate viewport boundaries to avoid re-rendering on every pixel movement
-  const getViewportKey = (props: MapDisplayOptimizedProps) => {
-    // Use logical icon positions which are the actual props passed in
-    const playerGridX = Math.floor((props.logicalControlledIconX || 0) / 4); // Group by 4-tile chunks
-    const playerGridY = Math.floor((props.logicalControlledIconY || 0) / 4);
-    return `${playerGridX}-${playerGridY}`;
-  };
-
-  // Only re-render if these essential props changed
-  return (
-    // Map data comparison
-    prevProps.mapData?.seed === nextProps.mapData?.seed &&
-
-    // View and position changes (chunked to reduce sensitivity)
-    getViewportKey(prevProps) === getViewportKey(nextProps) &&
-    prevProps.playerMode === nextProps.playerMode &&
-    prevProps.activeLens === nextProps.activeLens &&
-
-    // Game time that affects rendering - reduced sensitivity for better performance
-    Math.floor(prevProps.gameTimeHours / 6) === Math.floor(nextProps.gameTimeHours / 6) && // Only update every 6 hours (was 4)
-
-    // Array length comparisons for performance (deep comparison is expensive)
-    prevProps.animals?.length === nextProps.animals?.length &&
-    prevProps.npcs?.length === nextProps.npcs?.length &&
-    prevProps.deployedVessels?.length === nextProps.deployedVessels?.length &&
-    prevProps.deployedStructures?.length === nextProps.deployedStructures?.length &&
-
-    // Selection states
-    prevProps.selectedAnimalId === nextProps.selectedAnimalId &&
-    prevProps.selectedNpcId === nextProps.selectedNpcId &&
-
-    // Ship/vessel state
-    prevProps.shipDockX === nextProps.shipDockX &&
-    prevProps.shipDockY === nextProps.shipDockY &&
-    prevProps.currentVessel === nextProps.currentVessel &&
-
-    // Weather comparison - only check values that affect rendering (prevent object reference issues)
-    prevProps.weather?.precipitation === nextProps.weather?.precipitation &&
-    prevProps.weather?.temperature === nextProps.weather?.temperature
-  );
-};
-
-// Export memoized version with custom comparison for maximum performance
-export default memo(MapDisplayOptimized, arePropsEqual);
+// Export memoized version as both named and default export
+export const MapDisplayOptimized = memo(MapDisplayOptimizedInner);
+export default MapDisplayOptimized;

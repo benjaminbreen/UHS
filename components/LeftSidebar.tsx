@@ -166,7 +166,7 @@ const NpcListItem = React.memo(
 
           {/* Profession • Class */}
           <div className="text-xs text-text-secondary truncate">
-            <span className="capitalize text-green-300">{npc.role?.replace(/_/g, ' ') || "unknown"}</span>
+            <span className="capitalize" style={{ color: 'var(--color-success)' }}>{npc.role?.replace(/_/g, ' ') || "unknown"}</span>
             <span className="mx-1 text-text-muted">•</span>
             <span className="capitalize">{(npc.class || "commoner").toString().toLowerCase().replace(/_/g, ' ')}</span>
           </div>
@@ -1040,7 +1040,7 @@ const LeftSidebar: React.FC<{
       const animalList = (animals || []).slice(0, 6);
 
       return (
-        <div className="space-y-4 flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 pr-1">
+        <div className="space-y-4 flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-thin pr-1">
           {/* NPCs Section */}
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-secondary flex justify-between items-center shrink-0">
@@ -1247,7 +1247,7 @@ const LeftSidebar: React.FC<{
             </div>
           )}
           {(activeTab === 'overview' || activeTab === 'analysis' || activeTab === 'nearby') && (
-            <div className="flex-1 surface-card rounded-2xl p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/30 flex flex-col min-h-0">
+            <div className="flex-1 surface-card rounded-2xl p-3 overflow-y-auto scrollbar-thin flex flex-col min-h-0">
               {getSubTabContent(activeTab)}
             </div>
           )}

@@ -61,12 +61,7 @@ import {
 } from '../services/animalTamingService';
 import { ANIMAL_DATA } from '../constants';
 import { mapLocationToCulture } from '../utils/mapUtils';
-import {
-  generateLifeHistory,
-  EventImportance,
-  type EnhancedLifeEvent,
-  type EventKind
-} from '../services/lifeHistoryService';
+import type { EnhancedLifeEvent, EventKind } from '../services/lifeHistoryService';
 
 const CharacterHistoryTab = React.lazy(() => import('./CharacterHistoryTab').then(m => ({ default: m.CharacterHistoryTab })));
 
@@ -397,7 +392,10 @@ const CharacterProfileModalV2: React.FC<Props> = (props) => {
   useEffect(() => {
     if (activeTab === 'history' && !lifeEventsGenerated && !lifeEventsLoading && character) {
       setLifeEventsLoading(true);
-      setTimeout(() => {
+      let cancelled = false;
+
+      import('../services/lifeHistoryService').then(({ generateLifeHistory, EventImportance }) => {
+        if (cancelled) return;
         try {
           const currentYear = parseInt(date || '', 10) || character.year || 1500;
           const events = generateLifeHistory(character, currentYear, culturalZone as any, era as any) as EnhancedLifeEvent[];
@@ -421,7 +419,9 @@ const CharacterProfileModalV2: React.FC<Props> = (props) => {
           setLifeEventsGenerated(true);
         }
         setLifeEventsLoading(false);
-      }, 0);
+      });
+
+      return () => { cancelled = true; };
     }
   }, [activeTab, lifeEventsGenerated, lifeEventsLoading, character, date, tamedAnimals, culturalZone, era]);
 

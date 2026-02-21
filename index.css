@@ -361,9 +361,14 @@ body {
 
 .panel-frame {
   border-radius: 20px;
+  border: 1px solid var(--border-normal);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+:root.dark .panel-frame {
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
 }
 
 [data-surface="modal-overlay"] {
@@ -384,8 +389,12 @@ body {
 }
 
 .history-lens-panel > *:not(:last-child) {
-  background-color: rgba(9, 13, 30, 0.75);
+  background-color: rgba(245, 241, 232, 0.85);
   backdrop-filter: blur(10px);
+}
+
+:root.dark .history-lens-panel > *:not(:last-child) {
+  background-color: rgba(9, 13, 30, 0.75);
 }
 
 .left-sidebar-overview .surface-card {
@@ -397,8 +406,12 @@ body {
 }
 
 .history-lens-panel .hl-dialogue {
-  color: rgba(226, 232, 240, 0.85);
+  color: var(--text-secondary);
   font-style: italic;
+}
+
+:root.dark .history-lens-panel .hl-dialogue {
+  color: rgba(226, 232, 240, 0.85);
 }
 
 .history-lens-panel .hl-name {
@@ -406,14 +419,26 @@ body {
 }
 
 .history-lens-panel .hl-name--player {
+  color: #2563eb;
+}
+
+:root.dark .history-lens-panel .hl-name--player {
   color: rgba(96, 165, 250, 0.95);
 }
 
 .history-lens-panel .hl-name--npc {
+  color: #92700a;
+}
+
+:root.dark .history-lens-panel .hl-name--npc {
   color: rgba(244, 203, 120, 0.95);
 }
 
 .history-lens-panel .hl-name--location {
+  color: #15803d;
+}
+
+:root.dark .history-lens-panel .hl-name--location {
   color: rgba(74, 222, 128, 0.9);
 }
 
@@ -423,6 +448,10 @@ body {
   line-height: 0.85;
   padding-right: 0.35rem;
   padding-top: 0.1rem;
+  color: #92700a;
+}
+
+:root.dark .history-lens-panel .hl-message__text--scene::first-letter {
   color: rgba(244, 203, 120, 0.9);
 }
 
@@ -436,6 +465,10 @@ body {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+:root.dark .history-lens-panel .hl-message__meta {
   color: rgba(148, 163, 184, 0.75);
 }
 

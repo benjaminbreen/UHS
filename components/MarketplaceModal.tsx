@@ -38,6 +38,7 @@ import { WorkOffer } from '../types/workOffer';
 import { generateWorkOffer, WorkGenerationContext } from '../services/workOfferGenerationService';
 import { getMarketplaceTemplates } from '../constants/workOfferTemplates';
 import { addWorkOffer, loadWorkOffers } from '../services/workOfferStorage';
+import { getPlayerCurrency } from '../utils/currencyUtils';
 
 // Quest system removed - minimal type stub for compilation
 type Quest = any;
@@ -353,7 +354,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
           mode: TravelMode.CARAVAN,
           currentYear,
           currentEra: era,
-          playerWealth: playerCharacter.wealth || 0,
+          playerWealth: getPlayerCurrency(playerCharacter),
           maxHops: 6
         });
 
@@ -366,7 +367,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     };
 
     fetchCaravanDestinations();
-  }, [mapData, playerCharacter.age, playerCharacter.dateOfBirth, playerCharacter.wealth]);
+  }, [mapData, playerCharacter.age, playerCharacter.dateOfBirth, playerCharacter.currency]);
 
   // Check for active crises affecting this market and record price history
   useEffect(() => {
@@ -1098,8 +1099,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     }
 
     // Check if player has enough money
-    if (!playerCharacter.wealth || playerCharacter.wealth < destination.fare) {
-      showToast(`Need ${destination.fare - (playerCharacter.wealth || 0)} more coins`, 'error');
+    const playerCurrency = getPlayerCurrency(playerCharacter);
+    if (playerCurrency < destination.fare) {
+      showToast(`Need ${destination.fare - playerCurrency} more coins`, 'error');
       return;
     }
 
@@ -1110,7 +1112,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
     // Close the modal
     onClose();
-  }, [onRequestTravel, playerCharacter.wealth, showToast, onClose]);
+  }, [onRequestTravel, playerCharacter, showToast, onClose]);
 
   // Market condition description
   const marketConditionDesc = useMemo(() => {
@@ -1968,15 +1970,15 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           )}
                           <button
                             onClick={() => handleCaravanBooking(dest)}
-                            disabled={!playerCharacter.wealth || playerCharacter.wealth < dest.fare}
+                            disabled={playerCharacter.currency < dest.fare}
                             className={`w-full py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                              !playerCharacter.wealth || playerCharacter.wealth < dest.fare
+                              playerCharacter.currency < dest.fare
                                 ? 'bg-[var(--surface-muted-bg)] text-[var(--text-muted)] cursor-not-allowed'
                                 : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-md shadow-orange-900/30 transform hover:scale-105'
                             }`}
                           >
-                            {!playerCharacter.wealth || playerCharacter.wealth < dest.fare
-                              ? `Need ${dest.fare - (playerCharacter.wealth || 0)} more coins`
+                            {playerCharacter.currency < dest.fare
+                              ? `Need ${dest.fare - playerCharacter.currency} more coins`
                               : `${dest.culturalIcon || '🐴'} Book ${dest.culturalTravelName || 'Passage'} (${dest.fare} coins)`
                             }
                           </button>

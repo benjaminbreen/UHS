@@ -61,6 +61,7 @@ import QuestsPanel from './components/QuestsPanel';
 import { GameModePanel } from './components/GameModePanel';
 import { LanguageFamilyTree } from './components/LanguageFamilyTree';
 import { useAtmosphereState } from './hooks/useAtmosphereState';
+import { normalizePlayerCurrency } from './utils/currencyUtils';
 
 // Lazy load heavy modals that are used infrequently
 const EventModal = lazy(() => import('./components/EventModal').then(m => ({ default: m.EventModal })));
@@ -162,6 +163,7 @@ const AppContent: React.FC = () => {
             try {
                 const savedGame: SavedGame = JSON.parse(pendingSaveLoadString);
                 localStorage.removeItem('pendingSaveLoad'); // Clear it immediately
+                savedGame.playerCharacter = normalizePlayerCurrency(savedGame.playerCharacter);
                 
                 console.log('╔═══════════════════════════════════════════════════════');
                 console.log('║ LOADING SAVED GAME');
@@ -1259,7 +1261,8 @@ const AppContent: React.FC = () => {
                                 onClick={() => setMobileMenuOpen(null)}
                             />
                             <div
-                                className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp"
+                                className="absolute bottom-0 left-0 right-0 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp border-t"
+                                style={{ background: 'var(--surface-sidebar-bg)', borderColor: 'var(--surface-sidebar-border)' }}
                                 style={{
                                     maxHeight: 'calc(70vh - var(--sat, 0px))',
                                     paddingBottom: 'var(--sab, 0px)',
@@ -1335,7 +1338,8 @@ const AppContent: React.FC = () => {
                                 onClick={() => setMobileMenuOpen(null)}
                             />
                             <div
-                                className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp"
+                                className="absolute bottom-0 left-0 right-0 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp border-t"
+                                style={{ background: 'var(--surface-sidebar-bg)', borderColor: 'var(--surface-sidebar-border)' }}
                                 style={{
                                     maxHeight: 'calc(70vh - var(--sat, 0px))',
                                     paddingBottom: 'var(--sab, 0px)',

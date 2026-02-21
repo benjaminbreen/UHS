@@ -2271,12 +2271,6 @@ function calculateNpcUpdateUnsafe(
             console.warn(`[NPC AI] ${npc.name} tried to move out of bounds to (${nextPos.x}, ${nextPos.y}), clamped to (${safeX}, ${safeY})`);
         }
 
-        // Debug logging for movement profiles (occasional)
-        if (Math.random() < 0.02) { // 2% chance to log
-            const profile = getMovementProfile(npc, newActivity);
-            console.log(`[NPC Movement] ${npc.name} (${npc.profession || 'citizen'}) - Activity: ${newActivity}, Speed: ${profile.baseSpeed}ms, Desc: ${profile.description}`);
-        }
-
         return { activity: newActivity, x: safeX, y: safeY };
     }
 

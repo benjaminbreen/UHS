@@ -110,6 +110,37 @@ export function generateNpcName(
             }
             
             // If not found in colonial mappings or not applicable, check the original cultural zone
+            // For NORTH_AMERICAN_COLONIAL, also check NORTH_AMERICAN mappings (which have era-appropriate name pools)
+            const zoneKeysToCheck = [culturalZone];
+            if (culturalZone === 'NORTH_AMERICAN_COLONIAL' || culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
+                zoneKeysToCheck.push('NORTH_AMERICAN');
+            }
+            // Map region names to the keys used in REGION_NAME_MAPPING
+            const regionKeysToCheck = [region];
+            if (region === 'Northeastern Seaboard') regionKeysToCheck.push('Atlantic Coast');
+            else if (region === 'Mississippi Valley') regionKeysToCheck.push('Mississippi & Ohio');
+
+            for (const zoneKey of zoneKeysToCheck) {
+                if (nameKeyToUse) break;
+                const zoneMapping = REGION_NAME_MAPPING[zoneKey as keyof typeof REGION_NAME_MAPPING];
+                if (!zoneMapping) continue;
+                for (const regionKey of regionKeysToCheck) {
+                    const regionRules = zoneMapping[regionKey];
+                    if (regionRules) {
+                        for (const rule of regionRules) {
+                            const beforeMatch = rule.before ? year < rule.before : true;
+                            const afterMatch = rule.after ? year >= rule.after : true;
+                            if (beforeMatch && afterMatch) {
+                                nameKeyToUse = rule.keys[Math.floor(noise.random() * rule.keys.length)];
+                                break;
+                            }
+                        }
+                        if (nameKeyToUse) break;
+                    }
+                }
+            }
+
+            // Original fallback: check exact culturalZone match in REGION_NAME_MAPPING
             if (!nameKeyToUse && REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING]) {
                 // console.log(`[NameGen] Checking REGION_NAME_MAPPING["${culturalZone}"]["${region}"]`);
                 const regionRules = REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING][region];

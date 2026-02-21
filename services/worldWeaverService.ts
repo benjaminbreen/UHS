@@ -313,9 +313,8 @@ IMPORTANT - CITY NAME MAPPING (cities are NOT valid area names — use the neare
 - "mexico city", "tenochtitlan" → "Valley of Mexico"
 - Always find the NEAREST valid area name from the list — never invent one
 - "space", "astronaut", "cosmonaut", "yuri gagarin", "space station", "orbit" → 1961-1990 "Outer Space"
-- "submarine", "u-boat", "underwater", "deep sea", "ocean floor", "atlantis" → 1915 (WWI) or 1942 (WWII) "Undersea " (with trailing space)
-- "heaven", "paradise", "afterlife", "angel", "divine realm", "pearly gates" → 1500 "Heaven"
-- "dream", "nightmare", "ethereal", "surreal" → any year "Heaven" or "Undersea " (choose based on tone)
+- "submarine", "u-boat", "underwater", "deep sea", "ocean floor", "submersible" → 1915 (WWI) or 1942 (WWII) "Undersea"
+- "balloonist", "airship", "zeppelin", "pilot", "aviator", "stratosphere", "high altitude", "glider" → 1783-1930 "Air"
 
 CRITICAL REQUIREMENT: You MUST select a map area name that appears EXACTLY in the list below. Do not create variations, do not use similar names, do not use city names that aren't listed. ONLY use the exact names from this list:
 
@@ -365,6 +364,68 @@ If you cannot find a suitable connection or cannot interpret the prompt, return:
   "success": false,
   "errorMessage": "Could not interpret prompt"
 }`;
+}
+
+/**
+ * Extract a valid map area from an invalid location string by scanning for
+ * geographic keywords (US states, countries, regions, landmarks).
+ * Checks the invalid area string plus the explanation and reasoning fields
+ * which often contain better geographic context.
+ */
+function extractGeographicFallback(invalidArea: string, explanation: string, reasoning: string): string | null {
+  const searchText = `${invalidArea} ${explanation} ${reasoning}`.toLowerCase();
+
+  // US states → nearest map area
+  const STATE_TO_AREA: Record<string, string> = {
+    'indiana': 'Great Lakes Shoreline', 'illinois': 'Illinois River Valley', 'ohio': 'Great Lakes Shoreline',
+    'michigan': 'Great Lakes Shoreline', 'wisconsin': 'Driftless Area', 'minnesota': 'Driftless Area',
+    'iowa': 'Tallgrass Prairie', 'missouri': 'Ozark Plateau', 'kansas': 'Tallgrass Prairie',
+    'nebraska': 'Platte River Basin', 'oklahoma': 'Tallgrass Prairie',
+    'texas': 'Gulf Coast Texas', 'louisiana': 'Lower Mississippi Delta',
+    'mississippi': 'Lower Mississippi Delta', 'alabama': 'Piedmont Uplands',
+    'georgia': 'Piedmont Uplands', 'florida': 'Everglades',
+    'tennessee': 'Smoky Mountains', 'kentucky': 'Smoky Mountains',
+    'virginia': 'Chesapeake Bay', 'west virginia': 'Smoky Mountains',
+    'north carolina': 'Outer Banks', 'south carolina': 'Piedmont Uplands',
+    'maryland': 'Chesapeake Bay', 'delaware': 'Delaware River Valley',
+    'pennsylvania': 'Delaware River Valley', 'new jersey': 'Pine Barrens',
+    'new york': 'New York Harbor', 'connecticut': 'Connecticut River Valley',
+    'massachusetts': 'Cape Cod', 'rhode island': 'Cape Cod',
+    'vermont': 'Champlain Valley', 'new hampshire': 'Champlain Valley', 'maine': 'Canadian Maritimes',
+    'california': 'San Francisco Bay', 'oregon': 'Columbia River Valley', 'washington': 'Puget Sound',
+    'nevada': 'Mojave Desert', 'utah': 'Colorado Plateau', 'colorado': 'Rocky Mountains',
+    'arizona': 'Sonoran Desert', 'new mexico': 'Rio Grande Valley',
+    'idaho': 'Snake River Plain', 'montana': 'Glacier Foothills', 'wyoming': 'Yellowstone Basin',
+    'north dakota': 'Tallgrass Prairie', 'south dakota': 'Black Hills',
+    'arkansas': 'Ozark Plateau',
+    // Countries / major regions
+    'england': 'London', 'britain': 'London', 'scotland': 'Scottish Highlands',
+    'france': 'Paris Basin', 'germany': 'Rhine Valley', 'spain': 'Castilian Plateau',
+    'italy': 'Central Italy', 'greece': 'Attica', 'turkey': 'Cappadocian Highlands',
+    'egypt': 'Lower Nile Valley', 'china': 'North China Plain', 'japan': 'Kanto Plain',
+    'india': 'Indo-Gangetic Plain', 'russia': 'Moscow Basin', 'persia': 'Persian Plateau',
+    'iran': 'Persian Plateau', 'iraq': 'Mesopotamia', 'mexico': 'Valley of Mexico',
+    'brazil': 'Rio de Janeiro Bay', 'peru': 'Cuzco Valley', 'australia': 'Southeast Australia',
+    'korea': 'Korean Peninsula', 'vietnam': 'Red River Delta',
+    'st. louis': 'Illinois River Valley', 'saint louis': 'Illinois River Valley',
+    'san francisco': 'San Francisco Bay', 'seattle': 'Puget Sound', 'portland': 'Columbia River Valley',
+    'denver': 'Rocky Mountains', 'atlanta': 'Piedmont Uplands', 'detroit': 'Great Lakes Shoreline',
+    'pittsburgh': 'Smoky Mountains', 'minneapolis': 'Driftless Area', 'st. paul': 'Driftless Area',
+    'cincinnati': 'Great Lakes Shoreline', 'cleveland': 'Great Lakes Shoreline',
+    'milwaukee': 'Great Lakes Shoreline', 'indianapolis': 'Great Lakes Shoreline',
+    'bloomington': 'Great Lakes Shoreline',
+  };
+
+  // Check longest keys first to avoid partial matches (e.g. "west virginia" before "virginia")
+  const sortedKeys = Object.keys(STATE_TO_AREA).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (searchText.includes(key)) {
+      console.log(`[WorldWeaverService] Geographic keyword matched: "${key}" in "${invalidArea}"`);
+      return STATE_TO_AREA[key];
+    }
+  }
+
+  return null;
 }
 
 class WorldWeaverService {
@@ -451,95 +512,47 @@ class WorldWeaverService {
       };
     }
 
-    // Easter eggs: Check for special zone prompts
+    // Special contextual zones for realistic edge-case scenarios
     const lowerPrompt = userPrompt.toLowerCase();
     
-    // Space keywords
-    const spaceKeywords = ['space', 'cosmos', 'galaxy', 'stars', 'planet', 'alien', 'astronaut', 'moon', 'mars', 'asteroid', 'nebula', 'rocket'];
+    // Outer-space contexts
+    const spaceKeywords = ['space', 'cosmonaut', 'astronaut', 'space station', 'orbit', 'capsule', 'rocket', 'moon mission'];
     if (spaceKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      // console.log('[WorldWeaverService] Space easter egg triggered!');
       return {
         success: true,
-        year: 2150, // Future year for space
+        year: 1969,
         mapArea: 'Outer Space',
-        explanation: 'Venturing into the cosmic void...',
-        reasoning: 'You have discovered the mysteries of outer space!',
-        suggestion: 'Explore the infinite cosmos, but beware - the edges of space lead to unexpected destinations.',
+        explanation: 'You are placed in a historically grounded orbital spaceflight setting.',
+        reasoning: 'Your prompt indicates an astronaut/cosmonaut context best represented by the Outer Space map area.',
+        suggestion: 'Prioritize life-support discipline, mission procedures, and constrained movement in the capsule environment.',
         characterSpec: null
       };
     }
-    
-    // Heaven keywords
-    const heavenKeywords = ['heaven', 'paradise', 'afterlife', 'celestial', 'angels', 'divine', 'ethereal', 'pearly gates'];
-    if (heavenKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      // console.log('[WorldWeaverService] Heaven easter egg triggered!');
-      return {
-        success: true,
-        year: 1350, // Medieval by default
-        mapArea: 'Heaven',
-        explanation: 'Ascending to the celestial realm...',
-        reasoning: 'You have found the path to Heaven!',
-        suggestion: 'Walk among the clouds in eternal peace. The edges of Heaven lead back to the mortal world.',
-        characterSpec: null
-      };
-    }
-    
-    // Undersea keywords
-    const underseaKeywords = ['undersea', 'underwater', 'atlantis', 'ocean depths', 'submarine', 'deep sea', 'merfolk', 'aquatic kingdom'];
+
+    // Undersea contexts
+    const underseaKeywords = ['undersea', 'underwater', 'ocean depths', 'submarine', 'u-boat', 'deep sea', 'submersible', 'ocean floor', 'diving bell'];
     if (underseaKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      // console.log('[WorldWeaverService] Undersea Kingdom easter egg triggered!');
       return {
         success: true,
-        year: 1500, // Age of exploration
-        mapArea: 'Undersea Kingdom',
-        explanation: 'Descending to the ocean depths...',
-        reasoning: 'You have discovered the legendary undersea realm!',
-        suggestion: 'Explore the glowing blue depths. Swimming off the edge will return you to the surface world.',
+        year: 1942,
+        mapArea: 'Undersea',
+        explanation: 'You are placed in a realistic underwater operations context.',
+        reasoning: 'Your prompt points to submarine or deep-sea conditions best represented by the Undersea map area.',
+        suggestion: 'Manage oxygen, pressure constraints, navigation limits, and crew coordination under severe risk.',
         characterSpec: null
       };
     }
-    
-    // Storm Realm keywords
-    const stormKeywords = ['storm', 'tempest', 'maelstrom', 'chaos', 'whirlwind', 'cyclone'];
-    if (stormKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      // console.log('[WorldWeaverService] Storm Realm easter egg triggered!');
+
+    // Airborne contexts (balloons, gliders, early aviation, high-altitude drift)
+    const airKeywords = ['balloonist', 'hot air balloon', 'airship', 'zeppelin', 'pilot', 'aviator', 'glider', 'stratosphere', 'high altitude', 'aerial', 'airborne'];
+    if (airKeywords.some(keyword => lowerPrompt.includes(keyword))) {
       return {
         success: true,
-        year: 1600,
-        mapArea: 'Storm Realm',
-        explanation: 'Entering the dimension of eternal storms...',
-        reasoning: 'You have found the chaotic Storm Realm!',
-        suggestion: 'Navigate the swirling winds and waters. The edges lead to random worlds.',
-        characterSpec: null
-      };
-    }
-    
-    // Frozen Wastes keywords
-    const frozenKeywords = ['frozen', 'ice realm', 'crystal dimension', 'arctic void', 'eternal winter'];
-    if (frozenKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      // console.log('[WorldWeaverService] Frozen Wastes easter egg triggered!');
-      return {
-        success: true,
-        year: 1800,
-        mapArea: 'Frozen Wastes',
-        explanation: 'Entering the realm of eternal ice...',
-        reasoning: 'You have discovered the Frozen Wastes!',
-        suggestion: 'Walk among the ice crystals. The edges lead to warmer worlds.',
-        characterSpec: null
-      };
-    }
-    
-    // Typhoon Realm keywords
-    const typhoonKeywords = ['typhoon', 'hurricane', 'tropical storm', 'monsoon'];
-    if (typhoonKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      // console.log('[WorldWeaverService] Typhoon Realm easter egg triggered!');
-      return {
-        success: true,
-        year: 1900,
-        mapArea: 'Typhoon Realm',
-        explanation: 'Entering the realm of endless hurricanes...',
-        reasoning: 'You have found the Typhoon Realm!',
-        suggestion: 'Brave the eternal storms. The edges lead to calmer lands.',
+        year: 1912,
+        mapArea: 'Air',
+        explanation: 'You are placed in a realistic airborne setting.',
+        reasoning: 'Your prompt suggests a balloon, glider, or early-flight context represented by the Air map area.',
+        suggestion: 'Focus on weather, altitude, navigation, and limited supplies while maintaining flight safety.',
         characterSpec: null
       };
     }
@@ -632,10 +645,19 @@ class WorldWeaverService {
                     characterSpec: result.characterSpec || null
                   };
                 }
-                return {
-                  success: false,
-                  errorMessage: `Invalid map area: ${result.mapArea}`
-                };
+
+                // Recovery 4: Extract geographic keywords from invalid area string
+                // Handles cases like "Indiana University" → Indiana → Great Lakes region
+                const geoFallback = extractGeographicFallback(result.mapArea, result.explanation || '', result.reasoning || '');
+                if (geoFallback && isValidMapAreaName(geoFallback)) {
+                  console.log('[WorldWeaverService] Geographic keyword fallback:', result.mapArea, '→', geoFallback);
+                  result.mapArea = geoFallback;
+                } else {
+                  return {
+                    success: false,
+                    errorMessage: `Invalid map area: ${result.mapArea}`
+                  };
+                }
               }
             }
           }

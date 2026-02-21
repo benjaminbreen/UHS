@@ -178,122 +178,148 @@ const useCoreLoops = (
   // Store interrupted journey target so we can offer to resume after encounters
   const interruptedJourneyRef = useRef<{ destination: { x: number; y: number; label: string; kind: string }; interruptedBy: 'npc' | 'animal'; entityName?: string } | null>(null);
 
+  // ---- Refs for values read inside intervals (prevents stale closures) ----
+  const playerCharacterRef = useRef(playerCharacter);
+  playerCharacterRef.current = playerCharacter;
+  const npcsRef = useRef(npcs);
+  npcsRef.current = npcs;
+  const mapDataRef = useRef(mapData);
+  mapDataRef.current = mapData;
+  const controlledIconXRef = useRef(controlledIconX);
+  controlledIconXRef.current = controlledIconX;
+  const controlledIconYRef = useRef(controlledIconY);
+  controlledIconYRef.current = controlledIconY;
+  const gameDateRef = useRef(gameDate);
+  gameDateRef.current = gameDate;
+  const gameTimeHoursRef = useRef(gameTimeHours);
+  gameTimeHoursRef.current = gameTimeHours;
+  const currentTimeOfDayRef = useRef(currentTimeOfDay);
+  currentTimeOfDayRef.current = currentTimeOfDay;
+  const currentMapSeedRef = useRef(currentMapSeed);
+  currentMapSeedRef.current = currentMapSeed;
+  const playerModeRef = useRef(playerMode);
+  playerModeRef.current = playerMode;
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
+  const onDeathRef = useRef(onDeath);
+  onDeathRef.current = onDeath;
+  const onDiseaseProgressionRef = useRef(onDiseaseProgression);
+  onDiseaseProgressionRef.current = onDiseaseProgression;
+  const onGlobalEventTriggeredRef = useRef(onGlobalEventTriggered);
+  onGlobalEventTriggeredRef.current = onGlobalEventTriggered;
+  const isAnyModalOpenRef = useRef(isAnyModalOpen);
+  isAnyModalOpenRef.current = isAnyModalOpen;
+
   // Game Clock - Reduced frequency for better performance
+  // Uses refs for all values read inside the interval to prevent stale closures.
+  // The interval is created once and never torn down (except on unmount).
   useEffect(() => {
     const clockInterval = setInterval(() => {
-      if (isAnyModalOpen) return;
+      if (isAnyModalOpenRef.current) return;
+
+      // Read current values from refs
+      const md = mapDataRef.current;
+      const iconX = controlledIconXRef.current;
+      const iconY = controlledIconYRef.current;
+      const gDate = gameDateRef.current;
+      const timeOfDay = currentTimeOfDayRef.current;
+      const gtHours = gameTimeHoursRef.current;
+
       setGameTimeMinutes((prevMinutes) => {
         const newMinutes = (prevMinutes + 1) % 60;
-        
+
         // Fire spread check every 10 game minutes
-        if (newMinutes % 10 === 0 && mapData && controlledIconX !== null && controlledIconY !== null) {
-          // Get weather conditions for fire spread
-          const centerX = Math.floor(mapData.tiles[0].length / 2);
-          const centerY = Math.floor(mapData.tiles.length / 2);
-          const centerTile = mapData.tiles[centerY]?.[centerX];
-          
+        if (newMinutes % 10 === 0 && md && iconX !== null && iconY !== null) {
+          const centerX = Math.floor(md.tiles[0].length / 2);
+          const centerY = Math.floor(md.tiles.length / 2);
+          const centerTile = md.tiles[centerY]?.[centerX];
+
           let isRaining = false;
           let windDirection = 0;
-          
+
           if (centerTile) {
             const weather = weatherService.getWeather(
-              mapData.climate,
+              md.climate,
               centerTile.biome,
-              gameDate.season,
-              currentTimeOfDay,
+              gDate.season,
+              timeOfDay,
               centerTile.altitude || 0.5,
-              gameDate.dayOfYear,
+              gDate.dayOfYear,
               { x: centerX, y: centerY }
             );
-            
+
             isRaining = weather.precipitation === 'rain' || weather.precipitation === 'drizzle';
             windDirection = weather.windDirection;
           }
-          
+
           // Process fire spread
-          const gameTimeInMinutes = ((gameDate.dayOfYear - 1) * 24 * 60) + (gameTimeHours * 60) + newMinutes;
+          const gameTimeInMinutes = ((gDate.dayOfYear - 1) * 24 * 60) + (gtHours * 60) + newMinutes;
           const spreadEvents = fireService.processFireSpread(
-            mapData,
+            md,
             gameTimeInMinutes,
             windDirection,
             isRaining
           );
-          
+
           // Show toast notifications for fire spread
-          const timeouts: NodeJS.Timeout[] = [];
           spreadEvents.forEach((event, index) => {
-            const timeout = setTimeout(() => {
+            setTimeout(() => {
               showToast(
                 `🔥 Fire spreading at [${event.toX}, ${event.toY}]. ${event.biomeName} is now aflame!`,
                 'warning'
               );
-            }, index * 500); // Stagger toasts by 0.5s
-            timeouts.push(timeout);
+            }, index * 500);
           });
-          
-          // Store timeouts for cleanup if needed
-          // Note: These are short-lived (max 2-3 seconds) so cleanup in main interval is sufficient
         }
-        
+
         if (newMinutes === 0) {
           setGameTimeHours((prevHours) => {
             const newHours = (prevHours + 1) % 24;
 
-            // Check work offer completion EVERY HOUR (not just at midnight)
-            const currentGameHours = (gameDate.year * 365 * 24) + (gameDate.month * 30 * 24) + (gameDate.day * 24) + newHours;
+            // Re-read refs inside nested updaters for freshest values
+            const pc = playerCharacterRef.current;
+            const currentNpcs = npcsRef.current;
+            const currentIconX = controlledIconXRef.current;
+            const currentIconY = controlledIconYRef.current;
+            const currentGDate = gameDateRef.current;
+
+            // Check work offer completion EVERY HOUR
+            const currentGameHours = (currentGDate.year * 365 * 24) + (currentGDate.month * 30 * 24) + (currentGDate.day * 24) + newHours;
             const activeOffers = getActiveWorkOffers();
 
             activeOffers.forEach(offer => {
-              // Find the NPC who gave the quest for conversation tracking
-              const questGiverNpc = npcs.find(npc => npc.id === offer.npcId);
+              const questGiverNpc = currentNpcs.find(npc => npc.id === offer.npcId);
 
               const status = checkWorkCompletion(
                 offer,
-                playerCharacter,
-                { x: controlledIconX, y: controlledIconY },
+                pc,
+                { x: currentIconX, y: currentIconY },
                 currentGameHours,
-                questGiverNpc // Pass the NPC for conversation tracking
+                questGiverNpc
               );
 
               if (status === 'completed' && !offer.completed) {
-                // Mark as completed (use spread operator to avoid mutation)
-                const updatedOffer = {
-                  ...offer,
-                  completed: true
-                };
+                const updatedOffer = { ...offer, completed: true };
 
-                // Remove items immediately to prevent consumption
                 completeWorkOffer(
                   updatedOffer,
-                  playerCharacter,
+                  pc,
                   (newInventory) => {
                     setPlayerCharacter(prev => {
                       if (!prev) return prev;
-                      return {
-                        ...prev,
-                        inventory: newInventory
-                      };
+                      return { ...prev, inventory: newInventory };
                     });
-                    // Dispatch inventory update event for progress tracking
                     window.dispatchEvent(new CustomEvent('inventoryUpdated'));
                   }
                 );
 
                 updateWorkOffer(updatedOffer);
                 showToast(`Task complete! Return to ${offer.npcName} at (${offer.npcLocation.x}, ${offer.npcLocation.y}) for payment.`);
-
-                // Dispatch event for quest panel refresh
                 window.dispatchEvent(new CustomEvent('workOfferCompleted', { detail: { offerId: offer.id } }));
               } else if (status === 'failed' && !offer.failed) {
-                // Mark as failed (use spread operator to avoid mutation)
-                const updatedOffer = {
-                  ...offer,
-                  failed: true
-                };
+                const updatedOffer = { ...offer, failed: true };
                 updateWorkOffer(updatedOffer);
                 showToast(`Task failed: ${offer.description}`);
-
-                // Dispatch event for quest panel refresh
                 window.dispatchEvent(new CustomEvent('workOfferFailed', { detail: { offerId: offer.id } }));
               }
             });
@@ -311,80 +337,79 @@ const useCoreLoops = (
                   }
                 }
 
-                // Cleanup orphaned work offers once per day (NPCs that no longer exist)
-                // Pass current map seed to avoid false positives when player travels between maps
-                const orphanedCount = cleanupOrphanedWorkOffers(npcs, currentMapSeed);
+                // Re-read refs for day-boundary logic
+                const latestNpcs = npcsRef.current;
+                const latestPc = playerCharacterRef.current;
+                const latestMapData = mapDataRef.current;
+                const latestMapSeed = currentMapSeedRef.current;
+
+                // Cleanup orphaned work offers once per day
+                const orphanedCount = cleanupOrphanedWorkOffers(latestNpcs, latestMapSeed);
                 if (orphanedCount > 0) {
                   showToast(`${orphanedCount} work offer${orphanedCount > 1 ? 's' : ''} failed due to NPC disappearance.`);
                 }
 
-                // Cleanup old witnessed events once per day (events older than 24 hours)
+                // Cleanup old witnessed events once per day
                 const currentGameTime = Date.now();
-                const cleanedNpcs = cleanupOldWitnessedEvents(npcs, currentGameTime, 24);
-                if (cleanedNpcs !== npcs) {
+                const cleanedNpcs = cleanupOldWitnessedEvents(latestNpcs, currentGameTime, 24);
+                if (cleanedNpcs !== latestNpcs) {
                   setNpcs(cleanedNpcs);
                 }
 
                 // Disease progression on new day for player character
-                if (playerCharacter?.diseaseHealth?.currentDiseases?.length > 0) {
+                if (latestPc?.diseaseHealth?.currentDiseases?.length > 0) {
                   const diseaseService = DiseaseService.getInstance();
-                  const result = diseaseService.updateDiseaseProgression(playerCharacter, year);
+                  const result = diseaseService.updateDiseaseProgression(latestPc, year);
 
-                  result.progressionEvents.forEach((event) => {
-                    // console.log(`[DISEASE] ${event}`);
-                  });
-
-                  result.recoveryEvents.forEach((event) => {
-                    // console.log(`[DISEASE RECOVERY] ${event}`);
+                  result.recoveryEvents.forEach(() => {
                     if (typeof window !== 'undefined' && (window as any).showNotification) {
                       (window as any).showNotification('You have recovered from your illness!', 'success');
                     }
                   });
 
-                  // Check if player died from disease (determined in diseaseService)
-                  if (result.isDead && playerCharacter.diseaseHealth.currentDiseases.length > 0) {
-                    const mostSevere = playerCharacter.diseaseHealth.currentDiseases.reduce((worst: any, current: any) => {
+                  // Check if player died from disease
+                  if (result.isDead && latestPc.diseaseHealth.currentDiseases.length > 0) {
+                    const mostSevere = latestPc.diseaseHealth.currentDiseases.reduce((worst: any, current: any) => {
                       const currentMortality = current.disease.mortalityRate * current.severity;
                       const worstMortality = worst.disease.mortalityRate * worst.severity;
                       return currentMortality > worstMortality ? current : worst;
                     });
 
-                    // console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
-                    if (onDeath) {
-                      onDeath({
+                    const deathHandler = onDeathRef.current;
+                    if (deathHandler) {
+                      deathHandler({
                         type: 'disease',
                         disease: mostSevere.disease,
                         description: `Succumbed to ${mostSevere.disease.name}`
                       });
-                    } else {
-                      // Fallback to alert if no handler provided
-                      alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
                     }
                   }
 
                   // Check for disease stage changes and trigger notifications
-                  if (onDiseaseProgression) {
+                  const diseaseProgressionHandler = onDiseaseProgressionRef.current;
+                  if (diseaseProgressionHandler) {
                     const progressionEvents = checkDiseaseStageChanges(
-                      playerCharacter.name || 'player',
-                      playerCharacter.diseaseHealth
+                      latestPc.name || 'player',
+                      latestPc.diseaseHealth
                     );
                     if (progressionEvents.length > 0) {
-                      onDiseaseProgression(progressionEvents);
+                      diseaseProgressionHandler(progressionEvents);
                     }
                   }
 
-                  setPlayerCharacter({ ...playerCharacter });
+                  // The disease service mutated latestPc in-place above.
+                  // Force a re-render by shallow-copying via functional update.
+                  setPlayerCharacter(prev => prev ? { ...prev } : prev);
                 }
 
                 // Check for global historical events
-                if (playerCharacter && mapData && onGlobalEventTriggered) {
+                const globalEventHandler = onGlobalEventTriggeredRef.current;
+                if (latestPc && latestMapData && globalEventHandler) {
                   const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                  const culturalZone = playerCharacter.culturalZone;
+                  const culturalZone = latestPc.culturalZone;
 
-                  // Clean up any expired events first
                   cleanupExpiredEvents(dateString);
 
-                  // Check if a new global event should trigger
                   const triggeredEvent = checkForEvent({
                     currentDate: dateString,
                     culturalZone,
@@ -392,8 +417,7 @@ const useCoreLoops = (
                   });
 
                   if (triggeredEvent) {
-                    // Trigger the modal callback
-                    onGlobalEventTriggered(triggeredEvent);
+                    globalEventHandler(triggeredEvent);
                   }
                 }
 
@@ -416,9 +440,10 @@ const useCoreLoops = (
         }
         return newMinutes;
       });
-    }, 2000); // Reduced from 1000ms for better performance
+    }, 2000);
     return () => clearInterval(clockInterval);
-  }, [isAnyModalOpen]); // Remove playerCharacter to prevent frequent recreations
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Stable interval — reads all changing values from refs
 
   // Play Time Tracking - increment every minute
   useEffect(() => {
@@ -455,43 +480,52 @@ const useCoreLoops = (
   }, [playerCharacter?.id]); // Only re-run if player character changes
 
   // Drowning system - check when player is in water
+  // Uses refs to avoid tearing down/rebuilding the interval on every state change.
   useEffect(() => {
     const drowningInterval = setInterval(() => {
-      if (isAnyModalOpen || !playerCharacter || viewMode !== 'standard') return;
-      if (controlledIconX === null || controlledIconY === null || !mapData) return;
+      if (isAnyModalOpenRef.current) return;
+      const pc = playerCharacterRef.current;
+      const vm = viewModeRef.current;
+      const iconX = controlledIconXRef.current;
+      const iconY = controlledIconYRef.current;
+      const md = mapDataRef.current;
+      const mode = playerModeRef.current;
+
+      if (!pc || vm !== 'standard') return;
+      if (iconX === null || iconY === null || !md) return;
 
       // Check if player is in water and not on a boat
-      const currentTile = mapData.tiles[controlledIconY][controlledIconX];
-      const isInWater = ['RIVER', 'STREAM', 'LAKE', 'OCEAN', 'SHALLOW_OCEAN', 'DEEP_OCEAN',].includes(currentTile.biome as any);
-      const isOnBoat = playerMode === 'ship' || playerCharacter.currentVessel;
+      const currentTile = md.tiles[iconY]?.[iconX];
+      if (!currentTile) return;
+      const isInWater = ['RIVER', 'STREAM', 'LAKE', 'OCEAN', 'SHALLOW_OCEAN', 'DEEP_OCEAN'].includes(currentTile.biome as any);
+      const isOnBoat = mode === 'ship' || pc.currentVessel;
 
       if (isInWater && !isOnBoat) {
-        // Player is drowning - apply damage every second
-        let drowningDamage = 2; // Base drowning damage per second
-
-        // Increase damage based on water type
+        let drowningDamage = 2;
         if (currentTile.biome === 'DEEP_OCEAN' || currentTile.biome === 'OCEAN') {
-          drowningDamage = 4; // More dangerous in deep water
+          drowningDamage = 4;
         }
 
-        // Apply drowning damage
+        // Apply drowning damage via functional update (always uses current state)
         setPlayerCharacter(prev => {
           if (!prev) return null;
           const newHealth = Math.max(0, prev.health - drowningDamage);
 
-          // Check for death
-          if (newHealth <= 0 && onDeath) {
-            onDeath({
-              type: 'drowning',
-              description: `You drowned in the ${currentTile.biome.toLowerCase().replace(/_/g, ' ')}.`
-            });
+          if (newHealth <= 0) {
+            const deathHandler = onDeathRef.current;
+            if (deathHandler) {
+              deathHandler({
+                type: 'drowning',
+                description: `You drowned in the ${currentTile.biome.toLowerCase().replace(/_/g, ' ')}.`
+              });
+            }
           }
 
           return { ...prev, health: newHealth };
         });
 
         // Add drowning message to narration (throttled)
-        if (Math.random() < 0.1) { // Only 10% chance per second to avoid spam
+        if (Math.random() < 0.1) {
           const drowningMessages = [
             "You struggle to stay afloat as the water pulls you under.",
             "Your lungs burn as you fight against the current.",
@@ -507,10 +541,11 @@ const useCoreLoops = (
           }]);
         }
       }
-    }, 2000); // Reduced frequency for better performance
+    }, 2000);
 
     return () => clearInterval(drowningInterval);
-  }, [isAnyModalOpen, playerCharacter, viewMode, controlledIconX, controlledIconY, mapData, playerMode, onDeath, setPlayerCharacter, setNarrationHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Stable interval — reads all changing values from refs
 
   // Health/Fatigue warning system - Check thresholds and trigger warnings
   useEffect(() => {
@@ -924,7 +959,6 @@ const useCoreLoops = (
           const cleanupTime = Date.now();
           if (cleanupTime % 600000 < 3000) { // Check every 10 minutes (within 3 second window)
             npcNarrationHistory.current.clear();
-            console.log('[NPCNarration] Cleared narration history to prevent memory leaks');
           }
 
           // Debug logging removed - too spammy

@@ -3809,6 +3809,16 @@ if (defaultCapStyles.has(hairStyle)) {
       const isPoncho = garmentName.includes('poncho');
       const isShawl = garmentName.includes('shawl');
 
+      // Victorian / Industrial era clothing detection
+      const isVictorianDress = garmentName.includes('victorian dress') || garmentName.includes('bustle dress') || garmentName.includes('corseted');
+      const isVictorianBlouse = garmentName.includes('victorian blouse') || garmentName.includes('victorian shirt');
+      const isHighCollar = garmentName.includes('high collar') || garmentName.includes('standing collar') || garmentName.includes('mandarin collar') || isVictorianBlouse;
+      const hasCravat = garmentName.includes('cravat') || garmentName.includes('ascot') || garmentName.includes('stock');
+      const hasSuspenders = garmentName.includes('suspender') || garmentName.includes('braces');
+      const isFrockCoat = garmentName.includes('frock coat') || garmentName.includes('morning coat') || garmentName.includes('tail coat');
+      const isCorset = garmentName.includes('corset') || garmentName.includes('corseted');
+      const isIndustrialEra = era && era === 'INDUSTRIAL_ERA';
+
       // Modern clothing detection
       const isBusinessSuit = garmentName.includes('business suit') || garmentName.includes('suit jacket') || garmentName === 'suit' || garmentName.includes('three-piece');
       const isThreePieceSuit = garmentName.includes('three-piece');
@@ -3895,8 +3905,102 @@ if (defaultCapStyles.has(hairStyle)) {
               elements.push(<rect key={`leather-lapel-${cx}`} x={xPos} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
             }
           }
+        } else if (isFrockCoat || (isCoat && (isIndustrialEra || hasCravat))) {
+          // Victorian frock coat / morning coat with high collar and cravat/ascot
+          for (let cx = 0; cx < collarWidth; cx++) {
+            const centerDist = Math.abs(cx - collarWidth / 2);
+
+            if (y === 0) {
+              // High standing collar (rises above neckline)
+              const isCollarEdge = cx < 3 || cx > collarWidth - 4;
+              if (isCollarEdge) {
+                // Collar points/wings
+                elements.push(<rect key={`vic-collar-edge-${cx}`} x={collarX + cx} y={bodyStartY - 1} width="1" height="2" fill={clothingDeepShadow} className="pixel" />);
+              } else {
+                // White shirt collar visible above coat
+                elements.push(<rect key={`vic-collar-${cx}`} x={collarX + cx} y={bodyStartY - 1} width="1" height="1" fill="#F8F8F8" className="pixel" />);
+                elements.push(<rect key={`vic-coat-collar-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+              }
+            } else if (y === 1) {
+              // Coat lapels with cravat/ascot in center
+              const isLapel = cx < 5 || cx > collarWidth - 6;
+              if (isLapel) {
+                elements.push(<rect key={`vic-lapel-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={clothingColor} className="pixel" />);
+              } else if (hasCravat && centerDist < 4) {
+                // Cravat/ascot - puffed fabric at throat
+                const cravatColor = appearanceWithDefaults.palette.accent || '#4A0000';
+                const cravatShade = centerDist < 2 ? cravatColor : createShadow(cravatColor, 0.8);
+                elements.push(<rect key={`cravat-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={cravatShade} className="pixel" />);
+              } else {
+                // White shirt front
+                elements.push(<rect key={`vic-shirt-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill="#F8F8F8" className="pixel" />);
+              }
+            } else if (y === 2) {
+              // Cravat continues, coat buttons visible
+              const isLapel = cx < 4 || cx > collarWidth - 5;
+              if (isLapel) {
+                elements.push(<rect key={`vic-coat-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={clothingColor} className="pixel" />);
+              } else if (hasCravat && centerDist < 5) {
+                // Cravat puff/tie
+                const cravatColor = appearanceWithDefaults.palette.accent || '#4A0000';
+                const isFold = (cx + y) % 3 === 0;
+                elements.push(<rect key={`cravat-body-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={isFold ? createShadow(cravatColor, 0.75) : cravatColor} className="pixel" />);
+              } else {
+                elements.push(<rect key={`vic-shirt-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill="#F8F8F8" className="pixel" />);
+              }
+              // Coat button
+              if (centerDist < 1) {
+                elements.push(<rect key={`vic-btn-${y}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill="#2A2A2A" className="pixel" />);
+              }
+            }
+          }
+        } else if (isVictorianDress && y < 3) {
+          // Victorian dress with high collar, corseted bodice
+          for (let cx = 0; cx < collarWidth; cx++) {
+            const centerDist = Math.abs(cx - collarWidth / 2);
+
+            if (y === 0) {
+              // High lace collar / standing collar
+              const isCollarCenter = centerDist < collarWidth / 3;
+              if (isCollarCenter) {
+                // Lace or ruffled collar detail
+                const lacePattern = cx % 3 === 0;
+                const laceColor = lacePattern ? '#FFFFFF' : '#F0F0F0';
+                elements.push(<rect key={`vic-dress-lace-${cx}`} x={collarX + cx} y={bodyStartY - 1} width="1" height="1" fill={laceColor} className="pixel" />);
+              }
+              elements.push(<rect key={`vic-dress-collar-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+            } else if (y === 1) {
+              // Fitted bodice with center seam
+              if (centerDist < 1) {
+                // Center seam/closure with buttons
+                elements.push(<rect key={`bodice-seam-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+              } else {
+                // Shaped bodice panels
+                const panelShade = cx < collarWidth / 2 ? clothingColor : createShadow(clothingColor, 0.92);
+                elements.push(<rect key={`bodice-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={panelShade} className="pixel" />);
+              }
+            } else if (y === 2) {
+              // Bodice continues with decorative detail
+              if (centerDist < 1) {
+                elements.push(<rect key={`bodice-btn-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+              } else if (isWealthy && cx % 5 === 0) {
+                // Decorative trim/embroidery for wealthy
+                elements.push(<rect key={`bodice-trim-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={accentColor} className="pixel" />);
+              } else {
+                elements.push(<rect key={`bodice-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={clothingColor} className="pixel" />);
+              }
+            }
+          }
+        } else if (isHighCollar && y === 0) {
+          // Generic high/standing collar (Edwardian, Mandarin collar, etc.)
+          for (let cx = 0; cx < collarWidth; cx++) {
+            // Standing collar rises above neckline
+            elements.push(<rect key={`high-collar-top-${cx}`} x={collarX + cx} y={bodyStartY - 1} width="1" height="1" fill={clothingColor} className="pixel" />);
+            // Shadow line at base
+            elements.push(<rect key={`high-collar-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+          }
         } else if (isCoat && y === 0) {
-          // High collar for coats
+          // High collar for coats (non-Victorian)
           for (let cx = 0; cx < collarWidth; cx++) {
             elements.push(<rect key={`coat-collar-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
           }
@@ -3983,6 +4087,17 @@ if (defaultCapStyles.has(hairStyle)) {
           for (let cx = 0; cx < collarWidth; cx++) {
             if (y === 0) elements.push(<rect key={`sweater-neck-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
           }
+        } else if (isIndustrialEra && isShirt && y === 0) {
+          // Industrial era shirts default to stiff standing collars
+          for (let cx = 0; cx < collarWidth; cx++) {
+            const centerDist = Math.abs(cx - collarWidth / 2);
+            if (centerDist < collarWidth / 3) {
+              // Collar band visible above shirt
+              elements.push(<rect key={`era-collar-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill="#F0F0F0" className="pixel" />);
+            } else {
+              elements.push(<rect key={`era-collar-side-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingColor} className="pixel" />);
+            }
+          }
         } else if (isWealthy) {
           // Decorative collar for wealthy characters
           for (let cx = 0; cx < collarWidth; cx++) {
@@ -4004,7 +4119,58 @@ if (defaultCapStyles.has(hairStyle)) {
           }
         }
       }
-      
+
+      // Suspenders / braces overlay (Victorian/Industrial working class)
+      if (hasSuspenders && y > 3 && y < bodyHeight - 8) {
+        const suspenderColor = '#2A2A2A'; // Dark leather/fabric
+        const suspenderHL = '#3A3A3A';
+        const suspenderWidth = 2;
+        // Two vertical straps running from shoulders down
+        const leftStrapX = 32 - Math.floor(torsoWidth * 0.25);
+        const rightStrapX = 32 + Math.floor(torsoWidth * 0.25) - 1;
+
+        // Left strap
+        for (let sw = 0; sw < suspenderWidth; sw++) {
+          const strapCol = sw === 0 ? suspenderHL : suspenderColor;
+          elements.push(<rect key={`susp-l-${y}-${sw}`} x={leftStrapX + sw} y={bodyStartY + y} width="1" height="1" fill={strapCol} className="pixel" />);
+        }
+        // Right strap
+        for (let sw = 0; sw < suspenderWidth; sw++) {
+          const strapCol = sw === 0 ? suspenderColor : suspenderHL;
+          elements.push(<rect key={`susp-r-${y}-${sw}`} x={rightStrapX + sw} y={bodyStartY + y} width="1" height="1" fill={strapCol} className="pixel" />);
+        }
+
+        // Metal buckle/clip hardware at top of straps
+        if (y === 4) {
+          elements.push(
+            <rect key="susp-clip-l" x={leftStrapX} y={bodyStartY + y} width="2" height="1" fill="#C0C0C0" className="pixel" />,
+            <rect key="susp-clip-r" x={rightStrapX} y={bodyStartY + y} width="2" height="1" fill="#C0C0C0" className="pixel" />
+          );
+        }
+      }
+
+      // Corseted bodice shaping for Victorian women's garments
+      if (isCorset && y > 3 && y < bodyHeight - 10) {
+        const corsetCenter = 32;
+        // Center busk (front closure) line
+        elements.push(<rect key={`corset-busk-${y}`} x={corsetCenter} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+        // Boning lines (vertical structural seams)
+        if (y % 3 === 0) {
+          const boneOffset = Math.floor(torsoWidth * 0.2);
+          elements.push(
+            <rect key={`corset-bone-l-${y}`} x={corsetCenter - boneOffset} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />,
+            <rect key={`corset-bone-r-${y}`} x={corsetCenter + boneOffset} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />
+          );
+        }
+        // Decorative lacing at center
+        if (y % 4 === 0) {
+          elements.push(
+            <rect key={`corset-lace-l-${y}`} x={corsetCenter - 1} y={bodyStartY + y} width="1" height="1" fill={accentColor || '#4A0000'} className="pixel" />,
+            <rect key={`corset-lace-r-${y}`} x={corsetCenter + 1} y={bodyStartY + y} width="1" height="1" fill={accentColor || '#4A0000'} className="pixel" />
+          );
+        }
+      }
+
       // Add armor plates/details with historical accuracy
       if (isArmor) {
         const armorType = garmentName.includes('plate') ? 'plate' :

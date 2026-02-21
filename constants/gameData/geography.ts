@@ -208,7 +208,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Finger Lakes": { name: "Finger Lakes", climate: ClimateType.TEMPERATE, archetype: MapArchetype.FRESHWATER_LAKE },
             "Champlain Valley": { name: "Champlain Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.FRESHWATER_LAKE },
             "Mohawk River": { name: "Mohawk River", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
-            "New York Harbor": { name: "New York Harbor", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY, bayOutlet: 'south' },
+            "New York Harbor": { name: "New York Harbor", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY, bayOutlet: 'south', economicActivityLevel: 4 },
             "Long Island": { name: "Long Island", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Cape Cod": { name: "Cape Cod", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Green Mountains": { name: "Green Mountains", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: true },
@@ -840,7 +840,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         }
    },
    
-   // Special Easter Egg Zones
+   // Special contextual zones for realistic WorldWeaver edge cases
    "Special": {
        "Outer Space": {
            "Outer Space": { 
@@ -849,19 +849,17 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
                archetype: MapArchetype.ALL_LAND
            }
        },
-       "Unknown": {
-           "Heaven": { 
-               name: "Heaven", 
-               climate: ClimateType.TEMPERATE, // Temperate AIR = fluffy white clouds
+       "Contextual": {
+           "Air": {
+               name: "Air",
+               climate: ClimateType.TEMPERATE, // Temperate AIR = clouds/atmosphere
                archetype: MapArchetype.ALL_LAND
            },
            "Undersea": { 
-               name: "Undersea ", 
+               name: "Undersea", 
                climate: ClimateType.TEMPERATE, // For UNDERSEA biome
                archetype: MapArchetype.ALL_LAND
-           },
-         
-           
+           }
        }
    }
 };

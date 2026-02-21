@@ -721,9 +721,9 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     { name: 'Dutch Republic', type: 'secondary', description: 'Trading presence in the Hudson Valley (New Netherland).' }
                 ],
                 structureNames: {
-                    fortress: ['Colonial Fort (e.g., Fort Ticonderoga)', 'Frontier Stockade'],
+                    fortress: ['Colonial Fort', 'Frontier Stockade', 'Fort Ticonderoga'],
                     factory: ['Colonial Mill', 'Shipyard', 'Ironworks'],
-                    trading_post: ['Colonial Port (e.g., Boston, New York)', 'Fur Trading Center'],
+                    trading_post: ['Colonial Port', 'Fur Trading Center'],
                     holy_site: ['Puritan Meetinghouse', 'Anglican Church', 'Native Council Fire']
                 }
             },
@@ -916,7 +916,7 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     { name: 'Iroquois Confederacy', type: 'rebel', description: 'Independent power playing empires against each other.' }
                 ],
                 structureNames: {
-                    fortress: ['Stone Fort (e.g., Quebec City)', 'Hudson\'s Bay Company Fort'],
+                    fortress: ['Stone Fort', 'Hudson\'s Bay Company Fort'],
                     factory: ['Fur Trading Post', 'Seigneurial Farm'],
                     trading_post: ['Voyageur Canoe Depot', 'Coastal Fishing Station']
                 }
@@ -1295,9 +1295,9 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     { name: 'Enslaved Africans', type: 'rebel', description: 'Forcibly brought to work the sugar plantations.' }
                 ],
                 structureNames: {
-                    fortress: ['Spanish Fort (e.g., El Morro)', 'Pirate Haven (e.g., Port Royal)'],
+                    fortress: ['Spanish Fort', 'Pirate Haven'],
                     factory: ['Sugar Plantation', 'Silver Smelter'],
-                    trading_post: ['Treasure Fleet Port (Havana)', 'Slave Market']
+                    trading_post: ['Treasure Fleet Port', 'Slave Market']
                 },
                 mapAreaOverrides: {
                     "Cuba": {

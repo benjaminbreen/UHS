@@ -516,9 +516,6 @@ export function calculateAnimalUpdate(
     }
     
     if(walkableNeighbors.length === 0) {
-        if (Math.random() < 0.05) {
-            console.log(`[Animal AI] ${animalData.name} at (${animal.x}, ${animal.y}) has NO walkable neighbors! Stuck. Type: ${animal.type}, isDomestic: ${animal.isDomestic}, targetPos:`, targetPos);
-        }
         memory.stuckCounter++;
         return { aiState: newState };
     }

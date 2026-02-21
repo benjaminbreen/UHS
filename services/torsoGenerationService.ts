@@ -267,26 +267,29 @@ const torsoByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Record<st
   },
   INDUSTRIAL_ERA: {
     EUROPEAN: {
-      default: ['FACTORY_SHIRT', 'WORK_SHIRT', 'COTTON_SHIRT'],
+      default: ['FACTORY_SHIRT', 'WORK_SHIRT', 'COTTON_SHIRT', 'FROCK_COAT'],
       soldier: ['LEATHER_TUNIC'],
-      industrialist: ['FORMAL_SHIRT', 'FINE_CLOTHES', 'VICTORIAN_BLOUSE'],
-      aristocrat: ['COURT_GOWN', 'BALL_GOWN', 'AFTERNOON_GOWN'],
+      industrialist: ['FROCK_COAT', 'MORNING_COAT', 'FORMAL_SHIRT', 'FINE_CLOTHES'],
+      aristocrat: ['MORNING_COAT', 'COURT_GOWN', 'BALL_GOWN', 'CORSET'],
       worker: ['FACTORY_SHIRT', 'MILL_SHIRT', 'WORK_SHIRT'],
-      clerk: ['FORMAL_SHIRT', 'COTTON_SHIRT']
+      clerk: ['FORMAL_SHIRT', 'FROCK_COAT', 'COTTON_SHIRT'],
+      merchant: ['FROCK_COAT', 'FORMAL_SHIRT', 'FINE_CLOTHES'],
+      lady: ['VICTORIAN_BLOUSE', 'CORSET', 'AFTERNOON_GOWN', 'BUSTLE_DRESS'],
+      servant: ['COTTON_SHIRT', 'WORK_SHIRT', 'FACTORY_DRESS']
     },
     EAST_ASIAN: {
       default: ['COTTON_SHIRT', 'WORK_SHIRT'],
       soldier: ['LEATHER_TUNIC'],
       merchant: ['FORMAL_SHIRT', 'SILK_ROBE'],
-      official: ['SILK_ROBE', 'FORMAL_SHIRT'],
+      official: ['SILK_ROBE', 'FORMAL_SHIRT', 'FROCK_COAT'],
       worker: ['FACTORY_SHIRT', 'WORK_SHIRT'],
       peasant: ['PEASANT_SHIRT', 'COTTON_SHIRT']
     },
     MENA: {
       default: ['ABAYA', 'COTTON_SHIRT', 'WORK_SHIRT'],
       soldier: ['LEATHER_TUNIC'],
-      merchant: ['CAFTAN', 'FORMAL_SHIRT'],
-      official: ['CAFTAN', 'FORMAL_SHIRT'],
+      merchant: ['CAFTAN', 'FORMAL_SHIRT', 'FROCK_COAT'],
+      official: ['CAFTAN', 'FORMAL_SHIRT', 'FROCK_COAT'],
       worker: ['WORK_SHIRT', 'COTTON_SHIRT']
     },
     NORTH_AMERICAN_PRE_COLUMBIAN: {
@@ -295,38 +298,40 @@ const torsoByEraAndCulture: Record<HistoricalEra, Record<CulturalZone, Record<st
       trader: ['HYBRID_SHIRT', 'COTTON_SHIRT']
     },
     NORTH_AMERICAN_COLONIAL: {
-      default: ['WORK_SHIRT', 'COTTON_SHIRT', 'FACTORY_SHIRT'],
+      default: ['WORK_SHIRT', 'COTTON_SHIRT', 'FACTORY_SHIRT', 'FROCK_COAT'],
       soldier: ['LEATHER_TUNIC'],
-      businessman: ['FORMAL_SHIRT', 'FINE_CLOTHES'],
-      industrialist: ['FORMAL_SHIRT', 'VICTORIAN_BLOUSE', 'AFTERNOON_GOWN'],
-      worker: ['FACTORY_SHIRT', 'MILL_SHIRT', 'WORK_SHIRT']
+      businessman: ['FROCK_COAT', 'MORNING_COAT', 'FORMAL_SHIRT', 'FINE_CLOTHES'],
+      industrialist: ['FROCK_COAT', 'MORNING_COAT', 'FORMAL_SHIRT'],
+      lady: ['VICTORIAN_BLOUSE', 'CORSET', 'AFTERNOON_GOWN'],
+      worker: ['FACTORY_SHIRT', 'MILL_SHIRT', 'WORK_SHIRT'],
+      clerk: ['FORMAL_SHIRT', 'FROCK_COAT']
     },
     OCEANIA: {
       default: ['HYBRID_SHIRT', 'COTTON_SHIRT', 'WORK_SHIRT'],
       warrior: ['CEREMONIAL_WRAP'],
       trader: ['HYBRID_SHIRT', 'FORMAL_SHIRT'],
-      official: ['FORMAL_SHIRT', 'COLONIAL_DRESS']
+      official: ['FORMAL_SHIRT', 'COLONIAL_DRESS', 'FROCK_COAT']
     },
     SOUTH_ASIAN: {
       default: ['KURTA', 'COTTON_SHIRT', 'WORK_SHIRT'],
       soldier: ['LEATHER_TUNIC'],
       merchant: ['ANARKALI', 'FORMAL_SHIRT'],
-      official: ['FORMAL_SHIRT', 'SILK_ROBE'],
+      official: ['FORMAL_SHIRT', 'SILK_ROBE', 'FROCK_COAT'],
       worker: ['FACTORY_SHIRT', 'MILL_SHIRT', 'WORK_SHIRT'],
       peasant: ['PEASANT_SHIRT', 'KURTA']
     },
     SOUTH_AMERICAN: {
       default: ['COTTON_SHIRT', 'WORK_SHIRT'],
       soldier: ['LEATHER_TUNIC'],
-      merchant: ['FORMAL_SHIRT', 'BOURGEOIS_DRESS'],
-      landowner: ['FORMAL_SHIRT', 'AFTERNOON_GOWN'],
+      merchant: ['FORMAL_SHIRT', 'BOURGEOIS_DRESS', 'FROCK_COAT'],
+      landowner: ['FROCK_COAT', 'MORNING_COAT', 'FORMAL_SHIRT', 'AFTERNOON_GOWN'],
       worker: ['PLANTATION_SHIRT', 'WORK_SHIRT']
     },
     SUB_SAHARAN_AFRICAN: {
       default: ['DASHIKI', 'COTTON_SHIRT', 'WORK_SHIRT'],
       warrior: ['LEATHER_TUNIC'],
       trader: ['BOUBOU', 'FORMAL_SHIRT'],
-      official: ['FORMAL_SHIRT', 'COLONIAL_DRESS'],
+      official: ['FORMAL_SHIRT', 'COLONIAL_DRESS', 'FROCK_COAT'],
       worker: ['WORK_SHIRT', 'COTTON_SHIRT']
     }
   },
@@ -551,6 +556,11 @@ function getTorsoValue(torsoId: string): number {
     'HYBRID_SHIRT': 12,
     'CARDIGAN': 12,
     'VICTORIAN_BLOUSE': 22,
+    'FROCK_COAT': 30,
+    'MORNING_COAT': 40,
+    'CORSET': 18,
+    'BUSTLE_DRESS': 30,
+    'FACTORY_DRESS': 2,
     'FORMAL_SHIRT': 9,
     'POLO_SHIRT': 10,
     'CRAFTSMAN_TUNIC': 10,

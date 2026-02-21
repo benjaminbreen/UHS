@@ -106,6 +106,8 @@ const NAV_BUTTON_GROUPS = {
   ]
 };
 
+const DONATE_URL = 'https://buy.stripe.com/5kQaEXfJLgRGbqrf1L4F201';
+
 // Game mode configurations with icons and colors
 const GAME_MODE_CONFIG = {
   survival: { 
@@ -712,6 +714,19 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
 
             {/* Desktop Navigation Buttons - aligned to right */}
             <div className="hidden md:flex items-center gap-3 pr-2">
+              <a
+                href={DONATE_URL}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                className="nav-button nav-button--compact"
+                data-variant="donate"
+                title="Support Universal History Simulator"
+                aria-label="Donate to support Universal History Simulator (opens in a new tab)"
+              >
+                <Coins className="w-4 h-4" aria-hidden="true" />
+                Donate
+              </a>
+
               {/* Theme Toggle */}
               <ThemeToggle />
 
@@ -848,6 +863,22 @@ const TopNavBarPolished: React.FC<TopNavBarPolishedProps> = ({ onWorldWeaverLoad
               </div>
 
               {/* Info Actions */}
+              <div className="pt-2 border-t border-surface-muted">
+                <a
+                  href={DONATE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="nav-button w-full justify-center"
+                  data-variant="donate"
+                  title="Support Universal History Simulator"
+                  aria-label="Donate to support Universal History Simulator (opens in a new tab)"
+                >
+                  <Coins className="w-4 h-4" aria-hidden="true" />
+                  Donate
+                </a>
+              </div>
+
               <div className="space-y-1 pt-2 border-t border-surface-muted">
                 <div className="text-xs text-text-muted font-medium px-2 pb-1">Info</div>
                 {NAV_BUTTON_GROUPS.info.map(button => {

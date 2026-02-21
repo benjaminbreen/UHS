@@ -1016,10 +1016,10 @@ export const useMapState = (props: useMapStateProps) => {
             return;
         }
         
-        // Special handling for ethereal realms - go to random map area
-        const etherealRealms = ['Outer Space', 'Heaven', 'Undersea Kingdom', 'Storm Realm', 'Frozen Wastes', 'Typhoon Realm'];
-        if (etherealRealms.includes(localArea)) {
-            // console.log(`[Ethereal Realm] Leaving ${localArea}, transitioning to random area`);
+        // Special handling for contextual realms - return to standard geography on edge transition
+        const contextualRealms = ['Outer Space', 'Undersea', 'Air'];
+        if (contextualRealms.includes(localArea)) {
+            // console.log(`[Contextual Realm] Leaving ${localArea}, transitioning to random area`);
             
             // Get all available map areas except special zones
             const allAreas: string[] = [];
@@ -1030,8 +1030,8 @@ export const useMapState = (props: useMapStateProps) => {
                             Object.values(region).forEach(area => {
                                 if (area && typeof area === 'object' && 'name' in area) {
                                     const areaName = (area as any).name;
-                                    // Exclude special zones from random selection
-                                    if (areaName !== 'Outer Space' && areaName !== 'Heaven' && areaName !== 'Undersea Kingdom') {
+                                    // Exclude special contextual areas from random selection
+                                    if (areaName !== 'Outer Space' && areaName !== 'Undersea' && areaName !== 'Air') {
                                         allAreas.push(areaName);
                                     }
                                 }

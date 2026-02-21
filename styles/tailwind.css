@@ -411,6 +411,31 @@
     border-color: rgba(244, 114, 182, 0.55);
   }
 
+  .nav-button[data-variant="donate"] {
+    background: linear-gradient(135deg, rgba(177, 144, 88, 0.18), rgba(125, 95, 56, 0.16));
+    border-color: rgba(166, 131, 75, 0.42);
+    color: var(--text-primary);
+    box-shadow: 0 14px 32px rgba(63, 50, 33, 0.18);
+  }
+
+  .nav-button[data-variant="donate"]:hover {
+    background: linear-gradient(135deg, rgba(177, 144, 88, 0.24), rgba(125, 95, 56, 0.22));
+    border-color: rgba(166, 131, 75, 0.58);
+    color: var(--text-primary);
+  }
+
+  .dark .nav-button[data-variant="donate"] {
+    background: linear-gradient(135deg, rgba(170, 131, 72, 0.32), rgba(118, 88, 50, 0.28));
+    border-color: rgba(214, 177, 115, 0.52);
+    color: #f7f1e4;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34);
+  }
+
+  .dark .nav-button[data-variant="donate"]:hover {
+    background: linear-gradient(135deg, rgba(189, 148, 83, 0.4), rgba(131, 99, 57, 0.34));
+    border-color: rgba(223, 191, 132, 0.65);
+  }
+
   .nav-button--compact {
     padding: 0.4rem 0.75rem;
     border-radius: 0.75rem;

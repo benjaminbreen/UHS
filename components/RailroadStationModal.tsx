@@ -19,7 +19,7 @@ interface RailroadStationModalProps {
   onClose: () => void;
   stationName: string;
   connectedStations: RailroadStation[];
-  playerMoney: number;
+  playerCurrency: number;
   currentTime: number; // Hours since game start
   onFastTravel: (station: RailroadStation) => void;
 }
@@ -29,7 +29,7 @@ const RailroadStationModal: React.FC<RailroadStationModalProps> = ({
   onClose,
   stationName,
   connectedStations,
-  playerMoney,
+  playerCurrency,
   currentTime,
   onFastTravel
 }) => {
@@ -50,7 +50,7 @@ const RailroadStationModal: React.FC<RailroadStationModalProps> = ({
     }
   };
 
-  const canAfford = (fare: number) => playerMoney >= fare;
+  const canAfford = (fare: number) => playerCurrency >= fare;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -154,7 +154,7 @@ const RailroadStationModal: React.FC<RailroadStationModalProps> = ({
                   <span className="text-slate-400">Your Balance:</span>
                   <span className="flex items-center space-x-1 text-yellow-400 font-semibold">
                     <Coins className="w-4 h-4" />
-                    <span>{playerMoney}</span>
+                    <span>{playerCurrency}</span>
                   </span>
                 </div>
               </div>
@@ -210,7 +210,7 @@ const RailroadStationModal: React.FC<RailroadStationModalProps> = ({
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-700/30">
                       <span className="text-sm text-slate-400">Balance after purchase:</span>
                       <span className="text-yellow-400 font-semibold">
-                        {playerMoney - selectedStation.fare}
+                        {playerCurrency - selectedStation.fare}
                       </span>
                     </div>
                   </div>

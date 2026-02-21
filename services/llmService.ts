@@ -881,16 +881,14 @@ DO NOT give a calm greeting. DO NOT be friendly. BE ENRAGED.
         ${historicalContext}
 
         **TIME-AWARE BEHAVIOR:**
-        ${mapData.timeOfDay === 'Night' || mapData.timeOfDay === 'Dawn' ?
-            '- It is NIGHTTIME/DAWN. People are suspicious of strangers at this hour. "What are you doing out at this hour?" might be a natural response, or perhaps it isnt mentioned, it depends on context.' : ''}
         ${mapData.timeOfDay === 'Night' ?
-            '- .' : ''}
+            '- It is NIGHTTIME. People are wary of strangers at this hour. Most are asleep or engaged in nighttime activities (drinking, gambling, keeping watch, illicit dealings).' : ''}
         ${mapData.timeOfDay === 'Dawn' ?
-            '- ' : ''}
+            '- It is DAWN. Early risers are beginning their day — bakers, farmers, fishermen, laborers. The streets are quiet but stirring.' : ''}
         ${mapData.timeOfDay === 'Midday' ?
-            '- ' : ''}
+            '- It is MIDDAY. The busiest part of the day — markets are active, workshops are loud, people eat and socialize.' : ''}
         ${mapData.timeOfDay === 'Dusk' ?
-            '- Sun is setting. People are finishing work, heading home.' : ''}
+            '- It is DUSK. People are finishing work and heading home. Taverns are filling up. The mood is tired but social.' : ''}
 
         ${historyLensContext && historyLensContext.length > 0 ? `
         **RECENT EVENTS (What just happened before this conversation):**

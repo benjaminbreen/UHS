@@ -24,17 +24,20 @@ describe('Event Service', () => {
       const settings = eventService.getSettings();
 
       expect(settings).toBeDefined();
-      expect(settings).toHaveProperty('eventFrequency');
-      expect(settings).toHaveProperty('llmEnabled');
+      expect(settings).toHaveProperty('frequency');
+      expect(settings).toHaveProperty('historicalAccuracy');
+      expect(settings).toHaveProperty('showRealOutcomes');
+      expect(settings).toHaveProperty('anachronismWarnings');
+      expect(settings).toHaveProperty('autoPauseOnEvent');
     });
 
     it('should allow updating settings', () => {
       const originalSettings = eventService.getSettings();
 
-      eventService.updateSettings({ llmEnabled: false });
+      eventService.updateSettings({ autoPauseOnEvent: false });
       const updatedSettings = eventService.getSettings();
 
-      expect(updatedSettings.llmEnabled).toBe(false);
+      expect(updatedSettings.autoPauseOnEvent).toBe(false);
 
       // Restore original settings
       eventService.updateSettings(originalSettings);

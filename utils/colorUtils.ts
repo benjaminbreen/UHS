@@ -309,7 +309,7 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
     const isWinterInColdClimate = climate === ClimateType.COLD && season === 'winter';
     const shouldApplyWinterColors = isWinterInColdClimate && tile.isLand;
     
-    // Special rendering for ethereal biomes (new system)
+    // Special rendering for contextual AIR/UNDERSEA biomes
     if (tile.biome === BiomeType.AIR) {
         const noise = new ValueNoise(seed + tile.x * 7 + tile.y * 11);
         const variation = noise.octaveNoise(tile.x * 0.05, tile.y * 0.05, 2, 0.5, 2.0);
@@ -317,12 +317,12 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         // AIR rendering depends on climate
         switch (climate) {
             case ClimateType.TEMPERATE:
-                // Fluffy white clouds for Heaven
+                // Fluffy white clouds for Air context
                 const cloudBrightness = 240 + Math.floor(variation * 15);
                 return `rgb(${cloudBrightness}, ${cloudBrightness}, ${Math.min(255, cloudBrightness + 5)})`;
                 
             case ClimateType.ARID:
-                // Dark void with stars for Space
+                // Dark void with stars for Outer Space context
                 if (noise.random() > 0.98) {
                     // Occasional star
                     const starBrightness = 180 + Math.floor(noise.random() * 75);
@@ -359,7 +359,7 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         return `rgb(${brightness}, ${green}, ${blue})`;
     }
     
-    // Legacy special rendering for easter egg zones (keeping for backward compatibility)
+    // Special rendering for contextual WorldWeaver zones
     if (mapAreaName === 'Outer Space') {
         // Space rendering - deep black with slight variation
         const noise = new ValueNoise(seed + tile.x * 7 + tile.y * 11);
@@ -375,27 +375,27 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
             const variation = noise.random() * 20;
             return `rgb(${variation}, ${variation}, ${variation + 10})`;
         }
-    } else if (mapAreaName === 'Heaven') {
-        // Heaven rendering - pure ethereal glowing white
+    } else if (mapAreaName === 'Air') {
+        // Air rendering - bright atmospheric cloud layers
         const noise = new ValueNoise(seed + tile.x * 13 + tile.y * 17);
         const cloudiness = noise.octaveNoise(tile.x * 0.03, tile.y * 0.03, 3, 0.6, 2.0);
         
-        // Everything is bright and ethereal in Heaven
+        // Everything is bright and diffuse in atmospheric cloud fields
         const baseBrightness = 245;
         const variation = Math.floor(cloudiness * 10);
         
         if (tile.isLand) {
-            // Pure glowing white with subtle variations
+            // Bright clouds with subtle luminance variation
             const brightness = Math.min(255, baseBrightness + variation);
             // Slight pearl/golden tint
             return `rgb(${brightness}, ${brightness}, ${Math.max(240, brightness - 5)})`;
         } else {
-            // Even "water" is just slightly dimmer clouds
+            // Non-land AIR tiles remain cloud-toned
             const brightness = Math.min(255, baseBrightness - 5 + variation);
             // Very subtle blue-white tint for variety
             return `rgb(${brightness - 5}, ${brightness - 3}, ${brightness})`;
         }
-    } else if (mapAreaName === 'Undersea Kingdom') {
+    } else if (mapAreaName === 'Undersea') {
         // Undersea rendering - glowing blue depths
         const noise = new ValueNoise(seed + tile.x * 19 + tile.y * 23);
         const depth = noise.octaveNoise(tile.x * 0.03, tile.y * 0.03, 2, 0.5, 2.0);

@@ -23,7 +23,7 @@ interface HarborStationModalProps {
   onClose: () => void;
   harborName: string;
   availableDestinations: HarborDestination[];
-  playerMoney: number;
+  playerCurrency: number;
   currentTime: number; // Hours since game start
   onBookPassage: (destination: HarborDestination) => void;
 }
@@ -33,7 +33,7 @@ const HarborStationModal: React.FC<HarborStationModalProps> = ({
   onClose,
   harborName,
   availableDestinations,
-  playerMoney,
+  playerCurrency,
   currentTime,
   onBookPassage
 }) => {
@@ -54,7 +54,7 @@ const HarborStationModal: React.FC<HarborStationModalProps> = ({
     }
   };
 
-  const canAfford = (fare: number) => playerMoney >= fare;
+  const canAfford = (fare: number) => playerCurrency >= fare;
 
   const getDangerColor = (level?: string) => {
     switch (level) {
@@ -211,7 +211,7 @@ const HarborStationModal: React.FC<HarborStationModalProps> = ({
                   <span className="text-slate-400">Your Balance:</span>
                   <span className="flex items-center space-x-1 text-yellow-400 font-semibold">
                     <Coins className="w-4 h-4" />
-                    <span>{playerMoney}</span>
+                    <span>{playerCurrency}</span>
                   </span>
                 </div>
               </div>
@@ -281,7 +281,7 @@ const HarborStationModal: React.FC<HarborStationModalProps> = ({
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-700/30">
                       <span className="text-sm text-slate-400">Balance after payment:</span>
                       <span className="text-yellow-400 font-semibold">
-                        {playerMoney - selectedDestination.fare}
+                        {playerCurrency - selectedDestination.fare}
                       </span>
                     </div>
                   </div>

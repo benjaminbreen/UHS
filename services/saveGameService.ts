@@ -9,6 +9,7 @@ import { Quest } from '../types/questTypes';
 import { EventHistoryEntry } from '../types/eventTypes';
 import { GameLogEntry, PlayerJournalEntry, JournalQuote } from '../types/journal';
 import { AssessmentSession, AssessmentLogState, AssessmentLLMResult } from '../types/assessment';
+import { normalizePlayerCurrency } from '../utils/currencyUtils';
 
 /**
  * Complete saved game state
@@ -77,7 +78,10 @@ class SaveGameService {
       const saved = localStorage.getItem(this.STORAGE_KEY);
       if (!saved) return [];
       
-      const games = JSON.parse(saved);
+      const games = JSON.parse(saved).map((game: SavedGame) => ({
+        ...game,
+        playerCharacter: normalizePlayerCurrency(game.playerCharacter)
+      }));
       // Sort by timestamp, newest first
       return games.sort((a: SavedGame, b: SavedGame) => b.timestamp - a.timestamp);
     } catch (error) {
@@ -218,6 +222,8 @@ class SaveGameService {
       if (save.mapData) {
         save.mapData = this.decompressMapData(save.mapData);
       }
+
+      save.playerCharacter = normalizePlayerCurrency(save.playerCharacter);
       
       console.log(`[SaveGameService] Game loaded: ${save.name}`);
       return save;
@@ -329,7 +335,7 @@ class SaveGameService {
    */
   private cleanPlayerCharacter(pc: PlayerCharacter): PlayerCharacter {
     // Remove circular references and unnecessary data
-    const cleaned = { ...pc };
+    const cleaned = normalizePlayerCurrency({ ...pc });
     
     // Remove any potential circular references
     if (cleaned.party) {

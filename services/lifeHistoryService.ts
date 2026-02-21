@@ -1007,6 +1007,15 @@ export function generateLifeHistory(
   // Filter by profession keywords
   const profession = character.profession?.toLowerCase() || '';
   const relevantEvents = eventPool.filter(template => {
+    // If a template declares era-specific weights, treat it as era-gated.
+    // Missing era entry means "not applicable" rather than falling back to base weight.
+    if (template.eraWeights) {
+      const eraWeight = template.eraWeights[era];
+      if (eraWeight === undefined || eraWeight <= 0) {
+        return false;
+      }
+    }
+
     if (template.professionKeywords && template.professionKeywords.length > 0) {
       return template.professionKeywords.some(keyword =>
         profession.includes(keyword)
@@ -1066,8 +1075,8 @@ export function generateLifeHistory(
       let weight = template.weight;
 
       // Apply era weight
-      if (template.eraWeights && template.eraWeights[era] !== undefined) {
-        weight *= template.eraWeights[era];
+      if (template.eraWeights) {
+        weight *= template.eraWeights[era] ?? 0;
       }
 
       // Apply cultural weight

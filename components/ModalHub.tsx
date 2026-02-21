@@ -1,7 +1,8 @@
 /**
  * components/ModalHub.tsx - Centralized component for rendering all application modals.
  */
-import React, { useEffect, useCallback, lazy, Suspense, Component, ReactNode } from 'react';
+import React, { useEffect, useCallback, useMemo, lazy, Suspense, Component, ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 // Error Boundary for lazy-loaded components
 interface ErrorBoundaryState {
@@ -104,6 +105,8 @@ import NpcModal from './NpcModal';
 import TileInfoModal from './TileInfoModal';
 import { isNpc, isAnimal } from '../types';
 import { NpcEntity } from '../types';
+import { ITEM_DEFINITIONS } from '../constants/index';
+import type { CityEventOutcome } from '../services/cityEventService';
 
 // Lazy load all other modals for better initial load performance
 const AnimalInfoModal = lazy(() => import('./AnimalInfoModal'));
@@ -133,6 +136,12 @@ const PrimarySourceModal = lazy(() => import('./PrimarySourceModal').then(module
 const NpcConfrontationModal = lazy(() => import('./NpcConfrontationModal'));
 const DiseaseContractedModal = lazy(() => import('./DiseaseContractedModal'));
 const CityHistoricalModal = lazy(() => import('./CityHistoricalModal').then(module => ({ default: module.CityHistoricalModal })));
+const MarketplaceModal = lazy(() => import('./MarketplaceModal'));
+const FarmPanel = lazy(() => import('./FarmPanel'));
+const CityModal = lazy(() => import('./CityModal'));
+const GovernmentDistrictModal = lazy(() => import('./GovernmentDistrictModal'));
+const RuinStructureModal = lazy(() => import('./RuinStructureModal'));
+const FishingHutModal = lazy(() => import('./FishingHutModal'));
 const RailroadStationModal = lazy(() => import('./RailroadStationModal'));
 const HarborStationModal = lazy(() => import('./HarborStationModal'));
 const ContractNegotiationModal = lazy(() => import('./factory/ContractNegotiationModal'));
@@ -141,7 +150,23 @@ import { processNpcReactions, ItemCollectionEvent } from '../services/npcAwarene
 import { updateCachedContents } from '../services/containerCacheService';
 import { useState } from 'react';
 import { entityHealthService } from '../services/entityHealthService';
+import { getPlayerCurrency } from '../utils/currencyUtils';
 
+
+// Helper to advance a {year, month, day} game date by N days
+function advanceGameDate(gd: { year: number; month: number; day: number }, daysToAdd: number) {
+    const newDate = { ...gd, day: gd.day + daysToAdd };
+    const daysInMonth = 30;
+    if (newDate.day > daysInMonth) {
+        newDate.month += Math.floor((newDate.day - 1) / daysInMonth);
+        newDate.day = ((newDate.day - 1) % daysInMonth) + 1;
+    }
+    if (newDate.month > 12) {
+        newDate.year += Math.floor((newDate.month - 1) / 12);
+        newDate.month = ((newDate.month - 1) % 12) + 1;
+    }
+    return newDate;
+}
 
 const ModalHub: React.FC = () => {
     // State for NPC confrontation
@@ -178,6 +203,13 @@ const ModalHub: React.FC = () => {
         isPortraitModalOpen, portraitModalCharacter, setIsPortraitModalOpen, setPortraitModalCharacter,
         isCraftingModalOpen, craftingModalData, handleExecuteCrafting, closeAllModals,
         isEatingModalOpen, eatingModalData, handleExecuteEating, setIsEatingModalOpen,
+        activeMarketplaceModal, setActiveMarketplaceModal,
+        activeCityModal, setActiveCityModal,
+        activeFarmModal, setActiveFarmModal,
+        activeRuinModal, setActiveRuinModal,
+        activeGovernmentModal, setActiveGovernmentModal,
+        activeFishingHutModal, setActiveFishingHutModal,
+        setInRuinRoguelike,
         activeMiningModal, setActiveMiningModal,
         activePoi, setActivePoi,
         poiToastData, setPoiToastData,
@@ -193,11 +225,15 @@ const ModalHub: React.FC = () => {
         activeFactoryData, setActiveFactoryData,
         recordPrimarySourceEvent,
         assessmentSession, assessmentLogs,
+        setShowDeathModal,
+        centralMode,
         historyLensMessages
     } = useUI();
 
     const {
         mapDataCache, currentWorldCoords, initialGameSeed, handleSeedChangeFromSettings, mapData, npcs, setNpcs,
+        visibleNpcs, mapAnalysisData, currentMapSeed,
+        addPersistedMerchant, fastTravelToArea,
         enterSpecialMap, exitSpecialMap, isSpecialMap
     } = useMap();
 
@@ -205,7 +241,8 @@ const ModalHub: React.FC = () => {
         playerCharacter, onCharacterUpdate, isEnhancing,
         handleCharacterGeneration, handleEquipItem, handleUnequipItem,
         handleDropItem, handleConsumeItem, onUseCombatItem,
-        setControlledIconX, setControlledIconY, onEnterBuilding
+        setControlledIconX, setControlledIconY, onEnterBuilding,
+        onBuyItem, onSellItem
     } = usePlayer();
 
 
@@ -285,6 +322,231 @@ const ModalHub: React.FC = () => {
             npc.id === updatedNpc.id ? updatedNpc : npc
         ));
     }, [setNpcs]);
+
+    const logSpecialMapEntry = useCallback((config: any) => {
+        if (!gameDate || !formattedTime) return;
+        const locationName = config.structureName || config.archetype;
+        const leader = config.authorityContext?.leader?.name || null;
+        const parentLocation = currentRegion || currentZone || 'Unknown';
+        const logEntry = LogService.createLocationEntryLog(
+            config.archetype,
+            locationName,
+            leader,
+            parentLocation,
+            gameDate,
+            formattedTime,
+            currentTimeOfDay
+        );
+        addGameLogEntry(logEntry);
+    }, [addGameLogEntry, currentRegion, currentTimeOfDay, currentZone, formattedTime, gameDate]);
+
+    const handleHistoryLensTravelRequest = useCallback((destination: any) => {
+        if (!playerCharacter || !gameDate) return;
+        const currentCurrency = getPlayerCurrency(playerCharacter);
+
+        if (currentCurrency < destination.fare) {
+            showToast?.(`Need ${destination.fare - currentCurrency} more coins for caravan fare!`, 'error');
+            return;
+        }
+
+        const updatedCharacter = {
+            ...playerCharacter,
+            currency: currentCurrency - destination.fare
+        };
+        onCharacterUpdate(updatedCharacter);
+
+        const hoursToAdd = destination.travelTime;
+        const daysToAdd = Math.floor(hoursToAdd / 24);
+        if (daysToAdd > 0 && gameDate) {
+            setGameDate(advanceGameDate(gameDate, daysToAdd));
+        }
+
+        const success = fastTravelToArea(destination.mapAreaName, destination.cityName);
+        const journeyDays = (destination.travelTime / 24).toFixed(1);
+        const travelModeName = destination.culturalTravelName || 'caravan';
+
+        if (success) {
+            setActiveMarketplaceModal(null);
+            showToast?.(`${destination.culturalIcon || '🐴'} ${travelModeName} to ${destination.cityName} complete! ${journeyDays} days of travel.`, 5000);
+        } else {
+            onCharacterUpdate(playerCharacter);
+            showToast?.(`Failed to find route to ${destination.mapAreaName}`, 'error');
+        }
+    }, [fastTravelToArea, gameDate, onCharacterUpdate, playerCharacter, setActiveMarketplaceModal, setGameDate, showToast]);
+
+    const applyCityEventOutcome = useCallback((outcome: CityEventOutcome) => {
+        if (!playerCharacter) return;
+
+        switch (outcome.result) {
+            case 'gold_gain': {
+                const amount = Number(outcome.value || 0);
+                onCharacterUpdate(prev => prev ? { ...prev, currency: prev.currency + amount } : prev);
+                showToast?.(`Gained ${amount} gold!`, 'success');
+                break;
+            }
+            case 'gold_loss': {
+                const amount = Number(outcome.value || 0);
+                onCharacterUpdate(prev => prev ? { ...prev, currency: Math.max(0, prev.currency - amount) } : prev);
+                showToast?.(`Lost ${amount} gold.`, 'error');
+                break;
+            }
+            case 'item': {
+                const itemId = String(outcome.value || '');
+                const itemDef = ITEM_DEFINITIONS[itemId];
+                if (!itemDef) break;
+                const newItem: any = {
+                    id: `${itemId}_${Date.now()}`,
+                    baseId: itemId,
+                    name: itemDef.name,
+                    emoji: itemDef.emoji,
+                    value: itemDef.value,
+                    weight: itemDef.weight,
+                    rarity: itemDef.rarity,
+                    category: itemDef.category,
+                    quality: 'standard'
+                };
+                onCharacterUpdate(prev => prev ? { ...prev, inventory: [...(prev.inventory || []), newItem] } : prev);
+                showToast?.(`Received ${itemDef.name}!`, 'success');
+                break;
+            }
+            case 'item_loss': {
+                const targetId = String(outcome.value || '');
+                onCharacterUpdate(prev => {
+                    if (!prev) return prev;
+                    const inventory = [...(prev.inventory || [])];
+                    const idx = inventory.findIndex((item: any) => item.baseId === targetId || item.id === targetId);
+                    if (idx === -1) return prev;
+                    const item = inventory[idx];
+                    if ((item.quantity || 1) > 1) {
+                        inventory[idx] = { ...item, quantity: (item.quantity || 1) - 1 };
+                    } else {
+                        inventory.splice(idx, 1);
+                    }
+                    return { ...prev, inventory };
+                });
+                showToast?.('Lost an item.', 'error');
+                break;
+            }
+            case 'injury': {
+                const damage = Number(outcome.value || 0);
+                onCharacterUpdate(prev => prev ? { ...prev, health: Math.max(0, prev.health - damage) } : prev);
+                showToast?.(`Injured! Lost ${damage} health.`, 'error');
+                break;
+            }
+            case 'death': {
+                onCharacterUpdate(prev => prev ? { ...prev, health: 0 } : prev);
+                setShowDeathModal(true);
+                showToast?.('You have died.', 'error');
+                break;
+            }
+            case 'reputation_gain': {
+                const rep = Number(outcome.value || 0);
+                onCharacterUpdate(prev => prev ? { ...prev, mapReputation: (prev.mapReputation || 0) + rep } : prev);
+                showToast?.(`Reputation increased by ${rep}!`, 'success');
+                break;
+            }
+            case 'reputation_loss': {
+                const rep = Number(outcome.value || 0);
+                onCharacterUpdate(prev => prev ? { ...prev, mapReputation: (prev.mapReputation || 0) - rep } : prev);
+                showToast?.(`Reputation decreased by ${rep}.`, 'error');
+                break;
+            }
+            case 'knowledge': {
+                const xp = 10;
+                const rep = 5;
+                onCharacterUpdate(prev => prev ? {
+                    ...prev,
+                    experience: Math.min((prev.experience || 0) + xp, prev.maxExperience || 999999),
+                    mapReputation: (prev.mapReputation || 0) + rep
+                } : prev);
+                showToast?.(`Gained knowledge: ${String(outcome.value || '')}`, 'success');
+                break;
+            }
+            case 'nothing':
+            default:
+                break;
+        }
+    }, [onCharacterUpdate, playerCharacter, setShowDeathModal, showToast]);
+
+    const handleFarmTimeAdvance = useCallback((hours: number) => {
+        if (!gameDate) return;
+
+        let newHours = gameTimeHours + hours;
+        let newDay = gameDate.day;
+        let newMonth = gameDate.month;
+        let newYear = gameDate.year;
+
+        while (newHours >= 24) {
+            newHours -= 24;
+            newDay += 1;
+            if (newDay > 30) {
+                newDay = 1;
+                newMonth += 1;
+                if (newMonth > 12) {
+                    newMonth = 1;
+                    newYear += 1;
+                }
+            }
+        }
+
+        setGameTimeHours(newHours);
+        setGameDate({ ...gameDate, day: newDay, month: newMonth, year: newYear });
+    }, [gameDate, gameTimeHours, setGameDate, setGameTimeHours]);
+
+    const handleFarmProgressTime = useCallback((months: number) => {
+        if (!gameDate) return;
+
+        let newMonth = gameDate.month + months;
+        let newYear = gameDate.year;
+        while (newMonth > 12) {
+            newMonth -= 12;
+            newYear += 1;
+        }
+        setGameDate({ ...gameDate, month: newMonth, year: newYear });
+    }, [gameDate, setGameDate]);
+
+    const handleFarmShowWorkEvent = useCallback((event: any) => {
+        const earnings = event?.outcomes?.[0]?.effects?.find((e: any) => e.type === 'currency')?.value || 0;
+        const description = event?.description || 'A day of farm work passes.';
+        showToast?.(`${description} ${earnings ? `You earned ${earnings} coins.` : ''}`.trim(), 'info');
+    }, [showToast]);
+
+    const handleFarmPlayerStateChange = useCallback((changes: {
+        health?: number;
+        fatigue?: number;
+        statusEffects?: Array<{ type: string; name: string; duration: number; severity?: 'mild' | 'moderate' | 'severe' }>;
+        inventory?: { add?: any[]; remove?: string[] };
+    }) => {
+        if (!playerCharacter) return;
+
+        onCharacterUpdate(prev => {
+            if (!prev) return prev;
+
+            let updated = { ...prev };
+
+            if (changes.health !== undefined) {
+                updated.health = Math.max(0, Math.min(updated.maxHealth, updated.health + changes.health));
+                if (changes.health < 0) showToast(`You take ${Math.abs(changes.health)} damage!`);
+            }
+
+            if (changes.fatigue !== undefined) {
+                updated.fatigue = Math.max(0, Math.min(updated.maxFatigue, updated.fatigue + changes.fatigue));
+            }
+
+            if (changes.statusEffects?.length) {
+                updated.statusEffects = [...(updated.statusEffects || []), ...changes.statusEffects];
+            }
+
+            if (changes.inventory?.add?.length) {
+                updated.inventory = [...updated.inventory, ...changes.inventory.add];
+            }
+            if (changes.inventory?.remove?.length) {
+                updated.inventory = updated.inventory.filter(item => !changes.inventory!.remove!.includes(item.id));
+            }
+
+            return updated;
+        });
+    }, [onCharacterUpdate, playerCharacter, showToast]);
     
     // Create current game state for saving
     const currentGameState = React.useMemo(() => {
@@ -379,6 +641,32 @@ const ModalHub: React.FC = () => {
         };
     }, [setShowDevTooltip, currentGameState]);
 
+    // Memoize enhanced mapData for EncounterModal to avoid creating a new object every render
+    const encounterMapData = useMemo(() => {
+        if (!mapData) return mapData;
+        const enhanced = { ...mapData };
+        enhanced.timeOfDay = currentTimeOfDay;
+        enhanced.dayOfYear = getDayOfYear(gameDate);
+
+        const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
+        const mapCenterY = Math.floor(mapData.tiles.length / 2);
+        const centerTile = mapData.tiles[mapCenterY]?.[mapCenterX];
+
+        if (centerTile) {
+            const weather = weatherService.getWeather(
+                mapData.climate || climate,
+                centerTile.biome,
+                season,
+                currentTimeOfDay,
+                centerTile.altitude || 0.5,
+                getDayOfYear(gameDate),
+                { x: mapCenterX, y: mapCenterY }
+            );
+            enhanced.currentWeather = weather;
+        }
+        return enhanced;
+    }, [mapData, currentTimeOfDay, gameDate, climate, season]);
+
     return (
         <>
             {showDevTooltip && (hoveredDevData || (pinnedDevData && isTooltipPinnedOpen)) && ( <DevTooltip hoveredData={hoveredDevData} pinnedData={pinnedDevData} isPinnedOpen={isTooltipPinnedOpen} onCondense={handleCondenseTooltip} /> )}
@@ -431,16 +719,7 @@ const ModalHub: React.FC = () => {
                 />
             )}
             {isWorldMapModalOpen && (
-                <Suspense fallback={
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
-                            <div className="flex items-center gap-3">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                                <span className="text-gray-200">Loading World Map...</span>
-                            </div>
-                        </div>
-                    </div>
-                }>
+                <Suspense fallback={ModalFallback}>
                     <WorldMapModal isOpen={isWorldMapModalOpen} onClose={() => setIsWorldMapModalOpen(false)} cachedMaps={mapDataCache} currentWorldCoords={currentWorldCoords} />
                 </Suspense>
             )}
@@ -462,34 +741,7 @@ const ModalHub: React.FC = () => {
                 target={encounterTarget}
                 playerCharacter={playerCharacter}
                 allNpcs={npcs}
-                mapData={(() => {
-                    // Enhance mapData with real time and weather information
-                    const enhancedMapData = { ...mapData };
-
-                    // Add time properties
-                    enhancedMapData.timeOfDay = currentTimeOfDay;
-                    enhancedMapData.dayOfYear = getDayOfYear(gameDate);
-
-                    // Calculate real weather based on current conditions
-                    const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
-                    const mapCenterY = Math.floor(mapData.tiles.length / 2);
-                    const centerTile = mapData.tiles[mapCenterY]?.[mapCenterX];
-
-                    if (centerTile) {
-                        const weather = weatherService.getWeather(
-                            mapData.climate || climate,
-                            centerTile.biome,
-                            season,
-                            currentTimeOfDay,
-                            centerTile.altitude || 0.5,
-                            getDayOfYear(gameDate),
-                            { x: mapCenterX, y: mapCenterY }
-                        );
-                        enhancedMapData.currentWeather = weather;
-                    }
-
-                    return enhancedMapData;
-                })()}
+                mapData={encounterMapData}
                 onClose={handleCloseEncounter}
                 onInitiateCombat={handleInitiateCombat}
                 onOpenInfo={(target) => {
@@ -522,12 +774,12 @@ const ModalHub: React.FC = () => {
                     mapData={mapData}
                     gameTime={gameTimeHours !== undefined && gameTimeMinutes !== undefined ?
                         { hours: gameTimeHours, minutes: gameTimeMinutes } : undefined}
-                    weather={mapData && climate && season && timeOfDay ?
+                    weather={mapData && climate && season && currentTimeOfDay ?
                         weatherService.getWeather(
                             climate,
                             mapData.tiles?.[playerCharacter.y]?.[playerCharacter.x]?.biome || 'GRASSLAND',
                             season,
-                            timeOfDay
+                            currentTimeOfDay
                         ) : undefined}
                     culturalZone={mapData.culturalZone}
                 />
@@ -549,16 +801,7 @@ const ModalHub: React.FC = () => {
                 </Suspense>
             )}
             {activeSettlementInfo && mapData && (
-                <Suspense fallback={
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
-                            <div className="flex items-center gap-3">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                                <span className="text-gray-200">Loading Settlement Info...</span>
-                            </div>
-                        </div>
-                    </div>
-                }>
+                <Suspense fallback={ModalFallback}>
                     <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} npcs={npcs} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} />
                 </Suspense>
             )}
@@ -567,6 +810,170 @@ const ModalHub: React.FC = () => {
                     <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />
                 </Suspense>
             )}
+            {centralMode === 'historylens' && activeMarketplaceModal && playerCharacter && mapData && mapAnalysisData && (
+                <div
+                    className="absolute inset-0 z-[5200] flex items-center justify-center p-2 sm:p-4 lg:p-8"
+                    style={{ backgroundColor: 'var(--surface-modal-overlay-bg)' }}
+                >
+                    <div className="relative w-full max-w-[1500px] h-[min(90vh,980px)] rounded-xl overflow-hidden border border-surface-muted shadow-2xl">
+                        <button
+                            onClick={() => setActiveMarketplaceModal(null)}
+                            className="absolute top-3 right-3 z-[5201] w-9 h-9 rounded-full bg-black/70 text-white/85 hover:text-white hover:bg-black/85 flex items-center justify-center transition-all"
+                            aria-label="Close marketplace"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                        <Suspense fallback={ModalFallback}>
+                            <MarketplaceModal
+                                tile={activeMarketplaceModal.tile}
+                                onClose={() => setActiveMarketplaceModal(null)}
+                                playerCharacter={playerCharacter}
+                                onBuy={onBuyItem}
+                                onSell={onSellItem}
+                                mapData={mapData}
+                                npcs={visibleNpcs}
+                                mapAnalysisData={mapAnalysisData}
+                                gameTimeHours={gameTimeHours}
+                                season={season}
+                                onAddPersistedNpc={addPersistedMerchant}
+                                currentMapSeed={currentMapSeed}
+                                onRequestTravel={handleHistoryLensTravelRequest}
+                            />
+                        </Suspense>
+                    </div>
+                </div>
+            )}
+            {centralMode === 'historylens' && activeFarmModal && playerCharacter && mapData && (
+                <Suspense fallback={ModalFallback}>
+                    <FarmPanel
+                        tile={activeFarmModal.tile}
+                        mapData={mapData}
+                        npcs={visibleNpcs}
+                        playerCharacter={playerCharacter}
+                        onClose={() => setActiveFarmModal(null)}
+                        onBuy={onBuyItem}
+                        onSell={onSellItem}
+                        useLlm={useLlmForDescriptions}
+                        season={season}
+                        gameTimeHours={gameTimeHours}
+                        onProgressTime={handleFarmProgressTime}
+                        onTimeAdvance={handleFarmTimeAdvance}
+                        onShowEvent={handleFarmShowWorkEvent}
+                        onInitiateEncounter={handleInitiateCombat}
+                        onPlayerStateChange={handleFarmPlayerStateChange}
+                    />
+                </Suspense>
+            )}
+            {centralMode === 'historylens' && activeCityModal && playerCharacter && mapData && (
+                <div
+                    className="absolute inset-0 z-[5200]"
+                    style={{ backgroundColor: 'var(--surface-modal-overlay-bg)' }}
+                >
+                    <Suspense fallback={ModalFallback}>
+                        <CityModal
+                            tile={activeCityModal.tile}
+                            onClose={() => setActiveCityModal(null)}
+                            playerCharacter={playerCharacter}
+                            mapData={mapData}
+                            gameTimeHours={gameTimeHours}
+                            season={season}
+                            onEnterSpecialMap={(config) => {
+                                logSpecialMapEntry(config);
+                                enterSpecialMap(config);
+                                setActiveCityModal(null);
+                            }}
+                            onApplyEventOutcome={applyCityEventOutcome}
+                        />
+                    </Suspense>
+                </div>
+            )}
+            {centralMode === 'historylens' && activeRuinModal && playerCharacter && mapData && (() => {
+                const ruinStructure = mapData.terrainStructures?.find(
+                    (structure) =>
+                        structure.location[0] === activeRuinModal.tile.x &&
+                        structure.location[1] === activeRuinModal.tile.y &&
+                        structure.structureType === 'ruin'
+                );
+                if (!ruinStructure) return null;
+                return (
+                    <Suspense fallback={ModalFallback}>
+                        <RuinStructureModal
+                            structure={ruinStructure}
+                            mapData={mapData}
+                            npcs={visibleNpcs}
+                            onClose={() => setActiveRuinModal(null)}
+                            gameTimeHours={gameTimeHours}
+                            season={season}
+                            playerCharacter={playerCharacter}
+                            currentLocation={mapData.mapAreaName || mapData.continent}
+                            formattedDate={`Year ${gameDate?.year || 1650}, Day ${gameDate?.day || 1}`}
+                            onRoguelikeModeChange={setInRuinRoguelike}
+                            onPlayerDeath={() => setShowDeathModal(true)}
+                            onCharacterUpdate={onCharacterUpdate}
+                        />
+                    </Suspense>
+                );
+            })()}
+            {centralMode === 'historylens' && activeGovernmentModal && playerCharacter && mapData && (
+                <Suspense fallback={ModalFallback}>
+                    <GovernmentDistrictModal
+                        structure={activeGovernmentModal.structure}
+                        tile={activeGovernmentModal.tile}
+                        playerCharacter={playerCharacter}
+                        mapData={mapData}
+                        currentLocation={currentRegion}
+                        formattedDate={gameDate}
+                        gameTimeHours={gameTimeHours}
+                        season={season}
+                        npcs={visibleNpcs}
+                        onClose={() => setActiveGovernmentModal(null)}
+                        onEnterSpecialMap={(config) => {
+                            logSpecialMapEntry(config);
+                            enterSpecialMap(config);
+                            setActiveGovernmentModal(null);
+                        }}
+                    />
+                </Suspense>
+            )}
+            {centralMode === 'historylens' && activeFishingHutModal && playerCharacter && mapData && (
+                <div
+                    className="absolute inset-0 z-[5200] flex items-center justify-center p-2 sm:p-4 lg:p-8"
+                    style={{ backgroundColor: 'var(--surface-modal-overlay-bg)' }}
+                >
+                    <div className="relative w-full max-w-[1500px] h-[min(90vh,980px)] rounded-xl overflow-hidden border border-surface-muted shadow-2xl">
+                        <Suspense fallback={ModalFallback}>
+                            <FishingHutModal
+                                isOpen={true}
+                                onClose={() => setActiveFishingHutModal(null)}
+                                structure={activeFishingHutModal.structure}
+                                culturalZone={mapData?.culturalStyle || 'EUROPEAN' as any}
+                                historicalEra={currentEra}
+                                climate={mapData?.climate || 'TEMPERATE'}
+                                biome={activeFishingHutModal.tile.biome}
+                                season={season}
+                                year={gameDate.year}
+                                isCoastal={activeFishingHutModal.tile.biome === 'coastal'}
+                                isFreshwater={activeFishingHutModal.tile.biome !== 'coastal' && activeFishingHutModal.tile.biome !== 'oceanic'}
+                                timeOfDay={currentTimeOfDay}
+                                playerCharacter={playerCharacter}
+                                onCharacterUpdate={onCharacterUpdate}
+                                onInventoryUpdate={(newItem) => {
+                                    onCharacterUpdate((prev) => {
+                                        if (!prev) return prev;
+                                        return {
+                                            ...prev,
+                                            inventory: [...(prev.inventory || []), newItem]
+                                        };
+                                    });
+                                }}
+                                onBuy={onBuyItem}
+                                onSell={onSellItem}
+                                playerGold={playerCharacter.inventory?.find(item => item.id === 'COIN')?.quantity || 0}
+                            />
+                        </Suspense>
+                    </div>
+                </div>
+            )}
             {activePoi && mapData && (
                 <Suspense fallback={ModalFallback}>
                     <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} onEnterSpecialMap={enterSpecialMap} />
@@ -574,16 +981,7 @@ const ModalHub: React.FC = () => {
             )}
             {isCharacterProfileModalOpen && playerCharacter && (
                 <LazyLoadErrorBoundary>
-                    <Suspense fallback={
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
-                                <div className="flex items-center gap-3">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                                    <span className="text-gray-200">Loading Character Profile...</span>
-                                </div>
-                            </div>
-                        </div>
-                    }>
+                    <Suspense fallback={ModalFallback}>
                         {useNewCharacterModal ? (
                             <CharacterProfileModalV2
                                 isOpen={isCharacterProfileModalOpen}
@@ -782,13 +1180,10 @@ const ModalHub: React.FC = () => {
                             const itemCount = containerModalData.contents.items.length;
                             const allItems = [...containerModalData.contents.items];
 
-                            // Add all items to inventory
-                            allItems.forEach(item => {
-                                onCharacterUpdate(prev => {
-                                    if (!prev) return prev;
-                                    const newInventory = [...(prev.inventory || []), item];
-                                    return { ...prev, inventory: newInventory };
-                                });
+                            // Add all items to inventory in a single update
+                            onCharacterUpdate(prev => {
+                                if (!prev) return prev;
+                                return { ...prev, inventory: [...(prev.inventory || []), ...allItems] };
                             });
 
                             // Determine if this is theft
@@ -896,16 +1291,7 @@ const ModalHub: React.FC = () => {
                 />
             </Suspense>
             {selectedPrimarySource && (
-                <Suspense fallback={
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600">
-                            <div className="flex items-center gap-3">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                                <span className="text-gray-200">Loading Primary Source...</span>
-                            </div>
-                        </div>
-                    </div>
-                }>
+                <Suspense fallback={ModalFallback}>
                     <PrimarySourceModal
                         source={selectedPrimarySource}
                         onClose={() => setSelectedPrimarySource(null)}
@@ -992,20 +1378,21 @@ const ModalHub: React.FC = () => {
                                 // Remove coins from inventory
                                 const updatedInventory = prev.inventory || [];
                                 let remainingToRemove = amount;
-                                const newInventory = updatedInventory.filter(item => {
+                                const newInventory: typeof updatedInventory = [];
+                                for (const item of updatedInventory) {
                                     if (item.id === 'COIN' && remainingToRemove > 0) {
                                         const quantity = item.quantity || 1;
                                         if (quantity <= remainingToRemove) {
                                             remainingToRemove -= quantity;
-                                            return false; // Remove this coin stack
+                                            // Drop this coin stack entirely
                                         } else {
-                                            item.quantity = quantity - remainingToRemove;
+                                            newInventory.push({ ...item, quantity: quantity - remainingToRemove });
                                             remainingToRemove = 0;
-                                            return true; // Keep with reduced quantity
                                         }
+                                    } else {
+                                        newInventory.push(item);
                                     }
-                                    return true;
-                                });
+                                }
                                 return { ...prev, inventory: newInventory };
                             });
                             showToast(`Paid ${amount} gold in fines`, 'info');
@@ -1091,23 +1478,24 @@ const ModalHub: React.FC = () => {
                             fare: conn.fare,
                             routeDescription: conn.routeDescription
                         }))}
-                        playerMoney={playerCharacter?.money || 0}
+                        playerCurrency={getPlayerCurrency(playerCharacter)}
                         currentTime={gameTimeHours}
                         onFastTravel={(destination) => {
                             if (!playerCharacter || !gameDate) return;
+                            const currentCurrency = getPlayerCurrency(playerCharacter);
 
                             // Check if this is a cross-map destination (x === -1 indicates another map area)
                             const isCrossMapTravel = destination.x === -1;
 
-                            // 1. Deduct fare from player money
-                            if (playerCharacter.money < destination.fare) {
+                            // 1. Deduct fare from player currency
+                            if (currentCurrency < destination.fare) {
                                 showToast(`Insufficient funds! Ticket costs ${destination.fare} coins.`);
                                 return;
                             }
 
                             const updatedCharacter = {
                                 ...playerCharacter,
-                                money: playerCharacter.money - destination.fare
+                                currency: currentCurrency - destination.fare
                             };
                             onCharacterUpdate(updatedCharacter);
 
@@ -1127,9 +1515,7 @@ const ModalHub: React.FC = () => {
 
                             // If we crossed into new days, update the date
                             if (daysToAdd > 0 && gameDate) {
-                                const newDate = new Date(gameDate);
-                                newDate.setDate(newDate.getDate() + daysToAdd);
-                                setGameDate(newDate);
+                                setGameDate(advanceGameDate(gameDate, daysToAdd));
                             }
 
                             // 4. Close modal and notify user
@@ -1141,7 +1527,7 @@ const ModalHub: React.FC = () => {
                                     destination: destination.name,
                                     fare: destination.fare,
                                     travelTime: destination.travelTime,
-                                    newMoney: updatedCharacter.money,
+                                    newCurrency: updatedCharacter.currency,
                                     note: 'Cross-map transition not yet implemented'
                                 });
                             } else {
@@ -1150,7 +1536,7 @@ const ModalHub: React.FC = () => {
                                     destination: destination.name,
                                     fare: destination.fare,
                                     travelTime: destination.travelTime,
-                                    newMoney: updatedCharacter.money
+                                    newCurrency: updatedCharacter.currency
                                 });
                             }
                         }}
@@ -1176,23 +1562,24 @@ const ModalHub: React.FC = () => {
                             dangerLevel: dest.dangerLevel || 'low',
                             routeDescription: dest.routeDescription || ''
                         }))}
-                        playerMoney={playerCharacter?.money || 0}
+                        playerCurrency={getPlayerCurrency(playerCharacter)}
                         currentTime={gameTimeHours}
-                        onFastTravel={(destination) => {
+                        onBookPassage={(destination) => {
                             if (!playerCharacter || !gameDate) return;
+                            const currentCurrency = getPlayerCurrency(playerCharacter);
 
                             // Ocean voyages are always cross-map travel
                             const isCrossMapTravel = true;
 
-                            // 1. Deduct fare from player money
-                            if (playerCharacter.money < destination.fare) {
+                            // 1. Deduct fare from player currency
+                            if (currentCurrency < destination.fare) {
                                 showToast(`Insufficient funds! Passage costs ${destination.fare} coins.`);
                                 return;
                             }
 
                             const updatedCharacter = {
                                 ...playerCharacter,
-                                money: playerCharacter.money - destination.fare
+                                currency: currentCurrency - destination.fare
                             };
                             onCharacterUpdate(updatedCharacter);
 
@@ -1210,9 +1597,7 @@ const ModalHub: React.FC = () => {
 
                             // If we crossed into new days, update the date
                             if (daysToAdd > 0 && gameDate) {
-                                const newDate = new Date(gameDate);
-                                newDate.setDate(newDate.getDate() + daysToAdd);
-                                setGameDate(newDate);
+                                setGameDate(advanceGameDate(gameDate, daysToAdd));
                             }
 
                             // 3. Close modal and notify user
@@ -1226,7 +1611,7 @@ const ModalHub: React.FC = () => {
                                 travelTime: actualTravelTime,
                                 shipType: destination.shipType,
                                 dangerLevel: destination.dangerLevel,
-                                newMoney: updatedCharacter.money,
+                                newCurrency: updatedCharacter.currency,
                                 note: 'Cross-map transition not yet implemented'
                             });
                         }}
@@ -1312,9 +1697,7 @@ const ModalHub: React.FC = () => {
                             setGameTimeHours(newHours);
 
                             if (daysToAdd > 0 && gameDate) {
-                                const newDate = new Date(gameDate);
-                                newDate.setDate(newDate.getDate() + daysToAdd);
-                                setGameDate(newDate);
+                                setGameDate(advanceGameDate(gameDate, daysToAdd));
                             }
                         }}
                     />

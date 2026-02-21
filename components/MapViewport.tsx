@@ -59,6 +59,7 @@ import { poiDialogueService } from '../services/poiDialogueService';
 import { getDayOfYear } from '../utils/dateUtils';
 import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
 import { generateEntryNarration, buildEntryMeta } from '../services/historyLensEntryService';
+import { getPlayerCurrency } from '../utils/currencyUtils';
 
 type ActivePanel = 'farm' | null;
 
@@ -1628,16 +1629,18 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
 
                     console.log('[MapViewport] Caravan travel requested:', destination);
 
-                    // Check if player has enough money
-                    if (!playerCharacter.money || playerCharacter.money < destination.fare) {
-                        showToast?.(`Need ${destination.fare - (playerCharacter.money || 0)} more coins for caravan fare!`, 'error');
+                    const currentCurrency = getPlayerCurrency(playerCharacter);
+
+                    // Check if player has enough currency
+                    if (currentCurrency < destination.fare) {
+                        showToast?.(`Need ${destination.fare - currentCurrency} more coins for caravan fare!`, 'error');
                         return;
                     }
 
-                    // 1. Deduct fare from player money
+                    // 1. Deduct fare from player currency
                     const updatedCharacter = {
                         ...playerCharacter,
-                        money: playerCharacter.money - destination.fare
+                        currency: currentCurrency - destination.fare
                     };
                     setPlayerCharacter(updatedCharacter);
 
@@ -1684,11 +1687,11 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
                             mapArea: destination.mapAreaName,
                             fare: destination.fare,
                             journeyDays: journeyDays,
-                            newMoney: updatedCharacter.money,
+                            newCurrency: updatedCharacter.currency,
                             culturalIcon: destination.culturalIcon
                         });
                     } else {
-                        // Refund money if travel failed
+                        // Refund currency if travel failed
                         setPlayerCharacter(playerCharacter);
                         showToast?.(`Failed to find route to ${destination.mapAreaName}`, 'error');
                     }
@@ -2934,4 +2937,4 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
     );
 };
 
-export default MapViewport;
+export default React.memo(MapViewport);
