@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import * as ReactDOM from 'react-dom';
 import { Item, ItemQuality, PlayerCharacter } from '../types';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 import { FaTh, FaList, FaSortAmountDown } from 'react-icons/fa';
@@ -210,20 +211,28 @@ export default function InventoryPanelEnhanced({
       <div className="flex-shrink-0 px-3 py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">Inventory</span>
-            <span className="text-[10px] text-white/30">{filteredInventory.length} items</span>
+            <span className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>Inventory</span>
+            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{filteredInventory.length} items</span>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white/80' : 'text-white/30 hover:text-white/50'}`}
+              className="p-1.5 rounded transition-all"
+              style={{
+                background: viewMode === 'grid' ? 'var(--surface-muted-bg)' : 'transparent',
+                color: viewMode === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)',
+              }}
               title="Grid view"
             >
               <FaTh className="w-3 h-3" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-white/10 text-white/80' : 'text-white/30 hover:text-white/50'}`}
+              className="p-1.5 rounded transition-all"
+              style={{
+                background: viewMode === 'list' ? 'var(--surface-muted-bg)' : 'transparent',
+                color: viewMode === 'list' ? 'var(--text-primary)' : 'var(--text-muted)',
+              }}
               title="List view"
             >
               <FaList className="w-3 h-3" />
@@ -232,7 +241,8 @@ export default function InventoryPanelEnhanced({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="ml-1 text-[10px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60 outline-none"
+                className="ml-1 text-[10px] px-2 py-1 rounded outline-none"
+                style={{ background: 'var(--surface-muted-bg)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
               >
                 <option value="name">Name</option>
                 <option value="quantity">Qty</option>
@@ -249,18 +259,19 @@ export default function InventoryPanelEnhanced({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search..."
-            className="w-full mt-2 px-3 py-1.5 text-xs rounded-lg bg-black/20 border border-white/5 text-white/80 placeholder:text-white/30 outline-none focus:border-white/20"
+            className="w-full mt-2 px-3 py-1.5 text-xs rounded-lg outline-none"
+            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
           />
         )}
       </div>
 
-      <div className="h-px w-full bg-white/5" />
+      <div className="h-px w-full" style={{ background: 'var(--border-subtle)' }} />
 
       {/* Content Area */}
       <div className="flex-1 min-h-0 p-2 overflow-y-auto">
         {searchQuery && filteredInventory.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-xs text-white/40">No items matching "{searchQuery}"</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No items matching "{searchQuery}"</p>
           </div>
         ) : viewMode === 'grid' ? (
           /* GRID VIEW with empty slots */
@@ -315,15 +326,15 @@ export default function InventoryPanelEnhanced({
                       <GenerativeItemIcon item={item} size={44} />
                     </div>
                     <p
-                      className="text-[9px] text-center text-white/70 mt-1 leading-tight line-clamp-2"
-                      style={{ textTransform: 'capitalize' }}
+                      className="text-[9px] text-center mt-1 leading-tight line-clamp-2"
+                      style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}
                     >
                       {item.name.toLowerCase()}
                     </p>
                   </div>
 
                   {/* Hover highlight */}
-                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white/5" />
+                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" style={{ background: 'var(--surface-muted-bg)' }} />
                 </div>
               );
             })}
@@ -351,7 +362,7 @@ export default function InventoryPanelEnhanced({
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-all hover:bg-white/5 group"
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-all group"
                   onClick={() => handleItemClick(item)}
                   style={{
                     background: isHighlighted ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
@@ -366,7 +377,7 @@ export default function InventoryPanelEnhanced({
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-white/80 truncate capitalize">
+                      <span className="text-xs font-medium truncate capitalize" style={{ color: 'var(--text-primary)' }}>
                         {item.name.toLowerCase()}
                       </span>
                       {item.quantity > 1 && (
@@ -376,13 +387,13 @@ export default function InventoryPanelEnhanced({
                       )}
                     </div>
                     {item.description && (
-                      <p className="text-[10px] text-white/40 truncate">{item.description}</p>
+                      <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{item.description}</p>
                     )}
                   </div>
 
                   {/* Value */}
                   {item.value !== undefined && (
-                    <span className="text-[10px] text-amber-400/70 font-medium">{item.value}c</span>
+                    <span className="text-[10px] font-medium" style={{ color: 'var(--accent-secondary)' }}>{item.value}c</span>
                   )}
                 </div>
               );
@@ -391,8 +402,8 @@ export default function InventoryPanelEnhanced({
             {/* Empty state for list view */}
             {sortedInventory.length === 0 && !searchQuery && (
               <div className="text-center py-8">
-                <p className="text-xs text-white/30">Empty inventory</p>
-                <p className="text-[10px] text-white/20 mt-1">Explore to find items</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Empty inventory</p>
+                <p className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>Explore to find items</p>
               </div>
             )}
           </div>
@@ -505,21 +516,20 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   const colors = getRarityColors(item.rarity);
   const qualityInfo = getQualityInfo(item.quality);
 
-  return (
+  const modalContent = (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)'
+        zIndex: 2147483000,
+        backgroundColor: 'var(--surface-modal-overlay-bg)',
+        isolation: 'isolate'
       }}
       onClick={onClose}
     >
       <div
         className="relative max-w-2xl w-full rounded-2xl overflow-hidden shadow-2xl"
         style={{
-          background: isDark
-            ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%)'
-            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.98) 100%)',
+          background: 'var(--surface-modal-panel-bg)',
           border: `2px solid ${colors.primary}`,
           boxShadow: `0 0 60px ${colors.glow}`,
           maxHeight: '90vh',
@@ -547,8 +557,8 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: isDark ? 'rgba(71, 85, 105, 0.8)' : 'rgba(229, 231, 235, 0.8)',
-              color: isDark ? '#e2e8f0' : '#1e293b',
+              background: 'var(--surface-muted-bg)',
+              color: 'var(--text-primary)',
               fontSize: '24px',
               lineHeight: '1',
               fontWeight: 'bold',
@@ -579,7 +589,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               <h2
                 className="text-2xl font-bold mb-2"
                 style={{
-                  color: isDark ? '#f1f5f9' : '#0f172a',
+                  color: 'var(--text-primary)',
                   textTransform: 'capitalize'
                 }}
               >
@@ -607,8 +617,8 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   <span
                     className="px-3 py-1 text-xs font-semibold rounded-full"
                     style={{
-                      background: isDark ? 'rgba(71, 85, 105, 0.5)' : 'rgba(229, 231, 235, 0.7)',
-                      color: isDark ? '#cbd5e1' : '#475569'
+                      background: 'var(--surface-chip-bg)',
+                      color: 'var(--text-secondary)'
                     }}
                   >
                     {item.category}
@@ -620,7 +630,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               {item.description && (
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: isDark ? '#cbd5e1' : '#475569' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {item.description}
                 </p>
@@ -635,11 +645,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div>
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Value
               </div>
-              <div className="text-lg font-bold" style={{ color: '#fbbf24' }}>
+              <div className="text-lg font-bold" style={{ color: 'var(--accent-secondary)' }}>
                 {item.value} 🪙
               </div>
             </div>
@@ -649,11 +659,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div>
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Weight
               </div>
-              <div className="text-lg font-bold" style={{ color: isDark ? '#e2e8f0' : '#1e293b' }}>
+              <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                 {item.weight} kg
               </div>
             </div>
@@ -663,7 +673,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div>
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Quantity
               </div>
@@ -677,7 +687,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div>
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Attack
               </div>
@@ -691,7 +701,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div>
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Defense
               </div>
@@ -705,7 +715,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div>
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Condition
               </div>
@@ -727,11 +737,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div>
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Material
               </div>
-              <div className="text-lg font-semibold" style={{ color: isDark ? '#e2e8f0' : '#1e293b' }}>
+              <div className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {item.material}
               </div>
             </div>
@@ -741,11 +751,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div className="col-span-2">
               <div
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Crafted By
               </div>
-              <div className="text-lg font-semibold" style={{ color: '#f59e0b' }}>
+              <div className="text-lg font-semibold" style={{ color: 'var(--accent-secondary)' }}>
                 {item.crafterName}
               </div>
             </div>
@@ -759,8 +769,8 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               onClick={() => onCraft(item)}
               className="flex-1 px-5 py-4 rounded-lg font-bold text-base transition-all duration-200 hover:scale-105"
               style={{
-                background: '#10b981',
-                color: '#fff',
+                background: 'var(--button-primary-bg)',
+                color: 'var(--button-primary-text)',
                 boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
                 border: 'none',
                 cursor: 'pointer'
@@ -774,11 +784,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <button
               onClick={() => {
                 onDrop(item);
-                setIsItemModalOpen(false);
+                onClose();
               }}
               className="flex-1 px-5 py-4 rounded-lg font-bold text-base transition-all duration-200 hover:scale-105"
               style={{
-                background: '#ef4444',
+                background: 'var(--color-error)',
                 color: '#fff',
                 boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
                 border: 'none',
@@ -794,7 +804,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               onClick={() => onEat(item)}
               className="flex-1 px-5 py-4 rounded-lg font-bold text-base transition-all duration-200 hover:scale-105"
               style={{
-                background: '#f59e0b',
+                background: 'var(--accent-secondary)',
                 color: '#fff',
                 boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
                 border: 'none',
@@ -856,4 +866,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return modalContent;
+  return ReactDOM.createPortal(modalContent, document.body);
 };

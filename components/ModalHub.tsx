@@ -139,7 +139,7 @@ const CityHistoricalModal = lazy(() => import('./CityHistoricalModal').then(modu
 const MarketplaceModal = lazy(() => import('./MarketplaceModal'));
 const FarmPanel = lazy(() => import('./FarmPanel'));
 const CityModal = lazy(() => import('./CityModal'));
-const GovernmentDistrictModal = lazy(() => import('./GovernmentDistrictModal'));
+const GovernmentDistrictModal = lazy(() => import('./GovernmentDistrictModalV2'));
 const RuinStructureModal = lazy(() => import('./RuinStructureModal'));
 const FishingHutModal = lazy(() => import('./FishingHutModal'));
 const RailroadStationModal = lazy(() => import('./RailroadStationModal'));
@@ -875,6 +875,7 @@ const ModalHub: React.FC = () => {
                             onClose={() => setActiveCityModal(null)}
                             playerCharacter={playerCharacter}
                             mapData={mapData}
+                            npcs={npcs}
                             gameTimeHours={gameTimeHours}
                             season={season}
                             onEnterSpecialMap={(config) => {

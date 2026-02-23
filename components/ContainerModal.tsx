@@ -47,6 +47,19 @@ const CONTAINER_DESCRIPTIONS: Record<string, string> = {
   [OverlayObjectType.ARMOR_STAND]: 'A stand displaying pieces of armor.',
 };
 
+const CONTAINER_EMOJIS: Record<string, string> = {
+  [OverlayObjectType.CHEST]: '📦',
+  [OverlayObjectType.BARREL]: '🪣',
+  [OverlayObjectType.CRATE]: '📦',
+  [OverlayObjectType.CABINET]: '🗄️',
+  [OverlayObjectType.BOOKSHELF]: '📚',
+  [OverlayObjectType.FILING_CABINET]: '🗃️',
+  [OverlayObjectType.TANSU]: '🗃️',
+  [OverlayObjectType.SPICE_CABINET]: '🫙',
+  [OverlayObjectType.WEAPON_RACK]: '⚔️',
+  [OverlayObjectType.ARMOR_STAND]: '🛡️',
+};
+
 const ContainerModal: React.FC<ContainerModalProps> = ({
   isOpen,
   onClose,
@@ -66,7 +79,7 @@ const ContainerModal: React.FC<ContainerModalProps> = ({
         soundType = 'chest';
       } else if (containerType === OverlayObjectType.BARREL) {
         soundType = 'barrel';
-      } else if (containerType === OverlayObjectType.CABINET || 
+      } else if (containerType === OverlayObjectType.CABINET ||
                  containerType === OverlayObjectType.FILING_CABINET ||
                  containerType === OverlayObjectType.SPICE_CABINET) {
         soundType = 'cabinet';
@@ -79,7 +92,8 @@ const ContainerModal: React.FC<ContainerModalProps> = ({
 
   const containerName = CONTAINER_NAMES[containerType] || 'Container';
   const containerDescription = CONTAINER_DESCRIPTIONS[containerType] || 'A container holding various items.';
-  
+  const containerEmoji = CONTAINER_EMOJIS[containerType] || '📦';
+
   const handleTakeItem = (item: Item) => {
     onTakeItem(item);
   };
@@ -96,7 +110,7 @@ const ContainerModal: React.FC<ContainerModalProps> = ({
       soundType = 'chest';
     } else if (containerType === OverlayObjectType.BARREL) {
       soundType = 'barrel';
-    } else if (containerType === OverlayObjectType.CABINET || 
+    } else if (containerType === OverlayObjectType.CABINET ||
                containerType === OverlayObjectType.FILING_CABINET ||
                containerType === OverlayObjectType.SPICE_CABINET) {
       soundType = 'cabinet';
@@ -116,169 +130,280 @@ const ContainerModal: React.FC<ContainerModalProps> = ({
     }
   };
 
-  const getOwnershipText = () => {
-    if (contents.ownerNpc) {
-      return (
-        <div className="px-6 py-3 bg-red-900/20 border-l-4 border-red-500 text-red-300">
-          <div className="flex items-center gap-2 text-sm">
-            <span>⚠️</span>
-            <span>This container appears to belong to someone. Taking items may be considered theft.</span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
-    <>
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-
-          @keyframes scaleIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-          }
-
-          .container-modal.opening {
-            animation: scaleIn 0.3s ease-out;
-          }
-
-          .container-with-loot:hover {
-            filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.8)) !important;
-          }
-
-          .loot-indicator {
-            animation: pulse 2s infinite;
-          }
-
-          @keyframes pulse {
-            0%, 100% { opacity: 0.8; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
-          }
-        `}
-      </style>
+    <div
+      data-surface="modal-overlay"
+      className="modal-overlay theme-surface"
+      onClick={handleClose}
+    >
       <div
-        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4"
-        onClick={handleClose}
+        data-surface="modal-panel"
+        className="ff-panel theme-surface w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: 'modal-pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
-        <div
-          className={`bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 rounded-2xl max-w-lg w-full max-h-[80vh] shadow-2xl transition-all duration-300 overflow-hidden flex flex-col ${isAnimating ? 'animate-scaleIn' : ''}`}
-          onClick={(e) => e.stopPropagation()}
-        >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 flex-shrink-0">
+        <div
+          className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+          style={{
+            background: 'var(--bg-secondary)',
+            borderBottom: '1px solid var(--border-normal)',
+          }}
+        >
           <div className="flex items-center gap-3">
-            <span className="text-2xl">📦</span>
+            <div
+              className="w-9 h-9 rounded-md flex items-center justify-center text-lg"
+              style={{
+                background: 'var(--surface-elevated-bg)',
+                border: '1px solid var(--surface-elevated-border)',
+              }}
+            >
+              {containerEmoji}
+            </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-100 m-0">
+              <h2
+                className="text-lg font-bold m-0"
+                style={{
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-narrative, Georgia, serif)',
+                }}
+              >
                 {containerName}
               </h2>
-              <p className="text-sm text-slate-400 m-0 italic">
+              <p
+                className="text-xs m-0"
+                style={{
+                  color: 'var(--text-tertiary)',
+                  fontFamily: 'var(--font-narrative, Georgia, serif)',
+                  fontStyle: 'italic',
+                }}
+              >
                 {containerDescription}
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="text-slate-400 hover:text-slate-200 text-xl p-2 hover:bg-slate-800 rounded-lg transition-all"
+            className="w-[30px] h-[30px] rounded-md flex items-center justify-center text-base cursor-pointer transition-colors duration-150 hover:brightness-125"
+            style={{
+              border: '1px solid var(--border-normal)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-tertiary)',
+            }}
+            title="Close"
           >
             ✕
           </button>
         </div>
 
         {/* Ownership Warning */}
-        {getOwnershipText()}
+        {contents.ownerNpc && (
+          <div
+            className="relative px-5 py-3 overflow-hidden flex-shrink-0"
+            style={{
+              background: 'rgba(30, 41, 59, 0.5)',
+              borderBottom: '1px solid rgba(248, 113, 113, 0.25)',
+            }}
+          >
+            <div
+              className="absolute top-0 left-0 right-0 h-[2px]"
+              style={{
+                background: 'linear-gradient(90deg, transparent, var(--color-error), transparent)',
+              }}
+            />
+            <div
+              className="flex items-center gap-2 text-sm"
+              style={{ color: 'var(--color-error)' }}
+            >
+              <span>⚠️</span>
+              <span>This container appears to belong to someone. Taking items may be considered theft.</span>
+            </div>
+          </div>
+        )}
 
         {/* Contents */}
-        <div className="flex-1 px-6 py-4 overflow-y-auto">
-          <h3 className="text-lg font-semibold text-amber-400 mb-4 pb-2 border-b border-slate-700/50">
-            Contents ({contents.items.length} {contents.items.length === 1 ? 'item' : 'items'})
-          </h3>
-          
+        <div
+          className="flex-1 overflow-y-auto px-5 py-4 pr-3 scrollbar-thin"
+          style={{ background: 'var(--bg-primary)' }}
+        >
+          {/* Section header */}
+          <div className="flex justify-between items-center mb-3">
+            <span
+              className="font-bold uppercase"
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.12em',
+                color: 'var(--text-tertiary)',
+              }}
+            >
+              Contents
+            </span>
+            <span
+              className="font-semibold px-2 py-0.5 rounded-full"
+              style={{
+                fontSize: '0.65rem',
+                background: contents.items.length > 0 ? 'var(--pill-accent-bg)' : 'var(--pill-bg)',
+                border: `1px solid`,
+                borderColor: contents.items.length > 0 ? 'var(--pill-accent-border)' : 'var(--pill-border)',
+                color: contents.items.length > 0 ? 'var(--pill-accent-text)' : 'var(--text-muted)',
+              }}
+            >
+              {contents.items.length} {contents.items.length === 1 ? 'item' : 'items'}
+            </span>
+          </div>
+
           {contents.items.length === 0 ? (
-            <div className="text-center text-slate-500 py-8 italic">
+            <div
+              className="text-center py-12 text-sm"
+              style={{
+                color: 'var(--text-muted)',
+                fontFamily: 'var(--font-narrative, Georgia, serif)',
+                fontStyle: 'italic',
+              }}
+            >
               This container is empty.
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {contents.items.map((item, index) => (
-                <div
-                  key={`${item.baseId}-${index}`}
-                  className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border transition-all hover:transform hover:-translate-y-0.5 hover:shadow-lg"
-                  style={{
-                    borderColor: getItemRarityColor(item.rarity)
-                  }}
-                >
-                  <div className="flex items-center flex-1 gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center">
-                      <GenerativeItemIcon item={item} size={32} />
+            <div className="flex flex-col gap-1.5">
+              {contents.items.map((item, index) => {
+                const rarityColor = getItemRarityColor(item.rarity);
+                return (
+                  <div
+                    key={`${item.baseId}-${index}`}
+                    className="grid items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:translate-x-0.5 hover:brightness-[1.08]"
+                    style={{
+                      gridTemplateColumns: '36px 1fr auto',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--surface-card-border)',
+                      boxShadow: `inset 3px 0 0 ${rarityColor}`,
+                    }}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-md flex items-center justify-center"
+                      style={{
+                        background: 'var(--surface-elevated-bg)',
+                        border: '1px solid var(--surface-elevated-border)',
+                      }}
+                    >
+                      <GenerativeItemIcon item={item} size={28} />
                     </div>
-                    <div className="flex-1">
+                    <div className="min-w-0">
                       <div
-                        className="font-semibold mb-1"
-                        style={{ color: getItemRarityColor(item.rarity) }}
+                        className="text-sm font-semibold truncate"
+                        style={{ color: 'var(--text-primary)' }}
                       >
                         {item.name}
                       </div>
-                      <div className="text-sm text-slate-300 mb-1">
-                        {item.description}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        Value: {item.value} • Weight: {item.weight} • {item.rarity}
+                      {item.description && (
+                        <div
+                          className="text-xs truncate mt-0.5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {item.description}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                          {item.value} coin{item.value !== 1 ? 's' : ''}
+                        </span>
+                        <span
+                          className="inline-block w-[3px] h-[3px] rounded-full"
+                          style={{ background: 'var(--text-muted)' }}
+                        />
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                          Wt. {item.weight}
+                        </span>
+                        <span
+                          className="font-bold uppercase px-1.5 py-px rounded ml-0.5"
+                          style={{
+                            fontSize: '0.6rem',
+                            letterSpacing: '0.06em',
+                            color: rarityColor,
+                            background: `${rarityColor}1a`,
+                            border: `1px solid ${rarityColor}40`,
+                          }}
+                        >
+                          {item.rarity}
+                        </span>
                       </div>
                     </div>
+                    <button
+                      onClick={() => handleTakeItem(item)}
+                      className="px-3 py-1.5 rounded-md font-semibold cursor-pointer transition-all duration-200 hover:-translate-y-px"
+                      style={{
+                        fontSize: '0.75rem',
+                        background: 'var(--button-primary-bg)',
+                        border: '1px solid rgba(76, 146, 125, 0.55)',
+                        color: 'var(--button-primary-text)',
+                        boxShadow: '0 2px 8px rgba(12, 52, 41, 0.3)',
+                      }}
+                    >
+                      Take
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleTakeItem(item)}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                  >
-                    Take
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/50 flex-shrink-0">
-          <div className="flex items-center gap-2 text-sm">
+        {/* Footer */}
+        <div
+          className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+          style={{
+            borderTop: '1px solid var(--border-normal)',
+            background: 'var(--bg-secondary)',
+          }}
+        >
+          <div>
             {contents.isValuable && (
-              <span className="text-amber-400 flex items-center gap-1">
-                <span>💎</span>
-                <span>Contains valuable items</span>
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                style={{
+                  fontSize: '0.72rem',
+                  background: 'var(--surface-chip-bg)',
+                  border: '1px solid var(--surface-chip-border)',
+                  color: 'var(--accent-secondary)',
+                }}
+              >
+                💎 Valuable items
               </span>
             )}
           </div>
           <div className="flex gap-3">
             <button
               onClick={handleClose}
-              className="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+              className="px-4 py-2 rounded-md text-sm font-semibold cursor-pointer transition-all duration-150"
+              style={{
+                background: 'var(--surface-muted-bg)',
+                border: '1px solid var(--surface-muted-border)',
+                color: 'var(--text-secondary)',
+              }}
             >
               Close
             </button>
             {contents.items.length > 0 && (
               <button
                 onClick={handleTakeAll}
-                className={`text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                  contents.ownerNpc
-                    ? 'bg-orange-600 hover:bg-orange-500'
-                    : 'bg-blue-600 hover:bg-blue-500'
-                }`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold cursor-pointer transition-all duration-200 hover:-translate-y-px"
+                style={{
+                  background: contents.ownerNpc ? 'rgba(234, 88, 12, 0.8)' : 'var(--button-primary-bg)',
+                  border: contents.ownerNpc
+                    ? '1px solid rgba(234, 88, 12, 0.55)'
+                    : '1px solid rgba(76, 146, 125, 0.55)',
+                  color: 'var(--button-primary-text)',
+                  boxShadow: contents.ownerNpc
+                    ? '0 4px 12px rgba(154, 52, 18, 0.3)'
+                    : '0 4px 12px rgba(12, 52, 41, 0.3)',
+                }}
               >
-                {contents.ownerNpc ? 'Steal All' : 'Take All'}
+                {contents.ownerNpc ? '⚠ Steal All' : 'Take All'}
               </button>
             )}
           </div>
         </div>
       </div>
-      </div>
-    </>
+    </div>
   );
 };
 

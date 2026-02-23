@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Modal — The Chronicle (Mockup A) — Dark Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ─── Exact dark mode tokens from index.css ─── */
+    --bg-primary: #070b14;
+    --bg-secondary: #0F172A;
+    --bg-card: #152133;
+    --bg-elevated: #1e293b;
+
+    --border-subtle: #404040;
+    --border-normal: #2d3442;
+    --border-strong: #737373;
+
+    --text-primary: #e5e5e5;
+    --text-secondary: #a3a3a3;
+    --text-tertiary: #737373;
+    --text-muted: #525252;
+
+    --accent-primary: #4ade80;
+    --accent-secondary: #FFCA28;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --color-info: #60a5fa;
+
+    --button-primary-bg: #3F8772;
+    --button-primary-hover: #2F6E5A;
+    --button-primary-text: #E7F4EF;
+
+    --surface-card-bg: rgba(17, 24, 39, 0.1);
+    --surface-card-border: rgba(148, 163, 184, 0.2);
+    --surface-muted-bg: rgba(51, 65, 85, 0.65);
+    --surface-muted-border: rgba(100, 116, 139, 0.35);
+    --surface-elevated-bg: rgba(30, 41, 59, 0.85);
+    --surface-elevated-border: rgba(100, 116, 139, 0.45);
+    --surface-chip-bg: rgba(40, 48, 63, 0.82);
+    --surface-chip-border: rgba(79, 93, 116, 0.55);
+    --surface-modal-panel-bg: #152133;
+    --surface-modal-panel-border: #2d3442;
+
+    --pill-bg: rgba(59, 73, 95, 0.68);
+    --pill-border: rgba(148, 163, 184, 0.35);
+    --pill-accent-bg: rgba(34, 197, 94, 0.25);
+    --pill-accent-border: rgba(74, 222, 128, 0.45);
+    --pill-accent-text: rgba(236, 253, 245, 0.95);
+
+    /* ─── Narrative-specific from HistoryLens ─── */
+    --narrative-gold: rgba(244, 203, 120, 0.9);
+    --narrative-npc: rgba(244, 203, 120, 0.95);
+    --narrative-location: rgba(74, 222, 128, 0.9);
+    --narrative-player: rgba(96, 165, 250, 0.95);
+
+    --font-ui: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', sans-serif;
+    --font-narrative: 'Lora', Georgia, serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    font-family: var(--font-ui);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* ─── Modal container ─── */
+  .modal-overlay {
+    width: 100%;
+    max-width: 960px;
+    background: var(--surface-modal-panel-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--surface-modal-panel-border);
+    box-shadow:
+      0 26px 52px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(0,0,0,0.3);
+    animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes modalIn {
+    0% { opacity: 0; transform: scale(0.9); }
+    50% { transform: scale(1.02); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ─── Banner (placeholder for CityBanner component) ─── */
+  .city-banner {
+    height: 200px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg,
+      #0a0e27 0%,
+      #2E3A5F 40%,
+      #FF8C69 85%,
+      #c46040 100%
+    );
+  }
+
+  .city-banner::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 90px;
+    background: linear-gradient(to top, var(--surface-modal-panel-bg), transparent);
+  }
+
+  .city-silhouette {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 40px;
+  }
+
+  .building {
+    background: #0d1220;
+    border-radius: 2px 2px 0 0;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .building::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 3px;
+    background: #d4944e;
+    border-radius: 50%;
+    box-shadow: 0 0 4px 1px rgba(212,148,78,0.5);
+  }
+
+  .building.tall::before { top: 6px; }
+
+  .moon {
+    position: absolute;
+    top: 25px;
+    right: 80px;
+    width: 28px;
+    height: 28px;
+    background: #f5e6b8;
+    border-radius: 50%;
+    box-shadow: 0 0 20px 8px rgba(245,230,184,0.15);
+  }
+
+  /* ─── Info strip ─── */
+  .info-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-normal);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .info-strip-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .city-name {
+    font-family: var(--font-narrative);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+  }
+
+  .city-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+
+  .city-meta .dot {
+    width: 3px;
+    height: 3px;
+    background: var(--text-muted);
+    border-radius: 50%;
+  }
+
+  .info-strip-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .info-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    background: var(--surface-chip-bg);
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid var(--surface-chip-border);
+  }
+
+  .info-chip .icon { font-size: 0.8rem; }
+
+  .btn-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border-normal);
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.15s;
+    font-family: var(--font-ui);
+  }
+
+  .btn-close:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-subtle);
+  }
+
+  /* ─── Two-panel layout ─── */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 400px;
+    max-height: 520px;
+  }
+
+  /* ─── LEFT PANEL: Narrative ─── */
+  .panel-narrative {
+    padding: 20px 24px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border-normal);
+    background: var(--bg-primary);
+    position: relative;
+  }
+
+  /* Subtle atmospheric glow */
+  .panel-narrative::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 15% 30%, rgba(96,165,250,0.02), transparent 55%),
+      radial-gradient(ellipse at 85% 80%, rgba(74,222,128,0.015), transparent 50%);
+    pointer-events: none;
+  }
+
+  .narrative-description {
+    font-family: var(--font-narrative);
+    font-size: 1.05rem;
+    line-height: 1.66;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-bottom: 20px;
+    position: relative;
+    padding-left: 16px;
+    border-left: 2px solid var(--border-normal);
+  }
+
+  /* Drop cap matching HistoryLens scene style */
+  .narrative-description::first-letter {
+    font-size: 2.4em;
+    float: left;
+    line-height: 0.85;
+    margin-right: 6px;
+    margin-top: 4px;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--narrative-gold);
+  }
+
+  .narrative-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+  }
+
+  .narrative-divider::before,
+  .narrative-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-normal), transparent);
+  }
+
+  /* ─── Event section ─── */
+  .event-section {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 8px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .event-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-warning), transparent);
+  }
+
+  .event-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-warning);
+    margin-bottom: 10px;
+  }
+
+  .event-label .pulse {
+    width: 6px;
+    height: 6px;
+    background: var(--color-warning);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; box-shadow: 0 0 0 0 rgba(251,191,36,0.3); }
+    50% { opacity: 1; box-shadow: 0 0 8px 2px rgba(251,191,36,0.2); }
+  }
+
+  .event-text {
+    font-family: var(--font-narrative);
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  .event-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .event-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-normal);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    text-align: left;
+    font-family: var(--font-ui);
+  }
+
+  .event-choice:hover {
+    background: var(--bg-elevated);
+    border-color: rgba(100, 116, 139, 0.55);
+    transform: translateX(3px);
+  }
+
+  .event-choice .choice-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .event-choice.investigate .choice-icon {
+    background: rgba(74, 222, 128, 0.12);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    color: var(--accent-primary);
+  }
+
+  .event-choice.ignore .choice-icon {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    color: var(--color-error);
+  }
+
+  .choice-label {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .choice-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+
+  /* ─── RIGHT PANEL: Places & People ─── */
+  .panel-interactive {
+    padding: 0;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-secondary);
+  }
+
+  .section-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+  }
+
+  .section-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--pill-bg);
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--pill-border);
+  }
+
+  .section-badge.has-open {
+    color: var(--pill-accent-text);
+    border-color: var(--pill-accent-border);
+    background: var(--pill-accent-bg);
+  }
+
+  /* ─── Workspace cards ─── */
+  .workspace-list {
+    padding: 0 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .workspace-card {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+
+  .workspace-card:hover {
+    background: var(--bg-elevated);
+    border-color: var(--surface-elevated-border);
+    transform: translateX(2px);
+  }
+
+  .workspace-card.is-open {
+    border-color: rgba(74, 222, 128, 0.25);
+  }
+
+  .workspace-card.is-open:hover {
+    border-color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 16px rgba(74, 222, 128, 0.06);
+  }
+
+  .workspace-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    background: var(--surface-elevated-bg);
+    border: 1px solid var(--surface-elevated-border);
+  }
+
+  .workspace-info { min-width: 0; }
+
+  .workspace-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .workspace-detail {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .workspace-detail .quality {
+    color: var(--text-secondary);
+  }
+
+  .workspace-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .status-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .status-badge.open {
+    color: var(--accent-primary);
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+  }
+
+  .status-badge.closed {
+    color: var(--text-muted);
+    background: rgba(82, 82, 82, 0.15);
+    border: 1px solid rgba(82, 82, 82, 0.2);
+  }
+
+  .status-badge .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  .status-badge.open .dot {
+    background: var(--accent-primary);
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 0.5; box-shadow: 0 0 0 0 rgba(74,222,128,0.3); }
+    50% { opacity: 1; box-shadow: 0 0 6px 2px rgba(74,222,128,0.15); }
+  }
+
+  .status-badge.closed .dot {
+    background: var(--text-muted);
+  }
+
+  .status-time {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+  }
+
+  .enter-arrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .workspace-card.is-open:hover .enter-arrow {
+    opacity: 1;
+  }
+
+  /* ─── Divider between sections ─── */
+  .section-divider {
+    height: 1px;
+    background: var(--border-normal);
+    margin: 4px 18px;
+  }
+
+  /* ─── Resident rows ─── */
+  .resident-list {
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .resident-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .resident-row:hover {
+    background: var(--bg-card);
+  }
+
+  .resident-emoji {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .resident-info { min-width: 0; }
+
+  .resident-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .resident-profession {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+
+  .resident-activity {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .resident-activity .activity-icon { font-size: 0.75rem; }
+
+  .friend-badge {
+    font-size: 0.58rem;
+    font-weight: 600;
+    color: var(--pill-accent-text);
+    background: var(--pill-accent-bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--pill-accent-border);
+    margin-left: 6px;
+  }
+
+  /* ─── Footer ─── */
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border-normal);
+    background: var(--bg-secondary);
+  }
+
+  .btn-leave {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background: var(--button-primary-bg);
+    border: 1px solid rgba(76, 146, 125, 0.55);
+    border-radius: 6px;
+    color: var(--button-primary-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: var(--font-ui);
+    box-shadow: 0 4px 12px rgba(12, 52, 41, 0.3);
+  }
+
+  .btn-leave:hover {
+    background: var(--button-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(12, 52, 41, 0.45);
+  }
+
+  /* ─── Scrollbar styling ─── */
+  .panel-narrative::-webkit-scrollbar,
+  .panel-interactive::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .panel-narrative::-webkit-scrollbar-track,
+  .panel-interactive::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .panel-narrative::-webkit-scrollbar-thumb,
+  .panel-interactive::-webkit-scrollbar-thumb {
+    background: var(--border-normal);
+    border-radius: 10px;
+  }
+
+  .panel-narrative::-webkit-scrollbar-thumb:hover,
+  .panel-interactive::-webkit-scrollbar-thumb:hover {
+    background: var(--border-subtle);
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 700px) {
+    .panels {
+      grid-template-columns: 1fr;
+      max-height: none;
+    }
+    .panel-narrative {
+      border-right: none;
+      border-bottom: 1px solid var(--border-normal);
+      max-height: 300px;
+    }
+    .panel-interactive {
+      max-height: 350px;
+    }
+    .info-strip {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  /* ─── Mockup annotation ─── */
+  .mockup-label {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    font-size: 0.62rem;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    color: #555;
+    background: rgba(0,0,0,0.7);
+    padding: 4px 10px;
+    border-radius: 4px;
+    z-index: 100;
+    pointer-events: none;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+
+<div class="mockup-label">MOCKUP A: "The Chronicle" — Dark mode, matched to game design system</div>
+
+<div class="modal-overlay">
+
+  <!-- ═══ CITY BANNER (placeholder — actual CityBanner component goes here) ═══ -->
+  <div class="city-banner">
+    <div class="moon"></div>
+    <div class="city-silhouette">
+      <div class="building" style="width:18px; height:35px;"></div>
+      <div class="building" style="width:14px; height:28px;"></div>
+      <div class="building tall" style="width:20px; height:55px;"></div>
+      <div class="building" style="width:16px; height:40px;"></div>
+      <div class="building" style="width:12px; height:22px;"></div>
+      <div class="building" style="width:22px; height:48px;"></div>
+      <div class="building" style="width:10px; height:30px;"></div>
+      <div class="building tall" style="width:16px; height:60px;"></div>
+      <div class="building" style="width:18px; height:32px;"></div>
+      <div class="building" style="width:14px; height:26px;"></div>
+      <div class="building" style="width:20px; height:44px;"></div>
+      <div class="building" style="width:12px; height:20px;"></div>
+      <div class="building tall" style="width:18px; height:52px;"></div>
+      <div class="building" style="width:14px; height:35px;"></div>
+      <div class="building" style="width:16px; height:28px;"></div>
+      <div class="building" style="width:20px; height:38px;"></div>
+      <div class="building" style="width:12px; height:24px;"></div>
+      <div class="building" style="width:22px; height:46px;"></div>
+      <div class="building" style="width:10px; height:18px;"></div>
+      <div class="building" style="width:16px; height:42px;"></div>
+    </div>
+  </div>
+
+  <!-- ═══ INFO STRIP ═══ -->
+  <div class="info-strip">
+    <div class="info-strip-left">
+      <div class="city-name">Hamlet</div>
+      <div class="city-meta">
+        <span>Urban District</span>
+        <span class="dot"></span>
+        <span>3100 BCE</span>
+        <span class="dot"></span>
+        <span>Mesopotamia</span>
+      </div>
+    </div>
+    <div class="info-strip-right">
+      <div class="info-chip">
+        <span class="icon">&#9790;</span> Dusk &middot; 20:00
+      </div>
+      <div class="info-chip">
+        <span class="icon">&#127793;</span> Spring
+      </div>
+      <div class="info-chip">
+        <span class="icon">&#128101;</span> ~14
+      </div>
+      <button class="btn-close" title="Leave District">&times;</button>
+    </div>
+  </div>
+
+  <!-- ═══ TWO-PANEL LAYOUT ═══ -->
+  <div class="panels">
+
+    <!-- ─── LEFT: Narrative ─── -->
+    <div class="panel-narrative">
+
+      <div class="narrative-description">
+        You see a small cluster of about fourteen adobe dwellings with thatched roofs, arranged in a rough circle along the riverbank near the shimmering wetlands. Dim oil lamps cast flickering shadows on the mud-brick walls, revealing simple timber frames and small, unglazed window openings. The air is thick with the scent of woodsmoke and damp earth as the settlement settles into the evening.
+      </div>
+
+      <div class="narrative-divider">
+        <span>Something stirs</span>
+      </div>
+
+      <div class="event-section">
+        <div class="event-label">
+          <span class="pulse"></span>
+          Event in the City
+        </div>
+        <div class="event-text">
+          A merchant displays cylinder seals carved from lapis lazuli. Roll them in clay, they leave marks proving ownership, contracts, identity. &lsquo;Every civilized person needs a seal,&rsquo; he says. Beautiful craftsmanship, but expensive. A scribe nearby whispers: &lsquo;Half of what he sells are forgeries. Can you tell the difference?&rsquo;
+        </div>
+        <div class="event-choices">
+          <button class="event-choice investigate">
+            <div class="choice-icon">&#128269;</div>
+            <div>
+              <div class="choice-label">Try to identify which seals are real</div>
+              <div class="choice-sub">Examine the merchant's wares closely</div>
+            </div>
+          </button>
+          <button class="event-choice ignore">
+            <div class="choice-icon">&times;</div>
+            <div>
+              <div class="choice-label">Too risky, don't buy anything</div>
+              <div class="choice-sub">Walk away from the merchant</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── RIGHT: Places & People ─── -->
+    <div class="panel-interactive">
+
+      <!-- Workspaces -->
+      <div class="panel-section-header">
+        <span class="section-title">Workspaces</span>
+        <span class="section-badge has-open">1 of 3 open</span>
+      </div>
+      <div class="workspace-list">
+
+        <div class="workspace-card is-open">
+          <div class="workspace-icon">&#127866;</div>
+          <div class="workspace-info">
+            <div class="workspace-name">The Barley House</div>
+            <div class="workspace-detail">
+              Tavern <span class="quality">&middot; Modest</span>
+            </div>
+          </div>
+          <div class="workspace-status">
+            <div class="status-badge open"><span class="dot"></span> Open</div>
+            <div class="status-time">til 23:00</div>
+            <span class="enter-arrow">Enter &rarr;</span>
+          </div>
+        </div>
+
+        <div class="workspace-card">
+          <div class="workspace-icon">&#9874;</div>
+          <div class="workspace-info">
+            <div class="workspace-name">Akkad's Pottery Workshop</div>
+            <div class="workspace-detail">
+              Potter <span class="quality">&middot; Modest</span>
+            </div>
+          </div>
+          <div class="workspace-status">
+            <div class="status-badge closed"><span class="dot"></span> Closed</div>
+            <div class="status-time">Opens 8:00</div>
+          </div>
+        </div>
+
+        <div class="workspace-card">
+          <div class="workspace-icon">&#127994;</div>
+          <div class="workspace-info">
+            <div class="workspace-name">Naram's Clay Works</div>
+            <div class="workspace-detail">
+              Ceramics <span class="quality">&middot; Humble</span>
+            </div>
+          </div>
+          <div class="workspace-status">
+            <div class="status-badge closed"><span class="dot"></span> Closed</div>
+            <div class="status-time">Opens 8:00</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- Residents -->
+      <div class="panel-section-header">
+        <span class="section-title">Known Residents</span>
+        <span class="section-badge">3</span>
+      </div>
+      <div class="resident-list">
+
+        <div class="resident-row">
+          <span class="resident-emoji">&#128104;</span>
+          <div class="resident-info">
+            <div class="resident-name">Enlil-bani<span class="friend-badge">Friend</span></div>
+            <div class="resident-profession">Potter &middot; Akkad's Pottery</div>
+          </div>
+          <div class="resident-activity">
+            <span class="activity-icon">&#9874;</span> Working
+          </div>
+        </div>
+
+        <div class="resident-row">
+          <span class="resident-emoji">&#128105;</span>
+          <div class="resident-info">
+            <div class="resident-name">Shulgi-simti</div>
+            <div class="resident-profession">Weaver</div>
+          </div>
+          <div class="resident-activity">
+            <span class="activity-icon">&#127968;</span> At Home
+          </div>
+        </div>
+
+        <div class="resident-row">
+          <span class="resident-emoji">&#128116;</span>
+          <div class="resident-info">
+            <div class="resident-name">Ur-Nammu</div>
+            <div class="resident-profession">Elder &middot; Temple of Inanna</div>
+          </div>
+          <div class="resident-activity">
+            <span class="activity-icon">&#127769;</span> Sleeping
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ FOOTER ═══ -->
+  <div class="modal-footer">
+    <button class="btn-leave">
+      <span>&larr;</span>
+      Leave District
+    </button>
+  </div>
+
+</div>
+
+</body>
+</html>

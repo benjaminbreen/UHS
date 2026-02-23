@@ -142,7 +142,7 @@ function deriveRenderConfig(
       style = 'sahelian_citadel';
     } else if (culturalZone === 'OCEANIA') {
       style = 'oceanic_meeting';
-    } else if (culturalZone === 'INDIGENOUS_AMERICAN') {
+    } else if (culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' || culturalZone === 'SOUTH_AMERICAN') {
       style = 'meso_civic';
     }
   } else if (archetype === SpecialMapArchetype.OPEN_FIELD) {
@@ -290,7 +290,7 @@ function flagColor(cz: CulturalZone) {
     case 'SOUTH_ASIAN': return '#D35400';
     case 'SUB_SAHARAN_AFRICAN': return '#8E44AD';
     case 'OCEANIA': return '#2980B9';
-    case 'INDIGENOUS_AMERICAN': return '#16A085';
+    case 'NORTH_AMERICAN_PRE_COLUMBIAN': case 'SOUTH_AMERICAN': return '#16A085';
     default: return '#C39BD3';
   }
 }
@@ -331,7 +331,7 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
     (((tile?.x ?? 0) * 73856093) ^
       ((tile?.y ?? 0) * 19349663) ^
       ((mapData?.region?.length ?? 0) * 83492791) ^
-      (era ?? 0) ^
+      (Number(era) || 0) ^
       hashString(String(culturalZone)) ^
       hashString(String(archetype)) ^
       hashString(String(climate)) ^
@@ -419,29 +419,153 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
     band(cool, 0.40, 12, 10, 38);
     band('#252a30', 0.30, 8, 8, 30);
 
-    // Tall civic skyline hints (towers, domes) centered loosely
-    for (let i = 0; i < 6; i++) {
-      const cx = Math.floor(LWIDTH * 0.25) + i * Math.floor(LWIDTH * 0.1) + rng.int(-6, 6);
-      const ch = rng.int(6, 12);
-      elems.push(<rect key={`spire-${i}`} x={cx} y={horizonY - ch} width={2} height={ch} fill="#2a2e33" opacity={0.45} />);
-      if (i % 2 === 0) {
-        elems.push(<circle key={`dome-${i}`} cx={cx + 8} cy={horizonY - 4} r={3} fill="#2a2e33" opacity={0.45} />);
+    // Culture-specific skyline silhouettes
+    const skyFill = '#2a2e33';
+    const skyOp = 0.45;
+    const skyStart = Math.floor(LWIDTH * 0.15);
+    const skySpan = Math.floor(LWIDTH * 0.7);
+
+    switch (culturalZone) {
+      case 'EAST_ASIAN': {
+        for (let i = 0; i < 5; i++) {
+          const px = skyStart + rng.int(0, skySpan);
+          const tiers = rng.int(2, 4);
+          const baseH = rng.int(8, 14);
+          for (let ti = 0; ti < tiers; ti++) {
+            const ty = horizonY - baseH + ti * 3;
+            const tw = 6 - ti;
+            elems.push(<rect key={`pag-${i}-${ti}`} x={px - tw} y={ty} width={tw * 2} height={2} fill={skyFill} opacity={skyOp} />);
+            elems.push(<rect key={`eav-${i}-${ti}l`} x={px - tw - 1} y={ty - 1} width={1} height={1} fill={skyFill} opacity={skyOp * 0.7} />);
+            elems.push(<rect key={`eav-${i}-${ti}r`} x={px + tw} y={ty - 1} width={1} height={1} fill={skyFill} opacity={skyOp * 0.7} />);
+          }
+        }
+        break;
+      }
+      case 'MENA': {
+        for (let i = 0; i < 6; i++) {
+          const mx = skyStart + rng.int(0, skySpan);
+          if (i % 3 === 0) {
+            const mh = rng.int(14, 22);
+            elems.push(<rect key={`min-${i}`} x={mx} y={horizonY - mh} width={2} height={mh} fill={skyFill} opacity={skyOp} />);
+            elems.push(<rect key={`min-b-${i}`} x={mx - 1} y={horizonY - mh - 1} width={4} height={2} fill={skyFill} opacity={skyOp} />);
+            elems.push(<rect key={`min-t-${i}`} x={mx} y={horizonY - mh - 3} width={2} height={2} fill={skyFill} opacity={skyOp * 0.8} />);
+          } else {
+            const dr = rng.int(3, 5);
+            elems.push(<circle key={`dom-${i}`} cx={mx + 3} cy={horizonY - dr} r={dr} fill={skyFill} opacity={skyOp} />);
+            elems.push(<rect key={`dom-b-${i}`} x={mx + 3 - dr - 2} y={horizonY - 1} width={dr * 2 + 4} height={2} fill={skyFill} opacity={skyOp * 0.6} />);
+          }
+        }
+        break;
+      }
+      case 'SOUTH_ASIAN': {
+        for (let i = 0; i < 5; i++) {
+          const sx = skyStart + rng.int(0, skySpan);
+          const sh = rng.int(10, 18);
+          const sw = rng.int(4, 7);
+          elems.push(<polygon key={`shik-${i}`} points={`${sx},${horizonY} ${sx + Math.floor(sw / 2)},${horizonY - sh} ${sx + sw},${horizonY}`} fill={skyFill} opacity={skyOp} />);
+          elems.push(<rect key={`fin-${i}`} x={sx + Math.floor(sw / 2)} y={horizonY - sh - 2} width={1} height={2} fill={skyFill} opacity={skyOp * 0.7} />);
+        }
+        break;
+      }
+      case 'SUB_SAHARAN_AFRICAN': {
+        for (let i = 0; i < 4; i++) {
+          const bx = skyStart + rng.int(0, skySpan);
+          const th = rng.int(8, 12);
+          elems.push(<rect key={`bao-t-${i}`} x={bx} y={horizonY - th} width={3} height={th} fill={skyFill} opacity={skyOp} />);
+          elems.push(<rect key={`bao-c-${i}`} x={bx - 4} y={horizonY - th - 3} width={11} height={4} fill={skyFill} opacity={skyOp * 0.7} />);
+        }
+        for (let i = 0; i < 3; i++) {
+          const hx = skyStart + rng.int(0, skySpan);
+          elems.push(<circle key={`hut-${i}`} cx={hx + 3} cy={horizonY - 2} r={3} fill={skyFill} opacity={skyOp * 0.6} />);
+          elems.push(<polygon key={`hut-r-${i}`} points={`${hx - 1},${horizonY - 3} ${hx + 3},${horizonY - 7} ${hx + 7},${horizonY - 3}`} fill={skyFill} opacity={skyOp * 0.5} />);
+        }
+        break;
+      }
+      case 'OCEANIA': {
+        for (let i = 0; i < 6; i++) {
+          const px = skyStart + rng.int(0, skySpan);
+          const ph = rng.int(8, 14);
+          const lean = rng.int(-2, 2);
+          elems.push(<line key={`palm-${i}`} x1={px} y1={horizonY} x2={px + lean} y2={horizonY - ph} stroke={skyFill} strokeWidth={1} opacity={skyOp} />);
+          for (let f = 0; f < 3; f++) {
+            const fx = px + lean + (f - 1) * 3;
+            elems.push(<rect key={`frond-${i}-${f}`} x={fx} y={horizonY - ph - 1} width={4} height={1} fill={skyFill} opacity={skyOp * 0.6} />);
+          }
+        }
+        break;
+      }
+      case 'NORTH_AMERICAN_PRE_COLUMBIAN':
+      case 'SOUTH_AMERICAN': {
+        for (let i = 0; i < 3; i++) {
+          const px = skyStart + rng.int(0, skySpan);
+          const steps = rng.int(3, 5);
+          const bw = rng.int(12, 18);
+          for (let s = 0; s < steps; s++) {
+            const sw = bw - s * 3;
+            const sy = horizonY - s * 2 - 1;
+            elems.push(<rect key={`pyr-${i}-${s}`} x={px + Math.floor((bw - sw) / 2)} y={sy} width={sw} height={2} fill={skyFill} opacity={skyOp * (0.5 + s * 0.1)} />);
+          }
+        }
+        break;
+      }
+      default: {
+        for (let i = 0; i < 6; i++) {
+          const scx = skyStart + i * Math.floor(skySpan / 5.5) + rng.int(-6, 6);
+          const ch = rng.int(6, 12);
+          elems.push(<rect key={`spire-${i}`} x={scx} y={horizonY - ch} width={2} height={ch} fill={skyFill} opacity={skyOp} />);
+          if (i % 2 === 0) {
+            elems.push(<circle key={`dome-${i}`} cx={scx + 8} cy={horizonY - 4} r={3} fill={skyFill} opacity={skyOp} />);
+          }
+          if (i % 3 === 0) {
+            const tw = 6;
+            elems.push(<rect key={`tower-${i}`} x={scx + 12} y={horizonY - ch + 2} width={tw} height={ch - 2} fill={skyFill} opacity={skyOp * 0.7} />);
+            for (let m = 0; m < 3; m++) {
+              elems.push(<rect key={`merl-bg-${i}-${m}`} x={scx + 12 + m * 2} y={horizonY - ch} width={1} height={2} fill={skyFill} opacity={skyOp * 0.7} />);
+            }
+          }
+        }
       }
     }
 
-    // Trees along the horizon
-    for (let i = 0; i < 10; i++) {
+    // Vegetation along the horizon (biome-specific)
+    const treeCount = climate === ClimateType.ARID ? 3 : climate === ClimateType.COLD ? 6 : 10;
+    for (let i = 0; i < treeCount; i++) {
       const tx = rng.int(8, LWIDTH - 8);
       const ty = horizonY - rng.int(2, 5);
-      elems.push(
-        <g key={`tree-${i}`} opacity={0.6}>
-          <rect x={tx} y={ty} width={1} height={3} fill="#3b2e1f" />
-          <rect x={tx - 2} y={ty - 3} width={5} height={3} fill="#2f4a2f" />
-        </g>
-      );
+      if (climate === ClimateType.ARID) {
+        elems.push(
+          <g key={`tree-${i}`} opacity={0.5}>
+            <rect x={tx} y={ty - 1} width={1} height={4} fill="#5a6a3a" />
+            <rect x={tx - 1} y={ty} width={1} height={2} fill="#5a6a3a" />
+            <rect x={tx + 1} y={ty - 1} width={1} height={2} fill="#5a6a3a" />
+          </g>
+        );
+      } else if (climate === ClimateType.COLD) {
+        elems.push(
+          <g key={`tree-${i}`} opacity={0.55}>
+            <rect x={tx} y={ty} width={1} height={4} fill="#3b2e1f" />
+            <polygon points={`${tx - 2},${ty} ${tx + 0.5},${ty - 4} ${tx + 3},${ty}`} fill="#1e3a1e" />
+          </g>
+        );
+      } else if (climate === ClimateType.TROPICAL) {
+        elems.push(
+          <g key={`tree-${i}`} opacity={0.6}>
+            <rect x={tx} y={ty} width={1} height={4} fill="#4a3a20" />
+            <rect x={tx - 3} y={ty - 3} width={7} height={2} fill="#1e4a1e" />
+            <rect x={tx - 2} y={ty - 4} width={5} height={1} fill="#2a5a2a" />
+          </g>
+        );
+      } else {
+        elems.push(
+          <g key={`tree-${i}`} opacity={season === 'fall' ? 0.65 : 0.6}>
+            <rect x={tx} y={ty} width={1} height={3} fill="#3b2e1f" />
+            <rect x={tx - 2} y={ty - 3} width={5} height={3} fill={season === 'fall' ? '#6a4a1f' : season === 'winter' ? '#4a4a3a' : '#2f4a2f'} />
+          </g>
+        );
+      }
     }
     return elems;
-  }, [GROUND_Y, LHEIGHT, LWIDTH, rng, tod]);
+  }, [GROUND_Y, LHEIGHT, LWIDTH, rng, tod, culturalZone, climate, season]);
 
   /* ---------------------------------------------------------
      Plaza tiling, puddles/snow
@@ -506,6 +630,35 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
   }, [isWet, GROUND_Y, PLAZA_BOT, LWIDTH, rng]);
 
   /* ---------------------------------------------------------
+     Weather particles (rain / snow)
+  --------------------------------------------------------- */
+
+  const weatherParticles = useMemo(() => {
+    if (!weather?.precipitation || weather.precipitation === 'none') return null;
+    const isSnowFall = weather.precipitation === 'snow';
+    const particles: JSX.Element[] = [];
+    const count = isSnowFall ? 25 : 40;
+    for (let i = 0; i < count; i++) {
+      const baseX = ((i * 37 + 13) % LWIDTH);
+      const speed = isSnowFall ? 0.6 : 2.0;
+      const yPos = ((t * speed + i * 17) % (LHEIGHT + 10)) - 5;
+      const drift = isSnowFall ? Math.floor(Math.sin((t + i * 5) * 0.1) * 2) : 0;
+      particles.push(
+        <rect
+          key={`wp-${i}`}
+          x={baseX + drift}
+          y={yPos}
+          width={isSnowFall ? 2 : 1}
+          height={isSnowFall ? 3 : 4}
+          fill={isSnowFall ? '#FFFFFF' : '#8AACCC'}
+          opacity={isSnowFall ? 0.6 : 0.3}
+        />
+      );
+    }
+    return <g>{particles}</g>;
+  }, [weather, t, LWIDTH, LHEIGHT]);
+
+  /* ---------------------------------------------------------
      Building footprint
   --------------------------------------------------------- */
 
@@ -542,19 +695,42 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
       const cellW = Math.max(2, Math.floor((w - pad * 2) / cols));
       const cellH = Math.max(2, Math.floor((h - pad * 2) / rows));
       const rects: JSX.Element[] = [];
+      const isNight = tod === 'Night';
+      const isDusk = tod === 'Dusk';
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
+          const wx = x + pad + c * cellW + 1;
+          const wy = y + pad + r * cellH + 1;
+          const ww = Math.max(1, cellW - 2);
+          const wh = Math.max(1, cellH - 2);
+          // Deterministic per-window hash for night/dusk glow
+          const hash = ((wx * 7 + wy * 13 + r * 31 + c * 47) >>> 0) & 0xFF;
+          const isLit = isNight ? hash % 3 !== 0 : isDusk ? hash % 5 === 0 : false;
+          const windowFill = isLit ? '#E8C47A' : (isNight ? '#1a1d22' : color);
           rects.push(
             <rect
               key={`win-${x}-${y}-${r}-${c}`}
-              x={x + pad + c * cellW + 1}
-              y={y + pad + r * cellH + 1}
-              width={Math.max(1, cellW - 2)}
-              height={Math.max(1, cellH - 2)}
-              fill={color}
+              x={wx}
+              y={wy}
+              width={ww}
+              height={wh}
+              fill={windowFill}
               opacity={cfg.style === 'modern_parliament' ? 0.85 : 1}
             />
           );
+          if (isLit) {
+            rects.push(
+              <rect
+                key={`glow-${x}-${y}-${r}-${c}`}
+                x={wx - 1}
+                y={wy - 1}
+                width={ww + 2}
+                height={wh + 2}
+                fill="#E8C47A"
+                opacity={0.1}
+              />
+            );
+          }
         }
       }
       return rects;
@@ -830,6 +1006,30 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
   }, [LWIDTH, GROUND_Y, shadowLen]);
 
   /* ---------------------------------------------------------
+     Night torches / lanterns
+  --------------------------------------------------------- */
+
+  const nightLights = useMemo(() => {
+    if (tod !== 'Night' && tod !== 'Dusk') return null;
+    const lights: JSX.Element[] = [];
+    const intensity = tod === 'Night' ? 1 : 0.5;
+    for (let i = 0; i < 4; i++) {
+      const lx = Math.floor(LWIDTH * 0.18) + i * Math.floor(LWIDTH * 0.2);
+      const ly = GROUND_Y + 1;
+      const flicker = ((t + i * 7) % 5 < 4) ? 1 : 0.7;
+      lights.push(
+        <g key={`torch-${i}`}>
+          <rect x={lx} y={ly - 8} width={1} height={8} fill="#4a3a2a" />
+          <rect x={lx - 1} y={ly - 10} width={3} height={2} fill="#E8A832" opacity={flicker * intensity} />
+          <rect x={lx - 1} y={ly - 11} width={3} height={1} fill="#F0C050" opacity={flicker * intensity * 0.6} />
+          <circle cx={lx + 0.5} cy={ly - 9} r={6} fill="#E8A832" opacity={0.06 * flicker * intensity} />
+        </g>
+      );
+    }
+    return <g>{lights}</g>;
+  }, [tod, LWIDTH, GROUND_Y, t]);
+
+  /* ---------------------------------------------------------
      NPCs (ground + parapet surfaces only)
      Baselines:
        - ground: FOOT_G = GROUND_Y - 3
@@ -942,6 +1142,31 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
   }, [npcs, t, LWIDTH, FOOT_G, FOOT_P]);
 
   /* ---------------------------------------------------------
+     Climate-derived ground colors
+  --------------------------------------------------------- */
+
+  const groundColor = climate === ClimateType.ARID ? '#b5a088' :
+    climate === ClimateType.TROPICAL ? '#7a7358' :
+    (climate === ClimateType.COLD && season === 'winter') ? '#b8bcc0' :
+    '#8b7969';
+  const checkerA = climate === ClimateType.ARID ? '#b09a7e' :
+    climate === ClimateType.TROPICAL ? '#736d4e' :
+    (climate === ClimateType.COLD && season === 'winter') ? '#aeb2b6' :
+    '#8a7664';
+  const checkerB = climate === ClimateType.ARID ? '#a08e72' :
+    climate === ClimateType.TROPICAL ? '#696348' :
+    (climate === ClimateType.COLD && season === 'winter') ? '#a4a8ac' :
+    '#7a6858';
+
+  // Time-of-day atmospheric tint
+  const atmosphereTint = tod === 'Dawn' ? '#E8956A' :
+    tod === 'Dusk' ? '#C47A8A' :
+    tod === 'Night' ? '#1A2340' : null;
+  const atmosphereOp = tod === 'Dawn' ? 0.08 :
+    tod === 'Dusk' ? 0.10 :
+    tod === 'Night' ? 0.15 : 0;
+
+  /* ---------------------------------------------------------
      Render
   --------------------------------------------------------- */
 
@@ -950,6 +1175,7 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
       width={width}
       height={height}
       viewBox={`0 0 ${LWIDTH} ${LHEIGHT}`}
+      preserveAspectRatio="xMidYMid slice"
       style={{ imageRendering: 'pixelated', background: 'transparent' }}
       className="absolute inset-0 w-full h-full"
       shapeRendering="crispEdges"
@@ -962,7 +1188,7 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
       {/* Plaza / ground */}
       <g>
         {/* plaza base */}
-        <rect x={0} y={GROUND_Y} width={LWIDTH} height={PLAZA_BOT - GROUND_Y} fill="#8b7969" />
+        <rect x={0} y={GROUND_Y} width={LWIDTH} height={PLAZA_BOT - GROUND_Y} fill={groundColor} />
         {/* checker depth */}
         {Array.from({ length: Math.ceil((PLAZA_BOT - GROUND_Y) / TILE) }).map((_, ry) =>
           Array.from({ length: Math.ceil(LWIDTH / TILE) }).map((__, rx) => {
@@ -974,7 +1200,7 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
                 y={GROUND_Y + ry * TILE}
                 width={TILE}
                 height={TILE}
-                fill={on ? '#8a7664' : '#7a6858'}
+                fill={on ? checkerA : checkerB}
                 opacity={0.14}
               />
             );
@@ -995,6 +1221,7 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
       {/* Forecourt decor */}
       <g>
         {planters}
+        {nightLights}
         {/* Forum fountain/statue if forum-like archetype */}
         {archetype === SpecialMapArchetype.GOVERNMENT_FORUM && (
           <g>
@@ -1008,8 +1235,16 @@ const GovernmentDistrictBanner: React.FC<GovernmentDistrictBannerProps> = ({
 
       {/* NPCs (all baselines snapped to FOOT_G or FOOT_P) */}
       <g>
-        {animatedNPCs.map((n, i) => sprite(n.x, n.y!, n.dir, n.kind, i))}
+        {animatedNPCs.map((n, i) => sprite(n.x, n.y!, n.dir as 1 | -1, n.kind, i))}
       </g>
+
+      {/* Weather particles (rain/snow overlay) */}
+      {weatherParticles}
+
+      {/* Time-of-day atmospheric color cast */}
+      {atmosphereTint && (
+        <rect x={0} y={0} width={LWIDTH} height={LHEIGHT} fill={atmosphereTint} opacity={atmosphereOp} pointerEvents="none" />
+      )}
     </svg>
   );
 };

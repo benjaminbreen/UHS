@@ -48,7 +48,9 @@ const LootModal: React.FC<LootModalProps> = ({ opponent, onClose, onTakeItem, on
     const stopPropagation = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
     }, []);
-    
+
+    const totalItems = availableItems.length + (availableCoins > 0 ? 1 : 0);
+
     return (
         <div
             data-surface="modal-overlay"
@@ -57,47 +59,179 @@ const LootModal: React.FC<LootModalProps> = ({ opponent, onClose, onTakeItem, on
         >
             <div
                 data-surface="modal-panel"
-                className="ff-panel theme-surface w-full max-w-lg p-6"
+                className="ff-panel theme-surface w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
                 onClick={stopPropagation}
+                style={{ animation: 'modal-pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
             >
-                <h3 className="text-center text-2xl font-press-start mb-4 text-amber-400">
-                    Looting {opponent.name}
-                </h3>
-
-                <div className="my-6 text-center">
-                    <span className="text-5xl">{opponent.emoji}</span>
-                    <p className="text-sm text-slate-400 italic">{opponent.descriptions.short}</p>
+                {/* Header */}
+                <div
+                    className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+                    style={{
+                        background: 'var(--bg-secondary)',
+                        borderBottom: '1px solid var(--border-normal)',
+                    }}
+                >
+                    <div className="flex items-center gap-3">
+                        <div
+                            className="w-10 h-10 rounded-md flex items-center justify-center text-2xl"
+                            style={{
+                                background: 'var(--surface-elevated-bg)',
+                                border: '1px solid var(--surface-elevated-border)',
+                            }}
+                        >
+                            {opponent.emoji}
+                        </div>
+                        <div>
+                            <h2
+                                className="text-lg font-bold m-0"
+                                style={{
+                                    color: 'var(--text-primary)',
+                                    fontFamily: 'var(--font-narrative, Georgia, serif)',
+                                }}
+                            >
+                                Looting {opponent.name}
+                            </h2>
+                            <p
+                                className="text-xs m-0 truncate max-w-[280px]"
+                                style={{
+                                    color: 'var(--text-tertiary)',
+                                    fontFamily: 'var(--font-narrative, Georgia, serif)',
+                                    fontStyle: 'italic',
+                                }}
+                            >
+                                {opponent.descriptions.short}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleClose}
+                        className="w-[30px] h-[30px] rounded-md flex items-center justify-center text-base cursor-pointer transition-colors duration-150 hover:brightness-125"
+                        style={{
+                            border: '1px solid var(--border-normal)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-tertiary)',
+                        }}
+                        title="Finish Looting"
+                    >
+                        ✕
+                    </button>
                 </div>
 
-                <div className="p-4 bg-black/20 rounded-lg border border-blue-500/30 mb-6 min-h-[150px]">
-                    <h4 className="text-lg font-semibold text-blue-300 mb-3">Items Found</h4>
+                {/* Contents */}
+                <div
+                    className="flex-1 overflow-y-auto px-5 py-4 pr-3 scrollbar-thin"
+                    style={{ background: 'var(--bg-primary)' }}
+                >
+                    {/* Section header */}
+                    <div className="flex justify-between items-center mb-3">
+                        <span
+                            className="font-bold uppercase"
+                            style={{
+                                fontSize: '0.68rem',
+                                letterSpacing: '0.12em',
+                                color: 'var(--text-tertiary)',
+                            }}
+                        >
+                            Items Found
+                        </span>
+                        <span
+                            className="font-semibold px-2 py-0.5 rounded-full"
+                            style={{
+                                fontSize: '0.65rem',
+                                background: totalItems > 0 ? 'var(--pill-accent-bg)' : 'var(--pill-bg)',
+                                border: '1px solid',
+                                borderColor: totalItems > 0 ? 'var(--pill-accent-border)' : 'var(--pill-border)',
+                                color: totalItems > 0 ? 'var(--pill-accent-text)' : 'var(--text-muted)',
+                            }}
+                        >
+                            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                        </span>
+                    </div>
+
                     {availableItems.length > 0 || availableCoins > 0 ? (
-                        <div className="max-h-48 overflow-y-auto space-y-2 pr-2 scrollbar-thin">
+                        <div className="flex flex-col gap-1.5">
+                            {/* Coins row */}
                             {availableCoins > 0 && (
-                                <div className="flex items-center justify-between gap-4 p-2 rounded-md bg-slate-800/50">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">🪙</span>
-                                        <span className="font-semibold text-yellow-300">{availableCoins} Coins</span>
+                                <div
+                                    className="grid items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:translate-x-0.5 hover:brightness-[1.08]"
+                                    style={{
+                                        gridTemplateColumns: '36px 1fr auto',
+                                        background: 'var(--bg-card)',
+                                        border: '1px solid var(--surface-card-border)',
+                                        boxShadow: 'inset 3px 0 0 var(--accent-secondary)',
+                                    }}
+                                >
+                                    <div
+                                        className="w-9 h-9 rounded-md flex items-center justify-center text-lg"
+                                        style={{
+                                            background: 'var(--surface-elevated-bg)',
+                                            border: '1px solid var(--surface-elevated-border)',
+                                        }}
+                                    >
+                                        🪙
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div
+                                            className="text-sm font-semibold"
+                                            style={{ color: 'var(--accent-secondary)' }}
+                                        >
+                                            {availableCoins} Coins
+                                        </div>
                                     </div>
                                     <button
                                         onClick={handleTakeCoins}
-                                        className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500"
+                                        className="px-3 py-1.5 rounded-md font-semibold cursor-pointer transition-all duration-200 hover:-translate-y-px"
+                                        style={{
+                                            fontSize: '0.75rem',
+                                            background: 'var(--button-primary-bg)',
+                                            border: '1px solid rgba(76, 146, 125, 0.55)',
+                                            color: 'var(--button-primary-text)',
+                                            boxShadow: '0 2px 8px rgba(12, 52, 41, 0.3)',
+                                        }}
                                     >
                                         Take
                                     </button>
                                 </div>
                             )}
+
+                            {/* Item rows */}
                             {availableItems.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between gap-4 p-2 rounded-md bg-slate-800/50">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 flex items-center justify-center">
-                                           <GenerativeItemIcon item={item} size={32} />
+                                <div
+                                    key={item.id}
+                                    className="grid items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:translate-x-0.5 hover:brightness-[1.08]"
+                                    style={{
+                                        gridTemplateColumns: '36px 1fr auto',
+                                        background: 'var(--bg-card)',
+                                        border: '1px solid var(--surface-card-border)',
+                                    }}
+                                >
+                                    <div
+                                        className="w-9 h-9 rounded-md flex items-center justify-center"
+                                        style={{
+                                            background: 'var(--surface-elevated-bg)',
+                                            border: '1px solid var(--surface-elevated-border)',
+                                        }}
+                                    >
+                                        <GenerativeItemIcon item={item} size={28} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div
+                                            className="text-sm font-semibold truncate"
+                                            style={{ color: 'var(--text-primary)' }}
+                                        >
+                                            {item.name}
                                         </div>
-                                        <span className="font-semibold text-white">{item.name}</span>
                                     </div>
                                     <button
                                         onClick={() => handleTake(item)}
-                                        className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500"
+                                        className="px-3 py-1.5 rounded-md font-semibold cursor-pointer transition-all duration-200 hover:-translate-y-px"
+                                        style={{
+                                            fontSize: '0.75rem',
+                                            background: 'var(--button-primary-bg)',
+                                            border: '1px solid rgba(76, 146, 125, 0.55)',
+                                            color: 'var(--button-primary-text)',
+                                            boxShadow: '0 2px 8px rgba(12, 52, 41, 0.3)',
+                                        }}
                                     >
                                         Take
                                     </button>
@@ -105,21 +239,48 @@ const LootModal: React.FC<LootModalProps> = ({ opponent, onClose, onTakeItem, on
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-slate-500 italic text-center pt-8">Nothing left to take.</p>
+                        <div
+                            className="text-center py-12 text-sm"
+                            style={{
+                                color: 'var(--text-muted)',
+                                fontFamily: 'var(--font-narrative, Georgia, serif)',
+                                fontStyle: 'italic',
+                            }}
+                        >
+                            Nothing left to take.
+                        </div>
                     )}
                 </div>
 
-                <div className="flex justify-between items-center gap-4">
+                {/* Footer */}
+                <div
+                    className="flex items-center justify-end gap-3 px-5 py-3 flex-shrink-0"
+                    style={{
+                        borderTop: '1px solid var(--border-normal)',
+                        background: 'var(--bg-secondary)',
+                    }}
+                >
                     <button
-                        className="ff-action-button flex-1"
                         onClick={handleTakeAll}
                         disabled={availableItems.length === 0 && availableCoins === 0}
+                        className="px-4 py-2 rounded-md text-sm font-semibold cursor-pointer transition-all duration-200 hover:-translate-y-px disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        style={{
+                            background: 'var(--button-primary-bg)',
+                            border: '1px solid rgba(76, 146, 125, 0.55)',
+                            color: 'var(--button-primary-text)',
+                            boxShadow: '0 4px 12px rgba(12, 52, 41, 0.3)',
+                        }}
                     >
                         Take All
                     </button>
                     <button
-                        className="ff-action-button flex-1"
                         onClick={handleClose}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold cursor-pointer transition-all duration-150"
+                        style={{
+                            background: 'var(--surface-muted-bg)',
+                            border: '1px solid var(--surface-muted-border)',
+                            color: 'var(--text-secondary)',
+                        }}
                     >
                         Finish Looting
                     </button>

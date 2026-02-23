@@ -1260,6 +1260,10 @@ export function generateNpcsForStandardMap(
         }
         
         logGenerationStats(stats, startTime);
+
+        // Persist the urban tile registry so CityModal can look up residents later
+        urbanTileRegistry.save();
+
         return npcs;
         
     } catch (error) {

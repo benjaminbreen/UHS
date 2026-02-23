@@ -20,28 +20,21 @@ import { isSafari } from '../utils/safariUtils';
 import { getRandomCityEvent, rollCityEventOutcome, CityEvent, CityEventOutcome } from '../services/cityEventService';
 import {
     FaTimes,
-    FaDoorOpen,
-    FaStore,
     FaUsers,
-    FaHome,
-    FaCity,
-    FaMapMarkedAlt,
     FaClock,
     FaLeaf,
-    FaBuilding,
     FaExclamationTriangle,
-    FaSearch,
+    FaChevronRight,
 } from 'react-icons/fa';
 import {
     GiShop,
-    GiVillage,
-    GiModernCity,
 } from 'react-icons/gi';
 
 interface CityModalProps {
     tile: Tile;
     playerCharacter: PlayerCharacter;
     mapData: MapData;
+    npcs?: NpcEntity[];
     gameTimeHours: number;
     season: Season;
     onClose: () => void;
@@ -239,30 +232,11 @@ const getWorkspaceMapSize = (
     return baseSize as 'xs' | 'small' | 'medium' | 'large' | 'xl';
 };
 
-// Legacy function for backward compatibility
-const determineWorkspaceArchetype = (businessType: string): string => {
-    // Simple fallback - just use the basic workshop routing
-    const type = businessType.toLowerCase();
-
-    if (type.includes('tavern') || type.includes('inn') || type.includes('restaurant')) {
-        return 'RESTAURANT_INN';
-    } else if (type.includes('market') || type.includes('shop') || type.includes('store')) {
-        return 'MARKET_BAZAAR';
-    } else if (type.includes('temple') || type.includes('church') || type.includes('shrine')) {
-        return 'SACRED_COMPLEX';
-    } else if (type.includes('scholar') || type.includes('scribe') || type.includes('library')) {
-        return 'UNIVERSITY';
-    }
-
-    return 'WORKSHOP';
-};
 
 const CityModal: React.FC<CityModalProps> = ({
-    tile, playerCharacter, mapData, gameTimeHours, season, onClose, onEnterSpecialMap, onApplyEventOutcome
+    tile, playerCharacter, mapData, npcs: npcsFromProps, gameTimeHours, season, onClose, onEnterSpecialMap, onApplyEventOutcome
 }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'workspaces' | 'residents'>('overview');
     const [tileData, setTileData] = useState<any>(null);
-    const [selectedWorkspace, setSelectedWorkspace] = useState<any>(null);
     const [cityDescription, setCityDescription] = useState<string>('');
     const [descriptionLoading, setDescriptionLoading] = useState(false); // Start false for instant modal
     const [cachedCityImage, setCachedCityImage] = useState<string | null>(null);
@@ -272,9 +246,8 @@ const CityModal: React.FC<CityModalProps> = ({
     const [eventOutcome, setEventOutcome] = useState<CityEventOutcome | null>(null);
     const [showEventOutcome, setShowEventOutcome] = useState(false);
 
-    // Get all NPCs from mapData
-    const allNpcs = mapData.npcs || [];
-    // Total NPCs in mapData
+    // Use explicit npcs prop if provided, otherwise fall back to mapData.npcs
+    const allNpcs = npcsFromProps && npcsFromProps.length > 0 ? npcsFromProps : (mapData.npcs || []);
 
     // Map gameTimeHours to TimeOfDay
     const timeOfDay: TimeOfDay = useMemo(() => {
@@ -293,14 +266,12 @@ const CityModal: React.FC<CityModalProps> = ({
     }, [mapData.timeSlice, mapData.continent]);
 
     useEffect(() => {
-        // Fix any business names that might have "Unknown" in them
+        // Restore persisted registry data if needed (one-time, idempotent)
+        urbanTileRegistry.load();
         urbanTileRegistry.fixBusinessNamesWithRealNpcs(allNpcs);
-
-        // Get data from registry
         const data = urbanTileRegistry.getTileData(tile.x, tile.y);
-        // Tile registry data loaded
         setTileData(data);
-    }, [tile.x, tile.y, allNpcs]);
+    }, [tile.x, tile.y]);
 
     // Load cached city image
     useEffect(() => {
@@ -361,65 +332,48 @@ const CityModal: React.FC<CityModalProps> = ({
         setShowEventOutcome(false);
     }, []);
 
-    // Get residents of this tile - REGISTRY FIRST approach
+    // Get residents of this tile - cascading lookup with broad fallbacks
     const residents = useMemo(() => {
-        // Primary method: Use urban tile registry as source of truth
+        const seen = new Set<string>();
+        const dedup = (npcs: NpcEntity[]) => npcs.filter(n => { if (seen.has(n.id)) return false; seen.add(n.id); return true; });
+
+        // 1. Registry ID match
         if (tileData?.residences && tileData.residences.length > 0) {
-            const residentIds = tileData.residences.flatMap(r => r.occupants);
-
-            // Try to find NPCs by ID first
-            let registeredNpcs = allNpcs.filter(npc => residentIds.includes(npc.id));
-
-            // If no matches by ID but registry has residents, NPCs might have different IDs
-            // Try to match by location proximity
-            if (registeredNpcs.length === 0 && residentIds.length > 0) {
-                // No exact ID matches, trying proximity match
-
-                // Find NPCs near this tile OR with home location here
-                const potentialNpcs = allNpcs.filter(npc => {
-                    const npcX = Math.floor(npc.x);
-                    const npcY = Math.floor(npc.y);
-                    const isNearby = Math.abs(npcX - tile.x) <= 1 && Math.abs(npcY - tile.y) <= 1;
-
-                    const hasHomeHere = npc.homeLocation &&
-                        npc.homeLocation.x === tile.x &&
-                        npc.homeLocation.y === tile.y;
-
-                    const hasWorkplaceHere = npc.workplaceLocation &&
-                        npc.workplaceLocation.x === tile.x &&
-                        npc.workplaceLocation.y === tile.y;
-
-                    return isNearby || hasHomeHere || hasWorkplaceHere;
-                });
-
-                // Take up to the number registry says should be here
-                registeredNpcs = potentialNpcs.slice(0, residentIds.length);
-            }
-
-            if (registeredNpcs.length > 0) {
-                return registeredNpcs;
-            }
+            const residentIds = new Set(tileData.residences.flatMap(r => r.occupants));
+            const byId = allNpcs.filter(npc => residentIds.has(npc.id));
+            if (byId.length > 0) return dedup(byId);
         }
 
-        // Fallback 1: NPCs with home location at this tile
-        const npcsWithHomeHere = allNpcs.filter(npc =>
-            npc.homeLocation &&
-            npc.homeLocation.x === tile.x &&
-            npc.homeLocation.y === tile.y
-        );
-
-        if (npcsWithHomeHere.length > 0) {
-            return npcsWithHomeHere;
-        }
-
-        // Fallback 2: NPCs at or near this tile
-        const nearbyNpcs = allNpcs.filter(npc => {
-            const npcX = Math.floor(npc.x);
-            const npcY = Math.floor(npc.y);
-            return Math.abs(npcX - tile.x) <= 1 && Math.abs(npcY - tile.y) <= 1;
+        // 2. NPCs whose homeLocation or workplaceLocation matches this tile
+        const homeOrWork = allNpcs.filter(npc => {
+            const hasHome = npc.homeLocation && npc.homeLocation.x === tile.x && npc.homeLocation.y === tile.y;
+            const hasWork = npc.workplaceLocation && npc.workplaceLocation.x === tile.x && npc.workplaceLocation.y === tile.y;
+            return hasHome || hasWork;
         });
+        if (homeOrWork.length > 0) return dedup(homeOrWork);
 
-        return nearbyNpcs;
+        // 3. NPCs within ±3 tiles
+        const nearby = allNpcs.filter(npc => {
+            const dx = Math.abs(Math.floor(npc.x) - tile.x);
+            const dy = Math.abs(Math.floor(npc.y) - tile.y);
+            return dx <= 3 && dy <= 3;
+        });
+        if (nearby.length > 0) return dedup(nearby);
+
+        // 4. NPCs who own businesses at this tile
+        if (tileData?.businesses && tileData.businesses.length > 0) {
+            const ownerIds = new Set(tileData.businesses.map(b => b.ownerId).filter(Boolean));
+            const owners = allNpcs.filter(npc => ownerIds.has(npc.id));
+            if (owners.length > 0) return dedup(owners);
+        }
+
+        // 5. Any NPC with a home or workplace (urban-associated)
+        const urbanNpcs = allNpcs.filter(npc =>
+            npc.homeLocation != null || npc.workplaceName != null
+        );
+        if (urbanNpcs.length > 0) return dedup(urbanNpcs);
+
+        return [];
     }, [allNpcs, tile, tileData]);
 
     // Get businesses in this tile - simple registry-based approach
@@ -617,16 +571,6 @@ const CityModal: React.FC<CityModalProps> = ({
     }, [mapData.date]);
 
     // Get city type icon
-    const getCityIcon = () => {
-        switch(tile.biome) {
-            case BiomeType.HAMLET: return <GiVillage className="text-amber-300" size={22} />;
-            case BiomeType.LOW_DENSITY_CITY: return <FaBuilding className="text-amber-300" size={22} />;
-            case BiomeType.DENSE_CITY: return <GiModernCity className="text-amber-300" size={22} />;
-            case BiomeType.CITY_CENTER: return <FaCity className="text-amber-300" size={22} />;
-            default: return <FaHome className="text-amber-300" size={22} />;
-        }
-    };
-
     // Open workspaces list for quick access
     const openBusinesses = useMemo(() => {
         return businesses.filter(b => isBusinessOpen(b));
@@ -657,6 +601,52 @@ const CityModal: React.FC<CityModalProps> = ({
         gameSounds.playUIClickSound();
     }, []);
 
+    // Helper: build workspace config for entering a business
+    const buildWorkspaceConfig = useCallback((business: any) => {
+        const owner = allNpcs.find(n => n.id === business.ownerId);
+        const ownerWealth = owner?.profession?.toLowerCase().includes('master') ? 'wealthy' :
+                            owner?.profession?.toLowerCase().includes('guild') ? 'comfortable' : 'modest';
+        const tilePopulation = tile.population || Math.max(residents.length * 10, 100);
+
+        const selectedArchetype = determineWorkspaceArchetypeAdvanced(
+            business.type, culturalZone, era, tilePopulation, ownerWealth
+        );
+        const selectedMapSize = getWorkspaceMapSize(
+            selectedArchetype, era, tilePopulation, culturalZone
+        );
+
+        return {
+            archetype: selectedArchetype,
+            mapSize: selectedMapSize,
+            culturalZone,
+            era,
+            structureName: business.name,
+            structureId: business.id,
+            businessType: business.type,
+            owner,
+            hasLandscape: true,
+            landscapeClimate: 'temperate',
+            population: tilePopulation,
+            wealthLevel: ownerWealth,
+            settlementType: tile.biome === BiomeType.HAMLET ? 'hamlet' :
+                           tile.biome === BiomeType.LOW_DENSITY_CITY ? 'town' : 'city'
+        };
+    }, [allNpcs, tile, residents, culturalZone, era]);
+
+    // Workspace icon lookup
+    const getWorkspaceIcon = (type: string): string => {
+        const t = type.toLowerCase();
+        if (t.includes('tavern') || t.includes('inn') || t.includes('restaurant')) return '\u{1F37A}';
+        if (t.includes('market') || t.includes('shop') || t.includes('store')) return '\u{1F6D2}';
+        if (t.includes('temple') || t.includes('church') || t.includes('shrine')) return '\u{1F54C}';
+        if (t.includes('smith') || t.includes('forge')) return '\u{2692}';
+        if (t.includes('baker') || t.includes('mill')) return '\u{1F35E}';
+        if (t.includes('weav') || t.includes('textile')) return '\u{1F9F5}';
+        if (t.includes('scholar') || t.includes('library')) return '\u{1F4DA}';
+        if (t.includes('healer') || t.includes('physician')) return '\u{2695}';
+        return '\u{1F3EA}';
+    };
+
     return (
         <div
             data-surface="modal-overlay"
@@ -681,31 +671,18 @@ const CityModal: React.FC<CityModalProps> = ({
         >
             <div
                 ref={panelRef}
-                className="relative w-full h-full max-h-[90vh] animate-popIn rounded-xl overflow-hidden flex flex-col border-2 surface-card"
-                style={{ borderColor: 'var(--color-info)' }}
+                className="relative w-[95%] max-w-5xl max-h-[90vh] animate-popIn rounded-xl overflow-hidden flex flex-col shadow-2xl"
+                style={{
+                    borderWidth: '1px',
+                    borderColor: 'var(--surface-card-border)',
+                    backgroundColor: 'var(--bg-primary)',
+                }}
             >
-                {/* Close Button (top-right, accessible) */}
-                <button
-                    ref={firstFocusRef}
-                    onClick={onClose}
-                    aria-label="Close"
-                    className="absolute top-2 right-2 sm:top-3 sm:right-3 z-30 inline-flex items-center justify-center rounded-md p-2 text-text-secondary hover:text-text-primary transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2"
-                    style={{
-                        backgroundColor: 'var(--surface-muted)',
-                        ['--tw-ring-color' as any]: 'var(--color-warning)'
-                    }}
-                >
-                    <FaTimes className="w-5 h-5" />
-                </button>
-
-                {/* Header with TimeAwareBackground + CityBanner */}
-                <header className="relative h-[200px] sm:h-[240px] md:h-[280px] flex-shrink-0">
-                    {/* Background: sky/time/weather */}
+                {/* ── BANNER (unchanged) ── */}
+                <header className="relative h-[180px] sm:h-[210px] md:h-[240px] flex-shrink-0">
                     <div className="absolute inset-0">
                         <TimeAwareBackground timeOfDay={timeOfDay} weather={weather} season={season} />
                     </div>
-
-                    {/* City banner overlay */}
                     <div className="absolute inset-0">
                         <CityBanner
                             era={era}
@@ -720,671 +697,487 @@ const CityModal: React.FC<CityModalProps> = ({
                             aiGeneratedImageUrl={cachedCityImage}
                         />
                     </div>
-
-                    {/* Gradient overlays for visibility - theme-aware */}
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent"></div>
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent" />
                     <div
-                        className="pointer-events-none absolute inset-0 bg-gradient-to-t"
+                        className="pointer-events-none absolute inset-0"
                         style={{
-                            background: 'linear-gradient(to top, var(--bg-primary) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)'
+                            background: 'linear-gradient(to top, var(--bg-primary) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)'
                         }}
-                    ></div>
-
-                    {/* Title/Header info at bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-5 md:px-6 pb-4 sm:pb-6 md:pb-7 flex justify-between items-end">
-                        <div className="flex items-start gap-3 sm:gap-4 p-3 rounded-lg"
-                            style={{
-                                backgroundColor: 'var(--surface-overlay-strong)',
-                                backdropFilter: isSafari() ? 'none' : 'blur(8px)'
-                            }}
-                        >
-                            <div className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/20 ${isSafari() ? '' : 'backdrop-blur-sm'} border-2 border-amber-500/40 shadow-lg`}>
-                                {getCityIcon()}
-                            </div>
-                            <div>
-                                <p className="text-xs sm:text-sm font-bold uppercase tracking-widest text-amber-300 mb-1 drop-shadow-md">
-                                    Urban District • {displayDate}
-                                </p>
-                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
-                                    {getCityName()}
-                                </h2>
-                                <p className="text-sm sm:text-base capitalize text-white/90 mt-1 flex items-center gap-2 drop-shadow-md">
-                                    <FaUsers className="text-amber-300" /> Population: ~{population.toLocaleString()} • {openBusinesses.length} workspaces open
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Tabs (right-aligned on large screens) */}
-                        <div className={`hidden md:flex gap-2 ${isSafari() ? '' : 'backdrop-blur-sm'} rounded-lg p-1 px-3`}
-                            style={{
-                                backgroundColor: 'var(--surface-muted)',
-                                borderWidth: '1px',
-                                borderColor: 'var(--border-normal)'
-                            }}
-                        >
-                            {(['overview', 'residents', 'workspaces'] as const).map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`px-3 py-2 rounded-md font-semibold transition-all duration-300 hover:scale-105 ${
-                                        activeTab === tab
-                                            ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg'
-                                            : 'hover:shadow-md'
-                                    }`}
-                                    style={activeTab === tab ? {} : {
-                                        color: 'var(--text-secondary)',
-                                        backgroundColor: 'transparent'
-                                    }}
-                                >
-                                    {tab === 'overview' && <span className="inline-flex items-center gap-2"><FaCity /> Overview</span>}
-                                    {tab === 'residents' && <span className="inline-flex items-center gap-2"><FaUsers /> Residents</span>}
-                                    {tab === 'workspaces' && <span className="inline-flex items-center gap-2"><GiShop /> Workspaces</span>}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    />
                 </header>
 
-                {/* Mobile Tabs (below header) */}
-                <div className="md:hidden flex overflow-x-auto"
+                {/* ── INFO STRIP ── */}
+                <div
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 shrink-0"
                     style={{
+                        backgroundColor: 'var(--bg-secondary)',
                         borderBottomWidth: '1px',
-                        borderColor: 'var(--border-normal)',
-                        backgroundColor: 'var(--surface-muted)'
+                        borderColor: 'var(--surface-card-border)',
                     }}
                 >
-                    {(['overview', 'residents', 'workspaces'] as const).map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 font-semibold transition-all duration-300 whitespace-nowrap ${
-                                activeTab === tab
-                                    ? 'text-amber-300 border-b-2 border-amber-300'
-                                    : ''
-                            }`}
-                            style={activeTab === tab ? {} : {
-                                color: 'var(--text-secondary)'
+                    {/* Left: City name + meta */}
+                    <div className="flex items-center gap-3 min-w-0">
+                        <h2
+                            className="text-xl sm:text-2xl font-bold truncate"
+                            style={{ fontFamily: "'Lora', Georgia, serif", color: 'var(--text-primary)' }}
+                        >
+                            {getCityName()}
+                        </h2>
+                        <span
+                            className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                            style={{
+                                backgroundColor: 'var(--surface-chip-bg)',
+                                border: '1px solid var(--surface-chip-border)',
+                                color: 'var(--text-secondary)',
                             }}
                         >
-                            {tab === 'overview' && 'Overview'}
-                            {tab === 'residents' && `Residents (${residents.length})`}
-                            {tab === 'workspaces' && `Workspaces (${businesses.length})`}
+                            Urban District
+                        </span>
+                        <span
+                            className="hidden md:inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                            style={{
+                                backgroundColor: 'var(--surface-chip-bg)',
+                                border: '1px solid var(--surface-chip-border)',
+                                color: 'var(--text-secondary)',
+                            }}
+                        >
+                            {displayDate}
+                        </span>
+                        <span
+                            className="hidden lg:inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full capitalize"
+                            style={{
+                                backgroundColor: 'var(--surface-chip-bg)',
+                                border: '1px solid var(--surface-chip-border)',
+                                color: 'var(--text-secondary)',
+                            }}
+                        >
+                            {culturalZone.replace(/_/g, ' ').toLowerCase()}
+                        </span>
+                    </div>
+
+                    {/* Right: time / season / pop / close */}
+                    <div className="flex items-center gap-2">
+                        <span
+                            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                            style={{
+                                backgroundColor: 'var(--surface-chip-bg)',
+                                border: '1px solid var(--surface-chip-border)',
+                                color: 'var(--text-secondary)',
+                            }}
+                        >
+                            <FaClock size={10} /> {Math.floor(gameTimeHours)}:00
+                        </span>
+                        <span
+                            className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                            style={{
+                                backgroundColor: 'var(--surface-chip-bg)',
+                                border: '1px solid var(--surface-chip-border)',
+                                color: 'var(--text-secondary)',
+                            }}
+                        >
+                            <FaLeaf size={10} /> {season}
+                        </span>
+                        <span
+                            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                            style={{
+                                backgroundColor: 'var(--surface-chip-bg)',
+                                border: '1px solid var(--surface-chip-border)',
+                                color: 'var(--text-secondary)',
+                            }}
+                        >
+                            <FaUsers size={10} /> ~{population.toLocaleString()}
+                        </span>
+                        <button
+                            ref={firstFocusRef}
+                            onClick={onClose}
+                            aria-label="Close"
+                            className="inline-flex items-center justify-center rounded-md p-1.5 transition-all duration-200 hover:scale-110"
+                            style={{
+                                color: 'var(--text-secondary)',
+                                backgroundColor: 'var(--surface-chip-bg)',
+                                border: '1px solid var(--surface-chip-border)',
+                            }}
+                        >
+                            <FaTimes size={14} />
                         </button>
-                    ))}
+                    </div>
                 </div>
 
-
-            {/* Tab Content with scrollable area */}
-            <div className="flex-grow overflow-y-auto min-h-0 custom-scrollbar">
-                {activeTab === 'overview' && (
-                    <div className="p-4 sm:p-6">
-                        {/* City Event Banner */}
-                        {cityEvent && !showEventOutcome && (
-                            <div className="mb-6 animate-in fade-in duration-500">
-                                <div className="rounded-lg p-5 shadow-xl border-2"
+                {/* ── TWO-PANEL GRID ── */}
+                <div
+                    className="flex-grow min-h-0 grid grid-cols-1 md:grid-cols-2"
+                    style={{ maxHeight: 520 }}
+                >
+                    {/* ─── LEFT PANEL: Narrative ─── */}
+                    <div
+                        className="overflow-y-auto custom-scrollbar p-4 sm:p-5"
+                        style={{
+                            backgroundColor: 'var(--bg-primary)',
+                            borderRightWidth: '1px',
+                            borderColor: 'var(--surface-card-border)',
+                            maxHeight: 'inherit',
+                        }}
+                    >
+                        {/* LLM Description */}
+                        {descriptionLoading ? (
+                            <div className="flex items-center gap-3 mb-5">
+                                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(244,203,120,0.9)' }} />
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Observing the district...</span>
+                            </div>
+                        ) : cityDescription ? (
+                            <div
+                                className="mb-5 animate-in fade-in duration-500"
+                                style={{
+                                    borderLeft: '3px solid rgba(244,203,120,0.5)',
+                                    paddingLeft: '1rem',
+                                }}
+                            >
+                                <p
+                                    className="leading-relaxed"
                                     style={{
-                                        backgroundColor: 'var(--surface-card)',
-                                        borderColor: '#f59e0b', // amber-500
+                                        fontFamily: "'Lora', Georgia, serif",
+                                        fontStyle: 'italic',
+                                        fontSize: '1.05rem',
+                                        color: 'var(--text-primary)',
+                                        lineHeight: 1.8,
                                     }}
                                 >
-                                    {/* Event Header */}
-                                    <div className="flex items-start gap-3 mb-4">
-                                        <div className="flex-shrink-0 mt-1">
-                                            <FaExclamationTriangle className="text-amber-400" size={24} />
+                                    <span
+                                        style={{
+                                            float: 'left',
+                                            fontSize: '2.8rem',
+                                            lineHeight: 1,
+                                            fontWeight: 700,
+                                            marginRight: '0.25rem',
+                                            marginTop: '0.05rem',
+                                            color: 'rgba(244,203,120,0.9)',
+                                            fontStyle: 'normal',
+                                        }}
+                                    >
+                                        {cityDescription.charAt(0)}
+                                    </span>
+                                    {cityDescription.slice(1)}
+                                </p>
+                            </div>
+                        ) : null}
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-3 my-4">
+                            <div className="flex-1 h-px" style={{ backgroundColor: 'var(--surface-card-border)' }} />
+                            <span className="text-xs italic" style={{ color: 'var(--text-muted)', fontFamily: "'Lora', Georgia, serif" }}>
+                                Something stirs
+                            </span>
+                            <div className="flex-1 h-px" style={{ backgroundColor: 'var(--surface-card-border)' }} />
+                        </div>
+
+                        {/* City Event */}
+                        {cityEvent && !showEventOutcome && (
+                            <div className="animate-in fade-in duration-500">
+                                <div
+                                    className="rounded-lg p-4"
+                                    style={{
+                                        backgroundColor: 'var(--bg-card)',
+                                        border: '1px solid rgba(251,191,36,0.25)',
+                                    }}
+                                >
+                                    <div className="flex items-start gap-3 mb-3">
+                                        <div className="relative flex-shrink-0 mt-0.5">
+                                            <div
+                                                className="w-2 h-2 rounded-full animate-pulse absolute -top-0.5 -right-0.5"
+                                                style={{ backgroundColor: '#fbbf24' }}
+                                            />
+                                            <FaExclamationTriangle style={{ color: '#fbbf24' }} size={18} />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-lg font-bold text-amber-300 mb-2">
+                                            <h3
+                                                className="text-sm font-bold mb-1.5"
+                                                style={{ color: 'rgba(244,203,120,0.9)', fontFamily: "'Lora', Georgia, serif" }}
+                                            >
                                                 Event in the City
                                             </h3>
-                                            <p className="text-text-primary text-sm leading-relaxed">
+                                            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                                                 {cityEvent.prompt}
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Event Choices */}
-                                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                    <div className="flex gap-2 mt-3">
                                         <button
                                             onClick={() => handleEventChoice(0)}
-                                            className="flex-1 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
-                                            style={{
-                                                backgroundColor: '#059669', // emerald-600
-                                                color: 'white',
-                                            }}
+                                            className="flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 hover:brightness-110 active:scale-95"
+                                            style={{ backgroundColor: 'var(--accent-primary)', color: '#000' }}
                                         >
-                                            <div className="flex items-center justify-center gap-2">
-                                                <FaSearch size={16} />
-                                                <span>{cityEvent.choices[0].text}</span>
-                                            </div>
+                                            {cityEvent.choices[0].text}
                                         </button>
-
                                         <button
                                             onClick={() => handleEventChoice(1)}
-                                            className="flex-1 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
-                                            style={{
-                                                backgroundColor: '#64748b', // slate-500
-                                                color: 'white',
-                                            }}
+                                            className="flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 hover:brightness-110 active:scale-95"
+                                            style={{ backgroundColor: '#475569', color: '#fff' }}
                                         >
-                                            <div className="flex items-center justify-center gap-2">
-                                                <FaTimes size={16} />
-                                                <span>{cityEvent.choices[1].text}</span>
-                                            </div>
+                                            {cityEvent.choices[1].text}
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Event Outcome Display */}
+                        {/* Event Outcome */}
                         {showEventOutcome && eventOutcome && (
-                            <div className="mb-6 animate-in fade-in duration-500">
-                                <div className="rounded-lg p-5 shadow-xl border-2"
+                            <div className="animate-in fade-in duration-500">
+                                <div
+                                    className="rounded-lg p-4"
                                     style={{
-                                        backgroundColor: 'var(--surface-card)',
-                                        borderColor: eventOutcome.result === 'death' ? '#dc2626' :
-                                                     eventOutcome.result === 'injury' ? '#ea580c' :
-                                                     eventOutcome.result === 'gold_gain' || eventOutcome.result === 'item' ? '#22c55e' :
-                                                     '#64748b',
+                                        backgroundColor: 'var(--bg-card)',
+                                        border: `1px solid ${
+                                            eventOutcome.result === 'death' ? '#dc2626' :
+                                            eventOutcome.result === 'injury' ? '#ea580c' :
+                                            eventOutcome.result === 'gold_gain' || eventOutcome.result === 'item' ? '#22c55e' :
+                                            '#64748b'
+                                        }`,
                                     }}
                                 >
-                                    <div className="flex items-start gap-3">
-                                        <div className="flex-1">
-                                            <h3 className="text-lg font-bold mb-2"
-                                                style={{
-                                                    color: eventOutcome.result === 'death' ? '#fca5a5' :
-                                                           eventOutcome.result === 'injury' ? '#fdba74' :
-                                                           eventOutcome.result === 'gold_gain' || eventOutcome.result === 'item' ? '#86efac' :
-                                                           '#cbd5e1'
-                                                }}
-                                            >
-                                                {eventOutcome.result === 'death' ? 'Fatal Outcome' :
-                                                 eventOutcome.result === 'injury' ? 'Injury Sustained' :
-                                                 eventOutcome.result === 'gold_gain' ? 'Fortune Favors You' :
-                                                 eventOutcome.result === 'gold_loss' ? 'Unfortunate Loss' :
-                                                 eventOutcome.result === 'item' ? 'Item Acquired' :
-                                                 eventOutcome.result === 'knowledge' ? 'Knowledge Gained' :
-                                                 eventOutcome.result === 'reputation_gain' ? 'Reputation Enhanced' :
-                                                 eventOutcome.result === 'reputation_loss' ? 'Reputation Damaged' :
-                                                 'Event Concluded'}
-                                            </h3>
-                                            <p className="text-text-primary text-sm leading-relaxed mb-4">
-                                                {eventOutcome.message}
-                                            </p>
-                                            <button
-                                                onClick={dismissEvent}
-                                                className="px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 hover:scale-105 active:scale-95"
-                                                style={{
-                                                    backgroundColor: '#475569',
-                                                    color: 'white',
-                                                }}
-                                            >
-                                                Continue
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* LLM District Description */}
-                        <div className="mb-6">
-                            {descriptionLoading ? (
-                                <div className="flex items-center gap-3 p-4 rounded-lg"
-                                    style={{
-                                        backgroundColor: 'var(--surface-muted)',
-                                        borderWidth: '1px',
-                                        borderColor: 'var(--border-normal)'
-                                    }}
-                                >
-                                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                                    <span className="text-text-secondary text-sm">Observing the district...</span>
-                                </div>
-                            ) : (
-                                <div className="animate-in fade-in duration-500 p-4 rounded-lg"
-                                    style={{
-                                        backgroundColor: 'var(--surface-muted)',
-                                        borderWidth: '1px',
-                                        borderColor: 'var(--border-normal)'
-                                    }}
-                                >
-                                    <p className="text-text-primary text-sm leading-relaxed italic">
-                                        {cityDescription}
+                                    <h3
+                                        className="text-sm font-bold mb-1.5"
+                                        style={{
+                                            fontFamily: "'Lora', Georgia, serif",
+                                            color: eventOutcome.result === 'death' ? '#fca5a5' :
+                                                   eventOutcome.result === 'injury' ? '#fdba74' :
+                                                   eventOutcome.result === 'gold_gain' || eventOutcome.result === 'item' ? '#86efac' :
+                                                   '#cbd5e1'
+                                        }}
+                                    >
+                                        {eventOutcome.result === 'death' ? 'Fatal Outcome' :
+                                         eventOutcome.result === 'injury' ? 'Injury Sustained' :
+                                         eventOutcome.result === 'gold_gain' ? 'Fortune Favors You' :
+                                         eventOutcome.result === 'gold_loss' ? 'Unfortunate Loss' :
+                                         eventOutcome.result === 'item' ? 'Item Acquired' :
+                                         eventOutcome.result === 'knowledge' ? 'Knowledge Gained' :
+                                         eventOutcome.result === 'reputation_gain' ? 'Reputation Enhanced' :
+                                         eventOutcome.result === 'reputation_loss' ? 'Reputation Damaged' :
+                                         'Event Concluded'}
+                                    </h3>
+                                    <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-primary)' }}>
+                                        {eventOutcome.message}
                                     </p>
+                                    <button
+                                        onClick={dismissEvent}
+                                        className="px-3 py-1.5 rounded-md font-medium text-xs transition-all duration-200 hover:brightness-110 active:scale-95"
+                                        style={{ backgroundColor: '#475569', color: '#fff' }}
+                                    >
+                                        Continue
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Two column layout for better organization */}
-                        <div className="grid gap-4 md:grid-cols-2 max-w-5xl mx-auto">
-                            {/* Left Side - District Info */}
-                            <div className="space-y-4">
-                                {/* District Information Card */}
-                                <section className="rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-                                    style={{
-                                        backgroundColor: 'var(--surface-card)',
-                                        borderWidth: '1px',
-                                        borderColor: 'var(--border-normal)'
-                                    }}
-                                >
-                                    <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
-                                        <FaMapMarkedAlt size={18} /> District Information
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                        <div className="text-text-muted">Type:</div>
-                                        <div className="text-text-primary capitalize">{tile.biome.replace(/_/g, ' ').toLowerCase()}</div>
-                                        <div className="text-text-muted">Current Time:</div>
-                                        <div className="text-text-primary flex items-center gap-1">
-                                            <FaClock size={12} className="text-amber-400" />
-                                            {Math.floor(gameTimeHours)}:00 ({timeOfDay})
-                                        </div>
-                                        <div className="text-text-muted">Season:</div>
-                                        <div className="text-text-primary flex items-center gap-1">
-                                            <FaLeaf size={12} className="text-green-400" />
-                                            {season}
-                                        </div>
-                                        <div className="text-text-muted">Active Residents:</div>
-                                        <div className="text-text-primary">{residents.length} known</div>
-                                    </div>
-                                </section>
-
-                                {/* Housing Information */}
-                                {tileData?.residences && tileData.residences.length > 0 && (
-                                    <section className="rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-                                        style={{
-                                            backgroundColor: 'var(--surface-card)',
-                                            borderWidth: '1px',
-                                            borderColor: 'var(--border-normal)'
-                                        }}
-                                    >
-                                        <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
-                                            <FaHome size={18} /> Housing Districts
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {tileData.residences.slice(0, 4).map((residence, idx) => (
-                                                <div key={idx} className="flex items-center justify-between text-sm">
-                                                    <span className="text-text-primary">
-                                                        {residence.type.replace(/_/g, ' ')}
-                                                    </span>
-                                                    <span className="text-xs text-text-muted">
-                                                        {residence.occupants.length} residents • {residence.wealthLevel}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                            {tileData.residences.length > 4 && (
-                                                <div className="text-xs text-text-muted italic">
-                                                    +{tileData.residences.length - 4} more residential areas
-                                                </div>
-                                            )}
-                                        </div>
-                                    </section>
-                                )}
                             </div>
+                        )}
 
-                            {/* Right Side - Open Workspaces / Actions */}
-                            <div className="space-y-4">
-                                {/* Open Workspaces - Main CTA */}
-                                <section className="rounded-lg p-6 transition-all duration-300 hover:shadow-xl"
-                                    style={{
-                                        backgroundColor: 'var(--surface-elevated)',
-                                        borderWidth: '2px',
-                                        borderColor: 'var(--color-warning)'
-                                    }}
-                                >
-                                    <h3 className="text-base font-bold text-amber-300 mb-4 flex items-center gap-2">
-                                        <FaDoorOpen size={18} /> Enter Open Workspaces
-                                    </h3>
-
-                                    {openBusinesses.length === 0 ? (
-                                        <div className="text-center py-4">
-                                            <p className="text-text-secondary mb-2">No workspaces are open at this hour</p>
-                                            <p className="text-xs text-text-muted">
-                                                Most businesses open between 8:00 and 20:00
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                                            {openBusinesses.map(business => {
-                                                const owner = allNpcs.find(n => n.id === business.ownerId);
-                                                return (
-                                                    <button
-                                                        key={business.id}
-                                                        className="w-full px-4 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg transition-all shadow-lg hover:shadow-amber-500/25 font-bold text-sm flex items-center justify-between gap-2"
-                                                        onClick={() => {
-                                                            if (!onEnterSpecialMap) return;
-
-                                                            // Generate special map config for this workspace
-                                                            const ownerWealth = owner?.profession?.toLowerCase().includes('master') ? 'wealthy' :
-                                                                              owner?.profession?.toLowerCase().includes('guild') ? 'comfortable' : 'modest';
-                                                            const tilePopulation = tile.population || Math.max(residents.length * 10, 100);
-
-                                                            const selectedArchetype = determineWorkspaceArchetypeAdvanced(
-                                                                business.type,
-                                                                culturalZone,
-                                                                era,
-                                                                tilePopulation,
-                                                                ownerWealth
-                                                            );
-
-                                                            const selectedMapSize = getWorkspaceMapSize(
-                                                                selectedArchetype,
-                                                                era,
-                                                                tilePopulation,
-                                                                culturalZone
-                                                            );
-
-                                                            const workspaceConfig = {
-                                                                archetype: selectedArchetype,
-                                                                mapSize: selectedMapSize,
-                                                                culturalZone: culturalZone,
-                                                                era: era,
-                                                                structureName: business.name,
-                                                                structureId: business.id,
-                                                                businessType: business.type,
-                                                                owner: owner,
-                                                                hasLandscape: true,
-                                                                landscapeClimate: 'temperate',
-                                                                population: tilePopulation,
-                                                                wealthLevel: ownerWealth,
-                                                                settlementType: tile.biome === BiomeType.HAMLET ? 'hamlet' :
-                                                                               tile.biome === BiomeType.LOW_DENSITY_CITY ? 'town' : 'city'
-                                                            };
-
-                                                            // Entering business via Overview tab
-                                                            onEnterSpecialMap(workspaceConfig);
-                                                            onClose();
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <FaDoorOpen size={16} />
-                                                            <span className="text-left">
-                                                                {business.name}
-                                                                <span className="block text-xs opacity-80">
-                                                                    {business.displayType || business.type.replace(/_/g, ' ')}
-                                                                </span>
-                                                                {business.businessStatusDisplay && business.goodsQualityDisplay && (
-                                                                    <span className="block text-xs opacity-70 mt-1">
-                                                                        <span className={`inline-block mr-2 ${
-                                                                            business.businessStatus === 'thriving' ? 'text-green-400' :
-                                                                            business.businessStatus === 'doing_well' ? 'text-blue-400' :
-                                                                            business.businessStatus === 'modest' ? 'text-yellow-400' :
-                                                                            business.businessStatus === 'down_on_its_luck' ? 'text-orange-400' :
-                                                                            'text-red-400'
-                                                                        }`}>
-                                                                            {business.businessStatusDisplay}
-                                                                        </span>
-                                                                        <span className={`inline-block ${
-                                                                            ['excellent', 'superior', 'masterwork', 'legendary'].includes(business.goodsQuality || '') ? 'text-purple-400' :
-                                                                            ['fine', 'good'].includes(business.goodsQuality || '') ? 'text-green-400' :
-                                                                            ['decent', 'adequate'].includes(business.goodsQuality || '') ? 'text-blue-400' :
-                                                                            'text-gray-400'
-                                                                        }`}>
-                                                                            {business.goodsQualityDisplay} Quality
-                                                                        </span>
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-xs">
-                                                            {owner ? `${owner.emoji} ${owner.name}` : '→'}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    {openBusinesses.length > 0 && (
-                                        <p className="text-xs text-text-muted text-center italic mt-3">
-                                            {openBusinesses.length} of {businesses.length} workspaces currently open
-                                        </p>
-                                    )}
-                                </section>
-
-                                {/* Commerce Status */}
-                                <section className="rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-                                    style={{
-                                        backgroundColor: 'var(--surface-card)',
-                                        borderWidth: '1px',
-                                        borderColor: 'var(--border-normal)'
-                                    }}
-                                >
-                                    <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
-                                        <GiShop size={18} /> Commerce Status
-                                    </h3>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-text-muted">Total Workspaces:</span>
-                                            <span className="text-text-primary font-medium">{businesses.length}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-text-muted">Currently Open:</span>
-                                            <span className="text-green-400 font-medium">{openBusinesses.length}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-text-muted">Peak Hours:</span>
-                                            <span className="text-text-primary text-xs">8:00 - 20:00</span>
-                                        </div>
-                                    </div>
-                                </section>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'residents' && (
-                    <div className="p-4 sm:p-6 space-y-2 md:space-y-3">
-                        {residents.length === 0 ? (
-                            <div>
-                                <p className="text-text-secondary italic">No known residents in this area</p>
-                                <p className="text-xs text-text-muted mt-2">Residents will appear as you explore and meet people</p>
-                            </div>
-                        ) : (
-                            residents.map(npc => {
-                                const isFriend = npc.playerRelationship?.attitude && npc.playerRelationship.attitude > 50;
-
-                                return (
-                                    <div key={npc.id} className="p-2 md:p-3 rounded-lg transition-all duration-300 hover:scale-[1.01] hover:shadow-lg"
-                                        style={{
-                                            backgroundColor: 'var(--surface-card)',
-                                            borderWidth: '1px',
-                                            borderColor: 'var(--border-normal)'
-                                        }}
-                                    >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-2xl">{npc.emoji}</span>
-                                                <span className="font-semibold text-text-primary">{npc.name}</span>
-                                                {isFriend && <span className="text-green-400 text-xs">👥 Friend</span>}
-                                            </div>
-                                            <span className="text-sm text-text-muted">{getActivityStatus(npc)}</span>
-                                        </div>
-                                        <div className="text-xs md:text-sm text-text-secondary">
-                                            {npc.profession || npc.role}
-                                        </div>
-                                        {npc.workplaceName && (
-                                            <div className="text-[10px] md:text-xs text-text-muted mt-1">
-                                                Works at: {npc.workplaceName}
-                                            </div>
-                                        )}
-                                        {isFriend && (
-                                            <button
-                                                onClick={() => {
-                                                    // Visiting friend
-                                                    alert(`Visiting ${npc.name}'s home...\n\n(Home visits coming soon!)`);
-                                                }}
-                                                className="mt-2 px-2 py-1 bg-green-700 hover:bg-green-600 text-white text-xs rounded transition-all duration-300 hover:scale-105 active:scale-95"
-                                            >
-                                                🏠 Visit Home
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })
+                        {/* Empty state if no event and no description */}
+                        {!cityEvent && !showEventOutcome && !cityDescription && !descriptionLoading && (
+                            <p className="text-sm italic" style={{ color: 'var(--text-muted)' }}>
+                                The district is quiet for now.
+                            </p>
                         )}
                     </div>
-                )}
 
-                {activeTab === 'workspaces' && (
-                    <div className="p-4 sm:p-6 space-y-2 md:space-y-3">
+                    {/* ─── RIGHT PANEL: Interactive ─── */}
+                    <div
+                        className="overflow-y-auto custom-scrollbar p-4 sm:p-5"
+                        style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            maxHeight: 'inherit',
+                        }}
+                    >
+                        {/* Workspaces section */}
+                        <div
+                            className="flex items-center justify-between mb-3"
+                            style={{
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 2,
+                                backgroundColor: 'var(--bg-secondary)',
+                                paddingBottom: '0.25rem',
+                            }}
+                        >
+                            <h3
+                                className="text-sm font-bold flex items-center gap-2"
+                                style={{ color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                            >
+                                <GiShop size={16} style={{ color: 'var(--accent-primary)' }} />
+                                Workspaces
+                            </h3>
+                            <span
+                                className="text-xs px-2 py-0.5 rounded-full"
+                                style={{
+                                    backgroundColor: 'var(--surface-chip-bg)',
+                                    border: '1px solid var(--surface-chip-border)',
+                                    color: 'var(--accent-primary)',
+                                }}
+                            >
+                                {openBusinesses.length} of {businesses.length} open
+                            </span>
+                        </div>
+
                         {businesses.length === 0 ? (
-                            <p className="text-text-secondary italic">No established workspaces in this area</p>
+                            <p className="text-sm italic mb-4" style={{ color: 'var(--text-muted)' }}>
+                                No established workspaces in this area
+                            </p>
                         ) : (
-                            businesses.map(business => {
-                                const owner = allNpcs.find(n => n.id === business.ownerId);
-                                const isOpen = isBusinessOpen(business);
+                            <div className="space-y-1.5 mb-4">
+                                {businesses.map(business => {
+                                    const owner = allNpcs.find(n => n.id === business.ownerId);
+                                    const isOpen = isBusinessOpen(business);
 
-                                return (
-                                    <div key={business.id} className="p-2 md:p-3 rounded-lg transition-all duration-300 hover:scale-[1.01] hover:shadow-lg"
-                                        style={{
-                                            backgroundColor: 'var(--surface-card)',
-                                            borderWidth: '1px',
-                                            borderColor: 'var(--border-normal)'
-                                        }}
-                                    >
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h4 className="font-semibold text-text-primary">{business.name}</h4>
-                                            <span className={`text-sm font-medium inline-flex items-center gap-1 transition-all duration-300 ${
-                                                isOpen ? 'text-green-400' : 'text-[color:var(--color-error)]'
-                                            }`}>
-                                                {isOpen ? (
-                                                    <>
-                                                        <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                                        Open
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-error)' }}></span>
-                                                        Closed
-                                                    </>
-                                                )}
+                                    return (
+                                        <div
+                                            key={business.id}
+                                            className="rounded-lg px-3 py-2.5 transition-all duration-200 hover:brightness-110"
+                                            style={{
+                                                backgroundColor: 'var(--bg-card)',
+                                                border: '1px solid var(--surface-card-border)',
+                                                display: 'grid',
+                                                gridTemplateColumns: '36px 1fr auto',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                cursor: isOpen && onEnterSpecialMap ? 'pointer' : 'default',
+                                                opacity: isOpen ? 1 : 0.6,
+                                            }}
+                                            onClick={() => {
+                                                if (!isOpen || !onEnterSpecialMap) return;
+                                                onEnterSpecialMap(buildWorkspaceConfig(business));
+                                                onClose();
+                                            }}
+                                        >
+                                            {/* Icon */}
+                                            <span className="text-xl text-center" role="img">
+                                                {getWorkspaceIcon(business.type)}
                                             </span>
+
+                                            {/* Name + detail */}
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                                    {business.name}
+                                                </div>
+                                                <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                                                    {business.displayType || business.type.replace(/_/g, ' ')}
+                                                    {owner ? ` \u00B7 ${owner.name}` : ''}
+                                                </div>
+                                            </div>
+
+                                            {/* Status + enter arrow */}
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-flex items-center gap-1 text-xs font-medium">
+                                                    <span
+                                                        className={`inline-block w-1.5 h-1.5 rounded-full ${isOpen ? 'animate-pulse' : ''}`}
+                                                        style={{ backgroundColor: isOpen ? 'var(--accent-primary)' : 'var(--text-muted)' }}
+                                                    />
+                                                    <span style={{ color: isOpen ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
+                                                        {isOpen ? 'Open' : 'Closed'}
+                                                    </span>
+                                                </span>
+                                                {isOpen && onEnterSpecialMap && (
+                                                    <FaChevronRight size={10} style={{ color: 'var(--accent-primary)' }} />
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2 text-xs md:text-sm mb-3">
-                                            <div className="text-text-muted">Type:</div>
-                                            <div className="text-text-primary">{business.type.replace(/_/g, ' ')}</div>
-                                            <div className="text-text-muted">Owner:</div>
-                                            <div className="text-text-primary">
-                                                {owner ? `${owner.emoji} ${owner.name}` : 'Unknown'}
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Divider */}
+                        <div className="h-px my-3" style={{ backgroundColor: 'var(--surface-card-border)' }} />
+
+                        {/* Residents section */}
+                        <div
+                            className="flex items-center justify-between mb-3"
+                            style={{
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 2,
+                                backgroundColor: 'var(--bg-secondary)',
+                                paddingBottom: '0.25rem',
+                            }}
+                        >
+                            <h3
+                                className="text-sm font-bold flex items-center gap-2"
+                                style={{ color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                            >
+                                <FaUsers size={14} style={{ color: 'var(--accent-primary)' }} />
+                                Known Residents
+                            </h3>
+                            <span
+                                className="text-xs px-2 py-0.5 rounded-full"
+                                style={{
+                                    backgroundColor: 'var(--surface-chip-bg)',
+                                    border: '1px solid var(--surface-chip-border)',
+                                    color: 'var(--text-secondary)',
+                                }}
+                            >
+                                {residents.length}
+                            </span>
+                        </div>
+
+                        {residents.length === 0 ? (
+                            <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                                No known residents. Explore to meet people.
+                            </p>
+                        ) : (
+                            <div className="space-y-1">
+                                {residents.map(npc => (
+                                    <div
+                                        key={npc.id}
+                                        className="rounded-md px-3 py-2 transition-colors duration-150"
+                                        style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '28px 1fr auto',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            backgroundColor: 'transparent',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-card)')}
+                                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                        <span className="text-lg text-center">{npc.emoji}</span>
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                                {npc.name}
                                             </div>
-                                            <div className="text-text-muted">Hours:</div>
-                                            <div className="text-text-primary">
-                                                {business.openHours ?
-                                                    `${business.openHours[0]}:00 - ${business.openHours[1]}:00` :
-                                                    'Unknown'}
+                                            <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                                                {npc.profession || npc.role}
+                                                {npc.workplaceName ? ` \u00B7 ${npc.workplaceName}` : ''}
                                             </div>
                                         </div>
-                                        {isOpen && (
-                                            <button
-                                                onClick={() => {
-                                                    // Entering workspace
-                                                    setSelectedWorkspace(business);
-
-                                                    // Generate special map config for this workspace using advanced router
-                                                    if (onEnterSpecialMap) {
-                                                        // Determine owner wealth level
-                                                        const ownerWealth = owner?.profession?.toLowerCase().includes('master') ? 'wealthy' :
-                                                                          owner?.profession?.toLowerCase().includes('guild') ? 'comfortable' : 'modest';
-
-                                                        // Get population from tile or estimate
-                                                        const tilePopulation = tile.population || Math.max(residents.length * 10, 100);
-
-                                                        // Use advanced routing logic
-                                                        const selectedArchetype = determineWorkspaceArchetypeAdvanced(
-                                                            business.type,
-                                                            culturalZone,
-                                                            era,
-                                                            tilePopulation,
-                                                            ownerWealth
-                                                        );
-
-                                                        // Get appropriate map size
-                                                        const selectedMapSize = getWorkspaceMapSize(
-                                                            selectedArchetype,
-                                                            era,
-                                                            tilePopulation,
-                                                            culturalZone
-                                                        );
-
-                                                        const workspaceConfig = {
-                                                            archetype: selectedArchetype,
-                                                            mapSize: selectedMapSize,
-                                                            culturalZone: culturalZone,
-                                                            era: era,
-                                                            structureName: business.name,
-                                                            structureId: business.id,
-                                                            businessType: business.type,
-                                                            owner: owner,
-                                                            hasLandscape: true,
-                                                            landscapeClimate: 'temperate',
-                                                            // Additional context for generators
-                                                            population: tilePopulation,
-                                                            wealthLevel: ownerWealth,
-                                                            settlementType: tile.biome === BiomeType.HAMLET ? 'hamlet' :
-                                                                           tile.biome === BiomeType.LOW_DENSITY_CITY ? 'town' : 'city'
-                                                        };
-
-                                                        // Advanced routing determined
-                                                        onEnterSpecialMap(workspaceConfig);
-                                                    } else {
-                                                        alert(`Entering ${business.name}...\n\n(Special map generation for workspaces coming soon!)`);
-                                                    }
-                                                }}
-                                                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-md transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 text-sm"
-                                            >
-                                                🚪 Enter Workspace
-                                            </button>
-                                        )}
-                                        {!isOpen && (
-                                            <div className="w-full px-3 py-2 text-center rounded-md text-sm"
-                                                style={{
-                                                    backgroundColor: 'var(--surface-muted)',
-                                                    color: 'var(--text-muted)'
-                                                }}
-                                            >
-                                                Closed - Come back {business.openHours ? `at ${business.openHours[0]}:00` : 'later'}
-                                            </div>
-                                        )}
+                                        <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                                            {getActivityStatus(npc)}
+                                        </span>
                                     </div>
-                                );
-                            })
+                                ))}
+                            </div>
                         )}
                     </div>
-                )}
-            </div>
+                </div>
 
-            {/* Footer with buttons */}
-            <footer className="flex justify-between items-center p-3 md:p-4 shrink-0"
-                style={{
-                    borderTopWidth: '1px',
-                    borderColor: 'var(--border-normal)',
-                    backgroundColor: 'var(--surface-muted)'
-                }}
-            >
-                {/* Debug button for testing - remove in production */}
-                <button
-                    onClick={() => {
-                        // Clear tile data and force regeneration
-                        urbanTileRegistry.clearTile(tile.x, tile.y);
-                        console.log(`Cleared business data for tile (${tile.x}, ${tile.y}). Refreshing...`);
-
-                        // Refresh the page to trigger regeneration
-                        window.location.reload();
+                {/* ── FOOTER ── */}
+                <footer
+                    className="flex justify-end items-center p-3 shrink-0"
+                    style={{
+                        borderTopWidth: '1px',
+                        borderColor: 'var(--surface-card-border)',
+                        backgroundColor: 'var(--bg-secondary)',
                     }}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
-                    title="Debug: Clear cached businesses and regenerate for this tile"
                 >
-                    🔄 Regenerate Businesses
-                </button>
-
-                <button
-                    onClick={onClose}
-                    className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-500 transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95"
-                >
-                    Leave District
-                </button>
-            </footer>
-        </div>
+                    <button
+                        onClick={onClose}
+                        className="px-5 py-2 text-sm font-semibold rounded-md transition-all duration-200 hover:brightness-110 active:scale-95"
+                        style={{
+                            backgroundColor: 'var(--button-primary-bg)',
+                            color: 'var(--button-primary-text)',
+                            border: '1px solid var(--button-primary-border)',
+                        }}
+                    >
+                        Leave District
+                    </button>
+                </footer>
+            </div>
         </div>
     );
 };

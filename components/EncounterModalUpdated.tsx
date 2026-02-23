@@ -123,21 +123,20 @@ const styles = `
 
 /* Custom scrollbar */
 .conversation-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 5px;
 }
 
 .conversation-scrollbar::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 4px;
+  background: transparent;
 }
 
 .conversation-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.8);
-  border-radius: 4px;
+  background: var(--border-normal);
+  border-radius: 10px;
 }
 
 .conversation-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.8);
+  background: var(--border-subtle);
 }
 
 /* Loading dots animation */
@@ -155,7 +154,7 @@ const styles = `
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #64748b;
+  background-color: var(--text-muted);
   animation: bounce 1.4s infinite ease-in-out;
 }
 
@@ -1924,17 +1923,17 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         {targetName}
                                     </h2>
                                     <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Type:</span>
-                                            <span className="text-slate-200">Animal</span>
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" style={{ ['--tw-bg-opacity' as any]: 1 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-card-bg)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                            <span style={{ color: 'var(--text-muted)' }}>Type:</span>
+                                            <span style={{ color: 'var(--text-primary)' }}>Animal</span>
                                         </div>
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Species:</span>
-                                            <span className="text-slate-200">{target.speciesName || 'Unknown'}</span>
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-card-bg)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                            <span style={{ color: 'var(--text-muted)' }}>Species:</span>
+                                            <span style={{ color: 'var(--text-primary)' }}>{target.speciesName || 'Unknown'}</span>
                                         </div>
-                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
-                                            <span className="text-slate-500">Behavior:</span>
-                                            <span className="text-slate-200 capitalize">{target.behavior || 'Unknown'}</span>
+                                        <div className="flex justify-between px-2 py-1 rounded transition-colors" onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-card-bg)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                            <span style={{ color: 'var(--text-muted)' }}>Behavior:</span>
+                                            <span className="capitalize" style={{ color: 'var(--text-primary)' }}>{target.behavior || 'Unknown'}</span>
                                         </div>
                                     </div>
                                     
@@ -1942,7 +1941,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     <div className="hidden sm:flex justify-center gap-2 mt-4">
                                         <button 
                                             onClick={handleOpenInfo}
-                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            className="w-10 h-10 border rounded-lg flex items-center justify-center transition-all hover:-translate-y-0.5 hover:scale-105 hover:brightness-125 group relative" style={{ background: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)', color: 'var(--text-muted)' }} data-token=""
                                             title="View Profile (P)"
                                         >
                                             <span className="text-lg">👤</span>
@@ -1952,7 +1951,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         </button>
                                         <button 
                                             onClick={() => setActiveTab('taming')}
-                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            className="w-10 h-10 border rounded-lg flex items-center justify-center transition-all hover:-translate-y-0.5 hover:scale-105 hover:brightness-125 group relative" style={{ background: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)', color: 'var(--text-muted)' }} data-token=""
                                             title="Tame Animal (T)"
                                         >
                                             <span className="text-lg">🦴</span>
@@ -1962,7 +1961,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         </button>
                                         <button 
                                             onClick={() => onInitiateCombat(target)}
-                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-900/30 hover:text-red-300 hover:border-red-600 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            className="w-10 h-10 border rounded-lg flex items-center justify-center text-red-400 hover:bg-red-900/30 hover:text-red-300 hover:border-red-600 transition-all hover:-translate-y-0.5 hover:scale-105 group relative" style={{ background: 'var(--surface-muted-bg)', borderColor: 'var(--border-normal)' }} data-token=""
                                             title="Hunt Animal (A)"
                                         >
                                             <span className="text-lg">🏹</span>
@@ -2513,7 +2512,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 {activeTab === 'taming' && !isNpc(target) && (
                                     <div className="flex flex-col h-full p-6 space-y-4 animate-slide-up">
                                         {/* Header */}
-                                        <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+                                        <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'var(--border-normal)' }}>
                                             <div className="flex items-center gap-3">
                                                 <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center">
                                                     <Heart className="w-6 h-6 text-green-400" />
@@ -2522,14 +2521,14 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                     <h3 className="text-lg font-semibold text-green-400">
                                                         Taming {targetName}
                                                     </h3>
-                                                    <p className="text-xs text-slate-400">
+                                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                                         Build trust through careful approach
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-xs text-slate-500">Attempts</p>
-                                                <p className="text-lg font-bold text-slate-300">{tamingAttempts}/2</p>
+                                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Attempts</p>
+                                                <p className="text-lg font-bold" style={{ color: 'var(--text-secondary)' }}>{tamingAttempts}/2</p>
                                             </div>
                                         </div>
                                         
@@ -2552,38 +2551,39 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         )}
                                         
                                         {/* Animal Info Card */}
-                                        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                                        <div className="rounded-lg p-4" style={{ background: 'var(--surface-card-bg)', border: '1px solid var(--surface-card-border)' }}>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <p className="text-xs text-slate-500 mb-1">Species</p>
-                                                    <p className="text-sm font-medium text-slate-200">
+                                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Species</p>
+                                                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                                         {target.emoji} {target.speciesName}
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-slate-500 mb-1">Estimated Value</p>
-                                                    <p className="text-sm font-medium text-amber-600">
+                                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Estimated Value</p>
+                                                    <p className="text-sm font-medium" style={{ color: 'var(--accent-secondary)' }}>
                                                         {calculateAnimalValue(target, playerCharacter?.year || 1500)} coins
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-slate-500 mb-1">Temperament</p>
-                                                    <p className="text-sm font-medium text-slate-200">
-                                                        {target.health && target.health > 70 ? 'Healthy' : 
+                                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Temperament</p>
+                                                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                                        {target.health && target.health > 70 ? 'Healthy' :
                                                          target.health && target.health > 40 ? 'Cautious' : 'Nervous'}
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-slate-500 mb-1">Difficulty</p>
+                                                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Difficulty</p>
                                                     <div className="flex gap-1">
                                                         {[1,2,3].map(i => (
-                                                            <div 
+                                                            <div
                                                                 key={i}
                                                                 className={`w-2 h-2 rounded-full ${
-                                                                    i <= (target.level || 1) 
-                                                                        ? 'bg-orange-400' 
-                                                                        : 'bg-slate-700'
+                                                                    i <= (target.level || 1)
+                                                                        ? 'bg-orange-400'
+                                                                        : ''
                                                                 }`}
+                                                                style={i > (target.level || 1) ? { background: 'var(--border-normal)' } : undefined}
                                                             />
                                                         ))}
                                                     </div>
@@ -2606,14 +2606,15 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         
                                         {/* Approach Input */}
                                         <div className="flex-1 flex flex-col">
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                                                 Describe your taming approach:
                                             </label>
                                             <div className="flex-1 min-h-[100px] relative">
                                                 <textarea
                                                     value={tamingApproach}
                                                     onChange={(e) => setTamingApproach(e.target.value)}
-                                                    className="w-full h-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 resize-none focus:outline-none focus:border-green-500/50 focus:ring-2 focus:ring-green-500/20 transition-all"
+                                                    className="w-full h-full px-4 py-3 rounded-lg resize-none focus:outline-none focus:border-green-500/50 focus:ring-2 focus:ring-green-500/20 transition-all"
+                                                    style={{ background: 'var(--surface-card-bg)', border: '1px solid var(--border-normal)', color: 'var(--text-primary)' }}
                                                     placeholder={
                                                         tamingAttempts === 0 
                                                             ? "e.g., 'I slowly approach with open palms, speaking softly and offering food...'"
@@ -2622,15 +2623,15 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                     disabled={tamingInProgress}
                                                 />
                                                 {tamingApproach.length > 0 && (
-                                                    <div className="absolute bottom-2 right-2 text-xs text-slate-500">
+                                                    <div className="absolute bottom-2 right-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                                                         {tamingApproach.length} characters
                                                     </div>
                                                 )}
                                             </div>
                                             
                                             {/* Tips */}
-                                            <div className="mt-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                                <p className="text-xs text-slate-400">
+                                            <div className="mt-3 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-normal)' }}>
+                                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                                     💡 <span className="font-medium">Tips:</span> Mention food, gentle movements, 
                                                     patience, and understanding of the animal's nature. Different species respond 
                                                     to different approaches!
@@ -2639,15 +2640,16 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         </div>
                                         
                                         {/* Action Buttons */}
-                                        <div className="flex gap-3 pt-4 border-t border-slate-700">
+                                        <div className="flex gap-3 pt-4 border-t" style={{ borderColor: 'var(--border-normal)' }}>
                                             <button
                                                 onClick={handleTame}
                                                 disabled={!tamingApproach.trim() || tamingInProgress}
                                                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
                                                     !tamingApproach.trim() || tamingInProgress
-                                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                                        ? 'cursor-not-allowed'
                                                         : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500 hover:scale-[1.02] active:scale-[0.98]'
                                                 }`}
+                                                style={!tamingApproach.trim() || tamingInProgress ? { background: 'var(--surface-muted-bg)', color: 'var(--text-muted)' } : undefined}
                                             >
                                                 {tamingInProgress ? (
                                                     <>
@@ -2664,7 +2666,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             </button>
                                             <button
                                                 onClick={() => setActiveTab('dialogue')}
-                                                className="px-6 py-3 bg-slate-700/50 text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-all"
+                                                className="px-6 py-3 rounded-lg font-medium transition-all hover:brightness-110"
+                                                style={{ background: 'var(--surface-muted-bg)', color: 'var(--text-secondary)' }}
                                             >
                                                 Cancel
                                             </button>
@@ -2957,7 +2960,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                     }
                                                                 }}
                                                                 disabled={isSubmittingSource}
-                                                                className="w-full text-left px-3 py-2 text-sm text-slate-300 bg-slate-800/40 border border-slate-700 rounded-lg hover:bg-slate-700/40 hover:text-purple-400 hover:border-purple-500/50 transition-all"
+                                                                className="w-full text-left px-3 py-2 text-sm rounded-lg hover:text-purple-400 hover:border-purple-500/50 transition-all hover:brightness-110"
+                                                                style={{ color: 'var(--text-secondary)', background: 'var(--surface-card-bg)', border: '1px solid var(--border-normal)' }}
                                                             >
                                                                 → {question}
                                                             </button>
@@ -3181,7 +3185,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                             </button>
                                                             <button
                                                                 onClick={() => setWorkOffer(null)}
-                                                                className="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                                className="flex-1 px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors hover:brightness-110"
+                                                                style={{ background: 'var(--surface-muted-bg)', color: 'var(--text-primary)' }}
                                                             >
                                                                 ✗ Decline
                                                             </button>
@@ -3302,11 +3307,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                 <div className="space-y-2 text-sm">
                                                                     {/* Progress Bar */}
                                                                     <div>
-                                                                        <div className="flex justify-between text-xs text-slate-400 mb-1">
+                                                                        <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
                                                                             <span>Progress: {deliveredSoFar} / {totalRequired} {offer.requiredItem}</span>
                                                                             <span>{Math.round((deliveredSoFar / totalRequired) * 100)}%</span>
                                                                         </div>
-                                                                        <div className="w-full bg-slate-700 rounded-full h-2">
+                                                                        <div className="w-full rounded-full h-2" style={{ background: 'var(--surface-track-bg, var(--border-normal))' }}>
                                                                             <div
                                                                                 className="bg-purple-500 h-2 rounded-full transition-all duration-300"
                                                                                 style={{ width: `${(deliveredSoFar / totalRequired) * 100}%` }}
@@ -3315,8 +3320,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                     </div>
 
                                                                     {/* Player Inventory Status */}
-                                                                    <div className="text-xs text-slate-300">
-                                                                        You have: <span className="text-blue-400 font-semibold">{playerHas} {offer.requiredItem}</span>
+                                                                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                                                        You have: <span className="font-semibold" style={{ color: 'var(--color-info)' }}>{playerHas} {offer.requiredItem}</span>
                                                                         {playerHas < remaining && (
                                                                             <span className="text-amber-600 ml-2">(Need {remaining - playerHas} more)</span>
                                                                         )}
@@ -3325,7 +3330,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                     {/* Delivery Controls */}
                                                                     {playerHas > 0 && remaining > 0 && (
                                                                         <div className="flex items-center gap-2 mt-2">
-                                                                            <label className="text-xs text-slate-400">Deliver:</label>
+                                                                            <label className="text-xs" style={{ color: 'var(--text-muted)' }}>Deliver:</label>
                                                                             <input
                                                                                 type="number"
                                                                                 min="1"
@@ -3336,13 +3341,14 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                                                     const clamped = Math.max(1, Math.min(maxCanDeliver, val));
                                                                                     setDeliveryQuantities(prev => ({ ...prev, [offer.id]: clamped }));
                                                                                 }}
-                                                                                className="w-20 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-sm text-white"
+                                                                                className="w-20 px-2 py-1 rounded text-sm"
+                                                                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-normal)', color: 'var(--text-primary)' }}
                                                                             />
-                                                                            <span className="text-xs text-slate-400">/ {maxCanDeliver} available</span>
+                                                                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/ {maxCanDeliver} available</span>
                                                                             <button
                                                                                 onClick={() => handlePartialDelivery(offer)}
                                                                                 disabled={currentQuantity > maxCanDeliver || currentQuantity < 1}
-                                                                                className="ml-auto px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                                                className="ml-auto px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
                                                                             >
                                                                                 Deliver Items
                                                                             </button>
@@ -3409,7 +3415,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 <button
                                     onClick={() => setShowGiftModal(true)}
                                     disabled={npcWantsToLeave || isGiftingInProgress}
-                                    className="ff-action-button bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600"
+                                    className="ff-action-button bg-purple-600 hover:bg-purple-500 disabled:opacity-40"
                                     style={{
                                         minWidth: '100px'
                                     }}
@@ -3460,20 +3466,20 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 {/* Internal Monologue Modal */}
                 {showMonologue && (
                     <div className={`fixed inset-0 ${isSafari() ? 'bg-black/80' : 'bg-black/50'} flex items-center justify-center z-[60] p-4`} onClick={() => setShowMonologue(false)}>
-                        <div className="bg-slate-900 border border-amber-500/50 rounded-xl p-6 max-w-md animate-slide-up" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-amber-600 font-semibold mb-3 text-center">Inner Thoughts</h3>
+                        <div className="rounded-xl p-6 max-w-md animate-slide-up" style={{ background: 'var(--surface-modal-panel-bg)', border: '1px solid rgba(251, 191, 36, 0.35)' }} onClick={e => e.stopPropagation()}>
+                            <h3 className="font-semibold mb-3 text-center" style={{ color: 'var(--accent-secondary)' }}>Inner Thoughts</h3>
                             {isLoadingMonologue ? (
-                                <div className="text-center text-slate-400 py-4">
+                                <div className="text-center py-4" style={{ color: 'var(--text-muted)' }}>
                                     <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full mx-auto mb-2"></div>
                                     <p>Reading their mind...</p>
                                 </div>
                             ) : (
-                                <p className="text-slate-300 italic leading-relaxed">
+                                <p className="italic leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-narrative, Georgia, serif)' }}>
                                     "{monologueText}"
                                 </p>
                             )}
                             <div className="text-center mt-4">
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                     Click {3 - monologueClickCount} more time{3 - monologueClickCount !== 1 ? 's' : ''} for deeper thoughts
                                 </span>
                             </div>

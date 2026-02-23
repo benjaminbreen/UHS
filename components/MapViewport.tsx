@@ -27,7 +27,7 @@ import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
 import { CityEventOutcome } from '../services/cityEventService';
 import RuinStructureModal from './RuinStructureModal';
-import GovernmentDistrictModal from './GovernmentDistrictModal';
+import GovernmentDistrictModal from './GovernmentDistrictModalV2';
 import FishingHutModal from './FishingHutModal';
 import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay, HistoricalEra, VegetationEntity, Item, CulturalZone, Season } from '../types';
@@ -1704,6 +1704,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ atmosphere, mapVisible = true
                 onClose={() => setActiveCityModal(null)}
                 playerCharacter={playerCharacter}
                 mapData={mapData}
+                npcs={visibleNpcs || []}
                 gameTimeHours={gameTimeHours}
                 season={season}
                 onEnterSpecialMap={(config) => {

@@ -68,28 +68,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
     return palette[biome] || palette.DEFAULT;
   }, [mapData, controlledIconX, controlledIconY]);
 
-  // Detect dark mode for tab border colors
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    const checkDarkMode = () => {
-      // Debounce to avoid re-rendering during theme transition
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        const isDark = document.documentElement.classList.contains('dark');
-        setIsDarkMode(isDark);
-      }, 50);
-    };
-    checkDarkMode();
-    // Watch for theme changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => {
-      observer.disconnect();
-      clearTimeout(timeoutId);
-    };
-  }, []);
-
 
   // Handle dropping items on the map
   const handleDropItem = useCallback((item: Item) => {
@@ -489,7 +467,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   <h4 className="text-lg font-bold leading-tight tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
                     {playerCharacter.name}
                   </h4>
-                  <p className="text-md font-semibold text-emerald-600 capitalize">
+                  <p className="text-md font-semibold capitalize" style={{ color: 'var(--accent-primary)' }}>
                     {playerCharacter.profession}
                   </p>
                   <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
@@ -500,11 +478,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   <div className="flex items-center gap-2 mt-2.5">
                     <div className="surface-muted px-2 py-0.5 rounded-md transition-colors">
                       <span className="text-[10px] uppercase mr-1" style={{ color: 'var(--text-secondary)' }}>Level</span>
-                      <span className="text-sm font-bold text-emerald-600">{playerCharacter.level}</span>
+                      <span className="text-sm font-bold" style={{ color: 'var(--accent-primary)' }}>{playerCharacter.level}</span>
                     </div>
                     <div className="surface-muted px-2 py-0.5 rounded-md transition-colors">
                       <span className="text-[9px] uppercase mr-1" style={{ color: 'var(--text-secondary)' }}>Wealth</span>
-                      <span className="text-sm font-bold text-amber-600">{playerCharacter.currency}</span>
+                      <span className="text-sm font-bold" style={{ color: 'var(--accent-secondary)' }}>{playerCharacter.currency}</span>
                     </div>
                     <div className="surface-muted px-2 py-0.5 rounded-md transition-colors">
                       <span className="text-[9px] uppercase mr-1" style={{ color: 'var(--text-secondary)' }}>Rep</span>
@@ -568,7 +546,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                   <div className="flex-1 group">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Experience</span>
-                      <span className="text-xs font-semibold tabular-nums text-emerald-600">
+                      <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--accent-primary)' }}>
                         {Math.ceil(playerCharacter.experience)}
                       </span>
                     </div>
@@ -590,7 +568,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 {playerCharacter.elevatedState && (
                   <div className="mt-1 px-3 py-2 surface-muted rounded-xl" style={{ borderColor: 'var(--accent-primary)', borderWidth: '2px' }}>
                     <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide">
-                      <span className="text-emerald-600">Elevated</span>
+                      <span style={{ color: 'var(--accent-primary)' }}>Elevated</span>
                       <span style={{ color: 'var(--text-primary)' }} className="capitalize">{playerCharacter.elevatedState.replace('_', ' ')}</span>
                     </div>
                     <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -661,7 +639,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
           </div>
         </div>
 
-          <div className="flex gap-1 px-2 pt-2">
+          <div className="relative z-0 flex gap-1 px-2 pt-2">
           {!isHistoryLensActive && (
             <button
               onClick={() => handleTabClick('narrator')}
@@ -671,17 +649,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               style={{
                 borderRadius: '10px 10px 0 0',
                 background: activeTab === 'narrator'
-                  ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                  ? 'var(--bg-secondary)'
                   : hoveredTab === 'narrator'
-                    ? 'rgba(55, 65, 85, 0.8)'
-                    : 'rgba(35, 45, 60, 0.6)',
-                borderTop: `1px solid ${activeTab === 'narrator' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-                borderLeft: `1px solid ${activeTab === 'narrator' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-                borderRight: `1px solid ${activeTab === 'narrator' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    ? 'var(--surface-elevated-bg)'
+                    : 'var(--surface-muted-bg)',
+                borderTop: `1px solid ${activeTab === 'narrator' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+                borderLeft: `1px solid ${activeTab === 'narrator' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+                borderRight: `1px solid ${activeTab === 'narrator' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
                 borderBottom: 'none',
-                color: activeTab === 'narrator' ? 'var(--text-primary)' : hoveredTab === 'narrator' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+                color: activeTab === 'narrator' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 marginBottom: '-1px',
-                zIndex: activeTab === 'narrator' ? 3 : 1,
+                zIndex: 0,
                 position: 'relative',
                 boxShadow: activeTab === 'narrator' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
               }}
@@ -698,17 +676,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
               style={{
                 borderRadius: '10px 10px 0 0',
                 background: activeTab === 'map'
-                  ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                  ? 'var(--bg-secondary)'
                   : hoveredTab === 'map'
-                    ? 'rgba(55, 65, 85, 0.8)'
-                    : 'rgba(35, 45, 60, 0.6)',
-                borderTop: `2px solid ${activeTab === 'map' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-                borderLeft: `1px solid ${activeTab === 'map' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-                borderRight: `1px solid ${activeTab === 'map' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    ? 'var(--surface-elevated-bg)'
+                    : 'var(--surface-muted-bg)',
+                borderTop: `2px solid ${activeTab === 'map' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+                borderLeft: `1px solid ${activeTab === 'map' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+                borderRight: `1px solid ${activeTab === 'map' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
                 borderBottom: 'none',
-                color: activeTab === 'map' ? 'var(--text-primary)' : hoveredTab === 'map' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+                color: activeTab === 'map' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 marginBottom: '-1px',
-                zIndex: activeTab === 'map' ? 3 : 1,
+                zIndex: 0,
                 position: 'relative',
                 boxShadow: activeTab === 'map' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
               }}
@@ -724,17 +702,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
             style={{
               borderRadius: '10px 10px 0 0',
               background: activeTab === 'inventory'
-                ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                ? 'var(--bg-secondary)'
                 : hoveredTab === 'inventory'
-                  ? 'rgba(55, 65, 85, 0.8)'
-                  : 'rgba(35, 45, 60, 0.6)',
-              borderTop: `2px solid ${activeTab === 'inventory' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-              borderLeft: `1px solid ${activeTab === 'inventory' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-              borderRight: `1px solid ${activeTab === 'inventory' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  ? 'var(--surface-elevated-bg)'
+                  : 'var(--surface-muted-bg)',
+              borderTop: `2px solid ${activeTab === 'inventory' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+              borderLeft: `1px solid ${activeTab === 'inventory' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+              borderRight: `1px solid ${activeTab === 'inventory' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
               borderBottom: 'none',
-              color: activeTab === 'inventory' ? 'var(--text-primary)' : hoveredTab === 'inventory' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+              color: activeTab === 'inventory' ? 'var(--text-primary)' : 'var(--text-secondary)',
               marginBottom: '-1px',
-              zIndex: activeTab === 'inventory' ? 3 : 1,
+              zIndex: 0,
               position: 'relative',
               boxShadow: activeTab === 'inventory' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
             }}
@@ -749,17 +727,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
             style={{
               borderRadius: '10px 10px 0 0',
               background: activeTab === 'journal'
-                ? 'linear-gradient(180deg, rgba(45, 55, 75, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                ? 'var(--bg-secondary)'
                 : hoveredTab === 'journal'
-                  ? 'rgba(55, 65, 85, 0.8)'
-                  : 'rgba(35, 45, 60, 0.6)',
-              borderTop: `2px solid ${activeTab === 'journal' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-              borderLeft: `1px solid ${activeTab === 'journal' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
-              borderRight: `1px solid ${activeTab === 'journal' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  ? 'var(--surface-elevated-bg)'
+                  : 'var(--surface-muted-bg)',
+              borderTop: `2px solid ${activeTab === 'journal' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+              borderLeft: `1px solid ${activeTab === 'journal' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
+              borderRight: `1px solid ${activeTab === 'journal' ? 'var(--border-normal)' : 'var(--border-subtle)'}`,
               borderBottom: 'none',
-              color: activeTab === 'journal' ? 'var(--text-primary)' : hoveredTab === 'journal' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+              color: activeTab === 'journal' ? 'var(--text-primary)' : 'var(--text-secondary)',
               marginBottom: '-1px',
-              zIndex: activeTab === 'journal' ? 3 : 1,
+              zIndex: 0,
               position: 'relative',
               boxShadow: activeTab === 'journal' ? '0 -2px 8px rgba(0, 0, 0, 0.15)' : 'none',
             }}
@@ -772,10 +750,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
         <div
           className="flex-1 min-h-0 px-2 pb-2 pt-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(25, 35, 50, 0.98) 100%)',
-            borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRight: '1px solid rgba(255, 255, 255, 0.15)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+            background: 'var(--bg-secondary)',
+            borderLeft: '1px solid var(--border-normal)',
+            borderRight: '1px solid var(--border-normal)',
+            borderBottom: '1px solid var(--border-normal)',
             borderTop: 'none',
             borderRadius: '0 0 12px 12px',
             marginLeft: '8px',
@@ -798,7 +776,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
 
           {activeTab === 'inventory' && playerCharacter && (
             <div className="h-full animate-fadeIn">
-              <div className="inventory-slot-grid h-full rounded-2xl p-2 bg-slate-900/20 border border-white/5">
+              <div className="inventory-slot-grid h-full rounded-2xl p-2" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
                 <InventoryPanelEnhanced
                   playerCharacter={playerCharacter}
                   highlightedItemId={highlightedItemId}
@@ -832,7 +810,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ isProcessingWorldWeaver = f
                 <div className="p-6 text-sm text-text-muted">Map data unavailable.</div>
               ) : (
                 <div className="h-full w-full p-2">
-                  <div className="h-full w-full rounded-xl overflow-hidden bg-slate-900/30">
+                  <div className="h-full w-full rounded-xl overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
                     <MapDisplayOptimized
                       mapData={mapData}
                       currentMapSeed={currentMapSeed}
