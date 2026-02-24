@@ -50,13 +50,40 @@ html {
 body {
   position: fixed;
   height: 100%;
+  height: 100dvh; /* Dynamic viewport height - responds to keyboard */
   width: 100%;
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
-  touch-action: none;
+  touch-action: manipulation;
   -webkit-touch-callout: none;
   /* Removed user-select: none to allow text selection */
+}
+
+/* When keyboard is open, allow the app shell to shrink */
+@media (max-width: 768px) {
+  html, body {
+    height: 100dvh;
+  }
+
+  .app-shell {
+    height: 100dvh;
+    height: 100%;
+  }
+}
+
+/* Block touch actions only on the map canvas, not globally */
+.map-canvas,
+canvas.map-display {
+  touch-action: none;
+}
+
+/* Ensure scrollable panels work on mobile */
+.mobile-scrollable-panel,
+[role="log"],
+.overflow-y-auto {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Mobile app container */

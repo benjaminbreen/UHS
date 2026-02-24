@@ -19,6 +19,7 @@ import { isSafari } from './utils/safariUtils';
 import MobileHeader from './components/mobile/MobileHeader';
 import MobileQuickStats from './components/mobile/MobileQuickStats';
 import MobileSidebar from './components/mobile/MobileSidebar';
+import MobileNarratorView from './components/mobile/MobileNarratorView';
 import ModalHub from './components/ModalHub';
 import PauseModal from './components/PauseModal';
 import DebugOverlay from './components/DebugOverlay';
@@ -577,6 +578,7 @@ const AppContent: React.FC = () => {
     
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
+    const [mobileNarratorExpanded, setMobileNarratorExpanded] = React.useState(false);
     const isMobile = isMobileDevice();
     const [hasShownInitialScenario, setHasShownInitialScenario] = React.useState(false);
     const [hasInitializedFromURL, setHasInitializedFromURL] = React.useState(false);
@@ -1166,7 +1168,19 @@ const AppContent: React.FC = () => {
                     onMenuClick={() => setMobileSidebarOpen(true)}
                 />
             )}
-            <div className="relative flex-1 flex items-stretch overflow-hidden p-2 sm:p-3 lg:pt-6 lg:px-8 lg:pb-12 gap-2 sm:gap-3 lg:gap-5 h-full max-h-full">
+            {/* Spacer for fixed MobileHeader so content doesn't hide behind it */}
+            {isMobile && playerCharacter && (
+                <div style={{ height: 'calc(48px + env(safe-area-inset-top, 0px))', flexShrink: 0 }} />
+            )}
+            <div
+                className={`relative flex items-stretch overflow-hidden gap-2 sm:gap-3 lg:gap-5 max-h-full ${isMobile ? '' : 'flex-1 h-full p-2 sm:p-3 lg:pt-6 lg:px-8 lg:pb-12'}`}
+                style={isMobile && playerCharacter ? {
+                    height: mobileNarratorExpanded ? '30%' : '55%',
+                    flexShrink: 0,
+                    padding: '4px',
+                    transition: 'height 0.3s ease',
+                } : undefined}
+            >
                 {/* Desktop sidebar toggle */}
                 {!isLeftSidebarExpanded && !isUIHidden && (
                     <button
@@ -1181,24 +1195,25 @@ const AppContent: React.FC = () => {
                     </button>
                 )}
                 
-                {/* Mobile menu buttons - bottom positioned for thumb reach */}
+                {/* Mobile menu buttons - positioned above narrator panel */}
                 {!isUIHidden && (
                     <>
                         <button
                             onClick={() => setMobileMenuOpen(mobileMenuOpen === 'left' ? null : 'left')}
-                            className="sm:hidden fixed z-40 w-14 h-14 flex items-center justify-center surface-elevated text-text-primary rounded-full border border-white/20 shadow-lg backdrop-blur-md"
+                            className="sm:hidden fixed z-40 w-11 h-11 flex items-center justify-center surface-elevated text-text-primary rounded-full border border-white/20 shadow-lg backdrop-blur-md"
                             style={{
-                                bottom: 'calc(20px + var(--sab, 0px))',
-                                left: '16px',
+                                bottom: mobileNarratorExpanded ? '72%' : '47%',
+                                left: '12px',
+                                transition: 'bottom 0.3s ease',
                             }}
                             aria-label="Toggle World Info"
                         >
                             {mobileMenuOpen === 'left' ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             )}
@@ -1206,19 +1221,20 @@ const AppContent: React.FC = () => {
 
                         <button
                             onClick={() => setMobileMenuOpen(mobileMenuOpen === 'right' ? null : 'right')}
-                            className="sm:hidden fixed z-40 w-14 h-14 flex items-center justify-center surface-elevated text-text-primary rounded-full border border-white/20 shadow-lg backdrop-blur-md"
+                            className="sm:hidden fixed z-40 w-11 h-11 flex items-center justify-center surface-elevated text-text-primary rounded-full border border-white/20 shadow-lg backdrop-blur-md"
                             style={{
-                                bottom: 'calc(20px + var(--sab, 0px))',
-                                right: '16px',
+                                bottom: mobileNarratorExpanded ? '72%' : '47%',
+                                right: '12px',
+                                transition: 'bottom 0.3s ease',
                             }}
                             aria-label="Toggle Player Menu"
                         >
                             {mobileMenuOpen === 'right' ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                             )}
@@ -1262,8 +1278,9 @@ const AppContent: React.FC = () => {
                             />
                             <div
                                 className="absolute bottom-0 left-0 right-0 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp border-t"
-                                style={{ background: 'var(--surface-sidebar-bg)', borderColor: 'var(--surface-sidebar-border)' }}
                                 style={{
+                                    background: 'var(--surface-sidebar-bg)',
+                                    borderColor: 'var(--surface-sidebar-border)',
                                     maxHeight: 'calc(70vh - var(--sat, 0px))',
                                     paddingBottom: 'var(--sab, 0px)',
                                 }}
@@ -1339,8 +1356,9 @@ const AppContent: React.FC = () => {
                             />
                             <div
                                 className="absolute bottom-0 left-0 right-0 backdrop-blur-xl rounded-t-3xl overflow-hidden animate-slideUp border-t"
-                                style={{ background: 'var(--surface-sidebar-bg)', borderColor: 'var(--surface-sidebar-border)' }}
                                 style={{
+                                    background: 'var(--surface-sidebar-bg)',
+                                    borderColor: 'var(--surface-sidebar-border)',
                                     maxHeight: 'calc(70vh - var(--sat, 0px))',
                                     paddingBottom: 'var(--sab, 0px)',
                                 }}
@@ -1358,6 +1376,14 @@ const AppContent: React.FC = () => {
                 </>
                 )}
             </div>
+
+            {/* Mobile Narrator View - always-visible text mode for mobile */}
+            {isMobile && playerCharacter && !isStudyingStars && !isUIHidden && (
+                <MobileNarratorView
+                    expanded={mobileNarratorExpanded}
+                    onToggleExpanded={() => setMobileNarratorExpanded(!mobileNarratorExpanded)}
+                />
+            )}
         </div>
         <ModalHub />
         <PauseModal
