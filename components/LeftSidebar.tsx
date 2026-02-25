@@ -690,7 +690,7 @@ const LeftSidebar: React.FC<{
                     {biome.replace(/_/g, ' ').toLowerCase()}
                   </span>
                   <div className="flex items-center gap-1">
-                    <div className="w-20 h-1 bg-[rgba(189,179,162,0.35)] rounded-full overflow-hidden">
+                    <div className="w-20 h-1 rounded-full overflow-hidden" style={{ background: 'var(--surface-track-bg, rgba(189,179,162,0.35))' }}>
                       <div
                         className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"
                         style={{ width: `${percent}%` }}
@@ -728,7 +728,7 @@ const LeftSidebar: React.FC<{
                     </div>
                   );
                 })}
-                <div className="pt-2 border-t" style={{ borderColor: 'rgba(189, 179, 162, 0.35)' }}>
+                <div className="pt-2 border-t" style={{ borderColor: 'var(--border-subtle, rgba(189, 179, 162, 0.35))' }}>
                   <div className="text-[10px] text-[var(--text-muted)]">
                     Total resource tiles: {Array.from(mineralDeposits.values()).reduce((a, b) => a + b, 0)}
                   </div>
@@ -813,7 +813,7 @@ const LeftSidebar: React.FC<{
                 onMouseLeave={() => onHideFactionTooltip?.()}
               >
                 <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/40 dark:bg-white/10">
-                  <FactionIcon className="w-8 h-8" style={{ color: factionIconData?.color || '#3f5b64' }} />
+                  <FactionIcon className="w-8 h-8" style={{ color: factionIconData?.color || 'var(--text-secondary)' }} />
                 </span>
                 <span>
                   <p className="text-base font-semibold text-[var(--text-primary)]">{dominantPower}</p>

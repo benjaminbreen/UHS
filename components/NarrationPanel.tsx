@@ -234,8 +234,6 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
         // Check if this text is a location (***text***)
         const isLocation = locationNames.has(textContent);
 
-        console.log(`[NarrationPanel] Rendering "${textContent}" as ${isLocation ? 'LOCATION (blue)' : 'NPC (emerald/amber)'}`);
-
         if (isLocation) {
           // This is a location (***text***) - blue to match narrator theme
           return (

@@ -8,7 +8,6 @@ import {
   Sun, Moon, FileText, Pause, Play, Flag
 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
-import { Eye, EyeOff } from 'lucide-react';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { MapArchetype, ClimateType, AltitudeSetting, GameDate } from '../types';
