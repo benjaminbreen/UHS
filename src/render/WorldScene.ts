@@ -5,7 +5,7 @@ import type { Runtime } from "../runtime/session";
 import type { Position } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { random } from "../core/random";
-import shadowAnchors from "./generated/shadows.json" with { type: "json" };
+import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
@@ -24,6 +24,9 @@ export class WorldScene extends Phaser.Scene {
   private lastTick = 0;
   private ready = false;
   private lastRevision = -1;
+  private light = lightingAt(9 * 3600);
+  private tint = 0xffffff;
+  private shadowPhase = this.light.id;
   private night?: Phaser.GameObjects.Graphics;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<string, Phaser.Input.Keyboard.Key>;
@@ -36,6 +39,11 @@ export class WorldScene extends Phaser.Scene {
   }
   preload() {
     this.load.atlas("atlas", "/packs/atlas.png", "/packs/atlas.json");
+    this.load.atlas(
+      "lighting-shadows",
+      "/packs/lighting-shadows.png",
+      "/packs/lighting-shadows.json",
+    );
     this.load.image("terrain", "/packs/terrain.png");
   }
   create() {
@@ -123,21 +131,18 @@ export class WorldScene extends Phaser.Scene {
     const image = this.add
       .image(x, y, "atlas", frame)
       .setOrigin(0.5, 1)
+      .setTint(this.tint)
       .setDepth(depth);
     this.layers.push(image);
     return image;
   }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false) return undefined;
-    const atlas = this.textures.get("atlas");
-    if (!atlas.has(`shadow-${frame}`)) return undefined;
-    const shadow = atlas.get(`shadow-${frame}`);
-    const anchor = (shadowAnchors as Record<string, number[]>)[
-      `shadow-${frame}`
-    ];
+    const key = shadowFrame(this.shadowPhase, frame);
+    if (!this.textures.get("lighting-shadows").has(key)) return undefined;
     const image = this.add
-      .image(x, y, "atlas", `shadow-${frame}`)
-      .setOrigin(anchor[0] / shadow.width, anchor[1] / shadow.height)
+      .image(x, y, "lighting-shadows", key)
+      .setOriginFromFrame()
       .setDepth(-60000);
     if (!transient) this.layers.push(image);
     return image;
@@ -148,6 +153,14 @@ export class WorldScene extends Phaser.Scene {
       e = rt.engine,
       p = e.state.player.pos,
       w = e.world;
+    this.light = this.options.lighting
+      ? lightingPreset(this.options.lighting)
+      : lightingAt(e.state.clock);
+    this.tint =
+      this.options.colorGrade === false
+        ? 0xffffff
+        : parseInt(this.light.tint, 16);
+    this.shadowPhase = p.space === "outside" ? this.light.id : "night";
     const c = this.cameras.main;
     c.setZoom(rt.zoom);
     if (!this.entities.has("player")) c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
@@ -160,6 +173,8 @@ export class WorldScene extends Phaser.Scene {
       bx,
       by,
       rt.zoom,
+      this.light.id,
+      this.tint,
       this.scale.width,
       this.scale.height,
     ].join(":");
@@ -208,7 +223,8 @@ export class WorldScene extends Phaser.Scene {
       )!;
       this.ground = this.tilemap
         .createLayer(0, ts, startX * 16, startY * 16)!
-        .setDepth(-100000);
+        .setDepth(-100000)
+        .setTint(this.tint);
       if (p.space === "outside") {
         const neighbors = [
           [0, -1],
@@ -420,18 +436,13 @@ export class WorldScene extends Phaser.Scene {
           );
         }
       }
-      im.setFrame(frame).setDepth(pos.y * 16 + (actor ? 14 : 10));
+      im.setFrame(frame)
+        .setTint(frame === "fire" ? 0xffffff : this.tint)
+        .setDepth(pos.y * 16 + (actor ? 14 : 10));
       const shade = this.shadows.get(id);
-      if (shade && this.textures.get("atlas").has(`shadow-${frame}`)) {
-        shade.setFrame(`shadow-${frame}`);
-        const anchor = (shadowAnchors as Record<string, number[]>)[
-          `shadow-${frame}`
-        ];
-        shade.setOrigin(
-          anchor[0] / shade.frame.width,
-          anchor[1] / shade.frame.height,
-        );
-      }
+      const shadowKey = shadowFrame(this.shadowPhase, frame);
+      if (shade && this.textures.get("lighting-shadows").has(shadowKey))
+        shade.setTexture("lighting-shadows", shadowKey).setOriginFromFrame();
       if (
         changed &&
         (im.x !== tx || im.y !== ty) &&
@@ -526,24 +537,10 @@ export class WorldScene extends Phaser.Scene {
         );
       }
     }
-    const hour =
-      this.options.lighting === "dusk"
-        ? 19
-        : this.options.lighting
-          ? 12
-          : (e.state.clock / 3600) % 24;
-    const darkness =
-      hour < 6 || hour >= 20
-        ? 0.42
-        : hour < 8
-          ? (8 - hour) * 0.1
-          : hour > 17
-            ? (hour - 17) * 0.1
-            : 0;
     this.night!.clear()
       .fillStyle(
-        this.options.lighting === "warm" ? 0xbf772e : 0x162833,
-        this.options.lighting === "warm" ? 0.1 : darkness,
+        parseInt(this.light.ambient, 16),
+        this.options.colorGrade === false ? 0 : this.light.ambientAlpha,
       )
       .fillRect(
         -this.scale.width * 4,
@@ -551,6 +548,7 @@ export class WorldScene extends Phaser.Scene {
         this.scale.width * 9,
         this.scale.height * 9,
       );
+    this.game.canvas.dataset.lighting = this.light.id;
     this.lastRevision = e.state.revision;
   }
   update(time: number) {

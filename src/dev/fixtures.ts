@@ -1,3 +1,8 @@
+import {
+  parseLighting,
+  lightingPreset,
+  type LightingId,
+} from "../render/lighting";
 import { packs, items } from "../content/packs";
 import { landscapes } from "../content/graphics/landscapes";
 import { buildingModel } from "../render/buildings";
@@ -60,7 +65,8 @@ export type LabConfig = {
   study: Study;
   scene: "board" | "settlement";
   bank: "earth" | "masonry";
-  lighting: "day" | "warm" | "dusk";
+  lighting: LightingId;
+  colorGrade: boolean;
   panX: number;
   panY: number;
   zoom: number;
@@ -77,12 +83,8 @@ export function parseLabConfig(search: string): LabConfig {
     study: Object.hasOwn(studies, study) ? study : "classical",
     scene: p.get("scene") === "settlement" ? "settlement" : "board",
     bank: p.get("bank") === "earth" ? "earth" : "masonry",
-    lighting:
-      p.get("lighting") === "warm"
-        ? "warm"
-        : p.get("lighting") === "dusk"
-          ? "dusk"
-          : "day",
+    lighting: parseLighting(p.get("lighting")),
+    colorGrade: p.get("colorGrade") !== "0",
     panX: Math.max(-100, Math.min(100, Math.round(Number(p.get("panX")) || 0))),
     panY: Math.max(-100, Math.min(100, Math.round(Number(p.get("panY")) || 0))),
     zoom: Math.max(1, Math.min(4, Math.round(Number(p.get("zoom")) || 2))),
@@ -124,6 +126,7 @@ export function createLabRuntime(config: LabConfig) {
       : specimenWorld(pack, config.seed);
   const engine = new Engine(world, items);
   engine.initialize(config.seed);
+  engine.state.clock = lightingPreset(config.lighting).hour * 3600;
   if (config.scene === "settlement") {
     const focus = world.places[3];
     engine.state.player.pos = {

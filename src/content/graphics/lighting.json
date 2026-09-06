@@ -1,0 +1,8 @@
+[
+  {"id":"early-morning","label":"Early morning","start":5,"hour":6,"cast":[-0.85,0.28],"opacity":0.22,"tint":"ffe1bb","ambient":"b18e65","ambientAlpha":0.04},
+  {"id":"morning","label":"Morning","start":8,"hour":9,"cast":[-0.45,0.22],"opacity":0.27,"tint":"fff1db","ambient":"000000","ambientAlpha":0},
+  {"id":"midday","label":"Midday","start":11,"hour":12,"cast":[0.06,0.12],"opacity":0.23,"tint":"ffffff","ambient":"000000","ambientAlpha":0},
+  {"id":"afternoon","label":"Afternoon","start":14,"hour":15,"cast":[0.5,0.24],"opacity":0.27,"tint":"ffecd1","ambient":"000000","ambientAlpha":0},
+  {"id":"dusk","label":"Dusk","start":17,"hour":18,"cast":[0.9,0.3],"opacity":0.17,"tint":"e9bcc0","ambient":"5d4863","ambientAlpha":0.10},
+  {"id":"night","label":"Night","start":20,"hour":22,"cast":[0,0],"opacity":0,"tint":"a1b6d5","ambient":"15243e","ambientAlpha":0.24}
+]

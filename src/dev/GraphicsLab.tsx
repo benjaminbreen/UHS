@@ -1,3 +1,4 @@
+import { lightingPresets, lightingPreset } from "../render/lighting";
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import { WorldScene } from "../render/WorldScene";
@@ -40,6 +41,7 @@ export function GraphicsLab() {
       freeze: config.freeze,
       shadows: config.shadows,
       lighting: config.lighting,
+      colorGrade: config.colorGrade,
     });
     const g = new Phaser.Game({
       type: Phaser.AUTO,
@@ -62,12 +64,30 @@ export function GraphicsLab() {
     const description = {
       config,
       renderer: "WorldScene",
+      lighting: lightingPreset(config.lighting),
       models: runtime.engine.world.places.map((p) => ({
         id: p.id,
         model: buildingModels[p.sprite],
       })),
     };
-    Object.assign(window, { graphicsLab: { describe: () => description } });
+    Object.assign(window, {
+      graphicsLab: {
+        describe: () => ({
+          ...description,
+          renderedShadowFrames: [
+            ...new Set(
+              (scene.children?.list ?? [])
+                .filter(
+                  (o): o is Phaser.GameObjects.Image =>
+                    o instanceof Phaser.GameObjects.Image &&
+                    o.texture.key === "lighting-shadows",
+                )
+                .map((o) => o.frame.name),
+            ),
+          ],
+        }),
+      },
+    });
     return () => {
       observer.disconnect();
       g.destroy(true);
@@ -147,9 +167,13 @@ export function GraphicsLab() {
                 update({ lighting: e.target.value as LabConfig["lighting"] })
               }
             >
-              <option value="day">Daylight</option>
-              <option value="warm">Warm daylight</option>
-              <option value="dusk">Dusk</option>
+              {lightingPresets.map((p, i) => (
+                <option key={p.id} value={p.id}>
+                  {p.label} · {String(p.start).padStart(2, "0")}:00–
+                  {String(lightingPresets[(i + 1) % 6].start).padStart(2, "0")}
+                  :00
+                </option>
+              ))}
             </select>
           </label>
           <div className="lab-control-pair">
@@ -210,6 +234,14 @@ export function GraphicsLab() {
           <label className="lab-check">
             <input
               type="checkbox"
+              checked={config.colorGrade}
+              onChange={(e) => update({ colorGrade: e.target.checked })}
+            />
+            Time-of-day colors
+          </label>
+          <label className="lab-check">
+            <input
+              type="checkbox"
               checked={config.freeze}
               onChange={(e) => update({ freeze: e.target.checked })}
             />
@@ -246,9 +278,10 @@ export function GraphicsLab() {
               material transitions and depth ordering.
             </p>
             <p className="lab-note">
-              Light treatments use a fixed upper-left sun direction. The
-              generated settlement preserves the playable generator’s geometry;
-              the court deliberately tests a more varied river contour.
+              Six local-time presets change shadow direction, length and color.
+              The generated settlement preserves the playable generator’s
+              geometry; the court deliberately tests a more varied river
+              contour.
             </p>
           </details>
         </aside>

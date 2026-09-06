@@ -9,7 +9,7 @@ Useful starting views:
 - `/graphics-lab?study=mixed&bank=earth&debug=1` — compare construction families and their contracts.
 - Add `scene=settlement` for the normal generated settlement. The default construction court exercises a variable-width river, all four building variants, trees, storage vessels and communal objects.
 
-Choose daylight, warm daylight or dusk; earth banks or masonry quays; 1–4× integer pixels; wide, square or portrait framing. Pan buttons and every setting are represented in the URL. **Copy link** preserves a reproducible comparison; **Save PNG** exports the actual renderer. Freeze water for stable before/after captures. Cyan overlays mark collision footprints, gold marks entrances, and pink marks visual bounds.
+Choose one of six time-of-day bands; earth banks or masonry quays; 1–4× integer pixels; wide, square or portrait framing. Pan buttons and every setting are represented in the URL. **Copy link** preserves a reproducible comparison; **Save PNG** exports the actual renderer. Freeze water for stable before/after captures. Cyan overlays mark collision footprints, gold marks entrances, and pink marks visual bounds.
 
 The France, China and California presets are **construction studies**, not finished or authenticated historical packs. They demonstrate timber framing, hipped tile roofs and weatherboard using the same compiler and rendering path. New periods still need researched recipes and, where necessary, additional authored construction parts.
 
@@ -38,7 +38,7 @@ This pass replaces era-selected building drawing with shared construction recipe
 
 Saved worlds retain generator version 1 and its channel, road and object collision geometry. Curved/variable-width shorelines are exercised in the isolated court; changing the playable world's actual water contour needs a separately versioned generator and save compatibility policy. The existing channel's visual bank treatment improves without moving its blocked cells.
 
-Day/warm/dusk are fixed upper-left lighting treatments; they do not simulate a moving sun. Building cast length uses authored height, and contact shadows are separate. Visual acceptance still requires looking at the output: automated checks do not establish that it matches the mockups. Further refinement should focus on material irregularity, roof/foliage silhouettes and contextual density through the shared recipes, with classical and mudbrick as the first standards.
+Six local-time presets now change cast direction and length, while authored building height controls scale and contact shadows remain grounded. They are an art-directed approximation rather than a solar simulation. Visual acceptance still requires looking at the output: automated checks do not establish that it matches the mockups. Further refinement should focus on material irregularity, roof/foliage silhouettes and contextual density through the shared recipes, with classical and mudbrick as the first standards.
 
 ## Verification and restore points
 
@@ -56,3 +56,15 @@ git worktree add ../UHS-graphics-baseline checkpoint-before-graphics-refactor
 ```
 
 Then install dependencies in that directory with `npm ci` and run it on another port if needed. The checkpoint contains the generated assets, so the ignored reference packs are not needed to restore the running application. Browser saves are separate from Git; export valuable journeys from Settings before testing changes to simulation or generation.
+
+## Time-of-day lighting
+
+`src/content/graphics/lighting.json` is the single table shared by the art compiler, gameplay and lab. Six local-hour bands start at **05:00, 08:00, 11:00, 14:00, 17:00 and 20:00**: early morning, morning, midday, afternoon, dusk and night. Midnight remains night. These are art-directed hours, not a latitude/season astronomy model.
+
+Each row specifies a cast vector, opacity, source-color multiplier and ambient wash. `scripts/art/shadows.py` projects the source silhouettes into six integer-pixel masks, using authored building height and a modest ground depth. Upright silhouettes are projected across the cast direction, preserving a narrow trunk connection and vessel-neck profile at low sun angles. Compact contacts follow actual base pixels instead of generic ovals, and stay fixed as solar shadows change direction and length. Night uses contact masks only; interiors also omit solar casts. The hearth's stones cast shadows, while its flame is excluded from the caster and retains its color.
+
+The masks occupy one separate atlas (`lighting-shadows.png/json`, around 52 KB PNG). Its native Phaser pivots hold the ground anchor steady. Gameplay swaps frame names only when the local-time band changes; ordinary animation reuses the appropriate pose mask. There is no runtime image processing, per-minute solar solver, extra simulation state, or shadow texture per object. The previous fixed masks and redundant anchor manifest were removed. The shared atlas packer handles both sprite and shadow files.
+
+The lab's **Light treatment** menu exposes all six bands; **Time-of-day colors** and **Cast & contact shadows** are independent comparison toggles. Old `lighting=day` and `lighting=warm` links resolve to midday and afternoon. `window.graphicsLab.describe()` includes the actual rendered shadow frame names for inspection.
+
+Color treatment multiplies the existing pixel colors and applies a restrained ambient wash, leaving the UI unchanged. Authored highlights and recess shading remain baked into sprites: this is not normal-map relighting or a light-occlusion engine. Shadows are still a 2.5D ground-plane approximation and can overlap; per-surface shadow receiving and local lamp/fire illumination remain possible later improvements. Prefer improving asset silhouettes, material planes and contextual composition before adding a more elaborate renderer.

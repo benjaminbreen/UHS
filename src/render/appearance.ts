@@ -1,10 +1,12 @@
+import type { LightingId } from "./lighting";
 import { random } from "../core/random";
 import type { Terrain } from "../core/types";
 export type RenderOptions = {
   onReady?: () => void;
   debug?: boolean;
   freeze?: boolean;
-  lighting?: "day" | "warm" | "dusk";
+  lighting?: LightingId;
+  colorGrade?: boolean;
   shadows?: boolean;
   lab?: boolean;
 };

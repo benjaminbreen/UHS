@@ -172,16 +172,9 @@ paint_world(S)
 from art.buildings import build_buildings
 from art.shadows import build_shadows
 buildings = build_buildings(ROOT, S)
-build_shadows(S, buildings)
-shadow_anchors={n:im.info['anchor'] for n,im in S.items() if 'anchor' in im.info}
-(OUT/'shadows.json').write_text(json.dumps(shadow_anchors))
-# Pack named frames into one texture. A 16px grid is a sampling unit, not an asset-size limit.
-atlas=Image.new('RGBA',(1024,2048));frames={};x=y=rowh=0
-for name,im in S.items():
- w,h=im.size
- if x+w+2>1024:x=0;y+=rowh+2;rowh=0
- atlas.paste(im,(x,y));frames[name]={'frame':{'x':x,'y':y,'w':w,'h':h},'sourceSize':{'w':w,'h':h},'spriteSourceSize':{'x':0,'y':0,'w':w,'h':h},'rotated':False,'trimmed':False};x+=w+2;rowh=max(rowh,h)
-atlas=atlas.crop((0,0,1024,y+rowh+2));atlas.save(OUT/'atlas.png');(OUT/'atlas.json').write_text(json.dumps({'frames':frames,'meta':{'image':'atlas.png','scale':'1','size':{'w':atlas.width,'h':atlas.height}}}))
+build_shadows(ROOT, S, buildings)
+from art.atlas import pack_atlas
+atlas=pack_atlas(S,OUT,'atlas')
 # Reviewable original-asset proof at exactly 3x nearest-neighbor scaling.
 proof=Image.new('RGB',(1120,900),'#202127');d=ImageDraw.Draw(proof)
 d.text((30,20),'UHS / ORIGINAL PIXEL LANGUAGE / 16px terrain / multi-cell silhouettes / graphics polish',fill='#d8c9a5')
@@ -196,4 +189,4 @@ tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i fo
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','terrain.json','shadows.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
